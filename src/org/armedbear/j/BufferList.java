@@ -68,6 +68,7 @@ public final class BufferList implements PreferencesChangeListener, Iterable<Buf
     }
 
     public synchronized boolean remove(Buffer buf) {
+        ChangeList.forget(buf);
         return list.remove(buf);
     }
 

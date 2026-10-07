@@ -48,8 +48,6 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
     };
 
     private List<String> dirSnapshot;
-    // The buffer's directory's own list, when the project's leaves it out.
-    private ProjectFiles localFiles;
     private List<FinderItem> dirItems = List.of();
     private final Map<String, List<FinderItem>> listings = new HashMap<>();
     private boolean fromFallback;
@@ -72,8 +70,6 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
     public void detached() {
         super.detached();
         textField.removeFocusListener(focusListener);
-        if (localFiles != null)
-            localFiles.removeListener(listener);
     }
 
     // What the text is: opened as typed, a directory to list, or a name to find.
@@ -173,18 +169,12 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
             return List.of();
         if (root == null || projectFiles == null || !isUnder(dir.canonicalPath(), root.canonicalPath()))
             return listing("", false);
-        if (localFiles != null)
-            return items(localFiles.files(), "");
         String rel = ProjectFiles.relative(Path.of(root.canonicalPath()), Path.of(dir.canonicalPath()));
         List<FinderItem> items = items(projectFiles.files(), rel.isEmpty() ? "" : rel + "/");
         // Nothing here in the project's list, which skips what's ignored, such as
-        // build output: list the directory on its own.
-        if (items.isEmpty() && !rel.isEmpty() && !projectFiles.isScanning()) {
-            localFiles = ProjectFiles.forRoot(dir);
-            localFiles.addListener(listener);
-            localFiles.refreshIfStale(Editor.preferences().getIntegerProperty(Property.FINDER_RESCAN_SECONDS));
-            return items(localFiles.files(), "");
-        }
+        // build output: list the directory's own entries.
+        if (items.isEmpty() && !rel.isEmpty() && !projectFiles.isScanning())
+            return listing("", false);
         return items;
     }
 
@@ -281,19 +271,34 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
     }
 
     private boolean exists(String text) {
+        return existing(text) != null;
+    }
+
+    // The local file or directory text names, without a ":N" suffix; null if none.
+    private File existing(String text) {
         String t = super.queryText(text).strip();
         if (t.isEmpty())
-            return false;
+            return null;
         boolean own = t.startsWith("~") || Utilities.isFilenameAbsolute(t);
         if (!own && dir == null)
-            return false;
+            return null;
         File f = own ? File.getInstance(t) : File.getInstance(dir, t);
-        return f != null && f.isLocal() && f.exists();
+        return f != null && f.isLocal() && f.exists() ? f : null;
     }
 
     // As the location bar always has: paths, URLs, aliases, encodings, new files.
     private void openTyped() {
         detached();
+        // "Foo.java:12" for an existing Foo.java: the old open knows no line.
+        final int line = lineNumber();
+        if (line > 0) {
+            File f = existing(textField.getText());
+            if (f != null && !f.isDirectory()) {
+                closePrompt();
+                ProjectCommands.open(editor, f, false, line);
+                return;
+            }
+        }
         opener.enter();
     }
 

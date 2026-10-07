@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 public final class ListFinderTextFieldHandler extends FinderTextFieldHandler {
     private final String command;
     private final Supplier<List<FinderItem>> supplier;
-    private List<FinderItem> items = List.of();
+    private List<FinderItem> items; // Made on start, or on the first Enter before it.
 
     public ListFinderTextFieldHandler(
         Editor editor,
@@ -46,6 +46,8 @@ public final class ListFinderTextFieldHandler extends FinderTextFieldHandler {
 
     @Override
     protected List<FinderItem> candidates() {
+        if (items == null)
+            items = supplier.get();
         return items;
     }
 }

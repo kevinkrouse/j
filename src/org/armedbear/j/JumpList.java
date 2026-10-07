@@ -110,10 +110,21 @@ public final class JumpList {
             return;
         Marker to;
         synchronized (JumpList.class) {
-            to = travel(editor.getBuffer(), dot, i - index);
+            if (i < 0 || i >= entries.size())
+                return;
+            to = entries.get(i);
+            // Leaving the end records the caret, which may drop an entry on its
+            // line and shift the rest: find the target again, not its index.
+            if (index == entries.size())
+                record(editor.getBuffer(), dot);
+            index = entries.indexOf(to);
+            if (index < 0) {
+                // It was on the caret's line, and the caret's entry replaced it.
+                index = entries.size() - 1;
+                to = entries.get(index);
+            }
         }
-        if (to != null)
-            to.gotoMarker(editor);
+        to.gotoMarker(editor);
     }
 
     /** Forgets every entry. */

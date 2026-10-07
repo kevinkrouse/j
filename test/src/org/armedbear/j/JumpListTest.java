@@ -118,4 +118,27 @@ public class JumpListTest {
         assertSame(h.buffer(), to.getBuffer());
         assertEquals(1, to.getPosition().lineNumber());
     }
+
+    @Test
+    public void goToFindsItsEntryWhenRecordingTheCaretDropsOne() {
+        final Editor editor = on("a\nb\nc\nd\ne\n", 0);
+        JumpList.clear();
+        for (int line : new int[] { 0, 2, 4 }) {
+            h.cursor(line, 0);
+            editor.recordJump();
+        }
+        // The caret on entry 1's line: leaving the end records it, dropping that entry.
+        h.cursor(2, 0);
+        JumpList.goTo(editor, 0);
+        assertEquals("0,0", at());
+        h.cursor(2, 0);
+        JumpList.clear();
+        for (int line : new int[] { 0, 2, 4 }) {
+            h.cursor(line, 0);
+            editor.recordJump();
+        }
+        h.cursor(4, 0);
+        JumpList.goTo(editor, 2);
+        assertEquals("4,0", at());
+    }
 }

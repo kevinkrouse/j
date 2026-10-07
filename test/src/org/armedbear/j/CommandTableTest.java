@@ -96,4 +96,11 @@ public class CommandTableTest {
         assertEquals("Jdb Step", ActionTextFieldHandler.humanize("jdbStep"));
         assertEquals("Goto Line 2", ActionTextFieldHandler.humanize("gotoLine2"));
     }
+
+    @Test
+    public void abbreviationsRunButAreNotListed() {
+        assertTrue(CommandTable.getCommand("ir") != null);
+        assertFalse(CommandTable.getCommands().stream().anyMatch(c -> c.getName().equals("ir")));
+        assertTrue(CommandTable.getCommands().stream().anyMatch(c -> c.getName().equals("insertRegister")));
+    }
 }

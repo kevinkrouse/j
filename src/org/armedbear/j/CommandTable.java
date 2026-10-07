@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -120,10 +121,15 @@ public class CommandTable {
         return summaries;
     }
 
-    /** Every command, in no particular order. */
+    /** Every command, in no particular order; not the abbreviations, such as ir for insertRegister. */
     public static List<Command> getCommands() {
         init();
-        return new ArrayList<>(map.values());
+        List<Command> list = new ArrayList<>();
+        for (Map.Entry<String, Command> e : map.entrySet()) {
+            if (!abbreviations.contains(e.getKey()))
+                list.add(e.getValue());
+        }
+        return list;
     }
 
     private static synchronized void init() {
@@ -568,18 +574,30 @@ public class CommandTable {
             add("viewSource", e -> WebBuffer.viewSource());
 
             // Abbreviations.
-            add("sr", e -> Registers.saveToRegister(), (e, s) -> Registers.saveToRegister(s));
-            add("ir", Finders::insertRegister, (e, s) -> Registers.insertRegister(s));
-            add("lr", e -> Registers.listRegisters());
-            add("hs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));
-            add("clhs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));
-            add("abcl", e -> LispShellBuffer.lisp(), (e, s) -> LispShellBuffer.lisp(s));
+            abbreviation("sr", e -> Registers.saveToRegister(), (e, s) -> Registers.saveToRegister(s));
+            abbreviation("ir", Finders::insertRegister, (e, s) -> Registers.insertRegister(s));
+            abbreviation("lr", e -> Registers.listRegisters());
+            abbreviation("hs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));
+            abbreviation("clhs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));
+            abbreviation("abcl", e -> LispShellBuffer.lisp(), (e, s) -> LispShellBuffer.lisp(s));
 
             if (Editor.isDebugEnabled() && map.size() > INITIAL_CAPACITY * 0.9) {
                 Log.error("CommandTable.init need to increase initial capacity!");
                 Log.error("CommandTable.init size = " + map.size());
             }
         }
+    }
+
+    // Short names for other commands: they run by name, but aren't listed as commands of their own.
+    private static final Set<String> abbreviations = ConcurrentHashMap.newKeySet();
+
+    private static void abbreviation(String name, Consumer<Editor> run) {
+        abbreviation(name, run, null);
+    }
+
+    private static void abbreviation(String name, Consumer<Editor> run, BiConsumer<Editor, String> runWithArgument) {
+        add(name, run, runWithArgument);
+        abbreviations.add(name.toLowerCase(Locale.ROOT));
     }
 
     private static void add(String name, Consumer<Editor> run) {

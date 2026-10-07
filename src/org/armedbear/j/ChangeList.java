@@ -68,12 +68,18 @@ public final class ChangeList {
     }
 
     /** Goes to entry index of the buffer's list, as travelling there would. */
-    public static synchronized void goTo(Editor editor, int index) {
-        List<Marker> list = lists.get(editor.getBuffer());
-        if (list == null || index < 0 || index >= list.size())
-            return;
-        indexes.put(editor.getBuffer(), index);
-        list.get(index).gotoMarker(editor);
+    public static void goTo(Editor editor, int index) {
+        Marker to;
+        synchronized (ChangeList.class) {
+            List<Marker> list = lists.get(editor.getBuffer());
+            if (list == null || index < 0 || index >= list.size())
+                return;
+            indexes.put(editor.getBuffer(), index);
+            to = list.get(index);
+        }
+        // Not holding the lock: moving the caret takes the buffer's, which an
+        // edit holds while it records a change here.
+        to.gotoMarker(editor);
     }
 
     /** Forgets a closed buffer's list. */
