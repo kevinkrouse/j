@@ -75,8 +75,7 @@ public final class MarkdownMode extends AbstractMode implements Mode {
             return null; // Shouldn't happen.
         if (!(view.getSidebarComponent() instanceof SidebarTagTree))
             view.setSidebarComponent(
-                new SidebarTagTree(editor, tag -> tag instanceof MarkdownTag markdownTag ? markdownTag.getLevel() : 1)
-            );
+                new SidebarTagTree(editor, tag -> tag instanceof MarkdownTag markdownTag ? markdownTag.getLevel() : 1));
         return view.getSidebarComponent();
     }
 
@@ -116,11 +115,7 @@ public final class MarkdownMode extends AbstractMode implements Mode {
 
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
-        km.mapKey(
-            KeyEvent.VK_F12,
-            CTRL_MASK | SHIFT_MASK,
-            "wrapParagraphsInRegion"
-        );
+        km.mapKey(KeyEvent.VK_F12, CTRL_MASK | SHIFT_MASK, "wrapParagraphsInRegion");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "followLinkOrTask");
         // Tasks alone, VS Code's Markdown All in One's key and one beside
         // Ctrl+Enter's.
