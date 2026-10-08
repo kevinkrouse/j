@@ -92,6 +92,14 @@ public interface Mode {
     }
 
     /**
+     * Commands to list, with a word for each, in a dimmed line over the
+     * text of buffer: { command, what it does }. Null for none.
+     */
+    public default String[][] getHints(Buffer buffer) {
+        return null;
+    }
+
+    /**
      * Returns the file that defines a custom <code>KeyMap</code> for
      * this Mode, if any.
      *

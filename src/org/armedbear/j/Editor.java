@@ -42,6 +42,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
+import java.util.function.BinaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.Box;
@@ -334,6 +336,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (!GraphicsEnvironment.isHeadless())
             new DropTarget(display, dispatcher);
 
+        north = new JPanel(new BorderLayout());
+        add(north, BorderLayout.NORTH);
         addLocationBar();
         addVerticalScrollBar();
         maybeAddHorizontalScrollBar();
@@ -384,6 +388,96 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return locationBar == null ? null : locationBar.getTextField();
     }
 
+    // The location bar over the hint.
+    private JPanel north;
+
+    // A dimmed line of the mode's keys, as Neogit shows, or null.
+    private Label hint;
+
+    /** Shows the mode's hint over the text, with the keys of the edit mode in use. */
+    public void updateHint() {
+        final List<String[]> items = buffer == null ? null : hintItems();
+        if (items == null) {
+            if (hint != null) {
+                north.remove(hint);
+                hint = null;
+                revalidate();
+            }
+            return;
+        }
+        if (hint == null) {
+            hint = new Label();
+            hint.setOpaque(true);
+            hint.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, Display.getGutterWidth(buffer) + 2, 1, 0));
+            north.add(hint, BorderLayout.SOUTH);
+            revalidate();
+        }
+        final java.awt.Color bg = getFormatter().getBackgroundColor();
+        final java.awt.Color fg = getFormatter().getColor(0);
+        hint.setFont(Display.getPlainFont());
+        hint.setBackground(bg);
+        hint.setForeground(DefaultTheme.blend(bg, fg, 0.5));
+        hint.setText(hintHtml(items));
+    }
+
+    // "Hint: key what · key what", with the keys in bold.
+    private static String hintHtml(List<String[]> items) {
+        return "<html>Hint:&nbsp; "
+                + joinHint(items, (key, what) -> "<b>" + escapeHtml(key) + "</b> " + escapeHtml(what), " &middot; ")
+                + "</html>";
+    }
+
+    private static String escapeHtml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    /** The hint as plain text, "key what · key what", or null for none. */
+    String hintText() {
+        final List<String[]> items = hintItems();
+        return items == null ? null : joinHint(items, (key, what) -> key + " " + what, " · ");
+    }
+
+    private static String joinHint(List<String[]> items, BinaryOperator<String> item, String separator) {
+        final StringJoiner joiner = new StringJoiner(separator);
+        for (String[] i : items)
+            joiner.add(item.apply(i[0], i[1]));
+        return joiner.toString();
+    }
+
+    // { key, what } for each of the mode's hints. In vim edit mode the key
+    // is vim's mode key if there is one, written as vim writes keys; else
+    // the mode's own, as j writes them. A command with neither is left out.
+    private List<String[]> hintItems() {
+        final String[][] hints = getMode().getHints(buffer);
+        if (hints == null || hints.length == 0)
+            return null;
+        final boolean vim = getInputHandler() != null;
+        final KeyMap modal = vim ? getMode().getModalKeyMap() : null;
+        final List<String[]> items = new ArrayList<>();
+        for (String[] h : hints) {
+            KeyMapping mapping = modal == null ? null : modal.getKeyMapping(h[0]);
+            if (mapping == null)
+                mapping = buffer.getKeyMapForMode().getKeyMapping(h[0]);
+            if (mapping == null)
+                continue;
+            final String key = vim
+                    ? org.armedbear.j.vim.KeyNotation
+                            .name(mapping.getKeyCode(), mapping.getKeyChar(), mapping.getModifiers())
+                    : shortKey(mapping.getKeyText());
+            items.add(new String[] { key, h[1] });
+        }
+        return items;
+    }
+
+    // 'x' as x, and Shift D as D.
+    private static String shortKey(String key) {
+        if (key.length() == 3 && key.charAt(0) == '\'' && key.charAt(2) == '\'')
+            return key.substring(1, 2);
+        if (key.length() == 7 && key.startsWith("Shift ") && Character.isUpperCase(key.charAt(6)))
+            return key.substring(6);
+        return key;
+    }
+
     // Shown only for a prompt, in a panel that is to have none.
     private boolean promptOnlyLocationBar;
 
@@ -394,7 +488,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public final LocationBar getPromptLocationBar() {
         if (locationBar == null && hidesLocationBar()) {
             locationBar = new LocationBar(this);
-            add(locationBar, BorderLayout.NORTH);
+            north.add(locationBar, BorderLayout.NORTH);
             promptOnlyLocationBar = true;
             locationBar.update();
             // Gone when the prompt is, wherever focus goes: a file opened from
@@ -439,13 +533,13 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void addLocationBar() {
         if (locationBar == null && !hidesLocationBar()) {
             locationBar = new LocationBar(this);
-            add(locationBar, BorderLayout.NORTH);
+            north.add(locationBar, BorderLayout.NORTH);
         }
     }
 
     public void removeLocationBar() {
         if (locationBar != null) {
-            remove(locationBar);
+            north.remove(locationBar);
             locationBar = null;
             promptOnlyLocationBar = false;
         }
@@ -2514,6 +2608,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             dot.setOffset(dot.getLineLength());
             moveCaretToDotCol();
         }
+
+        updateHint();
 
         // A frameless editor, as a test's, has none of these.
         if (frame != null) {

@@ -132,6 +132,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         setToolTipText("");
     }
 
+    /** The text's font, for something shown as if it were text. */
+    public static Font getPlainFont() {
+        if (plainFont == null)
+            initializeStaticValues();
+        return plainFont;
+    }
+
     public static void initializeStaticValues() {
         // Preferences may have been reloaded, and uiScale is one of them.
         UIScale.reset();
