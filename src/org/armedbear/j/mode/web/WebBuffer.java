@@ -150,6 +150,8 @@ public final class WebBuffer extends Buffer implements WebConstants {
     public Position findRef(String ref) {
         if (ref != null && refs != null) {
             Integer i = refs.get(ref);
+            if (i == null)
+                return null;
             Position pos = getPosition(i.intValue());
             if (pos != null)
                 pos.skipWhitespace();
