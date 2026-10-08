@@ -975,7 +975,7 @@ public abstract class MailboxBuffer extends Buffer {
     // For the buffer list.
     @Override
     public Icon getIcon() {
-        return Icons.getIconFromFile(newMessageCount > 0 ? "mailbox_new.png" : "mailbox.png");
+        return Icons.getIconFromFile(newMessageCount > 0 ? "mailbox_new" : "mailbox");
     }
 
     @Override
