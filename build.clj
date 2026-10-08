@@ -328,6 +328,96 @@
   opts)
 
 
+;; window fuzzing
+
+(def fuzz-src-dir "test/fuzz")
+(def fuzz-dir (str build-dir "/fuzz"))
+
+(defn- parse-seeds
+  "\"7\", \"1-24\" or \"3,9,12\" as a list of seeds."
+  [s]
+  (mapcat (fn [part]
+            (if-let [[_ from to] (re-matches #"(\d+)-(\d+)" part)]
+              (range (parse-long from) (inc (parse-long to)))
+              [(parse-long part)]))
+          (str/split (str s) #",")))
+
+(defn- free-display
+  "A display number no X server is using."
+  []
+  (first (remove #(or (fs/exists? (str "/tmp/.X11-unix/X" %)) (fs/exists? (str "/tmp/.X" % "-lock")))
+                 (range 90 200))))
+
+(defn- start-xvfb
+  "Starts a private Xvfb, returning [display process]."
+  []
+  (let [xvfb (or (fs/which "Xvfb")
+                 (throw (ex-info "Xvfb is not on the PATH: run in `nix develop`, or pass --display" {})))
+        n    (free-display)
+        proc (babashka.process/process {:out :string :err :string}
+                                       (str xvfb) (str ":" n) "-screen" "0" "1280x1024x24" "-nolisten" "tcp")]
+    (loop [i 0]
+      (when (and (< i 50) (not (fs/exists? (str "/tmp/.X11-unix/X" n))))
+        (Thread/sleep 100)
+        (recur (inc i))))
+    [(str ":" n) proc]))
+
+(defn- fuzz-one
+  "One seed's run in a fresh home: its FUZZ lines, and whether it passed."
+  [display seed steps]
+  (let [home (abs-path (str fuzz-dir "/run-" seed))
+        _    (fs/delete-tree home)
+        _    (fs/create-dirs home)
+        env  {"DISPLAY"         display
+              "HOME"            home
+              "XDG_CONFIG_HOME" (str home "/.config")
+              "XDG_DATA_HOME"   (str home "/.local/share")
+              "XDG_STATE_HOME"  (str home "/.local/state")
+              "XDG_CACHE_HOME"  (str home "/.cache")
+              "XDG_RUNTIME_DIR" (str home "/run")}
+        cp   (join-paths [(abs-path classes-dir) (abs-path fuzz-dir)])
+        {:keys [exit out]} (shell {:continue true :out :string :err :string :extra-env env}
+                                  "java" (str "-Duser.home=" home) "-cp" cp "org.armedbear.j.WindowFuzz"
+                                  (str seed) (str steps))]
+    {:seed   seed
+     :ok     (zero? exit)
+     :report (->> (str/split-lines out)
+                  (filter #(str/starts-with? % "FUZZ "))
+                  (map #(subs % 5)))}))
+
+(defn fuzz-windows
+  "Fuzz window, buffer and split handling in a running J under Xvfb: random
+  splits, closes, drags, resizes, focus changes and buffer switches, with help,
+  results, output, directories and mail, checked after every step. Options:
+  --seeds 1-24 (or 7, or 3,9,12), --steps 600, --jobs 4, --display :N to use a
+  running X server instead of starting Xvfb. A failure prints the steps that
+  led to it; the same seed repeats them."
+  [{:keys [seeds steps jobs display] :or {seeds "1-8" steps 300 jobs 4}}]
+  (build {})
+  (extensions {})
+  (javac-against! {:src-dirs [fuzz-src-dir] :class-dir fuzz-dir :basis (basis)} [(abs-path classes-dir)])
+  (let [[display xvfb] (if display [(str display) nil] (start-xvfb))
+        seeds          (parse-seeds seeds)
+        pool           (java.util.concurrent.Executors/newFixedThreadPool (int jobs))]
+    (println "Fuzzing" (count seeds) "seeds of" steps "steps on" display "...")
+    (try
+      (let [runs    (->> seeds
+                         (mapv (fn [seed] (.submit pool ^Callable (fn [] (fuzz-one display seed steps)))))
+                         (mapv #(.get ^java.util.concurrent.Future %)))
+            failed  (remove :ok runs)]
+        (doseq [{:keys [report ok]} runs]
+          (if ok
+            (println (last report))
+            (doseq [line report] (println line))))
+        (println (- (count runs) (count failed)) "of" (count runs) "seeds passed")
+        (when (seq failed)
+          (throw (ex-info (str "window fuzzing failed for seeds " (str/join ", " (map :seed failed))) {}))))
+      (finally
+        (.shutdown pool)
+        (when xvfb (babashka.process/destroy-tree xvfb)))))
+  {})
+
+
 ;; extensions
 
 (defn- extension-names
