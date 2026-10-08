@@ -697,7 +697,8 @@ public final class Utilities {
 
     // Returns FILETYPE_UNKNOWN if file is null or does not exist.
     public static int getFileType(File file) {
-        if (file == null)
+        // A new buffer's file, as Ctrl N's, is not there yet.
+        if (file == null || (file.isLocal() && !file.isFile()))
             return FILETYPE_UNKNOWN;
         int fileType = FILETYPE_UNKNOWN;
         try {
