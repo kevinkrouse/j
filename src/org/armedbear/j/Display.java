@@ -2400,8 +2400,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             formatLine(line, shift, col);
             int x = measureLine(g2d, textArray, col, formatArray);
             final int maxWidth = getWidth() - gutterWidth - charWidth;
-            while (x > maxWidth) {
-                shift += 8;
+            // col > 0: a window too narrow for any of the line, as one being
+            // laid out can be, would otherwise never stop shifting; and never
+            // past the caret's own column.
+            while (x > maxWidth && col > 0) {
+                shift = Math.min(shift + 8, absCol);
                 col = absCol - shift;
                 formatLine(line, shift, col);
                 x = measureLine(g2d, textArray, col, formatArray);
