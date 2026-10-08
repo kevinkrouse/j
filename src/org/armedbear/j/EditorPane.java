@@ -235,10 +235,15 @@ public class EditorPane extends JXMultiSplitPane {
             "Expect odd number of leaves and splits; each leaf or split should be separated by divider.");
         int count = (1 + children.size()) / 2;
 
+        // 1/count each, the last what is left: count of them can add up to a
+        // hair over 1, which the layout refuses.
         double weight = 1 / (double) count;
+        double left = 1;
+        int i = 0;
         for (Node n : children) {
             if (n instanceof Leaf || n instanceof Split)
-                n.setWeight(weight);
+                n.setWeight(++i == count ? Math.max(0, left) : weight);
+            left -= n instanceof Leaf || n instanceof Split ? weight : 0;
             if (n instanceof Split split)
                 adjustWeights(split.getChildren());
         }

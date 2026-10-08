@@ -13,6 +13,7 @@ package org.armedbear.j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import org.jdesktop.swingx.MultiSplitLayout;
@@ -127,5 +128,26 @@ public class EditorPaneTest {
         assertEquals(each, children.get(0).getBounds().height);
         assertEquals(each, children.get(2).getBounds().height);
         assertEquals(each, children.get(4).getBounds().height);
+    }
+
+    @Test
+    public void nineWindowsInARowLayOut() {
+        // Nine weights of 1/9, added up, are a hair over 1, which the layout refuses.
+        final Editor first = new Editor();
+        final EditorPane pane = new EditorPane(first);
+        Editor last = first;
+        for (int i = 1; i < 9; i++) {
+            final Editor next = new Editor();
+            pane.split(last, next, true);
+            last = next;
+        }
+        pane.setSize(900, 100);
+        pane.doLayout();
+        double total = 0;
+        for (Node n : ((Split) model(pane)).getChildren()) {
+            if (!(n instanceof Divider))
+                total += n.getWeight();
+        }
+        assertTrue(total <= 1.0, "weights add up to " + total);
     }
 }
