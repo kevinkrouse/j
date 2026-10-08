@@ -23,6 +23,7 @@ import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.InputHandler;
 import org.armedbear.j.JEvent;
+import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
@@ -243,6 +244,8 @@ public final class VimInputHandler implements InputHandler {
         }
 
         final boolean modified = (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK | Constants.META_MASK)) != 0;
+        if ((modified || isNamedKey(keyCode)) && runModeKey(editor, event))
+            return Result.CONSUMED;
         if (!modified && !isNamedKey(keyCode)) {
             // An ordinary character: decide once we know which one it is.
             return Result.DEFER;
@@ -375,6 +378,11 @@ public final class VimInputHandler implements InputHandler {
             }
             return Result.PASS_THROUGH;
         }
+        // j closes a transient buffer for q, whatever its mode.
+        if (event.getKeyChar() == 'q' && editor.getBuffer().isTransient() && idleInNormalMode())
+            return Result.PASS_THROUGH;
+        if (highSurrogate == 0 && runModeKey(editor, event))
+            return Result.CONSUMED;
         // AWT sends a character outside the Basic Multilingual Plane as two
         // key typed events. A command takes it as one key, so that f can
         // find an emoji: hold the first half until the second arrives.
@@ -446,6 +454,25 @@ public final class VimInputHandler implements InputHandler {
         state.clampCaret(editor);
         resumeInsert(editor);
         return Result.CONSUMED;
+    }
+
+    /**
+     * A key the buffer's mode keeps from vim, as a directory's - and D.
+     * Only with nothing part-typed in normal mode: 2D or dD is still vim's.
+     */
+    private boolean runModeKey(Editor editor, JEvent event) {
+        if (!idleInNormalMode())
+            return false;
+        final KeyMap km = editor.getMode().getModalKeyMap();
+        return km != null && editor.runKeyMap(km, event);
+    }
+
+    // Nothing part-typed, in normal mode.
+    private boolean idleInNormalMode() {
+        return state.getMode() == VimMode.NORMAL
+                && builder.isEmpty()
+                && typedLine == null
+                && !state.hasPendingRegister();
     }
 
     /** True when CTRL-O's command comes from keys being replayed. */

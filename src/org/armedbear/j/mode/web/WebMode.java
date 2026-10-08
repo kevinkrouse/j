@@ -74,6 +74,23 @@ public final class WebMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_R, 0, "webReload");
     }
 
+    private static KeyMap modalKeyMap;
+
+    // Following a link is a jump, so CTRL-O and CTRL-I go back and forth too.
+    @Override
+    public synchronized KeyMap getModalKeyMap() {
+        if (modalKeyMap == null) {
+            final KeyMap km = new KeyMap();
+            km.mapKey(KeyEvent.VK_CLOSE_BRACKET, CTRL_MASK, "followLink");
+            km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "webBack");
+            km.mapKey('u', "webBack");
+            km.mapKey('U', "webForward");
+            km.mapKey('R', "webReload");
+            modalKeyMap = km;
+        }
+        return modalKeyMap;
+    }
+
     @Override
     public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();

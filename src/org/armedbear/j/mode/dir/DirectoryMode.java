@@ -99,6 +99,34 @@ public final class DirectoryMode extends AbstractMode implements Mode {
         km.mapKey('f', "dirForward");
     }
 
+    private static KeyMap modalKeyMap;
+
+    // As netrw has them, on keys vim edits with: there is nothing to edit.
+    @Override
+    public synchronized KeyMap getModalKeyMap() {
+        if (modalKeyMap == null) {
+            final KeyMap km = new KeyMap();
+            km.mapKey('-', "dirUpDir");
+            km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "dirUpDir");
+            km.mapKey('u', "dirBack");
+            km.mapKey('U', "dirForward");
+            km.mapKey('~', "dirHome");
+            km.mapKey('D', "dirDeleteFiles");
+            km.mapKey(KeyEvent.VK_DELETE, 0, "dirDeleteFiles");
+            km.mapKey('R', "dirMoveFile");
+            km.mapKey('C', "dirCopyFile");
+            km.mapKey('x', "dirTagFile");
+            km.mapKey('!', "dirDoShellCommand");
+            km.mapKey('s', "dirCycleSortBy");
+            km.mapKey('a', "dirLimit");
+            km.mapKey('A', "dirUnlimit");
+            km.mapKey('O', "dirBrowseFile");
+            km.mapKey(KeyEvent.VK_R, CTRL_MASK, "dirRescan");
+            modalKeyMap = km;
+        }
+        return modalKeyMap;
+    }
+
     @Override
     public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();

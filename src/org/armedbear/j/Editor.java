@@ -565,12 +565,13 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
      *
      * Resolved from the buffer's editMode each time it is asked for, so that
      * switching buffers, or reloading preferences, takes effect immediately.
-     * Only ordinary text buffers get one: directory, image and compilation
-     * buffers bind bare letters as commands already, and a modal layer on top
-     * of them would make them unusable.
+     * Text and the read-only lists -- directories, results, output, man
+     * pages -- get one, their own commands on keys their modes give them
+     * (Mode.getModalKeyMap); shells, images and mailboxes, whose keys are
+     * all their own, do not.
      */
     public final InputHandler getInputHandler() {
-        if (buffer == null || buffer.getType() != SystemBuffer.TYPE_NORMAL)
+        if (buffer == null || !takesModalInput(buffer))
             return null;
         final String editMode = buffer.getStringProperty(Property.EDIT_MODE);
         if (editMode == null || editMode.equals("simple"))
@@ -1187,6 +1188,25 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 }
                 return true;
             }
+        }
+        return false;
+    }
+
+    /** Runs the command km binds an event to, if it binds one. */
+    public boolean runKeyMap(KeyMap km, JEvent event) {
+        final KeyMapping mapping = km.lookup(event.getKeyChar(), event.getKeyCode(), event.getModifiers());
+        if (mapping == null)
+            return false;
+        try {
+            if (mapping.getCommand() instanceof Command c) {
+                execute(c, null);
+                return true;
+            }
+            if (mapping.getCommand() instanceof String s)
+                return execute(s);
+        }
+        catch (NoSuchMethodException e) {
+            Log.error(e);
         }
         return false;
     }
@@ -1872,6 +1892,14 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return this;
     }
 
+    private static boolean takesModalInput(Buffer buf) {
+        return switch (buf.getType()) {
+            case SystemBuffer.TYPE_NORMAL, SystemBuffer.TYPE_DIRECTORY, SystemBuffer.TYPE_OUTPUT, SystemBuffer.TYPE_MAN,
+                    SystemBuffer.TYPE_LIST_OCCURRENCES -> true;
+            default -> false;
+        };
+    }
+
     public void makeNext(final Buffer buf) {
         bufferList.makeNext(buf, buffer);
     }
@@ -2357,9 +2385,9 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void deactivate() {
         Debug.bugIfNot(buffer != null && bufferList.contains(buffer));
         // Through getInputHandler(), not the raw field: the field is a cache
-        // that getInputHandler() only refreshes for a TYPE_NORMAL buffer, so
-        // reading it directly here would clean up a vim session against a
-        // directory or image buffer that was never in vim mode.
+        // that getInputHandler() only refreshes for a buffer that takes modal
+        // input, so reading it directly here would clean up a vim session
+        // against a shell or image buffer that was never in vim mode.
         final InputHandler handler = getInputHandler();
         if (handler != null)
             handler.editorDeactivated(this);
