@@ -194,9 +194,8 @@ public final class ManMode extends AbstractMode implements Mode {
                 cmd.add(word);
             }
             try {
-                Process process = new ProcessBuilder(cmd)
-                    .redirectOutput(new java.io.File(tempFile.canonicalPath()))
-                    .start();
+                Process process =
+                        new ProcessBuilder(cmd).redirectOutput(new java.io.File(tempFile.canonicalPath())).start();
                 process.waitFor();
             }
             catch (InterruptedException e) {

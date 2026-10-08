@@ -33,12 +33,7 @@ public final class GlobalTag extends Tag {
         this.filename = filename;
     }
 
-    private GlobalTag(
-        String name,
-        String signature,
-        String filename,
-        String canonicalSignature
-    ) {
+    private GlobalTag(String name, String signature, String filename, String canonicalSignature) {
         super(name, signature);
         this.filename = filename;
         this.canonicalSignature = canonicalSignature;
@@ -225,10 +220,7 @@ public final class GlobalTag extends Tag {
         editor.setDefaultCursor();
     }
 
-    private static Position findSignatureInCurrentBuffer(
-        Buffer buffer,
-        String signature
-    ) {
+    private static Position findSignatureInCurrentBuffer(Buffer buffer, String signature) {
         final List<LocalTag> localTags = buffer.getTags(true);
         if (localTags == null)
             return null;

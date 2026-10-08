@@ -132,11 +132,7 @@ public class ListRegistersMode extends AbstractMode implements Mode {
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListRegistersBuffer) {
             for (Line line = editor.getDotLine().next(); line != null; line = line.next()) {
-                if (
-                    line instanceof ListRegistersLine
-                        &&
-                        line.getText().startsWith("Register ")
-                ) {
+                if (line instanceof ListRegistersLine && line.getText().startsWith("Register ")) {
                     editor.moveDotTo(line, 0);
                     break;
                 }
@@ -149,11 +145,7 @@ public class ListRegistersMode extends AbstractMode implements Mode {
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListRegistersBuffer) {
             for (Line line = editor.getDotLine().previous(); line != null; line = line.previous()) {
-                if (
-                    line instanceof ListRegistersLine
-                        &&
-                        line.getText().startsWith("Register ")
-                ) {
+                if (line instanceof ListRegistersLine && line.getText().startsWith("Register ")) {
                     editor.moveDotTo(line, 0);
                     break;
                 }

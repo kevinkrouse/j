@@ -126,11 +126,7 @@ public abstract class MailboxBuffer extends Buffer {
 
     public void readMessageOtherWindow(Line line) {}
 
-    protected void activateMessageBuffer(
-        Editor editor,
-        MessageBuffer messageBuffer,
-        boolean useOtherWindow
-    ) {
+    protected void activateMessageBuffer(Editor editor, MessageBuffer messageBuffer, boolean useOtherWindow) {
         editor.makeNext(messageBuffer);
         if (useOtherWindow) {
             Buffer oldBuffer = null;
@@ -138,10 +134,7 @@ public abstract class MailboxBuffer extends Buffer {
             if (ed != null)
                 oldBuffer = ed.getBuffer();
             messageBuffer.setTransient(true);
-            editor.activateInOtherWindow(
-                messageBuffer,
-                messageBuffer.getSplit()
-            );
+            editor.activateInOtherWindow(messageBuffer, messageBuffer.getSplit());
             previewBuffer = messageBuffer;
             if (oldBuffer != null && oldBuffer != messageBuffer) {
                 if (oldBuffer.isTransient())
@@ -593,8 +586,7 @@ public abstract class MailboxBuffer extends Buffer {
         if (getFirstLine() != null) {
             dotLine = getFirstLine();
             if (currentEntry != null) {
-                boolean groupByThread =
-                    getBooleanProperty(Property.GROUP_BY_THREAD);
+                boolean groupByThread = getBooleanProperty(Property.GROUP_BY_THREAD);
                 for (Line line = getFirstLine(); line != null; line = line.next()) {
                     MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                     if (entry == currentEntry) {
@@ -653,8 +645,7 @@ public abstract class MailboxBuffer extends Buffer {
                     return line;
             }
             // We didn't find an exact match.
-            boolean groupByThread =
-                getBooleanProperty(Property.GROUP_BY_THREAD);
+            boolean groupByThread = getBooleanProperty(Property.GROUP_BY_THREAD);
             for (Line l = getFirstLine(); l != null; l = l.next()) {
                 if (l instanceof MailboxLine) {
                     MailboxLine line = (MailboxLine) l;
@@ -808,8 +799,8 @@ public abstract class MailboxBuffer extends Buffer {
                         break;
                 }
                 for (Line toBeHidden = begin.next();
-                    toBeHidden != end && toBeHidden != null;
-                    toBeHidden = toBeHidden.next())
+                        toBeHidden != end && toBeHidden != null;
+                        toBeHidden = toBeHidden.next())
                     toBeHidden.hide();
                 renumber();
                 FoldCommands.unhideDotInAllFrames(this);
@@ -834,8 +825,8 @@ public abstract class MailboxBuffer extends Buffer {
                                 break;
                         }
                         for (Line toBeHidden = begin.next();
-                            toBeHidden != end && toBeHidden != null;
-                            toBeHidden = toBeHidden.next())
+                                toBeHidden != end && toBeHidden != null;
+                                toBeHidden = toBeHidden.next())
                             toBeHidden.hide();
                     }
                 }
@@ -907,8 +898,7 @@ public abstract class MailboxBuffer extends Buffer {
     }
 
     private static void sortEntriesByDate(List<MailboxEntry> list) {
-        Comparator<MailboxEntry> c =
-            (e1, e2) -> RFC822Date.compare(e1.getDate(), e2.getDate());
+        Comparator<MailboxEntry> c = (e1, e2) -> RFC822Date.compare(e1.getDate(), e2.getDate());
         Collections.sort(list, c);
         int sequenceNumber = 1;
         for (MailboxEntry entry : list) {

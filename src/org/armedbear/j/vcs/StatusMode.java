@@ -77,8 +77,7 @@ public final class StatusMode extends AbstractMode {
                 break;
             default:
                 throw new IllegalStateException(
-                    "statusGotoFile/statusDiffFile not supported for this version type: " + vcType
-                );
+                        "statusGotoFile/statusDiffFile not supported for this version type: " + vcType);
         }
     }
 

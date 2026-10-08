@@ -124,8 +124,7 @@ public final class MessageMode extends AbstractMode implements Mode {
 
     private String getContextString(Position pos) {
         if (pos != null && pos.getLine() instanceof WebLine) {
-            HtmlLineSegment segment =
-                ((WebLine) pos.getLine()).findSegment(pos.getOffset());
+            HtmlLineSegment segment = ((WebLine) pos.getLine()).findSegment(pos.getOffset());
             if (segment != null) {
                 Link link = segment.getLink();
                 if (link != null)

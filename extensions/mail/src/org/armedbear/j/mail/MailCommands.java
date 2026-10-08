@@ -84,10 +84,7 @@ public final class MailCommands {
         if (url != null)
             openMailbox(editor, url);
         else
-            MessageDialog.showMessageDialog(
-                "Invalid mailbox name",
-                "Open Mailbox"
-            );
+            MessageDialog.showMessageDialog("Invalid mailbox name", "Open Mailbox");
     }
 
     public static void openMailbox(Editor editor, MailboxURL url) {
@@ -98,10 +95,7 @@ public final class MailCommands {
         if (limitPattern != null) {
             filter = MailboxFilter.getMailboxFilter(limitPattern);
             if (filter == null) {
-                MessageDialog.showMessageDialog(
-                    "Bad limit pattern",
-                    "Open Mailbox"
-                );
+                MessageDialog.showMessageDialog("Bad limit pattern", "Open Mailbox");
                 limitPattern = null;
                 badLimitPattern = true;
             }
@@ -113,11 +107,7 @@ public final class MailCommands {
                     if (filter != null && mb.getLimitFilter() == null) {
                         mb.limit(filter);
                         mb.setLimitPattern(limitPattern);
-                    } else if (
-                        !badLimitPattern
-                            &&
-                            mb == Editor.currentEditor().getBuffer()
-                    ) {
+                    } else if (!badLimitPattern && mb == Editor.currentEditor().getBuffer()) {
                         mb.limit(filter);
                         mb.setLimitPattern(limitPattern);
                     }
@@ -133,9 +123,7 @@ public final class MailCommands {
                 if (idleThread != null) {
                     idleThread.maybeAddTask(CheckMailTask.getInstance());
                     if (mb instanceof PopMailboxBuffer)
-                        idleThread.maybeAddTask(
-                            RewriteMailboxesTask.getInstance()
-                        );
+                        idleThread.maybeAddTask(RewriteMailboxesTask.getInstance());
                 }
             }
         } else {
@@ -184,21 +172,13 @@ public final class MailCommands {
             if (session == null) {
                 String user = imapUrl.getUser();
                 if (user == null || user.length() == 0) {
-                    user = InputDialog.showInputDialog(
-                        editor,
-                        "Login:",
-                        "Login on " + imapUrl.getHost()
-                    );
+                    user = InputDialog.showInputDialog(editor, "Login:", "Login on " + imapUrl.getHost());
                     if (user == null || user.length() == 0)
                         return null;
                     session = ImapSession.getSession(imapUrl, user);
                 }
                 if (session == null) {
-                    String password = PasswordDialog.showPasswordDialog(
-                        editor,
-                        "Password:",
-                        "Password"
-                    );
+                    String password = PasswordDialog.showPasswordDialog(editor, "Password:", "Password");
                     if (password == null || password.length() == 0)
                         return null;
                     session = ImapSession.getSession(imapUrl, user, password);
@@ -217,21 +197,13 @@ public final class MailCommands {
             if (session == null) {
                 String user = popUrl.getUser();
                 if (user == null || user.length() == 0) {
-                    user = InputDialog.showInputDialog(
-                        editor,
-                        "Login:",
-                        "Login on " + popUrl.getHost()
-                    );
+                    user = InputDialog.showInputDialog(editor, "Login:", "Login on " + popUrl.getHost());
                     if (user == null || user.length() == 0)
                         return null;
                     session = PopSession.getSession(popUrl, user);
                 }
                 if (session == null) {
-                    String password = PasswordDialog.showPasswordDialog(
-                        editor,
-                        "Password:",
-                        "Password"
-                    );
+                    String password = PasswordDialog.showPasswordDialog(editor, "Password:", "Password");
                     if (password == null || password.length() == 0)
                         return null;
                     session = PopSession.getSession(popUrl, user, password);
@@ -246,10 +218,7 @@ public final class MailCommands {
     public static void compose() {
         if (!Mail.isEnabled())
             return;
-        activateMailCompositionBuffer(
-            Editor.currentEditor(),
-            new SendMail()
-        );
+        activateMailCompositionBuffer(Editor.currentEditor(), new SendMail());
     }
 
     public static void ccGroup() {
@@ -274,12 +243,7 @@ public final class MailCommands {
         final Editor editor = Editor.currentEditor();
         final Line dotLine = editor.getDotLine();
         final int dotOffset = editor.getDotOffset();
-        if (
-            editor.getMode() != SendMailMode.getMode()
-                || editor.getMark() != null
-                ||
-                dotOffset != dotLine.length()
-        ) {
+        if (editor.getMode() != SendMailMode.getMode() || editor.getMark() != null || dotOffset != dotLine.length()) {
             EditCommands.insertNormalChar(editor, ':');
             return;
         }
@@ -416,16 +380,12 @@ public final class MailCommands {
         }
     }
 
-    private static void activateMailCompositionBuffer(
-        Editor editor,
-        SendMail sm
-    ) {
+    private static void activateMailCompositionBuffer(Editor editor, SendMail sm) {
         editor.makeNext(sm);
         Frame frame = editor.getFrame();
         editor.switchToBuffer(sm);
         // Switching buffers might close the original editor.
-        Editor ed =
-            frame.contains(editor) ? editor : frame.getCurrentEditor();
+        Editor ed = frame.contains(editor) ? editor : frame.getCurrentEditor();
         if (ed.getBuffer() == sm) {
             ed.setDot(sm.getInitialDotPos());
             ed.moveCaretToDotCol();
@@ -445,8 +405,7 @@ public final class MailCommands {
                 return;
             for (Buffer buf : Editor.getBufferList()) {
                 if (buf == mailboxBuffer) {
-                    final Line line =
-                        mailboxBuffer.getLineForEntry(messageBuffer.getMailboxEntry());
+                    final Line line = mailboxBuffer.getLineForEntry(messageBuffer.getMailboxEntry());
                     if (editor == Editor.currentEditor()) {
                         Editor otherEditor = editor.getOtherEditor();
                         if (otherEditor != null && messageBuffer.isTransient()) {
