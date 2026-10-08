@@ -55,6 +55,11 @@ public class ListRegistersMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Registers";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "_editRegister", ListRegistersMode::_editRegister);
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "_insertRegister", ListRegistersMode::_insertRegister);

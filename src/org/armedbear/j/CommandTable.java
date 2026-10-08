@@ -150,6 +150,7 @@ public class CommandTable {
             add("clearSearchHighlight", Editor::clearSearchHighlight);
             add("closeAll", FileCommands::closeAll);
             add("closeOthers", FileCommands::closeOthers);
+            add("closePanel", BufferCommands::closePanel, BufferCommands::closePanel);
             add("closeParen", ElectricCommands::closeParen);
             add("commentRegion", IndentCommands::commentRegion);
             add("copyAppend", ClipboardCommands::copyAppend);
@@ -317,7 +318,6 @@ public class CommandTable {
             add("splitWindow", WindowCommands::splitWindow, (e, s) -> WindowCommands.splitWindow(e, s));
             add("stamp", EditCommands::stamp);
             add("tab", IndentCommands::tab);
-            add("tempBufferQuit", BufferCommands::tempBufferQuit);
             add("textMode", Editor::textMode);
             add("tillCharInLine", null, (e, s) -> CaretCommands.tillCharInLine(s));
             add("tillCharInLineBackward", null, (e, s) -> CaretCommands.tillCharInLineBackward(s));
@@ -585,6 +585,8 @@ public class CommandTable {
             abbreviation("hs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));
             abbreviation("clhs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));
             abbreviation("abcl", e -> LispShellBuffer.lisp(), (e, s) -> LispShellBuffer.lisp(s));
+            // closePanel's old name, which key maps may still use.
+            abbreviation("tempBufferQuit", e -> BufferCommands.closePanel(e, "transient"));
 
             if (Editor.isDebugEnabled() && map.size() > INITIAL_CAPACITY * 0.9) {
                 Log.error("CommandTable.init need to increase initial capacity!");

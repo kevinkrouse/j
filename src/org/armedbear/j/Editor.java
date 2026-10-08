@@ -58,7 +58,6 @@ import org.armedbear.j.extension.EvalResult;
 import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.extension.Opener;
 import org.armedbear.j.extension.ScriptFunction;
-import org.armedbear.j.mode.compilation.CompilationBuffer;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
@@ -385,13 +384,60 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return locationBar == null ? null : locationBar.getTextField();
     }
 
+    // Shown only for a prompt, in a panel that is to have none.
+    private boolean promptOnlyLocationBar;
+
+    /**
+     * The location bar for a prompt to use. The panel, when it is to have
+     * none, gets one until focus is back in the text.
+     */
+    public final LocationBar getPromptLocationBar() {
+        if (locationBar == null && hidesLocationBar()) {
+            locationBar = new LocationBar(this);
+            add(locationBar, BorderLayout.NORTH);
+            promptOnlyLocationBar = true;
+            locationBar.update();
+            // Gone when the prompt is, wherever focus goes: a file opened from
+            // the panel takes it to the window behind.
+            locationBar.getTextField().addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusLost(java.awt.event.FocusEvent e) {
+                    if (!e.isTemporary())
+                        SwingUtilities.invokeLater(Editor.this::dropPromptLocationBar);
+                }
+            });
+            revalidate();
+        }
+        return locationBar;
+    }
+
+    private void dropPromptLocationBar() {
+        if (promptOnlyLocationBar && locationBar != null && !locationBar.getTextField().isFocusOwner()) {
+            removeLocationBar();
+            revalidate();
+            repaint();
+        }
+    }
+
+    public final HistoryTextField getPromptTextField() {
+        final LocationBar bar = getPromptLocationBar();
+        return bar == null ? null : bar.getTextField();
+    }
+
+    // The panel, when the preference says it has no location bar.
+    private boolean hidesLocationBar() {
+        return frame != null
+                && frame.isPanel(this)
+                && !preferences().getBooleanProperty(Property.TRANSIENT_PANEL_LOCATION_BAR);
+    }
+
     public final void repaintLocationBar() {
         if (locationBar != null)
             locationBar.repaint();
     }
 
     public void addLocationBar() {
-        if (locationBar == null) {
+        if (locationBar == null && !hidesLocationBar()) {
             locationBar = new LocationBar(this);
             add(locationBar, BorderLayout.NORTH);
         }
@@ -401,6 +447,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (locationBar != null) {
             remove(locationBar);
             locationBar = null;
+            promptOnlyLocationBar = false;
         }
     }
 
@@ -1068,7 +1115,12 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             mapping = buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
             if (mapping != null)
                 local = true;
-            else
+            else if (event.getID() == JEvent.KEY_TYPED && keyChar == 'q' && modifiers == 0 && buffer.isTransient()) {
+                // q closes help, results and output, in whatever mode, as
+                // the status bar says.
+                closeTransient();
+                return true;
+            } else
                 // Look in global key map.
                 mapping = KeyMap.getGlobalKeyMap().lookup(keyChar, keyCode, modifiers);
         }
@@ -1606,6 +1658,10 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public void setFocusToDisplay() {
+        if (promptOnlyLocationBar) {
+            removeLocationBar();
+            revalidate();
+        }
         if (frame != null)
             frame.setFocus(display);
     }
@@ -1763,6 +1819,57 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 sidebar.setBuffer();
         } else
             Debug.bug();
+    }
+
+    /**
+     * Shows a buffer picked from this window, made next in the buffer list,
+     * where it belongs: a transient buffer in the panel, opened for it; from
+     * the panel, any other in the window behind it; else here.
+     *
+     * @return the window it is in, now the current one
+     */
+    public Editor show(Buffer buf) {
+        return show(buf, true);
+    }
+
+    /** As show(buf), made next in the buffer list only with makeNext, as cycling through it must not. */
+    public Editor show(Buffer buf, boolean makeNext) {
+        Editor ed = placeFor(buf);
+        if (buf != null && buf != ed.getBuffer()) {
+            if (makeNext)
+                ed.makeNext(buf);
+            ed.switchToBuffer(buf);
+        }
+        // Half of a pair goes in its own window, as a message under its
+        // mailbox's: the window it is in is the one returned.
+        if (buf != null && ed.getBuffer() != buf && frame != null) {
+            if (frame.getCurrentEditor().getBuffer() == buf)
+                ed = frame.getCurrentEditor();
+            else if (frame.findEditor(buf) != null)
+                ed = frame.findEditor(buf);
+        }
+        return ed;
+    }
+
+    // The window for show(), made current; the panel opened for a transient buffer.
+    private Editor placeFor(Buffer buf) {
+        if (frame == null || buf == null)
+            return this;
+        final boolean inPanel = frame.isPanel(this);
+        if (!inPanel && buf.isTransient() && !buf.isPaired())
+            return frame.openInPanel(this, buf, true);
+        // A pair goes in the windows, never the panel.
+        if (inPanel && (!buf.isTransient() || buf.isPaired())) {
+            final Editor ed = frame.getWindowBehindPanel();
+            if (ed != null && ed != this) {
+                setCurrentEditor(ed);
+                frame.setMenu();
+                frame.setToolbar();
+                ed.setFocusToDisplay();
+                return ed;
+            }
+        }
+        return this;
     }
 
     public void makeNext(final Buffer buf) {
@@ -1986,15 +2093,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public boolean escapeInternal() {
-        if (buffer instanceof CompilationBuffer || buffer.isTransient()) {
-            if (buffer.unsplitOnClose()) {
-                buffer.windowClosing();
-                WindowCommands.otherWindow(this);
-                WindowCommands.unsplitWindow(this);
-            }
-            BufferCommands.maybeKillBuffer(this, buffer);
-            restoreFocus();
-            Sidebar.refreshSidebarInAllFrames();
+        if (buffer.isTransient()) {
+            closeTransient();
             return true;
         }
         if (buffer.getModeId() == CHECKIN_MODE) {
@@ -2005,19 +2105,20 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             restoreFocus();
             return true;
         }
-        // Check for transient buffer in other editor in current frame.
+        // From another window, Escape closes the panel.
+        if (frame != null && frame.getPanelEditor() != null) {
+            frame.closePanel(true);
+            return true;
+        }
+        // Mail's message in the window under its mailbox's.
+        final Editor bound = frame == null ? null : frame.getBoundWindow(this);
+        if (bound != null && bound.getBuffer().isTransient()) {
+            bound.closeTransient();
+            return true;
+        }
         Editor ed = getOtherEditor();
         if (ed != null) {
             Buffer buf = ed.getBuffer();
-            if (buf instanceof CompilationBuffer || buf.isTransient()) {
-                if (buf.unsplitOnClose())
-                    WindowCommands.unsplitWindow(this);
-                BufferCommands.maybeKillBuffer(this, buf);
-                if (!buf.unsplitOnClose())
-                    ed.updateDisplay();
-                Sidebar.refreshSidebarInAllFrames();
-                return true;
-            }
             if (buf.getModeId() == CHECKIN_MODE) {
                 WindowCommands.unsplitWindow(this);
                 if (!buf.isModified())
@@ -2026,6 +2127,30 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             }
         }
         return false;
+    }
+
+    /**
+     * Kills this window's transient buffer, closing the panel when it is
+     * there, with focus back where it came from.
+     */
+    public void closeTransient() {
+        if (frame != null && frame.isPanel(this)) {
+            frame.closePanel(true);
+            return;
+        }
+        final Buffer closing = buffer;
+        Editor ed = this;
+        // A window bound under another, as mail's message under its mailbox,
+        // goes with it.
+        if (frame != null && frame.getPrimaryWindow(this) != null) {
+            // Saves what it keeps of the window, as a message its split.
+            closing.windowClosing();
+            frame.closeEditor(this);
+            ed = frame.getCurrentEditor();
+        }
+        BufferCommands.maybeKillBuffer(ed, closing);
+        restoreFocus();
+        Sidebar.refreshSidebarInAllFrames();
     }
 
     public String getCurrentText() {
@@ -2247,6 +2372,35 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void activate(Buffer buf) {
         if (buf == null)
             return;
+        final Buffer leaving = buffer;
+        final boolean releasing = frame != null && frame.isPanel(this) && (!buf.isTransient() || buf.isPaired());
+        activateBuffer(buf);
+        if (frame == null || buffer != buf)
+            return;
+        // The panel only shows transient buffers: given another, it is an
+        // ordinary window now, which callers go on using, and what it showed
+        // goes, as when the panel closes.
+        if (releasing) {
+            frame.releasePanel();
+            if (leaving != null
+                    && leaving != buf
+                    && leaving.isTransient()
+                    && bufferList.contains(leaving)
+                    && !isShown(leaving))
+                BufferCommands.maybeKillBuffer(this, leaving);
+        }
+        frame.checkBinding(this);
+    }
+
+    private static boolean isShown(Buffer buf) {
+        for (Editor ed : editorList) {
+            if (ed.getBuffer() == buf)
+                return true;
+        }
+        return false;
+    }
+
+    private void activateBuffer(Buffer buf) {
         Debug.assertTrue(bufferList.contains(buf));
         if (buf == buffer)
             return;
@@ -2333,9 +2487,12 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             moveCaretToDotCol();
         }
 
-        frame.updateTitle();
-        frame.setMenu();
-        frame.setToolbar();
+        // A frameless editor, as a test's, has none of these.
+        if (frame != null) {
+            frame.updateTitle();
+            frame.setMenu();
+            frame.setToolbar();
+        }
 
         if (buffer.isBusy())
             setWaitCursor();
@@ -2460,6 +2617,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     public void executeCommand() {
         // Use location bar.
+        final LocationBar locationBar = getPromptLocationBar();
         if (locationBar != null) {
             locationBar.setLabelText(LocationBar.PROMPT_COMMAND);
             HistoryTextField textField = locationBar.getTextField();

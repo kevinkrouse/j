@@ -30,7 +30,7 @@ public final class BufferCommands {
     private BufferCommands() {}
 
     public static void nextBuffer(Editor editor) {
-        Buffer buf = Editor.getBufferList().getNextPrimaryBuffer(editor.getBuffer());
+        Buffer buf = Editor.getBufferList().getNextListedBuffer(editor.getBuffer());
         if (buf == null)
             return;
         if (buf.isPaired()) {
@@ -40,8 +40,7 @@ public final class BufferCommands {
                     buf = secondary;
             }
         }
-        if (buf != editor.getBuffer())
-            editor.switchToBuffer(buf);
+        editor.show(buf, false);
     }
 
     /**
@@ -59,14 +58,17 @@ public final class BufferCommands {
             editor.status("E23: No alternate file");
             return;
         }
-        editor.switchToBuffer(alternate);
+        editor.show(alternate, false);
     }
 
-    /** The buffer activated most recently, other than this one. */
+    /**
+     * The buffer activated most recently, other than this one. Transient
+     * buffers are skipped, as vim skips unlisted ones.
+     */
     static Buffer alternateBuffer(Editor editor) {
         Buffer best = null;
         for (Buffer b : Editor.getBufferList()) {
-            if (b == editor.getBuffer() || !b.isPrimary())
+            if (b == editor.getBuffer() || !b.isPrimary() || b.isTransient())
                 continue;
             if (best == null || b.getLastActivated() > best.getLastActivated())
                 best = b;
@@ -75,7 +77,7 @@ public final class BufferCommands {
     }
 
     public static void prevBuffer(Editor editor) {
-        Buffer buf = Editor.getBufferList().getPreviousPrimaryBuffer(editor.getBuffer());
+        Buffer buf = Editor.getBufferList().getPreviousListedBuffer(editor.getBuffer());
         if (buf == null)
             return;
         if (buf.isPaired()) {
@@ -85,8 +87,7 @@ public final class BufferCommands {
                     buf = secondary;
             }
         }
-        if (buf != editor.getBuffer())
-            editor.switchToBuffer(buf);
+        editor.show(buf, false);
     }
 
     public static void newBuffer(Editor editor) {
@@ -95,33 +96,45 @@ public final class BufferCommands {
         editor.switchToBuffer(buf);
     }
 
-    public static void tempBufferQuit(Editor editor) {
-        if (editor.getBuffer() instanceof CompilationBuffer || editor.getBuffer().isTransient()) {
-            if (editor.getBuffer().unsplitOnClose()) {
-                editor.getBuffer().windowClosing();
-                WindowCommands.otherWindow(editor);
-                WindowCommands.unsplitWindow(editor);
-            }
-            maybeKillBuffer(editor, editor.getBuffer());
-            Editor.restoreFocus();
-            Sidebar.refreshSidebarInAllFrames();
-            return;
-        }
+    /**
+     * {@code closePanel} -- closes the panel of help, results or output and
+     * the buffer in it, from any window; in a transient buffer outside the
+     * panel, that buffer.
+     */
+    public static void closePanel(Editor editor) {
+        closePanel(editor, null);
+    }
+
+    /**
+     * {@code closePanel transient} closes only a transient buffer this window
+     * shows, and leaves the panel alone from any other: what q does in a mode
+     * whose buffers are not all transient, as a web page or a diff file.
+     */
+    public static void closePanel(Editor editor, String parameters) {
+        if (editor.getBuffer().isTransient())
+            editor.closeTransient();
+        else if (editor.getFrame() != null && !"transient".equals(parameters == null ? null : parameters.trim()))
+            editor.getFrame().closePanel(true);
     }
 
     public static void killBuffer(Editor editor) {
         try {
-            if (editor.getBuffer().isSecondary()) {
-                editor.getBuffer().windowClosing();
-                WindowCommands.otherWindow(editor);
-                WindowCommands.unsplitWindow(editor);
-                maybeKillBuffer(Editor.currentEditor(), editor.getBuffer());
+            final Frame frame = editor.getFrame();
+            // A message in the window under its mailbox's: that window goes.
+            if (frame != null && frame.getPrimaryWindow(editor) != null) {
+                final Buffer buffer = editor.getBuffer();
+                buffer.windowClosing();
+                frame.closeEditor(editor);
+                maybeKillBuffer(Editor.currentEditor(), buffer);
                 Editor.restoreFocus();
                 return;
             }
+            // A mailbox: its message, and the window under it, go first.
             Buffer buf = editor.getBuffer().getSecondary();
             if (buf != null) {
-                WindowCommands.unsplitWindow(editor);
+                final Editor bound = frame == null ? null : frame.getBoundWindow(editor);
+                if (bound != null)
+                    frame.closeEditor(bound);
                 maybeKillBuffer(editor, buf);
                 return;
             }
@@ -129,8 +142,8 @@ public final class BufferCommands {
             maybeKillBuffer(editor, editor.getBuffer());
             // If we're left with two editors next to each other showing exactly the same thing,
             // unsplit the window.
-            Frame frame = Editor.currentEditor().getFrame();
-            frame.coalesceEditors(frame.getCurrentEditor());
+            final Frame current = Editor.currentEditor().getFrame();
+            current.coalesceEditors(current.getCurrentEditor());
         }
         finally {
             Sidebar.refreshSidebarInAllFrames();

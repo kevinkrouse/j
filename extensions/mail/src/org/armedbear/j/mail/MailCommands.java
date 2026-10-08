@@ -115,8 +115,8 @@ public final class MailCommands {
                     mb.setLimitFilter(filter);
                     mb.setLimitPattern(limitPattern);
                 }
-                editor.makeNext(mb);
-                editor.switchToBuffer(mb);
+                // From the help panel, in the window behind it.
+                editor.show(mb);
                 FolderTreeModel.getDefaultModel().maybeAddNodeForFolder(url);
                 // Add appropriate idle thread tasks.
                 IdleThread idleThread = IdleThread.getInstance();
@@ -131,8 +131,7 @@ public final class MailCommands {
             MailboxBuffer mb = getLocalMailbox((LocalMailboxURL) url);
             mb.setLimitFilter(filter);
             mb.setLimitPattern(limitPattern);
-            editor.makeNext(mb);
-            editor.switchToBuffer(mb);
+            editor.show(mb);
         }
     }
 
@@ -406,14 +405,13 @@ public final class MailCommands {
             for (Buffer buf : Editor.getBufferList()) {
                 if (buf == mailboxBuffer) {
                     final Line line = mailboxBuffer.getLineForEntry(messageBuffer.getMailboxEntry());
-                    if (editor == Editor.currentEditor()) {
-                        Editor otherEditor = editor.getOtherEditor();
-                        if (otherEditor != null && messageBuffer.isTransient()) {
-                            messageBuffer.saveWindowState(editor);
-                            WindowCommands.otherWindow(editor);
-                            WindowCommands.unsplitWindow(editor);
-                            editor = Editor.currentEditor();
-                        }
+                    // From the message window under the mailbox's: back to
+                    // that one, the message window closed.
+                    final Editor above = editor.getFrame().getPrimaryWindow(editor);
+                    if (above != null) {
+                        messageBuffer.saveWindowState(editor);
+                        editor.getFrame().closeEditor(editor);
+                        editor = above;
                     }
                     editor.activate(mailboxBuffer);
                     messageBuffer.kill();

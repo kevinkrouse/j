@@ -78,6 +78,14 @@
   Once you're in your mailbox, you can use
   <a href="commands.html#mailboxReadMessage">mailboxReadMessage</a>, mapped by
   default to Enter, to read the message at the current location of the caret.
+  <a href="commands.html#mailboxReadMessageOtherWindow">mailboxReadMessageOtherWindow</a>
+  shows it in a window of its own under the mailbox's, which the next message
+  reuses and other windows are left alone by, as Gnus and mu4e lay them out;
+  <code>q</code> or Escape there closes it, and so does Escape in the mailbox
+  in simple edit mode; in vim edit mode Escape there only stops what you are
+  doing, and <code>q</code> in the message closes it.
+  Switching the mailbox's window to another buffer closes the message's too,
+  and switching back to the mailbox brings it back under it.
   <br><br>
   To compose mail, use the <a href="commands.html#compose">compose</a>
   command. You can also use

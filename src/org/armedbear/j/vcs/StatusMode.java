@@ -116,12 +116,16 @@ public final class StatusMode extends AbstractMode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Status";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "statusDiffFile");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "statusGotoFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "statusGotoFile");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "statusDiffFile");
         km.mapKey(VK_MOUSE_2, 0, "statusGotoFile");
-        km.mapKey('q', "tempBufferQuit");
     }
 }

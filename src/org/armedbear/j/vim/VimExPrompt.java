@@ -64,7 +64,7 @@ final class VimExPrompt extends FinderTextFieldHandler {
     static boolean open(Editor editor, VimInputHandler handler, String seed) {
         if (editor.getFrame() == null)
             return false;
-        final LocationBar locationBar = editor.getLocationBar();
+        final LocationBar locationBar = editor.getPromptLocationBar();
         if (locationBar == null)
             return false;
         final HistoryTextField textField = locationBar.getTextField();
@@ -210,6 +210,9 @@ final class VimExPrompt extends FinderTextFieldHandler {
         { "join", "j", "Join lines." },
         { "jumps", "ju", "List the jump list, to go to a position." },
         { "changes", "changes", "List where the buffer was changed, to go to a change." },
+        { "cclose", "ccl", "Close the panel of help, results or output." },
+        { "pclose", "pc", "Close the panel of help, results or output." },
+        { "helpclose", "helpc", "Close the panel of help, results or output." },
         { "move", "m", "Move lines below an address." },
         { "nohlsearch", "noh", "Stop highlighting the last search's matches." },
         { "normal", "norm", "Run normal mode keys on each line." },

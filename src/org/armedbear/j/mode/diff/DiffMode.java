@@ -63,12 +63,16 @@ public final class DiffMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Diff";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "diffGotoFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "diffGotoFile");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "diffGotoFile");
         km.mapKey(VK_MOUSE_2, 0, "diffGotoFile");
-        km.mapKey('q', "tempBufferQuit");
     }
 
     public static void diff() {

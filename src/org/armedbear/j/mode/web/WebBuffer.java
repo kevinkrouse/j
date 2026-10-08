@@ -296,6 +296,8 @@ public final class WebBuffer extends Buffer implements WebConstants {
         if (link == null)
             return;
         Debug.assertTrue(link == segment.getLink());
+        // CTRL-O comes back here.
+        editor.recordJump();
         final String target = link.getTarget();
         if (target == null) {
             Debug.bug("target is null");
@@ -648,6 +650,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         WebHistoryEntry current = history.getCurrent();
         WebHistoryEntry previous = history.getPrevious();
         if (previous != null) {
+            editor.recordJump();
             if (atEnd)
                 history.append(wb.getFile(), wb.getAbsoluteOffset(editor.getDot()), wb.getContentType());
             else if (current != null)
@@ -672,6 +675,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         WebHistoryEntry current = history.getCurrent();
         WebHistoryEntry next = history.getNext();
         if (next != null) {
+            editor.recordJump();
             if (current != null)
                 current.setOffset(wb.getAbsoluteOffset(editor.getDot()));
             else

@@ -58,6 +58,11 @@ public final class WebMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Help";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(VK_MOUSE_1, 0, "mouseFollowLink");
         km.mapKey(KeyEvent.VK_ENTER, 0, "followLink");

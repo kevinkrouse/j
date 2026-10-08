@@ -1177,7 +1177,9 @@ public class Buffer extends SystemBuffer {
 
         Marker.invalidateMarkers(this);
 
-        Buffer buf = bufferList.getPreviousPrimaryBuffer(this);
+        // A window showing this goes back to the buffer before it that is
+        // not transient; the panel closes.
+        Buffer buf = bufferList.getPreviousListedBuffer(this);
         if (buf != null && buf.isPaired()) {
             Buffer secondary = buf.getSecondary();
             if (secondary != null) {
@@ -1187,9 +1189,18 @@ public class Buffer extends SystemBuffer {
         }
         if (buf == null)
             buf = new DirectoryBuffer(getCurrentDirectory());
-        for (Editor ed : Editor.getEditorList()) {
+        for (Editor ed : new ArrayList<>(Editor.getEditorList())) {
             // switchToBuffer() may have closed it.
             if (Editor.getEditorList().contains(ed)) {
+                if (ed.getBuffer() == this && ed.getFrame() != null && ed.getFrame().isPanel(ed)) {
+                    ed.getFrame().closePanel(false);
+                    continue;
+                }
+                // A message's window under its mailbox's goes with it.
+                if (ed.getBuffer() == this && ed.getFrame() != null && ed.getFrame().getPrimaryWindow(ed) != null) {
+                    ed.getFrame().closeEditor(ed);
+                    continue;
+                }
                 if (ed.getBuffer() == this)
                     ed.switchToBuffer(buf);
                 ed.removeView(this);
@@ -2579,6 +2590,9 @@ public class Buffer extends SystemBuffer {
             return false;
         if (this instanceof RemoteBuffer)
             return false;
+        // Gone when its panel closes; not brought back either.
+        if (isTransient())
+            return false;
         switch (type) {
             case TYPE_NORMAL:
             case TYPE_ARCHIVE:
@@ -2615,22 +2629,23 @@ public class Buffer extends SystemBuffer {
 
     private boolean isTransient;
 
+    /** Shown in the panel along the bottom, and gone when it closes. */
     public boolean isTransient() {
         return isTransient;
     }
 
     public final void setTransient(boolean b) {
-        unsplitOnClose = isTransient = b;
+        if (isTransient == b)
+            return;
+        isTransient = b;
+        // Its background is shaded, or not now.
+        if (formatter != null)
+            formatter.reset();
     }
 
-    private boolean unsplitOnClose;
-
-    public boolean unsplitOnClose() {
-        return unsplitOnClose;
-    }
-
-    public final void setUnsplitOnClose(boolean b) {
-        unsplitOnClose = b;
+    /** What a transient buffer is, as the location bar and buffer lists show it: [Help]. */
+    public String getTransientLabel() {
+        return "[" + getMode().getTransientTag() + "]";
     }
 
     // Cache for getText().

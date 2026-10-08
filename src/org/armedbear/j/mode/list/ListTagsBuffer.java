@@ -24,6 +24,7 @@ import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Frame;
 import org.armedbear.j.GlobalTag;
 import org.armedbear.j.JumpList;
 import org.armedbear.j.Line;
@@ -110,17 +111,15 @@ public final class ListTagsBuffer extends Buffer {
             Debug.bug();
             return;
         }
-        Editor ed = editor.getOtherEditor();
+        final Frame frame = editor.getFrame();
+        // From the panel, the tag goes in the window behind it.
+        Editor ed = frame != null && frame.isPanel(editor) ? frame.getWindowBehindPanel() : editor.getOtherEditor();
         if (ed == null)
             ed = editor;
         if (marker != null)
             JumpList.record(marker);
         tag.gotoTag(ed);
-        if (killList) {
-            Editor otherEditor = ed.getOtherEditor();
-            if (otherEditor != null)
-                ed.getFrame().closeEditor(otherEditor);
-            kill();
-        }
+        if (killList && frame != null)
+            frame.closeList(this);
     }
 }

@@ -601,8 +601,7 @@ public final class VimState {
             return;
         if (leaving)
             marks.set('\'', buffer, from);
-        to.gotoMarker(editor);
-        clampCaret(editor);
+        clampCaret(to.gotoMarker(editor));
     }
 
     public VimMarks getMarks() {

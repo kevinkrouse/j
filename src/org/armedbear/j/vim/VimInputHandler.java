@@ -398,7 +398,16 @@ public final class VimInputHandler implements InputHandler {
             insertBindingKeys.clear();
             return Result.CONSUMED;
         }
+        // Nothing to stop in a transient buffer: j's Escape closes it.
+        final boolean idle = builder.isEmpty()
+                && pendingSearch == null
+                && typedLine == null
+                && state.getMode() == VimMode.NORMAL
+                && editor.getMark() == null
+                && editor.getBuffer().isTransient();
         dropPartialCommand(editor);
+        if (idle && !replaying)
+            return Result.PASS_THROUGH;
         if (recordingEdit && !replaying && state.getMode().isInsert()) {
             // The change was still being typed; Escape is the end of it.
             commitInsert();

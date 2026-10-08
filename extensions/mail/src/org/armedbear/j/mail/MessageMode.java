@@ -82,6 +82,11 @@ public final class MessageMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Message";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('h', "messageToggleHeaders");
         km.mapKey('f', "messageForward");
@@ -101,7 +106,6 @@ public final class MessageMode extends AbstractMode implements Mode {
         km.mapKey('s', "messageSaveAttachment");
         km.mapKey('b', "bounce");
         km.mapKey(KeyEvent.VK_F12, CTRL_MASK, "messageToggleWrap");
-        km.mapKey('q', "tempBufferQuit");
     }
 
     @Override

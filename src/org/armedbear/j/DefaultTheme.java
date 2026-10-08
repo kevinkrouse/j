@@ -38,6 +38,13 @@ public final class DefaultTheme {
         return getColor(mode, thing, false);
     }
 
+    /** from moved toward to by amount, 0 to 1, channel by channel. */
+    public static Color blend(Color from, Color to, double amount) {
+        return new Color((int) Math.round(from.getRed() + (to.getRed() - from.getRed()) * amount),
+                (int) Math.round(from.getGreen() + (to.getGreen() - from.getGreen()) * amount),
+                (int) Math.round(from.getBlue() + (to.getBlue() - from.getBlue()) * amount));
+    }
+
     /**
      * Whether text on a background wants the colors made for a dark one: its
      * perceived brightness, as YIQ weighs it, is under half.

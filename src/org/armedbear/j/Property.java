@@ -144,6 +144,8 @@ public final class Property implements Comparable<Property> {
     public static final Property TOOL_BAR_IS_ROLLOVER = createProperty("ToolBar.isRollover", true);
     public static final Property TOOL_BAR_SHOW_ICONS = createProperty("ToolBar.showIcons", true);
     public static final Property TOOL_BAR_SHOW_TEXT = createProperty("ToolBar.showText", false);
+    // Whether the transient panel along the bottom has a location bar.
+    public static final Property TRANSIENT_PANEL_LOCATION_BAR = createProperty("transientPanelLocationBar", true);
     public static final Property UNDELETE_ADVANCE_DOT = createProperty("undeleteAdvanceDot", true);
     public static final Property UNDERLINE_BOLD = createProperty("underlineBold", false);
     public static final Property UPPER_CASE_ATTRIBUTE_NAMES = createProperty("upperCaseAttributeNames", false);
@@ -234,6 +236,7 @@ public final class Property implements Comparable<Property> {
     public static final Property COLOR_CHANGE = createProperty("color.change");
     public static final Property COLOR_SAVED_CHANGE = createProperty("color.savedChange");
     public static final Property COLOR_CURRENT_LINE_BACKGROUND = createProperty("color.currentLineBackground");
+    public static final Property COLOR_TRANSIENT_BACKGROUND = createProperty("color.transientBackground");
     public static final Property COLOR_GUTTER_BORDER = createProperty("color.gutterBorder");
     public static final Property COLOR_LINE_NUMBER = createProperty("color.lineNumber");
     public static final Property COLOR_MATCHING_BRACKET_BACKGROUND = createProperty("color.matchingBracketBackground");

@@ -1323,12 +1323,6 @@ public class LispMode extends AbstractMode implements Mode {
             buf.setTransient(true);
         }
         if (editor.getBuffer() != buf) {
-            Editor otherEditor = editor.getOtherEditor();
-            if (otherEditor != null) {
-                buf.setUnsplitOnClose(false);
-                otherEditor.makeNext(buf);
-            } else
-                editor.makeNext(buf);
             editor.displayInOtherWindow(buf);
         }
     }

@@ -14,6 +14,7 @@ package org.armedbear.j;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Where the caret was before each jump -- a search, a tag, a go-to-line --
@@ -54,9 +55,14 @@ public final class JumpList {
         index = entries.size();
     }
 
+    // A WebBuffer shows one page after another: the same line of another
+    // page is not the same line.
     private static boolean sameLine(Marker m, Buffer buffer, int line) {
         final Position pos = m.getPosition();
-        return m.getBuffer() == buffer && pos != null && pos.lineNumber() == line;
+        return m.getBuffer() == buffer
+                && Objects.equals(m.getFile(), buffer.getFile())
+                && pos != null
+                && pos.lineNumber() == line;
     }
 
     /**

@@ -47,6 +47,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#clearSearchHighlight">clearSearchHighlight</a></li>
     <li><a href="commands.html#closeAll">closeAll</a></li>
     <li><a href="commands.html#closeOthers">closeOthers</a></li>
+    <li><a href="commands.html#closePanel">closePanel</a></li>
     <li><a href="commands.html#closeParen">closeParen</a></li>
     <li><a href="commands.html#commentRegion">commentRegion</a></li>
     <li><a href="commands.html#compile">compile</a></li>
@@ -404,7 +405,6 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#switchBuffer">switchBuffer</a></li>
     <li><a href="commands.html#tab">tab</a></li>
     <li><a href="commands.html#task">task</a></li>
-    <li><a href="commands.html#tempBufferQuit">tempBufferQuit</a></li>
     <li><a href="commands.html#thisError">thisError</a></li>
     <li><a href="commands.html#toCenter">toCenter</a></li>
     <li><a href="commands.html#toggleGroupByThread">toggleGroupByThread</a></li>
@@ -721,6 +721,22 @@ directory.
 Closes all open buffers except the current one.
 <br><br>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="closePanel">closePanel</a><dl><dd>
+<p>
+Closes the panel of help, results or output, and the buffer in it, from any
+window; in a transient buffer outside the panel, closes that buffer. With the
+argument <code>transient</code> it only closes a transient buffer the window
+shows, and leaves the panel alone from any other: what <code>q</code> does.
+Formerly <code>tempBufferQuit</code>, which still works, as
+<code>closePanel transient</code>.
+<p>
+<b>Default key mapping:</b> 'q' in help, results, output and any other
+transient buffer, unless its mode binds it to something else; Escape there too, and in simple edit mode from another window;
+<code>:cclose</code>,
+<code>:pclose</code> and <code>:helpclose</code> in vim edit mode
 <br><br>
 </dl><!--<hr>-->
 
@@ -5556,14 +5572,6 @@ task. Blank lines are left alone. The whole change is one undo step.
 <b>Default key mapping:</b> Alt+Enter, Alt+C; Ctrl+Enter, by way of
 <a href="#followLinkOrTask">followLinkOrTask</a>; Ctrl+Shift+Enter for
 <code>task cancel</code> (Markdown mode)
-<br><br>
-</dl><!--<hr>-->
-
-<a name="tempBufferQuit">tempBufferQuit</a><dl><dd>
-<p>
-Closes the current temporary output buffer and (if applicable) its window.
-<p>
-<b>Default key mapping:</b> 'q' in most temporary output buffers
 <br><br>
 </dl><!--<hr>-->
 

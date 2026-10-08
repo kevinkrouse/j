@@ -32,6 +32,7 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
     private Color dim;
     private Color match;
     private Font bold;
+    private Font italic;
 
     @Override
     public Component getListCellRendererComponent(
@@ -48,12 +49,13 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
         row = value;
         background = isSelected ? list.getSelectionBackground() : list.getBackground();
         foreground = isSelected ? list.getSelectionForeground() : list.getForeground();
-        dim = blend(foreground, background, 0.55f);
+        dim = DefaultTheme.blend(background, foreground, 0.55);
         match = isSelected ? foreground : DefaultTheme.isDark(background) ? new Color(0x6CB4FF) : new Color(0x0050C8);
         Font font = list.getFont();
         if (font != getFont()) {
             setFont(font);
             bold = font.deriveFont(Font.BOLD);
+            italic = font.deriveFont(Font.ITALIC);
         }
         return this;
     }
@@ -106,10 +108,10 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
             right -= w + 2 * pad;
         }
 
-        x = drawMarked(g2, item.label(), item.labelOffset(), x, right, baseline, foreground);
+        x = drawMarked(g2, item.label(), item.labelOffset(), x, right, baseline, foreground, item.isTransient());
         String detail = item.detail();
         if (!detail.isEmpty() && x < right)
-            x = drawMarked(g2, detail, item.detailOffset(), x + 2 * pad, right, baseline, dim);
+            x = drawMarked(g2, detail, item.detailOffset(), x + 2 * pad, right, baseline, dim, false);
         String note = item.note();
         if (!note.isEmpty() && x < right) {
             g2.setFont(getFont());
@@ -119,12 +121,21 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
     }
 
     // Draws s, with the characters at the row's positions (offset by offset) in
-    // bold and the match color. Returns the x after it.
-    private int drawMarked(Graphics2D g2, String s, int offset, int x, int right, int baseline, Color color) {
+    // bold and the match color, the rest in italics if slanted. Returns the x
+    // after it.
+    private int drawMarked(
+            Graphics2D g2,
+            String s,
+            int offset,
+            int x,
+            int right,
+            int baseline,
+            Color color,
+            boolean slanted) {
         int[] positions = row.positions();
         for (int i = 0; i < s.length() && x < right; i++) {
             boolean marked = offset >= 0 && positions != null && Arrays.binarySearch(positions, offset + i) >= 0;
-            Font f = marked ? bold : getFont();
+            Font f = marked ? bold : slanted ? italic : getFont();
             g2.setFont(f);
             g2.setColor(marked ? match : color);
             String ch = String.valueOf(s.charAt(i));
@@ -158,11 +169,5 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
         g2.setColor(color);
         if (x + g2.getFontMetrics().stringWidth("…") <= right)
             g2.drawString("…", x, baseline);
-    }
-
-    private static Color blend(Color a, Color b, float t) {
-        return new Color(Math.round(a.getRed() * t + b.getRed() * (1 - t)),
-                Math.round(a.getGreen() * t + b.getGreen() * (1 - t)),
-                Math.round(a.getBlue() * t + b.getBlue() * (1 - t)));
     }
 }

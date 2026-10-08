@@ -71,6 +71,11 @@ public final class ManMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Man";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "manFollowLink");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "manFollowLink");

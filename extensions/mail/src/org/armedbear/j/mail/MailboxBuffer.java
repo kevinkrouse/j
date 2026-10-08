@@ -129,13 +129,13 @@ public abstract class MailboxBuffer extends Buffer {
     protected void activateMessageBuffer(Editor editor, MessageBuffer messageBuffer, boolean useOtherWindow) {
         editor.makeNext(messageBuffer);
         if (useOtherWindow) {
-            Buffer oldBuffer = null;
-            Editor ed = editor.getOtherEditor();
-            if (ed != null)
-                oldBuffer = ed.getBuffer();
+            // The message window is the mailbox window's own, split off under
+            // it, which the next message reuses.
+            final Editor bound = editor.getFrame().getBoundWindow(editor);
+            final Buffer oldBuffer = bound == null ? null : bound.getBuffer();
             messageBuffer.setTransient(true);
-            editor.activateInOtherWindow(messageBuffer, messageBuffer.getSplit());
             previewBuffer = messageBuffer;
+            editor.getFrame().showSecondary(editor, messageBuffer, true);
             if (oldBuffer != null && oldBuffer != messageBuffer) {
                 if (oldBuffer.isTransient())
                     oldBuffer.kill();

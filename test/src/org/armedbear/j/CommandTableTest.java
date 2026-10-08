@@ -113,4 +113,11 @@ public class CommandTableTest {
         assertFalse(CommandTable.getCommands().stream().anyMatch(c -> c.getName().equals("ir")));
         assertTrue(CommandTable.getCommands().stream().anyMatch(c -> c.getName().equals("insertRegister")));
     }
+
+    @Test
+    public void tempBufferQuitStillRunsAsClosePanel() {
+        assertTrue(CommandTable.getCommand("tempBufferQuit") != null);
+        assertFalse(CommandTable.getCommands().stream().anyMatch(c -> c.getName().equals("tempBufferQuit")));
+        assertTrue(CommandTable.getCommands().stream().anyMatch(c -> c.getName().equals("closePanel")));
+    }
 }

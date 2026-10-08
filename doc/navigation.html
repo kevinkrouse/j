@@ -92,6 +92,40 @@ sidebar.
 next one.
 </ul>
 
+<h2><a name="panel">Help, results and output</a></h2>
+<p>
+Help, find-in-files and list-occurrences results, compilation and other
+output are transient buffers. They open in a panel along the bottom of the
+frame, across the windows you have, which stay as they were; each one replaces
+the last in it. The panel's background is a shade off the editor's
+(<a href="preferences.html#color.transientBackground">color.transientBackground</a>),
+its location bar says what it holds, as <b>[Help]</b> or <b>[Results]</b>,
+and the status bar how to close it. In the sidebar's buffer list and the
+<a href="commands.html#switchBuffer">switchBuffer</a> list they are in
+italics.
+<ul>
+<li><b>Escape</b> or <b>q</b> closes the panel and the buffer in it, and
+puts the caret back where it was. In simple edit mode, Escape in another
+window closes it too. In vim edit mode Escape there only stops what you are
+doing in that window; <b>:cclose</b>, <b>:pclose</b> or <b>:helpclose</b>
+closes the panel from any window.
+
+<li>Picking a transient buffer from a buffer list shows it in the panel;
+opening a file, or going back to one, from the panel shows it in the window
+above.
+
+<li>Following a link in help, or going back or forward, is a jump, so
+<b>&lt;C-o&gt;</b> goes back through the pages and then to where you were
+before help.
+
+<li><b>&lt;C-^&gt;</b> skips transient buffers.
+</ul>
+<p>
+The preference
+<a href="preferences.html#transientPanelLocationBar">transientPanelLocationBar</a>
+leaves the panel without a location bar; a prompt typed in the panel, as
+<b>:</b> or <b>/</b>, shows one until it is done.
+
 <h2>Within a file</h2>
 <ul>
 <li><b>Ctrl J</b> (<a href="commands.html#jumpToLine">jumpToLine</a>) goes to a

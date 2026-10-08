@@ -88,9 +88,27 @@ public abstract class Formatter {
     }
 
     public Color getBackgroundColor() {
-        if (colorBackground == null)
+        if (colorBackground == null) {
             colorBackground = color("background", Property.COLOR_BACKGROUND);
+            if (buffer.isTransient())
+                colorBackground = transientBackground(colorBackground);
+        }
         return colorBackground;
+    }
+
+    /**
+     * A transient buffer's background: the color.transientBackground
+     * preference, else the background a little toward the text on a dark
+     * one, a little darker and cool on a light one.
+     */
+    private Color transientBackground(Color bg) {
+        final Color c = buffer.getMode().getColorProperty(Property.COLOR_TRANSIENT_BACKGROUND);
+        if (c != null)
+            return c;
+        if (DefaultTheme.isDark(bg)) {
+            return DefaultTheme.blend(bg, color("text", Property.COLOR_TEXT), 0.06);
+        }
+        return new Color(darker(bg.getRed(), 14), darker(bg.getGreen(), 10), darker(bg.getBlue(), 4));
     }
 
     public Color getCurrentLineBackgroundColor() {
@@ -268,11 +286,7 @@ public abstract class Formatter {
             return color;
         final Color bg = getBackgroundColor();
         if (DefaultTheme.isDark(bg)) {
-            final Color fg = getColor(0);
-            final double amount = 0.12;
-            return new Color((int) Math.round(bg.getRed() + (fg.getRed() - bg.getRed()) * amount),
-                    (int) Math.round(bg.getGreen() + (fg.getGreen() - bg.getGreen()) * amount),
-                    (int) Math.round(bg.getBlue() + (fg.getBlue() - bg.getBlue()) * amount));
+            return DefaultTheme.blend(bg, getColor(0), 0.12);
         }
         // How much darker the current line is, halved; at least enough to
         // see where a theme's current line is not darker at all.

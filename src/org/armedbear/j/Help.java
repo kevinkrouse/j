@@ -83,6 +83,8 @@ public final class Help {
             File file = File.getInstance(dir, fileName);
             if (file == null || !file.isFile())
                 return;
+            // CTRL-O comes back from help.
+            editor.recordJump();
             Buffer buf = null;
             // Look for existing help buffer.
             if (isHelpBuffer(editor.getBuffer()))
@@ -119,7 +121,6 @@ public final class Help {
                     if (pos != null)
                         editor.moveDotTo(pos);
                 } else {
-                    editor.makeNext(buf);
                     Editor ed = editor.activateInOtherWindow(buf);
                     if (pos != null) {
                         ed.moveDotTo(pos);
@@ -128,14 +129,7 @@ public final class Help {
                 }
             } else {
                 buf = WebBuffer.createWebBuffer(file, null, ref);
-                Editor otherEditor = editor.getOtherEditor();
-                if (otherEditor != null) {
-                    buf.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                    otherEditor.makeNext(buf);
-                } else {
-                    buf.setUnsplitOnClose(true);
-                    editor.makeNext(buf);
-                }
+                buf.setTransient(true);
                 Editor ed = editor.activateInOtherWindow(buf);
                 ed.updateDisplay();
             }
@@ -202,15 +196,9 @@ public final class Help {
                 }
                 if (buf != null)
                     ((WebBuffer) buf).go(file, 0, "text/html");
-                else
+                else {
                     buf = WebBuffer.createWebBuffer(file, null, null);
-                Editor otherEditor = editor.getOtherEditor();
-                if (otherEditor != null) {
-                    buf.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                    otherEditor.makeNext(buf);
-                } else {
-                    buf.setUnsplitOnClose(true);
-                    editor.makeNext(buf);
+                    buf.setTransient(true);
                 }
                 editor.activateInOtherWindow(buf);
             }
@@ -429,14 +417,6 @@ public final class Help {
                 else {
                     buf = WebBuffer.createWebBuffer(file, null, null);
                     buf.setTransient(true);
-                }
-                Editor otherEditor = editor.getOtherEditor();
-                if (otherEditor != null) {
-                    buf.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                    otherEditor.makeNext(buf);
-                } else {
-                    buf.setUnsplitOnClose(true);
-                    editor.makeNext(buf);
                 }
                 ed = editor.activateInOtherWindow(buf);
             }

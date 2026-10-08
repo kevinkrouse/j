@@ -22,6 +22,8 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Image;
@@ -40,11 +42,14 @@ import java.awt.event.WindowStateListener;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.LayoutFocusTraversalPolicy;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Icons;
 
@@ -68,6 +73,7 @@ public final class Frame extends JFrame
         addFocusListener(this);
         addWindowStateListener(this);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setFocusTraversalPolicy(new WindowFocusTraversalPolicy());
         statusBar = new StatusBar(this);
         getContentPane().add(statusBar, "South");
         final SessionProperties sessionProperties = Editor.getSessionProperties();
@@ -188,13 +194,23 @@ public final class Frame extends JFrame
         return getPriorEditor(currentEditor);
     }
 
-    // get most recent editor
+    /**
+     * The window used most recently other than editor: the one before the
+     * current one, or the current one when editor is another. Null when
+     * there is no other.
+     */
     private final Editor getPriorEditor(Editor editor) {
-        // If no other editor, return null
         if (editor == null || editors.size() == 1)
             return null;
-
-        return priorEditor;
+        if (priorEditor != null && priorEditor != editor && editors.contains(priorEditor))
+            return priorEditor;
+        if (currentEditor != null && currentEditor != editor && editors.contains(currentEditor))
+            return currentEditor;
+        for (Editor ed : editors) {
+            if (ed != editor)
+                return ed;
+        }
+        return null;
     }
 
     public final void setCurrentEditor(Editor editor) {
@@ -256,6 +272,60 @@ public final class Frame extends JFrame
         return getPriorEditor(editor);
     }
 
+    /** The window along the bottom that transient buffers are shown in, or null. */
+    public final Editor getPanelEditor() {
+        for (Editor ed : editors) {
+            if (editorPane.isPanel(ed))
+                return ed;
+        }
+        return null;
+    }
+
+    public final boolean isPanel(Editor editor) {
+        return editorPane.isPanel(editor);
+    }
+
+    /**
+     * The panel as an ordinary window from now on, given a buffer that
+     * belongs in one by a command that switches the window it runs in.
+     */
+    final void releasePanel() {
+        final Editor panel = getPanelEditor();
+        if (panel == null)
+            return;
+        editorPane.releasePanel();
+        panel.addLocationBar();
+        validate();
+    }
+
+    /**
+     * The window other than this one to show an ordinary buffer in: never
+     * the panel. Null when there is only this one, or this one and the
+     * panel.
+     */
+    public final Editor getOtherWindow(Editor editor) {
+        final Editor other = getOtherEditor(editor);
+        if (other != null && !isPanel(other))
+            return other;
+        for (Editor ed : editors) {
+            if (ed != editor && !isPanel(ed))
+                return ed;
+        }
+        return null;
+    }
+
+    /** The window most recently used other than the panel. */
+    public final Editor getWindowBehindPanel() {
+        final Editor panel = getPanelEditor();
+        if (panel == null)
+            return currentEditor;
+        if (currentEditor != panel)
+            return currentEditor;
+        if (priorEditor != null && priorEditor != panel && editors.contains(priorEditor))
+            return priorEditor;
+        return getOtherWindow(panel);
+    }
+
     public final List<Editor> getPrimaryEditors() {
         List<Editor> ret = new ArrayList<>(editors.size());
         for (Editor ed : editors)
@@ -274,14 +344,6 @@ public final class Frame extends JFrame
             if (ed.getBuffer() == buf)
                 return ed;
         return null;
-    }
-
-    // check buf is in the list of editors
-    private static final boolean hasBuffer(final List<Editor> editors, final Buffer buf) {
-        for (Editor ed : editors)
-            if (ed.getBuffer() == buf)
-                return true;
-        return false;
     }
 
     public void updateTitle() {
@@ -510,6 +572,9 @@ public final class Frame extends JFrame
     void splitWindow(Editor ed, boolean vertical, boolean focusNewEditor) {
         if (!contains(ed))
             return;
+        // The panel stays one window; the split is of the one behind it.
+        if (isPanel(ed))
+            ed = getWindowBehindPanel();
 
         splitWindow(ed, ed.getBuffer(), ed.getBuffer(), 0.5f, vertical, focusNewEditor);
     }
@@ -649,117 +714,115 @@ public final class Frame extends JFrame
         return false;
     }
 
-    public void switchToBuffer(final Editor fromEditor, final Buffer buf) {
-        // We're either switching in a paired buffer or switching out
-        // a paired buffer (or both).
-        Debug.bugIfNot(buf.isPaired() || (getEditorCount() > 1 && fromEditor.getBuffer().isPaired()));
-        final Buffer primary;
-        final Buffer secondary;
-        if (buf.isPrimary()) {
-            primary = buf;
-            secondary = buf.getSecondary();
-        } else {
-            Debug.bugIfNot(buf.isSecondary());
-            primary = buf.getPrimary();
-            Debug.bugIfNot(primary != null);
-            secondary = buf;
+    // A pair's second half has a window of its own, split from under the
+    // window showing its first, as mail's message under its mailbox: Gnus
+    // and mu4e lay them out so. Its first half's window, to it.
+    private final Map<Editor, Editor> boundWindows = new HashMap<>();
+
+    /** The window bound under editor for its pair's second half, or null. */
+    public final Editor getBoundWindow(Editor editor) {
+        final Editor bound = boundWindows.get(editor);
+        return bound != null && editors.contains(bound) ? bound : null;
+    }
+
+    /**
+     * Forgets a binding that editor no longer shows a pair in: a bound window
+     * showing anything but its window's message, or a window above one
+     * showing anything but that message's mailbox, is a window like any other.
+     */
+    final void checkBinding(Editor editor) {
+        final Editor above = getPrimaryWindow(editor);
+        if (above != null && !shows(above, editor))
+            boundWindows.remove(above);
+        final Editor bound = getBoundWindow(editor);
+        if (bound != null && !shows(editor, bound))
+            boundWindows.remove(editor);
+    }
+
+    // Whether above shows the first half of a pair whose second half bound shows.
+    private static boolean shows(Editor above, Editor bound) {
+        final Buffer secondary = bound.getBuffer();
+        return secondary.isSecondary() && secondary.getPrimary() == above.getBuffer();
+    }
+
+    /** The window a bound window is under, or null. */
+    public final Editor getPrimaryWindow(Editor bound) {
+        for (Map.Entry<Editor, Editor> e : boundWindows.entrySet()) {
+            if (e.getValue() == bound && editors.contains(e.getKey()))
+                return e.getKey();
         }
+        return null;
+    }
 
-        if (getEditorCount() > 1) {
-            // Window is already split.
-            // Get other editor and determine which are primary and secondary editors.
-            Editor otherEditor = fromEditor.getOtherEditor();
-            if (Editor.isDebugEnabled()) {
-                Debug.bugIf(otherEditor == null);
-                Debug.bugIf(fromEditor == otherEditor);
-                Debug.bugIfNot(isEditorSibling(fromEditor, otherEditor));
-            }
-
-            // the primary editor is ether the primary buffer's editor or the top-left most editor
-            Editor primaryEditor, secondaryEditor;
-            if (fromEditor.getBuffer().isPairedTo(otherEditor.getBuffer())) {
-                // editor buffers are paired
-                if (fromEditor.getBuffer().isPrimary()) {
-                    primaryEditor = fromEditor;
-                    secondaryEditor = otherEditor;
-                } else {
-                    primaryEditor = otherEditor;
-                    secondaryEditor = fromEditor;
-                }
-            } else {
-                // editor buffers are not paired: consider the top-left most editor the 'primary' editor
-                if (isEditorTopLeftOf(fromEditor, otherEditor)) {
-                    primaryEditor = fromEditor;
-                    secondaryEditor = otherEditor;
-                } else {
-                    primaryEditor = otherEditor;
-                    secondaryEditor = fromEditor;
-                }
-            }
-
-            if (secondary != null) {
-                // Activate primary buffer in primary editor.
-                // Activate secondary buffer in secondary editor.
-                if (primaryEditor.getBuffer() != primary)
-                    primaryEditor.activate(primary);
-                if (secondaryEditor.getBuffer() != secondary)
-                    secondaryEditor.activate(secondary);
-                // UNDONE: Adjust split pane divider location.
-                /*
-                if (editorPane instanceof SplitPane) {
-                    SplitPane sp = (SplitPane) editorPane;
-                    int height = sp.getHeight();
-                    float split = secondary.getSplit();
-                    int dividerLocation =
-                        (int)(height * (1 - split) - sp.getDividerSize());
-                    sp.setDividerLocation(dividerLocation);
-                }
-                */
-                Editor.setCurrentEditor(buf == primary ? primaryEditor : secondaryEditor);
-                primaryEditor.updateDisplay();
-                secondaryEditor.updateDisplay();
-            } else {
-                // No secondary.
-                Debug.bugIfNot(secondary == null);
-                // We don't need a split window. Close secondary editor.
-                // Save information about the buffer in the editor that we're
-                // going to close.
-                secondaryEditor.deactivate();
-                unsplitInternal(primaryEditor, secondaryEditor);
-                // Activate primary buffer in primary editor.
-                primaryEditor.activate(primary);
-            }
-        } else {
-            // Window is not split.
-            Debug.bugIfNot(getEditorCount() == 1);
-            if (secondary != null) {
-                // Split the editor, activate primary in fromEditor and secondary in the new editor window.
-                // Focus on the selected buffer.
-                // CONSIDER: Add option to specify preferred split direction
-                boolean switchWindows = buf == secondary;
-                splitWindow(fromEditor, primary, secondary, secondary.getSplit(), false, switchWindows);
-            } else {
-                // Only one editor, no secondary.
-                Debug.bugIfNot(editors.get(0) != fromEditor);
-                Debug.bugIfNot(editors.get(0) != null);
-                Debug.bugIfNot(editors.get(1) == null);
-                Debug.bugIfNot(secondary == null);
-                // Activate primary in editor 0.
-                fromEditor.activate(primary);
-            }
+    /**
+     * Shows a pair's second half in the window bound under primaryEditor,
+     * split off from it if there is none yet; other windows are left alone.
+     *
+     * @return the bound window
+     */
+    public final Editor showSecondary(Editor primaryEditor, Buffer secondary, boolean focus) {
+        Editor bound = getBoundWindow(primaryEditor);
+        if (bound == null) {
+            Editor.getSessionProperties().saveSidebarState(this);
+            primaryEditor.saveView();
+            bound = new Editor(this);
+            editors.addAfter(bound, primaryEditor);
+            bound.activate(secondary);
+            bound.updateLocation();
+            editorPane.split(primaryEditor, bound, false);
+            validate();
+            boundWindows.put(primaryEditor, bound);
+        } else if (bound.getBuffer() != secondary) {
+            bound.activate(secondary);
+            bound.updateLocation();
         }
+        Editor.setCurrentEditor(focus ? bound : primaryEditor);
+        setMenu();
+        setToolbar();
+        primaryEditor.setUpdateFlag(REFRAME | REPAINT);
+        primaryEditor.updateDisplay();
+        bound.setUpdateFlag(REFRAME | REPAINT);
+        bound.updateDisplay();
+        restoreFocus();
+        updateControls();
+        return bound;
+    }
 
+    /**
+     * Switches a window to a buffer that is half of a pair, or away from one:
+     * the first half here with the second in the window bound under it, and
+     * a window leaving the first half takes the second's window with it.
+     */
+    public void switchToBuffer(Editor fromEditor, final Buffer buf) {
+        // The window whose bound window fromEditor is, if it is one.
+        final Editor above = getPrimaryWindow(fromEditor);
+        if (buf.isSecondary()) {
+            final Buffer primary = buf.getPrimary();
+            Editor ed = above != null && above.getBuffer() == primary ? above : null;
+            if (ed == null && fromEditor.getBuffer() == primary)
+                ed = fromEditor;
+            if (ed == null) {
+                ed = above != null ? above : fromEditor;
+                ed.activate(primary);
+            }
+            showSecondary(ed, buf, true);
+        } else if (buf.getSecondary() != null) {
+            final Editor ed = above != null && above.getBuffer() == buf ? above : fromEditor;
+            if (ed.getBuffer() != buf)
+                ed.activate(buf);
+            showSecondary(ed, buf.getSecondary(), false);
+        } else {
+            // Away from a pair: a bound window is a window like any other
+            // now; one bound under this goes.
+            if (above != null)
+                boundWindows.remove(above);
+            final Editor bound = getBoundWindow(fromEditor);
+            fromEditor.activate(buf);
+            if (bound != null)
+                closeEditor(bound);
+            Editor.setCurrentEditor(fromEditor);
+        }
         buf.setLastActivated(System.currentTimeMillis());
-        if (Editor.isDebugEnabled()) {
-            if (buf.isPrimary()) {
-                Debug.bugIfNot(hasBuffer(getPrimaryEditors(), buf), "Editor not found for primary buffer");
-            } else {
-                Debug.bugIfNot(buf.isSecondary());
-                Buffer bufPrimary = buf.getPrimary();
-                Debug.bugIfNot(primary != null);
-                Debug.bugIfNot(hasBuffer(getPrimaryEditors(), bufPrimary), "Editor not found for primary buffer");
-            }
-        }
     }
 
     // UNDONE: enlarge window by N lines.
@@ -818,12 +881,86 @@ public final class Frame extends JFrame
         return openInOtherWindow(editor, buffer, 0.5F, false);
     }
 
+    /**
+     * Shows a transient buffer in the panel along the bottom, opening the
+     * panel if it is not open. The other windows are left as they are.
+     */
+    public final Editor openInPanel(Editor editor, Buffer buffer, boolean switchWindows) {
+        editor.saveView();
+        Editor panel = getPanelEditor();
+        if (panel == null) {
+            panel = new Editor(this);
+            editors.add(panel);
+            panel.activate(buffer);
+            if (!Editor.preferences().getBooleanProperty(Property.TRANSIENT_PANEL_LOCATION_BAR))
+                panel.removeLocationBar();
+            panel.updateLocation();
+            editorPane.openPanel(panel);
+            validate();
+        } else {
+            if (panel.getBuffer() != buffer)
+                panel.activate(buffer);
+            panel.updateLocation();
+        }
+        if (switchWindows) {
+            Editor.setCurrentEditor(panel);
+            setMenu();
+            setToolbar();
+        }
+        editor.setUpdateFlag(REFRAME | REPAINT);
+        editor.updateDisplay();
+        panel.setUpdateFlag(REFRAME | REPAINT);
+        panel.updateDisplay();
+        currentEditor.setFocusToDisplay();
+        restoreFocus();
+        updateControls();
+        return panel;
+    }
+
+    /**
+     * Closes the panel, with focus back in the window it came from, and
+     * with {@code kill} the buffer it showed.
+     */
+    public final void closePanel(boolean kill) {
+        final Editor panel = getPanelEditor();
+        if (panel == null)
+            return;
+        final Buffer buffer = panel.getBuffer();
+        final Editor keep = getWindowBehindPanel();
+        panel.deactivate();
+        unsplitInternal(keep, panel);
+        if (kill && Editor.getBufferList().contains(buffer))
+            BufferCommands.maybeKillBuffer(keep, buffer);
+        Sidebar.refreshSidebarInAllFrames();
+    }
+
+    /**
+     * Closes a list that was jumped from, as Ctrl Enter in one does: the
+     * panel or other window showing it, and the list.
+     */
+    public final void closeList(Buffer list) {
+        final Editor panel = getPanelEditor();
+        if (panel != null && panel.getBuffer() == list) {
+            closePanel(true);
+            return;
+        }
+        for (Editor ed : new ArrayList<>(editors)) {
+            if (ed.getBuffer() == list && editors.size() > 1)
+                closeEditor(ed);
+        }
+        if (Editor.getBufferList().contains(list))
+            list.kill();
+    }
+
     // UNDONE: Set divider location
     private Editor openInOtherWindow(Editor editor, Buffer buffer, float split, boolean switchWindows) {
+        // Half of a pair, as mail's message, has a window of its own.
+        if (buffer.isTransient() && !buffer.isPaired())
+            return openInPanel(editor, buffer, switchWindows);
         editor.saveView();
-        Editor otherEditor = getOtherEditor(editor);
+        // From the panel, the other window is the one behind it.
+        Editor otherEditor = isPanel(editor) ? getWindowBehindPanel() : getOtherWindow(editor);
         if (otherEditor == null) {
-            Debug.assertTrue(!hasSplit() && editor == editors.get(0));
             otherEditor = new Editor(this);
             editors.addAfter(otherEditor, editor);
             otherEditor.activate(buffer);
@@ -868,8 +1005,14 @@ public final class Frame extends JFrame
             return;
         if (!contains(editor))
             return;
-        promoteSecondaryBuffers();
-        Editor keep = toSuccessor ? editorPane.successor(editor) : getOtherEditor(editor);
+        // Closing the panel is done with what it shows.
+        if (isPanel(editor)) {
+            closePanel(true);
+            return;
+        }
+        // A bound window gives its place, and the caret, back to the one above.
+        final Editor above = getPrimaryWindow(editor);
+        Editor keep = above != null ? above : toSuccessor ? editorPane.successor(editor) : getOtherEditor(editor);
         Editor kill = editor;
         unsplitInternal(keep, kill);
     }
@@ -877,9 +1020,13 @@ public final class Frame extends JFrame
     public void unsplitWindow() {
         if (!hasSplit())
             return;
-        promoteSecondaryBuffers();
         Editor keep = currentEditor;
         Editor kill = getOtherEditor(currentEditor);
+        // The panel closes as it does for Escape, with what it shows.
+        if (isPanel(kill)) {
+            closePanel(true);
+            return;
+        }
         unsplitInternal(keep, kill);
     }
 
@@ -887,20 +1034,21 @@ public final class Frame extends JFrame
         closeEditor(currentEditor);
     }
 
-    public void promoteSecondaryBuffers() {
-        for (Editor editor : editors) {
-            Buffer buffer = editor.getBuffer();
-            if (buffer.isSecondary())
-                buffer.promote();
-        }
-    }
-
     public void unsplitAll(final Editor keep) {
         if (!hasSplit())
             return;
         if (!contains(keep))
             return;
+        // The panel closes as it does for Escape, with what it shows; kept,
+        // it is the one window left.
+        if (getPanelEditor() != null && !isPanel(keep)) {
+            closePanel(true);
+            if (!hasSplit())
+                return;
+        }
         Editor.getSessionProperties().saveSidebarState(this);
+        // Current first, so focus leaving the others goes to keep.
+        Editor.setCurrentEditor(keep);
         editorPane.root(keep);
         validate();
         List<Editor> kill = new ArrayList<>(editors);
@@ -908,8 +1056,31 @@ public final class Frame extends JFrame
         unsplitInternal(keep, kill);
     }
 
+    /**
+     * Where focus goes when the window holding it is closed. Swing passes it
+     * on from the window to the next component in the frame, which may be
+     * another window's location bar, where it would select the text and open
+     * the file list for an instant. After a window, or its display, comes the
+     * current window's display instead, which the window kept is made before
+     * the other goes. Tab is a key in a display, so nothing else traverses
+     * from one.
+     */
+    private final class WindowFocusTraversalPolicy extends LayoutFocusTraversalPolicy {
+        @Override
+        public Component getComponentAfter(Container root, Component c) {
+            if ((c instanceof Display || c instanceof Editor) && currentEditor != null) {
+                final Display display = currentEditor.getDisplay();
+                if (display != c && display.isShowing())
+                    return display;
+            }
+            return super.getComponentAfter(root, c);
+        }
+    }
+
     private void unsplitInternal(final Editor keep, final Editor kill) {
         Editor.getSessionProperties().saveSidebarState(this);
+        // Current first, so focus leaving kill goes to keep.
+        Editor.setCurrentEditor(keep);
         editorPane.unsplit(kill);
         validate();
         unsplitInternal(keep, Collections.singletonList(kill));
@@ -919,12 +1090,23 @@ public final class Frame extends JFrame
         Editor.removeEditors(kill);
         editors.removeAll(kill);
         Debug.bugIfNot(editors.contains(keep));
-        Buffer buffer = keep.getBuffer();
-        if (buffer.isSecondary())
-            buffer.promote();
+        // A bound window whose window above went shows a buffer of its own
+        // now, as a message no longer under its mailbox.
+        for (Map.Entry<Editor, Editor> e : new ArrayList<>(boundWindows.entrySet())) {
+            if (kill.contains(e.getValue())) {
+                boundWindows.remove(e.getKey());
+            } else if (kill.contains(e.getKey())) {
+                boundWindows.remove(e.getKey());
+                if (e.getValue().getBuffer().isSecondary())
+                    e.getValue().getBuffer().promote();
+            }
+        }
         if (keep.getLocationBar() == null)
             keep.addLocationBar();
         Editor.setCurrentEditor(keep);
+        // The menu and toolbar are the mode's, as a help panel's are Web's.
+        setMenu();
+        setToolbar();
         keep.setUpdateFlag(REFRAME);
         keep.reframe();
         restoreFocus();

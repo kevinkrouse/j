@@ -218,14 +218,8 @@ public class ListOccurrencesBuffer extends Buffer {
             ed.update(ed.getDotLine());
             ed.updateDisplay();
 
-            if (killList) {
-                if (ed.getFrame().getEditorCount() > 1) {
-                    Editor otherEditor = ed.getOtherEditor();
-                    if (otherEditor != null)
-                        ed.getFrame().closeEditor(otherEditor);
-                    kill();
-                }
-            }
+            if (killList)
+                ed.getFrame().closeList(this);
         }
     }
 
@@ -295,13 +289,6 @@ public class ListOccurrencesBuffer extends Buffer {
             ListOccurrencesBuffer buf = getBuffer(editor.getBuffer(), search);
             editor.setDefaultCursor();
             if (buf != null) {
-                editor.makeNext(buf);
-                Editor otherEditor = editor.getOtherEditor();
-                if (otherEditor != null) {
-                    buf.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                    otherEditor.makeNext(buf);
-                } else
-                    buf.setUnsplitOnClose(true);
                 Editor ed = editor.activateInOtherWindow(buf);
 
                 ed.setDot(buf.getInitialDotPos());
@@ -321,19 +308,7 @@ public class ListOccurrencesBuffer extends Buffer {
             ListOccurrencesBuffer buf = getBuffer(editor.getBuffer(), search);
             editor.setDefaultCursor();
             if (buf != null) {
-                editor.makeNext(buf);
-                boolean shrink = false;
-                Editor otherEditor = editor.getOtherEditor();
-                if (otherEditor != null) {
-                    buf.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                    otherEditor.makeNext(buf);
-                } else {
-                    buf.setUnsplitOnClose(true);
-                    shrink = true;
-                }
                 Editor ed = editor.activateInOtherWindow(buf);
-                if (shrink)
-                    WindowCommands.shrinkWindowIfLargerThanBuffer(ed);
                 ed.setDot(buf.getInitialDotPos(editor.getDotLine(), editor.getDotOffset()));
                 ed.moveCaretToDotCol();
                 ed.updateDisplay();

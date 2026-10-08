@@ -955,26 +955,16 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         editor.repaintNow();
         if (d.getFindInFiles() == null)
             return;
-        if (findInFiles != null) {
-            // Kill old output buffer.
-            Buffer buf = findInFiles.getOutputBuffer();
-            if (Editor.getBufferList().contains(buf))
-                buf.kill();
-        }
+        final Buffer oldOutputBuffer = findInFiles == null ? null : findInFiles.getOutputBuffer();
         findInFiles = d.getFindInFiles();
         findInFiles.setOutputBuffer(new ListOccurrencesInFilesBuffer(findInFiles));
         Background.start("FindInFiles", findInFiles);
         Buffer outputBuffer = findInFiles.getOutputBuffer();
-        if (outputBuffer != null) {
-            Editor otherEditor = editor.getOtherEditor();
-            if (otherEditor != null) {
-                outputBuffer.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                otherEditor.makeNext(outputBuffer);
-            } else
-                outputBuffer.setUnsplitOnClose(true);
-            editor.makeNext(outputBuffer);
+        if (outputBuffer != null)
             editor.activateInOtherWindow(outputBuffer);
-        }
+        // After the new one is in the panel, so the panel stays open.
+        if (oldOutputBuffer != null && Editor.getBufferList().contains(oldOutputBuffer))
+            oldOutputBuffer.kill();
         editor.status("Press Escape to cancel search");
     }
 

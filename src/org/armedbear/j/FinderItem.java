@@ -60,6 +60,11 @@ public interface FinderItem {
         return false;
     }
 
+    /** Whether this is a transient buffer: listed in italics. */
+    default boolean isTransient() {
+        return false;
+    }
+
     /** Added to the match score, to rank this item ahead of others. */
     default int boost() {
         return 0;

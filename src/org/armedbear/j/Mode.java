@@ -77,6 +77,11 @@ public interface Mode {
      */
     public KeyMap getKeyMap();
 
+    /** A word for what a transient buffer in this mode is, as Help or Results. */
+    public default String getTransientTag() {
+        return "Output";
+    }
+
     /**
      * Returns the file that defines a custom <code>KeyMap</code> for
      * this Mode, if any.

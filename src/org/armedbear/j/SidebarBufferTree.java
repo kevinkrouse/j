@@ -26,6 +26,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
@@ -385,10 +386,8 @@ public final class SidebarBufferTree extends SidebarTree
     private void switchToBuffer() {
         Buffer buffer = getSelectedBuffer();
         if (buffer != null) {
-            Editor editor = sidebar.getEditor();
-            if (Editor.preferences().getIntegerProperty(Property.REORDER_BUFFERS) > 1)
-                editor.makeNext(buffer);
-            editor.switchToBuffer(buffer);
+            Editor editor = sidebar.getEditor()
+                    .show(buffer, Editor.preferences().getIntegerProperty(Property.REORDER_BUFFERS) > 1);
             Editor.currentEditor().setFocusToDisplay();
             editor.updateDisplay();
         }
@@ -920,10 +919,12 @@ public final class SidebarBufferTree extends SidebarTree
             this.tree = tree;
             this.rowIndent =
                     (tree instanceof SidebarBufferTree sidebarBufferTree) ? sidebarBufferTree.getRowIndent() : 0;
+            boolean isTransient = false;
             if (userObject instanceof Buffer) {
-                fullText = userObject.toString();
-                setText(fullText);
                 Buffer buffer = (Buffer) userObject;
+                isTransient = buffer.isTransient();
+                fullText = isTransient ? userObject + "  " + buffer.getTransientLabel() : userObject.toString();
+                setText(fullText);
                 setIcon(buffer.getIcon());
                 statusKind = buffer.getVCStatusKind();
                 if (buffer.isSecondary())
@@ -942,10 +943,10 @@ public final class SidebarBufferTree extends SidebarTree
                 setForeground(selectionForeground);
             } else {
                 setBackground(textBackground);
-                setForeground(textForeground);
+                setForeground(isTransient ? Color.gray : textForeground);
             }
             setEnabled(tree.isEnabled());
-            setFont(tree.getFont());
+            setFont(isTransient ? tree.getFont().deriveFont(Font.ITALIC) : tree.getFont());
             Border outerBorder;
             if (hasFocus)
                 outerBorder = UIManager.getBorder("List.focusCellHighlightBorder");

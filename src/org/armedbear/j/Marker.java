@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.mode.web.WebBuffer;
 
 public final class Marker {
     private Buffer buffer;
@@ -31,6 +32,11 @@ public final class Marker {
     private final File file;
     private int lineNumber;
     private int offset;
+    // A page shown in a WebBuffer, as help is: gone back to there, and not
+    // opened as the file's HTML.
+    private final boolean web;
+    // Whether it was help or the like, for a buffer made again.
+    private final boolean wasTransient;
 
     public Marker(Buffer buffer, Position pos) {
         this.buffer = buffer;
@@ -38,6 +44,8 @@ public final class Marker {
         file = buffer.getFile();
         lineNumber = pos.lineNumber();
         offset = pos.getOffset();
+        web = buffer instanceof WebBuffer;
+        wasTransient = buffer.isTransient();
     }
 
     public Buffer getBuffer() {
@@ -76,7 +84,15 @@ public final class Marker {
         buffer = null;
     }
 
-    public void gotoMarker(Editor editor) {
+    /**
+     * Goes there, in this window or, between a transient buffer and any
+     * other, the panel's or the one behind it.
+     *
+     * @return the window it went to
+     */
+    public Editor gotoMarker(Editor editor) {
+        if (web)
+            return gotoWebMarker(editor);
         if (buffer == editor.getBuffer() || (file != null && file.equals(editor.getBuffer().getFile()))) {
             // Marker is in current buffer.
             editor.beginMotion();
@@ -101,8 +117,7 @@ public final class Marker {
             else if (buffer_list.contains(buffer))
                 buf = buffer;
             if (buf != null) {
-                editor.makeNext(buf);
-                editor.activate(buf);
+                editor = editor.show(buf);
                 editor.addUndo(SimpleEdit.MOVE);
                 editor.updateDotLine();
                 if (pos != null && buf.contains(pos.getLine())) {
@@ -117,18 +132,63 @@ public final class Marker {
                 editor.updateDotLine();
             } else if (file != null) {
                 buf = Buffer.createBuffer(file);
-                editor.makeNext(buf);
-                editor.activate(buf);
+                editor = editor.show(buf);
                 editor.gotoline(lineNumber);
                 editor.getDot().setOffset(offset);
                 if (editor.getDotOffset() > editor.getDotLine().length())
                     editor.getDot().setOffset(editor.getDotLine().length());
                 editor.moveCaretToDotCol();
             } else
-                return;
+                return editor;
         }
         pos = new Position(editor.getDot());
         buffer = editor.getBuffer();
+        return editor;
+    }
+
+    // The page again in its WebBuffer, or in a new one if that has gone.
+    private Editor gotoWebMarker(Editor editor) {
+        WebBuffer wb = buffer instanceof WebBuffer w && Editor.getBufferList().contains(w) ? w : null;
+        if (wb == null && file != null) {
+            for (Buffer b : Editor.getBufferList()) {
+                if (b instanceof WebBuffer w && file.equals(w.getFile())) {
+                    wb = w;
+                    break;
+                }
+            }
+        }
+        if (wb == null) {
+            if (file == null)
+                return editor;
+            wb = WebBuffer.createWebBuffer(file, null, null);
+            wb.setTransient(wasTransient);
+        }
+        final Editor ed = editor.show(wb);
+        final boolean samePage = file == null || file.equals(wb.getFile());
+        if (!samePage) {
+            if (ed.getDot() != null)
+                wb.saveHistory(wb.getFile(), wb.getAbsoluteOffset(ed.getDot()), wb.getContentType());
+            wb.go(file, 0, null);
+        }
+        if (ed.getDot() == null)
+            return ed;
+        ed.beginMotion();
+        ed.updateDotLine();
+        if (samePage && pos != null && wb.contains(pos.getLine()))
+            ed.getDot().moveTo(pos);
+        else {
+            ed.gotoline(lineNumber);
+            ed.getDot().setOffset(offset);
+        }
+        if (ed.getDotOffset() > ed.getDotLine().length())
+            ed.getDot().setOffset(ed.getDotLine().length());
+        ed.moveCaretToDotCol();
+        ed.updateDotLine();
+        ed.setUpdateFlag(REFRAME);
+        ed.updateDisplay();
+        pos = new Position(ed.getDot());
+        buffer = wb;
+        return ed;
     }
 
     public static void selectToMarker() {
