@@ -15,7 +15,9 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -66,7 +68,16 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
     private boolean browsingHistory;
     private boolean recalling;
 
+    // While Tab steps through the list: what was typed, which the list stays
+    // ranked for as each match is put in the field. Null when not stepping.
+    private String typedBeforeTab;
+    // Tab is putting a match in the field: not an edit to rank for.
+    private boolean completing;
+
     private void edited() {
+        if (completing)
+            return;
+        typedBeforeTab = null;
         if (!recalling)
             browsingHistory = false;
         debounce.setInitialDelay(popup.isShowing() ? DEBOUNCE_MILLIS : Math.max(DEBOUNCE_MILLIS, firstListMillis()));
@@ -218,11 +229,27 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         }
     }
 
-    private static List<FinderItem.Row> rank(List<FinderItem> items, Query query) {
-        List<Ranked<FinderItem>> ranked =
-                FuzzyMatcher.rank(items, FinderItem::matchText, FinderItem::boost, query, MAX_RESULTS);
-        List<FinderItem.Row> rows = new ArrayList<>(ranked.size());
-        for (Ranked<FinderItem> r : ranked) {
+    // Items matching in their primary text first, then the rest matching
+    // anywhere: a command found by its name ahead of one found only by its
+    // description.
+    protected static List<FinderItem.Row> rank(List<FinderItem> items, Query query) {
+        List<FinderItem.Row> rows = new ArrayList<>();
+        Set<FinderItem> listed = new HashSet<>();
+        if (!query.isEmpty()) {
+            for (Ranked<FinderItem> r : FuzzyMatcher
+                    .rank(items, FinderItem::primaryMatchText, FinderItem::boost, query, MAX_RESULTS)) {
+                // The primary text starts matchText(), so the positions are the same in both.
+                FuzzyMatcher.Match m = FuzzyMatcher.match(r.text(), query);
+                rows.add(new FinderItem.Row(r.item(), m == null ? null : m.positions()));
+                listed.add(r.item());
+            }
+        }
+        for (Ranked<FinderItem> r : FuzzyMatcher
+                .rank(items, FinderItem::matchText, FinderItem::boost, query, MAX_RESULTS)) {
+            if (rows.size() == MAX_RESULTS)
+                break;
+            if (listed.contains(r.item()))
+                continue;
             FuzzyMatcher.Match m = query.isEmpty() ? null : FuzzyMatcher.match(r.text(), query);
             rows.add(new FinderItem.Row(r.item(), m == null ? null : m.positions()));
         }
@@ -264,7 +291,8 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
     /** The selected row, ranked for the text as it is now; null if nothing matches. */
     protected final FinderItem.Row selection() {
         final String text = textField.getText();
-        if (!text.equals(shownText) || !popup.isShowing()) {
+        // Stepping with Tab, the list is still the one for what was typed.
+        if (typedBeforeTab == null && (!text.equals(shownText) || !popup.isShowing())) {
             debounce.stop();
             generation.incrementAndGet();
             Query query = Query.parse(queryText(text));
@@ -326,14 +354,64 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         return true;
     }
 
+    /**
+     * Tab puts the selected match in the field; Tab again moves to the next
+     * and puts that in, the list staying ranked for what was typed, as vim's
+     * wildmenu and zsh's menu completion do. Shift Tab goes back.
+     */
     @Override
     public void tab() {
-        popup.move(+1, true);
+        complete(+1);
     }
 
     @Override
     public void shiftTab() {
-        popup.move(-1, true);
+        complete(-1);
+    }
+
+    private void complete(int delta) {
+        FinderItem.Row row;
+        if (typedBeforeTab == null) {
+            final String typed = textField.getText();
+            row = selection();
+            if (row == null)
+                return;
+            typedBeforeTab = typed;
+            // The first Shift Tab goes to the last match, as in vim.
+            if (delta < 0 && popup.move(-1, true))
+                row = popup.getSelected();
+        } else {
+            popup.move(delta, true);
+            row = popup.getSelected();
+        }
+        final String s = row == null ? null : completion(row.item());
+        if (s == null)
+            return;
+        completing = true;
+        try {
+            textField.setText(s);
+            textField.setCaretPosition(s.length());
+        }
+        finally {
+            completing = false;
+        }
+        if (continuesFrom(s)) {
+            typedBeforeTab = null;
+            refilter();
+        }
+    }
+
+    /** What Tab puts in the field for item; null to leave the text alone. */
+    protected String completion(FinderItem item) {
+        return item.insertText();
+    }
+
+    /**
+     * Whether a completion is one to go on from, as a directory is: the list
+     * is ranked for it then, and Tab steps through that.
+     */
+    protected boolean continuesFrom(String completion) {
+        return false;
     }
 
     // The history list takes the finder's place while it shows.

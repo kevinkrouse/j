@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import javax.swing.Icon;
+import org.armedbear.j.util.FuzzyMatcher.Query;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.vim.VimInputHandler;
 import org.armedbear.j.vim.VimKeyMap;
@@ -58,6 +59,56 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
     @Override
     protected String command() {
         return "findAction";
+    }
+
+    /**
+     * A command named exactly and followed by its argument, as
+     * "openMailbox ~/test.mbox", where the text as a whole is no query that
+     * finds a command: { name, argument }. Null for anything else, which is
+     * a query, as "compile project" is.
+     */
+    private String[] commandWithArgument(String text) {
+        final String s = text.strip();
+        final int space = s.indexOf(' ');
+        if (space < 0)
+            return null;
+        final Command command = CommandTable.getCommand(s.substring(0, space));
+        if (command == null || !command.takesArgument())
+            return null;
+        if (!rank(candidates, Query.parse(s)).isEmpty())
+            return null;
+        return new String[] { command.getName(), s.substring(space + 1).strip() };
+    }
+
+    // Just the name of a command given its argument: its row is the one listed.
+    @Override
+    protected String queryText(String text) {
+        final String[] typed = commandWithArgument(text);
+        return typed == null ? text : typed[0];
+    }
+
+    // A command and its argument run as the Command: prompt would run them;
+    // a selection moved to is what runs, though.
+    @Override
+    public void enter() {
+        final String[] typed = selectionMoved() ? null : commandWithArgument(textField.getText());
+        if (typed == null) {
+            super.enter();
+            return;
+        }
+        closePrompt();
+        run(editor, typed[0] + " " + typed[1]);
+    }
+
+    // Runs a command line, put first in the list of commands run.
+    private static void run(Editor editor, String line) {
+        History history = new History(HISTORY, 30);
+        history.append(line);
+        history.save();
+        editor.executeCommand(line, true);
+        // As the Command: prompt does, so an edit is shown.
+        editor.ensureActive();
+        editor.getDispatcher().eventHandled();
     }
 
     /** Every command, by name, as items whose insertText() is the name. */
@@ -150,6 +201,7 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
     static final class ActionItem implements FinderItem {
         private final Command command;
         private final String label;
+        private final String primary;
         private final String text;
         private final String note;
         private final String keyText;
@@ -160,11 +212,11 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             label = humanize(name);
             String summary = CommandTable.getSummary(name);
             note = summary == null ? "" : summary;
-            // The name, so a query in its exact case matches, and the summary, its
-            // slashes blanked so the matcher doesn't take its tail for a file name.
-            text = note.isEmpty()
-                    ? label + " " + name
-                    : label + " " + name + " " + note.replace('/', ' ').replace('\\', ' ');
+            // The name, so a query in its exact case matches, then its label,
+            // then the summary, its slashes blanked so the matcher doesn't take
+            // its tail for a file name.
+            primary = name + " " + label;
+            text = note.isEmpty() ? primary : primary + " " + note.replace('/', ' ').replace('\\', ' ');
             keyText = keyText(editor, name);
         }
 
@@ -188,8 +240,15 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         }
 
         @Override
+        public String primaryMatchText() {
+            return primary;
+        }
+
+        // The name first, as typed after ":" or Alt X, then its label and, set
+        // off by a dot, what it does.
+        @Override
         public String label() {
-            return label;
+            return command.getName();
         }
 
         @Override
@@ -199,17 +258,17 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
 
         @Override
         public String detail() {
-            return command.getName();
+            return label;
         }
 
         @Override
         public int detailOffset() {
-            return label.length() + 1;
+            return command.getName().length() + 1;
         }
 
         @Override
         public String note() {
-            return note;
+            return note.isEmpty() ? "" : "· " + note;
         }
 
         @Override
@@ -241,13 +300,7 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
                 }
                 return;
             }
-            History history = new History(HISTORY, 30);
-            history.append(name);
-            history.save();
-            editor.executeCommand(name, true);
-            // As the Command: prompt does, so an edit is shown.
-            editor.ensureActive();
-            editor.getDispatcher().eventHandled();
+            run(editor, name);
         }
     }
 }

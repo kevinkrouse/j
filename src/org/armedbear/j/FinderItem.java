@@ -60,6 +60,15 @@ public interface FinderItem {
         return false;
     }
 
+    /**
+     * A prefix of matchText() that a match in ranks ahead of one only in
+     * the rest, as a command's name ahead of its description; null when
+     * there is none.
+     */
+    default String primaryMatchText() {
+        return null;
+    }
+
     /** Whether this is a transient buffer: listed in italics. */
     default boolean isTransient() {
         return false;
