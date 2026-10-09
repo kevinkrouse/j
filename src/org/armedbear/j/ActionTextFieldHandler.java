@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import javax.swing.Icon;
+import org.armedbear.j.util.FuzzyMatcher;
 import org.armedbear.j.util.FuzzyMatcher.Query;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.vim.VimInputHandler;
@@ -61,6 +62,10 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         return "findAction";
     }
 
+    // The text last asked about, and whether it finds a command.
+    private String matchedText;
+    private boolean textFindsCommand;
+
     /**
      * A command named exactly and followed by its argument, as
      * "openMailbox ~/test.mbox", where the text as a whole is no query that
@@ -75,7 +80,14 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         final Command command = CommandTable.getCommand(s.substring(0, space));
         if (command == null || !command.takesArgument())
             return null;
-        if (!rank(candidates, Query.parse(s)).isEmpty())
+        // Any match will do; the list is ranked once, by the base class.
+        if (!s.equals(matchedText)) {
+            final Query query = Query.parse(s);
+            matchedText = s;
+            textFindsCommand = candidates.stream()
+                    .anyMatch(item -> item.matchText() != null && FuzzyMatcher.score(item.matchText(), query) != null);
+        }
+        if (textFindsCommand)
             return null;
         return new String[] { command.getName(), s.substring(space + 1).strip() };
     }
