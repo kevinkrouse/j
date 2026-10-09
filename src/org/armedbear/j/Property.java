@@ -59,6 +59,8 @@ public final class Property implements Comparable<Property> {
     public static final Property PRINTER_FONT_SIZE = createProperty("printerFontSize", 10);
     public static final Property REORDER_BUFFERS = createProperty("reorderBuffers", 1);
     public static final Property SHELL_OUTPUT_LIMIT = createProperty("shellOutputLimit", 1000);
+    // Under splitAttributes=preserve, how many indent levels a wrapped attribute line goes in.
+    public static final Property SPLIT_ATTRIBUTES_INDENT_SIZE = createProperty("splitAttributesIndentSize", 2);
     public static final Property SSH_TIMEOUT = createProperty("sshTimeout", 250);
     public static final Property STATUS_BAR_DISPLAY_CONTEXT = createProperty("StatusBar.displayContext", 1);
     public static final Property TAB_WIDTH = createProperty("tabWidth", 8);
@@ -170,6 +172,8 @@ public final class Property implements Comparable<Property> {
     public static final Property PRINTER_FONT_NAME = createProperty("printerFontName", "Courier");
     public static final Property SHELL_PROMPT_PATTERN =
             createProperty("shellPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
+    // How XmlMode lays out a start tag's attributes: preserve, preserve-aligned or force-aligned.
+    public static final Property SPLIT_ATTRIBUTES = createProperty("splitAttributes", "preserve");
     public static final Property SSH_PROMPT_PATTERN = createProperty("sshPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
     public static final Property TELNET_PROMPT_PATTERN =
             createProperty("telnetPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);

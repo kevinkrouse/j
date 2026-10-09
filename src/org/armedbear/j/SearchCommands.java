@@ -199,67 +199,118 @@ public final class SearchCommands {
         }
     }
 
+    /** findNextWord, or with "partial" g* in vim: matches inside other words too. */
+    public static void findNextWord(Editor editor, String arg) {
+        findWordAtDot(editor, true, "partial".equals(arg));
+    }
+
     public static void findNextWord(Editor editor) {
-        if (editor.getDot() == null)
-            return;
-        String pattern = editor.getTokenAtDot();
-        if (pattern == null || pattern.length() == 0)
-            return;
-        final Search search = new Search(pattern, false, true);
-        editor.setLastSearch(search);
-        Position start;
-        if (editor.getMark() != null && editor.getDot().isBefore(editor.getMark()))
-            start = new Position(editor.getMark());
-        else
-            start = new Position(editor.getDot());
-        Position pos = search.find(editor.getBuffer().getMode(), start);
-        if (pos != null && pos.equals(start)) {
-            if (pos.next())
-                pos = search.find(editor.getBuffer().getMode(), pos);
-        }
-        if (pos != null && !pos.equals(start)) {
-            editor.recordJump();
-            editor.moveDotTo(pos);
-            markFoundPattern(editor, search);
-        } else
-            search.notFound(editor);
+        findWordAtDot(editor, true, false);
+    }
+
+    /** findPrevWord, or with "partial" g# in vim. */
+    public static void findPrevWord(Editor editor, String arg) {
+        findWordAtDot(editor, false, "partial".equals(arg));
     }
 
     public static void findPrevWord(Editor editor) {
+        findWordAtDot(editor, false, false);
+    }
+
+    private static void findWordAtDot(Editor editor, boolean forward, boolean partial) {
         if (editor.getDot() == null)
             return;
-        String pattern = editor.getTokenAtDot();
-        if (pattern == null || pattern.length() == 0)
+        final Word word = wordAt(editor, editor.getDot());
+        if (word == null)
             return;
-        final Search search = new Search(pattern, false, true);
-        editor.setLastSearch(search);
-        boolean found = false;
-        Position start = null;
-        if (editor.getMark() != null)
-            start = new Region(editor).getBegin();
-        else
-            start = new Position(editor.getDot());
-        if (start.prev()) {
-            Position pos = search.reverseFind(editor.getBuffer(), start);
-            if (pos != null && pos.getLine() == start.getLine()) {
-                if (pos.getOffset() + search.getPatternLength() > start.getOffset()) {
-                    // We've found the instance we started with. Keep looking.
-                    start = new Position(pos);
-                    if (start.prev())
-                        pos = search.reverseFind(editor.getBuffer(), start);
-                    else
-                        pos = null;
-                }
-            }
-            if (pos != null) {
-                found = true;
-                editor.recordJump();
-                editor.moveDotTo(pos);
-                markFoundPattern(editor, search);
-            }
+        final Position pos = findWord(editor, editor.getDot(), forward, partial, 1, false, true);
+        if (pos != null) {
+            editor.recordJump();
+            editor.moveDotTo(pos);
+            markFoundPattern(editor, editor.getLastSearch());
+        } else
+            editor.getLastSearch().notFound(editor);
+    }
+
+    /**
+     * The word findNextWord and vim's * look for: the keyword under the
+     * caret, or the next one along its line; on a line with none, the next
+     * run of non-blanks, which is not a keyword.
+     */
+    public record Word(String text, int offset, boolean keyword) {}
+
+    public static Word wordAt(Editor editor, Position at) {
+        final Mode mode = editor.getBuffer().getMode();
+        final Position pos = new Position(at);
+        final String text = pos.getLine().getText();
+        if (text == null)
+            return null;
+        for (int offset = pos.getOffset(); offset < text.length(); offset++) {
+            pos.setOffset(offset);
+            final String word = mode.getIdentifier(pos);
+            if (word != null && !word.isEmpty())
+                // getIdentifier scans back to the start of the word, so with
+                // the caret inside one the word begins before this offset.
+                return new Word(word, Math.max(0, text.lastIndexOf(word, offset)), true);
         }
-        if (!found)
-            search.notFound(editor);
+        for (int offset = at.getOffset(); offset < text.length(); offset++) {
+            if (Character.isWhitespace(text.charAt(offset)))
+                continue;
+            int end = offset;
+            while (end < text.length() && !Character.isWhitespace(text.charAt(end)))
+                ++end;
+            return new Word(text.substring(offset, end), offset, false);
+        }
+        return null;
+    }
+
+    /**
+     * Searches for the word at from, as vim's * and # do, and makes it the
+     * last search, in the direction it went: whole words unless partial or
+     * the word is no keyword, from the word's start, count matches on.
+     * Returns where the count'th match is, or null.
+     */
+    public static Position findWord(
+            Editor editor,
+            Position from,
+            boolean forward,
+            boolean partial,
+            int count,
+            boolean ignoreCase,
+            boolean wrap) {
+        final Word word = wordAt(editor, from);
+        if (word == null)
+            return null;
+        final Search search = new Search(word.text(), ignoreCase, word.keyword() && !partial);
+        search.setForward(forward);
+        editor.setLastSearch(search);
+        editor.setSearchHighlightHidden(false);
+        Position pos = new Position(from.getLine(), word.offset());
+        for (int i = 0; i < count && pos != null; i++)
+            pos = forward
+                    ? nextMatch(editor.getBuffer(), search, pos, wrap)
+                    : prevMatch(editor.getBuffer(), search, pos, wrap);
+        return pos;
+    }
+
+    // The first match after pos; with wrap, from the top if there is none.
+    private static Position nextMatch(Buffer buffer, Search search, Position pos, boolean wrap) {
+        final Position start = new Position(pos);
+        Position found = start.next() ? search.find(buffer.getMode(), start) : null;
+        if (found == null && wrap)
+            found = search.find(buffer.getMode(), new Position(buffer.getFirstLine(), 0));
+        return found;
+    }
+
+    // The last match before pos; with wrap, from the bottom if there is none.
+    private static Position prevMatch(Buffer buffer, Search search, Position pos, boolean wrap) {
+        final Position start = new Position(pos);
+        Position found = start.prev() ? search.reverseFind(buffer, start) : null;
+        if (found != null && !found.isBefore(pos))
+            found = null;
+        if (found == null && wrap)
+            found = search.reverseFind(buffer, buffer.getEnd());
+        return found;
     }
 
     public static void findFirstOccurrence(Editor editor) {

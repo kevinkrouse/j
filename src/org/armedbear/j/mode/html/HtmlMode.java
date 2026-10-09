@@ -38,7 +38,6 @@ import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Debug;
 import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
@@ -50,10 +49,12 @@ import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Mode;
+import org.armedbear.j.PairMatcher;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.mode.js.JavaScriptMode;
+import org.armedbear.j.mode.xml.XmlPairMatcher;
 import org.armedbear.j.util.Utilities;
 
 public final class HtmlMode extends AbstractMode implements Mode {
@@ -85,7 +86,6 @@ public final class HtmlMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "newline");
-        km.mapKey(KeyEvent.VK_M, CTRL_MASK, "htmlFindMatch");
         km.mapKey(KeyEvent.VK_E, CTRL_MASK, "htmlInsertMatchingEndTag");
         km.mapKey(KeyEvent.VK_B, CTRL_MASK, "htmlBold");
         km.mapKey('=', "htmlElectricEquals");
@@ -540,170 +540,9 @@ public final class HtmlMode extends AbstractMode implements Mode {
             EditCommands.insertNormalChar(editor, '=');
     }
 
-    public static void htmlFindMatch() {
-        final Editor editor = Editor.currentEditor();
-        final String special = "{([})]";
-        final String commentStart = "<!--";
-        final String commentEnd = "-->";
-        final String emptyTagStart = "<";
-        final String emptyTagEnd = "/>";
-        Position dot = editor.getDot();
-        char c = dot.getChar();
-        if (special.indexOf(c) >= 0) {
-            CaretCommands.findMatchingChar(editor);
-            return;
-        }
-        Position saved = dot.copy();
-        while ((c = dot.getChar()) > ' ' && c != '<' && dot.getOffset() > 0) {
-            if (dot.lookingAt(commentEnd))
-                break;
-            dot.prev();
-        }
-        if (c <= ' ')
-            dot.next();
-        Position start = dot.copy();
-        StringBuilder sb = new StringBuilder();
-        sb.append(dot.getChar());
-        dot.next();
-        while ((c = dot.getChar()) > ' ' && c != '>') {
-            sb.append(c);
-            if (!dot.next()) {
-                editor.status("Nothing to match");
-                dot.moveTo(saved);
-                return;
-            }
-        }
-        if (c == '>')
-            sb.append(c);
-        else {
-            Position probe = dot.copy();
-            while (probe.next() && probe.getChar() != '>') {
-                if (probe.lookingAt(emptyTagEnd)) {
-                    editor.status("Nothing to match");
-                    dot.moveTo(saved);
-                    return;
-                }
-            }
-        }
-        String toBeMatched = sb.toString();
-        String match = null;
-        boolean searchForward = true;
-        if (toBeMatched.equals(commentStart))
-            match = commentEnd;
-        else if (toBeMatched.equals(commentEnd)) {
-            match = commentStart;
-            searchForward = false;
-        } else if (toBeMatched.startsWith("</")) {
-            match = "<".concat(toBeMatched.substring(2));
-            if (match.endsWith(">"))
-                match = match.substring(0, match.length() - 1);
-            searchForward = false;
-        } else if (toBeMatched.startsWith("<") && !toBeMatched.endsWith(emptyTagEnd)) {
-            if (toBeMatched.endsWith(">"))
-                toBeMatched = toBeMatched.substring(0, toBeMatched.length() - 1);
-            match = "</" + toBeMatched.substring(1);
-            if (!match.endsWith(">"))
-                match += '>';
-        } else {
-            editor.status("Nothing to match");
-            dot.moveTo(saved);
-            return;
-        }
-        editor.setWaitCursor();
-        int count = 1;
-        boolean succeeded = false;
-        dot.moveTo(start);
-        if (searchForward) {
-            dot.skip(toBeMatched.length());
-            if (toBeMatched.equals(commentStart)) {
-                while (!dot.atEnd()) {
-                    if (dot.lookingAt(commentEnd)) {
-                        succeeded = true;
-                        break;
-                    }
-                    dot.next();
-                }
-            } else {
-                // Find matching end tag.
-                while (!dot.atEnd()) {
-                    if (dot.lookingAt(commentStart)) {
-                        dot.skip(commentStart.length());
-                        while (!dot.atEnd()) {
-                            if (dot.lookingAt(commentEnd)) {
-                                dot.skip(commentEnd.length());
-                                break;
-                            }
-                            dot.next();
-                        }
-                    } else if (dot.lookingAtIgnoreCase(toBeMatched)) {
-                        dot.skip(toBeMatched.length());
-                        while (!dot.atEnd()) {
-                            if (dot.lookingAt(emptyTagEnd)) {
-                                dot.skip(emptyTagEnd.length());
-                                break;
-                            }
-
-                            c = dot.getChar();
-                            if (c == '>') {
-                                ++count;
-                                dot.next();
-                                break;
-                            }
-
-                            dot.next();
-                        }
-                    } else if (dot.lookingAtIgnoreCase(match)) {
-                        --count;
-                        if (count == 0) {
-                            succeeded = true;
-                            break;
-                        }
-                        dot.skip(match.length());
-                    } else
-                        dot.next();
-                }
-            }
-        } else {
-            // Search backward.
-            while (!dot.atStart()) {
-                dot.prev();
-                if (dot.lookingAt(commentEnd)) {
-                    do {
-                        dot.prev();
-                    } while (!dot.atStart() && !dot.lookingAt(commentStart));
-                } else if (dot.lookingAt(emptyTagEnd)) {
-                    do {
-                        dot.prev();
-                    } while (!dot.atStart() && !dot.lookingAt(emptyTagStart));
-                } else if (dot.lookingAtIgnoreCase(toBeMatched)) {
-                    ++count;
-                } else if (dot.lookingAtIgnoreCase(match)) {
-                    if (dot.lookingAtIgnoreCase(match + ">"))
-                        --count;
-                    else if (dot.lookingAtIgnoreCase(match + " "))
-                        --count;
-                    else if (dot.lookingAtIgnoreCase(match + "\t"))
-                        --count;
-                    if (count == 0) {
-                        succeeded = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if (succeeded) {
-            Position matchPos = dot.copy();
-            dot.moveTo(saved);
-            editor.updateDotLine();
-            editor.addUndo(SimpleEdit.MOVE);
-            dot.moveTo(matchPos);
-            editor.updateDotLine();
-            editor.moveCaretToDotCol();
-        } else {
-            dot.moveTo(saved);
-            editor.status("No match");
-        }
-        editor.setDefaultCursor();
+    @Override
+    public PairMatcher getPairMatcher() {
+        return XmlPairMatcher.HTML;
     }
 
     @Override

@@ -14,6 +14,9 @@ package org.armedbear.j.vim;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.Mode;
+import org.armedbear.j.mode.c.CMode;
+import org.armedbear.j.mode.xml.XmlMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -326,5 +329,40 @@ public class VimMotionEdgeCaseTest {
         h.assertCursorAt(1, 7);
         vim("(\")\"\n)", 0, 0).keys("%");
         h.assertCursorAt(1, 0);
+    }
+
+    // ---------------------------------------- % on tags and directives
+
+    private void percentIn(Mode mode, String text, int line, int offset) {
+        tearDown();
+        h = EditorHarness.create().vim();
+        h.value(text).mode(mode);
+        h.buffer().getFormatter().parseBuffer();
+        h.cursor(line, offset).keys("%");
+    }
+
+    @Test
+    public void percentGoesBetweenAnElementsTagsNames() {
+        final String xml = "<a>\n  <b x=\"1\">\n  </b>\n</a>";
+        percentIn(XmlMode.getMode(), xml, 1, 5);
+        h.assertCursorAt(2, 4);
+        h.keys("%");
+        h.assertCursorAt(1, 3);
+        // Before the tag on its line.
+        percentIn(XmlMode.getMode(), xml, 3, 0);
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void percentDeletesToTheOtherTag() {
+        percentIn(XmlMode.getMode(), "<b>x</b>", 0, 1);
+        h.keys("d%");
+        assertEquals("<>", h.value());
+    }
+
+    @Test
+    public void percentGoesBetweenDirectives() {
+        percentIn(CMode.getMode(), "#if X\nf();\n#endif", 0, 0);
+        h.assertCursorAt(2, 0);
     }
 }

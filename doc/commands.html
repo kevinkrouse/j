@@ -133,6 +133,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#findFirstOccurrence">findFirstOccurrence</a></li>
     <li><a href="commands.html#findInFiles">findInFiles</a></li>
     <li><a href="commands.html#findMatchingChar">findMatchingChar</a></li>
+    <li><a href="commands.html#findMatchingPair">findMatchingPair</a></li>
     <li><a href="commands.html#findNext">findNext</a></li>
     <li><a href="commands.html#findNextWord">findNextWord</a></li>
     <li><a href="commands.html#findOccurrenceAtDot">findOccurrenceAtDot</a></li>
@@ -440,6 +441,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#xmlElectricSlash">xmlElectricSlash</a></li>
     <li><a href="commands.html#xmlFindCurrentNode">xmlFindCurrentNode</a></li>
     <li><a href="commands.html#xmlFindMatch">xmlFindMatch</a></li>
+    <li><a href="commands.html#xmlFormatAttributes">xmlFormatAttributes</a></li>
     <li><a href="commands.html#xmlInsertEmptyElementTag">xmlInsertEmptyElementTag</a></li>
     <li><a href="commands.html#xmlInsertMatchingEndTag">xmlInsertMatchingEndTag</a></li>
     <li><a href="commands.html#xmlInsertTag">xmlInsertTag</a></li>
@@ -840,12 +842,9 @@ system clipboard) the path of the element at the current location of the caret.
 
 <a name="cppFindMatch">cppFindMatch</a><dl><dd>
 <p>
-If the caret is on a line that starts with <code>#if</code>,
-<code>#else</code>, <code>#elif</code> or <code>#endif</code>, finds the
-matching expression. Otherwise, finds the match of the brace, parenthesis or
-bracket at the location of the caret.
+An alias for <a href="#findMatchingPair">findMatchingPair</a>.
 <br><br>
-<b>Default key mapping:</b> Ctrl M in C++ mode
+<b>Default key mapping:</b> None
 <br><br>
 </dl><!--<hr>-->
 
@@ -1933,10 +1932,29 @@ the summary.
 
 <a name="findMatchingChar">findMatchingChar</a><dl><dd>
 <p>
-Finds the match of the brace, parenthesis or bracket at the location of the
-caret.
+An alias for <a href="#findMatchingPair">findMatchingPair</a>.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="findMatchingPair">findMatchingPair</a><dl><dd>
+<p>
+Moves the caret to the other end of the pair at the caret: a brace,
+parenthesis or bracket; in C and C++ modes, an <code>#if</code>,
+<code>#else</code>, <code>#elif</code> or <code>#endif</code> when the caret
+is at or before the line's <code>#</code>; in XML and HTML modes, the other
+tag of an element, landing on its name, or the other end of a comment.
+<p>
+The pair is the one at the caret, else a closing bracket just before the
+caret, else the first one after the caret on its line. A bracket in a string
+or a comment matches too. In <a href="editmodes.html">vim edit mode</a>,
+<code>%</code> is the same search.
 <br><br>
 <b>Default key mapping:</b> Ctrl M
+<br><br>
+<b>See also:</b> <a href="preferences.html#highlightMatchingBracket">highlightMatchingBracket</a>,
+<a href="preferences.html#rainbowDelimiters">rainbowDelimiters</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -1956,11 +1974,16 @@ goes on with a <code>/</code>.
 
 <a name="findNextWord">findNextWord</a><dl><dd>
 <p>
-Finds the next occurrence in the current buffer of the word at the current
-location of the caret.
+Finds the next occurrence in the current buffer of the word at the caret,
+as <code>*</code> does in <a href="editmodes.html">vim edit mode</a>: the
+keyword under the caret, or else the next one along its line; on a line with
+none, the next run of non-blanks.
 <p>
-The search is case-sensitive and is carried out as if the "whole words only"
-option was specified.
+The search is case-sensitive, matches whole words only, and wraps around the
+end of the buffer. With the argument <code>partial</code>, as in
+<code>findNextWord partial</code>, it matches inside other words
+too (vim's <code>g*</code>). The word becomes the current search, going
+this way, so vim's <code>n</code> goes on forward.
 <p>
 <b>Default key mapping:</b> Alt Down
 <p>
@@ -2005,11 +2028,16 @@ or <a href="#findPrevWord">findPrevWord</a>).
 
 <a name="findPrevWord">findPrevWord</a><dl><dd>
 <p>
-Finds the previous occurrence in the current buffer of the word at the current
-location of the caret.
+Finds the previous occurrence in the current buffer of the word at the caret,
+as <code>#</code> does in <a href="editmodes.html">vim edit mode</a>: the
+keyword under the caret, or else the next one along its line; on a line with
+none, the next run of non-blanks.
 <p>
-The search is case-sensitive and is carried out as if the "whole words only"
-option was specified.
+The search is case-sensitive, matches whole words only, and wraps around the
+end of the buffer. With the argument <code>partial</code>, as in
+<code>findPrevWord partial</code>, it matches inside other words
+too (vim's <code>g#</code>). The word becomes the current search, going
+this way, so vim's <code>n</code> goes on backward.
 <p>
 <b>Default key mapping:</b> Alt Up
 <p>
@@ -2360,10 +2388,9 @@ Inserts an empty HTML end tag, with the caret positioned after the opening "&lt;
 
 <a name="htmlFindMatch">htmlFindMatch</a><dl><dd>
 <p>
-Finds the match to the HTML tag at the location of the caret.  Nested tags are
-handled correctly.
+An alias for <a href="#findMatchingPair">findMatchingPair</a>.
 <br><br>
-<b>Default key mapping:</b> Ctrl M in HTML mode
+<b>Default key mapping:</b> None
 <br><br>
 </dl><!--<hr>-->
 
@@ -5176,7 +5203,7 @@ Moves the caret to the bracket that is still open where the caret is: with
 the argument <code>(</code>, <code>[</code> or <code>{</code> back to the
 one that opens it, with <code>)</code>, <code>]</code> or <code>}</code> on
 to the one that closes it, as in <code>findUnmatchedBracket (</code>. It
-matches as <a href="#findMatchingChar">findMatchingChar</a> does.
+matches brackets as <a href="#findMatchingPair">findMatchingPair</a> does.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -5987,10 +6014,25 @@ node corresponding to the location of the caret in the edit buffer.
 
 <a name="xmlFindMatch">xmlFindMatch</a><dl><dd>
 <p>
-Finds the match to the XML tag at the location of the caret.  Nested tags are
-handled correctly.
+An alias for <a href="#findMatchingPair">findMatchingPair</a>.
 <br><br>
-<b>Default key mapping:</b> Ctrl M in XML mode
+<b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="xmlFormatAttributes">xmlFormatAttributes</a><dl><dd>
+<p>
+Lays out the attributes of the start tag at the caret, or of every start tag
+that begins in the selected lines, by the
+<a href="preferences.html#splitAttributes">splitAttributes</a> preference:
+force-aligned puts each attribute after the first on a line of its own, lined
+up with the first; preserve and preserve-aligned keep the line breaks there
+are and add one before an attribute that would end past
+<a href="preferences.html#wrapCol">wrapCol</a>.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <a href="xmlmode.html">XML Mode</a>
 <br><br>
 </dl><!--<hr>-->
 

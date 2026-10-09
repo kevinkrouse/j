@@ -659,16 +659,16 @@ public class Buffer extends SystemBuffer {
     public final void setFormatter(Formatter formatter) {
         this.formatter = formatter;
         // A new formatter means a new mode, which may see other strings.
-        bracketDepths = null;
+        delimiterDepths = null;
     }
 
-    private BracketDepths bracketDepths;
+    private DelimiterDepths delimiterDepths;
 
-    /** How deeply its brackets nest, for rainbowDelimiters. */
-    public final synchronized BracketDepths getBracketDepths() {
-        if (bracketDepths == null)
-            bracketDepths = new BracketDepths(this);
-        return bracketDepths;
+    /** How deeply its delimiters nest, for rainbowDelimiters. */
+    public final synchronized DelimiterDepths getDelimiterDepths() {
+        if (delimiterDepths == null)
+            delimiterDepths = new DelimiterDepths(this);
+        return delimiterDepths;
     }
 
     public boolean isReadOnly() {

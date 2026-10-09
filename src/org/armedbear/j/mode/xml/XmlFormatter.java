@@ -43,7 +43,8 @@ public final class XmlFormatter extends Formatter {
     private static final byte STATE_NAMESPACE = STATE_LAST + 1;
     private static final byte STATE_TAG_STARTING = STATE_LAST + 2;
     private static final byte STATE_TAG_ENDING = STATE_LAST + 3;
-    private static final byte STATE_ATTRIBUTE = STATE_LAST + 4;
+    // In a tag after its name; XmlMode indents a line that starts here as an attribute.
+    static final byte STATE_ATTRIBUTE = STATE_LAST + 4;
     private static final byte STATE_EQUALS = STATE_LAST + 5;
 
     private StringBuilder sb = new StringBuilder();

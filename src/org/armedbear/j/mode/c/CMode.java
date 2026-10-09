@@ -31,6 +31,7 @@ import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
+import org.armedbear.j.PairMatcher;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.compilation.CompilationCommands;
@@ -84,7 +85,6 @@ public class CMode extends JavaMode implements Mode {
     protected void setKeyMapDefaults(KeyMap km) {
         super.setKeyMapDefaults(km);
         km.mapKey('#', "electricPound");
-        km.mapKey(KeyEvent.VK_M, CTRL_MASK, "cppFindMatch");
         km.mapKey(KeyEvent.VK_F6, CTRL_MASK, "iList");
     }
 
@@ -198,6 +198,11 @@ public class CMode extends JavaMode implements Mode {
             }
         }
         return null;
+    }
+
+    @Override
+    public PairMatcher getPairMatcher() {
+        return CPairMatcher.INSTANCE;
     }
 
     @Override

@@ -1073,8 +1073,15 @@ public final class VimInputHandler implements InputHandler {
         typedLine = null;
         // The search runs from where it was typed, not from the preview.
         endPreview(editor, pending);
-        if (pending == null || pattern == null || pattern.isEmpty()) {
+        if (pending == null || pattern == null) {
             searchCancelled(editor);
+            return;
+        }
+        // An empty pattern is the last search's, * and # included, going this way.
+        final VimSearch.Query last = pattern.isEmpty() ? state.getLastSearch(editor) : null;
+        if (pattern.isEmpty() && last == null) {
+            searchCancelled(editor);
+            editor.status("No previous regular expression");
             return;
         }
 
@@ -1084,7 +1091,9 @@ public final class VimInputHandler implements InputHandler {
         if (!replaying)
             recording.append(pattern).append("<CR>");
 
-        final VimSearch.Query query = new VimSearch.Query(pattern, pending.forward, false);
+        final VimSearch.Query query = last != null
+                ? last.withDirection(pending.forward)
+                : new VimSearch.Query(pattern, pending.forward, false);
         state.setLastSearch(editor, query);
         moveToMatch(editor, query, pending.operator, searchCount(pending), pending.countGiven, pending.start);
         // This ran outside dispatch, so finish the command here: otherwise

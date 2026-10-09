@@ -21,6 +21,7 @@ import org.armedbear.j.Marker;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Paragraphs;
 import org.armedbear.j.Position;
+import org.armedbear.j.SearchCommands;
 import org.armedbear.j.Sentences;
 import org.armedbear.j.Words;
 
@@ -421,34 +422,12 @@ public final class VimMotions {
     }
 
     /**
-     * % -- to the bracket matching the first one at or after the caret.
-     *
-     * Only looks on the caret's line for the bracket to match from, as vim
-     * does; the match itself may be anywhere.
+     * % -- to the other end of the first pair at or after the caret on its
+     * line: j's findMatchingPair, by the mode's PairMatcher, so a C #if and
+     * an XML start tag match too.
      */
     private static Position moveToMatchingBracket(MotionContext ctx, Position from) {
-        final String open = "([{";
-        final String close = ")]}";
-        final String text = from.getLine().getText();
-        if (text == null)
-            return null;
-
-        int offset = -1;
-        for (int i = from.getOffset(); i < text.length(); i++) {
-            final char c = text.charAt(i);
-            if (open.indexOf(c) >= 0 || close.indexOf(c) >= 0) {
-                offset = i;
-                break;
-            }
-        }
-        if (offset < 0)
-            return null;
-
-        // The actual search is CaretCommands.findMatchInternal, which knows
-        // the mode's comments and strings; its vim flag adds vim's rules for
-        // quotes and backslashes.
-        final Position match =
-                CaretCommands.findMatchInternal(ctx.editor, new Position(from.getLine(), offset), 0, true);
+        final Position match = ctx.editor.getMode().getPairMatcher().findMatch(ctx.editor, from);
         return match == null ? null : at(match.getLine(), match.getOffset());
     }
 
@@ -470,23 +449,29 @@ public final class VimMotions {
     }
 
     /**
-     * * and # -- the word under the caret, whole words unless g* or g#.
+     * * and # -- j's findNextWord and findPrevWord: the word under the
+     * caret, whole words unless g* or g#, with 'ignorecase' but not
+     * 'smartcase', wrapping by 'wrapscan'.
      *
-     * Sets the last pattern, so n carries on from where these left off.
+     * Sets the last search, going this way, so n carries on from where
+     * these left off.
      */
     private static Position searchWordAtDot(MotionContext ctx, Position from) {
-        final VimSearch.Word word = VimSearch.wordAtDot(ctx.editor);
+        final SearchCommands.Word word = SearchCommands.wordAt(ctx.editor, from);
         if (word == null)
             return null;
-        final VimSearch.Query query = new VimSearch.Query(VimSearch.literal(word.text),
-                ctx.arg("forward"),
-                word.keyword && !ctx.arg("partial"),
-                false);
-        ctx.state.setLastSearch(ctx.editor, query);
-        // From the word, not from the caret: * with the caret on the spaces
-        // before a word searches from the word, so the word itself is not a
-        // result.
-        return found(ctx, query, new Position(from.getLine(), word.offset));
+        final VimOptions options = VimKeyMap.getSharedOptions();
+        final Position to = SearchCommands.findWord(
+            ctx.editor,
+            from,
+            ctx.arg("forward"),
+            ctx.arg("partial"),
+            ctx.count,
+            options.isOn("ignorecase"),
+            options.isOn("wrapscan"));
+        if (to == null)
+            ctx.editor.status("Pattern not found: " + word.text());
+        return to;
     }
 
     private static Position found(MotionContext ctx, VimSearch.Query query, Position from) {

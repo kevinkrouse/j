@@ -92,10 +92,19 @@ when it succeeds in updating the tree.
 The following commands are also specifically relevant in XML mode:
 <ul>
 <li><a href="commands.html#xmlElectricEquals">xmlElectricEquals</a></li>
-<li><a href="commands.html#xmlFindMatch">xmlFindMatch</a></li>
+<li><a href="commands.html#findMatchingPair">findMatchingPair</a> (Ctrl M, vim's <code>%</code>), to the other tag of an element</li>
+<li><a href="commands.html#xmlFormatAttributes">xmlFormatAttributes</a></li>
 <li><a href="commands.html#xmlInsertEmptyElementTag">xmlInsertEmptyElementTag</a></li>
 <li><a href="commands.html#xmlInsertTag">xmlInsertTag</a></li>
 <li><a href="commands.html#xmlValidateBuffer">xmlValidateBuffer</a></li>
 </ul>
+<p>
+A start tag's attributes on lines of their own are indented by
+<a href="preferences.html#splitAttributes">splitAttributes</a> and
+<a href="preferences.html#splitAttributesIndentSize">splitAttributesIndentSize</a>.
+With <a href="preferences.html#highlightMatchingBracket">highlightMatchingBracket</a>,
+the names in an element's two tags are highlighted while the caret is in
+either; with <a href="preferences.html#rainbowDelimiters">rainbowDelimiters</a>,
+element names are colored by how deeply they nest.
 </body>
 </html>

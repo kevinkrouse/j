@@ -14,9 +14,12 @@ package org.armedbear.j;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.armedbear.j.mode.html.HtmlMode;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.lisp.LispMode;
+import org.armedbear.j.mode.xml.XmlMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,10 +53,10 @@ public class RainbowDelimitersTest {
     /** The brackets of a line, as "offset:level" for each. */
     private String levels(int lineNumber) {
         final int[] levels =
-            h.buffer().getBracketDepths().levels(line(lineNumber));
+            h.buffer().getDelimiterDepths().levels(line(lineNumber));
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < levels.length; i++)
-            if (levels[i] != BracketDepths.NONE)
+            if (levels[i] != DelimiterDepths.NONE)
                 sb.append(sb.length() == 0 ? "" : " ")
                     .append(i)
                     .append(':')
@@ -120,9 +123,31 @@ public class RainbowDelimitersTest {
     @Test
     public void aNewModeMeansNewDepths() {
         on("(\n", JavaMode.getMode());
-        final BracketDepths depths = h.buffer().getBracketDepths();
+        final DelimiterDepths depths = h.buffer().getDelimiterDepths();
         h.mode(LispMode.getMode());
-        assertNotSame(depths, h.buffer().getBracketDepths());
+        assertNotSame(depths, h.buffer().getDelimiterDepths());
+    }
+
+    @Test
+    public void xmlElementNamesTakeTheDepthTheyOpen() {
+        on("<a>\n  <b x=\"(\"/>\n  <!-- <c> -->\n  <b\n     y=\"1\">\n  </b>\n</a>\n</z>\n", XmlMode.getMode());
+        assertEquals("1:1", levels(0));
+        // An empty element, a bracket in a value and a commented tag nest nothing.
+        assertEquals("", levels(1));
+        assertEquals("", levels(2));
+        assertEquals("3:2", levels(3));
+        assertEquals("", levels(4));
+        assertEquals("4:2", levels(5));
+        assertEquals("2:1", levels(6));
+        assertEquals("2:0", levels(7));
+    }
+
+    @Test
+    public void htmlLeavesVoidAndOftenUnclosedElementsOut() {
+        on("<ul>\n<li><br>\n</ul>\n", HtmlMode.getMode());
+        assertEquals("1:1 2:1", levels(0));
+        assertEquals("", levels(1));
+        assertEquals("2:1 3:1", levels(2));
     }
 
     @Test
@@ -184,5 +209,44 @@ public class RainbowDelimitersTest {
         assertEquals("0:1", highlighted());
         h.cursor(0, 1);
         assertEquals("1:3", highlighted());
+    }
+
+    @Test
+    public void aCaretInATagHighlightsTheOtherTagsName() throws Exception {
+        on("<a>\n  <b x=\"1\">text</b>\n</a>\n", XmlMode.getMode());
+        h.cursor(1, 4);
+        assertEquals("1:17", highlighted());
+        // A quote in the tag is a pair of its own.
+        h.cursor(1, 7);
+        assertEquals("1:9", highlighted());
+        // Just past the end tag's '>', a bar caret is still in it.
+        h.cursor(1, 19);
+        assertEquals("1:3", highlighted());
+        h.cursor(1, 13);
+        assertNull(highlighted());
+    }
+
+    @Test
+    public void theCaretsOwnDelimiterIsHighlightedToo() throws Exception {
+        on("f(a,\n  b)\n", JavaMode.getMode());
+        h.cursor(0, 1);
+        assertEquals("1:3", highlighted());
+        final Position at = h.editor().getDisplay().getBracketPosition();
+        assertEquals("0:1", at.lineNumber() + ":" + at.getOffset());
+    }
+
+    @Test
+    public void aTagNameOffTheCaretsLineIsRepaintedWhenTheCaretLeaves() throws Exception {
+        on("<a\n   x=\"1\">\ntext\n</a>\n", XmlMode.getMode());
+        h.cursor(1, 4);
+        assertEquals("3:2", highlighted());
+        assertEquals(0, h.editor().getDisplay().getBracketPosition().lineNumber());
+        final java.lang.reflect.Field field = Display.class.getDeclaredField("changedLines");
+        field.setAccessible(true);
+        final java.util.Map<?, ?> changed = (java.util.Map<?, ?>) field.get(h.editor().getDisplay());
+        changed.clear();
+        h.cursor(2, 1);
+        assertNull(highlighted());
+        assertTrue(changed.containsKey(h.buffer().getFirstLine()), "the tag's line is repainted");
     }
 }
