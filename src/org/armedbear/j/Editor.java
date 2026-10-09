@@ -42,6 +42,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
+import java.util.function.BinaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.Box;
@@ -58,7 +60,6 @@ import org.armedbear.j.extension.EvalResult;
 import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.extension.Opener;
 import org.armedbear.j.extension.ScriptFunction;
-import org.armedbear.j.mode.compilation.CompilationBuffer;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
@@ -335,6 +336,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (!GraphicsEnvironment.isHeadless())
             new DropTarget(display, dispatcher);
 
+        north = new JPanel(new BorderLayout());
+        add(north, BorderLayout.NORTH);
         addLocationBar();
         addVerticalScrollBar();
         maybeAddHorizontalScrollBar();
@@ -385,22 +388,160 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return locationBar == null ? null : locationBar.getTextField();
     }
 
+    // The location bar over the hint.
+    private JPanel north;
+
+    // A dimmed line of the mode's keys, as Neogit shows, or null.
+    private Label hint;
+
+    /** Shows the mode's hint over the text, with the keys of the edit mode in use. */
+    public void updateHint() {
+        final List<String[]> items = buffer == null ? null : hintItems();
+        if (items == null) {
+            if (hint != null) {
+                north.remove(hint);
+                hint = null;
+                revalidate();
+            }
+            return;
+        }
+        if (hint == null) {
+            hint = new Label();
+            hint.setOpaque(true);
+            hint.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, Display.getGutterWidth(buffer) + 2, 1, 0));
+            north.add(hint, BorderLayout.SOUTH);
+            revalidate();
+        }
+        final java.awt.Color bg = getFormatter().getBackgroundColor();
+        final java.awt.Color fg = getFormatter().getColor(0);
+        hint.setFont(Display.getPlainFont());
+        hint.setBackground(bg);
+        hint.setForeground(DefaultTheme.blend(bg, fg, 0.5));
+        hint.setText(hintHtml(items));
+    }
+
+    // "Hint: key what · key what", with the keys in bold.
+    private static String hintHtml(List<String[]> items) {
+        return "<html>Hint:&nbsp; "
+                + joinHint(items, (key, what) -> "<b>" + escapeHtml(key) + "</b> " + escapeHtml(what), " &middot; ")
+                + "</html>";
+    }
+
+    private static String escapeHtml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    /** The hint as plain text, "key what · key what", or null for none. */
+    String hintText() {
+        final List<String[]> items = hintItems();
+        return items == null ? null : joinHint(items, (key, what) -> key + " " + what, " · ");
+    }
+
+    private static String joinHint(List<String[]> items, BinaryOperator<String> item, String separator) {
+        final StringJoiner joiner = new StringJoiner(separator);
+        for (String[] i : items)
+            joiner.add(item.apply(i[0], i[1]));
+        return joiner.toString();
+    }
+
+    // { key, what } for each of the mode's hints. In vim edit mode the key
+    // is vim's mode key if there is one, written as vim writes keys; else
+    // the mode's own, as j writes them. A command with neither is left out.
+    private List<String[]> hintItems() {
+        final String[][] hints = getMode().getHints(buffer);
+        if (hints == null || hints.length == 0)
+            return null;
+        final boolean vim = getInputHandler() != null;
+        final KeyMap modal = vim ? getMode().getModalKeyMap() : null;
+        final List<String[]> items = new ArrayList<>();
+        for (String[] h : hints) {
+            KeyMapping mapping = modal == null ? null : modal.getKeyMapping(h[0]);
+            if (mapping == null)
+                mapping = buffer.getKeyMapForMode().getKeyMapping(h[0]);
+            if (mapping == null)
+                continue;
+            final String key = vim
+                    ? org.armedbear.j.vim.KeyNotation
+                            .name(mapping.getKeyCode(), mapping.getKeyChar(), mapping.getModifiers())
+                    : shortKey(mapping.getKeyText());
+            items.add(new String[] { key, h[1] });
+        }
+        return items;
+    }
+
+    // 'x' as x, and Shift D as D.
+    private static String shortKey(String key) {
+        if (key.length() == 3 && key.charAt(0) == '\'' && key.charAt(2) == '\'')
+            return key.substring(1, 2);
+        if (key.length() == 7 && key.startsWith("Shift ") && Character.isUpperCase(key.charAt(6)))
+            return key.substring(6);
+        return key;
+    }
+
+    // Shown only for a prompt, in a panel that is to have none.
+    private boolean promptOnlyLocationBar;
+
+    /**
+     * The location bar for a prompt to use. The panel, when it is to have
+     * none, gets one until focus is back in the text.
+     */
+    public final LocationBar getPromptLocationBar() {
+        if (locationBar == null && hidesLocationBar()) {
+            locationBar = new LocationBar(this);
+            north.add(locationBar, BorderLayout.NORTH);
+            promptOnlyLocationBar = true;
+            locationBar.update();
+            // Gone when the prompt is, wherever focus goes: a file opened from
+            // the panel takes it to the window behind.
+            locationBar.getTextField().addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusLost(java.awt.event.FocusEvent e) {
+                    if (!e.isTemporary())
+                        SwingUtilities.invokeLater(Editor.this::dropPromptLocationBar);
+                }
+            });
+            revalidate();
+        }
+        return locationBar;
+    }
+
+    private void dropPromptLocationBar() {
+        if (promptOnlyLocationBar && locationBar != null && !locationBar.getTextField().isFocusOwner()) {
+            removeLocationBar();
+            revalidate();
+            repaint();
+        }
+    }
+
+    public final HistoryTextField getPromptTextField() {
+        final LocationBar bar = getPromptLocationBar();
+        return bar == null ? null : bar.getTextField();
+    }
+
+    // The panel, when the preference says it has no location bar.
+    private boolean hidesLocationBar() {
+        return frame != null
+                && frame.isPanel(this)
+                && !preferences().getBooleanProperty(Property.TRANSIENT_PANEL_LOCATION_BAR);
+    }
+
     public final void repaintLocationBar() {
         if (locationBar != null)
             locationBar.repaint();
     }
 
     public void addLocationBar() {
-        if (locationBar == null) {
+        if (locationBar == null && !hidesLocationBar()) {
             locationBar = new LocationBar(this);
-            add(locationBar, BorderLayout.NORTH);
+            north.add(locationBar, BorderLayout.NORTH);
         }
     }
 
     public void removeLocationBar() {
         if (locationBar != null) {
-            remove(locationBar);
+            north.remove(locationBar);
             locationBar = null;
+            promptOnlyLocationBar = false;
         }
     }
 
@@ -518,12 +659,13 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
      *
      * Resolved from the buffer's editMode each time it is asked for, so that
      * switching buffers, or reloading preferences, takes effect immediately.
-     * Only ordinary text buffers get one: directory, image and compilation
-     * buffers bind bare letters as commands already, and a modal layer on top
-     * of them would make them unusable.
+     * Text and the read-only lists -- directories, results, output, man
+     * pages -- get one, their own commands on keys their modes give them
+     * (Mode.getModalKeyMap); shells, images and mailboxes, whose keys are
+     * all their own, do not.
      */
     public final InputHandler getInputHandler() {
-        if (buffer == null || buffer.getType() != SystemBuffer.TYPE_NORMAL)
+        if (buffer == null || !takesModalInput(buffer))
             return null;
         final String editMode = buffer.getStringProperty(Property.EDIT_MODE);
         if (editMode == null || editMode.equals("simple"))
@@ -1068,7 +1210,12 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             mapping = buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
             if (mapping != null)
                 local = true;
-            else
+            else if (event.getID() == JEvent.KEY_TYPED && keyChar == 'q' && modifiers == 0 && buffer.isTransient()) {
+                // q closes help, results and output, in whatever mode, as
+                // the status bar says.
+                closeTransient();
+                return true;
+            } else
                 // Look in global key map.
                 mapping = KeyMap.getGlobalKeyMap().lookup(keyChar, keyCode, modifiers);
         }
@@ -1135,6 +1282,25 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 }
                 return true;
             }
+        }
+        return false;
+    }
+
+    /** Runs the command km binds an event to, if it binds one. */
+    public boolean runKeyMap(KeyMap km, JEvent event) {
+        final KeyMapping mapping = km.lookup(event.getKeyChar(), event.getKeyCode(), event.getModifiers());
+        if (mapping == null)
+            return false;
+        try {
+            if (mapping.getCommand() instanceof Command c) {
+                execute(c, null);
+                return true;
+            }
+            if (mapping.getCommand() instanceof String s)
+                return execute(s);
+        }
+        catch (NoSuchMethodException e) {
+            Log.error(e);
         }
         return false;
     }
@@ -1606,6 +1772,10 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public void setFocusToDisplay() {
+        if (promptOnlyLocationBar) {
+            removeLocationBar();
+            revalidate();
+        }
         if (frame != null)
             frame.setFocus(display);
     }
@@ -1763,6 +1933,65 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 sidebar.setBuffer();
         } else
             Debug.bug();
+    }
+
+    /**
+     * Shows a buffer picked from this window, made next in the buffer list,
+     * where it belongs: a transient buffer in the panel, opened for it; from
+     * the panel, any other in the window behind it; else here.
+     *
+     * @return the window it is in, now the current one
+     */
+    public Editor show(Buffer buf) {
+        return show(buf, true);
+    }
+
+    /** As show(buf), made next in the buffer list only with makeNext, as cycling through it must not. */
+    public Editor show(Buffer buf, boolean makeNext) {
+        Editor ed = placeFor(buf);
+        if (buf != null && buf != ed.getBuffer()) {
+            if (makeNext)
+                ed.makeNext(buf);
+            ed.switchToBuffer(buf);
+        }
+        // Half of a pair goes in its own window, as a message under its
+        // mailbox's: the window it is in is the one returned.
+        if (buf != null && ed.getBuffer() != buf && frame != null) {
+            if (frame.getCurrentEditor().getBuffer() == buf)
+                ed = frame.getCurrentEditor();
+            else if (frame.findEditor(buf) != null)
+                ed = frame.findEditor(buf);
+        }
+        return ed;
+    }
+
+    // The window for show(), made current; the panel opened for a transient buffer.
+    private Editor placeFor(Buffer buf) {
+        if (frame == null || buf == null)
+            return this;
+        final boolean inPanel = frame.isPanel(this);
+        if (!inPanel && buf.isTransient() && !buf.isPaired())
+            return frame.openInPanel(this, buf, true);
+        // A pair goes in the windows, never the panel.
+        if (inPanel && (!buf.isTransient() || buf.isPaired())) {
+            final Editor ed = frame.getWindowBehindPanel();
+            if (ed != null && ed != this) {
+                setCurrentEditor(ed);
+                frame.setMenu();
+                frame.setToolbar();
+                ed.setFocusToDisplay();
+                return ed;
+            }
+        }
+        return this;
+    }
+
+    private static boolean takesModalInput(Buffer buf) {
+        return switch (buf.getType()) {
+            case SystemBuffer.TYPE_NORMAL, SystemBuffer.TYPE_DIRECTORY, SystemBuffer.TYPE_OUTPUT, SystemBuffer.TYPE_MAN,
+                    SystemBuffer.TYPE_LIST_OCCURRENCES -> true;
+            default -> false;
+        };
     }
 
     public void makeNext(final Buffer buf) {
@@ -1986,15 +2215,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public boolean escapeInternal() {
-        if (buffer instanceof CompilationBuffer || buffer.isTransient()) {
-            if (buffer.unsplitOnClose()) {
-                buffer.windowClosing();
-                WindowCommands.otherWindow(this);
-                WindowCommands.unsplitWindow(this);
-            }
-            BufferCommands.maybeKillBuffer(this, buffer);
-            restoreFocus();
-            Sidebar.refreshSidebarInAllFrames();
+        if (buffer.isTransient()) {
+            closeTransient();
             return true;
         }
         if (buffer.getModeId() == CHECKIN_MODE) {
@@ -2005,19 +2227,20 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             restoreFocus();
             return true;
         }
-        // Check for transient buffer in other editor in current frame.
+        // From another window, Escape closes the panel.
+        if (frame != null && frame.getPanelEditor() != null) {
+            frame.closePanel(true);
+            return true;
+        }
+        // Mail's message in the window under its mailbox's.
+        final Editor bound = frame == null ? null : frame.getBoundWindow(this);
+        if (bound != null && bound.getBuffer().isTransient()) {
+            bound.closeTransient();
+            return true;
+        }
         Editor ed = getOtherEditor();
         if (ed != null) {
             Buffer buf = ed.getBuffer();
-            if (buf instanceof CompilationBuffer || buf.isTransient()) {
-                if (buf.unsplitOnClose())
-                    WindowCommands.unsplitWindow(this);
-                BufferCommands.maybeKillBuffer(this, buf);
-                if (!buf.unsplitOnClose())
-                    ed.updateDisplay();
-                Sidebar.refreshSidebarInAllFrames();
-                return true;
-            }
             if (buf.getModeId() == CHECKIN_MODE) {
                 WindowCommands.unsplitWindow(this);
                 if (!buf.isModified())
@@ -2026,6 +2249,30 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             }
         }
         return false;
+    }
+
+    /**
+     * Kills this window's transient buffer, closing the panel when it is
+     * there, with focus back where it came from.
+     */
+    public void closeTransient() {
+        if (frame != null && frame.isPanel(this)) {
+            frame.closePanel(true);
+            return;
+        }
+        final Buffer closing = buffer;
+        Editor ed = this;
+        // A window bound under another, as mail's message under its mailbox,
+        // goes with it.
+        if (frame != null && frame.getPrimaryWindow(this) != null) {
+            // Saves what it keeps of the window, as a message its split.
+            closing.windowClosing();
+            frame.closeEditor(this);
+            ed = frame.getCurrentEditor();
+        }
+        BufferCommands.maybeKillBuffer(ed, closing);
+        restoreFocus();
+        Sidebar.refreshSidebarInAllFrames();
     }
 
     public String getCurrentText() {
@@ -2232,9 +2479,9 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void deactivate() {
         Debug.bugIfNot(buffer != null && bufferList.contains(buffer));
         // Through getInputHandler(), not the raw field: the field is a cache
-        // that getInputHandler() only refreshes for a TYPE_NORMAL buffer, so
-        // reading it directly here would clean up a vim session against a
-        // directory or image buffer that was never in vim mode.
+        // that getInputHandler() only refreshes for a buffer that takes modal
+        // input, so reading it directly here would clean up a vim session
+        // against a shell or image buffer that was never in vim mode.
         final InputHandler handler = getInputHandler();
         if (handler != null)
             handler.editorDeactivated(this);
@@ -2247,6 +2494,35 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void activate(Buffer buf) {
         if (buf == null)
             return;
+        final Buffer leaving = buffer;
+        final boolean releasing = frame != null && frame.isPanel(this) && (!buf.isTransient() || buf.isPaired());
+        activateBuffer(buf);
+        if (frame == null || buffer != buf)
+            return;
+        // The panel only shows transient buffers: given another, it is an
+        // ordinary window now, which callers go on using, and what it showed
+        // goes, as when the panel closes.
+        if (releasing) {
+            frame.releasePanel();
+            if (leaving != null
+                    && leaving != buf
+                    && leaving.isTransient()
+                    && bufferList.contains(leaving)
+                    && !isShown(leaving))
+                BufferCommands.maybeKillBuffer(this, leaving);
+        }
+        frame.checkBinding(this);
+    }
+
+    private static boolean isShown(Buffer buf) {
+        for (Editor ed : editorList) {
+            if (ed.getBuffer() == buf)
+                return true;
+        }
+        return false;
+    }
+
+    private void activateBuffer(Buffer buf) {
         Debug.assertTrue(bufferList.contains(buf));
         if (buf == buffer)
             return;
@@ -2333,9 +2609,14 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             moveCaretToDotCol();
         }
 
-        frame.updateTitle();
-        frame.setMenu();
-        frame.setToolbar();
+        updateHint();
+
+        // A frameless editor, as a test's, has none of these.
+        if (frame != null) {
+            frame.updateTitle();
+            frame.setMenu();
+            frame.setToolbar();
+        }
 
         if (buffer.isBusy())
             setWaitCursor();
@@ -2460,6 +2741,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     public void executeCommand() {
         // Use location bar.
+        final LocationBar locationBar = getPromptLocationBar();
         if (locationBar != null) {
             locationBar.setLabelText(LocationBar.PROMPT_COMMAND);
             HistoryTextField textField = locationBar.getTextField();

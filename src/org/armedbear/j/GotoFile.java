@@ -100,11 +100,7 @@ public final class GotoFile {
         if (file != null) {
             Buffer buf = Editor.getBuffer(file);
             if (buf != null) {
-                final Frame frame = editor.getFrame();
-                editor.makeNext(buf);
-                editor.switchToBuffer(buf);
-                // Switching buffers might have closed the original editor.
-                Editor ed = frame.contains(editor) ? editor : frame.getCurrentEditor();
+                final Editor ed = editor.show(buf);
                 if (ed.getBuffer() == buf) {
                     if (lineNumber >= 0) {
                         if (ed.getDot() != null) {

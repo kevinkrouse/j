@@ -35,7 +35,8 @@ Ctrl Shift P switches to finding a command, and back, keeping what you typed.
 <li><b>Ctrl O</b> (<a href="commands.html#openFile">openFile</a>) finds a
 file under the current buffer's directory, the same way, and in the project
 if nothing there matches. A path lists that directory: Tab fills in the
-selected entry and Enter goes into a directory. A URL, or Shift Enter, opens
+selected entry, and Tab again the next; a directory filled in lists its own
+entries, which Tab goes on through. Enter goes into a directory. A URL, or Shift Enter, opens
 exactly what you typed.
 <a href="commands.html#openFileInOtherWindow">openFileInOtherWindow</a> and
 Ctrl Shift O (<a href="commands.html#openFileInOtherFrame">openFileInOtherFrame</a>)
@@ -60,7 +61,14 @@ page of this manual, a command or a preference.
 
 <li><b>Ctrl Shift P</b> (<a href="commands.html#findAction">findAction</a>)
 finds a command by its name or description, shows its key binding, and runs
-it. Commands recently run by name, from here or Alt X, are listed first.
+it. Commands recently run by name, from here or Alt X, are listed first. A
+command's name followed by its argument, as
+<code>openMailbox ~/mail.mbox</code>, runs it with that argument.
+
+<li>In any of these lists, Tab fills in the selected match, and Tab again the
+next one, the list staying the one for what you typed, as vim's wildmenu
+does; Shift Tab goes back. Up and Down move the selection without changing
+the text, and Enter takes the selected match.
 
 <li><b>Alt X</b> (<a href="commands.html#executeCommand">executeCommand</a>)
 runs a command by name, with an argument if it takes one.
@@ -91,6 +99,40 @@ sidebar.
 <b>Alt O</b> (<a href="commands.html#nextWindow">nextWindow</a>) moves to the
 next one.
 </ul>
+
+<h2><a name="panel">Help, results and output</a></h2>
+<p>
+Help, find-in-files and list-occurrences results, compilation and other
+output are transient buffers. They open in a panel along the bottom of the
+frame, across the windows you have, which stay as they were; each one replaces
+the last in it. The panel's background is a shade off the editor's
+(<a href="preferences.html#color.transientBackground">color.transientBackground</a>),
+its location bar says what it holds, as <b>[Help]</b> or <b>[Results]</b>,
+and the status bar how to close it. In the sidebar's buffer list and the
+<a href="commands.html#switchBuffer">switchBuffer</a> list they are in
+italics.
+<ul>
+<li><b>Escape</b> or <b>q</b> closes the panel and the buffer in it, and
+puts the caret back where it was. In simple edit mode, Escape in another
+window closes it too. In vim edit mode Escape there only stops what you are
+doing in that window; <b>:cclose</b>, <b>:pclose</b> or <b>:helpclose</b>
+closes the panel from any window.
+
+<li>Picking a transient buffer from a buffer list shows it in the panel;
+opening a file, or going back to one, from the panel shows it in the window
+above.
+
+<li>Following a link in help, or going back or forward, is a jump, so
+<b>&lt;C-o&gt;</b> goes back through the pages and then to where you were
+before help.
+
+<li><b>&lt;C-^&gt;</b> skips transient buffers.
+</ul>
+<p>
+The preference
+<a href="preferences.html#transientPanelLocationBar">transientPanelLocationBar</a>
+leaves the panel without a location bar; a prompt typed in the panel, as
+<b>:</b> or <b>/</b>, shows one until it is done.
 
 <h2>Within a file</h2>
 <ul>
@@ -139,8 +181,8 @@ above, Ctrl P and Ctrl Shift P among them, works as it does without vim. Any
 of j's commands also runs as an ex command, as in
 <b>:findFileInProject</b> or <b>:openFile</b>. As you type a name after
 <b>:</b>, a list shows the ex commands and j commands that match it: Tab
-fills one in, and Enter runs the line, or the command you moved the selection
-to. The
+fills one in and Tab again the next, Shift Tab goes back, and Enter runs the
+line, or the command you moved the selection to. The
 <a href="commands.html#findAction">findAction</a> list shows a command's vim
 keys before j's.
 <p>

@@ -337,6 +337,27 @@ public class VimPagingAndFilesTest {
         }
     }
 
+    @Test
+    public void ctrlCaretSkipsTransientBuffers() {
+        // Help or a list of results, used since, is not the alternate file,
+        // as vim's unlisted buffers are not.
+        final EditorHarness older = EditorHarness.create("older");
+        final EditorHarness help = EditorHarness.create("help");
+        try {
+            vim("here", 0, 0);
+            help.buffer().setTransient(true);
+            older.buffer().setLastActivated(100);
+            help.buffer().setLastActivated(200);
+            h.buffer().setLastActivated(300);
+            h.keys("<C-^>");
+            assertSame(older.buffer(), h.editor().getBuffer());
+        }
+        finally {
+            older.close();
+            help.close();
+        }
+    }
+
     // ---------------------------------------------------------- autoindent
 
     @Test

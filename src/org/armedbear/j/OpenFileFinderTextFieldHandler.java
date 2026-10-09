@@ -300,20 +300,9 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
         opener.enter();
     }
 
-    @Override
-    public void tab() {
-        FinderItem.Row row = selection();
-        if (row == null)
-            return;
-        String s = completion(row.item());
-        if (s != null) {
-            textField.setText(s);
-            textField.setCaretPosition(s.length());
-        }
-    }
-
     // The text that names item, relative to dir where it can be.
-    private String completion(FinderItem item) {
+    @Override
+    protected String completion(FinderItem item) {
         if (item instanceof PathItem p)
             return p.name.isEmpty() ? null : p.completion();
         if (item instanceof FileItem f) {
@@ -323,6 +312,12 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
             return path;
         }
         return null;
+    }
+
+    // A directory Tab completed lists its files, which Tab then steps through.
+    @Override
+    protected boolean continuesFrom(String completion) {
+        return completion.endsWith("/") || completion.endsWith(LocalFile.getSeparator());
     }
 
     @Override

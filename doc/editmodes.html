@@ -33,9 +33,27 @@ Like any other preference it can be set for one mode only:
     JavaMode.editMode=vim
 </pre>
 <p>
-Only ordinary text buffers are affected. Directory buffers, image buffers and
-the like bind plain letters as commands of their own and are always in simple
-edit mode.
+Text buffers, help, directory buffers, and lists of results and output are
+affected. Shell, image and mail buffers, whose keys are all their own, are
+always in simple edit mode.
+<p>
+<a name="readonly">The read-only buffers</a> keep the vim motions, <b>/</b>,
+<b>:</b> and the rest. Enter does what it does in simple mode, <b>q</b> closes
+help, results and output, and Escape does too when there is nothing else for
+it to stop. With nothing part-typed, their own commands are on keys vim
+edits with, as netrw has them:
+<dl>
+<dt><b>directory buffers</b></dt>
+<dd><b>-</b> and Backspace go up a directory; <b>u</b> and <b>U</b> back and
+forward; <b>~</b> home; <b>D</b> and Delete delete; <b>R</b> moves or renames;
+<b>C</b> copies; <b>x</b> tags; <b>!</b> runs a shell command; <b>s</b> cycles
+the sort; <b>a</b> and <b>A</b> limit and unlimit; <b>O</b> browses;
+<b>Ctrl R</b> rescans.</dd>
+<dt><b>help and web pages</b></dt>
+<dd>Enter and <b>Ctrl ]</b> follow a link; <b>&lt;C-o&gt;</b> and
+<b>&lt;C-i&gt;</b>, or <b>u</b> and <b>U</b>, and Backspace, go back and
+forward; <b>R</b> reloads.</dd>
+</dl>
 
 <h2>What is there</h2>
 <p>

@@ -33,12 +33,7 @@ public final class GlobalTag extends Tag {
         this.filename = filename;
     }
 
-    private GlobalTag(
-        String name,
-        String signature,
-        String filename,
-        String canonicalSignature
-    ) {
+    private GlobalTag(String name, String signature, String filename, String canonicalSignature) {
         super(name, signature);
         this.filename = filename;
         this.canonicalSignature = canonicalSignature;
@@ -205,12 +200,11 @@ public final class GlobalTag extends Tag {
     }
 
     @Override
-    public void gotoTag(Editor editor) {
-        editor.setWaitCursor();
+    public void gotoTag(Editor from) {
+        from.setWaitCursor();
         Buffer buf = Editor.getBuffer(File.getInstance(filename));
         if (buf != null) {
-            editor.makeNext(buf);
-            editor.activate(buf);
+            final Editor editor = from.show(buf);
             Position pos = findSignatureInCurrentBuffer(buf, signature);
             if (pos != null) {
                 CompoundEdit compoundEdit = editor.beginCompoundEdit();
@@ -222,13 +216,10 @@ public final class GlobalTag extends Tag {
                 editor.updateDisplay();
             }
         }
-        editor.setDefaultCursor();
+        from.setDefaultCursor();
     }
 
-    private static Position findSignatureInCurrentBuffer(
-        Buffer buffer,
-        String signature
-    ) {
+    private static Position findSignatureInCurrentBuffer(Buffer buffer, String signature) {
         final List<LocalTag> localTags = buffer.getTags(true);
         if (localTags == null)
             return null;

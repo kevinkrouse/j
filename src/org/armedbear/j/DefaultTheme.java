@@ -38,13 +38,19 @@ public final class DefaultTheme {
         return getColor(mode, thing, false);
     }
 
+    /** from moved toward to by amount, 0 to 1, channel by channel. */
+    public static Color blend(Color from, Color to, double amount) {
+        return new Color((int) Math.round(from.getRed() + (to.getRed() - from.getRed()) * amount),
+                (int) Math.round(from.getGreen() + (to.getGreen() - from.getGreen()) * amount),
+                (int) Math.round(from.getBlue() + (to.getBlue() - from.getBlue()) * amount));
+    }
+
     /**
      * Whether text on a background wants the colors made for a dark one: its
      * perceived brightness, as YIQ weighs it, is under half.
      */
     public static boolean isDark(Color background) {
-        return (background.getRed() * 299 + background.getGreen() * 587 +
-            background.getBlue() * 114) / 1000 < 128;
+        return (background.getRed() * 299 + background.getGreen() * 587 + background.getBlue() * 114) / 1000 < 128;
     }
 
     // Styles any mode can link its own to, as emacs faces inherit and nvim
@@ -61,8 +67,7 @@ public final class DefaultTheme {
         { "inProgress", 0x8250df, 0xbc8cff },
         { "inProgressMarker", 0x0969da, 0x58a6ff },
         { "done", 0x1a7f37, 0x3fb950 },
-        { "cancelled", 0x8c959f, 0x6e7681 },
-    };
+        { "cancelled", 0x8c959f, 0x6e7681 }, };
 
     private static final Object[][] SHARED_STYLES = {
         { "heading", TextStyle.BOLD | TextStyle.ITALIC },
@@ -71,8 +76,7 @@ public final class DefaultTheme {
         { "emphasis", TextStyle.ITALIC },
         { "quote", TextStyle.ITALIC },
         { "listMarker", TextStyle.BOLD },
-        { "cancelled", TextStyle.STRIKETHROUGH },
-    };
+        { "cancelled", TextStyle.STRIKETHROUGH }, };
 
     // The shared style a thing takes what it does not say from, unless a
     // theme or prefs link it elsewhere: { mode or null for any, thing, to }.
@@ -99,20 +103,39 @@ public final class DefaultTheme {
         { "MarkdownMode", "doneText", "muted" },
         { "MarkdownMode", "cancelledText", "cancelled" },
         { "MarkdownMode", "htmlTag", "muted" },
-        { "MarkdownMode", "frontMatter", "comment" },
-    };
+        { "MarkdownMode", "frontMatter", "comment" }, };
 
     // What every mode has, before a mode or a shared style says otherwise:
     // the editor's own colors, then the syntax most modes color.
     private static final String[] BUILT_IN_NAMES = {
-        "text", "background", "caret", "currentLineBackground",
-        "selectionBackground", "matchingBracketBackground",
-        "searchMatchBackground", "verticalRule", "lineNumber", "gutterBorder",
-        "change", "savedChange",
-        "comment", "keyword", "function", "string", "number", "operator",
-        "brace", "preprocessor", "disabled", "matchingText", "prompt", "input",
-        "status", "key", "value", "delimiter",
-    };
+        "text",
+        "background",
+        "caret",
+        "currentLineBackground",
+        "selectionBackground",
+        "matchingBracketBackground",
+        "searchMatchBackground",
+        "verticalRule",
+        "lineNumber",
+        "gutterBorder",
+        "change",
+        "savedChange",
+        "comment",
+        "keyword",
+        "function",
+        "string",
+        "number",
+        "operator",
+        "brace",
+        "preprocessor",
+        "disabled",
+        "matchingText",
+        "prompt",
+        "input",
+        "status",
+        "key",
+        "value",
+        "delimiter", };
 
     /** The names of the styles every mode has, for listStyles. */
     public static List<String> getBuiltInNames() {

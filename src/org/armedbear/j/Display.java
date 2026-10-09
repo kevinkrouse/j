@@ -132,6 +132,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         setToolTipText("");
     }
 
+    /** The text's font, for something shown as if it were text. */
+    public static Font getPlainFont() {
+        if (plainFont == null)
+            initializeStaticValues();
+        return plainFont;
+    }
+
     public static void initializeStaticValues() {
         // Preferences may have been reloaded, and uiScale is one of them.
         UIScale.reset();
@@ -158,15 +165,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         charWidth = fm.charWidth('a');
         // A chevron pointing at what is folded away, if the font has one.
         foldMarker = plainFont.canDisplay('\u203a') ? '\u203a' : '>';
-        strikethroughRise = Math.max(
-            1,
-            Math.round(
-                -plainFont.getLineMetrics(
-                    "x",
-                    fm.getFontRenderContext()
-                ).getStrikethroughOffset()
-            )
-        );
+        strikethroughRise = Math
+                .max(1, Math.round(-plainFont.getLineMetrics("x", fm.getFontRenderContext()).getStrikethroughOffset()));
         spaceWidth = fm.charWidth(' ');
         minCharWidth = getMinCharWidth(fm);
 
@@ -205,10 +205,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         desktopAntialiasingHint = getDesktopAntialiasingHint();
         underlineBold = preferences.getBooleanProperty(Property.UNDERLINE_BOLD);
         emulateBold = preferences.getBooleanProperty(Property.EMULATE_BOLD);
-        ligatures = resolveLigatures(
-            preferences.getStringProperty(Property.LIGATURES),
-            plainFont
-        );
+        ligatures = resolveLigatures(preferences.getStringProperty(Property.LIGATURES), plainFont);
 
         String gutterFontName = preferences.getStringProperty(Property.GUTTER_FONT_NAME);
         if (gutterFontName == null)
@@ -221,8 +218,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         fm = Utilities.getFontMetrics(gutterFont);
         gutterCharWidth = fm.charWidth('0');
 
-        changeMarkWidth =
-            UIScale.scaledProperty(preferences, Property.CHANGE_MARK_WIDTH);
+        changeMarkWidth = UIScale.scaledProperty(preferences, Property.CHANGE_MARK_WIDTH);
     }
 
     public synchronized void initialize() {
@@ -236,9 +232,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         // display. Any plausible width will do here; these arrays are only a
         // scratch buffer for formatting one line.
         final int screenWidth =
-            GraphicsEnvironment.isHeadless()
-                ? 1920
-                : Toolkit.getDefaultToolkit().getScreenSize().width;
+                GraphicsEnvironment.isHeadless() ? 1920 : Toolkit.getDefaultToolkit().getScreenSize().width;
         int size = screenWidth * 5 / (minCharWidth * 4);
         textArray = new char[size];
         formatArray = new int[size];
@@ -272,8 +266,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * Digraphs that programming fonts ligate. Any one of them is enough to
      * conclude the font has contextual substitutions worth shaping for.
      */
-    private static final String[] LIGATURE_PROBES =
-        { "->", "=>", "==", "!=", "<=", ">=", "..." };
+    private static final String[] LIGATURE_PROBES = { "->", "=>", "==", "!=", "<=", ">=", "..." };
 
     /**
      * Whether to shape text with {@link Font#layoutGlyphVector}.
@@ -288,32 +281,18 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (pref == null || pref.equalsIgnoreCase("auto")) {
             enabled = fontHasLigatures(font);
             reason = "auto";
-        } else if (
-            pref.equalsIgnoreCase("true")
-                || pref.equalsIgnoreCase("yes")
-                || pref.equalsIgnoreCase("on")
-        ) {
+        } else if (pref.equalsIgnoreCase("true") || pref.equalsIgnoreCase("yes") || pref.equalsIgnoreCase("on")) {
             enabled = true;
             reason = "ligatures = " + pref;
-        } else if (
-            pref.equalsIgnoreCase("false")
-                || pref.equalsIgnoreCase("no")
-                || pref.equalsIgnoreCase("off")
-        ) {
+        } else if (pref.equalsIgnoreCase("false") || pref.equalsIgnoreCase("no") || pref.equalsIgnoreCase("off")) {
             enabled = false;
             reason = "ligatures = " + pref;
         } else {
-            Log.warn(
-                "unrecognized value for ligatures: \"" + pref +
-                    "\" (expected auto, true or false)"
-            );
+            Log.warn("unrecognized value for ligatures: \"" + pref + "\" (expected auto, true or false)");
             enabled = fontHasLigatures(font);
             reason = "auto";
         }
-        Log.debug(
-            "ligatures " + (enabled ? "enabled" : "disabled") + " for " +
-                font.getFamily() + " (" + reason + ")"
-        );
+        Log.debug("ligatures " + (enabled ? "enabled" : "disabled") + " for " + font.getFamily() + " (" + reason + ")");
         return enabled;
     }
 
@@ -328,34 +307,15 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     static boolean fontHasLigatures(Font font) {
         // The same FontRenderContext the painting will use, so that detection
         // can never disagree with what gets drawn.
-        FontRenderContext frc =
-            Utilities.getFontMetrics(font).getFontRenderContext();
+        FontRenderContext frc = Utilities.getFontMetrics(font).getFontRenderContext();
         for (String probe : LIGATURE_PROBES) {
             char[] chars = probe.toCharArray();
-            GlyphVector shaped =
-                font.layoutGlyphVector(
-                    frc,
-                    chars,
-                    0,
-                    chars.length,
-                    Font.LAYOUT_LEFT_TO_RIGHT
-                );
+            GlyphVector shaped = font.layoutGlyphVector(frc, chars, 0, chars.length, Font.LAYOUT_LEFT_TO_RIGHT);
             if (shaped.getNumGlyphs() != chars.length)
                 return true;
             for (int i = 0; i < chars.length; i++) {
-                GlyphVector alone =
-                    font.layoutGlyphVector(
-                        frc,
-                        chars,
-                        i,
-                        i + 1,
-                        Font.LAYOUT_LEFT_TO_RIGHT
-                    );
-                if (
-                    alone.getNumGlyphs() != 1
-                        ||
-                        alone.getGlyphCode(0) != shaped.getGlyphCode(i)
-                )
+                GlyphVector alone = font.layoutGlyphVector(frc, chars, i, i + 1, Font.LAYOUT_LEFT_TO_RIGHT);
+                if (alone.getNumGlyphs() != 1 || alone.getGlyphCode(0) != shaped.getGlyphCode(i))
                     return true;
             }
         }
@@ -429,11 +389,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if (dotLine.lineNumber() >= topLine.lineNumber())
                 y = Math.min(getY(dotLine), Math.max(0, getHeight() - 1));
         }
-        return new Point(
-            gutterWidth + Math.max(0, caretCol) * spaceWidth
-                + spaceWidth / 2,
-            y + charHeight / 2
-        );
+        return new Point(gutterWidth + Math.max(0, caretCol) * spaceWidth + spaceWidth / 2, y + charHeight / 2);
     }
 
     public int getAbsoluteCaretCol() {
@@ -556,13 +512,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 verticalRuleColor = DefaultTheme.getColor("verticalRule");
         } else
             verticalRuleX = 0;
-        highlightBrackets =
-            buffer.getBooleanProperty(Property.HIGHLIGHT_BRACKETS);
-        highlightMatchingBracket = highlightBrackets
-            ||
-            buffer.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET);
-        rainbowDelimiters =
-            buffer.getBooleanProperty(Property.RAINBOW_DELIMITERS);
+        highlightBrackets = buffer.getBooleanProperty(Property.HIGHLIGHT_BRACKETS);
+        highlightMatchingBracket = highlightBrackets || buffer.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET);
+        rainbowDelimiters = buffer.getBooleanProperty(Property.RAINBOW_DELIMITERS);
 
         if (highlightMatchingBracket) {
             Position oldPosMatch = posMatch;
@@ -575,35 +527,23 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 if (c == '{' || c == '[' || c == '(') {
                     posBracket = dot;
                     posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
-                } else if (
-                    (c == '}' || c == ']' || c == ')')
-                        && caretShape() != InputHandler.CaretShape.BAR
-                ) {
+                } else if ((c == '}' || c == ']' || c == ')') && caretShape() != InputHandler.CaretShape.BAR) {
                     // A block caret is on the character, as vim's is.
                     posBracket = dot;
                     posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
                 } else if ((quote = CaretCommands.findMatchingQuote(editor, dot, 200)) != null) {
                     posBracket = dot;
                     posMatch = quote;
-                } else if (
-                    dot.getOffset() > 0
-                        && caretShape() == InputHandler.CaretShape.BAR
-                ) {
-                    int end = editor.getBuffer()
-                        .getCol(
-                            dot.getLine(),
-                            dot.getLine().length()
-                        );
+                } else if (dot.getOffset() > 0 && caretShape() == InputHandler.CaretShape.BAR) {
+                    int end = editor.getBuffer().getCol(dot.getLine(), dot.getLine().length());
                     if (shift + caretCol <= end) {
                         dot.skip(-1);
                         c = dot.getChar();
                         if (c == '}' || c == ']' || c == ')') {
                             posBracket = dot;
                             posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
-                        } else if (
-                            (quote = CaretCommands.findMatchingQuote(editor, dot, 200)) != null
-                                && quote.isBefore(dot)
-                        ) {
+                        } else if ((quote = CaretCommands.findMatchingQuote(editor, dot, 200)) != null
+                                && quote.isBefore(dot)) {
                             // Just past a closing quote.
                             posBracket = dot;
                             posMatch = quote;
@@ -685,8 +625,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int col = absCol - shift;
         formatLine(line, shift, col);
         Graphics2D g2d = (Graphics2D) getGraphics();
-        final int x =
-            gutterWidth + measureLine(g2d, textArray, col, formatArray);
+        final int x = gutterWidth + measureLine(g2d, textArray, col, formatArray);
         final int y = getY(line);
         g2d.setColor(editor.getFormatter().getCaretColor());
         g2d.fillRect(x, y, 1, charAscent + charDescent);
@@ -723,11 +662,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         // it is not drawn over one. A block caret is the cursor itself and has
         // to stay visible: visual mode is the selection plus where you are in
         // it.
-        if (
-            caretShape == InputHandler.CaretShape.BAR
+        if (caretShape == InputHandler.CaretShape.BAR
                 && editor.getMark() != null
-                && !editor.getMark().equals(editor.getDot())
-        )
+                && !editor.getMark().equals(editor.getDot()))
             return;
         if (caretCol < 0)
             return;
@@ -735,10 +672,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         // lose focus to. This is also what lets a test paint one and look at
         // the pixels.
         final Frame frame = editor.getFrame();
-        if (
-            frame != null
-                && (!frame.isActive() || frame.getFocusedComponent() != this)
-        )
+        if (frame != null && (!frame.isActive() || frame.getFocusedComponent() != this))
             return;
         final Line dotLine = editor.getDotLine();
         if (dotLine instanceof ImageLine)
@@ -846,9 +780,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (dotLine == revealedDotLine && offset == revealedDotOffset)
             return;
         final Line[] block = editor.getFormatter().getHiddenBlock(dotLine);
-        final Line[] lines = block == null
-            ? new Line[] { dotLine }
-            : new Line[] { dotLine, block[0], block[1] };
+        final Line[] lines = block == null ? new Line[] { dotLine } : new Line[] { dotLine, block[0], block[1] };
         final java.util.Set<Line> toPaint = new java.util.LinkedHashSet<>();
         java.util.Collections.addAll(toPaint, revealedLines);
         java.util.Collections.addAll(toPaint, lines);
@@ -873,9 +805,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private int visibleY(Line target) {
         int y = -pixelsAboveTopLine;
         final int limit = getHeight();
-        for (Line line = topLine;
-            line != null && y < limit;
-            line = line.nextVisible()) {
+        for (Line line = topLine; line != null && y < limit; line = line.nextVisible()) {
             if (line == target)
                 return y;
             y += line.getHeight();
@@ -914,8 +844,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      */
     private int caretSpan() {
         return caretCol + 1 < textArray.length
-            && Character.isHighSurrogate(textArray[caretCol])
-            && Character.isLowSurrogate(textArray[caretCol + 1]) ? 2 : 1;
+                && Character.isHighSurrogate(textArray[caretCol])
+                && Character.isLowSurrogate(textArray[caretCol + 1]) ? 2 : 1;
     }
 
     private Font fontForFormat(int format) {
@@ -938,9 +868,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     private InputHandler.CaretShape caretShape() {
         final InputHandler handler = editor.getInputHandler();
-        return handler == null
-            ? InputHandler.CaretShape.BAR
-            : handler.getCaretShape();
+        return handler == null ? InputHandler.CaretShape.BAR : handler.getCaretShape();
     }
 
     /**
@@ -960,12 +888,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         // second half of a surrogate pair.
         formatLine(dotLine, shift, caretCol + 2);
         final int start = measureLine(g2d, textArray, caretCol, formatArray);
-        final int end = measureLine(
-            g2d,
-            textArray,
-            caretCol + caretSpan(),
-            formatArray
-        );
+        final int end = measureLine(g2d, textArray, caretCol + caretSpan(), formatArray);
         final int width = end - start;
         return width > 0 ? width : spaceWidth;
     }
@@ -1057,8 +980,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int limit = Math.min(maxCols, taLength);
         final Formatter formatter = editor.getFormatter();
         final LineSegmentList segmentList = formatter.formatLine(line);
-        final int[] revealed =
-            formatter.hidesMarkup() ? revealedItems(formatter, line, segmentList) : null;
+        final int[] revealed = formatter.hidesMarkup() ? revealedItems(formatter, line, segmentList) : null;
         int segmentStart = 0;
         int totalChars = 0;
         final int size = segmentList.size();
@@ -1092,11 +1014,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             int format = segment.getFormat();
             if (segment.isBar())
                 format |= BAR;
-            if (
-                revealed != null
-                    && segment.isHidden()
-                    && !contains(revealed, segment.getItem())
-            )
+            if (revealed != null && segment.isHidden() && !contains(revealed, segment.getItem()))
                 format |= HIDDEN;
             int k = segmentStart - begin;
             if (k > limit)
@@ -1138,14 +1056,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         for (int i = 0; i < levels.length; i++) {
             final char c = line.charAt(i);
             final int k = col - begin;
-            if (
-                levels[i] != BracketDepths.NONE
-                    && k >= 0
-                    && k < limit
-                    && textArray[k] == c
-            )
-                formatArray[k] |= RAINBOW |
-                    Math.min(levels[i], MAX_RAINBOW_DEPTH) << RAINBOW_SHIFT;
+            if (levels[i] != BracketDepths.NONE && k >= 0 && k < limit && textArray[k] == c)
+                formatArray[k] |= RAINBOW | Math.min(levels[i], MAX_RAINBOW_DEPTH) << RAINBOW_SHIFT;
             if (c == '\t' && tabWidth > 0)
                 col += tabWidth - col % tabWidth;
             else
@@ -1158,11 +1070,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * on its line, between an item's first column and just past its last;
      * for a block, anywhere in it. Null if line hides nothing.
      */
-    private int[] revealedItems(
-        Formatter formatter,
-        Line line,
-        LineSegmentList segments
-    ) {
+    private int[] revealedItems(Formatter formatter, Line line, LineSegmentList segments) {
         boolean hides = false;
         boolean block = false;
         int items = 0;
@@ -1255,9 +1163,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             return formatter.getHoverLinkColor();
         format &= ~(HIDDEN | BAR);
         if ((format & RAINBOW) != 0)
-            return formatter.getRainbowColor(
-                (format & ~RAINBOW) >>> RAINBOW_SHIFT
-            );
+            return formatter.getRainbowColor((format & ~RAINBOW) >>> RAINBOW_SHIFT);
         return formatter.getColor(format);
     }
 
@@ -1282,15 +1188,10 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private final void providePaintLineImage(int width, int height) {
         final double deviceScale = getDeviceScale();
 
-        if (
-            paintLineImage != null
-                &&
-                paintLineImageWidth == width
-                &&
-                paintLineImageHeight == height
-                &&
-                paintLineImageScale == deviceScale
-        )
+        if (paintLineImage != null
+                && paintLineImageWidth == width
+                && paintLineImageHeight == height
+                && paintLineImageScale == deviceScale)
             return;
 
         // Otherwise...
@@ -1305,11 +1206,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int deviceHeight = (int) Math.ceil(height * deviceScale);
 
         paintLineImage =
-            new BufferedImage(
-                Math.max(deviceWidth, 1),
-                Math.max(deviceHeight, 1),
-                BufferedImage.TYPE_INT_RGB
-            );
+                new BufferedImage(Math.max(deviceWidth, 1), Math.max(deviceHeight, 1), BufferedImage.TYPE_INT_RGB);
         paintLineImageWidth = width;
         paintLineImageHeight = height;
         paintLineImageScale = deviceScale;
@@ -1350,45 +1247,19 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             handleSelection(selection, line, formatArray, paintLineGraphics, 0);
         } else if (posMatch != null) {
             if (posMatch.getLine() == line)
-                highlightBracket(
-                    posMatch,
-                    line,
-                    formatArray,
-                    paintLineGraphics,
-                    0
-                );
+                highlightBracket(posMatch, line, formatArray, paintLineGraphics, 0);
             if (posBracket != null && posBracket.getLine() == line)
-                highlightBracket(
-                    posBracket,
-                    line,
-                    formatArray,
-                    paintLineGraphics,
-                    0
-                );
+                highlightBracket(posBracket, line, formatArray, paintLineGraphics, 0);
         }
 
         drawGutterText(paintLineGraphics, line, 0);
         if (showLineNumbers && editor.getDot() != null)
             drawGutterBorder(paintLineGraphics, 0, line.getHeight());
         drawVerticalRule(paintLineGraphics, 0, line.getHeight());
-        drawText(
-            paintLineGraphics,
-            textArray,
-            totalChars,
-            formatArray,
-            0,
-            caretBreakCol(line, totalChars)
-        );
+        drawText(paintLineGraphics, textArray, totalChars, formatArray, 0, caretBreakCol(line, totalChars));
         changedLines.remove(line);
 
-        g.drawImage(
-            paintLineImage,
-            0,
-            y,
-            paintLineImageWidth,
-            paintLineImageHeight,
-            null
-        );
+        g.drawImage(paintLineImage, 0, y, paintLineImageWidth, paintLineImageHeight, null);
     }
 
     private void paintImageLine(ImageLine imageLine, Graphics g, int y) {
@@ -1411,12 +1282,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         g.fillRect(x + imageWidth, y, displayWidth - (x + imageWidth), lineHeight);
         // Bottom.
         if (imageHeight < lineHeight)
-            g.fillRect(
-                0,
-                y + imageHeight,
-                displayWidth,
-                lineHeight - imageHeight
-            );
+            g.fillRect(0, y + imageHeight, displayWidth, lineHeight - imageHeight);
 
         Rectangle rect = imageLine.getRect();
         g.drawImage(
@@ -1429,16 +1295,10 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             rect.y,
             rect.x + rect.width,
             rect.y + rect.height,
-            null
-        );
+            null);
     }
 
-    private void drawBackgroundForLine(
-        Graphics2D g2d,
-        Color backgroundColor,
-        Line line,
-        int y
-    ) {
+    private void drawBackgroundForLine(Graphics2D g2d, Color backgroundColor, Line line, int y) {
         if (enableChangeMarks && line.isModified()) {
             g2d.setColor(line.isSaved() ? savedChangeColor : changeColor);
             g2d.fillRect(0, y, changeMarkWidth, line.getHeight());
@@ -1454,12 +1314,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final Color shade = editor.getFormatter().getLineBackground(line);
             if (shade != null) {
                 g2d.setColor(shade);
-                g2d.fillRect(
-                    gutterWidth,
-                    y,
-                    getWidth() - gutterWidth,
-                    line.getHeight()
-                );
+                g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, line.getHeight());
             }
         }
     }
@@ -1483,15 +1338,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 continue;
             // Through the runs after it that share it.
             int end = i;
-            while (
-                end < totalChars
+            while (end < totalChars
                     && ((formatArray[end] & HIDDEN) != 0
-                        || color.equals(
-                            formatter.getRunBackground(
-                                formatterFormat(formatArray[end])
-                            )
-                        ))
-            )
+                            || color.equals(formatter.getRunBackground(formatterFormat(formatArray[end])))))
                 ++end;
             while (end > i && (formatArray[end - 1] & HIDDEN) != 0)
                 --end;
@@ -1568,15 +1417,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     public static final int getGutterWidth(Buffer buffer) {
         return getGutterWidth(
             buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS),
-            buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS)
-        );
+            buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS));
     }
 
     // Returns width in pixels.
-    private static final int getGutterWidth(
-        boolean showChangeMarks,
-        boolean showLineNumbers
-    ) {
+    private static final int getGutterWidth(boolean showChangeMarks, boolean showLineNumbers) {
         int width = charWidth;
         if (showChangeMarks)
             width += changeMarkWidth;
@@ -1612,21 +1457,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * without moving anything -- drawText relies on that to let the caret sit
      * inside a ligature.
      */
-    private static GlyphVector glyphs(
-        Font font,
-        FontRenderContext frc,
-        char[] textArray,
-        int start,
-        int limit
-    ) {
+    private static GlyphVector glyphs(Font font, FontRenderContext frc, char[] textArray, int start, int limit) {
         if (ligatures)
-            return font.layoutGlyphVector(
-                frc,
-                textArray,
-                start,
-                limit,
-                Font.LAYOUT_LEFT_TO_RIGHT
-            );
+            return font.layoutGlyphVector(frc, textArray, start, limit, Font.LAYOUT_LEFT_TO_RIGHT);
         char[] chars = new char[limit - start];
         System.arraycopy(textArray, start, chars, 0, limit - start);
         return font.createGlyphVector(frc, chars);
@@ -1637,14 +1470,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      *     has not changed, so that a ligature straddling it comes apart, or -1
      *     for none. Used to show the caret's own character inside a ligature.
      */
-    private void drawText(
-        Graphics2D g2d,
-        char[] textArray,
-        int length,
-        int[] formatArray,
-        int y,
-        int breakCol
-    ) {
+    private void drawText(Graphics2D g2d, char[] textArray, int length, int[] formatArray, int y, int breakCol) {
         int i = 0;
         double x = gutterWidth;
         final Formatter formatter = editor.getFormatter();
@@ -1665,13 +1491,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             g2d.setColor(colorOf(formatter, format));
             final int style = formatter.getStyle(formatterFormat(format));
             final Font font = fontFor(style);
-            GlyphVector gv = glyphs(
-                font,
-                g2d.getFontRenderContext(),
-                textArray,
-                start,
-                i
-            );
+            GlyphVector gv = glyphs(font, g2d.getFontRenderContext(), textArray, start, i);
             final double width = gv.getLogicalBounds().getWidth();
             if ((format & HIDDEN) != 0) {
                 x += width; // The bar in the character's room.
@@ -1686,10 +1506,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 } else if (emulateBold)
                     g2d.drawGlyphVector(gv, (float) x + 1, y + charAscent);
             }
-            if (
-                formatter.getUnderline(formatterFormat(format))
-                    || (format & HOVER) != 0
-            )
+            if (formatter.getUnderline(formatterFormat(format)) || (format & HOVER) != 0)
                 g2d.drawLine((int) x, y + charAscent + 1, (int) (x + width), y + charAscent + 1);
             if ((style & TextStyle.STRIKETHROUGH) != 0) {
                 // Through the middle of the lower case letters.
@@ -1716,13 +1533,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if ((format & (HIDDEN | BAR)) == HIDDEN)
                 continue;
             final Font font = fontFor(formatter.getStyle(formatterFormat(format)));
-            GlyphVector gv = glyphs(
-                font,
-                g2d.getFontRenderContext(),
-                textArray,
-                startCol,
-                i
-            );
+            GlyphVector gv = glyphs(font, g2d.getFontRenderContext(), textArray, startCol, i);
             totalWidth += gv.getLogicalBounds().getWidth();
         }
         return (int) totalWidth;
@@ -1809,8 +1620,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             } else {
                 Color backgroundColor;
                 if (line == currentLine) {
-                    backgroundColor =
-                        editor.getFormatter().getCurrentLineBackgroundColor();
+                    backgroundColor = editor.getFormatter().getCurrentLineBackgroundColor();
                 } else
                     backgroundColor = colorBackground;
                 drawBackgroundForLine(g2d, backgroundColor, line, y);
@@ -1829,14 +1639,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 if (totalChars > 0) {
                     // Draw vertical rule first so it will be behind the text.
                     drawVerticalRule(g2d, y, line.getHeight());
-                    drawText(
-                        g2d,
-                        textArray,
-                        totalChars,
-                        formatArray,
-                        y,
-                        caretBreakCol(line, totalChars)
-                    );
+                    drawText(g2d, textArray, totalChars, formatArray, y, caretBreakCol(line, totalChars));
                 } else
                     drawVerticalRule(g2d, y, line.getHeight());
                 changedLines.remove(line);
@@ -1885,22 +1688,12 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final Line first = markFirst ? mark.getLine() : dot.getLine();
         final Line last = markFirst ? dot.getLine() : mark.getLine();
         final Line after = last.nextVisible();
-        return new Region(
-            editor.getBuffer(),
-            new Position(first, 0),
-            after != null
-                ? new Position(after, 0)
-                : new Position(last, last.length())
-        );
+        return new Region(editor.getBuffer(),
+                new Position(first, 0),
+                after != null ? new Position(after, 0) : new Position(last, last.length()));
     }
 
-    private void handleSelection(
-        Region r,
-        Line line,
-        int[] formatArray,
-        Graphics2D g2d,
-        int y
-    ) {
+    private void handleSelection(Region r, Line line, int[] formatArray, Graphics2D g2d, int y) {
         if (r == null)
             return;
 
@@ -1912,8 +1705,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 handler.getBlockSelection(editor, line),
                 editor.getFormatter().getSelectionBackgroundColor(),
                 g2d,
-                y
-            );
+                y);
             return;
         }
 
@@ -1925,13 +1717,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         // Only when this line is really in the selection: a region ending at
         // offset 0 of this line means the line *after* the selection, and
         // filling that paints a line nobody selected.
-        if (
-            line.nextVisible() == null
+        if (line.nextVisible() == null
                 && isLinewiseSelection()
                 && line.lineNumber() >= r.getBeginLineNumber()
                 && line.lineNumber() <= r.getEndLineNumber()
-                && (r.getEndOffset() > 0 || line == r.getBeginLine())
-        ) {
+                && (r.getEndOffset() > 0 || line == r.getBeginLine())) {
             g2d.setColor(editor.getFormatter().getSelectionBackgroundColor());
             g2d.fillRect(gutterWidth, y, getWidth(), charHeight);
             return;
@@ -1944,11 +1734,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         int x = 0;
 
         if (r.isColumnRegion()) {
-            if (
-                line.lineNumber() >= r.getBeginLineNumber()
-                    &&
-                    line.lineNumber() <= r.getEndLineNumber()
-            ) {
+            if (line.lineNumber() >= r.getBeginLineNumber() && line.lineNumber() <= r.getEndLineNumber()) {
                 beginCol = r.getBeginCol() - shift;
                 endCol = r.getEndCol() - shift;
 
@@ -1985,11 +1771,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 fillWidth = getWidth();
                 x = gutterWidth + measureLine(g2d, textArray, beginCol, formatArray);
             }
-        } else if (
-            line.lineNumber() > r.getBeginLineNumber()
-                &&
-                line.lineNumber() < r.getEndLineNumber()
-        ) {
+        } else if (line.lineNumber() > r.getBeginLineNumber() && line.lineNumber() < r.getEndLineNumber()) {
             // Entire line is selected.
             fillWidth = getWidth();
             x = gutterWidth;
@@ -2021,33 +1803,15 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      */
     private void highlightSearchMatches(Line line, Graphics2D g2d, int y) {
         final Formatter formatter = editor.getFormatter();
-        fillSpans(
-            line,
-            editor.getSearchMatches(line),
-            formatter.getSearchMatchBackgroundColor(),
-            g2d,
-            y
-        );
-        fillSpans(
-            line,
-            editor.getCurrentSearchMatch(line),
-            formatter.getCurrentSearchMatchBackgroundColor(),
-            g2d,
-            y
-        );
+        fillSpans(line, editor.getSearchMatches(line), formatter.getSearchMatchBackgroundColor(), g2d, y);
+        fillSpans(line, editor.getCurrentSearchMatch(line), formatter.getCurrentSearchMatchBackgroundColor(), g2d, y);
     }
 
     /**
      * Fills spans of a line, offsets in pairs. An empty span, or the line end
      * a span takes in, is one character wide.
      */
-    private void fillSpans(
-        Line line,
-        int[] spans,
-        Color color,
-        Graphics2D g2d,
-        int y
-    ) {
+    private void fillSpans(Line line, int[] spans, Color color, Graphics2D g2d, int y) {
         if (spans == null)
             return;
         final Buffer buffer = editor.getBuffer();
@@ -2076,13 +1840,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
-    private void highlightBracket(
-        Position pos,
-        Line line,
-        int[] formatArray,
-        Graphics2D g2d,
-        int y
-    ) {
+    private void highlightBracket(Position pos, Line line, int[] formatArray, Graphics2D g2d, int y) {
         if (pos == null) {
             Debug.bug();
             return;
@@ -2227,8 +1985,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 editor.addUndo(SimpleEdit.MOVE);
         } else {
             if (editor.getMark() != null) {
-                boolean isLineBlock =
-                    (editor.getDotOffset() == 0 && editor.getMarkOffset() == 0);
+                boolean isLineBlock = (editor.getDotOffset() == 0 && editor.getMarkOffset() == 0);
                 editor.addUndo(SimpleEdit.MOVE);
                 MotionCommands.beginningOfBlock(editor);
                 editor.setGoalColumn(editor.getDotCol());
@@ -2288,8 +2045,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 editor.addUndo(SimpleEdit.MOVE);
         } else {
             if (editor.getMark() != null) {
-                boolean isLineBlock =
-                    (editor.getDotOffset() == 0 && editor.getMarkOffset() == 0);
+                boolean isLineBlock = (editor.getDotOffset() == 0 && editor.getMarkOffset() == 0);
                 editor.addUndo(SimpleEdit.MOVE);
                 MotionCommands.endOfBlock(editor);
                 editor.setGoalColumn(editor.getDotCol());
@@ -2560,8 +2316,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             return;
 
         int y = getAbsoluteY(topLine);
-        int limit =
-            editor.getBuffer().getDisplayHeight() - getHeight() + charHeight;
+        int limit = editor.getBuffer().getDisplayHeight() - getHeight() + charHeight;
         if (y > limit) {
             // We need to scroll back in the buffer a bit.
             Line top = lineFromAbsoluteY(limit);
@@ -2652,8 +2407,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             formatLine(line, shift, col);
             int x = measureLine(g2d, textArray, col, formatArray);
             final int maxWidth = getWidth() - gutterWidth - charWidth;
-            while (x > maxWidth) {
-                shift += 8;
+            // col > 0: a window too narrow for any of the line, as one being
+            // laid out can be, would otherwise never stop shifting; and never
+            // past the caret's own column.
+            while (x > maxWidth && col > 0) {
+                shift = Math.min(shift + 8, absCol);
                 col = absCol - shift;
                 formatLine(line, shift, col);
                 x = measureLine(g2d, textArray, col, formatArray);
@@ -2742,9 +2500,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     private boolean isLineVisible(Line line) {
-        return (line.lineNumber() >= getTopLineNumber()
-            &&
-            line.lineNumber() < getTopLineNumber() + getRows());
+        return (line.lineNumber() >= getTopLineNumber() && line.lineNumber() < getTopLineNumber() + getRows());
     }
 
     private final int getMaxCols() {
@@ -2889,20 +2645,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     private static Object getDesktopAntialiasingHint() {
         try {
-            Object hints = Toolkit.getDefaultToolkit()
-                .getDesktopProperty("awt.font.desktophints");
+            Object hints = Toolkit.getDefaultToolkit().getDesktopProperty("awt.font.desktophints");
             if (hints instanceof Map<?, ?> map) {
-                Object value =
-                    map.get(RenderingHints.KEY_TEXT_ANTIALIASING);
+                Object value = map.get(RenderingHints.KEY_TEXT_ANTIALIASING);
                 // A desktop with antialiasing switched off still leaves j's
                 // own antialias preference in charge, so ignore OFF here.
-                if (
-                    value != null
-                        &&
-                        value != RenderingHints.VALUE_TEXT_ANTIALIAS_OFF
-                        &&
-                        value != RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT
-                )
+                if (value != null
+                        && value != RenderingHints.VALUE_TEXT_ANTIALIAS_OFF
+                        && value != RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT)
                     return value;
             }
         }
@@ -2931,14 +2681,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         Object hint = desktopAntialiasingHint;
         g2d.setRenderingHint(
             RenderingHints.KEY_TEXT_ANTIALIASING,
-            hint != null
-                ? hint
-                : RenderingHints.VALUE_TEXT_ANTIALIAS_ON
-        );
-        g2d.setRenderingHint(
-            RenderingHints.KEY_FRACTIONALMETRICS,
-            RenderingHints.VALUE_FRACTIONALMETRICS_OFF
-        );
+            hint != null ? hint : RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
     }
 
     @Override

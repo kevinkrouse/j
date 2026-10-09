@@ -122,6 +122,8 @@ public final class StatusBar extends JComponent implements PreferencesChangeList
         String modeName = buffer.getMode().getDisplayName();
         if (modeName != null)
             sb.append(modeName);
+        if (buffer.isTransient())
+            sb.append("   Esc or q to close");
         String s = buffer.getStatusText(editor);
         if (s != null && s.length() > 0) {
             sb.append("   ");

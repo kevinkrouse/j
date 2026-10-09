@@ -63,12 +63,16 @@ public final class DiffMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Diff";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "diffGotoFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "diffGotoFile");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "diffGotoFile");
         km.mapKey(VK_MOUSE_2, 0, "diffGotoFile");
-        km.mapKey('q', "tempBufferQuit");
     }
 
     public static void diff() {
@@ -80,12 +84,7 @@ public final class DiffMode extends AbstractMode implements Mode {
             if (patchFile != null && patchFile.isFile()) {
                 boolean save = false;
                 if (buffer.isModified()) {
-                    int response =
-                        ConfirmDialog.showConfirmDialogWithCancelButton(
-                            editor,
-                            CHECK_SAVE_PROMPT,
-                            "diff"
-                        );
+                    int response = ConfirmDialog.showConfirmDialogWithCancelButton(editor, CHECK_SAVE_PROMPT, "diff");
                     switch (response) {
                         case RESPONSE_YES:
                             save = true;
@@ -122,24 +121,15 @@ public final class DiffMode extends AbstractMode implements Mode {
             if (arg.equals("%")) {
                 File file = parentBuffer.getFile();
                 if (file == null) {
-                    MessageDialog.showMessageDialog(
-                        "There is no file associated with the current buffer.",
-                        "Error"
-                    );
+                    MessageDialog.showMessageDialog("There is no file associated with the current buffer.", "Error");
                     return;
                 }
                 if (file.isRemote()) {
-                    MessageDialog.showMessageDialog(
-                        file.netPath() + " is a remote file.",
-                        "Error"
-                    );
+                    MessageDialog.showMessageDialog(file.netPath() + " is a remote file.", "Error");
                     return;
                 }
                 if (file.isDirectory()) {
-                    MessageDialog.showMessageDialog(
-                        file.canonicalPath() + " is a directory.",
-                        "Error"
-                    );
+                    MessageDialog.showMessageDialog(file.canonicalPath() + " is a directory.", "Error");
                     return;
                 }
                 // OK.
@@ -162,9 +152,8 @@ public final class DiffMode extends AbstractMode implements Mode {
             File file = File.getInstance(arg);
             sb.append(
                 file != null && file.isLocal() && file.exists()
-                    ? Utilities.maybeQuote(arg)
-                    : Utilities.quoteUserWord(arg)
-            );
+                        ? Utilities.maybeQuote(arg)
+                        : Utilities.quoteUserWord(arg));
             sb.append(' ');
         }
         String cmdline = sb.toString().trim();
@@ -208,11 +197,10 @@ public final class DiffMode extends AbstractMode implements Mode {
      * @param root maps the buffer's directory to the one file names are relative to
      */
     public static void gotoUnifiedDiffSource(
-        Editor editor,
-        DiffOutputBuffer diffOutputBuffer,
-        Function<String, String> filename,
-        UnaryOperator<File> root
-    ) {
+            Editor editor,
+            DiffOutputBuffer diffOutputBuffer,
+            Function<String, String> filename,
+            UnaryOperator<File> root) {
         final Line dotLine = editor.getDotLine();
         final int dotOffset = editor.getDotOffset();
 
@@ -263,10 +251,7 @@ public final class DiffMode extends AbstractMode implements Mode {
         }
     }
 
-    private static void localGotoFile(
-        Editor editor,
-        DiffOutputBuffer diffOutputBuffer
-    ) {
+    private static void localGotoFile(Editor editor, DiffOutputBuffer diffOutputBuffer) {
         final Line dotLine = editor.getDotLine();
         String filename1 = null;
         String filename2 = null;
@@ -364,15 +349,9 @@ public final class DiffMode extends AbstractMode implements Mode {
         if (file != null && file.isFile()) {
             Buffer buf = Editor.getBuffer(file);
             if (buf != null) {
-                int lineNumber =
-                    (filename == filename1) ? oldLineNumber : newLineNumber;
+                int lineNumber = (filename == filename1) ? oldLineNumber : newLineNumber;
                 final int offset = editor.getDotOffset();
-                gotoLocation(
-                    editor,
-                    buf,
-                    lineNumber,
-                    offset > 0 ? offset - 1 : 0
-                );
+                gotoLocation(editor, buf, lineNumber, offset > 0 ? offset - 1 : 0);
             }
         }
     }
@@ -384,34 +363,18 @@ public final class DiffMode extends AbstractMode implements Mode {
         return index >= 0 ? s.substring(0, index) : s;
     }
 
-    private static void gotoLocation(
-        Editor editor,
-        File dir,
-        String filename,
-        int lineNumber,
-        int dotOffset
-    ) {
+    private static void gotoLocation(Editor editor, File dir, String filename, int lineNumber, int dotOffset) {
         File file = File.getInstance(dir, filename);
         if (file != null && file.isFile()) {
             Buffer buf = Editor.getBuffer(file);
             if (buf != null) {
-                gotoLocation(
-                    editor,
-                    buf,
-                    lineNumber,
-                    dotOffset > 0 ? dotOffset - 1 : 0
-                );
+                gotoLocation(editor, buf, lineNumber, dotOffset > 0 ? dotOffset - 1 : 0);
             }
         }
     }
 
     /** Shows buf in the other window at lineNumber (zero-based; -1 leaves its dot). */
-    public static void gotoLocation(
-        Editor editor,
-        Buffer buf,
-        int lineNumber,
-        int offset
-    ) {
+    public static void gotoLocation(Editor editor, Buffer buf, int lineNumber, int offset) {
         if (buf != null) {
             editor.makeNext(buf);
             Editor ed = editor.activateInOtherWindow(buf);

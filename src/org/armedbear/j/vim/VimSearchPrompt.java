@@ -52,7 +52,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler {
         // in, so without one there is nothing to prompt with.
         if (editor.getFrame() == null)
             return false;
-        final LocationBar locationBar = editor.getLocationBar();
+        final LocationBar locationBar = editor.getPromptLocationBar();
         if (locationBar == null)
             return false;
         final HistoryTextField textField = locationBar.getTextField();

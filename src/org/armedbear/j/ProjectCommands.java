@@ -57,7 +57,7 @@ public final class ProjectCommands {
 
     /** As findFileInProject, starting from query. */
     static void findFileInProject(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField != null)
             Finders.show(
                 editor,
@@ -74,7 +74,7 @@ public final class ProjectCommands {
 
     /** As findAction, starting from query. */
     static void findAction(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         editor.status("");
@@ -93,19 +93,9 @@ public final class ProjectCommands {
             editor.status("Unable to open " + file.canonicalPath());
             return;
         }
-        final Frame frame = editor.getFrame();
         // A jump, so jumpBack returns here.
         editor.recordJump();
-        Editor target = editor;
-        if (otherWindow) {
-            target = editor.activateInOtherWindow(buf);
-        } else if (buf != editor.getBuffer()) {
-            editor.makeNext(buf);
-            editor.switchToBuffer(buf);
-            // Switching to or from a paired buffer can close the editor.
-            if (!frame.contains(editor))
-                target = frame.getCurrentEditor();
-        }
+        final Editor target = otherWindow ? editor.activateInOtherWindow(buf) : editor.show(buf);
         if (target == null)
             return;
         Editor.setCurrentEditor(target);

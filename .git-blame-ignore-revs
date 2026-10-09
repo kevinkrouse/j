@@ -148,3 +148,6 @@ b9592e4418d3d98805c822c4fcc103bb84c77ffd
 
 # reformat: VimrcParser and its test
 2f032183283bf09b96f06f68d49cbfda6ceca3ca
+
+# reformat: the files the transient panel's follow-ups change
+e8ca3a3686fe037fdadc56d91e801f55623e97f6

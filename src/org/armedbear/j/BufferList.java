@@ -106,6 +106,32 @@ public final class BufferList implements PreferencesChangeListener, Iterable<Buf
         return null;
     }
 
+    /**
+     * The next primary buffer that is not transient, as vim's :bnext skips
+     * unlisted ones; null if there is none but buffer.
+     */
+    public synchronized Buffer getNextListedBuffer(Buffer buffer) {
+        return listed(buffer, true);
+    }
+
+    /** As getNextListedBuffer, going back. */
+    public synchronized Buffer getPreviousListedBuffer(Buffer buffer) {
+        return listed(buffer, false);
+    }
+
+    private Buffer listed(Buffer from, boolean next) {
+        Buffer buf = from;
+        // At most once round: from may be a secondary, which the walk never reaches.
+        for (int i = size(); i-- > 0;) {
+            buf = next ? getNextPrimaryBuffer(buf) : getPreviousPrimaryBuffer(buf);
+            if (buf == null || buf == from)
+                return null;
+            if (!buf.isTransient())
+                return buf;
+        }
+        return null;
+    }
+
     public synchronized Buffer getNextPrimaryBuffer(Buffer buffer) {
         if (alpha && modified)
             sort();

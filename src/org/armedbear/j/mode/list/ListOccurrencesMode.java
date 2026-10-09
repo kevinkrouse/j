@@ -59,12 +59,16 @@ public final class ListOccurrencesMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Results";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "findOccurrenceAtDot");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "findOccurrenceAtDot");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "mouseFindOccurrence");
         km.mapKey(VK_MOUSE_2, 0, "mouseFindOccurrence");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "findOccurrenceAtDotAndKillList");
-        km.mapKey('q', "tempBufferQuit");
     }
 }

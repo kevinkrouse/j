@@ -126,23 +126,16 @@ public abstract class MailboxBuffer extends Buffer {
 
     public void readMessageOtherWindow(Line line) {}
 
-    protected void activateMessageBuffer(
-        Editor editor,
-        MessageBuffer messageBuffer,
-        boolean useOtherWindow
-    ) {
+    protected void activateMessageBuffer(Editor editor, MessageBuffer messageBuffer, boolean useOtherWindow) {
         editor.makeNext(messageBuffer);
         if (useOtherWindow) {
-            Buffer oldBuffer = null;
-            Editor ed = editor.getOtherEditor();
-            if (ed != null)
-                oldBuffer = ed.getBuffer();
+            // The message window is the mailbox window's own, split off under
+            // it, which the next message reuses.
+            final Editor bound = editor.getFrame().getBoundWindow(editor);
+            final Buffer oldBuffer = bound == null ? null : bound.getBuffer();
             messageBuffer.setTransient(true);
-            editor.activateInOtherWindow(
-                messageBuffer,
-                messageBuffer.getSplit()
-            );
             previewBuffer = messageBuffer;
+            editor.getFrame().showSecondary(editor, messageBuffer, true);
             if (oldBuffer != null && oldBuffer != messageBuffer) {
                 if (oldBuffer.isTransient())
                     oldBuffer.kill();
@@ -593,8 +586,7 @@ public abstract class MailboxBuffer extends Buffer {
         if (getFirstLine() != null) {
             dotLine = getFirstLine();
             if (currentEntry != null) {
-                boolean groupByThread =
-                    getBooleanProperty(Property.GROUP_BY_THREAD);
+                boolean groupByThread = getBooleanProperty(Property.GROUP_BY_THREAD);
                 for (Line line = getFirstLine(); line != null; line = line.next()) {
                     MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                     if (entry == currentEntry) {
@@ -653,8 +645,7 @@ public abstract class MailboxBuffer extends Buffer {
                     return line;
             }
             // We didn't find an exact match.
-            boolean groupByThread =
-                getBooleanProperty(Property.GROUP_BY_THREAD);
+            boolean groupByThread = getBooleanProperty(Property.GROUP_BY_THREAD);
             for (Line l = getFirstLine(); l != null; l = l.next()) {
                 if (l instanceof MailboxLine) {
                     MailboxLine line = (MailboxLine) l;
@@ -808,8 +799,8 @@ public abstract class MailboxBuffer extends Buffer {
                         break;
                 }
                 for (Line toBeHidden = begin.next();
-                    toBeHidden != end && toBeHidden != null;
-                    toBeHidden = toBeHidden.next())
+                        toBeHidden != end && toBeHidden != null;
+                        toBeHidden = toBeHidden.next())
                     toBeHidden.hide();
                 renumber();
                 FoldCommands.unhideDotInAllFrames(this);
@@ -834,8 +825,8 @@ public abstract class MailboxBuffer extends Buffer {
                                 break;
                         }
                         for (Line toBeHidden = begin.next();
-                            toBeHidden != end && toBeHidden != null;
-                            toBeHidden = toBeHidden.next())
+                                toBeHidden != end && toBeHidden != null;
+                                toBeHidden = toBeHidden.next())
                             toBeHidden.hide();
                     }
                 }
@@ -907,8 +898,7 @@ public abstract class MailboxBuffer extends Buffer {
     }
 
     private static void sortEntriesByDate(List<MailboxEntry> list) {
-        Comparator<MailboxEntry> c =
-            (e1, e2) -> RFC822Date.compare(e1.getDate(), e2.getDate());
+        Comparator<MailboxEntry> c = (e1, e2) -> RFC822Date.compare(e1.getDate(), e2.getDate());
         Collections.sort(list, c);
         int sequenceNumber = 1;
         for (MailboxEntry entry : list) {
@@ -985,7 +975,7 @@ public abstract class MailboxBuffer extends Buffer {
     // For the buffer list.
     @Override
     public Icon getIcon() {
-        return Icons.getIconFromFile(newMessageCount > 0 ? "mailbox_new.png" : "mailbox.png");
+        return Icons.getIconFromFile(newMessageCount > 0 ? "mailbox_new" : "mailbox");
     }
 
     @Override

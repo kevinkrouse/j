@@ -24,8 +24,8 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -36,7 +36,6 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
-import org.armedbear.j.util.Utilities;
 
 public final class LocationBar extends JPanel implements ActionListener, MouseListener {
     private Editor editor;
@@ -51,7 +50,7 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         "Pattern:",
         "Find file:",
         "Action:",
-        "Recent file:",
+        "Recent:",
         "Buffer:",
         "Help:",
         "Register:",
@@ -77,14 +76,16 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         this.editor = editor;
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         setBorder(BorderFactory.createEmptyBorder(1, 1, 2, 1));
-        // Make the label wide enough for the widest string that needs to go
-        // there.
-        label = new Label(getWidestPrompt());
-        label.setBorder(BorderFactory.createEmptyBorder(2, 0, 1, 0));
-        Dimension dim = label.getPreferredSize();
-        label.setPreferredSize(dim);
-        label.setMinimumSize(dim);
-        label.setMaximumSize(dim);
+        label = new Label(prompts[0]);
+        // A gap before the field, which a tag's bracket would otherwise touch.
+        label.setBorder(BorderFactory.createEmptyBorder(2, 0, 1, UIScale.scale(4)));
+        // Wide enough for any prompt, in the label's own font; a transient
+        // buffer's label widens it if it has to.
+        final FontMetrics fm = label.getFontMetrics(label.getFont());
+        int width = 0;
+        for (String prompt : prompts)
+            width = Math.max(width, fm.stringWidth(prompt));
+        setLabelWidth(width);
         label.setHorizontalAlignment(Label.RIGHT);
         add(label);
         textField = new HistoryTextField(editor, 20);
@@ -95,7 +96,7 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         textField.setHandler(newHandler());
         // Don't let the width of the location bar prevent the user from
         // making the sidebar wider.
-        dim = getPreferredSize();
+        final Dimension dim = getPreferredSize();
         dim.width = 0;
         setMinimumSize(dim);
         setLabelText(PROMPT_LOCATION);
@@ -116,24 +117,6 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         add(closeButton);
         add(javax.swing.Box.createHorizontalStrut(3));
         closeButton.addActionListener(this);
-    }
-
-    private static String widest = null;
-
-    private static String getWidestPrompt() {
-        if (widest == null) {
-            Font font = new Label().getFont();
-            FontMetrics fm = Utilities.getFontMetrics(font);
-            int maxWidth = -1;
-            for (int i = 0; i < prompts.length; i++) {
-                int width = fm.stringWidth(prompts[i]);
-                if (width > maxWidth) {
-                    widest = prompts[i];
-                    maxWidth = width;
-                }
-            }
-        }
-        return widest;
     }
 
     public final void setLabelText(int index) {
@@ -160,8 +143,31 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         textField.setHandler(newHandler());
         textField.setHistory(new History("openFile.file", 30));
         Buffer buffer = editor.getBuffer();
-        if (buffer != null)
+        if (buffer != null) {
+            // A transient buffer says what it is where the prompt goes.
+            if (buffer.isTransient()) {
+                final String text = buffer.getTransientLabel();
+                label.setText(text);
+                final int width = label.getFontMetrics(label.getFont()).stringWidth(text);
+                if (width > label.getPreferredSize().width - insetsWidth())
+                    setLabelWidth(width);
+            }
             textField.setText(buffer.getFileNameForDisplay());
+        }
+    }
+
+    private int insetsWidth() {
+        final Insets insets = label.getInsets();
+        return insets.left + insets.right;
+    }
+
+    private void setLabelWidth(int textWidth) {
+        final Dimension dim = label.getPreferredSize();
+        dim.width = textWidth + insetsWidth();
+        label.setPreferredSize(dim);
+        label.setMinimumSize(dim);
+        label.setMaximumSize(dim);
+        revalidate();
     }
 
     // The finder, except for a remote buffer, whose names are completed as before.

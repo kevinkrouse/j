@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.BufferCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FileCommands;
 import org.armedbear.j.Finders;
@@ -111,6 +112,11 @@ public final class VimExCommands {
         }
         if (matches(name, "w", "write")) {
             write(editor, command);
+            return true;
+        }
+        // j's one panel is vim's quickfix, preview and help windows.
+        if (matches(name, "ccl", "cclose") || matches(name, "pc", "pclose") || matches(name, "helpc", "helpclose")) {
+            BufferCommands.closePanel(editor);
             return true;
         }
         if (name.equals("wq")) {

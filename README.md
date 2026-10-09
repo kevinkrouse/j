@@ -38,11 +38,16 @@ exception statement from your version.
 
 To build J you need JDK 25 and [babashka](https://babashka.org/).
 `bb extensions` fetches Armed Bear Common Lisp from Maven Central for the abcl
-extension. If you use Nix, "nix develop" puts a suitable JDK, babashka, gcc and
-jfmt on your PATH.
+extension. If you use Nix, "nix develop" puts a suitable JDK, babashka, gcc,
+jfmt and, on Linux, Xvfb on your PATH.
 
 Run `bb build` to compile the source.
 Run `bb tasks` to see a list of available targets.
+
+`bb fuzz-windows` runs J on a private Xvfb display and does random window,
+split and buffer operations, checking the layout after each; a failure prints
+the steps that led to it, which the same seed repeats
+(`bb fuzz-windows --seeds 1-24 --steps 600 --jobs 4`).
 
 `bb fmt` formats the Java files you have changed with jfmt. To keep `git blame`
 from stopping at those reformatting commits, run

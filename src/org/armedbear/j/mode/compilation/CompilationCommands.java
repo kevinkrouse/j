@@ -116,12 +116,6 @@ public final class CompilationCommands {
         cb.setParentBuffer(null);
         Background.start("compilation", cb);
         if (!visible) {
-            Editor otherEditor = editor.getOtherEditor();
-            if (otherEditor != null) {
-                cb.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                otherEditor.makeNext(cb);
-            } else
-                cb.setUnsplitOnClose(true);
             editor.displayInOtherWindow(cb);
         }
     }

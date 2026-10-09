@@ -189,9 +189,9 @@ public final class SearchCommands {
             return;
 
         // Use location bar.
-        if (editor.getLocationBar() != null) {
-            editor.getLocationBar().setLabelText(LocationBar.PROMPT_PATTERN);
-            HistoryTextField textField = editor.getLocationBar().getTextField();
+        if (editor.getPromptLocationBar() != null) {
+            editor.getPromptLocationBar().setLabelText(LocationBar.PROMPT_PATTERN);
+            HistoryTextField textField = editor.getPromptLocationBar().getTextField();
             textField.setHandler(new IncrementalFindTextFieldHandler(editor, textField));
             textField.setHistory(new History("incrementalFind.pattern"));
             textField.setText("");

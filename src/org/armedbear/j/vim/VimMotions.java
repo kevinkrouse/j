@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
+import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Marker;
 import org.armedbear.j.Mode;
@@ -372,13 +373,13 @@ public final class VimMotions {
         if (marker == null || ctx.forOperator || marker.getBuffer() == ctx.editor.getBuffer())
             return;
         ctx.state.jumped(ctx.editor, from);
-        marker.gotoMarker(ctx.editor);
-        final Position dot = ctx.editor.getDot();
+        final Editor editor = marker.gotoMarker(ctx.editor);
+        final Position dot = editor.getDot();
         if (dot != null && ctx.arg("linewise")) {
-            ctx.editor.setDot(dot.getLine(), firstNonBlank(dot.getLine()));
-            ctx.editor.moveCaretToDotCol();
+            editor.setDot(dot.getLine(), firstNonBlank(dot.getLine()));
+            editor.moveCaretToDotCol();
         }
-        ctx.state.clampCaret(ctx.editor);
+        ctx.state.clampCaret(editor);
     }
 
     /**

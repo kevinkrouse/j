@@ -62,7 +62,9 @@
               jdk
               babashka
               pkgs.gcc          # jpty
-            ] ++ lib.optional (jfmtDist != null) jfmt;
+            ] ++ lib.optional (jfmtDist != null) jfmt
+              # bb fuzz-windows runs J on a virtual display.
+              ++ lib.optional pkgs.stdenv.isLinux pkgs.xvfb;
 
             shellHook = ''
               export JAVA_HOME=${jdk}

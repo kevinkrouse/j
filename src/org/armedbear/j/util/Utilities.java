@@ -145,12 +145,7 @@ public final class Utilities {
         return true;
     }
 
-    public static boolean isDelimited(
-        String s,
-        int index,
-        int length,
-        Mode mode
-    ) {
+    public static boolean isDelimited(String s, int index, int length, Mode mode) {
         if (mode == null)
             return isDelimited(s, index, length);
         final int before = index - 1;
@@ -162,12 +157,7 @@ public final class Utilities {
         return true;
     }
 
-    public static boolean isDelimited(
-        Mode mode,
-        String s,
-        int startIndex,
-        int endIndex
-    ) {
+    public static boolean isDelimited(Mode mode, String s, int startIndex, int endIndex) {
         if (mode == null)
             mode = JavaMode.getMode();
         final int before = startIndex - 1;
@@ -232,10 +222,7 @@ public final class Utilities {
         long date = System.currentTimeMillis();
 
         for (int i = 0; i < 100; i++) {
-            File file = File.getInstance(
-                dir,
-                String.valueOf(date + tempFileCount).concat(extension)
-            );
+            File file = File.getInstance(dir, String.valueOf(date + tempFileCount).concat(extension));
             ++tempFileCount;
             if (!file.exists())
                 return file;
@@ -531,11 +518,7 @@ public final class Utilities {
      * @return                  the file, or <code>null</code> if not found
      * @since                   0.16.2
      */
-    public static File findInclude(
-        String s,
-        String path,
-        File currentDirectory
-    ) {
+    public static File findInclude(String s, String path, File currentDirectory) {
         char c = s.charAt(0);
         final String fileName = s.substring(1, s.length() - 1);
         if (c == '"') {
@@ -549,11 +532,7 @@ public final class Utilities {
     }
 
     // We pass in currentDirectory in order to support relative paths.
-    public static File findFileInPath(
-        String filename,
-        String path,
-        File currentDirectory
-    ) {
+    public static File findFileInPath(String filename, String path, File currentDirectory) {
         if (path != null) {
             int index;
             do {
@@ -607,8 +586,7 @@ public final class Utilities {
     // include path.
     public static File findFile(Editor editor, String filename) {
         final Buffer buffer = editor.getBuffer();
-        final File currentDirectory =
-            buffer != null ? buffer.getCurrentDirectory() : null;
+        final File currentDirectory = buffer != null ? buffer.getCurrentDirectory() : null;
 
         // Look for .h files in the include path.
         if (filename.toLowerCase(Locale.ROOT).endsWith(".h")) {
@@ -702,12 +680,7 @@ public final class Utilities {
     }
 
     // Helper for getFileType.
-    private static String getStringFromUnicodeBytes(
-        byte[] bytes,
-        int start,
-        int length,
-        boolean isLittleEndian
-    ) {
+    private static String getStringFromUnicodeBytes(byte[] bytes, int start, int length, boolean isLittleEndian) {
         StringBuilder sb = new StringBuilder(length);
         int i = start;
         int limit = start + length;
@@ -724,7 +697,8 @@ public final class Utilities {
 
     // Returns FILETYPE_UNKNOWN if file is null or does not exist.
     public static int getFileType(File file) {
-        if (file == null)
+        // A new buffer's file, as Ctrl N's, is not there yet.
+        if (file == null || (file.isLocal() && !file.isFile()))
             return FILETYPE_UNKNOWN;
         int fileType = FILETYPE_UNKNOWN;
         try {
@@ -757,8 +731,7 @@ public final class Utilities {
                     else if (bytes[0] == (byte) 'P' && bytes[1] == 'K') {
                         // Looks like a zip file.
                         try {
-                            ZipInputStream istream =
-                                new ZipInputStream(file.getInputStream());
+                            ZipInputStream istream = new ZipInputStream(file.getInputStream());
                             fileType = FILETYPE_ZIP;
                             istream.close();
                         }
@@ -767,8 +740,7 @@ public final class Utilities {
                         }
                     } else {
                         try {
-                            GZIPInputStream istream =
-                                new GZIPInputStream(file.getInputStream());
+                            GZIPInputStream istream = new GZIPInputStream(file.getInputStream());
                             fileType = FILETYPE_GZIP;
                             istream.close();
                         }
@@ -782,12 +754,7 @@ public final class Utilities {
                 fileType = FILETYPE_TEXT;
                 String s;
                 if (isUnicode)
-                    s = getStringFromUnicodeBytes(
-                        bytes,
-                        2,
-                        bytesRead,
-                        isLittleEndian
-                    );
+                    s = getStringFromUnicodeBytes(bytes, 2, bytesRead, isLittleEndian);
                 else
                     s = new String(bytes, 0, bytesRead, StandardCharsets.UTF_8);
                 if (s.length() >= 3) {
@@ -799,13 +766,7 @@ public final class Utilities {
                         index = s.indexOf('\r');
                         if (index >= 0)
                             s = s.substring(0, index);
-                        if (
-                            s.indexOf("/bin/sh") >= 0
-                                ||
-                                s.indexOf("/bin/bash") >= 0
-                                ||
-                                s.indexOf("/bin/tcsh") >= 0
-                        )
+                        if (s.indexOf("/bin/sh") >= 0 || s.indexOf("/bin/bash") >= 0 || s.indexOf("/bin/tcsh") >= 0)
                             fileType = FILETYPE_SHELLSCRIPT;
                         else if (s.indexOf("/bin/perl") >= 0)
                             fileType = FILETYPE_PERL;
@@ -813,11 +774,7 @@ public final class Utilities {
                         fileType = FILETYPE_XML;
                     } else if (s.startsWith("<?php")) {
                         fileType = FILETYPE_PHP;
-                    } else if (
-                        s.startsWith("<?")
-                            &&
-                            Character.isWhitespace(s.charAt(2))
-                    ) {
+                    } else if (s.startsWith("<?") && Character.isWhitespace(s.charAt(2))) {
                         fileType = FILETYPE_PHP;
                     }
                 }
@@ -993,25 +950,17 @@ public final class Utilities {
         return makeBackup(file, file.getName(), keepOriginal);
     }
 
-    public static boolean makeBackup(
-        File file,
-        String name,
-        boolean keepOriginal
-    ) {
+    public static boolean makeBackup(File file, String name, boolean keepOriginal) {
         // No need to back it up if it doesn't exist.
         if (!file.isFile())
             return true;
         File backupDir = null;
-        String backupDirectory =
-            Editor.preferences().getStringProperty(Property.BACKUP_DIRECTORY);
+        String backupDirectory = Editor.preferences().getStringProperty(Property.BACKUP_DIRECTORY);
         if (backupDirectory != null) {
             backupDir = File.getInstance(backupDirectory);
         } else {
             // Use default location.
-            backupDir = File.getInstance(
-                Directories.getUserHomeDirectory(),
-                "backup"
-            );
+            backupDir = File.getInstance(Directories.getUserHomeDirectory(), "backup");
         }
         if (backupDir == null)
             return false;
@@ -1043,7 +992,7 @@ public final class Utilities {
 
     // BUG! Not really correct!
     private static final String filenameChars =
-        "#-./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz~";
+            "#-./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz~";
 
     public static boolean isFilenameChar(char c) {
         return (filenameChars.indexOf(c) >= 0);
@@ -1266,12 +1215,7 @@ public final class Utilities {
         return sb.toString();
     }
 
-    public static final boolean lookingAt(
-        String s,
-        int i,
-        String pattern,
-        boolean ignoreCase
-    ) {
+    public static final boolean lookingAt(String s, int i, String pattern, boolean ignoreCase) {
         return s.regionMatches(ignoreCase, i, pattern, 0, pattern.length());
     }
 
@@ -1316,17 +1260,11 @@ public final class Utilities {
         if (charset == null)
             return "iso-8859-1";
         String lower = charset.toLowerCase(Locale.ROOT);
-        if (
-            lower.equals("unknown-8bit")
-                ||
-                lower.equals("x-unknown")
-                ||
-                lower.equals("us-ascii")
-                ||
-                lower.equals("default_charset")
-                ||
-                lower.equals("latin-iso8859-1")
-        )
+        if (lower.equals("unknown-8bit")
+                || lower.equals("x-unknown")
+                || lower.equals("us-ascii")
+                || lower.equals("default_charset")
+                || lower.equals("latin-iso8859-1"))
             return "iso-8859-1";
         return charset;
     }
@@ -1430,21 +1368,13 @@ public final class Utilities {
     public static JPanel createPanel(String title) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        Border border =
-            new TitledBorder(BorderFactory.createEtchedBorder(), title) {
-                @Override
-                public void paintBorder(
-                    Component c,
-                    Graphics g,
-                    int x,
-                    int y,
-                    int width,
-                    int height
-                ) {
-                    Display.setRenderingHints(g);
-                    super.paintBorder(c, g, x, y, width, height);
-                }
-            };
+        Border border = new TitledBorder(BorderFactory.createEtchedBorder(), title) {
+            @Override
+            public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+                Display.setRenderingHints(g);
+                super.paintBorder(c, g, x, y, width, height);
+            }
+        };
         panel.setBorder(border);
         return panel;
     }
@@ -1470,8 +1400,7 @@ public final class Utilities {
      * ones the text will actually occupy.
      */
     public static FontMetrics getFontMetrics(Font font) {
-        BufferedImage image =
-            new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         try {
             Display.setRenderingHints(g);

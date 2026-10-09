@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
@@ -24,6 +25,7 @@ import org.armedbear.j.FinderTextFieldHandler;
 import org.armedbear.j.History;
 import org.armedbear.j.HistoryTextField;
 import org.armedbear.j.LocationBar;
+import org.armedbear.j.util.FuzzyMatcher.Query;
 import org.armedbear.j.util.Icons;
 
 /**
@@ -64,7 +66,7 @@ final class VimExPrompt extends FinderTextFieldHandler {
     static boolean open(Editor editor, VimInputHandler handler, String seed) {
         if (editor.getFrame() == null)
             return false;
-        final LocationBar locationBar = editor.getLocationBar();
+        final LocationBar locationBar = editor.getPromptLocationBar();
         if (locationBar == null)
             return false;
         final HistoryTextField textField = locationBar.getTextField();
@@ -81,16 +83,25 @@ final class VimExPrompt extends FinderTextFieldHandler {
         return true;
     }
 
+    /** The names the list shows for query, best first. */
+    static List<String> ranked(Editor editor, String query) {
+        return rank(allItems(editor), Query.parse(query)).stream().map(row -> row.item().insertText()).toList();
+    }
+
     // Built on the first name typed: most lines are run without a list.
     private List<FinderItem> items() {
-        if (items == null) {
-            List<FinderItem> all = new ArrayList<>();
-            for (String[] c : EX_COMMANDS)
-                all.add(new ExItem(c[0], c[1], c[2]));
-            all.addAll(ActionTextFieldHandler.commandItems(editor));
-            items = List.copyOf(all);
-        }
+        if (items == null)
+            items = allItems(editor);
         return items;
+    }
+
+    // Vim's ex commands, then j's.
+    private static List<FinderItem> allItems(Editor editor) {
+        List<FinderItem> all = new ArrayList<>();
+        for (String[] c : EX_COMMANDS)
+            all.add(new ExItem(c[0], c[1], c[2]));
+        all.addAll(ActionTextFieldHandler.commandItems(editor));
+        return List.copyOf(all);
     }
 
     @Override
@@ -147,7 +158,8 @@ final class VimExPrompt extends FinderTextFieldHandler {
 
     @Override
     public void enter() {
-        if (isName(textField.getText()) && selectionMoved()) {
+        // The list shows only for a name, or for one Tab filled in.
+        if (selectionMoved()) {
             FinderItem.Row row = selection();
             if (row != null)
                 textField.setText(row.item().insertText());
@@ -155,20 +167,16 @@ final class VimExPrompt extends FinderTextFieldHandler {
         run();
     }
 
+    // A name and a space, ready for what follows it, as :vsplit's file.
+    @Override
+    protected String completion(FinderItem item) {
+        return item.insertText() + " ";
+    }
+
     @Override
     protected void accept(FinderItem item, boolean otherWindow) {
         textField.setText(item.insertText());
         run();
-    }
-
-    @Override
-    public void tab() {
-        FinderItem.Row row = isName(textField.getText()) ? selection() : null;
-        if (row != null) {
-            String s = row.item().insertText() + " ";
-            textField.setText(s);
-            textField.setCaretPosition(s.length());
-        }
     }
 
     private void run() {
@@ -210,6 +218,9 @@ final class VimExPrompt extends FinderTextFieldHandler {
         { "join", "j", "Join lines." },
         { "jumps", "ju", "List the jump list, to go to a position." },
         { "changes", "changes", "List where the buffer was changed, to go to a change." },
+        { "cclose", "ccl", "Close the panel of help, results or output." },
+        { "pclose", "pc", "Close the panel of help, results or output." },
+        { "helpclose", "helpc", "Close the panel of help, results or output." },
         { "move", "m", "Move lines below an address." },
         { "nohlsearch", "noh", "Stop highlighting the last search's matches." },
         { "normal", "norm", "Run normal mode keys on each line." },
@@ -226,22 +237,49 @@ final class VimExPrompt extends FinderTextFieldHandler {
         { "wq", "wq", "Save the buffer and close the window." },
         { "yank", "y", "Copy lines into a register." }, };
 
+    // Vim's names run their words together; these are where they start.
+    private static final Map<String, String> WORDS = Map.of(
+        "cclose",
+        "cClose",
+        "pclose",
+        "pClose",
+        "helpclose",
+        "helpClose",
+        "delmarks",
+        "delMarks",
+        "nohlsearch",
+        "nohlSearch",
+        "vsplit",
+        "vSplit",
+        "vglobal",
+        "vGlobal");
+
     private static final class ExItem implements FinderItem {
         private final String name;
         private final String abbreviation;
         private final String summary;
+        private final String words;
 
         ExItem(String name, String abbreviation, String summary) {
             this.name = name;
             this.abbreviation = abbreviation;
             this.summary = summary;
+            words = WORDS.getOrDefault(name, name);
         }
 
         // Just the name: what is typed after ":" is a name, and summaries
-        // shared by such as split and vsplit would tie them.
+        // shared by such as split and vsplit would tie them. Its words
+        // marked, so that hc finds helpclose as sw finds splitWindow; the
+        // same letters, so a match lines up with the name shown.
         @Override
         public String matchText() {
-            return name;
+            return words;
+        }
+
+        // All of it: ranked with j's commands' names, not after them.
+        @Override
+        public String primaryMatchText() {
+            return words;
         }
 
         @Override

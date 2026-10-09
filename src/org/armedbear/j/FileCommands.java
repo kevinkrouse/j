@@ -341,7 +341,7 @@ public final class FileCommands {
 
     public static void openFile(Editor editor) {
         // The location bar may still be holding another prompt's handler.
-        LocationBar locationBar = editor.getLocationBar();
+        LocationBar locationBar = editor.getPromptLocationBar();
         TextFieldHandler handler = locationBar == null ? null : locationBar.getTextField().getHandler();
         if (handler instanceof FinderTextFieldHandler && !(handler instanceof OpenFileFinderTextFieldHandler)) {
             locationBar.update();
@@ -392,10 +392,22 @@ public final class FileCommands {
 
     public static void openFileInOtherWindow(Editor editor) {
         editor.saveView();
-        boolean alreadySplit = editor.getFrame().hasSplit();
-        if (!alreadySplit)
-            WindowCommands.splitWindow(editor);
-        final Editor ed = editor.getOtherEditor();
+        final Frame frame = editor.getFrame();
+        boolean alreadySplit = true;
+        final Editor ed;
+        if (frame.isPanel(editor)) {
+            // From the panel, the other window is the one behind it.
+            ed = frame.getWindowBehindPanel();
+        } else {
+            // The panel is never the other window.
+            if (frame.getOtherWindow(editor) == null) {
+                WindowCommands.splitWindow(editor);
+                alreadySplit = false;
+            }
+            ed = frame.getOtherWindow(editor);
+        }
+        if (ed == null)
+            return;
         if (ed.getLocationBar() != null) {
             Runnable r = () -> {
                 editor.getFrame().setFocus(ed.getLocationBar().getTextField());

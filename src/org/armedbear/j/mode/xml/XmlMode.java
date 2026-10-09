@@ -734,12 +734,6 @@ public final class XmlMode extends AbstractMode implements Mode {
                         errorBuffer = new XmlErrorBuffer(buffer.getFile(), output);
                     } else
                         errorBuffer.recycle(buffer.getFile(), output);
-                    Editor otherEditor = editor.getOtherEditor();
-                    if (otherEditor != null) {
-                        errorBuffer.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                        otherEditor.makeNext(errorBuffer);
-                    } else
-                        errorBuffer.setUnsplitOnClose(true);
                     editor.displayInOtherWindow(errorBuffer);
                 }
                 if (parser.getException() == null) {
@@ -784,12 +778,6 @@ public final class XmlMode extends AbstractMode implements Mode {
                         errorBuffer = new XmlErrorBuffer(buffer.getFile(), output);
                     } else
                         errorBuffer.recycle(buffer.getFile(), output);
-                    Editor otherEditor = editor.getOtherEditor();
-                    if (otherEditor != null) {
-                        errorBuffer.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
-                        otherEditor.makeNext(errorBuffer);
-                    } else
-                        errorBuffer.setUnsplitOnClose(true);
                     editor.displayInOtherWindow(errorBuffer);
                 } else
                     editor.status("No errors");

@@ -66,7 +66,7 @@ public final class Finders {
 
     /** Puts handler in the location bar with prompt, history and query, and starts it. */
     static void show(Editor editor, int prompt, FinderTextFieldHandler handler, String historyName, String query) {
-        final LocationBar locationBar = editor.getLocationBar();
+        final LocationBar locationBar = editor.getPromptLocationBar();
         if (locationBar == null)
             return;
         locationBar.setLabelText(prompt);
@@ -86,7 +86,7 @@ public final class Finders {
     }
 
     static void findTag(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField != null)
             show(
                 editor,
@@ -97,7 +97,7 @@ public final class Finders {
     }
 
     static void openFile(Editor editor, String query) {
-        LocationBar locationBar = editor.getLocationBar();
+        LocationBar locationBar = editor.getPromptLocationBar();
         if (locationBar == null)
             return;
         locationBar.update();
@@ -117,7 +117,7 @@ public final class Finders {
     }
 
     static void recentFiles(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         Supplier<List<FinderItem>> items = () -> {
@@ -200,8 +200,7 @@ public final class Finders {
             if (otherWindow) {
                 ed = editor.activateInOtherWindow(buf);
             } else if (buf != editor.getBuffer()) {
-                editor.makeNext(buf);
-                editor.activate(buf);
+                ed = editor.show(buf);
             } else {
                 return; // Already there: stay where the caret is.
             }
@@ -227,7 +226,7 @@ public final class Finders {
     }
 
     static void switchBuffer(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         Supplier<List<FinderItem>> items = () -> {
@@ -295,15 +294,24 @@ public final class Finders {
         }
 
         @Override
+        public String note() {
+            return isTransient() ? buffer.getTransientLabel() : "";
+        }
+
+        @Override
+        public boolean isTransient() {
+            return buffer.isTransient();
+        }
+
+        @Override
         public void accept(Editor editor, boolean otherWindow) {
             if (!Editor.getBufferList().contains(buffer))
                 return;
             if (otherWindow) {
                 editor.activateInOtherWindow(buffer);
-            } else if (buffer != editor.getBuffer()) {
-                editor.makeNext(buffer);
-                editor.switchToBuffer(buffer);
+                return;
             }
+            editor.show(buffer);
         }
     }
 
@@ -315,7 +323,7 @@ public final class Finders {
     }
 
     static void help(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         show(
@@ -452,7 +460,7 @@ public final class Finders {
     }
 
     static void insertRegister(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null || !editor.checkReadOnly())
             return;
         Supplier<List<FinderItem>> items = () -> {
@@ -525,7 +533,7 @@ public final class Finders {
     }
 
     static void findBookmark(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         Supplier<List<FinderItem>> items = () -> {
@@ -613,7 +621,7 @@ public final class Finders {
     }
 
     static void jumps(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         Supplier<List<FinderItem>> items = () -> {
@@ -646,7 +654,7 @@ public final class Finders {
     }
 
     static void changeList(Editor editor, String query) {
-        HistoryTextField textField = editor.getLocationBarTextField();
+        HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         Supplier<List<FinderItem>> items = () -> {

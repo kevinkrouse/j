@@ -46,6 +46,11 @@ public final class CompilationMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public String getTransientTag() {
+        return "Compile";
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
@@ -53,7 +58,6 @@ public final class CompilationMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "thisError");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "thisError");
         km.mapKey(VK_MOUSE_2, 0, "thisError");
-        km.mapKey('q', "tempBufferQuit");
     }
 
     @Override

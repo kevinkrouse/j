@@ -321,15 +321,12 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                 buf = editor.openFile(file);
         }
         Editor.setCurrentEditor(editor);
-        if (buf != null && buf != editor.getBuffer()) {
-            editor.makeNext(buf);
-            editor.switchToBuffer(buf);
-        }
-        if (Editor.getEditorList().contains(editor)) {
-            editor.ensureActive();
-            editor.setFocusToDisplay();
-            editor.updateLocation();
-            editor.updateDisplay();
+        final Editor target = buf == null ? editor : editor.show(buf);
+        if (Editor.getEditorList().contains(target)) {
+            target.ensureActive();
+            target.setFocusToDisplay();
+            target.updateLocation();
+            target.updateDisplay();
         }
     }
 

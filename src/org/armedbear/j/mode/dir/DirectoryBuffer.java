@@ -537,12 +537,22 @@ public final class DirectoryBuffer extends Buffer {
         else
             sortBy = SORT_BY_NAME;
         resort();
+        updateHints();
     }
 
     public void resort(int sortBy) {
         if (this.sortBy != sortBy) {
             this.sortBy = sortBy;
             resort();
+            updateHints();
+        }
+    }
+
+    // The hint says what the listing is sorted by.
+    private void updateHints() {
+        for (Editor ed : Editor.getEditorList()) {
+            if (ed.getBuffer() == this)
+                ed.updateHint();
         }
     }
 

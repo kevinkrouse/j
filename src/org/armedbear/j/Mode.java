@@ -78,6 +78,28 @@ public interface Mode {
     public KeyMap getKeyMap();
 
     /**
+     * Keys that win over vim's normal mode in this mode's buffers, when no
+     * command is part-typed: read-only buffers whose commands want keys vim
+     * has for editing. Null for none.
+     */
+    public default KeyMap getModalKeyMap() {
+        return null;
+    }
+
+    /** A word for what a transient buffer in this mode is, as Help or Results. */
+    public default String getTransientTag() {
+        return "Output";
+    }
+
+    /**
+     * Commands to list, with a word for each, in a dimmed line over the
+     * text of buffer: { command, what it does }. Null for none.
+     */
+    public default String[][] getHints(Buffer buffer) {
+        return null;
+    }
+
+    /**
      * Returns the file that defines a custom <code>KeyMap</code> for
      * this Mode, if any.
      *

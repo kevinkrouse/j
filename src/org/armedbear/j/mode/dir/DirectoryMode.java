@@ -99,6 +99,68 @@ public final class DirectoryMode extends AbstractMode implements Mode {
         km.mapKey('f', "dirForward");
     }
 
+    // The sort is followed by what the listing is sorted by.
+    private static final String[][] HINTS = {
+        { "dirOpenFile", "open" },
+        { "dirUpDir", "up" },
+        { "dirBack", "back" },
+        { "dirForward", "forward" },
+        { "dirHome", "home" },
+        { "dirTagFile", "tag" },
+        { "dirCopyFile", "copy" },
+        { "dirMoveFile", "move" },
+        { "dirDeleteFiles", "delete" },
+        { "dirDoShellCommand", "shell" },
+        { "dirCycleSortBy", "sort" },
+        { "dirLimit", "limit" },
+        { "dirRescan", "rescan" }, };
+
+    @Override
+    public String[][] getHints(Buffer buffer) {
+        if (!(buffer instanceof DirectoryBuffer dir))
+            return HINTS;
+        final String[][] hints = HINTS.clone();
+        for (int i = 0; i < hints.length; i++) {
+            if (hints[i][0].equals("dirCycleSortBy")) {
+                final String by = switch (dir.getSortBy()) {
+                    case DirectoryBuffer.SORT_BY_DATE -> "date";
+                    case DirectoryBuffer.SORT_BY_SIZE -> "size";
+                    default -> "name";
+                };
+                hints[i] = new String[] { "dirCycleSortBy", "sort (" + by + ")" };
+            }
+        }
+        return hints;
+    }
+
+    private static KeyMap modalKeyMap;
+
+    // As netrw has them, on keys vim edits with: there is nothing to edit.
+    @Override
+    public synchronized KeyMap getModalKeyMap() {
+        if (modalKeyMap == null) {
+            final KeyMap km = new KeyMap();
+            km.mapKey('-', "dirUpDir");
+            km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "dirUpDir");
+            km.mapKey('u', "dirBack");
+            km.mapKey('U', "dirForward");
+            km.mapKey('~', "dirHome");
+            km.mapKey('D', "dirDeleteFiles");
+            km.mapKey(KeyEvent.VK_DELETE, 0, "dirDeleteFiles");
+            km.mapKey('R', "dirMoveFile");
+            km.mapKey('C', "dirCopyFile");
+            km.mapKey('x', "dirTagFile");
+            km.mapKey('!', "dirDoShellCommand");
+            km.mapKey('s', "dirCycleSortBy");
+            km.mapKey('a', "dirLimit");
+            km.mapKey('A', "dirUnlimit");
+            km.mapKey('O', "dirBrowseFile");
+            km.mapKey(KeyEvent.VK_R, CTRL_MASK, "dirRescan");
+            modalKeyMap = km;
+        }
+        return modalKeyMap;
+    }
+
     @Override
     public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
