@@ -114,11 +114,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private int verticalRuleX;
     private Color verticalRuleColor;
     private Color gutterBorderColor;
-    private boolean highlightBrackets;
     private boolean highlightMatchingBracket;
     private boolean rainbowDelimiters;
-    private Position posBracket;
-    private Position posMatch;
+    // The delimiter at the caret and the one it pairs with, highlighted.
+    private PairMatcher.Delimiter posBracket;
+    private PairMatcher.Delimiter posMatch;
 
     private Timer timer;
     private boolean caretVisible = true;
@@ -512,55 +512,70 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 verticalRuleColor = DefaultTheme.getColor("verticalRule");
         } else
             verticalRuleX = 0;
-        highlightBrackets = buffer.getBooleanProperty(Property.HIGHLIGHT_BRACKETS);
-        highlightMatchingBracket = highlightBrackets || buffer.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET);
+        // highlightBrackets is its older name.
+        highlightMatchingBracket = buffer.getBooleanProperty(Property.HIGHLIGHT_BRACKETS)
+                || buffer.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET);
         rainbowDelimiters = buffer.getBooleanProperty(Property.RAINBOW_DELIMITERS);
 
         if (highlightMatchingBracket) {
-            Position oldPosMatch = posMatch;
-            posBracket = null;
-            posMatch = null;
-            if (editor.getDot() != null) {
-                Position dot = editor.getDotCopy();
-                char c = dot.getChar();
-                Position quote;
-                if (c == '{' || c == '[' || c == '(') {
-                    posBracket = dot;
-                    posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
-                } else if ((c == '}' || c == ']' || c == ')') && caretShape() != InputHandler.CaretShape.BAR) {
-                    // A block caret is on the character, as vim's is.
-                    posBracket = dot;
-                    posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
-                } else if ((quote = CaretCommands.findMatchingQuote(editor, dot, 200)) != null) {
-                    posBracket = dot;
-                    posMatch = quote;
-                } else if (dot.getOffset() > 0 && caretShape() == InputHandler.CaretShape.BAR) {
-                    int end = editor.getBuffer().getCol(dot.getLine(), dot.getLine().length());
-                    if (shift + caretCol <= end) {
-                        dot.skip(-1);
-                        c = dot.getChar();
-                        if (c == '}' || c == ']' || c == ')') {
-                            posBracket = dot;
-                            posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
-                        } else if ((quote = CaretCommands.findMatchingQuote(editor, dot, 200)) != null
-                                && quote.isBefore(dot)) {
-                            // Just past a closing quote.
-                            posBracket = dot;
-                            posMatch = quote;
-                        }
-                    }
-                }
-            }
-            if (oldPosMatch != null && oldPosMatch != posMatch)
-                lineChanged(oldPosMatch.getLine());
-            if (posMatch != null && posMatch != oldPosMatch)
-                lineChanged(posMatch.getLine());
-            if (!highlightBrackets)
-                posBracket = null;
+            final PairMatcher.Delimiter oldPosBracket = posBracket;
+            final PairMatcher.Delimiter oldPosMatch = posMatch;
+            final PairMatcher.Pair pair = editor.getDot() != null ? pairAtCaret() : null;
+            posBracket = pair != null ? pair.at() : null;
+            posMatch = pair != null ? pair.match() : null;
+            // Either end may be off the caret's line: a tag's name is on the
+            // line its '<' is, whichever attribute line the caret is on.
+            repaintIfMoved(oldPosBracket, posBracket);
+            repaintIfMoved(oldPosMatch, posMatch);
         } else {
             posBracket = null;
-            posMatch = flashMatch;
+            posMatch = flashMatch != null ? new PairMatcher.Delimiter(flashMatch, 1) : null;
         }
+    }
+
+    private void repaintIfMoved(PairMatcher.Delimiter old, PairMatcher.Delimiter now) {
+        if (old != null
+                && now != null
+                && old.pos().getLine() == now.pos().getLine()
+                && old.pos().getOffset() == now.pos().getOffset()
+                && old.length() == now.length())
+            return;
+        if (old == null && now == null)
+            return;
+        if (old != null)
+            lineChanged(old.pos().getLine());
+        if (now != null)
+            lineChanged(now.pos().getLine());
+    }
+
+    /**
+     * The pair whose delimiter the caret is on. A block caret is on the
+     * character, as vim's is; a bar caret is between two, and takes an
+     * opening bracket after it or a closing bracket or quote before it.
+     */
+    private PairMatcher.Pair pairAtCaret() {
+        final PairMatcher matcher = editor.getMode().getPairMatcher();
+        final boolean bar = caretShape() == InputHandler.CaretShape.BAR;
+        final Position dot = editor.getDotCopy();
+        PairMatcher.Pair pair = matcher.pairAt(editor, dot, 200);
+        if (pair != null && bar && "})]".indexOf(dot.getChar()) >= 0)
+            pair = null;
+        if (pair == null && bar && dot.getOffset() > 0) {
+            final int end = editor.getBuffer().getCol(dot.getLine(), dot.getLine().length());
+            if (shift + caretCol <= end) {
+                final Position before = dot.copy();
+                before.skip(-1);
+                final char c = before.getChar();
+                pair = matcher.pairAt(editor, before, 200);
+                if (pair != null) {
+                    if ("{([".indexOf(c) >= 0)
+                        pair = null;
+                    else if ((c == '"' || c == '\'' || c == '`') && !pair.match().pos().isBefore(before))
+                        pair = null;
+                }
+            }
+        }
+        return pair;
     }
 
     // The bracket closeParen highlights for a moment when matching brackets
@@ -572,15 +587,20 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             lineChanged(flashMatch.getLine());
         flashMatch = pos;
         if (!highlightMatchingBracket)
-            posMatch = pos;
+            posMatch = pos != null ? new PairMatcher.Delimiter(pos, 1) : null;
         if (pos != null)
             lineChanged(pos.getLine());
         repaintChangedLines();
     }
 
-    /** The bracket or quote highlightMatchingBracket highlights, or null. */
+    /** The delimiter highlightMatchingBracket highlights, or null. */
     Position getMatchingBracketPosition() {
-        return posMatch;
+        return posMatch != null ? posMatch.pos() : null;
+    }
+
+    /** The caret's own delimiter, which highlightMatchingBracket highlights too, or null. */
+    Position getBracketPosition() {
+        return posBracket != null ? posBracket.pos() : null;
     }
 
     private void drawVerticalRule(Graphics g, int y, int height) {
@@ -1037,26 +1057,26 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         return totalChars;
     }
 
-    // A format with RAINBOW set is a bracket formatLine has colored by its
+    // A format with RAINBOW set is a delimiter formatLine has colored by its
     // depth, which it keeps above RAINBOW_SHIFT. Below it, the format the
-    // formatter gave, still saying the bracket's style.
+    // formatter gave, still saying the delimiter's style.
     private static final int RAINBOW = 1 << 30;
     private static final int RAINBOW_SHIFT = 20;
     private static final int MAX_RAINBOW_DEPTH = (1 << 8) - 1;
 
     /**
-     * Over the formatter's colors, colors each bracket of the line by how
+     * Over the formatter's colors, colors each delimiter of the line by how
      * deeply it is nested, for rainbowDelimiters.
      */
     private void colorBrackets(Line line, int begin, int limit) {
         final Buffer buffer = editor.getBuffer();
-        final int[] levels = buffer.getBracketDepths().levels(line);
+        final int[] levels = buffer.getDelimiterDepths().levels(line);
         final int tabWidth = buffer.getTabWidth();
         int col = 0;
         for (int i = 0; i < levels.length; i++) {
             final char c = line.charAt(i);
             final int k = col - begin;
-            if (levels[i] != BracketDepths.NONE && k >= 0 && k < limit && textArray[k] == c)
+            if (levels[i] != DelimiterDepths.NONE && k >= 0 && k < limit && textArray[k] == c)
                 formatArray[k] |= RAINBOW | Math.min(levels[i], MAX_RAINBOW_DEPTH) << RAINBOW_SHIFT;
             if (c == '\t' && tabWidth > 0)
                 col += tabWidth - col % tabWidth;
@@ -1246,9 +1266,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (selection != null) {
             handleSelection(selection, line, formatArray, paintLineGraphics, 0);
         } else if (posMatch != null) {
-            if (posMatch.getLine() == line)
+            if (posMatch.pos().getLine() == line)
                 highlightBracket(posMatch, line, formatArray, paintLineGraphics, 0);
-            if (posBracket != null && posBracket.getLine() == line)
+            if (posBracket != null && posBracket.pos().getLine() == line)
                 highlightBracket(posBracket, line, formatArray, paintLineGraphics, 0);
         }
 
@@ -1630,9 +1650,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 if (r != null)
                     handleSelection(r, line, formatArray, g2d, y);
                 else if (posMatch != null) {
-                    if (posMatch.getLine() == line)
+                    if (posMatch.pos().getLine() == line)
                         highlightBracket(posMatch, line, formatArray, g2d, y);
-                    if (posBracket != null && posBracket.getLine() == line)
+                    if (posBracket != null && posBracket.pos().getLine() == line)
                         highlightBracket(posBracket, line, formatArray, g2d, y);
                 }
                 drawGutterText(g2d, line, y);
@@ -1840,11 +1860,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
-    private void highlightBracket(Position pos, Line line, int[] formatArray, Graphics2D g2d, int y) {
-        if (pos == null) {
-            Debug.bug();
-            return;
-        }
+    private void highlightBracket(
+            PairMatcher.Delimiter delimiter,
+            Line line,
+            int[] formatArray,
+            Graphics2D g2d,
+            int y) {
+        final Position pos = delimiter.pos();
         if (pos.getLine() != line) {
             Debug.bug();
             return;
@@ -1855,7 +1877,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         int beginCol = editor.getBuffer().getCol(pos) - shift;
         if (beginCol < 0)
             return;
-        int endCol = beginCol + 1;
+        int endCol = editor.getBuffer().getCol(line, pos.getOffset() + delimiter.length()) - shift;
         int x1 = measureLine(g2d, textArray, beginCol, formatArray);
         int x2 = measureLine(g2d, textArray, endCol, formatArray);
         int fillWidth = x2 - x1;

@@ -41,6 +41,9 @@ public class Search implements Cloneable {
     private boolean regularExpression;
     private boolean isMultilinePattern;
     private boolean restrictToSelection;
+    // The way it was made to go, as findPrevWord and vim's ? and # go back:
+    // vim's n goes on that way, N the other.
+    private boolean forward = true;
 
     private Region region;
 
@@ -125,6 +128,14 @@ public class Search implements Cloneable {
 
     public final void setMultiline(boolean b) {
         isMultilinePattern = b;
+    }
+
+    public final boolean isForward() {
+        return forward;
+    }
+
+    public final void setForward(boolean b) {
+        forward = b;
     }
 
     public final boolean restrictToSelection() {

@@ -5,4 +5,11 @@
     <echo message="hello"/>
     <![CDATA[ raw <text> ]]>
   </target>
+  <target name="test"
+      depends="build"
+      description="run the tests">
+    <junit fork="true"
+        haltonfailure="yes"
+    />
+  </target>
 </project>

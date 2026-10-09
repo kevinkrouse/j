@@ -1007,25 +1007,22 @@ Font size (in points) used for line numbers.
 <code><a name="highlightBrackets">highlightBrackets</a></code>
 <dl>
 <dd>
-If true, when the caret is immediately before an opening parenthesis, bracket
-or brace, or immediately after a closing parenthesis, bracket or brace, the
-pair of matching parentheses, braces, or brackets is highlighted. Likewise for
-the quotes at the two ends of a string, when the caret is on either one or
-just after the closing one.
+An older name for <a href="#highlightMatchingBracket">highlightMatchingBracket</a>.
 <p>
 <b>Default value:</b> false
-<p>
-<b>See also:</b> <a href="#highlightMatchingBracket">highlightMatchingBracket</a>
 </dl>
 
 <code><a name="highlightMatchingBracket">highlightMatchingBracket</a></code>
 <dl>
 <dd>
 If true, when the caret is immediately before an opening parenthesis, bracket
-or brace, or immediately after a closing parenthesis, bracket or brace, the
-matching parenthesis, brace, or bracket, if any, is highlighted. Likewise for
+or brace, or immediately after a closing parenthesis, bracket or brace, it and
+the matching parenthesis, brace, or bracket, if any, are highlighted. Likewise for
 the quotes at the two ends of a string, when the caret is on either one or
-just after the closing one.
+just after the closing one, and in XML and HTML modes for the names in an
+element's start and end tags, when the caret is in either tag. The pairs are
+those <a href="commands.html#findMatchingPair">findMatchingPair</a> goes
+between. The color is <code>color.matchingBracketBackground</code>.
 <p>
 <b>Default value:</b> false
 <p>
@@ -1574,7 +1571,10 @@ be set for a mode, as in <code>JavaMode.projectRoot</code>.
 <dl>
 <dd>
 If true, each parenthesis, bracket and brace is colored by how deeply it is
-nested, so the two ends of a pair share a color. Those in strings and comments
+nested, so the two ends of a pair share a color; in XML and HTML modes, each
+element's name in its start and end tags instead, leaving out empty elements
+and HTML's elements whose end tag is often left out (<code>p</code>,
+<code>li</code>, <code>td</code> and the like). Those in strings and comments
 keep the mode's colors, and a closing one with nothing open is shown in
 <a href="#color.unmatchedDelimiter">color.unmatchedDelimiter</a>. The colors
 are <a href="#color.rainbowDelimiterN">color.rainbowDelimiter1</a>,
@@ -1784,6 +1784,46 @@ separator character, which is a colon for Unix and a semicolon for Windows.
 <b>Default value:</b> None
 <p>
 <b>See also:</b> <a href="#includePath">includePath</a>
+</dl>
+
+<code><a name="splitAttributes">splitAttributes</a></code>
+<dl>
+<dd>
+How XML mode lays out the attributes of a start tag that runs over more than
+one line, after vscode-xml's <code>xml.format.splitAttributes</code>:
+<ul>
+<li><code>preserve</code>: the line breaks stay where they are, and an
+attribute on a line of its own is indented
+<a href="#splitAttributesIndentSize">splitAttributesIndentSize</a> levels in
+from the tag.</li>
+<li><code>preserve-aligned</code>: the line breaks stay where they are, and
+an attribute on a line of its own lines up with the tag's first one.</li>
+<li><code>force-aligned</code>: as <code>preserve-aligned</code>, and
+<a href="commands.html#xmlFormatAttributes">xmlFormatAttributes</a> puts
+each attribute after the first on a line of its own.</li>
+</ul>
+Indentation (<a href="commands.html#indentLine">indentLine</a>, Enter) follows
+it, for a <code>&gt;</code> or <code>/&gt;</code> on a line of its own too, so
+Enter just before a tag's <code>&gt;</code> leaves the caret where the next
+attribute goes. xmlFormatAttributes also adds a line break before an attribute that would
+end past <a href="#wrapCol">wrapCol</a>, except under
+<code>force-aligned</code>; set <code>XmlMode.wrapCol</code> for XML alone, or
+0 for no limit.
+<p>
+<b>Default value:</b> preserve
+<p>
+<b>Example:</b> <code>XmlMode.splitAttributes = force-aligned</code>
+</dl>
+
+<code><a name="splitAttributesIndentSize">splitAttributesIndentSize</a></code>
+<dl>
+<dd>
+Under <a href="#splitAttributes">splitAttributes</a> <code>preserve</code>,
+how many indent levels (<a href="#indentSize">indentSize</a>) an attribute on
+a line of its own goes in from its tag: two by default, so it stands apart
+from the element's content one level in.
+<p>
+<b>Default value:</b> 2
 </dl>
 
 <code><a name="stampFormat">stampFormat</a></code>

@@ -156,7 +156,9 @@ public class CommandTable {
             add("copyAppend", ClipboardCommands::copyAppend);
             add("copyPath", ClipboardCommands::copyPath);
             add("copyRegion", ClipboardCommands::copyRegion);
-            add("cppFindMatch", CaretCommands::cppFindMatch);
+            // cppFindMatch, findMatchingChar, htmlFindMatch and xmlFindMatch are
+            // findMatchingPair now: each mode's PairMatcher covers its pairs.
+            add("cppFindMatch", CaretCommands::findMatchingPair);
             add("cycleIndentSize", IndentCommands::cycleIndentSize);
             add("cyclePaste", ClipboardCommands::cyclePaste);
             add("cycleTabWidth", IndentCommands::cycleTabWidth);
@@ -202,11 +204,12 @@ public class CommandTable {
             add("findDefinitionAtDot", TagCommands::findDefinitionAtDot);
             add("findFileInProject", ProjectCommands::findFileInProject);
             add("findFirstOccurrence", SearchCommands::findFirstOccurrence);
-            add("findMatchingChar", CaretCommands::findMatchingChar);
+            add("findMatchingChar", CaretCommands::findMatchingPair);
+            add("findMatchingPair", CaretCommands::findMatchingPair);
             add("findNext", SearchCommands::findNext);
-            add("findNextWord", SearchCommands::findNextWord);
+            add("findNextWord", SearchCommands::findNextWord, SearchCommands::findNextWord);
             add("findPrev", SearchCommands::findPrev);
-            add("findPrevWord", SearchCommands::findPrevWord);
+            add("findPrevWord", SearchCommands::findPrevWord, SearchCommands::findPrevWord);
             add("findUnmatchedBracket", null, (e, s) -> CaretCommands.findUnmatchedBracket(s));
             add("forwardParagraph", e -> Paragraphs.forwardParagraph());
             add("forwardSection", e -> Paragraphs.forwardSection(), (e, s) -> Paragraphs.forwardSection(s));
@@ -418,7 +421,7 @@ public class CommandTable {
             add("htmlBold", e -> HtmlMode.htmlBold());
             add("htmlElectricEquals", e -> HtmlMode.htmlElectricEquals());
             add("htmlEndTag", e -> HtmlMode.htmlEndTag());
-            add("htmlFindMatch", e -> HtmlMode.htmlFindMatch());
+            add("htmlFindMatch", CaretCommands::findMatchingPair);
             add("htmlInsertMatchingEndTag", e -> HtmlMode.htmlInsertMatchingEndTag());
             add("htmlInsertTag", e -> HtmlMode.htmlInsertTag(), (e, s) -> HtmlMode.htmlInsertTag(s));
             add("htmlStartTag", e -> HtmlMode.htmlStartTag());
@@ -548,7 +551,8 @@ public class CommandTable {
             add("xmlElectricEquals", e -> XmlMode.xmlElectricEquals());
             add("xmlElectricSlash", e -> XmlMode.xmlElectricSlash());
             add("xmlFindCurrentNode", e -> XmlMode.xmlFindCurrentNode());
-            add("xmlFindMatch", e -> XmlMode.xmlFindMatch());
+            add("xmlFindMatch", CaretCommands::findMatchingPair);
+            add("xmlFormatAttributes", e -> XmlMode.xmlFormatAttributes());
             add("xmlInsertEmptyElementTag", e -> XmlMode.xmlInsertEmptyElementTag());
             add("xmlInsertMatchingEndTag", e -> XmlMode.xmlInsertMatchingEndTag());
             add("xmlInsertTag", e -> XmlMode.xmlInsertTag(), (e, s) -> XmlMode.xmlInsertTag(s));

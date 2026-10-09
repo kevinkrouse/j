@@ -172,7 +172,7 @@ public final class KeyMap {
         // Goto menu.
         mapKey(KeyEvent.VK_J, CTRL_MASK, "jumpToLine");
         mapKey(KeyEvent.VK_J, CTRL_MASK | SHIFT_MASK, "jumpToColumn");
-        mapKey(KeyEvent.VK_M, CTRL_MASK, "findMatchingChar");
+        mapKey(KeyEvent.VK_M, CTRL_MASK, "findMatchingPair");
         mapKey(KeyEvent.VK_M, CTRL_MASK | SHIFT_MASK, "selectSyntax");
         mapKey(KeyEvent.VK_UP, CTRL_MASK | ALT_MASK, "findFirstOccurrence");
         mapKey(KeyEvent.VK_KP_UP, CTRL_MASK | ALT_MASK, "findFirstOccurrence");

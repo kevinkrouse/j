@@ -123,10 +123,16 @@ produced, all reachable from j's key maps and `executeCommand` too:
 - borrowed as-is: `Search` for matching, `Region` for range text and deletion,
   `Marker` for marks, `Buffer.beginCompoundEdit` for undo, `newlineAndIndent`
   and `indentLine` for indentation, `toCenter`/`toTop` for `zz`/`zt`;
-- `CaretCommands.findMatchInternal` for `%`, with a `vim` flag for vim's smart
+- the mode's `PairMatcher.findMatch` for `%`, which is j's `findMatchingPair`
+  (Ctrl-M): brackets in every mode, `#if`/`#endif` in C (`CPairMatcher`),
+  start and end tags in XML and HTML (`XmlPairMatcher`, landing on the
+  name, as matchit does). Brackets go through
+  `CaretCommands.findMatchInternal` with its `vim` flag for vim's smart
   matching: brackets in `"..."` (counted from the start bracket, per line,
   only on lines with an even number of quotes) and in `'x'` are skipped, and
-  an escaped bracket pairs only with an escaped one.
+  an escaped bracket pairs only with an escaped one. The same matcher
+  answers `highlightMatchingBracket` (`pairAt`) and `rainbowDelimiters`
+  (`scan`, cached by `DelimiterDepths`).
 - `Editor.deleteRegion(start, end)`, the mark-and-dot delete the vim layer
   had spelled out at every site, caret at the start for undo;
 - `Words.backwardToWordStart`, `b`'s scan, for insert-mode `<C-w>`.
@@ -137,6 +143,9 @@ produced, all reachable from j's key maps and `executeCommand` too:
   `forwardSection`, `forwardSentence`, `findUnmatchedBracket`).
 - j's last search (`Editor.getLastSearch`) for `/ n * #`, and its
   highlighting and `clearSearchHighlight` for `hlsearch` and `:noh`;
+- `SearchCommands.findWord`, j's `findNextWord`/`findPrevWord`, for
+  `* # g* g#`: the word (`SearchCommands.wordAt`), whole words, count and
+  wrap, given vim's `ignorecase` and `wrapscan`;
 - j's `JumpList` for `<C-o> <C-i>`, and its bookmarks for the file marks
   `A`-`Z`.
 - `NumberCommands.addOverLines` for visual `<C-a>` and `g<C-a>`, which
@@ -299,7 +308,12 @@ the line's start, not from the caret; so does `VimSearch`.
 remembers the vim query it came from. So j's `findNext` (F3) goes on with a
 `/`, and `n` reads the query back -- or, after a find of j's own, runs that
 `Search` as it is (`Query.own`), spelled for vim only for `:s//` and
-messages. A bad pattern is kept too, as vim keeps it, matching nothing. The
+messages. `*` and `#` leave one of those, being j's `findNextWord`. A
+`Search` keeps the direction it went (`isForward`), so `n` after `?`, `#`
+or j's `findPrevWord` goes on backward; `/<CR>` and `?<CR>` take the last
+query with a new direction (`Query.withDirection`, which copies a j search
+rather than turn it round in place). A bad pattern is kept too, as vim
+keeps it, matching nothing. The
 `shareSearch` preference makes the search every window's or each window's,
 in one place (`Editor.isSearchShared`), for both.
 

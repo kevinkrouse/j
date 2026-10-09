@@ -1,5 +1,5 @@
 /*
- * BracketDepths.java
+ * DelimiterDepths.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -12,24 +12,21 @@
 package org.armedbear.j;
 
 /**
- * How deeply each bracket of a buffer is nested, for rainbowDelimiters.
+ * How deeply each delimiter of a buffer is nested, for rainbowDelimiters:
+ * brackets, or whatever the mode's {@link PairMatcher} pairs, such as XML's
+ * element names.
  *
- * The brackets are those the mode's syntax iterator leaves showing, so the
- * ones in strings and comments are skipped exactly as findMatchingChar skips
- * them. The depth at each line's start is kept, as Emacs' syntax-ppss keeps
- * its parse states, and computed from the top no further than a window asks.
+ * The depth at each line's start is kept, as Emacs' syntax-ppss keeps its
+ * parse states, and computed from the top no further than a window asks.
  * Any change to the buffer, or a reparse of it, drops them all: the mode's
  * own parse already rescans the whole buffer after every change.
  */
-public final class BracketDepths
+public final class DelimiterDepths
 {
-    private static final String OPENERS = "([{";
-    private static final String CLOSERS = ")]}";
-
-    /** The level of a closing bracket nothing opened. */
+    /** The level of a closing delimiter nothing opened. */
     public static final int UNMATCHED = 0;
 
-    /** Not a bracket, or one in a string or comment. */
+    /** Not a delimiter, or one in a string or comment. */
     public static final int NONE = -1;
 
     private final Buffer buffer;
@@ -42,30 +39,20 @@ public final class BracketDepths
     private int known;
     private Line knownLine;
 
-    public BracketDepths(Buffer buffer)
+    public DelimiterDepths(Buffer buffer)
     {
         this.buffer = buffer;
     }
 
     /**
-     * The level of each character of the line: the depth an opening bracket
+     * The level of each character of the line: the depth an opening delimiter
      * opens or a closing one closes, from 1 outermost, UNMATCHED for a
-     * closing bracket with nothing open, and NONE for everything else.
+     * closing delimiter with nothing open, and NONE for everything else.
      */
     public synchronized int[] levels(Line line)
     {
         final int[] levels = new int[line.length()];
-        final char[] chars = codeChars(line);
-        int depth = depthAt(line);
-        for (int i = 0; i < levels.length; i++) {
-            final char c = i < chars.length ? chars[i] : ' ';
-            if (OPENERS.indexOf(c) >= 0)
-                levels[i] = ++depth;
-            else if (CLOSERS.indexOf(c) >= 0)
-                levels[i] = depth > 0 ? depth-- : UNMATCHED;
-            else
-                levels[i] = NONE;
-        }
+        matcher().scan(buffer, line, depthAt(line), levels);
         return levels;
     }
 
@@ -91,7 +78,7 @@ public final class BracketDepths
                 System.arraycopy(depths, 0, grown, 0, known + 1);
                 depths = grown;
             }
-            depths[known + 1] = depthAfter(knownLine, depths[known]);
+            depths[known + 1] = matcher().scan(buffer, knownLine, depths[known], null);
             knownLine = next;
             ++known;
         }
@@ -112,22 +99,8 @@ public final class BracketDepths
         }
     }
 
-    private char[] codeChars(Line line)
+    private PairMatcher matcher()
     {
-        if (line.getText() == null)
-            return new char[0];
-        return buffer.getMode().getSyntaxIterator(null)
-            .hideSyntacticWhitespace(line);
-    }
-
-    private int depthAfter(Line line, int depth)
-    {
-        for (char c : codeChars(line)) {
-            if (OPENERS.indexOf(c) >= 0)
-                ++depth;
-            else if (CLOSERS.indexOf(c) >= 0 && depth > 0)
-                --depth;
-        }
-        return depth;
+        return buffer.getMode().getPairMatcher();
     }
 }

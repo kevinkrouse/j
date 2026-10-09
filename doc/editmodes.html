@@ -120,7 +120,12 @@ commands, counts, registers, marks and the dot command:
     <a href="preferences.html#shareSearch">shareSearch</a> is false,
     and it is j's own last search too: j's
     <a href="commands.html#findNext">findNext</a> (F3) goes on with a
-    <code>/</code>, and <code>n</code> with a find made in simple mode.
+    <code>/</code>, and <code>n</code> with a find made in simple mode,
+    in the direction it went: after j's
+    <a href="commands.html#findPrevWord">findPrevWord</a>, backward.
+    <code>/</code> or <code>?</code> with no pattern searches for the last
+    one, a <code>*</code> word included, that way, and <code>n</code> and
+    <code>N</code> follow the new direction.
     <code>:noh</code> is j's
     <a href="commands.html#clearSearchHighlight">clearSearchHighlight</a>.</dd>
 <dt><b>scroll</b></dt>
@@ -333,6 +338,17 @@ These are known and deliberate:
 <li><code>%</code> and <code>[( ]) [{ ]}</code> skip brackets in quotes line
     by line: a string continued onto the next line by a backslash at the end
     of one is not seen as a string, where vim skips the brackets in it.</li>
+<li><code>%</code> is j's <a href="commands.html#findMatchingPair">findMatchingPair</a>,
+    so it goes between the two tags of an element in XML and HTML modes,
+    landing on the name, as vim's matchit does, and between
+    <code>#if</code> and <code>#endif</code> in C. It ignores a count:
+    <code>50%</code> is not there. In a C directive, or a Java string, j's
+    syntax hides the brackets, so <code>%</code> does not see them.</li>
+<li><code>* # g* g#</code> are j's
+    <a href="commands.html#findNextWord">findNextWord</a> and
+    <a href="commands.html#findPrevWord">findPrevWord</a>. The search they
+    leave is j's own, case and all, so a later <code>:set ignorecase</code>
+    changes what <code>n</code> finds only after the next <code>*</code>.</li>
 <li>Marks <code>a</code> to <code>z</code> are per editor rather than per
     buffer. A mark on a line
     <code>J</code> joins to the one above is lost; vim moves it with the

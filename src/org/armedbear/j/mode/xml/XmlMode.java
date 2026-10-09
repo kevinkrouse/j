@@ -56,6 +56,7 @@ import org.armedbear.j.Menu;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
+import org.armedbear.j.PairMatcher;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
@@ -66,10 +67,10 @@ import org.armedbear.j.util.Utilities;
 import org.xml.sax.SAXParseException;
 
 public final class XmlMode extends AbstractMode implements Mode {
-    private static final String COMMENT_START = "<!--";
-    private static final String COMMENT_END = "-->";
-    private static final String CDATA_START = "<![CDATA[";
-    private static final String CDATA_END = "]]>";
+    private static final String COMMENT_START = XmlPairMatcher.COMMENT_START;
+    private static final String COMMENT_END = XmlPairMatcher.COMMENT_END;
+    private static final String CDATA_START = XmlPairMatcher.CDATA_START;
+    private static final String CDATA_END = XmlPairMatcher.CDATA_END;
 
     private static final XmlMode mode = new XmlMode();
 
@@ -122,12 +123,16 @@ public final class XmlMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public PairMatcher getPairMatcher() {
+        return XmlPairMatcher.XML;
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "newline");
-        km.mapKey(KeyEvent.VK_M, CTRL_MASK, "xmlFindMatch");
         km.mapKey('=', "xmlElectricEquals");
         km.mapKey('>', "electricCloseAngleBracket");
         km.mapKey(KeyEvent.VK_E, CTRL_MASK, "xmlInsertMatchingEndTag");
@@ -212,6 +217,8 @@ public final class XmlMode extends AbstractMode implements Mode {
 
     @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
+        if (line.flags() == STATE_TAG || line.flags() == XmlFormatter.STATE_ATTRIBUTE)
+            return getAttributeIndentation(line, buffer);
         final Line model = getModel(line);
         if (model == null)
             return 0;
@@ -219,14 +226,6 @@ public final class XmlMode extends AbstractMode implements Mode {
         if (line.flags() == STATE_QUOTE && model.flags() != STATE_QUOTE)
             return indent + buffer.getIndentSize();
         final String text = line.trim();
-        if (text.equals("/>")) {
-            Position pos = new Position(line, line.length());
-            while (pos.prev()) {
-                if (pos.getChar() == '<')
-                    break;
-            }
-            return buffer.getIndentation(pos.getLine());
-        }
         if (text.startsWith("</")) {
             Position pos = findMatchingStartTag(line);
             if (pos != null)
@@ -234,6 +233,8 @@ public final class XmlMode extends AbstractMode implements Mode {
             indent -= buffer.getIndentSize();
             return indent < 0 ? 0 : indent;
         }
+        if (isInTagState(model.flags()))
+            return getIndentationAfterTag(model, buffer, indent);
         final String modelText = model.trim();
         if (modelText.startsWith("<") && !modelText.startsWith("</") && !modelText.startsWith("<!")) {
             String tag = getTag(modelText);
@@ -279,120 +280,93 @@ public final class XmlMode extends AbstractMode implements Mode {
         return indent;
     }
 
+    /**
+     * A line inside a start tag, indented by splitAttributes as an attribute
+     * is: Enter before the {@code >} of {@code <a x="1">} makes room for
+     * another one.
+     */
+    private static int getAttributeIndentation(Line line, Buffer buffer) {
+        final Position start = findTagStart(line);
+        if (start == null)
+            return 0;
+        final Line tagLine = start.getLine();
+        final int tagIndent = buffer.getIndentation(tagLine);
+        if (SplitAttributes.of(buffer).isAligned()) {
+            final int offset = firstAttributeOffset(tagLine, start.getOffset());
+            if (offset >= 0)
+                return buffer.getCol(tagLine, offset);
+        }
+        return tagIndent + buffer.getIntegerProperty(Property.SPLIT_ATTRIBUTES_INDENT_SIZE) * buffer.getIndentSize();
+    }
+
+    /**
+     * The indentation after model, the last line of a start tag that began
+     * on an earlier line: the tag's own, one level in if it opened an
+     * element that is still open.
+     */
+    private static int getIndentationAfterTag(Line model, Buffer buffer, int indent) {
+        final Position start = findTagStart(model);
+        if (start == null)
+            return indent;
+        final int tagIndent = buffer.getIndentation(start.getLine());
+        final Position end = start.copy();
+        final String tag = getTag(end);
+        if (tag.startsWith("</")
+                || tag.startsWith("<!")
+                || !tag.endsWith(">")
+                || isEmptyElementTag(tag)
+                || isProcessingInstruction(tag))
+            return tagIndent;
+        // Closed again on the same line?
+        if (end.getLine() == model && model.substring(end.getOffset()).contains("</" + Utilities.getTagName(tag)))
+            return tagIndent;
+        return tagIndent + buffer.getIndentSize();
+    }
+
+    // Inside a tag, a quoted value included.
+    private static boolean isInTagState(int flags) {
+        return flags == STATE_TAG
+                || flags == XmlFormatter.STATE_ATTRIBUTE
+                || flags == STATE_QUOTE
+                || flags == STATE_SINGLEQUOTE;
+    }
+
+    // The '<' of the tag the line starts inside. No attribute value holds a '<'.
+    private static Position findTagStart(Line line) {
+        final Position pos = new Position(line, 0);
+        while (pos.prev()) {
+            if (pos.getChar() == '<')
+                return pos;
+        }
+        return null;
+    }
+
+    // Where the first attribute of the tag at lt starts on its line, or -1.
+    private static int firstAttributeOffset(Line line, int lt) {
+        final int limit = line.length();
+        int i = lt + 1;
+        while (i < limit && line.charAt(i) > ' ' && line.charAt(i) != '>' && line.charAt(i) != '/')
+            ++i;
+        while (i < limit && line.charAt(i) <= ' ')
+            ++i;
+        if (i == limit || line.charAt(i) == '>' || line.charAt(i) == '/')
+            return -1;
+        return i;
+    }
+
     // Line must start with an end tag.
-    private Position findMatchingStartTag(Line line) {
-        String s = line.trim();
+    private static Position findMatchingStartTag(Line line) {
+        final String s = line.trim();
         if (!s.startsWith("</"))
             return null;
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         for (int i = 2; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c <= ' ')
-                break;
-            if (c == '>')
+            final char c = s.charAt(i);
+            if (c <= ' ' || c == '>')
                 break;
             sb.append(c);
         }
-        Position pos = new Position(line, 0);
-        String name = sb.toString();
-        return findMatchingStartTag(name, pos);
-    }
-
-    private static Position findMatchingStartTag(String name, Position start) {
-        Position pos = start.copy();
-        String endTagToBeMatched = "</" + name + ">";
-        String lookFor = "<" + name;
-        int count = 1;
-        boolean succeeded = false;
-        if (pos.lookingAt(endTagToBeMatched))
-            pos.prev();
-        // Search backward.
-        while (!pos.atStart()) {
-            if (pos.lookingAt(COMMENT_END)) {
-                do {
-                    pos.prev();
-                } while (!pos.atStart() && !pos.lookingAt(COMMENT_START));
-            } else if (pos.lookingAt(CDATA_END)) {
-                do {
-                    pos.prev();
-                } while (!pos.atStart() && !pos.lookingAt(CDATA_START));
-            } else if (pos.lookingAt(endTagToBeMatched)) {
-                ++count;
-            } else if (pos.lookingAt(lookFor)) {
-                // getTag() skips past the tag, so use pos.copy() here since
-                // we're moving backwards not forwards.
-                String tag = getTag(pos.copy());
-                if (Utilities.getTagName(tag).equals(name)) {
-                    if (!tag.endsWith("/>")) {
-                        --count;
-                        if (count == 0) {
-                            succeeded = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            pos.prev();
-        }
-        if (succeeded)
-            return pos;
-        // Not found.
-        return null;
-    }
-
-    private static Position findMatchingEndTag(String name, Position start) {
-        Position pos = start.copy();
-        String startTagToBeMatched = "<" + name;
-        String lookFor = "</" + name + ">";
-        int count = 1;
-        if (pos.lookingAt(startTagToBeMatched))
-            pos.skip(startTagToBeMatched.length());
-        // Search forward.
-        while (!pos.atEnd()) {
-            if (pos.lookingAt(COMMENT_START)) {
-                do {
-                    pos.next();
-                } while (!pos.atEnd() && !pos.lookingAt(COMMENT_END));
-                if (pos.atEnd()) {
-                    break;
-                } else {
-                    pos.skip(COMMENT_END.length());
-                    continue;
-                }
-            }
-            if (pos.lookingAt(CDATA_START)) {
-                do {
-                    pos.next();
-                } while (!pos.atEnd() && !pos.lookingAt(CDATA_END));
-                if (pos.atEnd()) {
-                    break;
-                } else {
-                    pos.skip(CDATA_END.length());
-                    continue;
-                }
-            }
-            if (pos.lookingAt(startTagToBeMatched)) {
-                String tag = getTag(pos); // Skips past tag.
-                if (Utilities.getTagName(tag).equals(name)) {
-                    if (!tag.endsWith("/>"))
-                        ++count;
-                }
-                continue;
-            }
-            if (pos.lookingAt(lookFor)) {
-                --count;
-                if (count == 0) {
-                    return pos;
-                } else {
-                    pos.skip(lookFor.length());
-                    continue;
-                }
-            }
-            // None of the above...
-            pos.next();
-        }
-        // Not found.
-        return null;
+        return XmlPairMatcher.XML.findStartTag(sb.toString(), new Position(line, line.getText().indexOf("</")));
     }
 
     private static String getUnmatchedStartTag(Position start) {
@@ -455,51 +429,11 @@ public final class XmlMode extends AbstractMode implements Mode {
     }
 
     private static boolean isInComment(Position position) {
-        Position pos = position.copy();
-        boolean inComment = pos.getLine().flags() == STATE_COMMENT;
-        pos.setOffset(0);
-        final int limit = position.getOffset();
-        while (pos.getOffset() < limit) {
-            if (inComment) {
-                if (pos.lookingAt(COMMENT_END)) {
-                    pos.skip(COMMENT_END.length());
-                    if (pos.getOffset() > limit)
-                        break;
-                    inComment = false;
-                    continue;
-                }
-            } else if (pos.lookingAt(COMMENT_START)) {
-                inComment = true;
-                pos.skip(COMMENT_START.length());
-                continue;
-            }
-            pos.next();
-        }
-        return inComment;
+        return XmlPairMatcher.XML.isInComment(position);
     }
 
     private static boolean isInCDataSection(Position position) {
-        Position pos = position.copy();
-        boolean inCDataSection = pos.getLine().flags() == STATE_CDATA;
-        pos.setOffset(0);
-        final int limit = position.getOffset();
-        while (pos.getOffset() < limit) {
-            if (inCDataSection) {
-                if (pos.lookingAt(CDATA_END)) {
-                    pos.skip(CDATA_END.length());
-                    if (pos.getOffset() > limit)
-                        break;
-                    inCDataSection = false;
-                    continue;
-                }
-            } else if (pos.lookingAt(CDATA_START)) {
-                inCDataSection = true;
-                pos.skip(CDATA_START.length());
-                continue;
-            }
-            pos.next();
-        }
-        return inCDataSection;
+        return XmlPairMatcher.XML.isInCDataSection(position);
     }
 
     private static String getTag(String s) {
@@ -528,29 +462,7 @@ public final class XmlMode extends AbstractMode implements Mode {
 
     // Advances position to first char past end of tag.
     private static String getTag(Position pos) {
-        if (pos == null || pos.getChar() != '<')
-            return null;
-        StringBuilder sb = new StringBuilder();
-        sb.append('<');
-        char quoteChar = 0;
-        while (pos.next()) {
-            char c = pos.getChar();
-            sb.append(c);
-            if (quoteChar != 0) {
-                // We're in a quoted section.
-                if (c == quoteChar)
-                    quoteChar = 0;
-            } else {
-                // We're not in a quoted section.
-                if (c == '\'' || c == '"')
-                    quoteChar = c;
-                else if (c == '>') {
-                    pos.next();
-                    break;
-                }
-            }
-        }
-        return sb.toString();
+        return XmlPairMatcher.getTag(pos);
     }
 
     private static boolean isProcessingInstruction(String tag) {
@@ -950,72 +862,109 @@ public final class XmlMode extends AbstractMode implements Mode {
         editor.endCompoundEdit(compoundEdit);
     }
 
-    public static void xmlFindMatch() {
+    /**
+     * Lays out the attributes of the start tag at the caret, or of every
+     * start tag that begins in the selected lines, by splitAttributes and
+     * wrapCol.
+     */
+    public static void xmlFormatAttributes() {
         final Editor editor = Editor.currentEditor();
-        final Position dot = editor.getDot();
-        if (isInComment(dot)) {
-            editor.status("In comment");
+        if (!editor.checkReadOnly())
             return;
-        }
-        if (isInCDataSection(dot)) {
-            editor.status("In CDATA section");
-            return;
-        }
-        Position pos = findStartOfTag(dot);
-        if (pos == null) {
-            final Line dotLine = dot.getLine();
-            int offset = dot.getOffset();
-            if (dotLine.substring(0, offset).trim().length() == 0) {
-                // We're in the whitespace to the left of the text on the line.
-                // Skip to first non-whitespace char.
-                while (Character.isWhitespace(dotLine.charAt(offset)) && offset < dotLine.length())
-                    ++offset;
-                if (dotLine.charAt(offset) == '<')
-                    pos = new Position(dotLine, offset);
+        final Buffer buffer = editor.getBuffer();
+        if (buffer.needsParsing())
+            buffer.getFormatter().parseBuffer();
+        final CompoundEdit compoundEdit = editor.beginCompoundEdit();
+        Position first = null;
+        if (editor.getMark() != null) {
+            final org.armedbear.j.Region r = new org.armedbear.j.Region(editor);
+            final java.util.List<Line> lines = new java.util.ArrayList<>();
+            for (Line line = r.getBeginLine(); line != null; line = line.next()) {
+                lines.add(line);
+                if (line == r.getEndLine())
+                    break;
             }
-            if (pos == null) {
-                offset = dotLine.getText().lastIndexOf(COMMENT_END, dot.getOffset());
-                if (offset >= 0 && dot.getOffset() >= offset && dot.getOffset() < offset + COMMENT_END.length())
-                    pos = new Position(dotLine, offset);
-                else if (dotLine.trim().equals(COMMENT_END))
-                    pos = new Position(dotLine, dotLine.getText().indexOf(COMMENT_END));
+            // Lines last first, so the lines above stay where they were; on a
+            // line, tags first first, each laid out where the one before left it.
+            for (int k = lines.size() - 1; k >= 0; k--) {
+                final Line stop = lines.get(k).next();
+                Position from = new Position(lines.get(k), 0);
+                Position lineFirst = null;
+                Position lt;
+                while ((lt = nextTagStart(buffer, from, stop)) != null) {
+                    if (lineFirst == null)
+                        lineFirst = lt.copy();
+                    from = formatAttributes(editor, lt);
+                    // A tag that never closes runs on past the line.
+                    if (stop != null && !from.isBefore(new Position(stop, 0)))
+                        break;
+                }
+                if (lineFirst != null)
+                    first = lineFirst;
+            }
+        } else {
+            first = findTagAt(editor.getDot());
+            if (first != null)
+                formatAttributes(editor, first.copy());
+        }
+        editor.setMark(null);
+        if (first != null)
+            editor.moveDotTo(first);
+        editor.endCompoundEdit(compoundEdit);
+        if (first == null)
+            editor.status("No tag here");
+        buffer.repaint();
+    }
+
+    // The next '<' from pos, outside comments and CDATA, on a line before stop.
+    private static Position nextTagStart(Buffer buffer, Position pos, Line stop) {
+        if (buffer.needsParsing())
+            buffer.getFormatter().parseBuffer();
+        int from = pos.getOffset();
+        for (Line line = pos.getLine(); line != null && line != stop; line = line.next(), from = 0) {
+            for (int i = line.getText().indexOf('<', from); i >= 0; i = line.getText().indexOf('<', i + 1)) {
+                final Position lt = new Position(line, i);
+                if (!isInComment(lt) && !isInCDataSection(lt))
+                    return lt;
             }
         }
+        return null;
+    }
 
-        if (pos == null) {
-            editor.status("Nothing to match");
-            return;
-        }
+    // Lays out the tag at start; returns where it now ends.
+    private static Position formatAttributes(Editor editor, Position start) {
+        final Buffer buffer = editor.getBuffer();
+        final Position end = start.copy();
+        final String tag = getTag(end);
+        final int tagIndent = buffer.getIndentation(start.getLine());
+        final XmlAttributeFormatter.Layout layout = new XmlAttributeFormatter.Layout(SplitAttributes.of(buffer),
+                buffer.getCol(start),
+                tagIndent + buffer.getIntegerProperty(Property.SPLIT_ATTRIBUTES_INDENT_SIZE) * buffer.getIndentSize(),
+                buffer.getIntegerProperty(Property.WRAP_COL),
+                col -> buffer.getCorrectIndentationString(col).toString());
+        final String formatted = XmlAttributeFormatter.format(tag, layout);
+        if (formatted == null || formatted.equals(tag))
+            return end;
+        editor.deleteRegion(start, end);
+        editor.addUndo(SimpleEdit.INSERT_STRING);
+        editor.insertStringInternal(formatted);
+        return editor.getDot().copy();
+    }
 
-        Position match = null;
-        if (pos.lookingAt(COMMENT_START)) {
-            match = findCommentEnd(pos);
-        } else if (pos.lookingAt(COMMENT_END)) {
-            match = findCommentStart(pos);
-        } else if (pos.lookingAt("</")) {
-            // End tag.
-            String name = Utilities.getTagName(pos.getLine().substring(pos.getOffset()));
-            name = name.substring(1); // Remove "/".
-            match = findMatchingStartTag(name, pos);
-        } else if (pos.lookingAt("<")) {
-            // Start tag.
-            String tag = getTag(pos.copy());
-            if (tag.endsWith("/>")) {
-                editor.status("Nothing to match (empty-element tag)");
-                return;
-            }
-            String name = Utilities.getTagName(tag);
-            match = findMatchingEndTag(name, pos);
-        }
-
-        if (match != null) {
-            editor.updateDotLine();
-            editor.addUndo(SimpleEdit.MOVE);
-            dot.moveTo(match);
-            editor.updateDotLine();
-            editor.moveCaretToDotCol();
-        } else
-            editor.status("No match");
+    // The tag the caret is in, or else the first one after it on its line.
+    private static Position findTagAt(Position dot) {
+        if (isInComment(dot) || isInCDataSection(dot))
+            return null;
+        final Line line = dot.getLine();
+        final String before = line.substring(0, dot.getOffset());
+        final int lt = before.lastIndexOf('<');
+        final int gt = before.lastIndexOf('>');
+        if (lt > gt)
+            return new Position(line, lt);
+        if (gt < 0 && isInTagState(line.flags()))
+            return findTagStart(line);
+        final int next = line.getText().indexOf('<', dot.getOffset());
+        return next >= 0 ? new Position(line, next) : null;
     }
 
     public static void xmlInsertMatchingEndTag() {
@@ -1080,26 +1029,6 @@ public final class XmlMode extends AbstractMode implements Mode {
     }
 
     // Scan backward for "<!--".
-    private static Position findCommentStart(Position start) {
-        Position pos = start.copy();
-        do {
-            if (pos.lookingAt(COMMENT_START))
-                return pos;
-        } while (pos.prev());
-        // Not found.
-        return null;
-    }
-
-    // Scan forward for "-->".
-    private static Position findCommentEnd(Position start) {
-        Position pos = start.copy();
-        do {
-            if (pos.lookingAt(COMMENT_END))
-                return pos;
-        } while (pos.next());
-        // Not found.
-        return null;
-    }
 
     @Override
     public boolean foldsAtTags() {

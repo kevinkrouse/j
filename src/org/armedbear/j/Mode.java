@@ -278,6 +278,14 @@ public interface Mode {
     public SyntaxIterator getSyntaxIterator(Position pos);
 
     /**
+     * The mode's matching pairs, for findMatchingPair, vim's %,
+     * highlightMatchingBracket and rainbowDelimiters.
+     */
+    default PairMatcher getPairMatcher() {
+        return BracketPairMatcher.INSTANCE;
+    }
+
+    /**
      * Returns a string that signifies the start of a comment for the
      * given mode, or <code>null</code> if the concept of comments is
      * not applicable to this mode.

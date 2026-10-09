@@ -282,10 +282,7 @@ public abstract class AbstractMode implements Mode {
         menu.add(editor, "Go to Line...", 'L', "jumpToLine");
         menu.add(editor, "Go to Column...", 'C', "jumpToColumn");
         menu.add(editor, "Go to Offset...", 'O', "jumpToOffset");
-        if (editor.getModeId() == HTML_MODE)
-            menu.add(editor, "Go to Matching HTML", 'M', "htmlFindMatch");
-        else
-            menu.add(editor, "Go to Matching Character", 'M', "findMatchingChar");
+        menu.add(editor, "Go to Matching Pair", 'M', "findMatchingPair");
         menu.add(editor, "Go to Tag", 'A', "findTagAtDot");
         menu.add(editor, "Go to Next Occurrence of Word", 'T', "findNextWord");
         menu.add(editor, "Go to Previous Occurrence of Word", 'R', "findPrevWord");

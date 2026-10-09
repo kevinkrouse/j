@@ -14,7 +14,6 @@ package org.armedbear.j;
 import static org.armedbear.j.Constants.*;
 
 import javax.swing.undo.CompoundEdit;
-import org.armedbear.j.mode.c.CMode;
 
 /**
  * Moving the caret about, changing the one character under it, and matching
@@ -365,17 +364,6 @@ public final class CaretCommands {
 
     // ---------------------------------------------- matching brackets
 
-    public static void cppFindMatch(Editor editor) {
-        if (editor.getDotLine().trim().startsWith("#")) {
-            Line line = CMode.findMatchPreprocessor(editor.getDotLine());
-            if (line != null)
-                editor.moveDotTo(line, 0);
-            else
-                editor.status("No match");
-        } else
-            findMatchingChar(editor);
-    }
-
     // If numLines is non-zero, limit the search to that many lines either
     // forward or backward in the buffer.
     public static Position findMatchInternal(Editor editor, Position start, int numLines) {
@@ -611,24 +599,38 @@ public final class CaretCommands {
         return (quotes & 1) == 0;
     }
 
-    public static void findMatchingChar(Editor editor) {
+    /**
+     * Goes to the other end of the pair at the caret, as the mode's
+     * {@link PairMatcher} pairs them: brackets, and in some modes #if and
+     * #endif or start and end tags. Vim's % is the same search. The pair is
+     * the delimiter at the caret, else a closing bracket just before a bar
+     * caret, else the first delimiter after the caret on its line. A bar
+     * caret lands after a closing bracket.
+     */
+    public static void findMatchingPair(Editor editor) {
+        final InputHandler handler = editor.getInputHandler();
+        final boolean bar = handler == null || handler.getCaretShape() == InputHandler.CaretShape.BAR;
+        final PairMatcher matcher = editor.getMode().getPairMatcher();
+        final Position dot = editor.getDotCopy();
         editor.setWaitCursor();
-        Position pos = findDelimiterNearDot(editor);
-        if (pos != null) {
-            Position match = findMatchInternal(editor, pos, 0);
-            if (match != null) {
-                // If the match is a right delimiter, we want to put the caret
-                // beyond it.
-                if ("})]".indexOf(match.getChar()) >= 0)
-                    match.next();
-                editor.beginMotion();
-                editor.updateDotLine();
-                editor.getDot().moveTo(match);
-                editor.updateDotLine();
-                editor.moveCaretToDotCol();
-            } else
-                editor.status("No match");
+        Position match = null;
+        if (bar && dot.getOffset() > 0 && "{([".indexOf(dot.getChar()) < 0) {
+            final Position before = new Position(dot.getLine(), dot.getOffset() - 1);
+            if ("})]".indexOf(before.getChar()) >= 0)
+                match = matcher.findMatch(editor, before);
         }
+        if (match == null)
+            match = matcher.findMatch(editor, dot);
+        if (match != null) {
+            if (bar && "})]".indexOf(match.getChar()) >= 0)
+                match.next();
+            editor.beginMotion();
+            editor.updateDotLine();
+            editor.getDot().moveTo(match);
+            editor.updateDotLine();
+            editor.moveCaretToDotCol();
+        } else
+            editor.status("No match");
         editor.setDefaultCursor();
     }
 

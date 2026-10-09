@@ -360,8 +360,9 @@ public final class DefaultTheme {
             return new Color(204, 204, 204);
         if (thing == "selectionBackground")
             return new Color(153, 204, 255);
+        // Fainter than a selection: it shows on every caret move.
         if (thing == "matchingBracketBackground")
-            return new Color(153, 204, 255);
+            return new Color(214, 228, 242);
         if (thing == "searchMatchBackground")
             return new Color(255, 221, 102);
         if (thing == "preprocessor")

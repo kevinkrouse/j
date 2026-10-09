@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.SearchCommands;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -360,5 +361,57 @@ public class VimSearchTest {
         // foo is at 0,0 then 1,7 then 2,4; two steps from the first.
         vim(WORDS, 0, 0).keys("2*");
         at(2, 4);
+    }
+
+    // ------------------------------------- one search, either direction
+
+    @Test
+    public void anEmptySlashOrQuestionMarkRepeatsTheLastSearchThatWay() {
+        vim(THREE, 1, 0).keys("/").searchPattern("bravo");
+        at(1, 8);
+        h.keys("?").searchPattern("");
+        at(0, 6);
+        // ? set the direction: n goes on back, N forward.
+        h.keys("n");
+        at(2, 0);
+        h.keys("N");
+        at(0, 6);
+    }
+
+    @Test
+    public void questionMarkAfterStarSearchesTheWordBackward() {
+        vim(WORDS, 1, 7).keys("*");
+        at(2, 4);
+        h.keys("?").searchPattern("");
+        at(1, 7);
+        // Still whole words: foobar at 1,0 is passed over.
+        h.keys("n");
+        at(0, 0);
+    }
+
+    @Test
+    public void slashAfterHashSearchesTheWordForward() {
+        vim(WORDS, 2, 4).keys("#");
+        at(1, 7);
+        h.keys("/").searchPattern("");
+        at(2, 4);
+    }
+
+    @Test
+    public void anEmptyPatternWithNoLastSearchSaysSo() {
+        vim(THREE, 0, 0).keys("/").searchPattern("");
+        at(0, 0);
+        assertEquals("No previous regular expression", h.status());
+    }
+
+    @Test
+    public void nAfterJsFindPrevWordGoesOnBackward() {
+        vim(WORDS, 2, 4);
+        SearchCommands.findPrevWord(h.editor());
+        at(1, 7);
+        h.keys("n");
+        at(0, 0);
+        h.keys("N");
+        at(1, 7);
     }
 }

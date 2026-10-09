@@ -80,7 +80,17 @@ public final class VimSearch {
         }
 
         Query reversed() {
-            return new Query(pattern, !forward, wholeWord, smartcase, own);
+            return withDirection(!forward);
+        }
+
+        /** The same search going the given way; a j search is copied to keep it. */
+        Query withDirection(boolean forward) {
+            Search search = own;
+            if (search != null && search.isForward() != forward) {
+                search = (Search) search.clone();
+                search.setForward(forward);
+            }
+            return new Query(pattern, forward, wholeWord, smartcase, search);
         }
     }
 
@@ -99,7 +109,7 @@ public final class VimSearch {
 
     /**
      * What n repeats, from j's last search: the query a vim search was, or
-     * one standing for a find of j's own, forward, spelled for vim so that
+     * one standing for a find of j's own, in its direction, spelled for vim so that
      * {@code :s//} can use it -- {@code \V} for a literal, {@code \v} for a
      * regular expression, which is near enough to Java's.
      */
@@ -115,7 +125,7 @@ public final class VimSearch {
                 : "\\V" + pattern.replace("\\", "\\\\"));
         return new Query(
             spelled,
-            true,
+            search.isForward(),
             search.wholeWordsOnly(),
             false,
             search
@@ -368,76 +378,5 @@ public final class VimSearch {
     static String toJavaRegex(String pattern) {
         return VimRegex.translate(pattern, VimExSubstitute.lastReplacement())
             .java();
-    }
-
-    /** What * and # decided to search for, and where it starts. */
-    static final class Word {
-        final String text;
-        final int offset;
-        /** False for a run of symbols, which gets no word boundaries. */
-        final boolean keyword;
-
-        Word(String text, int offset, boolean keyword) {
-            this.text = text;
-            this.offset = offset;
-            this.keyword = keyword;
-        }
-    }
-
-    /**
-     * The word * and # search for: the one under the caret, or the next one
-     * along the line when the caret is on a space or punctuation.
-     *
-     * A line with no keyword on it at all is not a refusal -- vim takes the
-     * run of symbols instead, so {@code *} on {@code /}} finds the next
-     * {@code /}}.
-     */
-    static Word wordAtDot(Editor editor) {
-        final Position dot = editor.getDot();
-        if (dot == null)
-            return null;
-        final Mode mode = editor.getBuffer().getMode();
-        final Position pos = new Position(dot);
-        final String text = pos.getLine().getText();
-        if (text == null)
-            return null;
-
-        for (int offset = pos.getOffset(); offset < text.length(); offset++) {
-            pos.setOffset(offset);
-            final String word = mode.getIdentifier(pos);
-            if (word != null && !word.isEmpty())
-                // getIdentifier scans back to the start of the word, so with
-                // the caret inside one the word begins before this offset.
-                return new Word(
-                    word,
-                    Math.max(0, text.lastIndexOf(word, offset)),
-                    true
-                );
-        }
-        // No keyword: the first run of non-blanks that is not one either.
-        for (int offset = dot.getOffset(); offset < text.length(); offset++) {
-            if (Character.isWhitespace(text.charAt(offset)))
-                continue;
-            int end = offset;
-            while (
-                end < text.length()
-                    && !Character.isWhitespace(text.charAt(end))
-            )
-                ++end;
-            return new Word(text.substring(offset, end), offset, false);
-        }
-        return null;
-    }
-
-    /**
-     * Quotes a literal, so a word with regex characters in it still works.
-     *
-     * In vim's syntax, not Java's: every pattern goes through
-     * {@link VimRegex}, which would read Java's \Q as the letter Q. After
-     * {@code \V} only a backslash is special, so doubling those is all the
-     * quoting there is to do.
-     */
-    static String literal(String text) {
-        return "\\V" + text.replace("\\", "\\\\");
     }
 }

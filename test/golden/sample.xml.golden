@@ -8,7 +8,14 @@ mode XML
 5: text"    " delimiter"<" tag"echo" attribute" message" equals"=" string""hello"" delimiter"/>"
 6: text"    " delimiter"<!" tag"[CDATA[" cdata" raw <text> " tag"]]" delimiter">"
 7: text"  " delimiter"</" tag"target" delimiter">"
-8: delimiter"</" tag"project" delimiter">"
+8: text"  " delimiter"<" tag"target" attribute" name" equals"=" string""test""
+9: attribute"      depends" equals"=" string""build""
+10: attribute"      description" equals"=" string""run the tests"" delimiter">"
+11: text"    " delimiter"<" tag"junit" attribute" fork" equals"=" string""true""
+12: attribute"        haltonfailure" equals"=" string""yes""
+13: attribute"    " delimiter"/>"
+14: text"  " delimiter"</" tag"target" delimiter">"
+15: delimiter"</" tag"project" delimiter">"
 
 ## indent
 1: 0
@@ -18,7 +25,14 @@ mode XML
 5: 4
 6: 4
 7: 2
-8: 0
+8: 2
+9: 6
+10: 6
+11: 4
+12: 8
+13: 8
+14: 2
+15: 0
 
 ## tags
 
@@ -29,6 +43,13 @@ mode XML
 <!--  <target name="build" depends='init'>-->
 <!--    <echo message="hello"/>-->
 <!--    <![CDATA[ raw <text> ]]>-->
+<!--  </target>-->
+<!--  <target name="test"-->
+<!--      depends="build"-->
+<!--      description="run the tests">-->
+<!--    <junit fork="true"-->
+<!--        haltonfailure="yes"-->
+<!--    />-->
 <!--  </target>-->
 <!--</project>-->
 
