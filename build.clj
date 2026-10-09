@@ -376,14 +376,17 @@
               "XDG_CACHE_HOME"  (str home "/.cache")
               "XDG_RUNTIME_DIR" (str home "/run")}
         cp   (join-paths [(abs-path classes-dir) (abs-path fuzz-dir)])
-        {:keys [exit out]} (shell {:continue true :out :string :err :string :extra-env env}
-                                  "java" (str "-Duser.home=" home) "-cp" cp "org.armedbear.j.WindowFuzz"
-                                  (str seed) (str steps))]
+        {:keys [exit out err]} (shell {:continue true :out :string :err :string :extra-env env}
+                                      "java" (str "-Duser.home=" home) "-cp" cp "org.armedbear.j.WindowFuzz"
+                                      (str seed) (str steps))]
     {:seed   seed
      :ok     (zero? exit)
-     :report (->> (str/split-lines out)
-                  (filter #(str/starts-with? % "FUZZ "))
-                  (map #(subs % 5)))}))
+     :report (concat (->> (str/split-lines out)
+                          (filter #(str/starts-with? % "FUZZ "))
+                          (map #(subs % 5)))
+                     ;; A JVM that died says why only on stderr.
+                     (when-not (or (zero? exit) (str/blank? err))
+                       (cons "  stderr:" (map #(str "    " %) (str/split-lines err)))))}))
 
 (defn fuzz-windows
   "Fuzz window, buffer and split handling in a running J under Xvfb: random
