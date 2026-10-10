@@ -331,6 +331,7 @@
 ;; window fuzzing
 
 (def fuzz-src-dir "test/fuzz")
+(def ^:private theme-catalog-dir "tools/theme-catalog")
 (def fuzz-dir (str build-dir "/fuzz"))
 
 (defn- parse-seeds
@@ -350,31 +351,37 @@
 
 (defn- start-xvfb
   "Starts a private Xvfb, returning [display process]."
-  []
+  [& {:keys [screen] :or {screen "1280x1024x24"}}]
   (let [xvfb (or (fs/which "Xvfb")
                  (throw (ex-info "Xvfb is not on the PATH: run in `nix develop`, or pass --display" {})))
         n    (free-display)
         proc (babashka.process/process {:out :string :err :string}
-                                       (str xvfb) (str ":" n) "-screen" "0" "1280x1024x24" "-nolisten" "tcp")]
+                                       (str xvfb) (str ":" n) "-screen" "0" screen "-nolisten" "tcp")]
     (loop [i 0]
       (when (and (< i 50) (not (fs/exists? (str "/tmp/.X11-unix/X" n))))
         (Thread/sleep 100)
         (recur (inc i))))
     [(str ":" n) proc]))
 
+(defn- fresh-home-env
+  "Empties home and returns the environment for a J that lives in it and
+  draws on display."
+  [display home]
+  (fs/delete-tree home)
+  (fs/create-dirs home)
+  {"DISPLAY"         display
+   "HOME"            home
+   "XDG_CONFIG_HOME" (str home "/.config")
+   "XDG_DATA_HOME"   (str home "/.local/share")
+   "XDG_STATE_HOME"  (str home "/.local/state")
+   "XDG_CACHE_HOME"  (str home "/.cache")
+   "XDG_RUNTIME_DIR" (str home "/run")})
+
 (defn- fuzz-one
   "One seed's run in a fresh home: its FUZZ lines, and whether it passed."
   [display seed steps]
   (let [home (abs-path (str fuzz-dir "/run-" seed))
-        _    (fs/delete-tree home)
-        _    (fs/create-dirs home)
-        env  {"DISPLAY"         display
-              "HOME"            home
-              "XDG_CONFIG_HOME" (str home "/.config")
-              "XDG_DATA_HOME"   (str home "/.local/share")
-              "XDG_STATE_HOME"  (str home "/.local/state")
-              "XDG_CACHE_HOME"  (str home "/.cache")
-              "XDG_RUNTIME_DIR" (str home "/run")}
+        env  (fresh-home-env display home)
         cp   (join-paths [(abs-path classes-dir) (abs-path fuzz-dir)])
         {:keys [exit out err]} (shell {:continue true :out :string :err :string :extra-env env}
                                       "java" (str "-Duser.home=" home) "-cp" cp "org.armedbear.j.WindowFuzz"
@@ -415,6 +422,173 @@
         (println (- (count runs) (count failed)) "of" (count runs) "seeds passed")
         (when (seq failed)
           (throw (ex-info (str "window fuzzing failed for seeds " (str/join ", " (map :seed failed))) {}))))
+      (finally
+        (.shutdown pool)
+        (when xvfb (babashka.process/destroy-tree xvfb)))))
+  {})
+
+
+;; theme catalog
+
+(def ^:private theme-catalog-classes (str build-dir "/theme-catalog-classes"))
+
+(def ^:private sample-languages
+  {"java" "Java" "py" "Python" "lisp" "Lisp" "md" "Markdown"})
+
+;; Pictures are taken at this many device pixels to the logical one, and shown
+;; at their logical size, so they stay sharp on a high resolution screen.
+(def ^:private shot-scale 2)
+(def ^:private shot-font-size 10)
+(def ^:private sample-size [400 375])
+(def ^:private card-size [400 270])
+
+(def ^:private builtin-theme
+  "j with no theme set, under a name no theme file has."
+  {:id "builtin" :label "Built-in" :theme nil})
+
+(defn- theme-entries
+  "The built-in look, then every theme in themes/: the files with no extension."
+  []
+  (cons builtin-theme
+        (->> (fs/list-dir "themes")
+             (filter #(and (fs/regular-file? %) (str/blank? (fs/extension %))))
+             (map #(str (fs/file-name %)))
+             (sort-by str/lower-case)
+             (map (fn [t] {:id t :label t :theme t})))))
+
+(defn- sample-files
+  "The samples, Java first: its top left is each theme's card."
+  []
+  (->> (fs/list-dir (str theme-catalog-dir "/samples"))
+       (map str)
+       (sort-by #(vector (not= "java" (fs/extension %)) (str/lower-case %)))))
+
+(defn- png-size
+  "[width height] from a PNG's IHDR chunk."
+  [path]
+  (let [b (fs/read-all-bytes path)
+        n (fn [i] (reduce #(+ (* 256 %1) (bit-and 0xff (aget b (+ i %2)))) 0 (range 4)))]
+    [(n 16) (n 20)]))
+
+(defn- shoot-theme
+  "Photographs every sample in a theme, into out/images/<id>/."
+  [display out {:keys [id theme]} samples]
+  (let [home   (abs-path (str out "/home/" id))
+        env    (fresh-home-env display home)
+        images (str out "/images/" id)
+        _      (fs/delete-tree images)
+        _      (fs/create-dirs (str home "/.config/j"))
+        _      (spit (str home "/.config/j/prefs")
+                     (str (when theme (str "theme=" theme "\n"))
+                          "blinkCaret=false\nfontSize=" shot-font-size "\n"))
+        cp     (join-paths [(abs-path classes-dir) (abs-path theme-catalog-classes)])
+        {:keys [exit err]} (apply shell {:continue true :out :string :err :string :extra-env env}
+                                  "java" (str "-Duser.home=" home) (str "-Dsun.java2d.uiScale=" shot-scale)
+                                  "-cp" cp "org.armedbear.j.ThemeShot" (abs-path images)
+                                  (map str (concat sample-size card-size (map abs-path samples))))]
+    {:id id :ok (zero? exit) :err err}))
+
+(defn- html-escape [s]
+  (str/escape (str s) {\& "&amp;" \< "&lt;" \> "&gt;" \" "&quot;"}))
+
+(defn- html-page [title nav & body]
+  (str "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
+       "<title>" (html-escape title) "</title>\n"
+       "<link rel=\"stylesheet\" href=\"../j.css\" type=\"text/css\">\n"
+       "<style>\n"
+       "table { border-spacing: 1.5em 0; }\n"
+       "td { vertical-align: top; }\n"
+       "img { display: block; max-width: 100%; height: auto; border: 1px solid #888; }\n"
+       "</style>\n</head>\n<body>\n"
+       nav "\n<hr>\n"
+       (apply str body)
+       "</body>\n</html>\n"))
+
+(defn- image-tag
+  "An <img> at the picture's logical size. j's web mode shows it as an
+  [IMAGE WxH] link, so the size must be given and at least 100x100."
+  [out src]
+  (let [[w h] (png-size (str out "/" src))]
+    (str "<img src=\"" (html-escape src) "\" width=\"" (quot w shot-scale)
+         "\" height=\"" (quot h shot-scale) "\" alt=\"\">")))
+
+(defn- grid
+  "A table of cells, columns to a row. Each cell is [image caption]; the
+  captions get a row of their own under the images', since j lays a row's
+  cells out on one line of text."
+  [columns cells]
+  (let [row (fn [xs] (str "<tr>" (apply str (map #(str "<td>" % "</td>") xs)) "</tr>\n"))]
+    (str "<table>\n"
+         (str/join "<tr><td>&nbsp;</td></tr>\n"
+                   (for [part (partition-all columns cells)]
+                     (str (row (map first part)) (row (map second part)))))
+         "</table>\n")))
+
+(defn- write-theme-catalog!
+  "index.html, one card a theme, each linking to <id>.html with every sample."
+  [out entries samples]
+  (let [lang #(get sample-languages (fs/extension %) (fs/file-name %))
+        img  (fn [id sample] (str "images/" id "/" (fs/file-name sample) ".png"))
+        top  "<a href=\"../contents.html\">Top</a> | <a href=\"../themes.html\">Themes</a>"]
+    (spit (str out "/index.html")
+          (html-page "J User's Guide - Theme Catalog" top
+                     "<h1>Theme Catalog</h1>\n<hr>\n"
+                     "<p>" (if (some (complement :theme) entries)
+                             "The look j has with no theme set, then each of the "
+                             "Each of the ")
+                     (count (filter :theme entries)) " bundled themes. Pick one to see it with "
+                     (str/join ", " (map lang samples)) ".\n"
+                     "<p>Set <a href=\"../preferences.html#webShowImages\">webShowImages</a>"
+                     " to see the pictures here rather than links to them.\n"
+                     (grid 3 (for [{:keys [id label]} entries]
+                               (let [href (str (html-escape id) ".html")]
+                                 [(str "<a href=\"" href "\">" (image-tag out (str "images/" id "/card.png")) "</a>")
+                                  (str "<a href=\"" href "\">" (html-escape label) "</a>")])))))
+    (doseq [{:keys [id label theme]} entries]
+      (spit (str out "/" id ".html")
+            (html-page (str "J User's Guide - " label " Theme")
+                       (str top " | <a href=\"index.html\">Theme Catalog</a>")
+                       "<h1>" (html-escape label) "</h1>\n<hr>\n"
+                       "<p>" (if theme
+                               (str "<code>theme=" (html-escape theme) "</code>")
+                               "No <code>theme</code> set.") "\n"
+                       (grid 2 (for [s samples]
+                                 [(image-tag out (img id s)) (html-escape (lang s))])))))))
+
+(defn theme-catalog
+  "Photograph each theme with the samples in tools/theme-catalog/samples and
+  write an HTML catalogue of them. Options: --out doc/themes,
+  --themes builtin,Dark,Zen (default all; the index lists every theme with
+  pictures), --jobs 4, --display :N to use a running X server instead of
+  starting Xvfb."
+  [{:keys [out themes jobs display] :or {out "doc/themes" jobs 4}}]
+  (build {})
+  (javac-against! {:src-dirs [(str theme-catalog-dir "/src")] :class-dir theme-catalog-classes :basis (basis)}
+                  [(abs-path classes-dir)])
+  (let [entries        (theme-entries)
+        wanted         (if themes (set (str/split (str themes) #",")) (set (map :id entries)))
+        samples        (sample-files)
+        [display xvfb] (if display [(str display) nil] (start-xvfb :screen "2560x2048x24"))
+        pool           (java.util.concurrent.Executors/newFixedThreadPool (int jobs))]
+    (println "Photographing" (count wanted) "themes with" (count samples) "samples on" display "...")
+    (try
+      (let [runs   (->> (filter (comp wanted :id) entries)
+                        (mapv (fn [e] (.submit pool ^Callable (fn [] (shoot-theme display out e samples)))))
+                        (mapv #(.get ^java.util.concurrent.Future %)))
+            failed (remove :ok runs)]
+        (fs/delete-tree (str out "/home"))
+        (doseq [{:keys [id err]} failed]
+          (println "FAILED" id)
+          (doseq [line (str/split-lines (str err))] (println "    " line)))
+        (when (seq failed)
+          (throw (ex-info (str "no pictures of " (str/join ", " (map :id failed))) {})))
+        (write-theme-catalog! out
+                              (filter (fn [{:keys [id]}]
+                                        (every? #(fs/exists? (str out "/images/" id "/" %))
+                                                (cons "card.png" (map (fn [s] (str (fs/file-name s) ".png")) samples))))
+                                      entries)
+                              samples)
+        (println "Wrote" (str out "/index.html")))
       (finally
         (.shutdown pool)
         (when xvfb (babashka.process/destroy-tree xvfb)))))
@@ -606,7 +780,7 @@
 
 (defn- edited-java-files
   "Java files added or changed since fmt-base, committed or not. The golden
-  test samples are data, not code."
+  test samples and the theme catalog's are data, not code."
   []
   (let [{:keys [exit out err]} (shell {:out :string :err :string :continue true}
                                       "git" "merge-base" fmt-base "HEAD")
@@ -618,7 +792,8 @@
     (->> (concat (git-paths "diff" "--no-ext-diff" "-z" "--name-only" "--diff-filter=AMR" base)
                  (git-paths "ls-files" "-z" "--others" "--exclude-standard"))
          (filter #(str/ends-with? % ".java"))
-         (remove #(str/starts-with? % "test/golden/"))
+         (remove #(or (str/starts-with? % "test/golden/")
+                      (str/starts-with? % (str theme-catalog-dir "/samples/"))))
          distinct sort)))
 
 (defn- jfmt

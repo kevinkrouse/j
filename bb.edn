@@ -30,6 +30,10 @@
                 :requires ([babashka.cli :as cli])
                 :task (build/fuzz-windows
                        (cli/parse-opts *command-line-args* {:coerce {:steps :long :jobs :long}}))}
+  theme-catalog {:doc "Write doc/themes, a catalogue of theme pictures: --themes builtin,Dark --jobs 4"
+                 :requires ([babashka.cli :as cli])
+                 :task (build/theme-catalog
+                        (cli/parse-opts *command-line-args* {:coerce {:jobs :long}}))}
   lint       {:doc "Compile with -Xlint and Error Prone"     :task (build/lint {})}
   fmt        {:doc "Reformat clj/edn and edited Java files"  :task (build/fmt {})}
   fmt-check  {:doc "Check formatting, change nothing"        :task (build/fmt-check {})}
