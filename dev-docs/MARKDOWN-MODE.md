@@ -444,8 +444,8 @@ background rather than yellow.
 | `done` | `#1A7F37` | `#3FB950` | text `muted` |
 | `cancelled` | `#8C959F` | `#6E7681` | strikethrough |
 
-Themes override any of them (`color.heading = r g b`); `Default`, `Dark`,
-`SolarizedLight` and `SolarizedDark` get lines that suit them.
+Themes override any of them (`color.heading = #rrggbb`); every bundled
+theme sets them.
 
 ## Order and tests
 

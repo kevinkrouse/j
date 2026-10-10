@@ -1,80 +1,105 @@
-# Muted
-# Mike Rutter
+# -*- Mode: Properties -*-
+# Muted: soft colors on near black
 
-color.text                      = white
-color.background                = black
-color.caret                     = white
+# Editor
+color.text                       = #d6d6dc
+color.background                 = #121216
+color.currentLineBackground      = #1b1b23
+color.selectionBackground        = #26305a
+color.searchMatchBackground      = #2e3a2e
+color.matchingBracketBackground  = #33334a
+color.caret                      = #a3a3f0
+color.verticalRule               = #1b1b23
+color.lineNumber                 = #55555f
+color.gutterBorder               = #1b1b23
+color.change                     = #d6c08a
+color.savedChange                = #a8d8a8
+color.disabled                   = #55555f
+color.matchingText               = #d6c08a
 
-color.selectionBackground       = 0 0 128
-color.matchingBracketBackground = 128 0 0
-color.preprocessor              = 0 255 192
-color.comment                   = 92 192 92
-color.keyword                   = 168 168 255
-color.brace                     = white
-color.number                    = white
-color.currentLineBackground     = 20 20 32
-color.function                  = 168 168 192
-color.string                    = 168 255 168
-color.operator                  = white
-color.disabled                  = 128 128 128
-color.change                    = 255 164   0
-color.savedChange               = 128 128 128
-color.verticalRule              = 92 92 92
-color.lineNumber                = 96 96 96
-color.gutterBorder              = 70 70 70
-ShellMode.color.prompt          = 0 255 255
-ShellMode.color.input           = 255 255 0
+# Syntax
+color.comment                    = #6f9e6f
+color.keyword                    = #a3a3f0
+color.function                   = #b4b4cc
+color.string                     = #a8d8a8
+color.number                     = #d6c9a8
+color.operator                   = #c0c0c8
+color.brace                      = #a0a0aa
+color.preprocessor               = #6ad8c0
+color.delimiter                  = #a0a0aa
+color.key                        = #b8c8f0
+color.value                      = #a8d8a8
 
-XmlMode.color.text              = 0 255 0
-XmlMode.color.attribute         = 128 192 255
-XmlMode.color.delimiter         = 255 255 255
-XmlMode.color.namespace         = 255 204 0
-XmlMode.color.tag               = 208 208 0
-XmlMode.color.comment           = 128 128 128
-#XmlMode.color.selectionBackground = 32 32 32
-#XmlMode.color.currentLineBackground = 16 16 42
+# Shared styles (see the Themes topic)
+color.heading                    = #a3a3f0
+color.link                       = #8fb8f0
+color.code                       = #d6c9a8
+color.quote                      = #6f9e6f
+color.muted                      = #6f9e6f
+color.listMarker                 = #a3a3f0
+color.todo                       = #d6c08a
+color.inProgress                 = #c4a8e0
+color.inProgressMarker           = #8fb8f0
+color.done                       = #a8d8a8
+color.cancelled                  = #55555f
+color.codeBackground             = #18181e
 
-HtmlMode.color.tag              = 255 255 0
-HtmlMode.color.anchor           = 192 192 192
-HtmlMode.color.image            = 128 255 128
-HtmlMode.color.table            = 0 0 255
-HtmlMode.color.tableRow         = 128 128 255
-HtmlMode.color.tableData        = 0 255 255
-HtmlMode.color.comment          = 128 128 128
-HtmlMode.color.script           = 0 255 0
-#HtmlMode.color.selectionBackground = 32 32 32
-#HtmlMode.color.currentLineBackground = 16 16 42
+# Shells, mail and lists
+color.prompt                     = #a8d8a8
+color.input                      = #b8c8f0
+color.status                     = #6f9e6f
+color.headerName                 = #a3a3f0
+color.headerValue                = #d6d6dc
+color.signature                  = #6f9e6f
+color.marked                     = #b8c8f0
+color.registerHeader             = #a3a3f0
+color.registerName               = #b8c8f0
+MailboxMode.color.from           = #b8c8f0
+MailboxMode.color.to             = #8fb8f0
+MailboxMode.color.date           = #6f9e6f
+MailboxMode.color.subject        = #d6d6dc
+MailboxMode.color.size           = #6f9e6f
+MailboxMode.color.flags          = #6f9e6f
+MailboxMode.color.deleted        = #55555f
+MailboxMode.color.flaggedFrom    = #d6c08a
+MailboxMode.color.flaggedTo      = #d6c08a
+MailboxMode.color.flaggedSubject = #d6c08a
 
-PerlMode.color.scalar           = 0 255 255
-PerlMode.color.list             = 192 255 255
+# Modes
+LispMode.color.parenthesis       = #a0a0aa
+LispMode.color.punctuation       = #a0a0aa
+LispMode.color.secondaryKeyword  = #b8c8f0
+LispMode.color.substitution      = #d6c9a8
+XmlMode.color.tag                = #a3a3f0
+XmlMode.color.attribute          = #b8c8f0
+XmlMode.color.delimiter          = #a0a0aa
+XmlMode.color.equals             = #c0c0c8
+XmlMode.color.namespace          = #c4a8e0
+HtmlMode.color.tag               = #a3a3f0
+HtmlMode.color.anchor            = #8fb8f0
+HtmlMode.color.image             = #d6c9a8
+HtmlMode.color.table             = #c4a8e0
+HtmlMode.color.tableRow          = #c4a8e0
+HtmlMode.color.tableData         = #c4a8e0
+HtmlMode.color.script            = #6ad8c0
+PHPMode.color.var                = #b8c8f0
+PHPMode.color.tag                = #a3a3f0
+PHPMode.color.attribute          = #b8c8f0
+PHPMode.color.delimiter          = #a0a0aa
+PHPMode.color.equals             = #c0c0c8
+PerlMode.color.scalar            = #b8c8f0
+PerlMode.color.list              = #c4a8e0
+MakefileMode.color.target        = #b4b4cc
+PropertiesMode.color.section     = #a3a3f0
+DirectoryMode.color.directory    = #b4b4cc
+DirectoryMode.color.symlink      = #c4a8e0
+DiffMode.color.file              = #a3a3f0
+DiffMode.color.header            = #6f9e6f
+DiffMode.color.inserted          = #a8d8a8
+DiffMode.color.deleted           = #e08a8a
+DiffMode.color.changed           = #d6c08a
 
-PHPMode.color.var               = 0 255 255
-PHPMode.color.attribute         = 128 192 255
-PHPMode.color.delimiter         = 255 255 255
-PHPMode.color.tag               = 255 255 0
-
-MakefileMode.color.target       = 255 255 255
-
-PropertiesMode.color.section    = 255 255 0
-
-DirectoryMode.color.directory   = 192 255 192
-DirectoryMode.color.symlink     = 192 255 192
-DirectoryMode.color.marked      = 255 255 255
-
-DiffMode.color.file             = 255 255 0
-DiffMode.style.file             = 0
-DiffMode.color.deleted          = 180 180 180
-DiffMode.color.inserted         = 255 153 0
-
-StatusMode.color.added          = 255 153 0
-StatusMode.color.deleted        = 180 180 180
-StatusMode.color.changed        = 168 168 255
-StatusMode.color.conflict       = 240 100 120
-StatusMode.color.unknown        = 153 180 128
-StatusMode.color.nochange       = white
-StatusMode.color.ignored        = 154 154 154
-
-style.keyword                   = 0
-style.function                  = 0
-DirectoryMode.style.directory   = 2
-
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 2
+style.keyword                    = 0
+style.function                   = 0

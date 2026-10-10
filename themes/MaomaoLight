@@ -1,0 +1,133 @@
+# -*- Mode: Properties -*-
+# Apothecary Diary (Maomao, light)
+#
+# From https://github.com/montemurro19/apothecary-diary-theme by Matheus Montemurro (MIT).
+
+# foreground     #22322e
+# background     #f8f7f3
+# lineHighlight  #f0efeb
+# selection      #d9e5da
+# button 35%     #ccddd0
+# cursor 35%     #e8b8b8
+# cursor         #c94349
+# widget         #f0efeb
+# lineNumber     #b8c5c1
+# changed        #8a5aa0
+# inserted       #1a5d4a
+# comment        #7aae8f
+# keyword        #4a7a9b
+# function       #1a5d4a
+# string         #a67a2b
+# number         #b85c32
+# operator       #1a5d4a
+# keywordControl #c94349
+# attribute      #8a5aa0
+# heading        #1a5d4a
+# link           #4a7a9b
+# rawInline      #8a5aa0
+# blockquote     #7aae8f
+# cls            #1a5d4a
+# deleted        #c94349
+
+# Editor
+color.text                       = #22322e
+color.background                 = #f8f7f3
+color.currentLineBackground      = #f0efeb
+color.selectionBackground        = #d9e5da
+color.searchMatchBackground      = #ccddd0
+color.matchingBracketBackground  = #e8b8b8
+color.caret                      = #c94349
+color.verticalRule               = #f0efeb
+color.lineNumber                 = #b8c5c1
+color.gutterBorder               = #f0efeb
+color.change                     = #8a5aa0
+color.savedChange                = #1a5d4a
+color.disabled                   = #b8c5c1
+color.matchingText               = #c94349
+
+# Syntax
+color.comment                    = #7aae8f
+color.keyword                    = #4a7a9b
+color.function                   = #1a5d4a
+color.string                     = #a67a2b
+color.number                     = #b85c32
+color.operator                   = #1a5d4a
+color.brace                      = #1a5d4a
+color.preprocessor               = #c94349
+color.delimiter                  = #1a5d4a
+color.key                        = #8a5aa0
+color.value                      = #a67a2b
+
+# Shared styles (see the Themes topic)
+color.heading                    = #1a5d4a
+color.link                       = #4a7a9b
+color.code                       = #8a5aa0
+color.quote                      = #7aae8f
+color.muted                      = #7aae8f
+color.listMarker                 = #c94349
+color.todo                       = #c94349
+color.inProgress                 = #8a5aa0
+color.inProgressMarker           = #4a7a9b
+color.done                       = #1a5d4a
+color.cancelled                  = #b8c5c1
+color.codeBackground             = #f0efeb
+
+# Shells, mail and lists
+color.prompt                     = #1a5d4a
+color.input                      = #8a5aa0
+color.status                     = #7aae8f
+color.headerName                 = #4a7a9b
+color.headerValue                = #22322e
+color.signature                  = #7aae8f
+color.marked                     = #8a5aa0
+color.registerHeader             = #1a5d4a
+color.registerName               = #8a5aa0
+MailboxMode.color.from           = #8a5aa0
+MailboxMode.color.to             = #4a7a9b
+MailboxMode.color.date           = #7aae8f
+MailboxMode.color.subject        = #22322e
+MailboxMode.color.size           = #7aae8f
+MailboxMode.color.flags          = #7aae8f
+MailboxMode.color.deleted        = #b8c5c1
+MailboxMode.color.flaggedFrom    = #c94349
+MailboxMode.color.flaggedTo      = #c94349
+MailboxMode.color.flaggedSubject = #c94349
+
+# Modes
+LispMode.color.parenthesis       = #1a5d4a
+LispMode.color.punctuation       = #1a5d4a
+LispMode.color.secondaryKeyword  = #8a5aa0
+LispMode.color.substitution      = #b85c32
+XmlMode.color.tag                = #4a7a9b
+XmlMode.color.attribute          = #8a5aa0
+XmlMode.color.delimiter          = #1a5d4a
+XmlMode.color.equals             = #1a5d4a
+XmlMode.color.namespace          = #1a5d4a
+HtmlMode.color.tag               = #4a7a9b
+HtmlMode.color.anchor            = #4a7a9b
+HtmlMode.color.image             = #b85c32
+HtmlMode.color.table             = #1a5d4a
+HtmlMode.color.tableRow          = #1a5d4a
+HtmlMode.color.tableData         = #1a5d4a
+HtmlMode.color.script            = #c94349
+PHPMode.color.var                = #8a5aa0
+PHPMode.color.tag                = #4a7a9b
+PHPMode.color.attribute          = #8a5aa0
+PHPMode.color.delimiter          = #1a5d4a
+PHPMode.color.equals             = #1a5d4a
+PerlMode.color.scalar            = #8a5aa0
+PerlMode.color.list              = #1a5d4a
+MakefileMode.color.target        = #1a5d4a
+PropertiesMode.color.section     = #1a5d4a
+DirectoryMode.color.directory    = #1a5d4a
+DirectoryMode.color.symlink      = #1a5d4a
+DiffMode.color.file              = #1a5d4a
+DiffMode.color.header            = #7aae8f
+DiffMode.color.inserted          = #1a5d4a
+DiffMode.color.deleted           = #c94349
+DiffMode.color.changed           = #8a5aa0
+
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 2
+style.keyword                    = 0
+style.function                   = 0

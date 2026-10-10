@@ -1,0 +1,134 @@
+# -*- Mode: Properties -*-
+# Kanagawa (wave)
+#
+# From https://github.com/rebelot/kanagawa.nvim by Tommaso Laurenzi (MIT).
+
+# fujiWhite     #dcd7ba
+# sumiInk3      #1f1f28
+# sumiInk5      #363646
+# waveBlue1     #223249
+# waveBlue2     #2d4f67
+# sumiInk4      #2a2a37
+# sumiInk6      #54546d
+# autumnYellow  #dca561
+# autumnGreen   #76946a
+# katanaGray    #717c7c
+# roninYellow   #ff9e3b
+# fujiGray      #727169
+# oniViolet     #957fb8
+# crystalBlue   #7e9cd8
+# springGreen   #98bb6c
+# sakuraPink    #d27e99
+# boatYellow2   #c0a36e
+# springViolet2 #9cabca
+# waveRed       #e46876
+# carpYellow    #e6c384
+# springBlue    #7fb4ca
+# surimiOrange  #ffa066
+# dragonBlue    #658594
+# oldWhite      #c8c093
+# waveAqua2     #7aa89f
+# autumnRed     #c34043
+
+# Editor
+color.text                       = #dcd7ba
+color.background                 = #1f1f28
+color.currentLineBackground      = #363646
+color.selectionBackground        = #223249
+color.searchMatchBackground      = #2d4f67
+color.matchingBracketBackground  = #2d4f67
+color.caret                      = #dcd7ba
+color.verticalRule               = #2a2a37
+color.lineNumber                 = #54546d
+color.gutterBorder               = #2a2a37
+color.change                     = #dca561
+color.savedChange                = #76946a
+color.disabled                   = #717c7c
+color.matchingText               = #ff9e3b
+
+# Syntax
+color.comment                    = #727169
+color.keyword                    = #957fb8
+color.function                   = #7e9cd8
+color.string                     = #98bb6c
+color.number                     = #d27e99
+color.operator                   = #c0a36e
+color.brace                      = #9cabca
+color.preprocessor               = #e46876
+color.delimiter                  = #9cabca
+color.key                        = #e6c384
+color.value                      = #98bb6c
+
+# Shared styles (see the Themes topic)
+color.heading                    = #7e9cd8
+color.link                       = #7fb4ca
+color.code                       = #ffa066
+color.quote                      = #727169
+color.muted                      = #727169
+color.listMarker                 = #e46876
+color.todo                       = #ff9e3b
+color.inProgress                 = #957fb8
+color.inProgressMarker           = #658594
+color.done                       = #98bb6c
+color.cancelled                  = #717c7c
+color.codeBackground             = #2a2a37
+
+# Shells, mail and lists
+color.prompt                     = #98bb6c
+color.input                      = #e6c384
+color.status                     = #727169
+color.headerName                 = #957fb8
+color.headerValue                = #dcd7ba
+color.signature                  = #727169
+color.marked                     = #e6c384
+color.registerHeader             = #7e9cd8
+color.registerName               = #e6c384
+MailboxMode.color.from           = #e6c384
+MailboxMode.color.to             = #7fb4ca
+MailboxMode.color.date           = #727169
+MailboxMode.color.subject        = #dcd7ba
+MailboxMode.color.size           = #727169
+MailboxMode.color.flags          = #c8c093
+MailboxMode.color.deleted        = #717c7c
+MailboxMode.color.flaggedFrom    = #ff9e3b
+MailboxMode.color.flaggedTo      = #ff9e3b
+MailboxMode.color.flaggedSubject = #ff9e3b
+
+# Modes
+LispMode.color.parenthesis       = #9cabca
+LispMode.color.punctuation       = #9cabca
+LispMode.color.secondaryKeyword  = #e6c384
+LispMode.color.substitution      = #ffa066
+XmlMode.color.tag                = #957fb8
+XmlMode.color.attribute          = #e6c384
+XmlMode.color.delimiter          = #9cabca
+XmlMode.color.equals             = #c0a36e
+XmlMode.color.namespace          = #7aa89f
+HtmlMode.color.tag               = #957fb8
+HtmlMode.color.anchor            = #7fb4ca
+HtmlMode.color.image             = #ffa066
+HtmlMode.color.table             = #7aa89f
+HtmlMode.color.tableRow          = #7aa89f
+HtmlMode.color.tableData         = #7aa89f
+HtmlMode.color.script            = #e46876
+PHPMode.color.var                = #e6c384
+PHPMode.color.tag                = #957fb8
+PHPMode.color.attribute          = #e6c384
+PHPMode.color.delimiter          = #9cabca
+PHPMode.color.equals             = #c0a36e
+PerlMode.color.scalar            = #e6c384
+PerlMode.color.list              = #7aa89f
+MakefileMode.color.target        = #7e9cd8
+PropertiesMode.color.section     = #7e9cd8
+DirectoryMode.color.directory    = #7e9cd8
+DirectoryMode.color.symlink      = #7aa89f
+DiffMode.color.file              = #7e9cd8
+DiffMode.color.header            = #727169
+DiffMode.color.inserted          = #76946a
+DiffMode.color.deleted           = #c34043
+DiffMode.color.changed           = #dca561
+
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 2
+style.keyword                    = 2
+style.function                   = 0

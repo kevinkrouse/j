@@ -558,7 +558,7 @@
 (defn theme-catalog
   "Photograph each theme with the samples in tools/theme-catalog/samples and
   write an HTML catalogue of them. Options: --out doc/themes,
-  --themes builtin,Dark,Zen (default all; the index lists every theme with
+  --themes builtin,Dracula,Space (default all; the index lists every theme with
   pictures), --jobs 4, --display :N to use a running X server instead of
   starting Xvfb."
   [{:keys [out themes jobs display] :or {out "doc/themes" jobs 4}}]

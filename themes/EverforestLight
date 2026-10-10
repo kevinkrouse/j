@@ -1,0 +1,126 @@
+# -*- Mode: Properties -*-
+# Everforest (light, medium)
+#
+# From https://github.com/sainnhe/everforest by sainnhe (MIT).
+
+# fg        #5c6a72
+# bg0       #fdf6e3
+# bg1       #f4f0d9
+# bg_visual #eaedc8
+# bg_green  #f0f1d2
+# bg4       #e0dcc7
+# bg2       #efebd4
+# grey0     #a6b0a0
+# blue      #3a94c5
+# green     #8da101
+# yellow    #dfa000
+# grey1     #939f91
+# red       #f85552
+# purple    #df69ba
+# orange    #f57d26
+# aqua      #35a77c
+# bg_dim    #efebd4
+# grey2     #829181
+
+# Editor
+color.text                       = #5c6a72
+color.background                 = #fdf6e3
+color.currentLineBackground      = #f4f0d9
+color.selectionBackground        = #eaedc8
+color.searchMatchBackground      = #f0f1d2
+color.matchingBracketBackground  = #e0dcc7
+color.caret                      = #5c6a72
+color.verticalRule               = #efebd4
+color.lineNumber                 = #a6b0a0
+color.gutterBorder               = #efebd4
+color.change                     = #3a94c5
+color.savedChange                = #8da101
+color.disabled                   = #a6b0a0
+color.matchingText               = #dfa000
+
+# Syntax
+color.comment                    = #939f91
+color.keyword                    = #f85552
+color.function                   = #8da101
+color.string                     = #8da101
+color.number                     = #df69ba
+color.operator                   = #f57d26
+color.brace                      = #5c6a72
+color.preprocessor               = #df69ba
+color.delimiter                  = #5c6a72
+color.key                        = #3a94c5
+color.value                      = #8da101
+
+# Shared styles (see the Themes topic)
+color.heading                    = #f57d26
+color.link                       = #3a94c5
+color.code                       = #35a77c
+color.quote                      = #939f91
+color.muted                      = #939f91
+color.listMarker                 = #f85552
+color.todo                       = #dfa000
+color.inProgress                 = #df69ba
+color.inProgressMarker           = #3a94c5
+color.done                       = #8da101
+color.cancelled                  = #a6b0a0
+color.codeBackground             = #efebd4
+
+# Shells, mail and lists
+color.prompt                     = #8da101
+color.input                      = #3a94c5
+color.status                     = #939f91
+color.headerName                 = #f85552
+color.headerValue                = #5c6a72
+color.signature                  = #939f91
+color.marked                     = #3a94c5
+color.registerHeader             = #f57d26
+color.registerName               = #3a94c5
+MailboxMode.color.from           = #3a94c5
+MailboxMode.color.to             = #3a94c5
+MailboxMode.color.date           = #939f91
+MailboxMode.color.subject        = #5c6a72
+MailboxMode.color.size           = #939f91
+MailboxMode.color.flags          = #829181
+MailboxMode.color.deleted        = #a6b0a0
+MailboxMode.color.flaggedFrom    = #dfa000
+MailboxMode.color.flaggedTo      = #dfa000
+MailboxMode.color.flaggedSubject = #dfa000
+
+# Modes
+LispMode.color.parenthesis       = #5c6a72
+LispMode.color.punctuation       = #5c6a72
+LispMode.color.secondaryKeyword  = #3a94c5
+LispMode.color.substitution      = #35a77c
+XmlMode.color.tag                = #f85552
+XmlMode.color.attribute          = #3a94c5
+XmlMode.color.delimiter          = #5c6a72
+XmlMode.color.equals             = #f57d26
+XmlMode.color.namespace          = #dfa000
+HtmlMode.color.tag               = #f85552
+HtmlMode.color.anchor            = #3a94c5
+HtmlMode.color.image             = #35a77c
+HtmlMode.color.table             = #dfa000
+HtmlMode.color.tableRow          = #dfa000
+HtmlMode.color.tableData         = #dfa000
+HtmlMode.color.script            = #df69ba
+PHPMode.color.var                = #3a94c5
+PHPMode.color.tag                = #f85552
+PHPMode.color.attribute          = #3a94c5
+PHPMode.color.delimiter          = #5c6a72
+PHPMode.color.equals             = #f57d26
+PerlMode.color.scalar            = #3a94c5
+PerlMode.color.list              = #dfa000
+MakefileMode.color.target        = #8da101
+PropertiesMode.color.section     = #f57d26
+DirectoryMode.color.directory    = #8da101
+DirectoryMode.color.symlink      = #dfa000
+DiffMode.color.file              = #f57d26
+DiffMode.color.header            = #939f91
+DiffMode.color.inserted          = #8da101
+DiffMode.color.deleted           = #f85552
+DiffMode.color.changed           = #3a94c5
+
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 0
+style.keyword                    = 0
+style.function                   = 0

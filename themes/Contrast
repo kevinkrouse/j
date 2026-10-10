@@ -1,51 +1,105 @@
-# Contrast
-# Wally Brock
+# -*- Mode: Properties -*-
+# Contrast: black on white, for legibility
 
-color.text                    = 0   0   0
-color.background              = 255 255 255
-color.caret                   = 0   0   0
+# Editor
+color.text                       = #000000
+color.background                 = #ffffff
+color.currentLineBackground      = #eef2f7
+color.selectionBackground        = #b4cdf5
+color.searchMatchBackground      = #ffe57a
+color.matchingBracketBackground  = #9ed8f0
+color.caret                      = #000000
+color.verticalRule               = #eef2f7
+color.lineNumber                 = #555555
+color.gutterBorder               = #eef2f7
+color.change                     = #8a5a00
+color.savedChange                = #006b1a
+color.disabled                   = #555555
+color.matchingText               = #8a5a00
 
-color.selectionBackground     = 100 100 255
-color.preprocessor            = 0   185 0
-color.comment                 = 0   128 0
-color.keyword                 = 0   0   0
-color.brace                   = 0   0   0
-color.number                  = 0   0   0
-color.currentLineBackground   = 237 237 237
-color.function                = 0   0   140
-color.string                  = 255 0   0
-color.operator                = 0   0   0
-color.disabled                = 153 153 153
-ShellMode.color.prompt        = 0   64 255
-ShellMode.color.input         = 255 0  64
+# Syntax
+color.comment                    = #00701a
+color.keyword                    = #000000
+color.function                   = #00008c
+color.string                     = #b00000
+color.number                     = #8a3d00
+color.operator                   = #000000
+color.brace                      = #000000
+color.preprocessor               = #007a00
+color.delimiter                  = #000000
+color.key                        = #00008c
+color.value                      = #b00000
 
-HtmlMode.color.tag            =   0   0 153 
-HtmlMode.color.image          = 204 102   0 
-HtmlMode.color.anchor         =  51 153  51 
-HtmlMode.color.table          = 204   0   0 
-HtmlMode.color.tableRow       = 153   0   0 
-HtmlMode.color.tableData      = 153  51   0 
-HtmlMode.color.comment        = 128 128 128
-HtmlMode.color.script         =   0   0 255
+# Shared styles (see the Themes topic)
+color.heading                    = #00008c
+color.link                       = #0000cc
+color.code                       = #8a3d00
+color.quote                      = #00701a
+color.muted                      = #444444
+color.listMarker                 = #000000
+color.todo                       = #8a5a00
+color.inProgress                 = #5a0080
+color.inProgressMarker           = #0000cc
+color.done                       = #006b1a
+color.cancelled                  = #555555
+color.codeBackground             = #f2f2f2
 
-PerlMode.color.list           = 0   0   150
-PerlMode.color.scalar         = 0   0   255
+# Shells, mail and lists
+color.prompt                     = #006b1a
+color.input                      = #00008c
+color.status                     = #00701a
+color.headerName                 = #000000
+color.headerValue                = #000000
+color.signature                  = #00701a
+color.marked                     = #00008c
+color.registerHeader             = #00008c
+color.registerName               = #00008c
+MailboxMode.color.from           = #00008c
+MailboxMode.color.to             = #0000cc
+MailboxMode.color.date           = #00701a
+MailboxMode.color.subject        = #000000
+MailboxMode.color.size           = #00701a
+MailboxMode.color.flags          = #333333
+MailboxMode.color.deleted        = #555555
+MailboxMode.color.flaggedFrom    = #8a5a00
+MailboxMode.color.flaggedTo      = #8a5a00
+MailboxMode.color.flaggedSubject = #8a5a00
 
-MakefileMode.color.target     = 153 255 255
+# Modes
+LispMode.color.parenthesis       = #000000
+LispMode.color.punctuation       = #000000
+LispMode.color.secondaryKeyword  = #00008c
+LispMode.color.substitution      = #8a3d00
+XmlMode.color.tag                = #000000
+XmlMode.color.attribute          = #00008c
+XmlMode.color.delimiter          = #000000
+XmlMode.color.equals             = #000000
+XmlMode.color.namespace          = #5a0080
+HtmlMode.color.tag               = #000000
+HtmlMode.color.anchor            = #0000cc
+HtmlMode.color.image             = #8a3d00
+HtmlMode.color.table             = #5a0080
+HtmlMode.color.tableRow          = #5a0080
+HtmlMode.color.tableData         = #5a0080
+HtmlMode.color.script            = #007a00
+PHPMode.color.var                = #00008c
+PHPMode.color.tag                = #000000
+PHPMode.color.attribute          = #00008c
+PHPMode.color.delimiter          = #000000
+PHPMode.color.equals             = #000000
+PerlMode.color.scalar            = #00008c
+PerlMode.color.list              = #5a0080
+MakefileMode.color.target        = #00008c
+PropertiesMode.color.section     = #00008c
+DirectoryMode.color.directory    = #00008c
+DirectoryMode.color.symlink      = #5a0080
+DiffMode.color.file              = #00008c
+DiffMode.color.header            = #00701a
+DiffMode.color.inserted          = #006b1a
+DiffMode.color.deleted           = #c00000
+DiffMode.color.changed           = #8a5a00
 
-PropertiesMode.color.section  = 153 255 255
-
-DirectoryMode.color.directory = 0   0   255
-DirectoryMode.color.symlink   = 255 0   204
-DirectoryMode.color.marked    = 255 0   0
-
-# Font.PLAIN is 0, Font.BOLD is 1, Font.ITALIC is 2.
-style.operator                = 1
-style.text                    = 0
-style.keyword                 = 1
-style.function                = 1
-DirectoryMode.style.directory = 1
-DirectoryMode.style.marked    = 0
-ShellMode.style.prompt        = 0
-style.comment                 = 2
-
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 2
+style.keyword                    = 1
+style.function                   = 1

@@ -1,0 +1,129 @@
+# -*- Mode: Properties -*-
+# Nordfox
+#
+# From https://github.com/EdenEast/nightfox.nvim by EdenEast (MIT).
+
+# fg1            #cdcecf
+# bg1            #2e3440
+# bg3            #444c5e
+# sel0           #3e4a5b
+# sel1           #4f6074
+# bg2            #39404f
+# fg3            #7e8188
+# yellow         #ebcb8b
+# green          #a3be8c
+# comment        #60728a
+# magenta        #b48ead
+# blue.bright    #8cafd2
+# orange         #c9826b
+# fg2            #abb1bb
+# pink.bright    #d092ce
+# cyan           #88c0d0
+# orange.bright  #d89079
+# magenta.bright #c895bf
+# blue           #81a1c1
+# bg0            #232831
+# red            #bf616a
+
+# Editor
+color.text                       = #cdcecf
+color.background                 = #2e3440
+color.currentLineBackground      = #444c5e
+color.selectionBackground        = #3e4a5b
+color.searchMatchBackground      = #4f6074
+color.matchingBracketBackground  = #4f6074
+color.caret                      = #cdcecf
+color.verticalRule               = #39404f
+color.lineNumber                 = #7e8188
+color.gutterBorder               = #39404f
+color.change                     = #ebcb8b
+color.savedChange                = #a3be8c
+color.disabled                   = #7e8188
+color.matchingText               = #ebcb8b
+
+# Syntax
+color.comment                    = #60728a
+color.keyword                    = #b48ead
+color.function                   = #8cafd2
+color.string                     = #a3be8c
+color.number                     = #c9826b
+color.operator                   = #abb1bb
+color.brace                      = #abb1bb
+color.preprocessor               = #d092ce
+color.delimiter                  = #abb1bb
+color.key                        = #88c0d0
+color.value                      = #a3be8c
+
+# Shared styles (see the Themes topic)
+color.heading                    = #8cafd2
+color.link                       = #88c0d0
+color.code                       = #d89079
+color.quote                      = #60728a
+color.muted                      = #60728a
+color.listMarker                 = #c895bf
+color.todo                       = #ebcb8b
+color.inProgress                 = #b48ead
+color.inProgressMarker           = #81a1c1
+color.done                       = #a3be8c
+color.cancelled                  = #7e8188
+color.codeBackground             = #232831
+
+# Shells, mail and lists
+color.prompt                     = #a3be8c
+color.input                      = #88c0d0
+color.status                     = #60728a
+color.headerName                 = #b48ead
+color.headerValue                = #cdcecf
+color.signature                  = #60728a
+color.marked                     = #88c0d0
+color.registerHeader             = #8cafd2
+color.registerName               = #88c0d0
+MailboxMode.color.from           = #88c0d0
+MailboxMode.color.to             = #88c0d0
+MailboxMode.color.date           = #60728a
+MailboxMode.color.subject        = #cdcecf
+MailboxMode.color.size           = #60728a
+MailboxMode.color.flags          = #abb1bb
+MailboxMode.color.deleted        = #7e8188
+MailboxMode.color.flaggedFrom    = #ebcb8b
+MailboxMode.color.flaggedTo      = #ebcb8b
+MailboxMode.color.flaggedSubject = #ebcb8b
+
+# Modes
+LispMode.color.parenthesis       = #abb1bb
+LispMode.color.punctuation       = #abb1bb
+LispMode.color.secondaryKeyword  = #88c0d0
+LispMode.color.substitution      = #d89079
+XmlMode.color.tag                = #b48ead
+XmlMode.color.attribute          = #88c0d0
+XmlMode.color.delimiter          = #abb1bb
+XmlMode.color.equals             = #abb1bb
+XmlMode.color.namespace          = #ebcb8b
+HtmlMode.color.tag               = #b48ead
+HtmlMode.color.anchor            = #88c0d0
+HtmlMode.color.image             = #d89079
+HtmlMode.color.table             = #ebcb8b
+HtmlMode.color.tableRow          = #ebcb8b
+HtmlMode.color.tableData         = #ebcb8b
+HtmlMode.color.script            = #d092ce
+PHPMode.color.var                = #88c0d0
+PHPMode.color.tag                = #b48ead
+PHPMode.color.attribute          = #88c0d0
+PHPMode.color.delimiter          = #abb1bb
+PHPMode.color.equals             = #abb1bb
+PerlMode.color.scalar            = #88c0d0
+PerlMode.color.list              = #ebcb8b
+MakefileMode.color.target        = #8cafd2
+PropertiesMode.color.section     = #8cafd2
+DirectoryMode.color.directory    = #8cafd2
+DirectoryMode.color.symlink      = #ebcb8b
+DiffMode.color.file              = #8cafd2
+DiffMode.color.header            = #60728a
+DiffMode.color.inserted          = #a3be8c
+DiffMode.color.deleted           = #bf616a
+DiffMode.color.changed           = #ebcb8b
+
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 0
+style.keyword                    = 0
+style.function                   = 0

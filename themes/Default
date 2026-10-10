@@ -1,62 +1,105 @@
-# Default
+# -*- Mode: Properties -*-
+# Default: j classic, black on white
 
-color.text                    =   0   0   0
-color.background              = 255 255 255
-color.currentLineBackground   = 224 224 224
+# Editor
+color.text                       = #1f1f1f
+color.background                 = #ffffff
+color.currentLineBackground      = #eef1f6
+color.selectionBackground        = #c8d8f5
+color.searchMatchBackground      = #fff0a0
+color.matchingBracketBackground  = #bfe3f0
+color.caret                      = #1f1f1f
+color.verticalRule               = #eef1f6
+color.lineNumber                 = #9a9a9a
+color.gutterBorder               = #eef1f6
+color.change                     = #9a6700
+color.savedChange                = #1a7f37
+color.disabled                   = #9a9a9a
+color.matchingText               = #9a6700
 
-color.selectionBackground     = 204 204 255
-color.keyword                 =   0   0 128
-color.string                  = 128   0   0
-color.comment                 =   0 128   0 
-color.function                =   0   0   0
-color.operator                =   0   0 255 
-color.brace                   =   0 128 128 
-color.number                  = 128 128   0 
-color.preprocessor            = 255   0   0 
-color.disabled                = 128 128 128 
+# Syntax
+color.comment                    = #3a7a3a
+color.keyword                    = #1a3d8f
+color.function                   = #1f1f1f
+color.string                     = #a3321f
+color.number                     = #8a6d00
+color.operator                   = #2a56c6
+color.brace                      = #0e7c7b
+color.preprocessor               = #c0392b
+color.delimiter                  = #0e7c7b
+color.key                        = #1a3d8f
+color.value                      = #a3321f
 
-PerlMode.color.scalar         =   0   0   0
-PerlMode.color.list           =   0   0   0
+# Shared styles (see the Themes topic)
+color.heading                    = #1a3d8f
+color.link                       = #2a56c6
+color.code                       = #8a6d00
+color.quote                      = #3a7a3a
+color.muted                      = #6e7781
+color.listMarker                 = #1a3d8f
+color.todo                       = #9a6700
+color.inProgress                 = #6f42c1
+color.inProgressMarker           = #2a56c6
+color.done                       = #1a7f37
+color.cancelled                  = #9a9a9a
+color.codeBackground             = #f4f5f7
 
-ShellMode.color.prompt        =   0   0   0
-ShellMode.color.input         =   0   0 255
+# Shells, mail and lists
+color.prompt                     = #1a7f37
+color.input                      = #1a3d8f
+color.status                     = #3a7a3a
+color.headerName                 = #1a3d8f
+color.headerValue                = #1f1f1f
+color.signature                  = #3a7a3a
+color.marked                     = #1a3d8f
+color.registerHeader             = #1a3d8f
+color.registerName               = #1a3d8f
+MailboxMode.color.from           = #1a3d8f
+MailboxMode.color.to             = #2a56c6
+MailboxMode.color.date           = #3a7a3a
+MailboxMode.color.subject        = #1f1f1f
+MailboxMode.color.size           = #3a7a3a
+MailboxMode.color.flags          = #57606a
+MailboxMode.color.deleted        = #9a9a9a
+MailboxMode.color.flaggedFrom    = #9a6700
+MailboxMode.color.flaggedTo      = #9a6700
+MailboxMode.color.flaggedSubject = #9a6700
 
-XmlMode.color.attribute       = 128   0   0
-XmlMode.color.delimiter       =   0 128 128
-XmlMode.color.namespace       =   0   0   0
-XmlMode.color.tag             =   0   0   0
+# Modes
+LispMode.color.parenthesis       = #0e7c7b
+LispMode.color.punctuation       = #0e7c7b
+LispMode.color.secondaryKeyword  = #1a3d8f
+LispMode.color.substitution      = #8a6d00
+XmlMode.color.tag                = #1a3d8f
+XmlMode.color.attribute          = #1a3d8f
+XmlMode.color.delimiter          = #0e7c7b
+XmlMode.color.equals             = #2a56c6
+XmlMode.color.namespace          = #6f42c1
+HtmlMode.color.tag               = #1a3d8f
+HtmlMode.color.anchor            = #2a56c6
+HtmlMode.color.image             = #8a6d00
+HtmlMode.color.table             = #6f42c1
+HtmlMode.color.tableRow          = #6f42c1
+HtmlMode.color.tableData         = #6f42c1
+HtmlMode.color.script            = #c0392b
+PHPMode.color.var                = #1a3d8f
+PHPMode.color.tag                = #1a3d8f
+PHPMode.color.attribute          = #1a3d8f
+PHPMode.color.delimiter          = #0e7c7b
+PHPMode.color.equals             = #2a56c6
+PerlMode.color.scalar            = #1a3d8f
+PerlMode.color.list              = #6f42c1
+MakefileMode.color.target        = #1f1f1f
+PropertiesMode.color.section     = #1a3d8f
+DirectoryMode.color.directory    = #1f1f1f
+DirectoryMode.color.symlink      = #6f42c1
+DiffMode.color.file              = #1a3d8f
+DiffMode.color.header            = #3a7a3a
+DiffMode.color.inserted          = #1a7f37
+DiffMode.color.deleted           = #c0392b
+DiffMode.color.changed           = #9a6700
 
-HtmlMode.color.tag            =   0   0 153 
-HtmlMode.color.image          = 204 102   0 
-HtmlMode.color.anchor         =  51 153  51 
-HtmlMode.color.table          = 204   0   0 
-HtmlMode.color.tableRow       = 153   0   0 
-HtmlMode.color.tableData      = 153  51   0 
-HtmlMode.color.comment        = 128 128 128
-HtmlMode.color.script         =   0   0 255
-
-MakefileMode.color.target     = 255   0 255
-
-DirectoryMode.color.directory =   0   0   0
-DirectoryMode.color.symlink   =   0   0 255
-DirectoryMode.color.marked    = 255   0   0
-
-StatusMode.color.added          = 0 153 0
-StatusMode.color.deleted        = 176 130 130
-StatusMode.color.changed        = 0 0 255
-StatusMode.color.conflict       = 153 0 0
-StatusMode.color.unknown        = 180 180 180
-StatusMode.color.nochange       = 0 0 0
-StatusMode.color.ignored        = 190 204 204
-
-# Font.PLAIN is 0, Font.BOLD is 1, Font.ITALIC is 2.
-style.text                    = 0
-style.keyword                 = 1
-style.function                = 1
-DirectoryMode.style.directory = 1
-DirectoryMode.style.marked    = 1
-ShellMode.style.prompt        = 1
-style.comment                 = 2
-XmlMode.style.tag             = 1
-XmlMode.style.delimiter       = 1
-
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 2
+style.keyword                    = 1
+style.function                   = 1

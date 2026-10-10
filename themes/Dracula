@@ -1,0 +1,121 @@
+# -*- Mode: Properties -*-
+# Dracula
+#
+# From https://github.com/dracula/vim by Dracula Theme (MIT).
+
+# fg        #f8f8f2
+# bg        #282a36
+# subtle    #424450
+# selection #44475a
+# comment   #6272a4
+# bgdark    #21222c
+# orange    #ffb86c
+# green     #50fa7b
+# pink      #ff79c6
+# yellow    #f1fa8c
+# purple    #bd93f9
+# cyan      #8be9fd
+# red       #ff5555
+
+# Editor
+color.text                       = #f8f8f2
+color.background                 = #282a36
+color.currentLineBackground      = #424450
+color.selectionBackground        = #44475a
+color.searchMatchBackground      = #6272a4
+color.matchingBracketBackground  = #44475a
+color.caret                      = #f8f8f2
+color.verticalRule               = #21222c
+color.lineNumber                 = #6272a4
+color.gutterBorder               = #21222c
+color.change                     = #ffb86c
+color.savedChange                = #50fa7b
+color.disabled                   = #6272a4
+color.matchingText               = #ffb86c
+
+# Syntax
+color.comment                    = #6272a4
+color.keyword                    = #ff79c6
+color.function                   = #50fa7b
+color.string                     = #f1fa8c
+color.number                     = #bd93f9
+color.operator                   = #ff79c6
+color.brace                      = #f8f8f2
+color.preprocessor               = #ff79c6
+color.delimiter                  = #f8f8f2
+color.key                        = #50fa7b
+color.value                      = #f1fa8c
+
+# Shared styles (see the Themes topic)
+color.heading                    = #bd93f9
+color.link                       = #8be9fd
+color.code                       = #50fa7b
+color.quote                      = #6272a4
+color.muted                      = #6272a4
+color.listMarker                 = #8be9fd
+color.todo                       = #ffb86c
+color.inProgress                 = #bd93f9
+color.inProgressMarker           = #8be9fd
+color.done                       = #50fa7b
+color.cancelled                  = #6272a4
+color.codeBackground             = #21222c
+
+# Shells, mail and lists
+color.prompt                     = #50fa7b
+color.input                      = #50fa7b
+color.status                     = #6272a4
+color.headerName                 = #ff79c6
+color.headerValue                = #f8f8f2
+color.signature                  = #6272a4
+color.marked                     = #50fa7b
+color.registerHeader             = #bd93f9
+color.registerName               = #50fa7b
+MailboxMode.color.from           = #50fa7b
+MailboxMode.color.to             = #8be9fd
+MailboxMode.color.date           = #6272a4
+MailboxMode.color.subject        = #f8f8f2
+MailboxMode.color.size           = #6272a4
+MailboxMode.color.flags          = #6272a4
+MailboxMode.color.deleted        = #6272a4
+MailboxMode.color.flaggedFrom    = #ffb86c
+MailboxMode.color.flaggedTo      = #ffb86c
+MailboxMode.color.flaggedSubject = #ffb86c
+
+# Modes
+LispMode.color.parenthesis       = #f8f8f2
+LispMode.color.punctuation       = #f8f8f2
+LispMode.color.secondaryKeyword  = #50fa7b
+LispMode.color.substitution      = #bd93f9
+XmlMode.color.tag                = #ff79c6
+XmlMode.color.attribute          = #50fa7b
+XmlMode.color.delimiter          = #f8f8f2
+XmlMode.color.equals             = #ff79c6
+XmlMode.color.namespace          = #8be9fd
+HtmlMode.color.tag               = #ff79c6
+HtmlMode.color.anchor            = #8be9fd
+HtmlMode.color.image             = #bd93f9
+HtmlMode.color.table             = #8be9fd
+HtmlMode.color.tableRow          = #8be9fd
+HtmlMode.color.tableData         = #8be9fd
+HtmlMode.color.script            = #ff79c6
+PHPMode.color.var                = #50fa7b
+PHPMode.color.tag                = #ff79c6
+PHPMode.color.attribute          = #50fa7b
+PHPMode.color.delimiter          = #f8f8f2
+PHPMode.color.equals             = #ff79c6
+PerlMode.color.scalar            = #50fa7b
+PerlMode.color.list              = #8be9fd
+MakefileMode.color.target        = #50fa7b
+PropertiesMode.color.section     = #bd93f9
+DirectoryMode.color.directory    = #50fa7b
+DirectoryMode.color.symlink      = #8be9fd
+DiffMode.color.file              = #bd93f9
+DiffMode.color.header            = #6272a4
+DiffMode.color.inserted          = #50fa7b
+DiffMode.color.deleted           = #ff5555
+DiffMode.color.changed           = #ffb86c
+
+# 0 plain, 1 bold, 2 italic
+style.comment                    = 0
+style.keyword                    = 0
+style.function                   = 0

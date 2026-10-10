@@ -181,7 +181,7 @@ public class FormatTableTest {
 
     @Test
     public void aBuiltInStyleEndsItsChain() {
-        // A theme that says text is plain, as Bright does, leaves emphasis
+        // A theme that says text is plain, as Pastel does, leaves emphasis
         // italic: it takes only its color from text.
         set("style.text", "0");
         set("color.text", "7 8 9");
