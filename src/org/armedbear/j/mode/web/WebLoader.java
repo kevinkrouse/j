@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.armedbear.j.Debug;
+import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.ImageLink;
@@ -44,6 +45,7 @@ import org.armedbear.j.LineSequence;
 import org.armedbear.j.Link;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
+import org.armedbear.j.UIScale;
 import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.util.Tuple2;
 import org.armedbear.j.util.Utilities;
@@ -64,6 +66,7 @@ public final class WebLoader implements WebConstants {
     private final Map<String, Integer> refs = new HashMap<>();
     private int indentLevel;
     private File file;
+    private boolean showImages;
 
     public WebLoader(File file) {
         this.file = file;
@@ -74,6 +77,11 @@ public final class WebLoader implements WebConstants {
 
     public WebLoader(Reader reader) {
         this.reader = new PushbackReader(new BufferedReader(reader));
+    }
+
+    // Widen table columns to fit the images WebImages will draw in them.
+    public void setShowImages(boolean showImages) {
+        this.showImages = showImages;
     }
 
     public final Map<String, Integer> getRefs() {
@@ -322,32 +330,12 @@ public final class WebLoader implements WebConstants {
             h1 = false;
             return;
         }
-        if (
-            tagName == "h2"
-                ||
-                tagName == "h3"
-                ||
-                tagName == "h4"
-                ||
-                tagName == "h5"
-                ||
-                tagName == "h6"
-        ) {
+        if (tagName == "h2" || tagName == "h3" || tagName == "h4" || tagName == "h5" || tagName == "h6") {
             newLine();
             heading = true;
             return;
         }
-        if (
-            tagName == "/h2"
-                ||
-                tagName == "/h3"
-                ||
-                tagName == "/h4"
-                ||
-                tagName == "/h5"
-                ||
-                tagName == "/h6"
-        ) {
+        if (tagName == "/h2" || tagName == "/h3" || tagName == "/h4" || tagName == "/h5" || tagName == "/h6") {
             newLine();
             heading = false;
             return;
@@ -591,12 +579,10 @@ public final class WebLoader implements WebConstants {
                 if (httpEquiv.toLowerCase(Locale.ROOT).equals("content-type")) {
                     String contentType = getAttribute(attributes, "content");
                     if (contentType != null) {
-                        String charset =
-                            Utilities.getCharsetFromContentType(contentType);
+                        String charset = Utilities.getCharsetFromContentType(contentType);
                         Log.debug("charset = |" + charset + "|");
                         if (charset != null && charset.length() > 0) {
-                            String newEncoding =
-                                Utilities.getEncodingFromCharset(charset);
+                            String newEncoding = Utilities.getEncodingFromCharset(charset);
                             Log.debug("new encoding = " + newEncoding);
                             if (!newEncoding.equalsIgnoreCase(encoding))
                                 throw new EncodingChangeException(newEncoding);
@@ -701,6 +687,17 @@ public final class WebLoader implements WebConstants {
             }
         }
         if (imageLink != null) {
+            imageLink.setSize(w, h);
+            imageLink.setAnchor(link);
+            if (showImages
+                    && currentTable != null
+                    && currentTable.getColumnIndex() >= 0
+                    && Display.getCharWidth() > 0) {
+                // Room for the image in the column, so the cells after it
+                // start past it and the image's caption lines up under it.
+                final double px = w * UIScale.getScale();
+                currentTable.setColumnWidth((int) Math.ceil(px / Display.getCharWidth()) + 2);
+            }
             StringBuilder sb = new StringBuilder("[IMAGE");
             if (width != null && height != null) {
                 sb.append(' ');
@@ -1054,10 +1051,7 @@ public final class WebLoader implements WebConstants {
                         break;
                     case INVALID:
                         if (c == '>') {
-                            Log.error(
-                                "invalid tag |" + sb.toString() +
-                                    "| sourceOffset = " + sourceOffset
-                            );
+                            Log.error("invalid tag |" + sb.toString() + "| sourceOffset = " + sourceOffset);
                             return sb.toString();
                         }
                         break;
@@ -1428,7 +1422,11 @@ public final class WebLoader implements WebConstants {
         if (preformatted)
             return;
         int currentOffset = getCurrentOffset();
-        if (currentOffset > maxChars()) {
+        // A row of images can run past maxChars; don't wrap its cells.
+        int limit = maxChars();
+        if (currentTable != null && currentTable.getColumnIndex() >= 0)
+            limit = Math.max(limit, currentTable.getMinimumOffset() + currentTable.getColumnWidth());
+        if (currentOffset > limit) {
             int length = textBuffer.length();
 
             // Cumulative length of preceding segments.
@@ -1436,7 +1434,7 @@ public final class WebLoader implements WebConstants {
 
             final String text = textBuffer.toString();
             int index = text.lastIndexOf(' ');
-            while (index >= 0 && preceding + index > maxChars())
+            while (index >= 0 && preceding + index > limit)
                 index = text.lastIndexOf(' ', index - 1);
 
             if (index >= 0) {
@@ -1517,14 +1515,7 @@ public final class WebLoader implements WebConstants {
             if (maxChars() > length) {
                 int numSpaces = (maxChars() - length) / 2;
                 if (numSpaces > 0) {
-                    segments.addSegment(
-                        0,
-                        new HtmlLineSegment(
-                            Utilities.spaces(numSpaces),
-                            FORMAT_WHITESPACE,
-                            null
-                        )
-                    );
+                    segments.addSegment(0, new HtmlLineSegment(Utilities.spaces(numSpaces), FORMAT_WHITESPACE, null));
                     offset += numSpaces;
                 }
             }

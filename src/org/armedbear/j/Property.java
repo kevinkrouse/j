@@ -155,6 +155,7 @@ public final class Property implements Comparable<Property> {
     public static final Property USE_INCREMENTAL_FIND = createProperty("useIncrementalFind", false);
     public static final Property USE_MENU_MNEMONICS = createProperty("useMenuMnemonics", true);
     public static final Property USE_TABS = createProperty("useTabs", false);
+    public static final Property WEB_SHOW_IMAGES = createProperty("webShowImages", false);
     public static final Property WRAP = createProperty("wrap", false);
 
     // String properties with default values.

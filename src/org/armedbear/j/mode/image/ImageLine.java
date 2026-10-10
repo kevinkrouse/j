@@ -22,41 +22,66 @@ package org.armedbear.j.mode.image;
 
 import java.awt.Image;
 import java.awt.Rectangle;
+import java.util.List;
 import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Display;
 import org.armedbear.j.Line;
+import org.armedbear.j.Link;
 
+/**
+ * One line-high strip of one or more images. A tall image is drawn as a run of
+ * these, each showing the rows from {@code top} down.
+ */
 public final class ImageLine extends AbstractLine implements Line {
-    private Image image;
-    private final int imageHeight;
-    private final int imageWidth;
+    /**
+     * An image drawn x pixels in, scaled to width by height, and where a click
+     * on it goes (or null).
+     */
+    public record Placement(Image image, int x, int width, int height, Link link) {}
+
+    private final List<Placement> placements;
+    private final int top;
+    private final int stripHeight;
     private final int height;
-    private final Rectangle rect;
 
     public ImageLine(Image image, Rectangle r) {
-        this.image = image;
-        rect = new Rectangle(r);
-        height = Math.max(r.height, Display.getCharHeight());
-        ;
-        imageHeight = r.height;
-        imageWidth = r.width;
+        this(List.of(new Placement(image, r.x, r.width, image.getHeight(null), null)), r.y, r.height);
     }
 
-    public final Image getImage() {
-        return image;
+    public ImageLine(List<Placement> placements, int top, int stripHeight) {
+        this.placements = List.copyOf(placements);
+        this.top = top;
+        this.stripHeight = stripHeight;
+        height = Math.max(stripHeight, Display.getCharHeight());
     }
 
-    public final Rectangle getRect() {
-        return rect;
+    public final List<Placement> getPlacements() {
+        return placements;
     }
 
-    public final int getImageHeight() {
-        return imageHeight;
-
+    // How far into the images this strip starts.
+    public final int getTop() {
+        return top;
     }
 
-    public final int getImageWidth() {
-        return imageWidth;
+    public final int getStripHeight() {
+        return stripHeight;
+    }
+
+    // The placement drawn at x, or null.
+    public final Placement placementAt(int x) {
+        for (Placement p : placements) {
+            if (x >= p.x() && x < p.x() + p.width() && top < p.height())
+                return p;
+        }
+        return null;
+    }
+
+    // Frees the images. The strips of one picture share it, so this frees it
+    // for all of them.
+    public final void flushImage() {
+        for (Placement p : placements)
+            p.image().flush();
     }
 
     @Override
@@ -66,7 +91,10 @@ public final class ImageLine extends AbstractLine implements Line {
 
     @Override
     public final int getWidth() {
-        return getImageWidth();
+        int width = 0;
+        for (Placement p : placements)
+            width = Math.max(width, p.x() + p.width());
+        return width;
     }
 
     @Override
@@ -118,12 +146,5 @@ public final class ImageLine extends AbstractLine implements Line {
     @Override
     public final boolean isBlank() {
         return false;
-    }
-
-    public final void flushImage() {
-        if (image != null) {
-            image.flush();
-            image = null;
-        }
     }
 }

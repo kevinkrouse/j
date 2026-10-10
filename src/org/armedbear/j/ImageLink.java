@@ -20,22 +20,44 @@
 
 package org.armedbear.j;
 
-public final class ImageLink extends Link
-{
+public final class ImageLink extends Link {
     private String text;
+    private int width;
+    private int height;
+    private Link anchor;
 
-    public ImageLink(String target)
-    {
+    public ImageLink(String target) {
         super(target);
     }
 
-    public final String getText()
-    {
+    public final String getText() {
         return text;
     }
 
-    public final void setText(String text)
-    {
+    public final void setText(String text) {
         this.text = text;
+    }
+
+    // The size the page gives the image, in CSS pixels.
+    public final int getWidth() {
+        return width;
+    }
+
+    public final int getHeight() {
+        return height;
+    }
+
+    public final void setSize(int width, int height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    // The <a> the image is in, or null.
+    public final Link getAnchor() {
+        return anchor;
+    }
+
+    public final void setAnchor(Link anchor) {
+        this.anchor = anchor;
     }
 }

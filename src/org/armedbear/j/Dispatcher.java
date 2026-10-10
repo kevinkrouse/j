@@ -61,11 +61,12 @@ import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 
 public final class Dispatcher implements KeyListener, MouseListener, MouseMotionListener, ActionListener,
-    DragGestureListener, DragSourceListener, DropTargetListener {
+        DragGestureListener, DragSourceListener, DropTargetListener {
     // For IdleThread.run.
     private static volatile long lastEventMillis = System.currentTimeMillis();
 
@@ -104,11 +105,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
         if (!GraphicsEnvironment.isHeadless()) {
             dragSource = DragSource.getDefaultDragSource();
-            dragSource.createDefaultDragGestureRecognizer(
-                display,
-                DnDConstants.ACTION_COPY_OR_MOVE,
-                this
-            );
+            dragSource.createDefaultDragGestureRecognizer(display, DnDConstants.ACTION_COPY_OR_MOVE, this);
         }
     }
 
@@ -221,13 +218,10 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         int keycode = e.getKeyCode();
 
         // Ignore modifier keystrokes.
-        if (
-            keycode == KeyEvent.VK_SHIFT
+        if (keycode == KeyEvent.VK_SHIFT
                 || keycode == KeyEvent.VK_CONTROL
-                ||
-                keycode == KeyEvent.VK_ALT
-                || keycode == KeyEvent.VK_META
-        )
+                || keycode == KeyEvent.VK_ALT
+                || keycode == KeyEvent.VK_META)
             return false;
 
         int modifiers = Keys.keyModifiers(e);
@@ -241,14 +235,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             Log.debug("character = 0x" + Integer.toString((int) c, 16));
         }
 
-        boolean handled = editor.handleJEvent(
-            new JEvent(
-                JEvent.KEY_PRESSED,
-                keycode,
-                c,
-                modifiers
-            )
-        );
+        boolean handled = editor.handleJEvent(new JEvent(JEvent.KEY_PRESSED, keycode, c, modifiers));
 
         if (handled) {
             ignoreKeyTyped = true;
@@ -271,8 +258,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         if (ignoreKeyTyped)
             return false;
 
-        final boolean altGraph =
-            (e.getModifiersEx() & InputEvent.ALT_GRAPH_DOWN_MASK) != 0;
+        final boolean altGraph = (e.getModifiersEx() & InputEvent.ALT_GRAPH_DOWN_MASK) != 0;
         int modifiers = Keys.keyModifiers(e);
 
         if (!altGraph && modifiers != 0 && modifiers != SHIFT_MASK)
@@ -280,14 +266,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
         char c = e.getKeyChar();
 
-        boolean handled = editor.handleJEvent(
-            new JEvent(
-                JEvent.KEY_TYPED,
-                0,
-                c,
-                0
-            )
-        );
+        boolean handled = editor.handleJEvent(new JEvent(JEvent.KEY_TYPED, 0, c, 0));
 
         Buffer buffer = editor.getBuffer();
 
@@ -430,8 +409,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
                 sidebar.setUpdateFlag(SIDEBAR_SET_BUFFER);
         }
         // A plain left click, with no keyboard modifier.
-        final boolean plainButton1 =
-            e.getButton() == MouseEvent.BUTTON1 && Keys.isUnmodified(e);
+        final boolean plainButton1 = e.getButton() == MouseEvent.BUTTON1 && Keys.isUnmodified(e);
         JPopupMenu popup = editor.getPopup();
         if (popup != null) {
             if (popup.isVisible()) {
@@ -550,14 +528,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         }
         if (keycode == 0)
             return false;
-        return editor.handleJEvent(
-            new JEvent(
-                JEvent.MOUSE_PRESSED,
-                keycode,
-                (char) 0,
-                modifiers
-            )
-        );
+        return editor.handleJEvent(new JEvent(JEvent.MOUSE_PRESSED, keycode, (char) 0, modifiers));
     }
 
     @Override
@@ -572,8 +543,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     // How long Ctrl is held before the link under a still mouse shows.
     private static final int HOVER_DELAY = 250;
 
-    private final javax.swing.Timer hoverTimer =
-        new javax.swing.Timer(HOVER_DELAY, e -> showLinkAt(lastMousePoint));
+    private final javax.swing.Timer hoverTimer = new javax.swing.Timer(HOVER_DELAY, e -> showLinkAt(lastMousePoint));
     {
         hoverTimer.setRepeats(false);
     }
@@ -588,13 +558,9 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     private TextLink linkAt(Position pos) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
-        if (
-            line == hoverAskedLine
+        if (line == hoverAskedLine
                 && (offset == hoverAskedOffset
-                    || hoverAnswer != null
-                        && hoverAnswer.getBegin() <= offset
-                        && offset < hoverAnswer.getEnd())
-        )
+                        || hoverAnswer != null && hoverAnswer.getBegin() <= offset && offset < hoverAnswer.getEnd()))
             return hoverAnswer;
         hoverAskedLine = line;
         hoverAskedOffset = offset;
@@ -637,6 +603,15 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         }
         final Buffer buffer = editor.getBuffer();
         final Position pos = display.positionFromPoint(e.getPoint());
+        if (pos != null && pos.getLine() instanceof ImageLine imageLine && !buffer.isBusy()) {
+            // A position on an image line has no column, so find the image
+            // under the pointer here.
+            final ImageLine.Placement p = imageLine.placementAt(e.getX() - display.getImageLineX());
+            final Link link = p != null ? p.link() : null;
+            editor.status(link != null ? link.getTarget() : "");
+            editor.setCursor(Cursor.getPredefinedCursor(link != null ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+            return;
+        }
         final String contextString = buffer.getMode().getMouseMovedContextString(editor, pos);
         if (contextString != null) {
             // Context string will be "" rather than null if we should clear
@@ -663,10 +638,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         final int ex = e.getModifiersEx();
         if ((ex & InputEvent.BUTTON1_DOWN_MASK) == 0)
             return false;
-        if (
-            (ex & (InputEvent.BUTTON2_DOWN_MASK
-                | InputEvent.BUTTON3_DOWN_MASK)) != 0
-        )
+        if ((ex & (InputEvent.BUTTON2_DOWN_MASK | InputEvent.BUTTON3_DOWN_MASK)) != 0)
             return false;
         if (!Keys.isUnmodified(e))
             return false;
@@ -815,8 +787,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         event.acceptDrop(DnDConstants.ACTION_LINK);
         try {
             @SuppressWarnings("unchecked")
-            List<java.io.File> files =
-                (List<java.io.File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+            List<java.io.File> files = (List<java.io.File>) t.getTransferData(DataFlavor.javaFileListFlavor);
             for (java.io.File dropped : files) {
                 String path = dropped.getPath();
                 Buffer buffer = editor.openFile(File.getInstance(path));
@@ -837,11 +808,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
     private void acceptTextDrop(DropTargetDropEvent event, Transferable t) {
         final int dropAction = event.getDropAction(); // copy = 1, move = 2
-        if (
-            dropAction != DnDConstants.ACTION_COPY
-                &&
-                dropAction != DnDConstants.ACTION_MOVE
-        ) {
+        if (dropAction != DnDConstants.ACTION_COPY && dropAction != DnDConstants.ACTION_MOVE) {
             // Not copy or move.
             event.rejectDrop();
             return;
@@ -853,8 +820,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         // Copy or move.
         try {
             event.acceptDrop(dropAction);
-            final String s =
-                (String) t.getTransferData(DataFlavor.stringFlavor);
+            final String s = (String) t.getTransferData(DataFlavor.stringFlavor);
             final Point point = event.getLocation();
             Position posDrop = display.positionFromPoint(point);
             boolean ok = false;
@@ -949,8 +915,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             if (!pos.isBefore(r.getEnd()))
                 return;
             dragTextRegion = r;
-            Transferable transferable =
-                new StringSelection(dragTextRegion.toString());
+            Transferable transferable = new StringSelection(dragTextRegion.toString());
             isLineRegion = dragTextRegion.isLineRegion();
             inDragText = true;
             int action = event.getDragAction();
@@ -1044,14 +1009,9 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             // the rest of the interface uses.
             Dimension size = toolkit.getBestCursorSize(32, 32);
             if (size.width > 0 && size.height > 0) {
-                ImageIcon icon =
-                    Icons.getIconFromFile(iconName, size.width);
+                ImageIcon icon = Icons.getIconFromFile(iconName, size.width);
                 if (icon != null)
-                    cursor = toolkit.createCustomCursor(
-                        icon.getImage(),
-                        new Point(1, 1),
-                        name
-                    );
+                    cursor = toolkit.createCustomCursor(icon.getImage(), new Point(1, 1), name);
             }
         }
         catch (RuntimeException e) {

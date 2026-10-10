@@ -35,6 +35,7 @@ import java.util.Map;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
+import org.armedbear.j.Directories;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.ErrorRunnable;
@@ -53,6 +54,7 @@ import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
+import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.TextLine;
@@ -218,7 +220,14 @@ public final class WebBuffer extends Buffer implements WebConstants {
     @Override
     protected void loadFile(File localFile) {
         WebLoader loader = new WebLoader(localFile);
-        LineSequence lines = loader.load();
+        // Images resolve against the page being loaded, which isn't getFile()
+        // yet. A remote page arrives as a download in the temp directory;
+        // its images aren't local.
+        final File parent = localFile.getParentFile();
+        final File dir = parent != null && !parent.equals(Directories.getTempDirectory()) ? parent : null;
+        final boolean showImages = dir != null && Editor.preferences().getBooleanProperty(Property.WEB_SHOW_IMAGES);
+        loader.setShowImages(showImages);
+        final LineSequence lines = showImages ? WebImages.expand(loader.load(), loader.getRefs(), dir) : loader.load();
         if (lines != null) {
             if (!withWriteLock(() -> {
                 setFirstLine(lines.getFirstLine());
@@ -259,8 +268,16 @@ public final class WebBuffer extends Buffer implements WebConstants {
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent mouseEvent)
+        if (e instanceof MouseEvent mouseEvent) {
             editor.mouseMoveDotToPoint(mouseEvent);
+            if (editor.getDotLine() instanceof ImageLine imageLine) {
+                final ImageLine.Placement p =
+                        imageLine.placementAt(mouseEvent.getX() - editor.getDisplay().getImageLineX());
+                if (p != null && p.link() != null && editor.getBuffer() instanceof WebBuffer wb && wb.getFile() != null)
+                    follow(editor, wb, p.link(), null);
+                return;
+            }
+        }
         followLink(true);
     }
 
@@ -274,10 +291,6 @@ public final class WebBuffer extends Buffer implements WebConstants {
         final Line dotLine = editor.getDotLine();
         if (!(dotLine instanceof WebLine webLine))
             return;
-
-        final File historyFile = wb.getFile();
-        final int historyOffset = wb.getAbsoluteOffset(editor.getDot());
-        final String historyContentType = wb.getContentType();
 
         final int dotOffset = editor.getDotOffset();
 
@@ -296,6 +309,15 @@ public final class WebBuffer extends Buffer implements WebConstants {
         if (link == null)
             return;
         Debug.assertTrue(link == segment.getLink());
+        follow(editor, wb, link, segment);
+    }
+
+    // Goes to link; segment is the text it was in, if any.
+    private static void follow(Editor editor, WebBuffer wb, Link link, HtmlLineSegment segment) {
+        final File historyFile = wb.getFile();
+        final int historyOffset = wb.getAbsoluteOffset(editor.getDot());
+        final String historyContentType = wb.getContentType();
+        final Line dotLine = editor.getDotLine();
         // CTRL-O comes back here.
         editor.recordJump();
         final String target = link.getTarget();

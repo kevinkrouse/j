@@ -1283,39 +1283,41 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     private void paintImageLine(ImageLine imageLine, Graphics g, int y) {
-        final int displayWidth = getWidth();
         final int lineHeight = imageLine.getHeight();
-        final int imageWidth = imageLine.getImageWidth();
-        final int imageHeight = imageLine.getImageHeight();
-        final int x = gutterWidth - shift * charWidth;
+        final int x = getImageLineX();
 
         Color backgroundColor;
         if (imageLine == getCurrentLine())
             backgroundColor = editor.getFormatter().getCurrentLineBackgroundColor();
         else
             backgroundColor = editor.getFormatter().getBackgroundColor();
-
         g.setColor(backgroundColor);
-        // Left.
-        g.fillRect(0, y, x, lineHeight);
-        // Right.
-        g.fillRect(x + imageWidth, y, displayWidth - (x + imageWidth), lineHeight);
-        // Bottom.
-        if (imageHeight < lineHeight)
-            g.fillRect(0, y + imageHeight, displayWidth, lineHeight - imageHeight);
+        g.fillRect(0, y, getWidth(), lineHeight);
 
-        Rectangle rect = imageLine.getRect();
-        g.drawImage(
-            imageLine.getImage(),
-            x,
-            y,
-            x + rect.width,
-            y + rect.height,
-            rect.x,
-            rect.y,
-            rect.x + rect.width,
-            rect.y + rect.height,
-            null);
+        final Graphics2D g2d = (Graphics2D) g;
+        final Object interpolation = g2d.getRenderingHint(RenderingHints.KEY_INTERPOLATION);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        final int top = imageLine.getTop();
+        for (ImageLine.Placement p : imageLine.getPlacements()) {
+            if (top >= p.height())
+                continue;
+            final Image image = p.image();
+            final int w = image.getWidth(null);
+            final int h = image.getHeight(null);
+            final int strip = Math.min(imageLine.getStripHeight(), p.height() - top);
+            // The strip's rows in the image's own pixels, which may be more
+            // than the logical pixels it is drawn in.
+            final int sy1 = (int) ((long) top * h / p.height());
+            final int sy2 = (int) ((long) (top + strip) * h / p.height());
+            g.drawImage(image, x + p.x(), y, x + p.x() + p.width(), y + strip, 0, sy1, w, sy2, null);
+        }
+        if (interpolation != null)
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolation);
+    }
+
+    // Where an image line's placements are measured from.
+    public int getImageLineX() {
+        return gutterWidth - shift * charWidth;
     }
 
     private void drawBackgroundForLine(Graphics2D g2d, Color backgroundColor, Line line, int y) {
