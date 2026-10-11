@@ -78,23 +78,13 @@ public abstract class VersionControl {
         return -1;
     }
 
-    protected static void diffCompleted(
-        Editor editor,
-        Buffer parentBuffer,
-        String title,
-        String output,
-        int vcType
-    ) {
+    protected static void diffCompleted(Editor editor, Buffer parentBuffer, String title, String output, int vcType) {
         if (output.length() == 0) {
             parentBuffer.setBusy(false);
-            MessageDialog.showMessageDialog(
-                editor,
-                "No changes since latest version",
-                parentBuffer.getFile().getName()
-            );
+            MessageDialog
+                    .showMessageDialog(editor, "No changes since latest version", parentBuffer.getFile().getName());
         } else {
-            DiffOutputBuffer buf =
-                new DiffOutputBuffer(parentBuffer, output, vcType);
+            DiffOutputBuffer buf = new DiffOutputBuffer(parentBuffer, output, vcType);
             buf.setTitle(title);
             editor.makeNext(buf);
             editor.activateInOtherWindow(buf);
@@ -120,14 +110,13 @@ public abstract class VersionControl {
     }
 
     protected static void vcsCompleted(
-        Editor editor,
-        Buffer buffer,
-        boolean diff,
-        String title,
-        String output,
-        int vcType,
-        boolean checkVCS
-    ) {
+            Editor editor,
+            Buffer buffer,
+            boolean diff,
+            String title,
+            String output,
+            int vcType,
+            boolean checkVCS) {
         if (output != null && output.length() > 0) {
             Buffer buf;
             if (diff)
@@ -208,8 +197,8 @@ public abstract class VersionControl {
     /** Runs cmd in the shell in the background, then onDone with its output on the event thread. */
     protected static void commandAsync(String cmd, File workingDirectory, Consumer<String> onDone) {
         ProcessRunner.shell(cmd)
-            .directory(workingDirectory)
-            .runAsync("version control", r -> onDone.accept(r.output()));
+                .directory(workingDirectory)
+                .runAsync("version control", r -> onDone.accept(r.output()));
     }
 
     protected static String command(String cmd, File workingDirectory) {
