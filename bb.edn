@@ -22,6 +22,7 @@
   run        {:doc "Run J from build/classes"                :task (build/run {})
               :override-builtin true}
   run-core   {:doc "Run J with no extension loaded"          :task (build/run-core {})}
+  run-wayland {:doc "Run J on the JetBrains Runtime's Wayland toolkit" :task (build/run-wayland {})}
   test       {:doc "Build and run unit tests"                :task (build/test {})}
   vim-conformance {:doc "Regenerate the vim conformance corpus from a vim_test.js"
                    :task (load-file "tools/vim-conformance.clj")}

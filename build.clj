@@ -281,6 +281,31 @@
           :main-args (cons "--no-extensions" j-args)})
   opts)
 
+(defn- jbr-home
+  "The JetBrains Runtime: $JBR_HOME, or the flake's jbr package."
+  []
+  (or (System/getenv "JBR_HOME")
+      (when (fs/which "nix")
+        (let [{:keys [exit out]} (shell {:out :string :continue true}
+                                        "nix" "build" "--no-link" "--print-out-paths" ".#jbr")]
+          (when (zero? exit)
+            (str/trim out))))
+      (throw (ex-info "No JetBrains Runtime: set JBR_HOME, or install nix to build the flake's jbr package" {}))))
+
+(defn run-wayland
+  "Run J as run does, but on the JetBrains Runtime's own Wayland toolkit rather
+  than through XWayland, which turns a touchpad's smooth scrolling into clicks.
+  The toolkit is experimental: windows cannot place themselves, for one."
+  [opts]
+  (extensions opts)
+  (java! {:basis     (basis)
+          :java-cmd  (str (fs/path (jbr-home) "bin" "java"))
+          :cp        [(abs-path classes-dir)]
+          :java-opts (conj debug-opts "-Dawt.toolkit.name=WLToolkit")
+          :main      'Main
+          :main-args j-args})
+  opts)
+
 (defn run-swingexplorer "Run J under SwingExplorer."
   [opts]
   (build opts)

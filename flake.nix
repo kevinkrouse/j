@@ -19,6 +19,14 @@
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
     in
     {
+      # The JetBrains Runtime, for `bb run-wayland`: its Wayland toolkit gives
+      # J a touchpad's smooth scrolling, which XWayland reduces to clicks.
+      # Not in the shell, so only those who run it download it. Linux only,
+      # as nixpkgs' JBR and the Wayland toolkit are.
+      packages = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: {
+        jbr = nixpkgs.legacyPackages.${system}.jetbrains.jdk;
+      });
+
       devShells = forAllSystems (pkgs:
         let
           inherit (pkgs) lib;
