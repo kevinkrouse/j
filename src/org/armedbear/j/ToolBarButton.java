@@ -31,15 +31,10 @@ import javax.swing.JButton;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
-public final class ToolBarButton extends JButton implements ActionListener,
-    MouseListener {
+public final class ToolBarButton extends JButton implements ActionListener, MouseListener {
     private Frame frame;
 
-    public ToolBarButton(
-        Frame frame,
-        String actionCommand,
-        ActionListener listener
-    ) {
+    public ToolBarButton(Frame frame, String actionCommand, ActionListener listener) {
         super();
         this.frame = frame;
         addMouseListener(this);
@@ -58,13 +53,13 @@ public final class ToolBarButton extends JButton implements ActionListener,
             // bitmap, so it may need resizing.
             icon = new ImageIcon(filename);
             if (icon.getIconWidth() != size || icon.getIconHeight() != size) {
-                Image image =
-                    icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
+                Image image = icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
                 icon = new ImageIcon(image);
             }
         } else {
             // One of j's own icons: drawn at exactly the size asked for.
             icon = Icons.getIconFromFile(filename, size);
+            setDisabledIcon(Icons.getDisabledIcon(icon));
         }
         if (icon != null)
             setIcon(icon);

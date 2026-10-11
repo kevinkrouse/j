@@ -15,8 +15,14 @@ package org.armedbear.j.util;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.AbstractMultiResolutionImage;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.function.BiConsumer;
+import javax.swing.GrayFilter;
 import javax.swing.ImageIcon;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Log;
@@ -32,13 +38,11 @@ public final class Icons {
     public static final int ICON_SIZE = 16;
 
     // Geometry, parsed once per icon and shared by every size and color.
-    private static final HashMap<String, SvgIcon> svgCache =
-        new HashMap<>();
+    private static final HashMap<String, SvgIcon> svgCache = new HashMap<>();
 
     // Painted icons, keyed by name + badges and size. Renderers ask for an icon
     // on every row of every repaint, so this is the cache that matters.
-    private static final HashMap<String, ImageIcon> iconCache =
-        new HashMap<>();
+    private static final HashMap<String, ImageIcon> iconCache = new HashMap<>();
 
     private static Color iconColor;
 
@@ -58,18 +62,8 @@ public final class Icons {
         ImageIcon icon = null;
         try {
             SvgIcon svg = getSvgIcon(name);
-            if (svg != null) {
-                BufferedImage image =
-                    new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2d = image.createGraphics();
-                try {
-                    svg.paint(g2d, size);
-                }
-                finally {
-                    g2d.dispose();
-                }
-                icon = new ImageIcon(image);
-            }
+            if (svg != null)
+                icon = new ImageIcon(new VectorImage(size, svg::paint));
         }
         catch (Throwable t) {
             Log.error(t);
@@ -94,11 +88,7 @@ public final class Icons {
         return getBadgedIcon(UIScale.scale(ICON_SIZE), base, badges);
     }
 
-    public static synchronized ImageIcon getBadgedIcon(
-        int size,
-        String base,
-        String... badges
-    ) {
+    public static synchronized ImageIcon getBadgedIcon(int size, String base, String... badges) {
         if (size <= 0 || base == null)
             return null;
         StringBuilder sb = new StringBuilder(base);
@@ -115,27 +105,20 @@ public final class Icons {
         try {
             SvgIcon baseIcon = getSvgIcon(base);
             if (baseIcon != null) {
-                BufferedImage image =
-                    new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2d = image.createGraphics();
-                try {
-                    baseIcon.paint(g2d, size);
-                    for (int i = 0; i < badges.length; i++) {
-                        if (badges[i] == null)
-                            continue;
-                        SvgIcon badge = getSvgIcon(badges[i]);
-                        if (badge == null)
-                            continue;
+                final List<SvgIcon> badgeIcons = new ArrayList<>();
+                for (int i = 0; i < badges.length; i++) {
+                    if (badges[i] != null && getSvgIcon(badges[i]) != null)
+                        badgeIcons.add(getSvgIcon(badges[i]));
+                }
+                icon = new ImageIcon(new VectorImage(size, (g2d, pixels) -> {
+                    baseIcon.paint(g2d, pixels);
+                    for (SvgIcon badge : badgeIcons) {
                         g2d.setComposite(AlphaComposite.Clear);
-                        badge.paintOutline(g2d, size, BADGE_GAP);
+                        badge.paintOutline(g2d, pixels, BADGE_GAP);
                         g2d.setComposite(AlphaComposite.SrcOver);
-                        badge.paint(g2d, size);
+                        badge.paint(g2d, pixels);
                     }
-                }
-                finally {
-                    g2d.dispose();
-                }
-                icon = new ImageIcon(image);
+                }));
             }
         }
         catch (Throwable t) {
@@ -173,6 +156,80 @@ public final class Icons {
             }
         }
         return iconColor;
+    }
+
+    /**
+     * The grayed out icon a disabled button shows. Swing would make one from
+     * the icon's 16 pixel bitmap, which blurs when the window is scaled.
+     */
+    public static synchronized ImageIcon getDisabledIcon(ImageIcon icon) {
+        if (icon == null || !(icon.getImage() instanceof VectorImage image))
+            return null;
+        if (image.disabled != null)
+            return image.disabled;
+        final GrayFilter filter = new GrayFilter(true, 50);
+        image.disabled = new ImageIcon(new VectorImage(image.size, (g2d, pixels) -> {
+            final BufferedImage gray = image.variant(pixels);
+            final int[] rgb = gray.getRGB(0, 0, pixels, pixels, null, 0, pixels);
+            for (int i = 0; i < rgb.length; i++)
+                rgb[i] = filter.filterRGB(0, 0, rgb[i]);
+            final BufferedImage out = new BufferedImage(pixels, pixels, BufferedImage.TYPE_INT_ARGB);
+            out.setRGB(0, 0, pixels, pixels, rgb, 0, pixels);
+            g2d.drawImage(out, 0, 0, null);
+        }));
+        return image.disabled;
+    }
+
+    /**
+     * An icon drawn afresh at the size it is shown at in device pixels, so
+     * that it stays sharp when the JDK scales the window, as it does at 2x or
+     * under Wayland, rather than being a 16 pixel bitmap stretched to fit.
+     */
+    private static final class VectorImage extends AbstractMultiResolutionImage {
+        private final int size;
+        private final BiConsumer<Graphics2D, Integer> painter;
+        // Drawn so far, by size in pixels.
+        private final HashMap<Integer, BufferedImage> variants = new HashMap<>();
+        // Its grayed out self, made when first asked for.
+        ImageIcon disabled;
+
+        VectorImage(int size, BiConsumer<Graphics2D, Integer> painter) {
+            this.size = size;
+            this.painter = painter;
+        }
+
+        @Override
+        protected Image getBaseImage() {
+            return variant(size);
+        }
+
+        @Override
+        public Image getResolutionVariant(double width, double height) {
+            return variant((int) Math.ceil(Math.max(width, height) - 0.01));
+        }
+
+        @Override
+        public synchronized List<Image> getResolutionVariants() {
+            variant(size);
+            return new ArrayList<>(variants.values());
+        }
+
+        private synchronized BufferedImage variant(int pixels) {
+            final int key = Math.max(1, pixels);
+            BufferedImage image = variants.get(key);
+            if (image == null) {
+                image = new BufferedImage(key, key, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2d = image.createGraphics();
+                try {
+                    painter.accept(g2d, key);
+                }
+                finally {
+                    g2d.dispose();
+                }
+                variants.put(key, image);
+            }
+            return image;
+        }
     }
 
     /** Called when uiScale, the theme, or any other icon input changes. */
