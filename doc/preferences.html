@@ -678,6 +678,17 @@ can be seen in the console window from which j was started.
 <b>See also:</b> <a href="logging.html">Logging</a>
 </dl>
 
+<code><a name="debugScrollTiming">debugScrollTiming</a></code>
+<dl>
+<dd>
+If true, each <a href="#smoothScrolling">smooth scroll</a> writes to the log
+what it cost: for each click of the wheel, the time since the last one, how
+long it eased and how far behind the window was; and at the end, how many
+frames there were, the time between them and the time each took to draw.
+<p>
+<b>Default value:</b> false
+</dl>
+
 <code><a name="defaultEncoding">defaultEncoding</a></code>
 <dl>
 <dd>
@@ -1455,6 +1466,31 @@ When the log file exceeds its maximum size, it is rolled over to the file
 <a href="#Log.maxBackupIndex">Log.maxBackupIndex</a>
 </dl>
 
+<code><a name="momentumScrolling">momentumScrolling</a></code>
+<dl>
+<dd>
+After a quick flick of a touchpad, scrolling goes on by itself and slows
+to a stop. A touchpad is known by its scrolling in fractions of a click,
+which under XWayland it does not do: there it scrolls in clicks, as a mouse
+wheel does, and does not coast. Any key, click or more scrolling stops it.
+<p>
+<b>Default value:</b> true
+<p>
+<b>See also:</b> <a href="#momentumScrollingDuration">momentumScrollingDuration</a>,
+<a href="#smoothScrolling">smoothScrolling</a>
+</dl>
+
+<code><a name="momentumScrollingDuration">momentumScrollingDuration</a></code>
+<dl>
+<dd>
+How long, in milliseconds, scrolling goes on after a flick when
+<a href="#momentumScrolling">momentumScrolling</a> is on. The coast
+starts at the flick's speed and slows to a stop in this time, so a longer
+one also goes further.
+<p>
+<b>Default value:</b> 500
+</dl>
+
 <code><a name="nntpReadTimeout">nntpReadTimeout</a></code>
 <dl>
 <dd>
@@ -1760,6 +1796,37 @@ If true, line numbers are displayed in the edit window.
 <a href="#gutterFontSize">gutterFontSize</a>,
 <a href="#color.gutterBorder">color.gutterBorder</a>,
 <a href="#color.lineNumber">color.lineNumber</a>
+</dl>
+
+<code><a name="smoothScrolling">smoothScrolling</a></code>
+<dl>
+<dd>
+If true, scrolling eases into place instead of jumping: a command that
+scrolls the window without changing the buffer, such as
+<a href="commands.html#pageDown">pageDown</a>,
+<a href="commands.html#toCenter">toCenter</a> or a search, over
+<a href="#smoothScrollingDuration">smoothScrollingDuration</a> milliseconds,
+and a click of the mouse wheel over
+<a href="#wheelScrollDuration">wheelScrollDuration</a>. A scroll of more
+than a couple of windows eases over only the last window's height. Wheel
+clicks that come quickly ease for less time, twice the time between them, so
+a fast wheel is followed closely and stops soon after it does. A touchpad
+that reports fractions of a click, and a command that scrolls a single
+line, such as <a href="commands.html#windowDown">windowDown</a>, move at
+once.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="smoothScrollingDuration">smoothScrollingDuration</a></code>
+<dl>
+<dd>
+How long, in milliseconds, a command's scroll takes when
+<a href="#smoothScrolling">smoothScrolling</a> is true: a page, say, or a
+search. The mouse wheel has its own,
+<a href="#wheelScrollDuration">wheelScrollDuration</a>.
+<p>
+<b>Default value:</b> 250
 </dl>
 
 <code><a name="sortBufferList">sortBufferList</a></code>
@@ -2220,6 +2287,26 @@ images whose page gives no width and height, still show as links.
 <b>Default value:</b> false
 <p>
 <b>See also:</b> <a href="themes/index.html">Theme Catalog</a>
+</dl>
+
+<code><a name="wheelScrollDuration">wheelScrollDuration</a></code>
+<dl>
+<dd>
+How long, in milliseconds, one click of the mouse wheel takes to scroll when
+<a href="#smoothScrolling">smoothScrolling</a> is true. Clicks that come
+quickly take less. Zero scrolls at once.
+<p>
+<b>Default value:</b> 60
+</dl>
+
+<code><a name="wheelScrollLines">wheelScrollLines</a></code>
+<dl>
+<dd>
+The number of lines one click of the mouse wheel scrolls. Zero means as many
+as the system says, which may be a page; a touchpad scrolls by the pixel
+either way.
+<p>
+<b>Default value:</b> 0
 </dl>
 
 <code><a name="wrapCol">wrapCol</a></code>

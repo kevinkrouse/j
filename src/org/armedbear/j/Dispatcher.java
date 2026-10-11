@@ -151,12 +151,14 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             case KeyEvent.KEY_RELEASED:
                 break;
             case MouseEvent.MOUSE_PRESSED:
+                display.stopScrolling();
                 handled = dispatchMousePressed((MouseEvent) e);
                 break;
             case MouseEvent.MOUSE_DRAGGED:
                 handled = dispatchMouseDragged((MouseEvent) e);
                 break;
             case ActionEvent.ACTION_PERFORMED:
+                display.beginCommand();
                 handled = dispatchActionPerformed((ActionEvent) e);
                 break;
         }
@@ -165,6 +167,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             eventHandled();
         else
             setLastEventMillis(System.currentTimeMillis());
+        display.forgetCommand();
     }
 
     public void eventHandled() {
@@ -228,6 +231,8 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
         char c = e.getKeyChar();
 
+        display.beginCommand();
+
         if (DEBUG_KEY_PRESSED) {
             Log.debug("keyPressed, keycode = 0x" + Integer.toString(keycode, 16));
             Log.debug("modifiers = 0x" + Integer.toString(modifiers, 16));
@@ -265,6 +270,8 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             return false;
 
         char c = e.getKeyChar();
+
+        display.beginCommand();
 
         boolean handled = editor.handleJEvent(new JEvent(JEvent.KEY_TYPED, 0, c, 0));
 
@@ -653,15 +660,24 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             return false;
 
         Point point = e.getPoint();
+        boolean scrolled = false;
         if (point.y < 0) {
             display.windowUp();
             point.y = 1;
+            scrolled = true;
         } else {
             int limit = display.getRows() * Display.getCharHeight();
             if (point.y >= limit) {
                 display.windowDown();
                 point.y = limit - 1;
+                scrolled = true;
             }
+        }
+        if (scrolled) {
+            // Scrolling leaves the lines it uncovers to be painted, and this
+            // may return before anything else paints them.
+            display.repaintChangedLines();
+            editor.updateScrollBars();
         }
 
         Position pos = display.positionFromPoint(point);

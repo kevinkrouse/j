@@ -55,10 +55,12 @@ public final class Property implements Comparable<Property> {
     public static final Property LIST_THREADS = createProperty("listThreads", 0);
     public static final Property LOG_MAX_BACKUP_INDEX = createProperty("Log.maxBackupIndex", 0);
     public static final Property LOG_MAX_FILE_SIZE = createProperty("Log.maxFileSize", 100000);
+    public static final Property MOMENTUM_SCROLLING_DURATION = createProperty("momentumScrollingDuration", 500);
     public static final Property NNTP_READ_TIMEOUT = createProperty("nntpReadTimeout", 0);
     public static final Property PRINTER_FONT_SIZE = createProperty("printerFontSize", 10);
     public static final Property REORDER_BUFFERS = createProperty("reorderBuffers", 1);
     public static final Property SHELL_OUTPUT_LIMIT = createProperty("shellOutputLimit", 1000);
+    public static final Property SMOOTH_SCROLLING_DURATION = createProperty("smoothScrollingDuration", 250);
     // Under splitAttributes=preserve, how many indent levels a wrapped attribute line goes in.
     public static final Property SPLIT_ATTRIBUTES_INDENT_SIZE = createProperty("splitAttributesIndentSize", 2);
     public static final Property SSH_TIMEOUT = createProperty("sshTimeout", 250);
@@ -67,6 +69,8 @@ public final class Property implements Comparable<Property> {
     public static final Property TEXT_FIELD_FONT_SIZE = createProperty("textFieldFontSize", 0);
     public static final Property VERTICAL_RULE = createProperty("verticalRule", 0);
     public static final Property VERTICAL_SCROLL_INCREMENT = createProperty("verticalScrollIncrement", 5);
+    public static final Property WHEEL_SCROLL_DURATION = createProperty("wheelScrollDuration", 60);
+    public static final Property WHEEL_SCROLL_LINES = createProperty("wheelScrollLines", 0);
     public static final Property WRAP_COL = createProperty("wrapCol", 80);
 
     // Boolean properties.
@@ -83,6 +87,7 @@ public final class Property implements Comparable<Property> {
     public static final Property CHECK_ENABLED = createProperty("checkEnabled", false);
     public static final Property CONFIRM_SEND = createProperty("confirmSend", true);
     public static final Property DEBUG = createProperty("debug", false);
+    public static final Property DEBUG_SCROLL_TIMING = createProperty("debugScrollTiming", false);
     public static final Property DETECT_ENCODING = createProperty("detectEncoding", true);
     public static final Property DIR_SORT_DIRECTORIES_FIRST = createProperty("dirSortDirectoriesFirst", true);
     public static final Property DIR_USE_NATIVE_FORMAT = createProperty("dirUseNativeFormat", false);
@@ -119,6 +124,7 @@ public final class Property implements Comparable<Property> {
     public static final Property INDENT_STRINGS = createProperty("indentStrings", false);
     public static final Property LINEUP_ARGLIST = createProperty("lineupArglist", true);
     public static final Property LOG_ENABLED = createProperty("Log.enabled", true);
+    public static final Property MOMENTUM_SCROLLING = createProperty("momentumScrolling", true);
     public static final Property OFFLINE = createProperty("offline", false);
     public static final Property P4_AUTO_EDIT = createProperty("p4AutoEdit", false);
     public static final Property PARENS_REQUIRE_SPACES = createProperty("parensRequireSpaces", false);
@@ -136,6 +142,7 @@ public final class Property implements Comparable<Property> {
     public static final Property SHOW_COMPLETION_LIST = createProperty("showCompletionList", true);
     public static final Property SHOW_LINE_NUMBERS = createProperty("showLineNumbers", false);
     public static final Property SHOW_MESSAGE_NUMBERS = createProperty("showMessageNumbers", false);
+    public static final Property SMOOTH_SCROLLING = createProperty("smoothScrolling", true);
     public static final Property SORT_BUFFER_LIST = createProperty("sortBufferList", false);
     public static final Property SSH_ECHO = createProperty("sshEcho", false);
     public static final Property STATUS_BAR_DISPLAY_LINE_COUNT = createProperty("StatusBar.displayLineCount", false);

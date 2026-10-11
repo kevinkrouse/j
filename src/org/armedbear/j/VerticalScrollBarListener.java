@@ -22,16 +22,12 @@ package org.armedbear.j;
 
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
-import javax.swing.JScrollBar;
-import org.armedbear.j.mode.image.ImageLine;
 
 public final class VerticalScrollBarListener implements AdjustmentListener {
     private final Editor editor;
-    private final JScrollBar scrollBar;
 
-    public VerticalScrollBarListener(Editor editor, JScrollBar scrollBar) {
+    public VerticalScrollBarListener(Editor editor) {
         this.editor = editor;
-        this.scrollBar = scrollBar;
     }
 
     @Override
@@ -48,48 +44,10 @@ public final class VerticalScrollBarListener implements AdjustmentListener {
             }
             return;
         }
-        Line topLine = display.getTopLine();
-        int oldValue = editor.getBuffer().getY(topLine) + display.getPixelsAboveTopLine();
-        int newValue = e.getValue();
-        int change = newValue - oldValue;
-        final int charHeight = Display.getCharHeight();
-        if (Math.abs(change) < charHeight) {
-            if (change > 0 && newValue + scrollBar.getVisibleAmount() == scrollBar.getMaximum())
-                change = charHeight;
-            else
-                return; // No visible change.
-        }
-        if (topLine instanceof ImageLine) {
-            int value = e.getValue();
-            int y = editor.getBuffer().getY(topLine);
-            if (value > y && value < y + topLine.getHeight()) {
-                display.setPixelsAboveTopLine(value - y);
-                display.repaint();
-                editor.updateScrollBars();
-                return;
-            }
-            // Fall through...
-        }
-        // Find the right top line.
-        Line line = editor.getBuffer().getFirstLine();
-        int y = 0;
-        while (line != null && y + line.getHeight() <= newValue) {
-            y += line.getHeight();
-            line = line.nextVisible();
-        }
-        if (line == display.getTopLine())
-            return; // No change.
-        if (line != null) {
-            display.setTopLine(line);
-            if (line instanceof ImageLine)
-                display.setPixelsAboveTopLine(newValue - y);
-            else if (newValue > y) {
-                line = line.nextVisible();
-                if (line != null)
-                    display.setTopLine(line);
-            }
+        int oldValue = editor.getBuffer().getY(display.getTopLine()) + display.getPixelsAboveTopLine();
+        if (display.scrollByPixels(e.getValue() - oldValue) != 0) {
             editor.maybeScrollCaret();
-            display.repaint();
+            editor.updateDisplay();
         }
     }
 }

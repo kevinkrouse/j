@@ -735,14 +735,14 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             verticalScrollBar = new VerticalScrollBar(this);
             verticalScrollBar.setMinimum(0);
             add(verticalScrollBar, BorderLayout.EAST);
-            verticalScrollBarListener = new VerticalScrollBarListener(this, verticalScrollBar);
+            verticalScrollBarListener = new VerticalScrollBarListener(this);
             verticalScrollBar.addAdjustmentListener(verticalScrollBarListener);
         }
     }
 
     public void removeVerticalScrollBar() {
         if (verticalScrollBar != null) {
-            if (verticalScrollBarListener == null) {
+            if (verticalScrollBarListener != null) {
                 verticalScrollBar.removeAdjustmentListener(verticalScrollBarListener);
                 verticalScrollBarListener = null;
             }
@@ -1389,7 +1389,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             return;
         if (buffer.getBooleanProperty(Property.SCROLL_CARET)) {
             final int dotLineNumber = dot.lineNumber();
-            final Line topLine = display.getTopLine();
+            final Line topLine = display.getFirstWholeLine();
             if (dotLineNumber < topLine.lineNumber()) {
                 // Caret is above window.
                 addUndo(SimpleEdit.SCROLL_CARET);
@@ -1810,20 +1810,43 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         // See also mouseMoveDotToPoint(MouseEvent).
         setFocusToDisplay();
 
-        int rotation = e.getWheelRotation();
-        int absRotation = Math.abs(rotation);
         if (e.isShiftDown()) {
+            int rotation = e.getWheelRotation();
             if (rotation < 0)
-                display.windowLeft(absRotation);
+                display.windowLeft(-rotation);
             else if (rotation > 0)
-                display.windowRight(absRotation);
-        } else {
-            if (rotation < 0)
-                display.windowUp(absRotation);
-            else if (rotation > 0)
-                display.windowDown(absRotation);
+                display.windowRight(rotation);
+            return;
         }
+        // A touchpad or free-spinning wheel turns by fractions of a click.
+        // The system's setting may be a page a click instead of some lines.
+        int lines = buffer.getIntegerProperty(Property.WHEEL_SCROLL_LINES);
+        if (lines <= 0) {
+            if (e.getScrollType() == MouseWheelEvent.WHEEL_BLOCK_SCROLL)
+                lines = Math.max(1, display.getRows() - 1);
+            else
+                lines = Math.max(1, e.getScrollAmount());
+        }
+        final double rotation = e.getPreciseWheelRotation();
+        double pixels = wheelPixels + rotation * lines * Display.getCharHeight();
+        int dy = (int) pixels;
+        wheelPixels = pixels - dy;
+        // Whole clicks are eased; a touchpad's small steps are smooth already.
+        final boolean whole = rotation == Math.rint(rotation);
+        final long start = System.nanoTime();
+        if (dy != 0)
+            display.wheelScroll(dy, whole);
+        if (!whole && preferences().getBooleanProperty(Property.DEBUG_SCROLL_TIMING))
+            Log.info(
+                String.format(
+                    "scroll wheel %.3f clicks, %+dpx at once in %.2fms",
+                    rotation,
+                    dy,
+                    (System.nanoTime() - start) / 1e6));
     }
+
+    // What the wheel has turned that is not yet a whole pixel.
+    private double wheelPixels;
 
     public void ensureActive() {
         if (frame == null)
@@ -3041,6 +3064,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             }
             reframe();
         }
+        display.endCommand();
         display.repaintChangedLines();
         updateScrollBars();
         Sidebar sidebar = getSidebar();

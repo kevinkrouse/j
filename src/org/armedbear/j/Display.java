@@ -1890,96 +1890,35 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
-    // Scroll up in the buffer, moving the content in the window down.
-    private void scrollUp() {
-        if (editor.getModeId() == IMAGE_MODE) {
-            if (pixelsAboveTopLine >= charHeight) {
-                pixelsAboveTopLine -= charHeight;
-                repaint();
-            }
+    // Moves what is on screen dy pixels up, or down when dy is negative.
+    // The display's own graphics, so no asking where it is on the screen,
+    // which a Wayland toolkit cannot know.
+    private void blit(int dy) {
+        if (!isShowing())
             return;
+        final long start = System.nanoTime();
+        final Graphics g = getGraphics();
+        if (g == null)
+            return;
+        try {
+            if (dy > 0)
+                g.copyArea(0, dy, getWidth(), getHeight() - dy, 0, -dy);
+            else
+                g.copyArea(0, 0, getWidth(), getHeight() + dy, 0, -dy);
         }
-
-        if (topLine != null) {
-            if (topLine instanceof ImageLine) {
-                if (pixelsAboveTopLine - charHeight >= 0) {
-                    pixelsAboveTopLine -= charHeight;
-                    scrollPixelsUp(charHeight);
-                    Rectangle r = new Rectangle(0, 0, getWidth(), charHeight);
-                    paintImmediately(r);
-                    return;
-                }
-            }
-            Line line = topLine.previousVisible();
-            if (line == null)
-                return;
-            if (line instanceof ImageLine) {
-                scrollPixelsUp(charHeight);
-                topLine = line;
-                pixelsAboveTopLine = line.getHeight() - charHeight;
-                editor.update(topLine);
-                return;
-            }
-            scrollPixelsUp(charHeight);
-            setTopLine(line);
-            editor.update(topLine);
+        finally {
+            g.dispose();
         }
+        blitNanos = System.nanoTime() - start;
     }
 
-    // Scroll down in the buffer, moving the content in the window up.
-    private void scrollDown() {
-        if (editor.getModeId() == IMAGE_MODE) {
-            pixelsAboveTopLine += charHeight;
-            repaint();
-            return;
-        }
-        if (topLine != null) {
-            if (topLine instanceof ImageLine) {
-                if (pixelsAboveTopLine + charHeight < topLine.getHeight()) {
-                    pixelsAboveTopLine += charHeight;
-                    scrollPixelsDown(charHeight);
-                    Rectangle r = new Rectangle();
-                    r.x = 0;
-                    r.y = getHeight() - charHeight;
-                    r.width = getWidth();
-                    r.height = charHeight;
-                    paintImmediately(r);
-                    return;
-                }
-            }
-            Line line = topLine.nextVisible();
-            if (line != null) {
-                scrollPixelsDown(charHeight);
-                setTopLine(line);
-                Line bottomLine = getBottomLine();
-                editor.update(bottomLine);
-                Line nextVisible = bottomLine.nextVisible();
-                if (nextVisible != null)
-                    editor.update(nextVisible);
-            }
-        }
-    }
+    // How long the last blit took, for debugScrollTiming.
+    private long blitNanos;
 
-    // Move content down.
-    private void scrollPixelsUp(int dy) {
-        if (!isShowing() || !editor.isShowing())
-            return;
-        Point pt1 = editor.getLocationOnScreen();
-        Point pt2 = getLocationOnScreen();
-        int x = pt2.x - pt1.x;
-        int y = pt2.y - pt1.y;
-        editor.getGraphics().copyArea(x, y, getWidth(), getHeight() - dy, 0, dy);
-    }
-
-    // Move content up.
-    private void scrollPixelsDown(int dy) {
-        if (!isShowing() || !editor.isShowing())
-            return;
-        Point pt1 = editor.getLocationOnScreen();
-        Point pt2 = getLocationOnScreen();
-        int x = pt2.x - pt1.x;
-        int y = pt2.y - pt1.y + dy;
-        editor.getGraphics().copyArea(x, y, getWidth(), getHeight() - dy, 0, -dy);
+    long takeBlitNanos() {
+        final long nanos = blitNanos;
+        blitNanos = 0;
+        return nanos;
     }
 
     public Line getBottomLine() {
@@ -2023,10 +1962,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         Line prevLine = dotLine.previousVisible();
         if (prevLine == null)
             return;
-        if (dotLine == topLine) {
-            // Need to scroll.
-            windowUp();
-        }
+        if (prevLine instanceof ImageLine) {
+            if (dotLine == topLine)
+                windowUp();
+        } else
+            revealAtTop(prevLine);
         editor.updateDotLine();
         final Buffer buffer = editor.getBuffer();
         boolean selectLine = false;
@@ -2082,9 +2022,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final Line nextLine = dotLine.nextVisible();
         if (nextLine == null)
             return;
-        if (getY(nextLine) + nextLine.getHeight() > getHeight()) {
+        final int below = getY(nextLine) + nextLine.getHeight() - getHeight();
+        if (below > 0) {
             // Need to scroll.
-            windowDown();
+            if (nextLine instanceof ImageLine)
+                windowDown();
+            else
+                scrollByPixels(below);
         }
         editor.updateDotLine();
         final Buffer buffer = editor.getBuffer();
@@ -2115,138 +2059,282 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         editor.moveDotToGoalCol();
     }
 
+    /** Scrolls up one line, or to the top of a line partly scrolled off. */
     public void windowUp() {
-        if (getHeight() < editor.getBuffer().getDisplayHeight())
-            scrollUp();
+        if (isTopLinePartlyHidden())
+            scrollByPixels(-pixelsAboveTopLine);
+        else
+            scrollByPixels(-charHeight);
     }
 
+    /** Scrolls down one line, or to the top of the next when partly scrolled. */
     public void windowDown() {
-        final int totalHeight = editor.getBuffer().getDisplayHeight();
-        final int windowHeight = getHeight();
-        if (windowHeight < totalHeight) {
-            // Add up cumulative height to bottom of window.
-            int y;
-            if (topLine != null)
-                y = editor.getBuffer().getY(topLine) + pixelsAboveTopLine + windowHeight;
-            else
-                y = pixelsAboveTopLine + windowHeight;
-            if (y < totalHeight)
-                scrollDown();
-        }
+        if (isTopLinePartlyHidden())
+            scrollByPixels(topLine.getHeight() - pixelsAboveTopLine);
+        else
+            scrollByPixels(charHeight);
     }
 
-    public void windowUp(int lines) {
+    /**
+     * Scrolls dy pixels further into the buffer, or back toward its start
+     * when dy is negative, stopping at either end. Returns how far it went.
+     */
+    public int scrollByPixels(int dy) {
+        return scrollByPixels(dy, true);
+    }
+
+    /**
+     * As scrollByPixels(dy), but with clampBottom false it may go on past
+     * the point where the last line is at the bottom, as far as reframing
+     * can put the window.
+     */
+    int scrollByPixels(int dy, boolean clampBottom) {
+        if (topLine == null) {
+            if (editor.getModeId() != IMAGE_MODE)
+                return 0;
+            final int old = pixelsAboveTopLine;
+            final int max = Math.max(0, editor.getBuffer().getDisplayHeight() - getHeight());
+            pixelsAboveTopLine = Math.max(0, Math.min(old + dy, Math.max(old, max)));
+            repaint();
+            return pixelsAboveTopLine - old;
+        }
+        dy = moveTop(dy, clampBottom);
+        if (dy == 0)
+            return 0;
+        final int height = getHeight();
+        if (Math.abs(dy) >= height || !isShowing() || !editor.isShowing()) {
+            setUpdateFlag(REPAINT);
+            return dy;
+        }
+        blit(dy);
+        // The strip the blit uncovered.
+        final int top = dy > 0 ? height - dy : 0;
+        final int bottom = dy > 0 ? height : -dy;
+        int y = -pixelsAboveTopLine;
+        for (Line l = topLine; l != null && y < bottom; l = l.nextVisible()) {
+            if (y + l.getHeight() > top)
+                lineChanged(l);
+            y += l.getHeight();
+        }
+        return dy;
+    }
+
+    // Moves the top of the window dy pixels without painting. Scrolling down
+    // stops where the last line is at the bottom, or with clampBottom false
+    // at the top of the last line; scrolling up stops at the first line.
+    // Returns how far it went.
+    private int moveTop(int dy, boolean clampBottom) {
+        if (dy > 0 && clampBottom) {
+            final int need = pixelsAboveTopLine + dy + getHeight();
+            int total = 0;
+            for (Line l = topLine; l != null && total < need; l = l.nextVisible())
+                total += l.getHeight();
+            if (total < need)
+                dy = Math.max(0, total - getHeight() - pixelsAboveTopLine);
+        }
         Line line = topLine;
-        if (line == null) {
-            if (editor.getModeId() == IMAGE_MODE) {
-                pixelsAboveTopLine -= lines * charHeight;
-                if (pixelsAboveTopLine < 0)
-                    pixelsAboveTopLine = 0;
-                repaint();
-            }
-            return;
-        }
-        if (line instanceof ImageLine) {
-            imageLineWindowUp(lines);
-            return;
-        }
-        int actual = 0;
-        for (int i = 0; i < lines; i++) {
+        int offset = pixelsAboveTopLine + dy;
+        while (offset < 0) {
             Line prev = line.previousVisible();
-            if (prev == null)
+            if (prev == null) {
+                dy -= offset;
+                offset = 0;
                 break;
-            if (prev instanceof ImageLine) {
-                imageLineWindowUp(lines);
-                return;
             }
             line = prev;
-            lineChanged(line);
-            ++actual;
+            offset += prev.getHeight();
         }
-        scrollPixelsUp(actual * charHeight);
-        setTopLine(line);
-        editor.maybeScrollCaret();
-        editor.updateDisplay();
+        while (offset >= line.getHeight()) {
+            Line next = line.nextVisible();
+            if (next == null) {
+                dy -= offset;
+                offset = 0;
+                break;
+            }
+            offset -= line.getHeight();
+            line = next;
+        }
+        topLine = line;
+        pixelsAboveTopLine = offset;
+        return dy;
     }
 
-    private void imageLineWindowUp(int lines) {
-        int oldY = getAbsoluteY(topLine) + pixelsAboveTopLine;
-        int newY = oldY - lines * charHeight;
-        if (newY < 0)
-            newY = 0;
-        Line line = lineFromAbsoluteY(newY);
-        if (line != null) {
-            int y = getAbsoluteY(line);
-            topLine = line;
-            pixelsAboveTopLine = newY - y;
-            setUpdateFlag(REPAINT);
+    private final SmoothScroller smoothScroller = new SmoothScroller(this);
+    private final Momentum momentum = new Momentum(smoothScroller);
+
+    // Where the window was when the command now running began.
+    private Buffer commandBuffer;
+    private int commandModCount;
+    // Reloading replaces every line without counting as a change.
+    private Line commandFirstLine;
+    private Line commandTopLine;
+    private int commandPixelsAboveTopLine;
+
+    /**
+     * Wheel scrolling: whole clicks of a wheel, eased when the buffer's
+     * smoothScrolling is on, or a touchpad's fractions of one, which coast
+     * on afterwards when momentumScrolling is on.
+     */
+    void wheelScroll(int dy, boolean animate) {
+        smoothScroller.stopCoasting();
+        final Buffer buffer = editor.getBuffer();
+        if (!animate && isShowing() && buffer.getBooleanProperty(Property.MOMENTUM_SCROLLING))
+            momentum.add(dy);
+        else
+            momentum.cancel();
+        if (animate && smoothScrollingEnabled())
+            smoothScroller.scrollBy(dy);
+        else {
+            scrollByPixels(dy);
+            editor.maybeScrollCaret();
             editor.updateDisplay();
         }
     }
 
-    public void windowDown(final int lines) {
-        Line top = topLine;
-        if (top == null) {
-            if (editor.getModeId() == IMAGE_MODE) {
-                int windowHeight = getHeight();
-                int bufferHeight = editor.getBuffer().getDisplayHeight();
-                pixelsAboveTopLine += lines * charHeight;
-                if (pixelsAboveTopLine + windowHeight > bufferHeight)
-                    pixelsAboveTopLine = bufferHeight - windowHeight;
-                repaint();
-            }
-            return;
-        }
-        if (top instanceof ImageLine) {
-            imageLineWindowDown(lines);
-            return;
-        }
-        int actual = 0;
-        Line bottom = getBottomLine();
-        for (int i = 0; i < lines; i++) {
-            bottom = bottom.nextVisible();
-            if (bottom == null)
-                break;
-            lineChanged(bottom);
-            Line next = top.nextVisible();
-            if (next instanceof ImageLine) {
-                imageLineWindowDown(lines);
-                return;
-            }
-            if (next == null)
-                break;
-            top = next;
-            ++actual;
-        }
-        if (bottom != null) {
-            bottom = bottom.nextVisible();
-            if (bottom != null)
-                lineChanged(bottom);
-        }
-        scrollPixelsDown(actual * charHeight);
-        setTopLine(top);
-        editor.maybeScrollCaret();
-        editor.updateDisplay();
+    boolean smoothScrollingEnabled() {
+        final Buffer buffer = editor.getBuffer();
+        return buffer != null && buffer.getBooleanProperty(Property.SMOOTH_SCROLLING) && isShowing();
     }
 
-    private void imageLineWindowDown(int lines) {
-        Line top = topLine;
-        int oldY = getAbsoluteY(top) + pixelsAboveTopLine;
-        int newY = oldY + lines * charHeight;
-        int windowHeight = getHeight();
-        int bufferHeight = editor.getBuffer().getDisplayHeight();
-        if (newY + windowHeight > bufferHeight)
-            newY = bufferHeight - windowHeight;
-        if (newY == oldY)
+    int smoothScrollingDuration() {
+        return editor.getBuffer().getIntegerProperty(Property.SMOOTH_SCROLLING_DURATION);
+    }
+
+    int momentumScrollingDuration() {
+        return editor.getBuffer().getIntegerProperty(Property.MOMENTUM_SCROLLING_DURATION);
+    }
+
+    int wheelScrollDuration() {
+        return editor.getBuffer().getIntegerProperty(Property.WHEEL_SCROLL_DURATION);
+    }
+
+    Editor getEditor() {
+        return editor;
+    }
+
+    /**
+     * A key or menu command is about to run: finish any scroll in progress,
+     * so it starts from where it was going, and remember where the window
+     * is, so endCommand can ease from there to wherever the command puts it.
+     */
+    void beginCommand() {
+        commandBuffer = null;
+        momentum.cancel();
+        if (!smoothScrollingEnabled()) {
+            smoothScroller.finish();
             return;
-        Line line = lineFromAbsoluteY(newY);
-        if (line != null) {
-            int y = getAbsoluteY(line);
-            topLine = line;
-            pixelsAboveTopLine = newY - y;
-            setUpdateFlag(REPAINT);
-            editor.updateDisplay();
         }
+        // endCommand eases from where the window is now, not from the end of
+        // the scroll under way, which finish jumps to.
+        final Line top = topLine;
+        final int pixels = pixelsAboveTopLine;
+        smoothScroller.finish();
+        recordCommandStart(top, pixels);
+    }
+
+    void recordCommandStart(Line top, int pixels) {
+        if (top == null || top.isHidden())
+            return;
+        commandBuffer = editor.getBuffer();
+        commandModCount = commandBuffer.getModCount();
+        commandFirstLine = commandBuffer.getFirstLine();
+        commandTopLine = top;
+        commandPixelsAboveTopLine = pixels;
+    }
+
+    void forgetCommand() {
+        commandBuffer = null;
+        commandTopLine = null;
+        commandFirstLine = null;
+    }
+
+    /**
+     * A mouse press: stop where the window is, so the click lands on what
+     * shows. A command's scroll cut short may leave the caret off screen,
+     * so the window is reframed once the press is handled.
+     */
+    void stopScrolling() {
+        momentum.cancel();
+        if (smoothScroller.stop())
+            setUpdateFlag(REFRAME);
+    }
+
+    /**
+     * Called once the command has run and the window is reframed. If the
+     * command scrolled without changing the buffer, the window goes back to
+     * where it was and eases to where the command put it. A scroll further
+     * than a few windows covers only the last window's height.
+     */
+    void endCommand() {
+        final Buffer buffer = commandBuffer;
+        final Line from = commandTopLine;
+        final Line firstLine = commandFirstLine;
+        forgetCommand();
+        if (buffer == null
+                || buffer != editor.getBuffer()
+                || buffer.getModCount() != commandModCount
+                || buffer.getFirstLine() != firstLine)
+            return;
+        if (topLine == null || from.isHidden())
+            return;
+        final int height = getHeight();
+        final int limit = height * 5 / 2;
+        int distance = distanceTo(from, commandPixelsAboveTopLine, limit);
+        if (distance == Integer.MIN_VALUE)
+            distance = from.lineNumber() < topLine.lineNumber() ? height : -height;
+        if (Math.abs(distance) < 2 * charHeight)
+            return;
+        // Reframing may have put the window past where scrolling stops, and
+        // the window may have started there; neither end is clamped.
+        distance = -moveTop(-distance, false);
+        setUpdateFlag(REPAINT);
+        smoothScroller.animate(distance);
+    }
+
+    // Pixels from (line, pixels) down to the window's top, negative when
+    // that is above it; MIN_VALUE when they are further apart than limit.
+    private int distanceTo(Line line, int pixels, int limit) {
+        int y = -pixels;
+        for (Line l = line; l != null && Math.abs(y) <= limit; l = l.nextVisible()) {
+            if (l == topLine)
+                return y + pixelsAboveTopLine;
+            y += l.getHeight();
+        }
+        y = -pixels;
+        for (Line l = line.previousVisible(); l != null && Math.abs(y) <= limit; l = l.previousVisible()) {
+            y -= l.getHeight();
+            if (l == topLine)
+                return y + pixelsAboveTopLine;
+        }
+        return Integer.MIN_VALUE;
+    }
+
+    /**
+     * Scrolls up just far enough for the whole of line to show, when it is
+     * the top line or the one above it. A line further up is left for
+     * reframing to center.
+     */
+    private void revealAtTop(Line line) {
+        if (line == topLine)
+            scrollByPixels(-pixelsAboveTopLine);
+        else if (line == topLine.previousVisible())
+            scrollByPixels(-pixelsAboveTopLine - line.getHeight());
+    }
+
+    // A text line partly scrolled off the top. An image line taller than the
+    // window is scrolled through, so it does not count.
+    private boolean isTopLinePartlyHidden() {
+        return topLine != null && pixelsAboveTopLine > 0 && !(topLine instanceof ImageLine);
+    }
+
+    /** The first line whose top is on screen. */
+    public Line getFirstWholeLine() {
+        if (isTopLinePartlyHidden()) {
+            Line next = topLine.nextVisible();
+            if (next != null)
+                return next;
+        }
+        return topLine;
     }
 
     public void windowLeft(int characters) {
@@ -2318,6 +2406,12 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     private void reframeVertically() {
+        // The caret's line partly scrolled off the top comes back whole.
+        if (isTopLinePartlyHidden() && topLine == editor.getDotLine()) {
+            pixelsAboveTopLine = 0;
+            setUpdateFlag(REPAINT);
+        }
+
         if (topLine != null && topLine.isHidden()) {
             Line prev = topLine.previousVisible();
             setTopLine(prev != null ? prev : topLine.nextVisible());
@@ -2339,7 +2433,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (topLine.previousVisible() == null)
             return;
 
-        int y = getAbsoluteY(topLine);
+        int y = getAbsoluteY(topLine) + pixelsAboveTopLine;
         int limit = editor.getBuffer().getDisplayHeight() - getHeight() + charHeight;
         if (y > limit) {
             // We need to scroll back in the buffer a bit.
