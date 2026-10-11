@@ -61,6 +61,7 @@ import org.armedbear.j.mode.php.PHPMode;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.mode.xml.XmlMode;
+import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.git.Git;
 import org.armedbear.j.vcs.svn.SVN;
@@ -340,6 +341,7 @@ public class CommandTable {
             add("unsplitWindow", WindowCommands::unsplitWindow);
             add("unwrapParagraph", IndentCommands::unwrapParagraph);
             add("up", MotionCommands::up);
+            add("vcsCommandLog", e -> CommandLog.vcsCommandLog());
             add("visibleTabs", WindowCommands::visibleTabs);
             add("vsplitWindow", WindowCommands::vsplitWindow, (e, s) -> WindowCommands.vsplitWindow(e, s));
             add("whatChar", EditCommands::whatChar);

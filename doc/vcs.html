@@ -56,6 +56,11 @@ For Git, the file's status is displayed in 'git status' short format:
 <pre>
     git AM</pre>
 <p>
+j reads git's status again when you save a file, when j's window comes back to
+the front, and when the repository's index, HEAD or branches change. To see the
+git commands j runs to do this, use
+<a href="commands.html#vcsCommandLog">vcsCommandLog</a>.
+<p>
 If you're working on a file that's registered with CVS, you can use the
 command <a href="commands.html#cvsDiff">cvsDiff</a> to get a diff output
 buffer showing the changes between the checked-in version and your local copy.

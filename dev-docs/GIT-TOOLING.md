@@ -855,4 +855,26 @@ scrollbar item), GitHub PRs.
 ## Review notes
 
 Findings from the reviews that close each phase, left open on purpose.
-None yet.
+
+**Phase 0** (fixed: reverse patches lost a newline on a removed line; the
+random test now checks each result against one worked out without `Patch`;
+a part of a rename or mode change no longer carries it; combined diffs;
+svn's added and deleted files; repository links; user color settings;
+reftable refs; git older than 2.16 says so; the stash count is unknown
+before 2.35; ignored files listed by directory; the refresh loop survives a
+failing listener; stale status answers at once and refreshes in the
+background, updating open buffers; command input in the log.)
+
+- A repository's first snapshot is still read on the thread that asks, the
+  event thread for the status bar, as before. Later ones are not.
+- `Patch` writes git's headers (`diff --git`, a/ and b/, mode lines). svn's
+  backend will need its own header writer, behind the backend, in phase 10.
+- `Snapshot` has no branch or revision; shared UI reads `GitSnapshot`. A
+  neutral "where you are" (branch, revision, upstream) comes with the
+  status buffer's header in phase 2.
+- `VersionControl.guessVCS` and `Repositories` find roots separately (one
+  stops at home, one canonicalizes). With vcs-legacy loaded, a `CVS/`
+  directory inside a git repository makes it CVS for both. Merge them when
+  the old per-system commands move onto the shared layer.
+- `VcsRunner` serializes writes by directory, not repository: callers run
+  writes at the repository root, which `GitCli.write` takes as its argument.

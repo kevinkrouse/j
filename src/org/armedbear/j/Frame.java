@@ -52,6 +52,7 @@ import javax.swing.JFrame;
 import javax.swing.LayoutFocusTraversalPolicy;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Icons;
+import org.armedbear.j.vcs.VersionControl;
 
 public final class Frame extends JFrame
         implements ComponentListener, FocusListener, WindowListener, WindowStateListener {
@@ -1175,6 +1176,8 @@ public final class Frame extends JFrame
     @Override
     public void windowActivated(WindowEvent e) {
         active = true;
+        // Files may have changed while j was in the background.
+        VersionControl.invalidate();
         Editor.setCurrentEditor(currentEditor);
         setFocus(currentEditor.getDisplay());
         repaint();

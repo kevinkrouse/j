@@ -24,23 +24,61 @@ import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
+import org.armedbear.j.Frame;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Property;
 import org.armedbear.j.ShellCommand;
+import org.armedbear.j.Sidebar;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.vcs.git.GitStatusCache;
 
 public abstract class VersionControl {
+    /** Marks every repository's snapshot stale, after a change j made to the working tree. */
     public static void invalidate() {
-        GitStatusCache.invalidate();
+        Repositories.invalidateAll();
+    }
+
+    private static final Set<VcsRepository> tracked = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Keeps the status of the repository's open buffers up to date: after
+     * each refresh, they take their entries from its new snapshot.
+     */
+    public static void track(VcsRepository repository) {
+        if (tracked.add(repository))
+            repository.addListener(r -> SwingUtilities.invokeLater(() -> updateBuffers(r)));
+    }
+
+    private static void updateBuffers(VcsRepository repository) {
+        boolean changed = false;
+        for (Buffer buffer : Editor.getBufferList()) {
+            File file = buffer.getFile();
+            if (file == null || file.isRemote() || Repositories.forFile(file) != repository)
+                continue;
+            VersionControlEntry before = buffer.getVCSEntry();
+            buffer.checkVCS();
+            VersionControlEntry after = buffer.getVCSEntry();
+            if (before == null ? after != null : after == null || !before.getStatusText().equals(after.getStatusText()))
+                changed = true;
+        }
+        if (!changed)
+            return;
+        for (int i = 0; i < Editor.getFrameCount(); i++) {
+            Frame frame = Editor.getFrame(i);
+            if (frame != null)
+                frame.repaintStatusBar();
+        }
+        Sidebar.repaintBufferListInAllFrames();
     }
 
     public static VersionControlEntry getEntry(Buffer buffer) {

@@ -20,127 +20,67 @@
 
 package org.armedbear.j.vcs.git;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.Path;
 import org.armedbear.j.File;
-import org.armedbear.j.Log;
-import org.armedbear.j.ShellCommand;
+import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.Snapshot;
+import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.VersionControl;
 
 /**
- * The status of every file in a repository, from one run of git.
- *
- * <p>The answers are a snapshot. {@link #invalidate} drops them, and callers
- * that have just changed the working tree -- saving a file, say -- are expected
- * to say so.
+ * A file's git status, from its repository's snapshot. Callers that have
+ * just changed the working tree -- saving a file, say -- invalidate it.
  */
 public final class GitStatusCache {
-    /** Repository root path -> (path relative to that root -> two letter code). */
-    private static final Map<String, Map<String, String>> repositories =
-        new HashMap<>();
-
-    /** Directories already resolved to a repository root, "" meaning none. */
-    private static final Map<String, String> roots = new HashMap<>();
-
     private GitStatusCache() {}
 
     /**
-     * The two letter porcelain code for a file, or null if git says nothing
-     * about it -- unchanged, or not in a repository at all.
+     * The two letter short-format code for a file ("M ", "??", "!!"), or null
+     * if git says nothing about it -- unchanged, or not in a repository at
+     * all. Git runs on this thread only for a repository's first snapshot; a
+     * stale one answers while a fresh one is read in the background, and its
+     * buffers are updated when it is.
      */
-    public static synchronized String statusFor(File file) {
+    public static String statusFor(File file) {
         if (file == null || file.isRemote())
             return null;
-        final String root = rootFor(file);
-        if (root == null)
+        VcsRepository repository = Repositories.forFile(file);
+        if (repository == null || !(repository.backend() instanceof GitBackend))
             return null;
-        Map<String, String> status = repositories.get(root);
-        if (status == null) {
-            status = read(root);
-            repositories.put(root, status);
+        VersionControl.track(repository);
+        Snapshot snapshot = repository.snapshot();
+        if (snapshot == null) {
+            snapshot = repository.snapshotNow();
+        } else if (repository.isStale()) {
+            repository.refresh();
         }
-        return status.get(relativePath(root, file));
+        return code(snapshot, relativePath(repository.root(), file));
+    }
+
+    // The file's own entry, or "!!" if a directory it is in is ignored: git
+    // lists an ignored directory, not the files in it.
+    static String code(Snapshot snapshot, String path) {
+        FileChange change = snapshot.change(path);
+        if (change != null)
+            return change.code();
+        for (int slash = path.indexOf('/'); slash >= 0; slash = path.indexOf('/', slash + 1)) {
+            FileChange dir = snapshot.change(path.substring(0, slash + 1));
+            if (dir != null && dir.isIgnored())
+                return dir.code();
+        }
+        return null;
     }
 
     /** Forgets every snapshot, so the next question re-runs git. */
-    public static synchronized void invalidate() {
-        repositories.clear();
+    public static void invalidate() {
+        Repositories.invalidateAll();
     }
 
-    private static String rootFor(File file) {
-        File parent = file.getParentFile();
-        if (parent == null)
-            return null;
-        final String key = parent.canonicalPath();
-        if (roots.containsKey(key)) {
-            String cached = roots.get(key);
-            return cached.length() == 0 ? null : cached;
-        }
-        File root = Git.findRoot(parent);
-        String value = root != null ? root.canonicalPath() : "";
-        roots.put(key, value);
-        return value.length() == 0 ? null : value;
-    }
-
-    private static String relativePath(String root, File file) {
-        String path = file.canonicalPath();
-        if (path.startsWith(root)) {
-            path = path.substring(root.length());
-            while (path.startsWith("/"))
-                path = path.substring(1);
-        }
-        return path;
-    }
-
-    private static Map<String, String> read(String root) {
-        Map<String, String> status = new HashMap<>();
-        try {
-            // -z so paths arrive verbatim: without it git quotes and escapes
-            // anything unusual, which would have to be undone here.
-            ShellCommand cmd = new ShellCommand(
-                "git status -z --porcelain --ignored --untracked",
-                File.getInstance(root)
-            );
-            cmd.run();
-            parse(cmd.getOutput(), status);
-        }
-        catch (RuntimeException e) {
-            Log.error(e);
-        }
-        return status;
-    }
-
-    /**
-     * Reads "XY &lt;path&gt;" records separated by NUL.
-     *
-     * <p>A rename or copy carries a second path -- the source -- in its own
-     * record straight after the first. It has to be stepped over, or every
-     * entry after the first rename is read as a status.
-     */
-    static void parse(String output, Map<String, String> status) {
-        if (output == null)
-            return;
-        int i = 0;
-        final int length = output.length();
-        while (i < length) {
-            int end = output.indexOf('\0', i);
-            if (end < 0)
-                end = length;
-            final String record = output.substring(i, end);
-            i = end + 1;
-            if (record.length() < 4)
-                continue;
-            final String xy = record.substring(0, 2);
-            final String path = record.substring(3);
-            status.put(path, xy);
-            if (
-                xy.charAt(0) == 'R'
-                    || xy.charAt(0) == 'C'
-                    || xy.charAt(1) == 'R'
-                    || xy.charAt(1) == 'C'
-            ) {
-                int source = output.indexOf('\0', i);
-                i = (source < 0) ? length : source + 1;
-            }
-        }
+    static String relativePath(Path root, File file) {
+        Path path = Path.of(file.canonicalPath());
+        if (!path.startsWith(root))
+            return path.toString();
+        return root.relativize(path).toString().replace(java.io.File.separatorChar, '/');
     }
 }

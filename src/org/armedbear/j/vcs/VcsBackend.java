@@ -11,6 +11,8 @@
 
 package org.armedbear.j.vcs;
 
+import java.util.List;
+import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -30,6 +32,24 @@ public interface VcsBackend {
     /** Whether dir holds this system's metadata (".git", ".svn"). */
     default boolean isRoot(File dir) {
         return false;
+    }
+
+    /** What the system can do. */
+    default Set<Capability> capabilities() {
+        return Set.of();
+    }
+
+    /**
+     * Reads the repository's state, off the event thread; null if this
+     * backend has no repository model.
+     */
+    default Snapshot readSnapshot(VcsRepository repository) {
+        return null;
+    }
+
+    /** What to watch for changes made outside j: the repository's metadata, not its working tree. */
+    default List<RepositoryWatcher.Watch> watches(VcsRepository repository) {
+        return List.of();
     }
 
     /** Whether a file in no tree any backend recognizes belongs to this one. */
