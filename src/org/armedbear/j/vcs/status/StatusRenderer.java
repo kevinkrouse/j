@@ -158,11 +158,10 @@ final class StatusRenderer {
             add(new StatusLine(Kind.MESSAGE, INDENT + message, fk + "|reading", fk, repository, section).file(f));
             return;
         }
-        final String none = diff.isBinary()
-                ? "Binary file"
-                : !diff.hunks().isEmpty()
-                        ? null
-                        : diff.isRename() ? "Renamed, with no change to its content" : "No change to its content";
+        final String none = diff.isBinary() ? "Binary file"
+                : !diff.hunks().isEmpty() ? null
+                : diff.isRename() ? "Renamed, with no change to its content"
+                : "No change to its content";
         if (none != null) {
             add(new StatusLine(Kind.MESSAGE, INDENT + none, fk + "|none", fk, repository, section).file(f));
             return;

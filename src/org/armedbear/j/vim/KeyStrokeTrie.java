@@ -130,8 +130,8 @@ public final class KeyStrokeTrie<T> {
         if (node.value != null)
             return new Match<>(Status.FULL, node.value, character, null);
         return hasChildren(node)
-            ? new Match<T>(Status.PARTIAL, null, character, null)
-            : new Match<T>(Status.NONE, null, null, null);
+                ? new Match<T>(Status.PARTIAL, null, character, null)
+                : new Match<T>(Status.NONE, null, null, null);
     }
 
     private static boolean hasChildren(Node<?> node) {
@@ -141,9 +141,7 @@ public final class KeyStrokeTrie<T> {
     private Node<T> walk(List<String> keys) {
         Node<T> node = root;
         for (String key : keys) {
-            node = key.equals(ANY_CHARACTER)
-                ? node.anyCharacter
-                : node.children.get(key);
+            node = key.equals(ANY_CHARACTER) ? node.anyCharacter : node.children.get(key);
             if (node == null)
                 return null;
         }
