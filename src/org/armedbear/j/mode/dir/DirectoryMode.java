@@ -23,6 +23,9 @@ package org.armedbear.j.mode.dir;
 import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import javax.swing.ButtonGroup;
 import javax.swing.JRadioButtonMenuItem;
 import org.armedbear.j.AbstractMode;
@@ -39,6 +42,13 @@ import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
+import org.armedbear.j.transients.Transient;
+import org.armedbear.j.transients.Transient.Command;
+import org.armedbear.j.transients.Transient.Cycle;
+import org.armedbear.j.transients.Transient.Field;
+import org.armedbear.j.transients.Transient.Group;
+import org.armedbear.j.transients.Transient.Option;
+import org.armedbear.j.transients.Transient.Switch;
 
 public final class DirectoryMode extends AbstractMode implements Mode {
     private static final DirectoryMode mode = new DirectoryMode();
@@ -97,40 +107,98 @@ public final class DirectoryMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_HOME, 0, "dirHome");
         km.mapKey('b', "dirBack");
         km.mapKey('f', "dirForward");
+        // The popup's keys.
+        km.mapKey('o', "dirOpenFile");
+        km.mapKey('s', "dirCycleSortBy");
+        km.mapKey('.', "dirToggleHidden");
+        km.mapKey('~', "dirHome");
+        km.mapKey('d', "dirDeleteFiles");
+        km.mapKey('r', "dirRescan");
+        km.mapKey('?', "modePopup");
     }
 
-    // The sort is followed by what the listing is sorted by.
-    private static final String[][] HINTS = {
-        { "dirOpenFile", "open" },
-        { "dirUpDir", "up" },
-        { "dirBack", "back" },
-        { "dirForward", "forward" },
-        { "dirHome", "home" },
-        { "dirTagFile", "tag" },
-        { "dirCopyFile", "copy" },
-        { "dirMoveFile", "move" },
-        { "dirDeleteFiles", "delete" },
-        { "dirDoShellCommand", "shell" },
-        { "dirCycleSortBy", "sort" },
-        { "dirLimit", "limit" },
-        { "dirRescan", "rescan" }, };
+    // The rest are in the popup.
+    private static final String[][] HINTS =
+            { { "dirOpenFile", "open" }, { "dirUpDir", "up" }, { "modePopup", "more" }, };
 
     @Override
     public String[][] getHints(Buffer buffer) {
-        if (!(buffer instanceof DirectoryBuffer dir))
-            return HINTS;
-        final String[][] hints = HINTS.clone();
-        for (int i = 0; i < hints.length; i++) {
-            if (hints[i][0].equals("dirCycleSortBy")) {
-                final String by = switch (dir.getSortBy()) {
-                    case DirectoryBuffer.SORT_BY_DATE -> "date";
-                    case DirectoryBuffer.SORT_BY_SIZE -> "size";
-                    default -> "name";
-                };
-                hints[i] = new String[] { "dirCycleSortBy", "sort (" + by + ")" };
+        return HINTS;
+    }
+
+    private static final List<String> SORTS = List.of("name", "date", "size");
+
+    // Its keys are the buffer's own, in either edit mode.
+    @Override
+    public Transient getTransient(Editor editor) {
+        final boolean vim = editor != null && editor.getInputHandler() != null;
+        return new Transient("dir",
+                "Directory",
+                "directories.html#popup",
+                List.of(
+                    Group.of(
+                        "Filters",
+                        new Option("s",
+                                "sort",
+                                "sort by",
+                                new Cycle(SORTS),
+                                dir(DirectoryMode::sortBy, DirectoryMode::sortBy)),
+                        new Option(vim ? "a" : "l",
+                                "pattern",
+                                "limit to",
+                                new Field(),
+                                dir(DirectoryBuffer::getLimitPattern, DirectoryBuffer::limit)),
+                        new Switch(".",
+                                "ls -a",
+                                "hidden files",
+                                dir(DirectoryBuffer::getShowHidden, DirectoryBuffer::setShowHidden))),
+                    Group.of(
+                        "Go",
+                        Command.of("o", "dirOpenFile", "open"),
+                        Command.of(vim ? "-" : "u", "dirUpDir", "up"),
+                        Command.of(vim ? "u" : "b", "dirBack", "back"),
+                        Command.of(vim ? "U" : "f", "dirForward", "forward"),
+                        Command.of("~", "dirHome", "home")),
+                    Group.of(
+                        "Files",
+                        Command.of(vim ? "x" : "t", "dirTagFile", "tag"),
+                        Command.of(vim ? "C" : "c", "dirCopyFile", "copy"),
+                        Command.of(vim ? "R" : "m", "dirMoveFile", "move"),
+                        Command.of(vim ? "D" : "d", "dirDeleteFiles", "delete"),
+                        Command.of("!", "dirDoShellCommand", "shell command"),
+                        Command.of("r", "dirRescan", "rescan"))));
+    }
+
+    private static String sortBy(DirectoryBuffer dir) {
+        return SORTS.get(switch (dir.getSortBy()) {
+            case DirectoryBuffer.SORT_BY_DATE -> 1;
+            case DirectoryBuffer.SORT_BY_SIZE -> 2;
+            default -> 0;
+        });
+    }
+
+    private static void sortBy(DirectoryBuffer dir, String by) {
+        dir.resort(switch (by) {
+            case "date" -> DirectoryBuffer.SORT_BY_DATE;
+            case "size" -> DirectoryBuffer.SORT_BY_SIZE;
+            default -> DirectoryBuffer.SORT_BY_NAME;
+        });
+    }
+
+    // A value of the editor's directory buffer.
+    private static <T> Transient.Binding<T> dir(Function<DirectoryBuffer, T> get, BiConsumer<DirectoryBuffer, T> set) {
+        return new Transient.Binding<>() {
+            @Override
+            public T get(Editor editor) {
+                return editor.getBuffer() instanceof DirectoryBuffer d ? get.apply(d) : null;
             }
-        }
-        return hints;
+
+            @Override
+            public void set(Editor editor, T value) {
+                if (editor.getBuffer() instanceof DirectoryBuffer d)
+                    set.accept(d, value);
+            }
+        };
     }
 
     private static KeyMap modalKeyMap;
@@ -140,6 +208,7 @@ public final class DirectoryMode extends AbstractMode implements Mode {
     public synchronized KeyMap getModalKeyMap() {
         if (modalKeyMap == null) {
             final KeyMap km = new KeyMap();
+            km.mapKey(KeyEvent.VK_ENTER, 0, "dirOpenFile"); // First, so the hint shows it, not o.
             km.mapKey('-', "dirUpDir");
             km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "dirUpDir");
             km.mapKey('u', "dirBack");
@@ -156,6 +225,11 @@ public final class DirectoryMode extends AbstractMode implements Mode {
             km.mapKey('A', "dirUnlimit");
             km.mapKey('O', "dirBrowseFile");
             km.mapKey(KeyEvent.VK_R, CTRL_MASK, "dirRescan");
+            // The popup's keys.
+            km.mapKey('o', "dirOpenFile");
+            km.mapKey('.', "dirToggleHidden");
+            km.mapKey('r', "dirRescan");
+            km.mapKey('?', "modePopup");
             modalKeyMap = km;
         }
         return modalKeyMap;

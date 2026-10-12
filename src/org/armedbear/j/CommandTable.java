@@ -250,6 +250,7 @@ public class CommandTable {
             add("killWordRight", ClipboardCommands::killWordRight);
             add("left", MotionCommands::left);
             add("mode", Editor::mode, (e, s) -> e.mode(s));
+            add("modePopup", org.armedbear.j.transients.TransientCommands::modePopup);
             add("moveLinesDown", e -> Lines.moveLinesDown());
             add("moveToWindowBottom", e -> CaretCommands.moveToWindowBottom());
             add("moveToWindowMiddle", e -> CaretCommands.moveToWindowMiddle());
@@ -391,6 +392,7 @@ public class CommandTable {
             add("dirLimit", e -> DirectoryBuffer.dirLimit(), (e, s) -> DirectoryBuffer.dirLimit(s));
             add("dirOpenFile", e -> DirectoryBuffer.dirOpenFile());
             add("dirOpenFileAndKillDirectory", e -> DirectoryBuffer.dirOpenFileAndKillDirectory());
+            add("dirToggleHidden", e -> DirectoryBuffer.dirToggleHidden());
             add("dirUnlimit", e -> DirectoryBuffer.dirUnlimit());
             add("doShellCommandOnRegion", e -> RegionCommands.doShellCommandOnRegion());
             add("downList", e -> LispMode.downList());

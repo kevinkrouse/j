@@ -459,12 +459,12 @@ toggled with `D`):
 ```
 bottom (IntelliJ)                          right
 ┌ branch: master ▾  author ▾  path ▾  …┐   ┌ branch: master ▾  …  ┬──────────────┐
-│ ●─┐ ▌ icons: draw at the …  kk  2h   │   │ ●─┐ ▌ icons: draw …  │ M Display.java│
-│ │ ● ▌ build: bb run-way…    kk  1d   │   │ │ ● ▌ build: bb ru…  │ A Icons.java  │
-│ ●─┘ ▌ Merge pull reque…     kk  3d   │   │ ●─┘ ▌ Merge pull r…  ├──────────────┤
-├──────────────────┬───────────────────┤   │ ● │ ▌ web: webShowI… │ @@ -81,6 +81 │
-│ M Display.java   │ @@ -81,6 +81,9 @@ │   │ │ │ ▌ xml: splitAt…  │ -  private … │
-│ A Icons.java     │ -  private int …  │   │ ●─┘ ▌ vim: list ex…  │ +  private … │
+│ ▌ ●─┐ icons: draw at the …  kk  2h   │   │ ▌ ●─┐ icons: draw …  │ M Display.java│
+│ ▌ │ ● build: bb run-way…    kk  1d   │   │ ▌ │ ● build: bb ru…  │ A Icons.java  │
+│ ▌ ●─┘ Merge pull reque…     kk  3d   │   │ ▌ ●─┘ Merge pull r…  ├──────────────┤
+├──────────────────┬───────────────────┤   │ ▌ ● │ web: webShowI… │ @@ -81,6 +81 │
+│ M Display.java   │ @@ -81,6 +81,9 @@ │   │ ▌ │ │ xml: splitAt…  │ -  private … │
+│ A Icons.java     │ -  private int …  │   │ ▌ ●─┘ vim: list ex…  │ +  private … │
 └──────────────────┴───────────────────┘   └──────────────────────┴──────────────┘
 ```
 
@@ -785,7 +785,7 @@ approve. It looks at:
 Each finding is fixed, or recorded under "Review notes" at the end of this
 plan with why it is left, before the next phase starts.
 
-0. **Groundwork.** The shared layer: `VcsRunner` and the command log,
+0. **Done. Groundwork.** The shared layer: `VcsRunner` and the command log,
    `VcsRepository`, `Repositories` with colors, the watcher, the diff parser
    and `Hunk`. Then git on it: snapshots from porcelain v2, and
    `Patch.forHunk`/`forLines` with tests: stage and unstage one hunk, one
@@ -793,7 +793,7 @@ plan with why it is left, before the next phase starts.
    rename, CRLF files, and a file whose patch git rejects. `GitStatusCache`
    moves onto the snapshot. Done means a round trip of every hunk and line
    through `git apply --cached` and back leaves `git diff` as it was.
-1. **Virtual text and transient popups** (`dev-docs/VIRTUAL-TEXT.md`, its
+1. **Done. Virtual text and transient popups** (`dev-docs/VIRTUAL-TEXT.md`, its
    phases 1 and 2; `dev-docs/TRANSIENT.md`, its phases 1 and 2): end-of-line
    text and virtual lines, enough for hints and previews, and the popups.
    Dir mode's hint moves onto a virtual line, and `?` there opens its
@@ -878,3 +878,36 @@ background, updating open buffers; command input in the log.)
   the old per-system commands move onto the shared layer.
 - `VcsRunner` serializes writes by directory, not repository: callers run
   writes at the repository root, which `GitCli.write` takes as its argument.
+
+**Phase 1** (fixed:
+- **Option fields:** Enter or Escape in one closed the whole popup.
+- **Completion lists:** a pick option's list was drawn under the popup.
+- **The top line:** rows over the caret's line counted as its text being partly hidden.
+- **Visibility:** the bottom line, the caret and moving down disagreed about rows under a line; all now go by its text.
+- **Hidden directories:** they stayed in the Java listing.
+- **Lock order:** the layer took the buffer's monitor inside its own lock, and the scrollbar waited on a remote directory loading. The layer now reads the first line without the lock, and finds deleted lines in one walk.
+- **Saved defaults:** saving one popup's defaults could delete a dotted id's.
+- **Rows that go while scrolled:** they left the top past its line.
+- **`toBottom`/`toCenter`:** they counted lines, not rows.
+- **TOP rows:** they now go over the first line shown, and `Buffer.getY` counted a hidden first line.
+- **`Ctrl S` on bound values:** it claimed to save them.
+- **Popup keys:** they now follow the listing's simple-mode keys.
+- **Escape:** it now always goes back or closes.
+- **AltGr:** characters typed with it are taken.
+- **Resizing:** it lays the popup out again.
+- **Clicks on virtual text:** they update the window.
+- **Empty hints:** an empty hint is no longer shown.
+- **EOL text:** a line scrolled out of view to the left no longer leaves its text at the edge.)
+
+- Paging (`pageDown`, `getRows`, `centerRegion`, `isLineVisible`) still
+  counts lines, so a page over many virtual rows moves too far. Fix it when
+  the status buffer's sections make rows common, in phase 2.
+- `WebBuffer.getDisplayHeight` leaves out virtual rows. Web pages have none.
+- A `Binding`-backed switch or option keeps its value where the binding
+  says, so session seeding and saved defaults skip it. A git popup that
+  wants defaults keeps its values in `TransientArgs` instead.
+- A popup taller than its window is cut, help line and all. Popups are a
+  screen or less today, and phase 5's log popup is the largest planned.
+- The popup's focus and its field are checked under Xvfb by hand
+  (`java.awt.Robot`). The headless tests have no root pane, and the fuzzer
+  sets fields directly.

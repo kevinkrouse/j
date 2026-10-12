@@ -431,7 +431,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 while (line != null && y < limit) {
                     if (changedLines.containsKey(line))
                         paintLine(line, g2d, y);
-                    y += line.getHeight();
+                    y += rowHeight(line);
                     line = line.nextVisible();
                 }
                 if (y < limit) {
@@ -463,12 +463,19 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         setUpdateFlag(REFRAME);
     }
 
-    // Assumes line is after topLine.
+    // The top of line's text, under its rows of virtual text. Assumes line
+    // is after topLine.
     private int getY(Line line) {
+        return rowY(line) + aboveHeight(line);
+    }
+
+    // The top of line's row: its rows of virtual text over it, then it.
+    // Assumes line is after topLine.
+    private int rowY(Line line) {
         int y = -pixelsAboveTopLine;
         int limit = getHeight();
         for (Line l = topLine; y < limit && l != null && l != line; l = l.nextVisible())
-            y += l.getHeight();
+            y += rowHeight(l);
         return y;
     }
 
@@ -476,8 +483,33 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private int getAbsoluteY(Line line) {
         int y = 0;
         for (Line l = editor.getBuffer().getFirstLine(); l != null && l != line; l = l.nextVisible())
-            y += l.getHeight();
+            y += rowHeight(l);
         return y;
+    }
+
+    /**
+     * Rows of virtual text came or went: the top stays inside its line's
+     * row, and the window is reframed and repainted.
+     */
+    void rowsChanged() {
+        if (topLine != null && !topLine.isHidden())
+            moveTop(0, false);
+        setUpdateFlag(REFRAME | REPAINT);
+        reframe();
+    }
+
+    /** line's height with its rows of virtual text. */
+    int rowHeight(Line line) {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer == null)
+            return line.getHeight();
+        return line.getHeight() + (layer.rowsAbove(line) + layer.rowsBelow(line)) * charHeight;
+    }
+
+    // The height of the rows of virtual text over line.
+    private int aboveHeight(Line line) {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        return layer == null ? 0 : layer.rowsAbove(line) * charHeight;
     }
 
     private void initializePaint() {
@@ -828,7 +860,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         for (Line line = topLine; line != null && y < limit; line = line.nextVisible()) {
             if (line == target)
                 return y;
-            y += line.getHeight();
+            y += rowHeight(line);
         }
         return -1;
     }
@@ -958,7 +990,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                         paintLine(line, g2d, y);
                         break;
                     }
-                    y += line.getHeight();
+                    y += rowHeight(line);
                     line = line.nextVisible();
                 }
                 drawCaret(g2d);
@@ -1237,11 +1269,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         setRenderingHints(paintLineGraphics);
     }
 
+    // y is the top of line's row.
     private final void paintLine(Line line, Graphics2D g2d, int y) {
+        y = paintRowsAbove(line, g2d, y);
         if (line instanceof ImageLine imageLine)
             paintImageLine(imageLine, g2d, y);
         else
             paintTextLine(line, g2d, y);
+        paintRowsBelow(line, g2d, y + line.getHeight());
     }
 
     private synchronized void paintTextLine(Line line, Graphics g, int y) {
@@ -1277,6 +1312,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             drawGutterBorder(paintLineGraphics, 0, line.getHeight());
         drawVerticalRule(paintLineGraphics, 0, line.getHeight());
         drawText(paintLineGraphics, textArray, totalChars, formatArray, 0, caretBreakCol(line, totalChars));
+        drawEndOfLine(paintLineGraphics, line, totalChars, 0);
         changedLines.remove(line);
 
         g.drawImage(paintLineImage, 0, y, paintLineImageWidth, paintLineImageHeight, null);
@@ -1313,6 +1349,202 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
         if (interpolation != null)
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, interpolation);
+    }
+
+    // A run of virtual text where it is drawn on its row.
+    private record Placed(VirtualText.Run run, int x, int width) {}
+
+    // Draws the rows of virtual text over line from y, TOP's first; returns
+    // the top of the line itself.
+    private int paintRowsAbove(Line line, Graphics2D g2d, int y) {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer == null)
+            return y;
+        if (layer.isTopLine(line))
+            y = paintRows(layer.on(line, VirtualText.Placement.TOP), g2d, y);
+        return paintRows(layer.on(line, VirtualText.Placement.ABOVE), g2d, y);
+    }
+
+    private void paintRowsBelow(Line line, Graphics2D g2d, int y) {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer != null)
+            paintRows(layer.on(line, VirtualText.Placement.BELOW), g2d, y);
+    }
+
+    // Returns the y after the rows.
+    private int paintRows(java.util.List<VirtualText> list, Graphics2D g2d, int y) {
+        final Color background = editor.getFormatter().getBackgroundColor();
+        for (VirtualText v : list) {
+            for (java.util.List<VirtualText.Run> row : v.rows()) {
+                g2d.setColor(background);
+                g2d.fillRect(0, y, gutterWidth, charHeight);
+                g2d.setColor(v.background() != null ? v.background() : background);
+                g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, charHeight);
+                if (showLineNumbers && editor.getDot() != null)
+                    drawGutterBorder(g2d, y, charHeight);
+                drawPlaced(g2d, place(row, rowX(v)), y);
+                y += charHeight;
+            }
+        }
+        return y;
+    }
+
+    // Where a row of virtual text starts.
+    private int rowX(VirtualText v) {
+        return gutterWidth - (v.scrolls() ? shift * charWidth : 0);
+    }
+
+    // Draws the line's EOL and RIGHT text, after drawText.
+    private void drawEndOfLine(Graphics2D g2d, Line line, int totalChars, int y) {
+        final java.util.List<Placed> placed = placeEndOfLine(g2d, line, totalChars);
+        if (!placed.isEmpty())
+            drawPlaced(g2d, placed, y);
+    }
+
+    // EOL text a space after the end of the line, and RIGHT text against
+    // the right edge if it clears that; wants the line just formatted.
+    private java.util.List<Placed> placeEndOfLine(Graphics2D g2d, Line line, int totalChars) {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer == null || !layer.has(line) || line instanceof ImageLine)
+            return java.util.List.of();
+        final java.util.List<VirtualText> eol = layer.on(line, VirtualText.Placement.EOL);
+        final java.util.List<VirtualText> right = layer.on(line, VirtualText.Placement.RIGHT);
+        if (eol.isEmpty() && right.isEmpty())
+            return java.util.List.of();
+        final java.util.List<Placed> placed = new java.util.ArrayList<>();
+        int x;
+        if (totalChars > 0)
+            x = gutterWidth + measureLine(g2d, textArray, totalChars, formatArray);
+        else // Empty, or scrolled out of sight to the left.
+            x = gutterWidth + (editor.getBuffer().getCol(line, line.length()) - shift) * spaceWidth;
+        for (VirtualText v : eol) {
+            if (x < gutterWidth)
+                break; // The line is out of view to the left, and its text with it.
+            final java.util.List<Placed> runs = place(v.rows().get(0), x + spaceWidth);
+            placed.addAll(runs);
+            x = end(runs, x + spaceWidth);
+        }
+        int width = 0;
+        for (VirtualText v : right)
+            width += spaceWidth + end(place(v.rows().get(0), 0), 0);
+        x = Math.max(x, gutterWidth);
+        int rx = getWidth() - charWidth - width;
+        if (!right.isEmpty() && rx >= x) {
+            for (VirtualText v : right) {
+                final java.util.List<Placed> runs = place(v.rows().get(0), rx + spaceWidth);
+                placed.addAll(runs);
+                rx = end(runs, rx + spaceWidth);
+            }
+        }
+        return placed;
+    }
+
+    private static int end(java.util.List<Placed> placed, int x) {
+        return placed.isEmpty() ? x : placed.get(placed.size() - 1).x() + placed.get(placed.size() - 1).width();
+    }
+
+    private static java.util.List<Placed> place(java.util.List<VirtualText.Run> runs, int x) {
+        final java.util.List<Placed> placed = new java.util.ArrayList<>(runs.size());
+        for (VirtualText.Run run : runs) {
+            final int width = Utilities.getFontMetrics(fontFor(run.style())).stringWidth(run.text());
+            placed.add(new Placed(run, x, width));
+            x += width;
+        }
+        return placed;
+    }
+
+    // Draws runs on the row at y, inside the text area.
+    private void drawPlaced(Graphics2D g2d, java.util.List<Placed> placed, int y) {
+        final java.awt.Shape clip = g2d.getClip();
+        g2d.clipRect(gutterWidth, y, getWidth() - gutterWidth, charHeight);
+        try {
+            final Formatter formatter = editor.getFormatter();
+            final Color dim = DefaultTheme.blend(formatter.getBackgroundColor(), formatter.getColor(0), 0.5);
+            for (Placed p : placed) {
+                final VirtualText.Run run = p.run();
+                g2d.setFont(fontFor(run.style()));
+                g2d.setColor(run.color() != null ? run.color() : dim);
+                g2d.drawString(run.text(), p.x(), y + charAscent);
+                if ((run.style() & TextStyle.UNDERLINE) != 0)
+                    g2d.drawLine(p.x(), y + charAscent + 1, p.x() + p.width(), y + charAscent + 1);
+                if ((run.style() & TextStyle.STRIKETHROUGH) != 0) {
+                    final int strikeY = y + charAscent - strikethroughRise;
+                    g2d.drawLine(p.x(), strikeY, p.x() + p.width(), strikeY);
+                }
+            }
+        }
+        finally {
+            g2d.setClip(clip);
+        }
+    }
+
+    /** The run of virtual text at (x, y) in the window, or null. */
+    public synchronized VirtualText.Run virtualRunAt(int x, int y) {
+        final Buffer buffer = editor.getBuffer();
+        final VirtualTextLayer layer = buffer == null ? null : buffer.virtualTextIfAny();
+        if (layer == null || topLine == null)
+            return null;
+        gutterWidth = getGutterWidth(buffer); // Set by painting, which may not have happened.
+        if (x < gutterWidth)
+            return null;
+        Line line = topLine;
+        int top = -pixelsAboveTopLine;
+        while (line != null && top + rowHeight(line) <= y) {
+            top += rowHeight(line);
+            line = line.nextVisible();
+        }
+        if (line == null || y < top)
+            return null;
+        final java.util.List<VirtualText> rows = new java.util.ArrayList<>();
+        if (layer.isTopLine(line))
+            rows.addAll(layer.on(line, VirtualText.Placement.TOP));
+        rows.addAll(layer.on(line, VirtualText.Placement.ABOVE));
+        final int textTop = top + layer.rowsAbove(line) * charHeight;
+        if (y < textTop)
+            return runAt(rows, (y - top) / charHeight, x);
+        if (y >= textTop + line.getHeight())
+            return runAt(layer.on(line, VirtualText.Placement.BELOW), (y - textTop - line.getHeight()) / charHeight, x);
+        // Formatting the line is dear, and this runs on every mouse move.
+        if (layer.on(line, VirtualText.Placement.EOL).isEmpty()
+                && layer.on(line, VirtualText.Placement.RIGHT).isEmpty())
+            return null;
+        Graphics2D g2d = (Graphics2D) getGraphics();
+        if (g2d == null) { // Not on screen: measured as it would be.
+            g2d = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB).createGraphics();
+            setRenderingHints(g2d);
+        }
+        try {
+            buffer.lockRead();
+        }
+        catch (InterruptedException e) {
+            g2d.dispose();
+            return null;
+        }
+        try {
+            final int totalChars = formatLine(line, shift, getMaxCols());
+            return runAt(placeEndOfLine(g2d, line, totalChars), x);
+        }
+        finally {
+            buffer.unlockRead();
+            g2d.dispose();
+        }
+    }
+
+    // The run at x on the index'th of the rows of list.
+    private VirtualText.Run runAt(java.util.List<VirtualText> list, int index, int x) {
+        for (VirtualText v : list) {
+            if (index < v.rows().size())
+                return runAt(place(v.rows().get(index), rowX(v)), x);
+            index -= v.rows().size();
+        }
+        return null;
+    }
+
+    private static VirtualText.Run runAt(java.util.List<Placed> placed, int x) {
+        for (Placed p : placed)
+            if (x >= p.x() && x < p.x() + p.width())
+                return p.run();
+        return null;
     }
 
     // Where an image line's placements are measured from.
@@ -1631,12 +1863,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final Color colorBackground = editor.getFormatter().getBackgroundColor();
         int y = -pixelsAboveTopLine;
         Line line = topLine;
-        while (line != null && y + line.getHeight() < clipBounds.y) {
-            y += line.getHeight();
+        while (line != null && y + rowHeight(line) < clipBounds.y) {
+            y += rowHeight(line);
             line = line.nextVisible();
         }
         final int limit = clipBounds.y + clipBounds.height;
         while (line != null && y < limit) {
+            final int rowTop = y;
+            y = paintRowsAbove(line, g2d, y);
             if (line instanceof ImageLine) {
                 paintImageLine((ImageLine) line, g2d, y);
             } else {
@@ -1664,9 +1898,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                     drawText(g2d, textArray, totalChars, formatArray, y, caretBreakCol(line, totalChars));
                 } else
                     drawVerticalRule(g2d, y, line.getHeight());
+                drawEndOfLine(g2d, line, totalChars, y);
                 changedLines.remove(line);
             }
-            y += line.getHeight();
+            paintRowsBelow(line, g2d, y + line.getHeight());
+            y = rowTop + rowHeight(line);
             line = line.nextVisible();
         }
         if (y < limit) {
@@ -1921,17 +2157,18 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         return nanos;
     }
 
+    /** The last line whose text is all on screen; its rows need not be. */
     public Line getBottomLine() {
         Line line = topLine;
-        int y = line.getHeight() - pixelsAboveTopLine;
+        int y = rowHeight(line) - pixelsAboveTopLine;
         final int limit = getHeight();
         while (true) {
             Line next = line.nextVisible();
             if (next == null)
                 break;
-            y += next.getHeight();
-            if (y > limit)
+            if (y + aboveHeight(next) + next.getHeight() > limit)
                 break;
+            y += rowHeight(next);
             line = next;
         }
         return line;
@@ -2063,16 +2300,23 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     public void windowUp() {
         if (isTopLinePartlyHidden())
             scrollByPixels(-pixelsAboveTopLine);
-        else
+        else if (topLine == null || topLine instanceof ImageLine && pixelsAboveTopLine > 0)
             scrollByPixels(-charHeight);
+        else {
+            final Line prev = topLine.previousVisible();
+            scrollByPixels(prev == null || prev instanceof ImageLine ? -charHeight : -rowHeight(prev));
+        }
     }
 
-    /** Scrolls down one line, or to the top of the next when partly scrolled. */
+    /**
+     * Scrolls down one line, or to the top of the next when partly scrolled.
+     * A line with rows of virtual text is one step, rows and all.
+     */
     public void windowDown() {
-        if (isTopLinePartlyHidden())
-            scrollByPixels(topLine.getHeight() - pixelsAboveTopLine);
-        else
+        if (topLine == null || topLine instanceof ImageLine)
             scrollByPixels(charHeight);
+        else
+            scrollByPixels(rowHeight(topLine) - pixelsAboveTopLine);
     }
 
     /**
@@ -2112,9 +2356,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int bottom = dy > 0 ? height : -dy;
         int y = -pixelsAboveTopLine;
         for (Line l = topLine; l != null && y < bottom; l = l.nextVisible()) {
-            if (y + l.getHeight() > top)
+            if (y + rowHeight(l) > top)
                 lineChanged(l);
-            y += l.getHeight();
+            y += rowHeight(l);
         }
         return dy;
     }
@@ -2128,7 +2372,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final int need = pixelsAboveTopLine + dy + getHeight();
             int total = 0;
             for (Line l = topLine; l != null && total < need; l = l.nextVisible())
-                total += l.getHeight();
+                total += rowHeight(l);
             if (total < need)
                 dy = Math.max(0, total - getHeight() - pixelsAboveTopLine);
         }
@@ -2142,16 +2386,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 break;
             }
             line = prev;
-            offset += prev.getHeight();
+            offset += rowHeight(prev);
         }
-        while (offset >= line.getHeight()) {
+        while (offset >= rowHeight(line)) {
             Line next = line.nextVisible();
             if (next == null) {
                 dy -= offset;
                 offset = 0;
                 break;
             }
-            offset -= line.getHeight();
+            offset -= rowHeight(line);
             line = next;
         }
         topLine = line;
@@ -2298,11 +2542,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         for (Line l = line; l != null && Math.abs(y) <= limit; l = l.nextVisible()) {
             if (l == topLine)
                 return y + pixelsAboveTopLine;
-            y += l.getHeight();
+            y += rowHeight(l);
         }
         y = -pixels;
         for (Line l = line.previousVisible(); l != null && Math.abs(y) <= limit; l = l.previousVisible()) {
-            y -= l.getHeight();
+            y -= rowHeight(l);
             if (l == topLine)
                 return y + pixelsAboveTopLine;
         }
@@ -2315,16 +2559,20 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * reframing to center.
      */
     private void revealAtTop(Line line) {
-        if (line == topLine)
-            scrollByPixels(-pixelsAboveTopLine);
-        else if (line == topLine.previousVisible())
-            scrollByPixels(-pixelsAboveTopLine - line.getHeight());
+        // Its rows over it too, if the text still fits under them.
+        final int keep = Math.max(0, aboveHeight(line) + line.getHeight() - getHeight());
+        if (line == topLine) {
+            if (pixelsAboveTopLine > keep)
+                scrollByPixels(keep - pixelsAboveTopLine);
+        } else if (line == topLine.previousVisible())
+            scrollByPixels(keep - pixelsAboveTopLine - rowHeight(line));
     }
 
-    // A text line partly scrolled off the top. An image line taller than the
-    // window is scrolled through, so it does not count.
+    // A text line partly scrolled off the top: its text, not just rows of
+    // virtual text over it. An image line taller than the window is
+    // scrolled through, so it does not count.
     private boolean isTopLinePartlyHidden() {
-        return topLine != null && pixelsAboveTopLine > 0 && !(topLine instanceof ImageLine);
+        return topLine != null && pixelsAboveTopLine > aboveHeight(topLine) && !(topLine instanceof ImageLine);
     }
 
     /** The first line whose top is on screen. */
@@ -2408,7 +2656,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private void reframeVertically() {
         // The caret's line partly scrolled off the top comes back whole.
         if (isTopLinePartlyHidden() && topLine == editor.getDotLine()) {
-            pixelsAboveTopLine = 0;
+            pixelsAboveTopLine = aboveHeight(topLine);
             setUpdateFlag(REPAINT);
         }
 
@@ -2452,13 +2700,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         int y = -pixelsAboveTopLine;
         while (y < height) {
             if (line == dotLine) {
-                // Whole line must fit.
-                return y + line.getHeight() > height;
+                // Whole line must fit; its rows of virtual text need not.
+                return y + aboveHeight(line) + line.getHeight() > height;
             }
             Line next = line.nextVisible();
             if (next == null)
                 return true;
-            y += line.getHeight();
+            y += rowHeight(line);
             line = next;
         }
         return true;
@@ -2479,7 +2727,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             Line prev = line.previousVisible();
             if (prev == null)
                 break;
-            y -= prev.getHeight();
+            y -= rowHeight(prev);
             if (y < 0)
                 break;
             line = prev;
@@ -2540,16 +2788,21 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     public void toCenter() {
-        Line line = editor.getDotLine();
-        int limit = getRows() / 2;
-        for (int i = 0; i < limit; i++) {
+        setTopLine(lineAbove(editor.getDotLine(), getHeight() / 2));
+        setUpdateFlag(REPAINT);
+    }
+
+    // The line to put at the top for line's text to start about y down:
+    // whole rows, of lines and their virtual text, above it.
+    private Line lineAbove(Line line, int y) {
+        y -= aboveHeight(line);
+        while (true) {
             Line prev = line.previousVisible();
-            if (prev == null)
-                break;
+            if (prev == null || y - rowHeight(prev) < 0)
+                return line;
+            y -= rowHeight(prev);
             line = prev;
         }
-        setTopLine(line);
-        setUpdateFlag(REPAINT);
     }
 
     public void toTop() {
@@ -2564,13 +2817,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     /** Scrolls so the caret's line is the last one on screen. */
     public void toBottom() {
-        Line line = editor.getDotLine();
-        for (int i = getRows() - 1; i > 0; i--) {
-            Line prev = line.previousVisible();
-            if (prev == null)
-                break;
-            line = prev;
-        }
+        final Line dotLine = editor.getDotLine();
+        final Line line = lineAbove(dotLine, getHeight() - dotLine.getHeight());
         if (topLine != line) {
             setTopLine(line);
             setUpdateFlag(REPAINT);
@@ -2680,7 +2928,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         int total = -pixelsAboveTopLine;
         final int limit = getHeight();
         while (true) {
-            total += line.getHeight();
+            total += rowHeight(line);
             if (total > y)
                 break;
             if (total > limit)
@@ -2699,7 +2947,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (line != null) {
             int total = 0;
             while (true) {
-                total += line.getHeight();
+                total += rowHeight(line);
                 if (total > y)
                     break;
                 Line next = line.nextVisible();
@@ -2805,6 +3053,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     @Override
     public String getToolTipText(MouseEvent e) {
+        final VirtualText.Run run = virtualRunAt(e.getX(), e.getY());
+        if (run != null && run.tooltip() != null)
+            return run.tooltip();
         return editor.getMode().getToolTipText(editor, e);
     }
 }

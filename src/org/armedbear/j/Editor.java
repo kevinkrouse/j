@@ -388,47 +388,38 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return locationBar == null ? null : locationBar.getTextField();
     }
 
-    // The location bar over the hint.
+    // The location bar, and a prompt's.
     private JPanel north;
 
-    // A dimmed line of the mode's keys, as Neogit shows, or null.
-    private Label hint;
+    // The owner of the hint's virtual text.
+    private static final String HINT = "hint";
 
-    /** Shows the mode's hint over the text, with the keys of the edit mode in use. */
+    /**
+     * Shows the mode's hint over the buffer's first line, as Neogit does,
+     * with the keys of the edit mode in use. It scrolls away with the text.
+     */
     public void updateHint() {
-        final List<String[]> items = buffer == null ? null : hintItems();
+        if (buffer == null)
+            return;
+        final List<String[]> items = hintItems();
+        final VirtualTextLayer layer = items == null ? buffer.virtualTextIfAny() : buffer.getVirtualText();
+        if (layer == null)
+            return;
         if (items == null) {
-            if (hint != null) {
-                north.remove(hint);
-                hint = null;
-                revalidate();
-            }
+            layer.clear(HINT);
             return;
         }
-        if (hint == null) {
-            hint = new Label();
-            hint.setOpaque(true);
-            hint.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, Display.getGutterWidth(buffer) + 2, 1, 0));
-            north.add(hint, BorderLayout.SOUTH);
-            revalidate();
+        final List<VirtualText.Run> runs = new ArrayList<>();
+        runs.add(VirtualText.Run.of("Hint:  "));
+        for (String[] item : items) {
+            if (runs.size() > 1)
+                runs.add(VirtualText.Run.of(" · "));
+            runs.add(VirtualText.Run.bold(item[0]));
+            runs.add(VirtualText.Run.of(" " + item[1]));
         }
-        final java.awt.Color bg = getFormatter().getBackgroundColor();
-        final java.awt.Color fg = getFormatter().getColor(0);
-        hint.setFont(Display.getPlainFont());
-        hint.setBackground(bg);
-        hint.setForeground(DefaultTheme.blend(bg, fg, 0.5));
-        hint.setText(hintHtml(items));
-    }
-
-    // "Hint: key what · key what", with the keys in bold.
-    private static String hintHtml(List<String[]> items) {
-        return "<html>Hint:&nbsp; "
-                + joinHint(items, (key, what) -> "<b>" + escapeHtml(key) + "</b> " + escapeHtml(what), " &middot; ")
-                + "</html>";
-    }
-
-    private static String escapeHtml(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        final List<VirtualText> hint = List.of(VirtualText.top(List.of(runs)));
+        if (!hint.equals(layer.get(HINT)))
+            layer.set(HINT, hint);
     }
 
     /** The hint as plain text, "key what · key what", or null for none. */
@@ -466,7 +457,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                     : shortKey(mapping.getKeyText());
             items.add(new String[] { key, h[1] });
         }
-        return items;
+        return items.isEmpty() ? null : items;
     }
 
     // 'x' as x, and Shift D as D.

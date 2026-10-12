@@ -28,8 +28,16 @@ import java.util.regex.PatternSyntaxException;
 public final class DirectoryFilenameFilter {
     private Pattern pattern;
     private boolean ignoreCase;
+    // Whether there is a pattern at all, or only hidden names are left out.
+    private final boolean limited;
+    private final boolean hideDotFiles;
 
-    public DirectoryFilenameFilter(String s) throws PatternSyntaxException {
+    /** Names matching the pattern s, all if s is null; with hideDotFiles, none starting with a dot. */
+    public DirectoryFilenameFilter(String s, boolean hideDotFiles) throws PatternSyntaxException {
+        this.hideDotFiles = hideDotFiles;
+        limited = s != null;
+        if (s == null)
+            return;
         ignoreCase = Platform.isFileSystemCaseInsensitive();
         if (ignoreCase)
             s = s.toLowerCase(Locale.ROOT);
@@ -60,8 +68,17 @@ public final class DirectoryFilenameFilter {
         }
     }
 
+    /** Whether name is hidden and left out, a directory or not; never "." or "..". */
+    public boolean hides(String name) {
+        return hideDotFiles && name != null && name.startsWith(".") && !name.equals(".") && !name.equals("..");
+    }
+
     public boolean accepts(String name) {
-        if (pattern == null)
+        if (hides(name))
+            return false;
+        if (!limited)
+            return true;
+        if (pattern == null) // Not a pattern, such as "[": matches nothing.
             return false;
         if (ignoreCase)
             name = name.toLowerCase(Locale.ROOT);

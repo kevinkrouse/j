@@ -147,6 +147,8 @@ public final class CompletionPopup<T> {
             if (rootPane == null)
                 return false;
             rootPane.getLayeredPane().add(scroller, JLayeredPane.POPUP_LAYER);
+            // Over anything else in the layer, as a popup it was opened from.
+            rootPane.getLayeredPane().moveToFront(scroller);
             field.addFocusListener(focusListener);
             field.addComponentListener(componentListener);
             field.addAncestorListener(ancestorListener);

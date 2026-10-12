@@ -60,7 +60,7 @@ public class SystemBuffer {
     protected int lineCount;
 
     private boolean isLoaded;
-    private Line firstLine;
+    private volatile Line firstLine;
     private Line lastLine;
     private File file;
     private String loadEncoding;
@@ -77,6 +77,14 @@ public class SystemBuffer {
     }
 
     public final synchronized Line getFirstLine() {
+        return firstLine;
+    }
+
+    /**
+     * The first line, without the buffer's lock: for painting and virtual
+     * text, which must not wait on a buffer being loaded.
+     */
+    public final Line peekFirstLine() {
         return firstLine;
     }
 

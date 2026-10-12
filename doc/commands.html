@@ -97,6 +97,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#dirProjectDir">dirProjectDir</a></li>
     <li><a href="commands.html#dirRescan">dirRescan</a></li>
     <li><a href="commands.html#dirTagFile">dirTagFile</a></li>
+    <li><a href="commands.html#dirToggleHidden">dirToggleHidden</a></li>
     <li><a href="commands.html#dirUnlimit">dirUnlimit</a></li>
     <li><a href="commands.html#dirUpDir">dirUpDir</a></li>
     <li><a href="commands.html#doShellCommandOnRegion">doShellCommandOnRegion</a></li>
@@ -261,6 +262,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#messageToggleWrap">messageToggleWrap</a></li>
     <li><a href="commands.html#messageViewAttachment">messageViewAttachment</a></li>
     <li><a href="commands.html#mode">mode</a></li>
+    <li><a href="commands.html#modePopup">modePopup</a></li>
     <li><a href="commands.html#mouseCopyToInput">mouseCopyToInput</a></li>
     <li><a href="commands.html#mouseFindOccurrence">mouseFindOccurrence</a></li>
     <li><a href="commands.html#mouseFindTag">mouseFindTag</a></li>
@@ -1188,7 +1190,7 @@ Cycles through the possibilities (name, date, size) for the sort order of the
 directory listing. The sort order that is currently in effect is displayed in
 the title bar of the editor window.
 <br><br>
-<b>Default key mapping:</b> Ctrl S in directory buffers
+<b>Default key mapping:</b> Ctrl S or s in directory buffers
 <br><br>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
 <br><br>
@@ -1199,7 +1201,7 @@ the title bar of the editor window.
 Deletes the marked files, or, if no files are marked, deletes the file at the
 current location of the caret.
 <br><br>
-<b>Default key mapping:</b> Delete in directory buffers
+<b>Default key mapping:</b> Delete or d in directory buffers
 <br><br>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
 <br><br>
@@ -1257,7 +1259,7 @@ If the caret is to the right of the first character of the filename on the
 current line, moves the caret to the first character of the filename.
 Otherwise, moves the caret to the beginning of the line.
 <br><br>
-<b>Default key mapping:</b> Home in directory buffers
+<b>Default key mapping:</b> Home or ~ in directory buffers
 <br><br>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
 <br><br>
@@ -1291,7 +1293,7 @@ You can specify either a filename or a directory as the destination.
 Opens the file or directory at the location of the caret or mouse click in a
 directory buffer.
 <p>
-<b>Default key mapping:</b> Enter, Ctrl Shift G, Double Mouse-1, or Mouse-2 in directory buffers
+<b>Default key mapping:</b> Enter, o, Ctrl Shift G, Double Mouse-1, or Mouse-2 in directory buffers
 <p>
 <b>See also:</b> <a href="#dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a>,
 <a href="directories.html">Directory Buffers</a>.
@@ -1329,7 +1331,7 @@ buffer, if it is one, or else one for the root. See
 Refreshes the directory listing for the current directory buffer and rescans the
 directory tree.
 <br><br>
-<b>Default key mapping:</b> None
+<b>Default key mapping:</b> Ctrl R or r in directory buffers
 <br><br>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
 <br><br>
@@ -1355,6 +1357,16 @@ Tags or untags the file at the current location of the caret.
 <b>Default key mapping:</b> 't' in directory buffers
 <p>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirToggleHidden">dirToggleHidden</a><dl><dd>
+<p>
+Shows or hides the names in the directory listing that start with a dot.
+<br><br>
+<b>Default key mapping:</b> '.' in directory buffers.
+<br><br>
+<b>See also:</b> <a href="directories.html#popup">Directory Buffers</a>.
 <br><br>
 </dl><!--<hr>-->
 
@@ -3684,6 +3696,22 @@ Changes the mode of the current buffer. For example, Alt X, "mode diff", or Alt
 X, "mode lisp".
 <p>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="modePopup">modePopup</a><dl><dd>
+<p>
+Opens a popup of the current buffer's keys, as magit's are: settings to change,
+such as a listing's sort and filters, and commands to run, in groups, with the
+keys in bold. A key or a click does what an item says. Escape goes back from a
+popup opened from another, and closes the first; q closes it too. Ctrl S saves
+the popup's own settings as the defaults for new buffers (a directory's sort and
+filters are the directory's, and are not saved), and Ctrl H then a key opens
+that item's help. Directory buffers have one.
+<p>
+<b>Default key mapping:</b> ? in directory buffers
+<br><br>
+<b>See also:</b> <a href="directories.html#popup">Directory Buffers</a>
 <br><br>
 </dl><!--<hr>-->
 

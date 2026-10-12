@@ -2688,25 +2688,56 @@ public class Buffer extends SystemBuffer {
         return first.length() == 0;
     }
 
-    public int getDisplayHeight() {
-        return visibleLineCount * Display.getCharHeight();
+    // Not under the buffer's lock: the layer takes that lock inside its own.
+    private volatile VirtualTextLayer virtualText;
+    private final Object virtualTextLock = new Object();
+
+    /** Its virtual text, made when first asked for. */
+    public final VirtualTextLayer getVirtualText() {
+        VirtualTextLayer layer = virtualText;
+        if (layer == null) {
+            synchronized (virtualTextLock) {
+                if (virtualText == null)
+                    virtualText = new VirtualTextLayer(this);
+                layer = virtualText;
+            }
+        }
+        return layer;
     }
 
-    // Returns cumulative height to top of target line.
+    /** Its virtual text, or null if it has none. */
+    final VirtualTextLayer virtualTextIfAny() {
+        final VirtualTextLayer layer = virtualText;
+        return layer == null || layer.isEmpty() ? null : layer;
+    }
+
+    public int getDisplayHeight() {
+        final VirtualTextLayer layer = virtualTextIfAny();
+        final int rows = layer == null ? 0 : layer.totalRows();
+        return (visibleLineCount + rows) * Display.getCharHeight();
+    }
+
+    // Returns cumulative height to top of target line, with the rows of
+    // virtual text before it.
     public int getY(Line line) {
         Debug.assertTrue(!line.isHidden());
+        final int charHeight = Display.getCharHeight();
+        final VirtualTextLayer layer = virtualTextIfAny();
+        final int rows = layer == null ? 0 : layer.rowsBefore(line);
         if (folded) {
-            final int charHeight = Display.getCharHeight();
             int y = 0;
-            for (Line l = getFirstLine(); l != null; l = l.nextVisible()) {
+            Line first = getFirstLine();
+            if (first != null && first.isHidden())
+                first = first.nextVisible();
+            for (Line l = first; l != null; l = l.nextVisible()) {
                 if (l == line)
                     break;
                 else
                     y += charHeight;
             }
-            return y;
+            return y + rows * charHeight;
         } else
-            return line.lineNumber() * Display.getCharHeight();
+            return (line.lineNumber() + rows) * charHeight;
     }
 
     public int getDisplayWidth() {

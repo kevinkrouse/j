@@ -11,6 +11,7 @@
 
 package org.armedbear.j;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,21 +46,24 @@ public class HintTest {
     @Test
     public void aDirectoryListsItsOwnKeys() {
         h = EditorHarness.create();
-        final String hint = hint(false);
-        assertTrue(hint.startsWith("Enter open · Backspace up · "), hint);
-        assertTrue(hint.contains(" · c copy · "), hint);
-        assertTrue(hint.contains(" · Ctrl S sort (name) · "), hint);
-        assertTrue(hint.contains(" · Ctrl R rescan"), hint);
+        assertEquals("Enter open · Backspace up · ? more", hint(false));
+    }
+
+    @Test
+    public void theHintIsARowOverTheFirstLine() {
+        h = EditorHarness.create();
+        final String text = hint(false);
+        h.editor().updateHint();
+        final java.util.List<VirtualText> rows = h.editor().getBuffer().getVirtualText().get("hint");
+        assertEquals(1, rows.size());
+        assertEquals(VirtualText.Placement.TOP, rows.get(0).placement());
+        assertEquals("Hint:  " + text, VirtualText.text(rows.get(0).rows().get(0)));
+        assertEquals(TextStyle.BOLD, rows.get(0).rows().get(0).get(1).style(), "the first key");
     }
 
     @Test
     public void inVimTheKeysAreTheOnesThatWinOverVim() {
         h = EditorHarness.create().vim();
-        final String hint = hint(true);
-        assertTrue(hint.startsWith("<CR> open · - up · "), hint);
-        assertTrue(hint.contains(" · C copy · "), hint);
-        assertTrue(hint.contains(" · D delete · "), hint);
-        assertTrue(hint.contains(" · s sort (name) · "), hint);
-        assertTrue(hint.contains(" · <C-r> rescan"), hint);
+        assertEquals("<CR> open · - up · ? more", hint(true));
     }
 }

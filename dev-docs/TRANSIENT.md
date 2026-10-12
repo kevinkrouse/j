@@ -77,12 +77,14 @@ later.
   most 100 columns, centered), and as tall as its rows. It has a thin
   border and a shadow, and the bottom panel's tint. It has no location bar
   and no status bar: the title is its first row, and the help line its last.
-- **What it is inside.** An `Editor` without a location bar, status bar
-  or gutter, around a `Display` (which needs an `Editor`). It is not in
-  `EditorPane`'s split tree, so it never takes a window's place, and window
-  commands (`Ctrl W` in vim, split, next window) skip it. Being a real
-  buffer, it is drawn by the same formatter and theme code, can scroll when
-  the popup is taller than the window, and can be searched.
+- **What it is inside.** A component of its own (`TransientPopup`), drawn
+  with the display's fonts and the buffer's theme colors. It was to be an
+  `Editor` around a `Display`, but every `Editor` joins the global editor
+  list, which window counting, sessions, "other window" and the fuzzer's
+  checks all walk, so a popup editor would be a window to all of them. As
+  it is, window commands never see it. What a buffer would have added,
+  scrolling a popup taller than its window and searching it, it does
+  without: popups are a screen or less, and the box is cut to the window.
 - **Closing.** `Escape` (from the first popup; from a nested one it goes
   back), a command that runs, a click outside the box, or
   the window under it closing. Focus goes back to the window it came from.
@@ -129,17 +131,26 @@ later.
 - **Files**: tag, copy, move, delete, shell command, rescan.
 - **help: directories**.
 
-Its hint line shrinks to `Enter open · - up · ? more`. Sort, limit and
+Its keys are the listing's own in the edit mode in use (`Mode.getTransient`
+takes the editor): `u` up and `t` tag in simple mode, netrw's `-` and `x` in
+vim. Every one also works with the popup closed; `.` hidden files, `r`
+rescan, `o` open and the rest are mapped in both. A filter changes the
+listing at once, in every window on it. Its hint line shrinks to
+`Enter open · - up · ? more`. Sort, limit and
 hidden files are also chips in a filter bar over the listing, the same
 `FilterBar` as the git log's (`GIT-TOOLING.md`); the popup and the bar
 change the same values.
 
 ## Phases
 
-1. The model, the floating box, keys and clicks, switches and commands,
-   and the help line. Dir mode's popup and the shorter hint. Tests: the box
-   opens over the right window, closes on each way out, and gives the focus
-   back; `fuzz-windows` with popups open while windows split and close.
-2. Options with choosers, values kept per buffer and session, saved
-   defaults, and `Prefix`. The git popups use these.
+1. Done. The model, the floating box, keys and clicks, switches and
+   commands, and the help line. Dir mode's popup and the shorter hint, with
+   a hidden files filter for it. Tests: keys, clicks, Escape back and out;
+   `fuzz-windows` with popups open while windows split and close, checking
+   one popup at most, inside its window, and none left behind.
+2. Done. Options with choosers (cycle, field, and a field with a list),
+   values kept per buffer and session, saved defaults
+   (`popup-defaults.properties` in the state directory), and `Prefix`. The
+   git popups use these. Dir mode's filter bar comes with the `FilterBar`,
+   in the git log's phase (`GIT-TOOLING.md`, phase 5).
 3. Mail's popups.

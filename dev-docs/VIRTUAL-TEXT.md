@@ -77,9 +77,13 @@ holds inline hints, and its `BlockMap` holds blocks between lines
 
 - **`VirtualText`**: an anchor, a placement, content, a priority, and an
   owner.
-  - The anchor is a `Position` that edits move, as `Marker`'s is. When its
-    line is deleted, a decoration on it is dropped unless it says to stick
-    to the next line.
+  - The anchor is the `Line`, as a `Position`'s is: typing on the line
+    keeps it, and lines inserted before it move it. A deleted line takes its
+    text with it. Joining lines keeps the first line's object, so text on a
+    line joined into the one above it goes, and text on the line a deletion
+    starts in stays on what is left there, as nvim's extmarks do. Owners
+    whose text is about a line's content (blame, previews) redraw it on
+    change anyway. An `INLINE` anchor will need an offset as well.
   - The placement is one of `INLINE` (before the anchor's column), `EOL`
     (after the end of the line, one space of gap), `RIGHT` (at the right
     edge, if it fits), `ABOVE` or `BELOW` (whole lines), or `TOP` (above
@@ -90,8 +94,10 @@ holds inline hints, and its `BlockMap` holds blocks between lines
 - **`VirtualTextLayer`**: per buffer, a map from owner (`"vcs.blame"`,
   `"vcs.preview"`, `"hint"`) to its decorations, indexed by line. An owner
   replaces all of its decorations at once with `set(owner, list)`, or clears
-  them. Changes tell the displays to repaint the lines involved. Providers
-  are added by modes and features, never by `Display`.
+  them. Changes tell the displays to repaint the lines involved, or the
+  whole window when rows come or go. Providers are added by modes and
+  features, never by `Display`. It never takes the buffer's lock inside
+  its own; painting takes its lock inside the buffer's read lock.
 
 ### Drawing (`Display`)
 
@@ -147,15 +153,15 @@ line and its virtual lines as one step.
 
 ### Phases
 
-1. The model, the layer and `EOL`/`RIGHT`, with the caret line's blame (a
-   stub owner) as the first use. Tests: anchors through insertions and
-   deletions on and around the line, and an owner replacing and clearing its
-   decorations.
-2. `ABOVE`/`BELOW`/`TOP`. Dir mode's hint moves onto `TOP`, and
+1. Done. The model, the layer and `EOL`/`RIGHT`. Tests: anchors through
+   insertions and deletions on and around the line, and an owner replacing
+   and clearing its decorations. The blame owner comes with git's blame
+   (`GIT-TOOLING.md`, phase 7), not as a stub.
+2. Done. `ABOVE`/`BELOW`/`TOP`. Dir mode's hint moves onto `TOP`, and
    `Editor.updateHint`'s label goes. Tests: y to line and back with virtual
    lines on the first, last and a folded line; scrolling by the pixel and by
-   line; the caret never in virtual space; `fuzz-windows` with decorations
-   on.
+   line; the caret never in virtual space; a painted `TOP` row pushing the
+   text down; `fuzz-windows` with decorations on.
 3. `INLINE`, when there is a use for it.
 
 ### Open questions

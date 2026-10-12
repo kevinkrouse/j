@@ -85,7 +85,10 @@ public final class DirectoryEntry {
         if (c == 'l' && s.startsWith("ls "))
             return null;
         if (filter != null) {
-            if (c != 'd' && !filter.accepts(getName(s)))
+            final String name = getName(s);
+            if (filter.hides(name))
+                return null;
+            if (c != 'd' && !filter.accepts(name))
                 return null;
         }
         return new DirectoryEntry(s, c);

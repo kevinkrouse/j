@@ -11,8 +11,10 @@
 
 package org.armedbear.j;
 
+import java.awt.Component;
 import java.awt.Rectangle;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -29,9 +31,12 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import javax.swing.JLayeredPane;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
+import org.armedbear.j.transients.TransientCommands;
+import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.vim.VimInputHandler;
 import org.jdesktop.swingx.MultiSplitLayout;
 
@@ -289,13 +294,70 @@ public final class WindowFuzz {
         new Op("closeTransient", ed -> {
             if (ed.getBuffer().isTransient())
                 ed.closeTransient();
-        }));
+        }),
+        new Op("dirPopup", ed -> {
+            if (!(ed.getBuffer() instanceof DirectoryBuffer))
+                ed = ed.show(Editor.getBuffer(file("proj")));
+            TransientCommands.modePopup(ed);
+        }),
+        new Op("popupKey", ed -> {
+            // Not copy, move, delete or shell: their dialogs are modal.
+            final TransientPopup popup = TransientPopup.getOpen();
+            if (popup != null)
+                popup.dispatchEvent(
+                    new KeyEvent(popup,
+                            KeyEvent.KEY_TYPED,
+                            System.currentTimeMillis(),
+                            0,
+                            KeyEvent.VK_UNDEFINED,
+                            "s.loubftr".charAt(rnd.nextInt(9))));
+        }),
+        new Op("popupLimit", ed -> {
+            final TransientPopup popup = TransientPopup.getOpen();
+            if (popup != null && popup.getTransient().item("l") != null) {
+                popup.dispatchEvent(
+                    new KeyEvent(popup, KeyEvent.KEY_TYPED, System.currentTimeMillis(), 0, KeyEvent.VK_UNDEFINED, 'l'));
+                popup.acceptField(rnd.nextBoolean() ? "*.txt" : "");
+            }
+        }),
+        new Op("popupEscape", ed -> {
+            final TransientPopup popup = TransientPopup.getOpen();
+            if (popup != null)
+                popup.dispatchEvent(
+                    new KeyEvent(popup,
+                            KeyEvent.KEY_PRESSED,
+                            System.currentTimeMillis(),
+                            0,
+                            KeyEvent.VK_ESCAPE,
+                            KeyEvent.CHAR_UNDEFINED));
+        }),
+        new Op("virtualText", ed -> {
+            final Buffer b = ed.getBuffer();
+            final List<VirtualText> list = new ArrayList<>();
+            final int count = b.getLineCount();
+            for (int i = 0; i < 1 + rnd.nextInt(4) && count > 0; i++) {
+                final Line line = b.getLine(rnd.nextInt(count));
+                if (line == null)
+                    continue;
+                final List<VirtualText.Run> runs = List.of(VirtualText.Run.of("virtual " + i));
+                list.add(switch (rnd.nextInt(5)) {
+                    case 0 -> VirtualText.eol(line, runs);
+                    case 1 -> VirtualText.right(line, runs);
+                    case 2 -> VirtualText.above(line, List.of(runs, runs));
+                    case 3 -> VirtualText.below(line, List.of(runs));
+                    default -> VirtualText.top(List.of(runs));
+                });
+            }
+            b.getVirtualText().set("fuzz", list);
+        }),
+        new Op("clearVirtualText", ed -> ed.getBuffer().getVirtualText().clear("fuzz")));
 
     // ----------------------------------------------------------- invariants
 
     private static int maxWindows;
     private static int panelSteps;
     private static int boundSteps;
+    private static int popupSteps;
     private static final Set<String> layouts = new TreeSet<>();
 
     private static void check(String after) {
@@ -350,6 +412,7 @@ public final class WindowFuzz {
         }
         if (panels > 1)
             bad.add("more than one panel");
+        checkPopup(frame, bad);
         final Editor panel = frame.getPanelEditor();
         if (panel != null) {
             for (int i = 0; i < Editor.getEditorCount(); i++) {
@@ -360,6 +423,34 @@ public final class WindowFuzz {
         }
         for (String b : bad)
             errors.add(after + ": " + b);
+    }
+
+    // At most one popup, in the popup layer over a live window; none left
+    // behind once closed.
+    private static void checkPopup(Frame frame, List<String> bad) {
+        final JLayeredPane layers = frame.getRootPane().getLayeredPane();
+        int shown = 0;
+        for (Component c : layers.getComponentsInLayer(JLayeredPane.POPUP_LAYER))
+            if (c instanceof TransientPopup)
+                shown++;
+        final TransientPopup open = TransientPopup.getOpen();
+        if (open != null)
+            popupSteps++;
+        if (open == null) {
+            if (shown > 0)
+                bad.add(shown + " popups left in the popup layer");
+            return;
+        }
+        if (shown != 1)
+            bad.add(shown + " popups in the popup layer, one open");
+        final Editor ed = open.getEditor();
+        if (!Editor.getEditorList().contains(ed))
+            bad.add("popup over a closed window");
+        else if (open.getParent() == layers && ed.isShowing()) {
+            final Rectangle window = SwingUtilities.convertRectangle(ed.getParent(), ed.getBounds(), layers);
+            if (!window.contains(open.getBounds()))
+                bad.add("popup " + open.getBounds() + " outside its window " + window);
+        }
     }
 
     // What each window shows, the panel's marked P:, the current one *.
@@ -490,8 +581,8 @@ public final class WindowFuzz {
         }
         report(
             "seed " + seed + " " + (errors.isEmpty() ? "OK" : "FAILED") + "; " + steps + " steps, up to " + maxWindows
-                    + " windows, the panel on " + panelSteps + " steps, a message window on " + boundSteps + ", "
-                    + layouts.size() + " layouts");
+                    + " windows, the panel on " + panelSteps + " steps, a message window on " + boundSteps
+                    + ", a popup on " + popupSteps + ", " + layouts.size() + " layouts");
         System.exit(errors.isEmpty() ? 0 : 1);
     }
 }

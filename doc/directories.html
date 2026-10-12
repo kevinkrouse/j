@@ -33,8 +33,30 @@ The command <a href="commands.html#dirHomeDir">dirHomeDir</a>, available on the
 tool bar, opens a directory buffer on your home directory.
 <p>
 
-A dimmed hint over the listing shows the keys for the commands below, the
-ones for the edit mode you are in.
+A dimmed hint over the listing shows the keys to open a file, go up, and see
+the rest, the ones for the edit mode you are in. It scrolls away with the
+listing.
+<p>
+
+<h2 id="popup">The popup</h2>
+
+? opens a popup of the directory's keys (<a href="commands.html#modePopup">modePopup</a>):
+
+<ul>
+    <li><b>Filters</b>: s steps the sort through name, date and size; l (a in
+    vim edit mode) types a pattern the listing is limited to, as
+    <a href="commands.html#dirLimit">dirLimit</a> does (empty for all); . shows
+    or hides the names that start with a dot.</li>
+    <li><b>Go</b>: open, up, back, forward and home.</li>
+    <li><b>Files</b>: tag, copy, move, delete, a shell command, and rescan.</li>
+</ul>
+
+Its keys are the listing's own in the edit mode in use, so each works with
+the popup closed too.
+
+A filter changes the listing at once and leaves the popup open, so several
+can be set; a command closes it. Escape closes it, as does a click outside it.
+? opens this help; Ctrl H then a key opens the help for that key.
 <p>
 In vim edit mode the vim motions work here, and the commands below are on
 the keys listed under <a href="editmodes.html#readonly">Edit Modes</a>.
@@ -55,6 +77,7 @@ The following commands are specifically relevant to directory buffers:
     <li><a href="commands.html#dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a></li>
     <li><a href="commands.html#dirRescan">dirRescan</a></li>
     <li><a href="commands.html#dirTagFile">dirTagFile</a></li>
+    <li><a href="commands.html#dirToggleHidden">dirToggleHidden</a></li>
     <li><a href="commands.html#dirUnlimit">dirUnlimit</a></li>
     <li><a href="commands.html#dirUpDir">dirUpDir</a></li>
 </ul>

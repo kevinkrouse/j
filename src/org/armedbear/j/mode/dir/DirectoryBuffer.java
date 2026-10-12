@@ -90,6 +90,8 @@ public final class DirectoryBuffer extends Buffer {
     private int sortBy = SORT_BY_NAME;
 
     private String limitPattern;
+    // Whether names starting with a dot are listed.
+    private boolean showHidden = true;
 
     private ArrayList<DirectoryEntry> entries = new ArrayList<>();
 
@@ -252,7 +254,23 @@ public final class DirectoryBuffer extends Buffer {
         }
     }
 
-    private void limit(String pattern) {
+    /** Whether names starting with a dot are listed. */
+    public final boolean getShowHidden() {
+        return showHidden;
+    }
+
+    public static void dirToggleHidden() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer directory)
+            directory.setShowHidden(!directory.getShowHidden());
+    }
+
+    /** Lists names starting with a dot, or leaves them out. */
+    public void setShowHidden(boolean b) {
+        if (b != showHidden)
+            relist(() -> showHidden = b);
+    }
+
+    public void limit(String pattern) {
         if (pattern != null) {
             pattern = pattern.trim();
             if (pattern.length() == 0)
@@ -264,34 +282,40 @@ public final class DirectoryBuffer extends Buffer {
         else if (pattern != null && !pattern.equals(limitPattern))
             reload = true;
         if (reload) {
-            final Editor editor = Editor.currentEditor();
-            editor.setWaitCursor();
-            String name = null;
-            Line dotLine = editor.getDotLine();
-            if (dotLine instanceof DirectoryLine)
-                name = getName(dotLine);
-            setLimitPattern(pattern);
-            if (getListing() != null)
-                reloadFromListing();
-            else
-                reload();
-            Line line = findName(name);
-            Position pos;
-            if (line != null)
-                pos = new Position(line, getNameOffset(line));
-            else
-                pos = getInitialDotPos();
-            for (Editor ed : Editor.getEditorList()) {
-                if (ed.getBuffer() == this) {
-                    ed.setTopLine(getFirstLine());
-                    ed.setDot(pos);
-                    ed.setMark(null);
-                    ed.moveCaretToDotCol();
-                    ed.setUpdateFlag(REFRAME | REPAINT);
-                }
-            }
-            editor.setDefaultCursor();
+            final String p = pattern;
+            relist(() -> setLimitPattern(p));
         }
+    }
+
+    // Lists the directory again after change, keeping the caret on its name.
+    private void relist(Runnable change) {
+        final Editor editor = Editor.currentEditor();
+        editor.setWaitCursor();
+        String name = null;
+        Line dotLine = editor.getDotLine();
+        if (dotLine instanceof DirectoryLine)
+            name = getName(dotLine);
+        change.run();
+        if (getListing() != null)
+            reloadFromListing();
+        else
+            reload();
+        Line line = findName(name);
+        Position pos;
+        if (line != null)
+            pos = new Position(line, getNameOffset(line));
+        else
+            pos = getInitialDotPos();
+        for (Editor ed : Editor.getEditorList()) {
+            if (ed.getBuffer() == this) {
+                ed.setTopLine(getFirstLine());
+                ed.setDot(pos);
+                ed.setMark(null);
+                ed.moveCaretToDotCol();
+                ed.setUpdateFlag(REFRAME | REPAINT);
+            }
+        }
+        editor.setDefaultCursor();
     }
 
     public void rescan() {
@@ -602,8 +626,8 @@ public final class DirectoryBuffer extends Buffer {
         loadError = false;
         try {
             final DirectoryFilenameFilter dff;
-            if (limitPattern != null)
-                dff = new DirectoryFilenameFilter(limitPattern);
+            if (limitPattern != null || !showHidden)
+                dff = new DirectoryFilenameFilter(limitPattern, !showHidden);
             else
                 dff = null;
             final File file = getFile();
@@ -676,6 +700,8 @@ public final class DirectoryBuffer extends Buffer {
                             addEntry(name);
                     } else {
                         for (String name : names) {
+                            if (dff.hides(name))
+                                continue; // A directory too.
                             if (dff.accepts(name))
                                 addEntry(name);
                             else {

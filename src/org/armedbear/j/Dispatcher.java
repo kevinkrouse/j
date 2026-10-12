@@ -426,6 +426,14 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             }
             editor.setPopup(null);
         }
+        if (plainButton1) {
+            final VirtualText.Run run = display.virtualRunAt(e.getX(), e.getY());
+            if (run != null && run.action() != null) {
+                run.action().run();
+                eventHandled();
+                return;
+            }
+        }
         if (plainButton1 && editor.getMark() != null) {
             if (editor.getBuffer().getBooleanProperty(Property.ENABLE_DRAG_TEXT)) {
                 Region r = new Region(editor);
@@ -609,6 +617,11 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             hideLink();
         }
         final Buffer buffer = editor.getBuffer();
+        final VirtualText.Run run = display.virtualRunAt(e.getX(), e.getY());
+        if (run != null && run.action() != null) {
+            editor.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            return;
+        }
         final Position pos = display.positionFromPoint(e.getPoint());
         if (pos != null && pos.getLine() instanceof ImageLine imageLine && !buffer.isBusy()) {
             // A position on an image line has no column, so find the image

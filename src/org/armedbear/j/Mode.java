@@ -100,6 +100,15 @@ public interface Mode {
     }
 
     /**
+     * The popup of the keys, arguments and commands of editor's buffer that
+     * modePopup opens, or null for none. Its keys should be the buffer's in
+     * editor's edit mode.
+     */
+    public default org.armedbear.j.transients.Transient getTransient(Editor editor) {
+        return null;
+    }
+
+    /**
      * Returns the file that defines a custom <code>KeyMap</code> for
      * this Mode, if any.
      *
