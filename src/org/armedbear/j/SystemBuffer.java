@@ -260,14 +260,10 @@ public class SystemBuffer {
                 // Not Unicode.
                 int first = 0;
                 if (encoding == null) {
-                    encoding =
-                        Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
+                    encoding = Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
                     if (Editor.preferences().getBooleanProperty(Property.DETECT_ENCODING)) {
-                        final EncodingDetector.Result detected = EncodingDetector.detect(
-                            buf,
-                            bytesRead,
-                            file != null ? file.getName() : null
-                        );
+                        final EncodingDetector.Result detected =
+                                EncodingDetector.detect(buf, bytesRead, file != null ? file.getName() : null);
                         first = detected.skip;
                         utf8ByteOrderMark = detected.skip > 0;
                         if (detected.encoding != null)
@@ -349,8 +345,8 @@ public class SystemBuffer {
     private boolean utf8ByteOrderMark;
 
     private final CharsetDecoder utf8Decoder = StandardCharsets.UTF_8.newDecoder()
-        .onMalformedInput(CodingErrorAction.REPORT)
-        .onUnmappableCharacter(CodingErrorAction.REPORT);
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT);
 
     private String decodeLine(ByteBuffer bb) throws UnsupportedEncodingException {
         final byte[] bytes = bb.getBytes();
@@ -362,15 +358,9 @@ public class SystemBuffer {
                 undecided = false;
             }
         }
-        if (
-            guessed
-                && !undecided
-                && Charset.forName(loadEncoding).equals(StandardCharsets.UTF_8)
-        ) {
+        if (guessed && !undecided && Charset.forName(loadEncoding).equals(StandardCharsets.UTF_8)) {
             try {
-                return utf8Decoder.reset()
-                    .decode(java.nio.ByteBuffer.wrap(bytes, 0, length))
-                    .toString();
+                return utf8Decoder.reset().decode(java.nio.ByteBuffer.wrap(bytes, 0, length)).toString();
             }
             catch (CharacterCodingException e) {
                 notUtf8(bytes, length);
@@ -387,18 +377,13 @@ public class SystemBuffer {
         final String encoding = EncodingDetector.classify(bytes, 0, length, false);
         int lines = 0;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
-            line.setText(
-                new String(
-                    line.getText().getBytes(StandardCharsets.UTF_8),
-                    encoding
-                )
-            );
+            line.setText(new String(line.getText().getBytes(StandardCharsets.UTF_8), encoding));
             ++lines;
         }
         loadEncoding = encoding;
         guessed = false;
-        final String message = (file != null ? file.getName() : "File")
-            + " is not UTF-8 at line " + (lines + 1) + ": read as " + encoding;
+        final String message = (file != null ? file.getName() : "File") + " is not UTF-8 at line " + (lines + 1)
+                + ": read as " + encoding;
         Log.warn(message);
         SwingUtilities.invokeLater(() -> {
             final Editor editor = Editor.currentEditor();
@@ -474,10 +459,7 @@ public class SystemBuffer {
     public void writeBuffer() throws SaveException {
         if (file.isFile() && !file.canWrite()) {
             Log.error("writeFile: file is not writable: " + file);
-            throw new SaveException(
-                file,
-                file.canonicalPath() + " is not writable"
-            );
+            throw new SaveException(file, file.canonicalPath() + " is not writable");
         }
         if (Platform.isPlatformWindows()) {
             // writeTemporaryFile() throws a SaveException if an error occurs.
@@ -485,21 +467,12 @@ public class SystemBuffer {
             if (!makePatchFile()) {
                 if (!Utilities.makeBackup(file, false)) {
                     Log.error("backup failed");
-                    throw new SaveException(
-                        file,
-                        "Unable to write backup file for " + file.canonicalPath()
-                    );
+                    throw new SaveException(file, "Unable to write backup file for " + file.canonicalPath());
                 }
             }
             if (!Utilities.deleteRename(tempFile, file)) {
-                Log.error(
-                    "unable to rename " + tempFile.canonicalPath() +
-                        " to " + file.canonicalPath()
-                );
-                throw new SaveException(
-                    file,
-                    "Unable to rename temporary file"
-                );
+                Log.error("unable to rename " + tempFile.canonicalPath() + " to " + file.canonicalPath());
+                throw new SaveException(file, "Unable to rename temporary file");
             }
         } else {
             // Save in place on Unix to preserve permissions and ownership of
@@ -507,21 +480,13 @@ public class SystemBuffer {
             if (!makePatchFile()) {
                 if (!Utilities.makeBackup(file, true)) {
                     Log.error("backup failed");
-                    throw new SaveException(
-                        file,
-                        "Unable to write backup file for ".concat(
-                            file.canonicalPath()
-                        )
-                    );
+                    throw new SaveException(file, "Unable to write backup file for ".concat(file.canonicalPath()));
                 }
             }
             // Write directly to original file.
             if (!writeFile(file)) {
                 Log.error("writeFile failed");
-                throw new SaveException(
-                    file,
-                    "Unable to write ".concat(file.canonicalPath())
-                );
+                throw new SaveException(file, "Unable to write ".concat(file.canonicalPath()));
             }
         }
     }
@@ -547,8 +512,7 @@ public class SystemBuffer {
         else if (mode != null)
             suffix = mode.getStringProperty(Property.PATCH_MODE);
         else {
-            suffix =
-                Editor.preferences().getStringProperty(Property.PATCH_MODE);
+            suffix = Editor.preferences().getStringProperty(Property.PATCH_MODE);
         }
         if (suffix != null) {
             suffix = suffix.trim();
@@ -562,8 +526,7 @@ public class SystemBuffer {
     }
 
     public boolean writeFile(File outputFile) {
-        try (BufferedOutputStream out =
-            new BufferedOutputStream(outputFile.getOutputStream())) {
+        try (BufferedOutputStream out = new BufferedOutputStream(outputFile.getOutputStream())) {
             if (lineSeparator == null)
                 lineSeparator = System.getProperty("line.separator");
             String encoding = outputFile.getEncoding();
@@ -597,10 +560,7 @@ public class SystemBuffer {
         if (encoding == null) {
             encoding = loadEncoding;
             if (encoding == null)
-                encoding = Editor.preferences()
-                    .getStringProperty(
-                        Property.DEFAULT_ENCODING
-                    );
+                encoding = Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
         }
         if (encoding == null)
             Debug.bug();
@@ -611,11 +571,8 @@ public class SystemBuffer {
         if (utf8ByteOrderMark && Charset.forName(encoding).equals(StandardCharsets.UTF_8))
             return new byte[] { (byte) 0xef, (byte) 0xbb, (byte) 0xbf };
         byte[] bytes = "test".getBytes(encoding);
-        if (
-            (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
-                ||
-                (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)
-        ) {
+        if ((bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
+                || (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
             byte[] byteOrderMark = new byte[2];
             byteOrderMark[0] = bytes[0];
             byteOrderMark[1] = bytes[1];
@@ -627,11 +584,8 @@ public class SystemBuffer {
     byte[] getSeparatorBytes(String encoding) throws UnsupportedEncodingException {
         byte[] bytes = lineSeparator.getBytes(encoding);
         if (bytes.length > 2) {
-            if (
-                (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
-                    ||
-                    (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)
-            ) {
+            if ((bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
+                    || (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
                 byte[] sepBytes = new byte[bytes.length - 2];
                 System.arraycopy(bytes, 2, sepBytes, 0, sepBytes.length);
                 return sepBytes;
@@ -724,12 +678,7 @@ public class SystemBuffer {
                 succeeded = writeFile(tempFile);
         }
         if (!succeeded) {
-            throw new SaveException(
-                file,
-                "Unable to write temporary file for ".concat(
-                    file.canonicalPath()
-                )
-            );
+            throw new SaveException(file, "Unable to write temporary file for ".concat(file.canonicalPath()));
         }
         return tempFile;
     }

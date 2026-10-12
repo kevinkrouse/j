@@ -74,10 +74,7 @@ public final class DirectoryEntry {
     // Wrapper for constructor for native "ls -l" format.
     // Ignore strings that aren't really directory entries.
     // Apply filter (if any).
-    public static DirectoryEntry getDirectoryEntry(
-        String s,
-        DirectoryFilenameFilter filter
-    ) {
+    public static DirectoryEntry getDirectoryEntry(String s, DirectoryFilenameFilter filter) {
         if (s.length() == 0)
             return null;
         // Ignore "total" line, command line echo.
