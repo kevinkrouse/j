@@ -157,3 +157,6 @@ bfb783adbc0ce1ecd21e6c50281a1d8a3c124b2d
 
 # reformat: SystemBuffer and DirectoryEntry, which phase 1 of the git tooling changes
 5c425c9ca883593d0c47d1c59baaa683ba9c1fbb
+
+# reformat: the eight files phase 2 of the git tooling changes
+d8899b23dc08b94ef4b093431503b44e17cdcea2
