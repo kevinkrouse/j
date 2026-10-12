@@ -154,3 +154,6 @@ e8ca3a3686fe037fdadc56d91e801f55623e97f6
 
 # reformat: VersionControl, which phase 0 of the git tooling changes
 bfb783adbc0ce1ecd21e6c50281a1d8a3c124b2d
+
+# reformat: SystemBuffer and DirectoryEntry, which phase 1 of the git tooling changes
+5c425c9ca883593d0c47d1c59baaa683ba9c1fbb
