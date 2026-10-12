@@ -516,11 +516,8 @@ public final class MotionCommands {
     }
 
     private static void selectToPosition(Editor editor, Position pos) {
-        if (
-            !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != editor.getDisplay().getAbsoluteCaretCol()
-        ) {
+        if (!pos.equals(editor.getDot())
+                || editor.getBuffer().getCol(pos) != editor.getDisplay().getAbsoluteCaretCol()) {
             editor.beginSelectMotion();
             if (pos.getLine() != editor.getDotLine())
                 editor.setUpdateFlag(REPAINT);
@@ -560,12 +557,9 @@ public final class MotionCommands {
             else
                 pos.setOffset(indent);
         }
-        if (
-            editor.getMark() != null
+        if (editor.getMark() != null
                 || !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
+                || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()) {
             editor.moveDotTo(pos);
             editor.setCurrentCommand(COMMAND_HOME);
             return;
@@ -590,11 +584,7 @@ public final class MotionCommands {
             editor.setCurrentCommand(COMMAND_HOME);
             return;
         }
-        if (
-            !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        )
+        if (!pos.equals(editor.getDot()) || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol())
             editor.moveDotTo(pos);
     }
 
@@ -622,12 +612,9 @@ public final class MotionCommands {
             else
                 pos.setOffset(indent);
         }
-        if (
-            editor.getMark() != null
+        if (editor.getMark() != null
                 || !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
+                || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()) {
             selectToPosition(editor, pos);
             editor.setUpdateFlag(REFRAME);
             editor.setCurrentCommand(COMMAND_SELECT_HOME);
@@ -653,11 +640,7 @@ public final class MotionCommands {
             editor.setCurrentCommand(COMMAND_SELECT_HOME);
             return;
         }
-        if (
-            !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        )
+        if (!pos.equals(editor.getDot()) || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol())
             selectToPosition(editor, pos);
     }
 
@@ -665,12 +648,9 @@ public final class MotionCommands {
         final Display display = editor.getDisplay();
         if (editor.getDot() == null)
             return;
-        if (
-            editor.getMark() != null
+        if (editor.getMark() != null
                 || editor.getDot().getOffset() != editor.getDot().getLineLength()
-                ||
-                editor.getBuffer().getCol(editor.getDot()) != display.getCaretCol() + display.getShift()
-        )
+                || editor.getBuffer().getCol(editor.getDot()) != display.getCaretCol() + display.getShift())
             editor.moveDotTo(editor.getDot().getLine(), editor.getDot().getLineLength());
     }
 
@@ -684,12 +664,9 @@ public final class MotionCommands {
         else
             pos = new Position(editor.getDot());
         pos.setOffset(pos.getLineLength());
-        if (
-            editor.getMark() != null
+        if (editor.getMark() != null
                 || !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
+                || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()) {
             editor.moveDotTo(pos);
             editor.setUpdateFlag(REFRAME);
             editor.setCurrentCommand(COMMAND_END);
@@ -719,11 +696,7 @@ public final class MotionCommands {
             editor.setCurrentCommand(COMMAND_END);
             return;
         }
-        if (
-            !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        )
+        if (!pos.equals(editor.getDot()) || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol())
             editor.moveDotTo(pos);
     }
 
@@ -737,11 +710,7 @@ public final class MotionCommands {
         else
             pos = new Position(editor.getDot());
         pos.setOffset(pos.getLineLength());
-        if (
-            !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
+        if (!pos.equals(editor.getDot()) || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()) {
             selectToPosition(editor, pos);
             editor.setUpdateFlag(REFRAME);
             editor.setCurrentCommand(COMMAND_END);
@@ -770,11 +739,7 @@ public final class MotionCommands {
             editor.setCurrentCommand(COMMAND_END);
             return;
         }
-        if (
-            !pos.equals(editor.getDot())
-                ||
-                editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol()
-        )
+        if (!pos.equals(editor.getDot()) || editor.getBuffer().getCol(pos) != display.getAbsoluteCaretCol())
             selectToPosition(editor, pos);
     }
 
@@ -961,8 +926,7 @@ public final class MotionCommands {
         editor.updateDotLine();
         editor.addUndo(SimpleEdit.MOVE);
         if (wantsVim(parameters)) {
-            final Position to =
-                Words.forwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
+            final Position to = Words.forwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
             if (to != null)
                 editor.getDot().moveTo(to);
         } else {
@@ -984,8 +948,7 @@ public final class MotionCommands {
         editor.updateDotLine();
         editor.addUndo(SimpleEdit.MOVE);
         if (wantsVim(parameters)) {
-            final Position to =
-                Words.backwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
+            final Position to = Words.backwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
             if (to != null)
                 editor.getDot().moveTo(to);
         } else {
@@ -1007,8 +970,7 @@ public final class MotionCommands {
         editor.beginSelectMotion();
         editor.updateDotLine();
         if (wantsVim(parameters)) {
-            final Position to =
-                Words.forwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
+            final Position to = Words.forwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
             if (to != null)
                 editor.getDot().moveTo(to);
         } else
@@ -1028,8 +990,7 @@ public final class MotionCommands {
         editor.beginSelectMotion();
         editor.updateDotLine();
         if (wantsVim(parameters)) {
-            final Position to =
-                Words.backwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
+            final Position to = Words.backwardToWordStart(new Position(editor.getDot()), editor.getMode(), false);
             if (to != null)
                 editor.getDot().moveTo(to);
         } else

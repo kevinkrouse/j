@@ -48,8 +48,7 @@ public final class MarkdownFolding {
             return fence;
         if (isOpen(indentedCode(line)))
             return indentedCode(line);
-        Line item = MarkdownFormatter.startsListItem(line.getText())
-            && !MarkdownFormatter.isInFence(line)
+        Line item = MarkdownFormatter.startsListItem(line.getText()) && !MarkdownFormatter.isInFence(line)
                 ? line
                 : enclosingItem(buffer, line);
         for (; item != null; item = enclosingItem(buffer, item)) {
@@ -148,10 +147,7 @@ public final class MarkdownFolding {
                 return null;
             final int i = buffer.getIndentation(l);
             if (i < indent) {
-                if (
-                    MarkdownFormatter.startsListItem(l.getText())
-                        && !MarkdownFormatter.isInFence(l)
-                )
+                if (MarkdownFormatter.startsListItem(l.getText()) && !MarkdownFormatter.isInFence(l))
                     return l;
                 indent = i;
             }
@@ -195,9 +191,7 @@ public final class MarkdownFolding {
         }
         while (last != null && last != first.previous() && last.isBlank())
             last = last.previous();
-        return last == null || last == first.previous()
-            ? null
-            : new Line[] { first, last };
+        return last == null || last == first.previous() ? null : new Line[] { first, last };
     }
 
     public static void foldHeadings() {
@@ -246,9 +240,9 @@ public final class MarkdownFolding {
         FoldCommands.showOnly(editor, first, line -> {
             final int n = level(line);
             return n > 0 && n <= depth
-                || line.previous() != null
-                    && MarkdownFormatter.isSetextHeading(line.previous())
-                    && level(line.previous()) <= depth;
+                    || line.previous() != null
+                            && MarkdownFormatter.isSetextHeading(line.previous())
+                            && level(line.previous()) <= depth;
         });
     }
 }

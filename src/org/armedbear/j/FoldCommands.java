@@ -211,8 +211,7 @@ public final class FoldCommands {
                 if (trim.startsWith("}")) {
                     // We're at the end of a code block. Find the start of
                     // the block and fold from there.
-                    Position end =
-                        new Position(line, line.getText().indexOf('}'));
+                    Position end = new Position(line, line.getText().indexOf('}'));
                     Position start = CaretCommands.findMatchInternal(editor, end, 0);
                     if (start != null) {
                         foldNearLine(editor, start.getLine());
@@ -221,8 +220,7 @@ public final class FoldCommands {
                 }
                 if (next.trim().startsWith("}")) {
                     // Fold block containing current line.
-                    Position end =
-                        new Position(next, next.getText().indexOf('}'));
+                    Position end = new Position(next, next.getText().indexOf('}'));
                     Position start = CaretCommands.findMatchInternal(editor, end, 0);
                     if (start != null) {
                         foldNearLine(editor, start.getLine());
@@ -243,20 +241,16 @@ public final class FoldCommands {
                     while (prev != null && prev.isBlank())
                         prev = prev.previous();
                     if (prev != null) {
-                        int indent =
-                            editor.getBuffer().getCol(line, line.getIndentation());
-                        int prevIndent =
-                            editor.getBuffer().getCol(prev, prev.getIndentation());
+                        int indent = editor.getBuffer().getCol(line, line.getIndentation());
+                        int prevIndent = editor.getBuffer().getCol(prev, prev.getIndentation());
                         if (indent < prevIndent) {
                             fold(editor, prev);
                             return;
                         }
                     }
                 } else if (trim.startsWith("<")) {
-                    int indent =
-                        editor.getBuffer().getCol(line, line.getIndentation());
-                    int nextIndent =
-                        editor.getBuffer().getCol(next, next.getIndentation());
+                    int indent = editor.getBuffer().getCol(line, line.getIndentation());
+                    int nextIndent = editor.getBuffer().getCol(next, next.getIndentation());
                     if (indent < nextIndent) {
                         fold(editor, next);
                         return;
@@ -278,13 +272,10 @@ public final class FoldCommands {
             Line prev = begin.previous();
             if (prev == null)
                 break;
-            if (
-                prev.isBlank()
+            if (prev.isBlank()
                     || editor.getMode().isCommentLine(prev)
-                    ||
-                    isLabelLine(editor, prev)
-                    || isPreprocessorLine(editor, prev)
-            ) {
+                    || isLabelLine(editor, prev)
+                    || isPreprocessorLine(editor, prev)) {
                 begin = prev;
                 continue;
             }
@@ -296,13 +287,10 @@ public final class FoldCommands {
         }
         Line end = target.next();
         while (end != null) {
-            if (
-                end.isBlank()
+            if (end.isBlank()
                     || editor.getMode().isCommentLine(end)
-                    ||
-                    isLabelLine(editor, end)
-                    || isPreprocessorLine(editor, end)
-            ) {
+                    || isLabelLine(editor, end)
+                    || isPreprocessorLine(editor, end)) {
                 end = end.next();
                 continue;
             }

@@ -29,18 +29,14 @@ import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 
-public abstract class SidebarList extends JList<Object>
-    implements NavigationComponent {
+public abstract class SidebarList extends JList<Object> implements NavigationComponent {
     protected Sidebar sidebar;
 
     public SidebarList(Sidebar sidebar) {
         this.sidebar = sidebar;
         setCellRenderer(new SidebarListCellRenderer(sidebar));
         setToolTipText("");
-        int h = UIScale.scaledProperty(
-            Editor.preferences(),
-            Property.JLIST_FIXED_CELL_HEIGHT
-        );
+        int h = UIScale.scaledProperty(Editor.preferences(), Property.JLIST_FIXED_CELL_HEIGHT);
         if (h > 0)
             setFixedCellHeight(h);
         setFocusTraversalKeysEnabled(false);
@@ -76,8 +72,7 @@ public abstract class SidebarList extends JList<Object>
         ensureIndexIsVisible(last);
     }
 
-    private static final class SidebarListCellRenderer extends JLabel
-        implements ListCellRenderer<Object> {
+    private static final class SidebarListCellRenderer extends JLabel implements ListCellRenderer<Object> {
         private Sidebar sidebar;
 
         private static final Border noFocusBorder = new EmptyBorder(1, 1, 1, 1);
@@ -90,12 +85,11 @@ public abstract class SidebarList extends JList<Object>
 
         @Override
         public Component getListCellRendererComponent(
-            JList<?> list,
-            Object value,
-            int index,
-            boolean isSelected,
-            boolean cellHasFocus
-        ) {
+                JList<?> list,
+                Object value,
+                int index,
+                boolean isSelected,
+                boolean cellHasFocus) {
             Frame frame = sidebar.getFrame();
             if (isSelected) {
                 if (frame.isActive() && frame.getFocusedComponent() == list)

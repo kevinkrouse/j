@@ -78,8 +78,7 @@ public final class EditorHarness {
                 final java.nio.file.Path home = scratchHome;
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     try (Stream<java.nio.file.Path> paths = Files.walk(home)) {
-                        paths.sorted(Comparator.reverseOrder())
-                            .forEach(p -> p.toFile().delete());
+                        paths.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
                     }
                     catch (IOException e) {
                         // Only a temporary directory left behind.
@@ -87,9 +86,7 @@ public final class EditorHarness {
                 }));
             }
             Directories.initialize(File.getInstance(scratchHome.toString()));
-            final java.io.File registers = new java.io.File(
-                Directories.getRegistersDirectory().getCanonicalPath()
-            );
+            final java.io.File registers = new java.io.File(Directories.getRegistersDirectory().getCanonicalPath());
             final java.io.File[] files = registers.listFiles();
             if (files != null)
                 for (java.io.File f : files)
@@ -120,24 +117,16 @@ public final class EditorHarness {
             if (isHarnessArtifact(s))
                 return;
             final java.io.StringWriter where = new java.io.StringWriter();
-            new Throwable("logged from").printStackTrace(
-                new java.io.PrintWriter(where)
-            );
+            new Throwable("logged from").printStackTrace(new java.io.PrintWriter(where));
             ERRORS.add(s + "\n" + where);
         };
 
         final Mode mode = PlainTextMode.getMode();
         // A plausible path that is never written to: the buffer exists only
         // in memory, but a Buffer needs a File to have a mode and a name.
-        final Buffer buffer =
-            new Buffer(
-                File.getInstance(
-                    new java.io.File(
-                        System.getProperty("java.io.tmpdir"),
-                        "j-harness-" + System.nanoTime() + ".txt"
-                    ).getPath()
-                )
-            );
+        final Buffer buffer = new Buffer(File.getInstance(
+            new java.io.File(System.getProperty("java.io.tmpdir"), "j-harness-" + System.nanoTime() + ".txt")
+                    .getPath()));
         buffer.setMode(mode);
         buffer.setFormatter(mode.getFormatter(buffer));
         buffer.autosaveEnabled = false;
@@ -155,10 +144,7 @@ public final class EditorHarness {
         // ring, and clipboards of the harness's own, there being no display.
         useScratchHome();
         Editor.getKillRing().clear();
-        KillRing.useClipboards(
-            new Clipboard("harness clipboard"),
-            new Clipboard("harness selection")
-        );
+        KillRing.useClipboards(new Clipboard("harness clipboard"), new Clipboard("harness selection"));
         for (char c = '0'; c <= '9'; c++)
             Editor.setBookmark(c, null);
         for (char c = 'A'; c <= 'Z'; c++)
@@ -197,14 +183,11 @@ public final class EditorHarness {
      * test never reads the vimrc of whoever is running it.
      */
     public EditorHarness vim(String vimrc) {
-        final org.armedbear.j.vim.VimKeyMap keyMap =
-            org.armedbear.j.vim.VimKeyMap.getDefault();
-        final org.armedbear.j.vim.VimOptions options =
-            new org.armedbear.j.vim.VimOptions();
+        final org.armedbear.j.vim.VimKeyMap keyMap = org.armedbear.j.vim.VimKeyMap.getDefault();
+        final org.armedbear.j.vim.VimOptions options = new org.armedbear.j.vim.VimOptions();
         if (vimrc != null) {
             try {
-                new org.armedbear.j.vim.VimrcParser(keyMap, options)
-                    .load(new java.io.StringReader(vimrc));
+                new org.armedbear.j.vim.VimrcParser(keyMap, options).load(new java.io.StringReader(vimrc));
             }
             catch (java.io.IOException e) {
                 throw new IllegalStateException(e);
@@ -226,9 +209,7 @@ public final class EditorHarness {
 
     private org.armedbear.j.vim.VimInputHandler vimHandler() {
         final InputHandler handler = editor.getInputHandler();
-        return handler instanceof org.armedbear.j.vim.VimInputHandler vimInputHandler
-            ? vimInputHandler
-            : null;
+        return handler instanceof org.armedbear.j.vim.VimInputHandler vimInputHandler ? vimInputHandler : null;
     }
 
     /**
@@ -263,10 +244,7 @@ public final class EditorHarness {
     private static String spans(int[] spans) {
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; spans != null && i < spans.length; i += 2)
-            sb.append(sb.length() == 0 ? "" : " ")
-                .append(spans[i])
-                .append('-')
-                .append(spans[i + 1]);
+            sb.append(sb.length() == 0 ? "" : " ").append(spans[i]).append('-').append(spans[i + 1]);
         return sb.toString();
     }
 
@@ -364,31 +342,13 @@ public final class EditorHarness {
             keyCode = KeyEvent.getExtendedKeyCodeForChar(stroke.keyChar);
         final char keyChar = characterAwtWouldSend(stroke);
 
-        dispatcher.keyPressed(
-            new KeyEvent(
-                source,
-                KeyEvent.KEY_PRESSED,
-                when,
-                ex,
-                keyCode,
-                keyChar
-            )
-        );
+        dispatcher.keyPressed(new KeyEvent(source, KeyEvent.KEY_PRESSED, when, ex, keyCode, keyChar));
 
         // AWT follows a key press with a key typed only when the keystroke
         // produces a character. Sending it unconditionally would let a test
         // pass on a path that cannot happen in the running editor.
         if (stroke.producesChar())
-            dispatcher.keyTyped(
-                new KeyEvent(
-                    source,
-                    KeyEvent.KEY_TYPED,
-                    when,
-                    ex,
-                    KeyEvent.VK_UNDEFINED,
-                    keyChar
-                )
-            );
+            dispatcher.keyTyped(new KeyEvent(source, KeyEvent.KEY_TYPED, when, ex, KeyEvent.VK_UNDEFINED, keyChar));
     }
 
     /**
@@ -402,11 +362,7 @@ public final class EditorHarness {
      */
     private static char characterAwtWouldSend(KeyNotation.Stroke stroke) {
         final char c = stroke.keyChar;
-        if (
-            (stroke.modifiers & Constants.CTRL_MASK) != 0
-                && c >= 'a'
-                && c <= 'z'
-        )
+        if ((stroke.modifiers & Constants.CTRL_MASK) != 0 && c >= 'a' && c <= 'z')
             return (char) (c - 'a' + 1);
         return c;
     }
@@ -552,7 +508,7 @@ public final class EditorHarness {
      */
     private static boolean isHarnessArtifact(String logged) {
         return logged.startsWith("ensureColumnVisible g2d is null")
-            || logged.contains("because \"this.frame\" is null");
+                || logged.contains("because \"this.frame\" is null");
     }
 
     /** For a test that makes j log an error on purpose. */
@@ -562,5 +518,5 @@ public final class EditorHarness {
 
     /** What j logged as errors since the last create or close. */
     private static final java.util.List<String> ERRORS =
-        java.util.Collections.synchronizedList(new java.util.ArrayList<String>());
+            java.util.Collections.synchronizedList(new java.util.ArrayList<String>());
 }

@@ -23,24 +23,20 @@ package org.armedbear.j.vcs;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 
-public abstract class VersionControlEntry
-{
+public abstract class VersionControlEntry {
     protected Buffer buffer;
     protected String revision;
 
-    protected VersionControlEntry(Buffer buffer, String revision)
-    {
+    protected VersionControlEntry(Buffer buffer, String revision) {
         this.buffer = buffer;
         this.revision = revision;
     }
 
-    public Buffer getBuffer()
-    {
+    public Buffer getBuffer() {
         return buffer;
     }
 
-    public String getRevision()
-    {
+    public String getRevision() {
         return revision;
     }
 
@@ -51,8 +47,7 @@ public abstract class VersionControlEntry
     public abstract String getLongStatusText();
 
     /** The status as one of the VCS_ constants. */
-    public int getStatusKind()
-    {
+    public int getStatusKind() {
         return Constants.VCS_UNKNOWN;
     }
 }

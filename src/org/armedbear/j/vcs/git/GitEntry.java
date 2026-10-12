@@ -66,12 +66,7 @@ public class GitEntry extends VersionControlEntry {
         final char index = xy.charAt(0);
         final char tree = xy.charAt(1);
 
-        if (
-            index == 'U'
-                || tree == 'U'
-                || (index == 'D' && tree == 'D')
-                || (index == 'A' && tree == 'A')
-        )
+        if (index == 'U' || tree == 'U' || (index == 'D' && tree == 'D') || (index == 'A' && tree == 'A'))
             return Constants.VCS_CONFLICT;
         if (index == '?' || tree == '?' || index == 'A' || tree == 'A')
             return Constants.VCS_NEW;
