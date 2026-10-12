@@ -485,6 +485,11 @@ public final class EditorHarness {
         return line;
     }
 
+    /** Shows another buffer in the editor, as switching to it would but for the frame. */
+    public void showBuffer(Buffer b) {
+        editor.setBufferDirectly(b);
+    }
+
     /**
      * Detaches the editor and buffer from j's global lists.
      *

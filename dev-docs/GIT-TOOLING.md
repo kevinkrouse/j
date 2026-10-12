@@ -798,11 +798,32 @@ plan with why it is left, before the next phase starts.
    text and virtual lines, enough for hints and previews, and the popups.
    Dir mode's hint moves onto a virtual line, and `?` there opens its
    popup.
-2. **Status buffer, read-only.** Fold markers in the gutter (a core
+2. **Done. Status buffer, read-only.** Fold markers in the gutter (a core
    change, tested in Java and markdown modes too), sections, folding,
    inline diffs with word
    highlighting, visiting, refresh, hints, `?`, `doc/git.html#status`, and the
-   status letters in the buffer list.
+   status letters in the buffer list. As built:
+   - The buffer is shared, not git's: `vcs.status` has `VcsStatusBuffer`,
+     `StatusLine`, `StatusRenderer`, `VcsStatusMode` and `WordDiff`, and
+     reads `StatusData` from `VcsBackend.readStatus`; git's is
+     `GitStatusReader`. Svn needs only its reader.
+   - Fold markers are the tree icons' chevrons drawn as vectors in the line
+     numbers' color (the svg files fix their own color). `Mode` has
+     `isFoldStart`, `getFoldBelow`, `isFolded`, `toggleFoldAt`, and for a
+     mode whose folds are its own, `setFoldAt` and `setAllFolds`, which the
+     fold commands (and vim's z keys) ask first. `foldMarkers` is the
+     preference.
+   - `Mode.sectionFrom` gives vim's `]]`/`[[` a mode's headings;
+     `Mode.getHelpTopic` makes F1 open the mode's page.
+   - Refresh is `r` in vim edit mode, since `g` starts `gg`.
+   - Ctrl Alt G opens the status directly, not as a prefix yet;
+     `<leader>gg` comes from rows of the vim key map with `<leader>`, bound
+     with the vimrc's mapleader before the vimrc's own maps.
+   - Left for later phases: old and new line numbers in the gutter (phase
+     4's gutter columns), the `Parent:` line (6), untracked files' contents
+     and conflicted files' diffs (8). Enter on a commit shows `git show` in
+     a diff buffer until the log (5).
+   - Paging counts virtual rows (`Display.pageAbove`, `getBottomLine`).
 3. **Staging and committing.** Stage, unstage and discard for files, hunks
    and lines, commit, amend, reword, and the commit popup.
 4. **Editor hunks.** `util/Diff`, gutter column providers, `ChangeSource`,
@@ -891,7 +912,7 @@ background, updating open buffers; command input in the log.)
 - **`toBottom`/`toCenter`:** they counted lines, not rows.
 - **TOP rows:** they now go over the first line shown, and `Buffer.getY` counted a hidden first line.
 - **`Ctrl S` on bound values:** it claimed to save them.
-- **Popup keys:** they now follow the listing's simple-mode keys.
+- **Popup keys:** they are the listing's own in either edit mode, and work with the popup closed.
 - **Escape:** it now always goes back or closes.
 - **AltGr:** characters typed with it are taken.
 - **Resizing:** it lays the popup out again.
@@ -899,9 +920,6 @@ background, updating open buffers; command input in the log.)
 - **Empty hints:** an empty hint is no longer shown.
 - **EOL text:** a line scrolled out of view to the left no longer leaves its text at the edge.)
 
-- Paging (`pageDown`, `getRows`, `centerRegion`, `isLineVisible`) still
-  counts lines, so a page over many virtual rows moves too far. Fix it when
-  the status buffer's sections make rows common, in phase 2.
 - `WebBuffer.getDisplayHeight` leaves out virtual rows. Web pages have none.
 - A `Binding`-backed switch or option keeps its value where the binding
   says, so session seeding and saved defaults skip it. A git popup that
@@ -911,3 +929,24 @@ background, updating open buffers; command input in the log.)
 - The popup's focus and its field are checked under Xvfb by hand
   (`java.awt.Robot`). The headless tests have no root pane, and the fuzzer
   sets fields directly.
+
+**Phase 2** (fixed:
+- **Hunks:** a hunk was known by its place in the file, so a change above it moved its open or closed state and the caret to another hunk. It is now known by what it changes.
+- **Refreshes:** each save and each return to j's window laid the buffer out again and dropped the selection. One that finds nothing new now leaves it alone, and one that does keeps the mark on its line.
+- **Gutter clicks:** a click anywhere in the gutter, a line number say, folded the line, even with `foldMarkers=never`. Only a chevron that is drawn, in the fold column, now folds or unfolds; a click elsewhere in the gutter beside a closed fold still opens it, as it did before the chevrons.
+- **Large diffs:** word diffs are cached, and a run of more than 200 changed lines is not refined. Paths go to `git diff` 100 at a time, under Windows' limit on a command line.
+- **Help links:** `#status`, `#bufferlist` and `directories.html#popup` were `id`s, which j's help pages don't find; they are `<a name>`s.
+- **Staged lines:** a hunk with an empty side mapped a line one too far.
+- **Page up:** it counted the rows over the top line twice.
+- **Empty diffs:** a rename with no change, a mode change, and a diff git failed to give now say so.
+- **CRLF:** a line's CR no longer shows.
+- **Fold starts:** they are asked again when a buffer's mode changes.
+- **zc:** on a closed file it closes the section, as vim's does.
+- **Depths:** a file opened by hand at depth 1 shows its hunks.
+- **Buffer lists:** a row's repository color is kept for a few seconds, not looked up on each paint.
+- **Comments:** four left on the wrong method by inserted code.)
+
+- A change only of tabs to spaces shows `-` and `+` lines that look alike, with no word marked: both are detabbed before the word diff.
+- Git leaks into shared code: `VcsStatusMode`'s help is `git.html#status`, `BufferListStatus` reads git's porcelain codes, and the preference is `gitBufferListStatus`. Svn's backend (phase 10) gives the mode its help topic and the entry its letters.
+- A render empties the buffer, which invalidates the views other windows keep of it; a window that comes back to it later starts at its top. Windows showing it keep their place.
+- No tests for git missing, a rebase in progress, or a path with a leading dash (a review's scratch test showed one renders).

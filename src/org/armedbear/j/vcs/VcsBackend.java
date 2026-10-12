@@ -47,6 +47,33 @@ public interface VcsBackend {
         return null;
     }
 
+    /**
+     * Reads what the status buffer shows, off the event thread; null if this
+     * backend has none. wantsDiff(section id, path) says which files' diffs
+     * to read: the ones expanded.
+     */
+    default org.armedbear.j.vcs.status.StatusData readStatus(
+            VcsRepository repository,
+            java.util.function.BiPredicate<String, String> wantsDiff) {
+        return null;
+    }
+
+    /**
+     * The diffs of paths, relative to the root: the working tree's, or with
+     * staged the next commit's. Off the event thread.
+     */
+    default List<org.armedbear.j.vcs.diff.FileDiff> readDiff(
+            VcsRepository repository,
+            boolean staged,
+            List<String> paths) {
+        return List.of();
+    }
+
+    /** A commit's message and diff, as patch text; null if it can't be read. Off the event thread. */
+    default byte[] readCommit(VcsRepository repository, String id) {
+        return null;
+    }
+
     /** What to watch for changes made outside j: the repository's metadata, not its working tree. */
     default List<RepositoryWatcher.Watch> watches(VcsRepository repository) {
         return List.of();

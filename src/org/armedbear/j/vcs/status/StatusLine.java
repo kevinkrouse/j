@@ -1,0 +1,175 @@
+/*
+ * StatusLine.java
+ *
+ * Copyright (C) 2026 Kevin Krouse
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+
+package org.armedbear.j.vcs.status;
+
+import java.util.List;
+import org.armedbear.j.TextLine;
+import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.diff.DiffLine;
+import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.status.StatusData.CommitItem;
+import org.armedbear.j.vcs.status.StatusData.FileItem;
+
+/**
+ * A line of a status buffer, with what it shows: a repository, a header
+ * field, a section, a file, a hunk, a line of a diff, or a commit.
+ */
+public final class StatusLine extends TextLine {
+    public enum Kind {
+        REPOSITORY, FIELD, MESSAGE, BLANK, SECTION, FILE, HUNK, DIFF, COMMIT
+    }
+
+    private final Kind kind;
+    // Unique in the buffer and the same after a refresh, for keeping the caret.
+    private final String key;
+    // The node it heads, or for a diff line its hunk: what Tab folds.
+    private final String node;
+    private final VcsRepository repository;
+    private final String section;
+    private FileItem file;
+    private Hunk hunk;
+    private DiffLine diffLine;
+    private int oldLine;
+    private int newLine;
+    private CommitItem commit;
+    private boolean expandable;
+    private boolean open;
+    private int repositoryColor = -1;
+    // Changed words in a diff line, as {start, end} offsets into the text.
+    private List<int[]> words = List.of();
+
+    StatusLine(Kind kind, String text, String key, String node, VcsRepository repository, String section) {
+        super(text);
+        this.kind = kind;
+        this.key = key;
+        this.node = node;
+        this.repository = repository;
+        this.section = section;
+    }
+
+    public Kind kind() {
+        return kind;
+    }
+
+    public String key() {
+        return key;
+    }
+
+    /** The key of the node it heads or is in: a diff line's hunk; null for none. */
+    public String node() {
+        return node;
+    }
+
+    public VcsRepository repository() {
+        return repository;
+    }
+
+    /** The id of the section it is in, or null. */
+    public String section() {
+        return section;
+    }
+
+    public FileItem file() {
+        return file;
+    }
+
+    public Hunk hunk() {
+        return hunk;
+    }
+
+    public DiffLine diffLine() {
+        return diffLine;
+    }
+
+    /** A diff line's number in the old file, 0 if it has none there. */
+    public int oldLine() {
+        return oldLine;
+    }
+
+    /** A diff line's number in the new file; an old line's, the new line it was before. */
+    public int newLine() {
+        return newLine;
+    }
+
+    public CommitItem commit() {
+        return commit;
+    }
+
+    /** Whether it heads lines that Tab shows and hides. */
+    public boolean isExpandable() {
+        return expandable;
+    }
+
+    /** Whether it is expandable and shown open. */
+    public boolean isOpen() {
+        return open;
+    }
+
+    /** A repository heading's color index, or -1. */
+    public int repositoryColor() {
+        return repositoryColor;
+    }
+
+    public List<int[]> words() {
+        return words;
+    }
+
+    StatusLine file(FileItem file) {
+        this.file = file;
+        return this;
+    }
+
+    StatusLine hunk(Hunk hunk) {
+        this.hunk = hunk;
+        return this;
+    }
+
+    StatusLine diff(DiffLine line, int oldLine, int newLine) {
+        this.diffLine = line;
+        this.oldLine = oldLine;
+        this.newLine = newLine;
+        return this;
+    }
+
+    StatusLine commit(CommitItem commit) {
+        this.commit = commit;
+        return this;
+    }
+
+    StatusLine expandable(boolean b) {
+        this.expandable = b;
+        return this;
+    }
+
+    StatusLine open(boolean b) {
+        this.open = b;
+        return this;
+    }
+
+    StatusLine repositoryColor(int index) {
+        this.repositoryColor = index;
+        return this;
+    }
+
+    void setWords(List<int[]> words) {
+        this.words = words;
+    }
+}

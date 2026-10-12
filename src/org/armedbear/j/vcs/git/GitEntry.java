@@ -51,6 +51,11 @@ public class GitEntry extends VersionControlEntry {
         return statusText(false);
     }
 
+    @Override
+    public String getCode() {
+        return xy;
+    }
+
     /**
      * Maps git's two letter porcelain code to a status kind.
      *

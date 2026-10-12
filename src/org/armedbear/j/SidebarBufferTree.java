@@ -81,6 +81,7 @@ import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import org.armedbear.j.Constants;
 import org.armedbear.j.util.Keys;
+import org.armedbear.j.vcs.BufferListStatus;
 
 // Consider an option to make the folders either the first things or last
 // things in the buffer list. That way all of the folders will be listed
@@ -889,8 +890,10 @@ public final class SidebarBufferTree extends SidebarTree
 
         private final Sidebar sidebar;
 
-        // Status of the row currently being drawn, painted after the name.
-        private int statusKind = VCS_UNKNOWN;
+        // The row's status, painted after the name, and its repository's
+        // color, a strip at its left, when the project has several.
+        private BufferListStatus.Badge badge;
+        private Color strip;
 
         // The name before any ellipsis, and where this row starts.
         private String fullText;
@@ -926,12 +929,14 @@ public final class SidebarBufferTree extends SidebarTree
                 fullText = isTransient ? userObject + "  " + buffer.getTransientLabel() : userObject.toString();
                 setText(fullText);
                 setIcon(buffer.getIcon());
-                statusKind = buffer.getVCStatusKind();
+                badge = BufferListStatus.badge(buffer);
+                strip = BufferListStatus.repositoryColor(buffer, textBackground);
                 if (buffer.isSecondary())
                     innerBorder = new EmptyBorder(0, UIScale.scale(10), 0, 0);
             } else {
                 setIcon(null);
-                statusKind = VCS_UNKNOWN;
+                badge = null;
+                strip = null;
                 fullText = null;
             }
             Frame frame = sidebar.getFrame();
@@ -955,36 +960,6 @@ public final class SidebarBufferTree extends SidebarTree
             setBorder(new CompoundBorder(outerBorder, innerBorder));
             fitText();
             return this;
-        }
-
-        private static String statusLetter(int kind) {
-            switch (kind) {
-                case VCS_NEW:
-                    return "A";
-                case VCS_MODIFIED:
-                    return "M";
-                case VCS_DELETED:
-                    return "D";
-                case VCS_CONFLICT:
-                    return "C";
-                default:
-                    return null;
-            }
-        }
-
-        private static Color statusColor(int kind) {
-            switch (kind) {
-                case VCS_NEW:
-                    return new Color(0x3F9142); // green
-                case VCS_MODIFIED:
-                    return new Color(0x2B6CB0); // blue
-                case VCS_DELETED:
-                    return new Color(0x8B1A1A); // dark red
-                case VCS_CONFLICT:
-                    return new Color(0xE03131); // bright red
-                default:
-                    return null;
-            }
         }
 
         private int statusGap() {
@@ -1039,13 +1014,17 @@ public final class SidebarBufferTree extends SidebarTree
         public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
-            final String letter = statusLetter(statusKind);
-            if (letter == null)
+            if (strip != null) {
+                g.setColor(strip);
+                g.fillRect(0, 0, UIScale.scale(3), getHeight());
+            }
+            if (badge == null)
                 return;
+            final String letter = badge.text();
             FontMetrics fm = g.getFontMetrics();
             int x = getWidth() - statusWidth() + (statusWidth() - fm.stringWidth(letter)) / 2;
             int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
-            g.setColor(statusColor(statusKind));
+            g.setColor(badge.color());
             g.drawString(letter, x, y);
         }
 

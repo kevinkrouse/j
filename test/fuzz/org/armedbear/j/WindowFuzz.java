@@ -37,6 +37,7 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.transients.TransientCommands;
 import org.armedbear.j.transients.TransientPopup;
+import org.armedbear.j.vcs.status.VcsStatusBuffer;
 import org.armedbear.j.vim.VimInputHandler;
 import org.jdesktop.swingx.MultiSplitLayout;
 
@@ -97,6 +98,50 @@ public final class WindowFuzz {
             mbox.append("Dummy message ").append(i + 1).append(".\n\n");
         }
         Files.writeString(h.resolve("test.mbox"), mbox, StandardCharsets.UTF_8);
+        gitFixture(h.resolve("proj"));
+    }
+
+    // proj as a repository: everything committed, then two files changed,
+    // one of them staged, for the status buffer.
+    private static void gitFixture(Path proj) throws IOException {
+        if (!org.armedbear.j.util.ProcessRunner.exists("git"))
+            return;
+        git(proj, "init", "-q", "-b", "main");
+        git(proj, "add", "-A");
+        git(proj, "commit", "-q", "-m", "first");
+        Files.writeString(
+            proj.resolve("file1.txt"),
+            Files.readString(proj.resolve("file1.txt")).replace("line 1 7\n", "changed\n"));
+        Files.writeString(proj.resolve("A.java"), "class A {\n  long x;\n}\n");
+        git(proj, "add", "A.java");
+        Files.writeString(proj.resolve("new.txt"), "new\n");
+    }
+
+    private static void git(Path dir, String... args) throws IOException {
+        final List<String> argv = new ArrayList<>(List.of("git"));
+        argv.addAll(List.of(args));
+        final ProcessBuilder pb = new ProcessBuilder(argv).directory(dir.toFile()).redirectErrorStream(true);
+        pb.environment()
+                .putAll(
+                    Map.of(
+                        "GIT_CONFIG_GLOBAL",
+                        "/dev/null",
+                        "GIT_CONFIG_NOSYSTEM",
+                        "1",
+                        "GIT_AUTHOR_NAME",
+                        "Fuzz",
+                        "GIT_AUTHOR_EMAIL",
+                        "fuzz@example.com",
+                        "GIT_COMMITTER_NAME",
+                        "Fuzz",
+                        "GIT_COMMITTER_EMAIL",
+                        "fuzz@example.com"));
+        try {
+            pb.start().waitFor();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     // ------------------------------------------------------------- helpers
@@ -295,6 +340,41 @@ public final class WindowFuzz {
             if (ed.getBuffer().isTransient())
                 ed.closeTransient();
         }),
+        new Op("gitStatus", ed -> {
+            if (!(ed.getBuffer() instanceof VcsStatusBuffer))
+                ed = ed.show(Editor.getBuffer(file("proj/file" + (1 + rnd.nextInt(4)) + ".txt")));
+            command(ed, "gitStatus", null);
+        }),
+        new Op("statusKey", ed -> {
+            if (!(ed.getBuffer() instanceof VcsStatusBuffer))
+                return;
+            final String[] commands = {
+                "vcsStatusToggle",
+                "vcsStatusCycle",
+                "vcsStatusDepth",
+                "vcsStatusNext",
+                "vcsStatusPrevious",
+                "vcsStatusNextSection",
+                "vcsStatusPreviousSection",
+                "vcsStatusRefresh",
+                "toggleFold",
+                "foldAll",
+                "unfoldAll",
+                "down",
+                "up" };
+            final String c = commands[rnd.nextInt(commands.length)];
+            command(ed, c, c.equals("vcsStatusDepth") ? String.valueOf(1 + rnd.nextInt(4)) : null);
+        }),
+        new Op("statusChange", ed -> {
+            // A change j didn't make, as an edit elsewhere would be.
+            try {
+                Files.writeString(Path.of(home, "proj/file2.txt"), "fuzz " + rnd.nextInt(1000) + "\n");
+            }
+            catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+            org.armedbear.j.vcs.Repositories.invalidateAll(); // As j's window coming back does.
+        }),
         new Op("dirPopup", ed -> {
             if (!(ed.getBuffer() instanceof DirectoryBuffer))
                 ed = ed.show(Editor.getBuffer(file("proj")));
@@ -448,7 +528,8 @@ public final class WindowFuzz {
             bad.add("popup over a closed window");
         else if (open.getParent() == layers && ed.isShowing()) {
             final Rectangle window = SwingUtilities.convertRectangle(ed.getParent(), ed.getBounds(), layers);
-            if (!window.contains(open.getBounds()))
+            // An empty one, in a window with no room for text, is in no rectangle.
+            if (!open.getBounds().isEmpty() && !window.contains(open.getBounds()))
                 bad.add("popup " + open.getBounds() + " outside its window " + window);
         }
     }

@@ -163,6 +163,8 @@ public final class Property implements Comparable<Property> {
     public static final Property USE_MENU_MNEMONICS = createProperty("useMenuMnemonics", true);
     public static final Property USE_TABS = createProperty("useTabs", false);
     public static final Property WEB_SHOW_IMAGES = createProperty("webShowImages", false);
+    // Whether git buffers show a hint row of their keys.
+    public static final Property VCS_HINTS = createProperty("vcsHints", true);
     public static final Property WRAP = createProperty("wrap", false);
 
     // String properties with default values.
@@ -174,6 +176,10 @@ public final class Property implements Comparable<Property> {
     public static final Property DEFAULT_ENCODING = createProperty("defaultEncoding", "UTF-8");
     public static final Property DIALOG_FONT_NAME = createProperty("dialogFontName", "Dialog");
     public static final Property EXPLICIT_TAG = createProperty("explicitTag", "###");
+    // What the buffer lists show of a file's git status: letters, dot or none.
+    public static final Property GIT_BUFFER_LIST_STATUS = createProperty("gitBufferListStatus", "letters");
+    // When the gutter shows where an open fold could close: hover, always or never.
+    public static final Property FOLD_MARKERS = createProperty("foldMarkers", "hover");
     public static final Property FONT_NAME = createProperty("fontName", "Monospaced");
     // "auto/true/false" See Display.resolveLigatures().
     public static final Property LIGATURES = createProperty("ligatures", "auto");

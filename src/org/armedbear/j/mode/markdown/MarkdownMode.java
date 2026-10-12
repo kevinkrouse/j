@@ -97,6 +97,17 @@ public final class MarkdownMode extends AbstractMode implements Mode {
         return MarkdownFolding.getFoldRange(editor.getBuffer(), line);
     }
 
+    /** A fence's first line, a list item with children, or a heading over a section. */
+    @Override
+    public boolean isFoldStart(Buffer buffer, Line line) {
+        return MarkdownFolding.headedBy(buffer, line) != null;
+    }
+
+    @Override
+    public Line[] getFoldBelow(Buffer buffer, Line line) {
+        return MarkdownFolding.headedBy(buffer, line);
+    }
+
     /** All but the headings. */
     @Override
     public void foldAll(Editor editor) {

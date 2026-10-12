@@ -103,7 +103,7 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
         if (!key.isEmpty()) {
             int w = fm.stringWidth(key);
             g2.setFont(getFont());
-            g2.setColor(dim);
+            g2.setColor(item.keyColor() != null ? item.keyColor() : dim);
             g2.drawString(key, right - w, baseline);
             right -= w + 2 * pad;
         }

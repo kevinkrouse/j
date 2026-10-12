@@ -193,6 +193,7 @@ public final class KeyMap {
         mapKey(KeyEvent.VK_F3, ALT_MASK, "find");
 
         mapKey(KeyEvent.VK_L, CTRL_MASK | ALT_MASK, "listOccurrencesOfPatternAtDot");
+        mapKey(KeyEvent.VK_G, CTRL_MASK | ALT_MASK, "gitStatus");
 
         mapKey(KeyEvent.VK_F3, 0, "findNext");
         mapKey(KeyEvent.VK_G, CTRL_MASK, "findNext");

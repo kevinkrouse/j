@@ -153,6 +153,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#followLinkOrTask">followLinkOrTask</a></li>
     <li><a href="commands.html#forwardSexp">forwardSexp</a></li>
     <li><a href="commands.html#git">git</a></li>
+    <li><a href="commands.html#gitStatus">gitStatus</a></li>
     <li><a href="commands.html#gotoBookmark">gotoBookmark</a></li>
     <li><a href="commands.html#gotoTemporaryMarker">gotoTemporaryMarker</a></li>
     <li><a href="commands.html#gotoFile">gotoFile</a></li>
@@ -426,6 +427,15 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#up">up</a></li>
     <li><a href="commands.html#upperCaseRegion">upperCaseRegion</a></li>
     <li><a href="commands.html#vcsCommandLog">vcsCommandLog</a></li>
+    <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
+    <li><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></li>
+    <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
+    <li><a href="commands.html#vcsStatusNextSection">vcsStatusNextSection</a></li>
+    <li><a href="commands.html#vcsStatusPrevious">vcsStatusPrevious</a></li>
+    <li><a href="commands.html#vcsStatusPreviousSection">vcsStatusPreviousSection</a></li>
+    <li><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></li>
+    <li><a href="commands.html#vcsStatusToggle">vcsStatusToggle</a></li>
+    <li><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></li>
     <li><a href="commands.html#visibleTabs">visibleTabs</a></li>
     <li><a href="commands.html#vsplitWindow">vsplitWindow</a></li>
     <li><a href="commands.html#whatChar">whatChar</a></li>
@@ -2254,6 +2264,16 @@ is "diff".  The git command is run in the directory of the current
 editor.
 <p>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="gitStatus">gitStatus</a><dl><dd>
+<p>
+Opens the status of the current buffer's git repository, or of the project's repositories when its directory holds several: what has changed, what is staged, and the recent commits.
+<br><br>
+<b>Default key mapping:</b> Ctrl Alt G; &lt;leader&gt;gg in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -5813,9 +5833,99 @@ the time, how long each took, and the command line, under the directory it ran
 in. A command that failed shows its exit code and its error output. j keeps the
 last 500.
 <br><br>
-<b>Default key mapping:</b> None
+<b>Default key mapping:</b> $ in status buffers
 <br><br>
 <b>See also:</b> <a href="#git">git</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusCycle">vcsStatusCycle</a><dl><dd>
+<p>
+In a status buffer, opens everything one depth further: sections, then files, then hunks, then the lines of the diffs, then back to the sections.
+<br><br>
+<b>Default key mapping:</b> Shift Tab in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusDepth">vcsStatusDepth</a><dl><dd>
+<p>
+In a status buffer, opens everything to a depth, 1 to 4, given as an argument: 1 shows the sections, 2 their files, 3 the files' hunks, and 4 every line of the diffs.
+<br><br>
+<b>Default key mapping:</b> 1, 2, 3 and 4 in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusNext">vcsStatusNext</a><dl><dd>
+<p>
+In a status buffer, goes to the next section, file, hunk or commit.
+<br><br>
+<b>Default key mapping:</b> n in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusNextSection">vcsStatusNextSection</a><dl><dd>
+<p>
+In a status buffer, goes to the next section.
+<br><br>
+<b>Default key mapping:</b> Alt N in status buffers; ]] in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusPrevious">vcsStatusPrevious</a><dl><dd>
+<p>
+In a status buffer, goes to the previous section, file, hunk or commit.
+<br><br>
+<b>Default key mapping:</b> p in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusPreviousSection">vcsStatusPreviousSection</a><dl><dd>
+<p>
+In a status buffer, goes to the previous section.
+<br><br>
+<b>Default key mapping:</b> Alt P in status buffers; [[ in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusRefresh">vcsStatusRefresh</a><dl><dd>
+<p>
+Reads a status buffer's repositories again, for a change j could not see.
+<br><br>
+<b>Default key mapping:</b> g in status buffers; r in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusToggle">vcsStatusToggle</a><dl><dd>
+<p>
+In a status buffer, opens or closes the section, file or hunk at the caret, or that the caret is in. Opening a file reads its diff.
+<br><br>
+<b>Default key mapping:</b> Tab in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusVisit">vcsStatusVisit</a><dl><dd>
+<p>
+In a status buffer, visits the thing at the caret: a file, at the line of the hunk or diff line the caret is on, or a commit, shown with its diff. A staged line is visited where it is now in the working tree.
+<br><br>
+<b>Default key mapping:</b> Enter or a double click in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>
 </dl><!--<hr>-->
 

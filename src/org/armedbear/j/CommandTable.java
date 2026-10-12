@@ -64,6 +64,7 @@ import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.git.Git;
+import org.armedbear.j.vcs.status.VcsStatusMode;
 import org.armedbear.j.vcs.svn.SVN;
 
 public class CommandTable {
@@ -343,6 +344,15 @@ public class CommandTable {
             add("unwrapParagraph", IndentCommands::unwrapParagraph);
             add("up", MotionCommands::up);
             add("vcsCommandLog", e -> CommandLog.vcsCommandLog());
+            add("vcsStatusCycle", VcsStatusMode::vcsStatusCycle);
+            add("vcsStatusDepth", e -> VcsStatusMode.vcsStatusDepth(e, "2"), VcsStatusMode::vcsStatusDepth);
+            add("vcsStatusNext", VcsStatusMode::vcsStatusNext);
+            add("vcsStatusNextSection", VcsStatusMode::vcsStatusNextSection);
+            add("vcsStatusPrevious", VcsStatusMode::vcsStatusPrevious);
+            add("vcsStatusPreviousSection", VcsStatusMode::vcsStatusPreviousSection);
+            add("vcsStatusRefresh", VcsStatusMode::vcsStatusRefresh);
+            add("vcsStatusToggle", VcsStatusMode::vcsStatusToggle);
+            add("vcsStatusVisit", VcsStatusMode::vcsStatusVisit);
             add("visibleTabs", WindowCommands::visibleTabs);
             add("vsplitWindow", WindowCommands::vsplitWindow, (e, s) -> WindowCommands.vsplitWindow(e, s));
             add("whatChar", EditCommands::whatChar);
@@ -419,6 +429,7 @@ public class CommandTable {
             add("followLinkOrTask", e -> MarkdownTasks.followLinkOrTask());
             add("forwardSexp", e -> LispMode.forwardSexp());
             add("git", e -> Git.git(), (e, s) -> Git.git(s));
+            add("gitStatus", VcsStatusMode::gitStatus);
             add("google", e -> WebMode.google(), (e, s) -> WebMode.google(s));
             add("gotoFile", e -> GotoFile.gotoFile());
             add("help", Finders::help, (e, s) -> Help.help(s));

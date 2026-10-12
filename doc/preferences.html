@@ -947,6 +947,14 @@ in the background. The old list is used until the new one is ready.
 <b>Default value:</b> 30
 </dl>
 
+<code><a name="foldMarkers">foldMarkers</a></code>
+<dl>
+<dd>
+When the gutter shows the chevron where an open fold begins: <code>hover</code> while the mouse is over the gutter, <code>always</code>, or <code>never</code>. A closed fold's chevron always shows. A click on a chevron that shows opens or closes its fold, and, as before, a click anywhere in the gutter beside a closed fold opens it. Status buffers show them always.
+<p>
+<b>Default value:</b> hover
+</dl>
+
 <code><a name="fontName">fontName</a></code>
 <dl>
 <dd>
@@ -977,6 +985,14 @@ Display font size (in points).
 If true, passive mode is used for FTP operations.
 <p>
 <b>Default value:</b> true
+</dl>
+
+<code><a name="gitBufferListStatus">gitBufferListStatus</a></code>
+<dl>
+<dd>
+What the buffer lists show after a file's name of its git status: <code>letters</code> (M, A, ?, D, R, C, U), a colored <code>dot</code>, or <code>none</code>. See <a href="git.html#bufferlist">Git</a>.
+<p>
+<b>Default value:</b> letters
 </dl>
 
 <code><a name="globalKeyMap">globalKeyMap</a></code>
@@ -2252,6 +2268,14 @@ default "From" address for outgoing mail messages.
 <p>
 <b>See also:</b> <a href="#userFullName">userFullName</a>,
 <a href="mail.html">Mail</a>
+</dl>
+
+<code><a name="vcsHints">vcsHints</a></code>
+<dl>
+<dd>
+Whether git's buffers show a dimmed row of their main keys over the first line.
+<p>
+<b>Default value:</b> true
 </dl>
 
 <code><a name="verticalRule">verticalRule</a></code>

@@ -314,6 +314,13 @@ public final class VimMotions {
      */
     private static Position moveBySection(MotionContext ctx, Position from) {
         final boolean forward = ctx.arg("forward");
+        if (!ctx.forOperator && !ctx.arg("end") && ctx.editor.getMode().sectionFrom(from.getLine(), forward) != null) {
+            // The mode's own headings, as a status buffer's.
+            Line line = from.getLine();
+            for (int i = 0; i < ctx.count; i++)
+                line = ctx.editor.getMode().sectionFrom(line, forward);
+            return at(line, 0);
+        }
         final char what = ctx.arg("end") ? '}' : '{';
         final Position to = Paragraphs.find(from, forward, ctx.count, what, ctx.forOperator && forward && what == '{');
         if (to == null || ctx.forOperator)

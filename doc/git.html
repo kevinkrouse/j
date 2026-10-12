@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<title>J User's Guide - Git</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+
+<body>
+
+<a href="contents.html">Top</a>
+
+<hr>
+
+<h1>Git</h1>
+
+<hr>
+
+<p>
+j shows a repository's state in a status buffer, as magit and Neogit do: what
+has changed, what is staged, and the recent commits, with each file's diff
+inline. j runs the <code>git</code> on your path for it, version 2.16 or
+later. To see the commands it runs, use
+<a href="commands.html#vcsCommandLog">vcsCommandLog</a> (<b>$</b> in the status
+buffer).
+
+<h2><a name="status">The status buffer</a></h2>
+
+<p>
+<a href="commands.html#gitStatus">gitStatus</a>, mapped to Ctrl Alt G, and to
+<code>&lt;leader&gt;gg</code> in vim edit mode, opens the status of the current
+file's repository. In a project whose directory holds several repositories,
+it shows them all, each under a heading in its own color.
+
+<pre>
+Head:     main  1a2b3c4 icons: draw at the window's device scale
+Upstream: origin/main  ↑2 ↓0
+
+Untracked files (1)
+  ?  notes.txt
+
+Unstaged changes (2)
+  M  src/Display.java
+  @@ -60,6 +60,12 @@ class Display
+  ...
+Staged changes (1)
+  A  doc/git.html
+
+Recent commits (10)
+  1a2b3c4 (HEAD -> main, origin/main) icons: draw at the window's device scale
+</pre>
+
+<p>
+The sections are those that have something in them: unmerged files during a
+merge, untracked files, unstaged changes, staged changes, and the recent
+commits. A line under the header says when a merge, a rebase or a cherry-pick
+is in progress, and how many conflicts it has.
+
+<p>
+A dimmed row over the first line shows the main keys, in the notation of the
+edit mode you are in; <a href="preferences.html#vcsHints">vcsHints</a> turns
+it off. <b>?</b> opens a popup of the rest, and F1 this page.
+
+<h3>Showing and hiding</h3>
+
+<p>
+A section, a file and a hunk each open and close: <b>Tab</b> on one, or on a
+line in it, toggles it, as does a click on the chevron in the gutter beside it.
+A file starts closed; opening it reads its diff. Shift Tab steps everything
+through four depths, and <b>1</b> to <b>4</b> go to one: 1 shows the sections,
+2 their files, 3 the files' hunks, and 4 every line of the diffs. In vim edit
+mode <b>za</b>, <b>zo</b> and <b>zc</b> toggle, open and close, and <b>zR</b>
+and <b>zM</b> open and close everything.
+
+<p>
+In a diff, the words that changed in a line are on a stronger shade than the
+rest of it, when a removed line and the added line that replaces it have
+enough in common.
+
+<h3>Moving and visiting</h3>
+
+<p>
+<b>n</b> and <b>p</b> go to the next and previous thing that opens, or commit;
+Alt N and Alt P, and <b>]]</b> and <b>[[</b> in vim edit mode, to the next and
+previous section. <b>Enter</b>, or a double click, visits the thing at the
+caret: a file, at the line of the hunk or diff line the caret is on, or a
+commit, shown with its diff. A staged line is visited where it is now, after
+the changes made since it was staged.
+
+<h3>Refreshing</h3>
+
+<p>
+The buffer is read again when the repository's index, HEAD or branches
+change, when you save a file, and when j's window comes back to the front.
+<b>g</b> (<b>r</b> in vim edit mode, where gg goes to the top) reads it again
+now, for a change j could not see. Reading it again keeps the caret on the
+file or line it was on.
+
+<h3>Keys</h3>
+
+<table>
+<tr><th>Key</th><th>Vim</th><th>Command</th><th></th></tr>
+<tr><td>Tab</td><td>Tab, za</td><td><a href="commands.html#vcsStatusToggle">vcsStatusToggle</a></td><td>open or close</td></tr>
+<tr><td>Shift Tab</td><td>Shift Tab</td><td><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></td><td>the next depth</td></tr>
+<tr><td>1 2 3 4</td><td>1 2 3 4</td><td><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></td><td>a depth</td></tr>
+<tr><td>n p</td><td>n p</td><td><a href="commands.html#vcsStatusNext">vcsStatusNext</a>, <a href="commands.html#vcsStatusPrevious">vcsStatusPrevious</a></td><td>the next or previous thing</td></tr>
+<tr><td>Alt N, Alt P</td><td>]] [[</td><td><a href="commands.html#vcsStatusNextSection">vcsStatusNextSection</a>, <a href="commands.html#vcsStatusPreviousSection">vcsStatusPreviousSection</a></td><td>the next or previous section</td></tr>
+<tr><td>Enter</td><td>Enter</td><td><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></td><td>visit</td></tr>
+<tr><td>g</td><td>r</td><td><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></td><td>read it again</td></tr>
+<tr><td>$</td><td>$</td><td><a href="commands.html#vcsCommandLog">vcsCommandLog</a></td><td>the commands j ran</td></tr>
+<tr><td>?</td><td>?</td><td><a href="commands.html#modePopup">modePopup</a></td><td>the popup</td></tr>
+<tr><td>q</td><td>q</td><td><a href="commands.html#killBuffer">killBuffer</a></td><td>close it</td></tr>
+</table>
+
+<h2><a name="bufferlist">The buffer list</a></h2>
+
+<p>
+The buffer lists in the sidebar, and the Ctrl E switcher, show a file's status
+after its name: <b>M</b> changed, <b>M</b> in green staged, <b>A</b> added,
+<b>?</b> untracked, <b>D</b> deleted, <b>R</b> renamed, <b>C</b> copied and <b>U</b> conflicted.
+<a href="preferences.html#gitBufferListStatus">gitBufferListStatus</a> shows a
+dot instead, or nothing. When the project has several repositories, a strip at
+the left of a row is its repository's color.
+
+<p>
+See also: <a href="vcs.html">Version Control</a>.
+
+</body>
+</html>

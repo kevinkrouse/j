@@ -228,19 +228,18 @@ public final class MotionCommands {
         final Display display = editor.getDisplay();
         Debug.assertTrue(editor.getBuffer().needsRenumbering == false);
         Line dotLine = editor.getDotLine();
-        int numRows = display.getRows();
-        Line[] lines = new Line[numRows];
-        Line line = editor.getTopLine();
+        // The window's lines by their text, so rows of virtual text count.
+        Line bottomLine = display.getBottomLine();
         int dotRow = -1;
-        for (int i = 0; i < numRows; i++) {
-            lines[i] = line;
-            if (line == dotLine)
-                dotRow = i;
-            if (line != null)
-                line = line.nextVisible();
+        int row = 0;
+        for (Line l = editor.getTopLine(); l != null; l = l.nextVisible(), row++) {
+            if (l == dotLine)
+                dotRow = row;
+            if (l == bottomLine)
+                break;
         }
-        Line bottomLine = lines[numRows - 1];
-        if (bottomLine == null) {
+        Line line;
+        if (bottomLine.nextVisible() == null) {
             // We're on the last page already.
             if (dotRow >= 0) {
                 Position eob = editor.getEob();
@@ -255,6 +254,8 @@ public final class MotionCommands {
             return;
         }
         // Not on last page.
+        if (bottomLine == editor.getTopLine())
+            bottomLine = bottomLine.nextVisible(); // One line taller than the window.
         display.setTopLine(bottomLine);
         editor.setUpdateFlag(REPAINT);
         if (dotRow >= 0) {
@@ -278,7 +279,13 @@ public final class MotionCommands {
         Debug.assertTrue(editor.getBuffer().needsRenumbering == false);
         int topLineNumber = display.getTopLineNumber();
         int dotLineNumber = editor.getDot().lineNumber();
-        int linesToScroll = display.getRows() - 1;
+        // As far as puts the top line at the bottom, rows of virtual text and all.
+        final Line newTop = display.pageAbove();
+        int linesToScroll = 0;
+        for (Line l = editor.getTopLine(); l != null && l != newTop; l = l.previousVisible())
+            linesToScroll++;
+        if (linesToScroll == 0)
+            linesToScroll = display.getRows() - 1;
         boolean dotLineIsVisible = false;
         if (dotLineNumber >= topLineNumber) {
             Line bottomLine = display.getBottomLine();

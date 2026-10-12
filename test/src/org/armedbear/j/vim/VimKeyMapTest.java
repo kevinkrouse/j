@@ -252,4 +252,18 @@ public class VimKeyMapTest {
     public void gdGoesToTheDefinition() {
         assertEquals("gd", VimKeyMap.getDefault().keysFor("findDefinitionAtDot"));
     }
+
+    @Test
+    public void theDefaultMapBindsLeaderRowsToABackslash() {
+        assertEquals("\\gg", VimKeyMap.getDefault().keysFor("gitStatus"));
+    }
+
+    @Test
+    public void theLeaderIsTheQuotedStringOrFirstWordWithoutAComment() {
+        assertEquals("\\", VimKeyMap.leaderOf("set nu\n"));
+        assertEquals(",", VimKeyMap.leaderOf("let mapleader = \",\"  \" which-key\n"));
+        assertEquals(" ", VimKeyMap.leaderOf("let g:mapleader=' '\n"));
+        assertEquals(";", VimKeyMap.leaderOf("let mapleader = ;   \" a comment\n"));
+        assertEquals("x", VimKeyMap.leaderOf("let mapleader = \",\"\nlet mapleader = \"x\"\n"), "the last wins");
+    }
 }

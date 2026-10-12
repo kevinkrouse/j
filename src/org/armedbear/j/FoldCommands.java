@@ -38,6 +38,8 @@ public final class FoldCommands {
     public static void fold(Editor editor) {
         if (editor.getDot() == null)
             return;
+        if (editor.getMode().setFoldAt(editor, editor.getDotLine(), false))
+            return;
         if (!foldRegionInternal(editor) && !foldExplicit(editor) && !foldByMode(editor))
             foldNearLine(editor, editor.getDotLine());
     }
@@ -46,11 +48,54 @@ public final class FoldCommands {
     public static void toggleFold(Editor editor) {
         if (editor.getDot() == null)
             return;
+        if (editor.getMode().setFoldAt(editor, editor.getDotLine(), null))
+            return;
         final Line next = editor.getDotLine().next();
         if (next != null && next.isHidden())
             unfold(editor, next);
         else
             fold(editor);
+    }
+
+    /** Unfolds what line heads if it is folded, else folds it, as the mode says. */
+    public static void toggleFoldAt(Editor editor, Line line) {
+        final Mode mode = editor.getMode();
+        if (mode.isFolded(line)) {
+            unfold(editor, line.next());
+            return;
+        }
+        final Line[] range = mode.getFoldBelow(editor.getBuffer(), line);
+        if (range != null)
+            hideLines(editor, range[0], range[1].next());
+    }
+
+    /** Whether the next line that is not blank is indented more than line. */
+    public static boolean isIndentedBelow(Buffer buffer, Line line) {
+        if (line.isBlank())
+            return false;
+        Line next = line.next();
+        while (next != null && next.isBlank())
+            next = next.next();
+        return next != null && buffer.getIndentation(next) > buffer.getIndentation(line);
+    }
+
+    /**
+     * The lines after line indented more than it, with the blank lines among
+     * them but not those after the last; null if there are none.
+     */
+    public static Line[] indentedBelow(Buffer buffer, Line line) {
+        if (!isIndentedBelow(buffer, line))
+            return null;
+        final int indent = buffer.getIndentation(line);
+        Line last = line;
+        for (Line l = line.next(); l != null; l = l.next()) {
+            if (l.isBlank())
+                continue;
+            if (buffer.getIndentation(l) <= indent)
+                break;
+            last = l;
+        }
+        return new Line[] { line.next(), last };
     }
 
     /**
@@ -59,6 +104,8 @@ public final class FoldCommands {
      */
     public static void unfoldHere(Editor editor) {
         if (editor.getDot() == null)
+            return;
+        if (editor.getMode().setFoldAt(editor, editor.getDotLine(), true))
             return;
         final Line next = editor.getDotLine().next();
         if (next != null && next.isHidden())
@@ -422,6 +469,8 @@ public final class FoldCommands {
     }
 
     public static void unfoldAll(Editor editor) {
+        if (editor.getMode().setAllFolds(editor, true))
+            return;
         editor.addUndo(SimpleEdit.FOLD);
         for (Line line = editor.getBuffer().getFirstLine(); line != null; line = line.next())
             line.show();

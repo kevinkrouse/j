@@ -459,6 +459,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     @Override
     public void mouseExited(MouseEvent e) {
         lastMousePoint = null;
+        display.setMouseInGutter(false);
         forgetLink();
         hideLink();
     }
@@ -492,6 +493,10 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         // Folding.
         if (x < Display.getGutterWidth(buffer)) {
             Position pos = display.positionFromPoint(x, y);
+            if (button == MouseEvent.BUTTON1 && modifiers == 0 && display.isFoldMarkerAt(x, pos.getLine())) {
+                mode.toggleFoldAt(editor, pos.getLine());
+                return true;
+            }
             Line next = pos.getLine().next();
             if (next != null && next.isHidden()) {
                 FoldCommands.unfold(editor, next);
@@ -610,6 +615,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     @Override
     public void mouseMoved(MouseEvent e) {
         lastMousePoint = e.getPoint();
+        display.setMouseInGutter(e.getX() < Display.getGutterWidth(editor.getBuffer()));
         if (e.isControlDown()) {
             if (showLinkAt(lastMousePoint))
                 return;
@@ -640,9 +646,10 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         }
         if (buffer.isBusy())
             editor.setWaitCursor();
-        else if (e.getX() < Display.getGutterWidth(buffer))
-            editor.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-        else
+        else if (e.getX() < Display.getGutterWidth(buffer)) {
+            final boolean marker = pos != null && display.isFoldMarkerAt(e.getX(), pos.getLine());
+            editor.setCursor(Cursor.getPredefinedCursor(marker ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+        } else
             editor.setCursor(buffer.getDefaultCursor(pos));
     }
 

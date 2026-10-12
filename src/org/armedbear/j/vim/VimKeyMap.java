@@ -116,11 +116,11 @@ public final class VimKeyMap {
     private static VimKeyMap getConfigured() {
         final String filename = Editor.preferences().getStringProperty(Property.VIM_KEY_MAP);
         if (filename == null)
-            return getDefault();
+            return readDefault();
         final File file = File.getInstance(filename);
         if (file == null || !file.isFile()) {
             Log.error("vimKeyMap: no such file: " + filename);
-            return getDefault();
+            return readDefault();
         }
         final VimKeyMap keyMap = new VimKeyMap();
         try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
@@ -128,7 +128,7 @@ public final class VimKeyMap {
         }
         catch (IOException e) {
             Log.error(e);
-            return getDefault();
+            return readDefault();
         }
         return keyMap;
     }
@@ -155,20 +155,76 @@ public final class VimKeyMap {
         sharedOptions = options;
     }
 
+    private static final java.util.regex.Pattern MAPLEADER =
+            java.util.regex.Pattern.compile("^\\s*let\\s+(?:g:)?mapleader\\s*=\\s*(.*)$");
+
+    /**
+     * A vimrc's mapleader, vim's backslash if it sets none: the quoted string
+     * after the last {@code let mapleader =}, or its first word if unquoted,
+     * without any comment after it.
+     */
+    static String leaderOf(String vimrc) {
+        String leader = "\\";
+        for (String line : vimrc.split("\n")) {
+            final java.util.regex.Matcher m = MAPLEADER.matcher(line.stripTrailing());
+            if (!m.matches())
+                continue;
+            final String v = m.group(1).strip();
+            if (v.isEmpty())
+                continue;
+            final char q = v.charAt(0);
+            if (q == '"' || q == '\'') {
+                final int close = v.indexOf(q, 1);
+                if (close > 0)
+                    leader = v.substring(1, close);
+            } else {
+                int end = 0;
+                while (end < v.length() && !Character.isWhitespace(v.charAt(end)))
+                    end++;
+                leader = v.substring(0, end);
+            }
+        }
+        return leader;
+    }
+
+    // The vimrc, read once: its leader binds the map's <leader> rows before
+    // its own maps are applied, so that those still win.
     private static void loadVimrc(VimKeyMap keyMap, VimOptions options) {
         final File file = File.getInstance(Directories.getConfigDirectory(), "vimrc");
-        if (file == null || !file.isFile())
+        String text = null;
+        if (file != null && file.isFile()) {
+            try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
+                final StringBuilder sb = new StringBuilder();
+                final char[] buf = new char[8192];
+                for (int n; (n = reader.read(buf)) > 0;)
+                    sb.append(buf, 0, n);
+                text = sb.toString();
+            }
+            catch (IOException e) {
+                Log.error(e);
+            }
+        }
+        keyMap.bindLeader(text == null ? "\\" : leaderOf(text));
+        if (text == null)
             return;
-        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
-            new VimrcParser(keyMap, options).load(reader);
+        try {
+            new VimrcParser(keyMap, options).load(new java.io.StringReader(text));
         }
         catch (IOException e) {
             Log.error(e);
         }
     }
 
-    /** The built-in map, or an empty one if the resource cannot be read. */
+    /** The built-in map, its <leader> rows bound to vim's backslash. */
     public static VimKeyMap getDefault() {
+        final VimKeyMap keyMap = readDefault();
+        keyMap.bindLeader("\\");
+        return keyMap;
+    }
+
+    // The built-in map, or an empty one if the resource cannot be read; its
+    // <leader> rows not bound yet.
+    private static VimKeyMap readDefault() {
         final VimKeyMap keyMap = new VimKeyMap();
         try (InputStream in = VimKeyMap.class.getResourceAsStream(DEFAULT_RESOURCE)) {
             if (in == null) {
@@ -238,12 +294,32 @@ public final class VimKeyMap {
             if (trimmed.isEmpty() || trimmed.charAt(0) == '#')
                 continue;
             try {
-                add(parse(trimmed));
+                if (trimmed.contains("<leader>"))
+                    leaderRows.add(trimmed);
+                else
+                    add(parse(trimmed));
             }
             catch (RuntimeException e) {
                 Log.error("vim key map, line " + lineNumber + ": " + e.getMessage() + " in: " + trimmed);
             }
         }
+    }
+
+    // Rows with <leader> in their keys, bound once the leader is known.
+    private final List<String> leaderRows = new ArrayList<>();
+
+    /** Binds the rows that use the leader, as a vimrc's mapleader says, before the vimrc's own maps. */
+    void bindLeader(String leader) {
+        final String notation = leader.equals(" ") ? "<Space>" : leader.equals("<") ? "<lt>" : leader;
+        for (String row : leaderRows) {
+            try {
+                add(parse(row.replace("<leader>", notation)));
+            }
+            catch (RuntimeException e) {
+                Log.error("vim key map: " + e.getMessage() + " in: " + row);
+            }
+        }
+        leaderRows.clear();
     }
 
     public void add(VimCommand command) {

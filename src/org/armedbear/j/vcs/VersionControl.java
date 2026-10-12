@@ -68,7 +68,11 @@ public abstract class VersionControl {
             VersionControlEntry before = buffer.getVCSEntry();
             buffer.checkVCS();
             VersionControlEntry after = buffer.getVCSEntry();
-            if (before == null ? after != null : after == null || !before.getStatusText().equals(after.getStatusText()))
+            if (before == null
+                    ? after != null
+                    : after == null
+                            || !java.util.Objects.equals(before.getStatusText(), after.getStatusText())
+                            || !java.util.Objects.equals(before.getCode(), after.getCode()))
                 changed = true;
         }
         if (!changed)

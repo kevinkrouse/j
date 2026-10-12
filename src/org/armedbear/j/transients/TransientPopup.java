@@ -703,7 +703,7 @@ public final class TransientPopup extends JComponent {
         final int cw = Display.getCharWidth();
         final int ch = Display.getCharHeight();
         final int width = Math.min(window.width, innerWidth() + 2 * PAD + 2 * cw);
-        final int height = Math.min(window.height, rows.size() * ch + 2 * PAD);
+        final int height = Math.max(0, Math.min(window.height, rows.size() * ch + 2 * PAD));
         setBounds(window.x + (window.width - width) / 2, window.y + window.height - height, width, height);
         if (field != null) {
             final Rectangle r = fieldBounds();

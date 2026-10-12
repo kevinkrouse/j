@@ -294,6 +294,18 @@ public final class Finders {
         }
 
         @Override
+        public String keyText() {
+            final org.armedbear.j.vcs.BufferListStatus.Badge badge = org.armedbear.j.vcs.BufferListStatus.badge(buffer);
+            return badge == null ? "" : badge.text();
+        }
+
+        @Override
+        public java.awt.Color keyColor() {
+            final org.armedbear.j.vcs.BufferListStatus.Badge badge = org.armedbear.j.vcs.BufferListStatus.badge(buffer);
+            return badge == null ? null : badge.color();
+        }
+
+        @Override
         public String note() {
             return isTransient() ? buffer.getTransientLabel() : "";
         }
@@ -317,9 +329,16 @@ public final class Finders {
 
     // ------------------------------------------------------------------- help
 
-    /** Finds a help topic: a page of the manual, a command or a preference. */
+    /**
+     * Finds a help topic: a page of the manual, a command or a preference. In
+     * a mode with a help topic of its own, opens that topic instead.
+     */
     public static void help(Editor editor) {
-        help(editor, "");
+        final String topic = editor.getMode().getHelpTopic();
+        if (topic != null)
+            Help.help(topic);
+        else
+            help(editor, "");
     }
 
     static void help(Editor editor, String query) {

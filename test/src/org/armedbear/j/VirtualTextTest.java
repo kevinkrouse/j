@@ -59,6 +59,18 @@ public class VirtualTextTest {
         Editor.setCurrentEditor(h.editor());
     }
 
+    // Sets an owner's rows and waits for the repaint it posts, which reframes
+    // the window and would otherwise land after what the test does next.
+    private void set(String owner, List<VirtualText> list) {
+        layer.set(owner, list);
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {});
+        }
+        catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
     private Line line(int n) {
         Line l = h.buffer().getFirstLine();
         for (int i = 0; i < n; i++)
@@ -78,9 +90,9 @@ public class VirtualTextTest {
     @Test
     public void anOwnerReplacesAndClearsItsOwn() {
         lines(5);
-        layer.set("a", List.of(VirtualText.eol(line(1), List.of(Run.of("one")))));
-        layer.set("b", List.of(VirtualText.below(line(1), rows("b1", "b2"))));
-        layer.set("a", List.of(VirtualText.eol(line(2), List.of(Run.of("two")))));
+        set("a", List.of(VirtualText.eol(line(1), List.of(Run.of("one")))));
+        set("b", List.of(VirtualText.below(line(1), rows("b1", "b2"))));
+        set("a", List.of(VirtualText.eol(line(2), List.of(Run.of("two")))));
         assertTrue(layer.on(line(1), Placement.EOL).isEmpty());
         assertEquals("two", VirtualText.text(layer.on(line(2), Placement.EOL).get(0).rows().get(0)));
         assertEquals(2, layer.rowsBelow(line(1)));
@@ -95,8 +107,8 @@ public class VirtualTextTest {
     @Test
     public void priorityOrdersALinesText() {
         lines(3);
-        layer.set("late", List.of(VirtualText.eol(line(0), List.of(Run.of("late"))).withPriority(10)));
-        layer.set("early", List.of(VirtualText.eol(line(0), List.of(Run.of("early"))).withPriority(-1)));
+        set("late", List.of(VirtualText.eol(line(0), List.of(Run.of("late"))).withPriority(10)));
+        set("early", List.of(VirtualText.eol(line(0), List.of(Run.of("early"))).withPriority(-1)));
         final List<VirtualText> eol = layer.on(line(0), Placement.EOL);
         assertEquals("early", VirtualText.text(eol.get(0).rows().get(0)));
         assertEquals("late", VirtualText.text(eol.get(1).rows().get(0)));
@@ -118,7 +130,7 @@ public class VirtualTextTest {
     public void textStaysWithItsLineThroughEdits() {
         lines(5);
         final Line three = line(3);
-        layer.set("t", List.of(VirtualText.below(three, rows("under three"))));
+        set("t", List.of(VirtualText.below(three, rows("under three"))));
         // Typing on the line keeps the line.
         h.cursor(3, 0).keys("abc");
         assertEquals(1, layer.rowsBelow(three));
@@ -135,9 +147,7 @@ public class VirtualTextTest {
     public void textOfADeletedLineGoesWithIt() {
         lines(6);
         final Line four = line(4);
-        layer.set(
-            "t",
-            List.of(VirtualText.above(four, rows("over four")), VirtualText.eol(line(1), List.of(Run.of("e")))));
+        set("t", List.of(VirtualText.above(four, rows("over four")), VirtualText.eol(line(1), List.of(Run.of("e")))));
         assertEquals(1, layer.totalRows());
         // Joining 3 and 4 keeps line 3 and takes line 4 out of the buffer.
         h.editor().setDot(line(3), line(3).length());
@@ -156,8 +166,8 @@ public class VirtualTextTest {
     @Test
     public void rowsCountInTheBuffersHeightAndYs() {
         lines(10);
-        layer.set("top", List.of(VirtualText.top(rows("hint"))));
-        layer.set("t", List.of(VirtualText.above(line(4), rows("a", "b")), VirtualText.below(line(6), rows("c"))));
+        set("top", List.of(VirtualText.top(rows("hint"))));
+        set("t", List.of(VirtualText.above(line(4), rows("a", "b")), VirtualText.below(line(6), rows("c"))));
         assertEquals((10 + 1 + 2 + 1) * ch, h.buffer().getDisplayHeight(), "ten lines and four rows");
         assertEquals(0, h.buffer().getY(line(0)));
         assertEquals(2 * ch, h.buffer().getY(line(1)));
@@ -169,7 +179,7 @@ public class VirtualTextTest {
     @Test
     public void foldedLinesRowsAreNotCounted() {
         lines(10);
-        layer.set("t", List.of(VirtualText.below(line(5), rows("c", "d"))));
+        set("t", List.of(VirtualText.below(line(5), rows("c", "d"))));
         FoldCommands.hideLines(h.editor(), line(4), line(7));
         assertEquals(0, layer.totalRows());
         assertEquals(4 * ch, h.buffer().getY(line(7)), "lines 4 to 6 are hidden");
@@ -178,8 +188,8 @@ public class VirtualTextTest {
     @Test
     public void yToLineStepsOverRows() {
         lines(30);
-        layer.set("top", List.of(VirtualText.top(rows("hint"))));
-        layer.set("t", List.of(VirtualText.below(line(1), rows("x", "y"))));
+        set("top", List.of(VirtualText.top(rows("hint"))));
+        set("t", List.of(VirtualText.below(line(1), rows("x", "y"))));
         assertSame(line(0), display.lineFromY(0), "the hint's row is the first line's");
         assertSame(line(0), display.lineFromY(ch + 1));
         assertSame(line(1), display.lineFromY(2 * ch));
@@ -190,7 +200,7 @@ public class VirtualTextTest {
     @Test
     public void scrollingStopsWithTheLastRowAtTheBottom() {
         lines(30);
-        layer.set("t", List.of(VirtualText.below(line(3), rows("x", "y"))));
+        set("t", List.of(VirtualText.below(line(3), rows("x", "y"))));
         // 30 lines and two rows in a ten row window.
         assertEquals((30 + 2 - 10) * ch, display.scrollByPixels(100 * ch));
     }
@@ -198,8 +208,8 @@ public class VirtualTextTest {
     @Test
     public void aLineAndItsRowsAreOneStep() {
         lines(30);
-        layer.set("top", List.of(VirtualText.top(rows("hint"))));
-        layer.set("t", List.of(VirtualText.below(line(1), rows("x", "y"))));
+        set("top", List.of(VirtualText.top(rows("hint"))));
+        set("t", List.of(VirtualText.below(line(1), rows("x", "y"))));
         display.windowDown();
         top(1, 0);
         display.windowDown();
@@ -213,7 +223,7 @@ public class VirtualTextTest {
     @Test
     public void theCaretSkipsRows() {
         lines(30);
-        layer.set("t", List.of(VirtualText.below(line(1), rows("x", "y")), VirtualText.above(line(2), rows("z"))));
+        set("t", List.of(VirtualText.below(line(1), rows("x", "y")), VirtualText.above(line(2), rows("z"))));
         h.cursor(1, 0);
         display.down(false);
         assertEquals(2, h.editor().getDotLineNumber());
@@ -226,7 +236,7 @@ public class VirtualTextTest {
     @Test
     public void downOntoALineAtTheBottomShowsItsText() {
         lines(30);
-        layer.set("t", List.of(VirtualText.below(line(10), rows("x", "y"))));
+        set("t", List.of(VirtualText.below(line(10), rows("x", "y"))));
         h.cursor(9, 0);
         display.down(false);
         assertEquals(10, h.editor().getDotLineNumber());
@@ -238,8 +248,8 @@ public class VirtualTextTest {
         lines(10);
         final AtomicInteger clicks = new AtomicInteger();
         final Run link = Run.of("[link]").withAction(clicks::incrementAndGet, "a link");
-        layer.set("top", List.of(VirtualText.top(List.of(List.of(Run.of("Hint: "), link)))));
-        layer.set("eol", List.of(VirtualText.eol(line(2), List.of(Run.of("blame")))));
+        set("top", List.of(VirtualText.top(List.of(List.of(Run.of("Hint: "), link)))));
+        set("eol", List.of(VirtualText.eol(line(2), List.of(Run.of("blame")))));
         final int gutter = Display.getGutterWidth(h.buffer());
         final int cw = Display.getCharWidth();
         // A monospaced font: "Hint: " is six characters.
@@ -257,7 +267,7 @@ public class VirtualTextTest {
     public void aTopRowPushesTheTextDownARow() {
         lines(5);
         final BufferedImage without = paint();
-        layer.set("top", List.of(VirtualText.top(rows("hint"))));
+        set("top", List.of(VirtualText.top(rows("hint"))));
         final BufferedImage with = paint();
         for (int y = 0; y < 4 * ch; y++)
             for (int x = 0; x < without.getWidth(); x++)
@@ -272,7 +282,7 @@ public class VirtualTextTest {
     @Test
     public void scrollingPastOnlyTheRowsOverTheCaretsLineLeavesTheCaret() {
         lines(30);
-        layer.set("top", List.of(VirtualText.top(rows("hint"))));
+        set("top", List.of(VirtualText.top(rows("hint"))));
         h.cursor(0, 0);
         display.scrollByPixels(ch);
         h.editor().maybeScrollCaret();
@@ -285,7 +295,7 @@ public class VirtualTextTest {
     @Test
     public void theCaretsLineIsOnScreenThoughItsRowsBelowAreNot() {
         lines(30);
-        layer.set("t", List.of(VirtualText.below(line(9), rows("a", "b", "c"))));
+        set("t", List.of(VirtualText.below(line(9), rows("a", "b", "c"))));
         h.cursor(9, 0);
         h.editor().maybeScrollCaret();
         assertEquals(9, h.editor().getDotLineNumber());
@@ -297,7 +307,7 @@ public class VirtualTextTest {
         lines(30);
         final String[] many = new String[12];
         java.util.Arrays.fill(many, "row");
-        layer.set("t", List.of(VirtualText.below(line(9), rows(many))));
+        set("t", List.of(VirtualText.below(line(9), rows(many))));
         h.cursor(8, 0);
         display.down(false);
         assertEquals(9, h.editor().getDotLineNumber());
@@ -307,7 +317,7 @@ public class VirtualTextTest {
     @Test
     public void rowsGoingWhileScrolledLeaveTheTopInsideALine() throws Exception {
         lines(30);
-        layer.set("top", List.of(VirtualText.top(rows("a", "b"))));
+        set("top", List.of(VirtualText.top(rows("a", "b"))));
         display.scrollByPixels(2 * ch);
         top(0, 2 * ch);
         layer.clear("top");
@@ -318,7 +328,7 @@ public class VirtualTextTest {
     @Test
     public void topRowsGoOverTheFirstLineShown() {
         lines(10);
-        layer.set("top", List.of(VirtualText.top(rows("hint"))));
+        set("top", List.of(VirtualText.top(rows("hint"))));
         FoldCommands.hideLines(h.editor(), line(0), line(2));
         assertTrue(layer.isTopLine(line(2)));
         assertEquals(1, layer.rowsAbove(line(2)));
@@ -330,7 +340,7 @@ public class VirtualTextTest {
     @Test
     public void rowsUnderTheLastLineScrollIntoView() {
         lines(30);
-        layer.set("t", List.of(VirtualText.below(line(29), rows("x", "y"))));
+        set("t", List.of(VirtualText.below(line(29), rows("x", "y"))));
         assertEquals((30 + 2 - 10) * ch, display.scrollByPixels(100 * ch));
         assertSame(line(29), display.lineFromY(9 * ch), "the last row is line 29's");
     }
@@ -338,12 +348,34 @@ public class VirtualTextTest {
     @Test
     public void toBottomCountsRows() {
         lines(30);
-        layer.set("t", List.of(VirtualText.below(line(12), rows("x", "y"))));
+        set("t", List.of(VirtualText.below(line(12), rows("x", "y"))));
         h.cursor(15, 0);
         display.toBottom();
         // 15 at the bottom row, with 12's two rows above it: top is 8.
         top(8, 0);
         assertSame(line(15), display.getBottomLine());
+    }
+
+    @Test
+    public void aPageIsAWindowOfRowsNotOfLines() {
+        lines(30);
+        for (int n = 1; n <= 3; n++)
+            set("below" + n, List.of(VirtualText.below(line(n), rows("a", "b"))));
+        h.editor().setDot(line(0), 0);
+        MotionCommands.pageDown(h.editor());
+        top(3, 0); // Lines 0 to 3 filled the ten rows; 3 is the overlap.
+        MotionCommands.pageUp(h.editor());
+        top(0, 0);
+    }
+
+    @Test
+    public void aPageUpCountsRowsOverTheTopLineOnce() {
+        lines(30);
+        set("t", List.of(VirtualText.above(line(12), rows("a", "b"))));
+        h.editor().setDot(line(20), 0);
+        display.setTopLine(line(12));
+        // Line 12's rows and text are three rows; seven more lines fill the window.
+        assertSame(line(5), display.pageAbove());
     }
 
     private BufferedImage paint() {

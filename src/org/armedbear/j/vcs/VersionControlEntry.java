@@ -50,4 +50,9 @@ public abstract class VersionControlEntry {
     public int getStatusKind() {
         return Constants.VCS_UNKNOWN;
     }
+
+    /** The two letter porcelain code, index then working tree ("M ", "??"), or null if the system has none. */
+    public String getCode() {
+        return null;
+    }
 }

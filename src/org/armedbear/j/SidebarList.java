@@ -102,9 +102,13 @@ public abstract class SidebarList extends JList<Object> implements NavigationCom
                 setForeground(list.getForeground());
             }
             Border innerBorder = null;
+            badge = null;
+            strip = null;
             if (value instanceof Buffer buffer) {
                 setText(value.toString());
                 setIcon(buffer.getIcon());
+                badge = org.armedbear.j.vcs.BufferListStatus.badge(buffer);
+                strip = org.armedbear.j.vcs.BufferListStatus.repositoryColor(buffer, list.getBackground());
                 if (buffer.isSecondary())
                     innerBorder = new EmptyBorder(0, UIScale.scale(10), 0, 0);
             } else if (value instanceof LocalTag tag) {
@@ -122,10 +126,26 @@ public abstract class SidebarList extends JList<Object> implements NavigationCom
             return this;
         }
 
+        // The row's status letter, at the right, and its repository's color.
+        private org.armedbear.j.vcs.BufferListStatus.Badge badge;
+        private java.awt.Color strip;
+
         @Override
         public void paintComponent(java.awt.Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
+            if (strip != null) {
+                g.setColor(strip);
+                g.fillRect(0, 0, UIScale.scale(3), getHeight());
+            }
+            if (badge != null) {
+                final java.awt.FontMetrics fm = g.getFontMetrics();
+                g.setColor(badge.color());
+                g.drawString(
+                    badge.text(),
+                    getWidth() - fm.stringWidth(badge.text()) - UIScale.scale(4),
+                    (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+            }
         }
     }
 }

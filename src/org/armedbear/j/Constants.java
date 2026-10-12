@@ -219,6 +219,8 @@ public interface Constants {
     String XML_MODE_NAME = "XML";
     int VCS_STATUS_MODE = 47;
     String VCS_STATUS_MODE_NAME = "Status";
+    int VCS_REPOSITORY_STATUS_MODE = 48;
+    String VCS_REPOSITORY_STATUS_MODE_NAME = "VcsStatus";
 
     int SUCCESS = 0;
     int ERROR = -1;

@@ -64,6 +64,22 @@ public final class MarkdownFolding {
         return NOTHING;
     }
 
+    /**
+     * What line heads: a fence's code, a list item's children, or a
+     * heading's section; null if nothing.
+     */
+    static Line[] headedBy(Buffer buffer, Line line) {
+        parse(buffer);
+        final Line[] block = MarkdownFormatter.fenceBlock(line);
+        if (block != null)
+            return block[0] == line ? fenceBody(line) : null;
+        if (level(line) > 0)
+            return section(line);
+        if (MarkdownFormatter.startsListItem(line.getText()))
+            return children(buffer, line);
+        return null;
+    }
+
     // Whether any line of a range is still to be seen.
     private static boolean isOpen(Line[] range) {
         if (range == null)

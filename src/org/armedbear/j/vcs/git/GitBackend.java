@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -29,6 +30,8 @@ import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.VersionControlEntry;
+import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.status.StatusData;
 
 public final class GitBackend implements VcsBackend {
     @Override
@@ -85,6 +88,25 @@ public final class GitBackend implements VcsBackend {
             r.stdout(),
             dirs == null ? GitSnapshot.Operation.NONE : dirs.operation(),
             GitCli.versionAtLeast(STASH_HEADER));
+    }
+
+    @Override
+    public StatusData readStatus(VcsRepository repository, BiPredicate<String, String> wantsDiff) {
+        if (!Git.haveGit())
+            return StatusData.failed("git is not on the PATH");
+        return GitStatusReader.read(repository, wantsDiff);
+    }
+
+    @Override
+    public List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths) {
+        return GitStatusReader.diff(repository, staged, paths);
+    }
+
+    @Override
+    public byte[] readCommit(VcsRepository repository, String id) {
+        final VcsResult r = GitCli
+                .run(GitCli.read(repository.root(), "show", "--no-ext-diff", "--no-color", "--format=fuller", id));
+        return r.succeeded() ? r.stdout() : null;
     }
 
     // HEAD and the index in the working tree's git directory; refs and

@@ -42,8 +42,10 @@ import java.awt.event.MouseEvent;
 import java.awt.font.FontRenderContext;
 import java.awt.font.GlyphVector;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
@@ -69,7 +71,6 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private static int charWidth;
     private static int spaceWidth; // Width of a space character.
     private static int strikethroughRise; // Above the baseline.
-    private static char foldMarker; // Beside a line with a fold below it.
     private static int minCharWidth;
 
     private static boolean antialias;
@@ -163,8 +164,6 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int plainLeading = fm.getLeading();
 
         charWidth = fm.charWidth('a');
-        // A chevron pointing at what is folded away, if the font has one.
-        foldMarker = plainFont.canDisplay('\u203a') ? '\u203a' : '>';
         strikethroughRise = Math
                 .max(1, Math.round(-plainFont.getLineMetrics("x", fm.getFontRenderContext()).getStrikethroughOffset()));
         spaceWidth = fm.charWidth(' ');
@@ -526,6 +525,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 savedChangeColor = DefaultTheme.getColor("savedChange");
         }
         showLineNumbers = buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS);
+        foldMarkers = buffer.getStringProperty(Property.FOLD_MARKERS);
         gutterWidth = getGutterWidth(showChangeMarks, showLineNumbers);
         // The fold marker is in it whether or not the numbers are shown.
         lineNumberColor = mode.getColorProperty(Property.COLOR_LINE_NUMBER);
@@ -1608,26 +1608,18 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     private void drawGutterText(Graphics g, Line line, int y) {
         int x = showChangeMarks ? changeMarkWidth : 0;
-        char c = 0;
-        Color color = null; // The default text color.
-        Annotation annotation = line.getAnnotation();
+        final Annotation annotation = line.getAnnotation();
+        final Color swatch = annotation == null ? editor.getFormatter().getGutterColor(line) : null;
         if (annotation != null) {
-            c = annotation.getGutterChar();
-        } else if (line.next() != null && line.next().isHidden()) {
-            c = foldMarker;
-            color = lineNumberColor;
-        }
-        if (c != 0) {
-            char[] chars = new char[1];
-            chars[0] = c;
-            g.setColor(color != null ? color : editor.getFormatter().getColor(0));
+            g.setColor(editor.getFormatter().getColor(0));
             g.setFont(plainFont);
-            g.drawChars(chars, 0, 1, x, y + charAscent);
-        } else {
-            final Color swatch = editor.getFormatter().getGutterColor(line);
-            if (swatch != null)
-                drawSwatch(g, swatch, x, y);
-        }
+            g.drawChars(new char[] { annotation.getGutterChar() }, 0, 1, x, y + charAscent);
+        } else if (editor.getMode().isFolded(line))
+            drawFoldMarker(g, x, y, true);
+        else if (swatch != null)
+            drawSwatch(g, swatch, x, y);
+        else if (showsOpenFolds() && isFoldStart(line))
+            drawFoldMarker(g, x, y, false);
         x += charWidth;
         if (showLineNumbers) {
             final String s = String.valueOf(line.lineNumber() + 1);
@@ -1638,6 +1630,93 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 g.setFont(gutterFont);
                 g.drawString(s, x, y + charAscent);
             }
+        }
+    }
+
+    // When open folds show their markers: "hover", "always" or "never".
+    private String foldMarkers;
+    private boolean mouseInGutter;
+    // Mode.isFoldStart's answers, until the buffer changes.
+    private final Map<Line, Boolean> foldStarts = new IdentityHashMap<>();
+    private Buffer foldStartsBuffer;
+    private int foldStartsModCount;
+    private Mode foldStartsMode;
+
+    private boolean showsOpenFolds() {
+        return "always".equals(foldMarkers) || mouseInGutter && !"never".equals(foldMarkers);
+    }
+
+    /** Whether line heads a fold, open or closed, as its mode says. */
+    public boolean isFoldStart(Line line) {
+        final Buffer buffer = editor.getBuffer();
+        if (buffer != foldStartsBuffer
+                || buffer.getModCount() != foldStartsModCount
+                || editor.getMode() != foldStartsMode) {
+            foldStarts.clear();
+            foldStartsBuffer = buffer;
+            foldStartsModCount = buffer.getModCount();
+            foldStartsMode = editor.getMode();
+        }
+        return foldStarts.computeIfAbsent(line, l -> editor.getMode().isFoldStart(buffer, l));
+    }
+
+    /**
+     * Whether a fold marker is drawn beside line at x, in the gutter's fold
+     * column: a closed fold's always, an open one's as foldMarkers says.
+     */
+    public boolean isFoldMarkerAt(int x, Line line) {
+        if (line == null || line.getAnnotation() != null)
+            return false;
+        final Buffer buffer = editor.getBuffer();
+        final int column = buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS) ? changeMarkWidth : 0;
+        if (x < column || x >= column + charWidth)
+            return false;
+        if (editor.getMode().isFolded(line))
+            return true;
+        // As painted, so what is clickable is what is drawn.
+        final String shown = foldMarkers != null ? foldMarkers : buffer.getStringProperty(Property.FOLD_MARKERS);
+        return isFoldStart(line) && ("always".equals(shown) || mouseInGutter && !"never".equals(shown));
+    }
+
+    /** The mouse came into or left the gutter, which shows open folds' markers while it is there. */
+    public void setMouseInGutter(boolean b) {
+        if (b == mouseInGutter)
+            return;
+        mouseInGutter = b;
+        if ("hover".equals(editor.getBuffer().getStringProperty(Property.FOLD_MARKERS)))
+            repaint(0, 0, getGutterWidth(editor.getBuffer()), getHeight());
+    }
+
+    // The tree's chevron, from expanded.svg or collapsed.svg, in the line
+    // numbers' color: pointing right at a closed fold, down at an open one.
+    private void drawFoldMarker(Graphics g, int x, int y, boolean closed) {
+        final Graphics2D g2d = (Graphics2D) g.create();
+        try {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            final float size = Math.min(charHeight, 2 * charWidth);
+            final float k = size / 16f;
+            g2d.translate(x + charWidth / 2f - 8 * k, y + (charAscent + charDescent - size) / 2f);
+            g2d.scale(k, k);
+            final Path2D.Float p = new Path2D.Float();
+            if (closed) {
+                p.moveTo(6.5f, 4.5f);
+                p.lineTo(10f, 8f);
+                p.lineTo(6.5f, 11.5f);
+            } else {
+                p.moveTo(4.5f, 6.5f);
+                p.lineTo(8f, 10f);
+                p.lineTo(11.5f, 6.5f);
+            }
+            g2d.setColor(lineNumberColor);
+            g2d.setStroke(
+                new java.awt.BasicStroke(closed ? 1.6f : 1.2f,
+                        java.awt.BasicStroke.CAP_ROUND,
+                        java.awt.BasicStroke.JOIN_ROUND));
+            g2d.draw(p);
+        }
+        finally {
+            g2d.dispose();
         }
     }
 
@@ -2792,6 +2871,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         setUpdateFlag(REPAINT);
     }
 
+    /**
+     * The top line a page up shows: the one that puts the top line now at
+     * the bottom of the window, rows of virtual text and all.
+     */
+    public Line pageAbove() {
+        // lineAbove measures to the text, below the rows over it.
+        final Line line = lineAbove(topLine, getHeight() - rowHeight(topLine) + aboveHeight(topLine));
+        return line == topLine && topLine.previousVisible() != null ? topLine.previousVisible() : line;
+    }
+
     // The line to put at the top for line's text to start about y down:
     // whole rows, of lines and their virtual text, above it.
     private Line lineAbove(Line line, int y) {
@@ -2865,8 +2954,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
+    // Whether line's text is in the window, by pixels, as the bottom line's is.
     private boolean isLineVisible(Line line) {
-        return (line.lineNumber() >= getTopLineNumber() && line.lineNumber() < getTopLineNumber() + getRows());
+        return line.lineNumber() >= getTopLineNumber() && line.lineNumber() <= getBottomLine().lineNumber();
     }
 
     private final int getMaxCols() {

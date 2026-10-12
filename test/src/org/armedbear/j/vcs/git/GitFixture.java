@@ -57,14 +57,14 @@ public final class GitFixture {
         "GIT_COMMITTER_DATE",
         "2026-01-01T00:00:00Z");
 
-    final Path root;
+    public final Path root;
 
     private GitFixture(Path root) {
         this.root = root;
     }
 
     /** A new repository at dir, on branch main; skips the test if git is missing. */
-    static GitFixture init(Path dir) throws IOException {
+    public static GitFixture init(Path dir) throws IOException {
         assumeTrue(ProcessRunner.exists("git"), "git is not installed");
         GitCli.testEnvironment = ENV;
         Path root = dir.toRealPath();
@@ -74,21 +74,21 @@ public final class GitFixture {
     }
 
     /** Puts back the user's git config, after a test. */
-    static void reset() {
+    public static void reset() {
         GitCli.testEnvironment = Map.of();
     }
 
     /** An existing repository at root. */
-    static GitFixture at(Path root) throws IOException {
+    public static GitFixture at(Path root) throws IOException {
         return new GitFixture(root.toRealPath());
     }
 
-    VcsResult run(String... args) {
+    public VcsResult run(String... args) {
         return GitCli.run(GitCli.write(root, null, args));
     }
 
     /** Runs git, which must succeed, and returns its output. */
-    String git(String... args) {
+    public String git(String... args) {
         VcsResult r = run(args);
         assertEquals(0, r.exitCode(), () -> "git " + List.of(args) + ": " + r.stderr());
         return r.out();
@@ -100,17 +100,17 @@ public final class GitFixture {
         return r.stdout();
     }
 
-    void write(String path, String content) throws IOException {
+    public void write(String path, String content) throws IOException {
         Path p = root.resolve(path);
         Files.createDirectories(p.getParent());
         Files.write(p, content.getBytes(StandardCharsets.ISO_8859_1));
     }
 
-    String read(String path) throws IOException {
+    public String read(String path) throws IOException {
         return new String(Files.readAllBytes(root.resolve(path)), StandardCharsets.ISO_8859_1);
     }
 
-    void commitAll(String message) {
+    public void commitAll(String message) {
         git("add", "-A");
         git("commit", "-q", "--allow-empty", "-m", message);
     }

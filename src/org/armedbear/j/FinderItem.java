@@ -46,6 +46,11 @@ public interface FinderItem {
         return "";
     }
 
+    /** keyText's color, or null for dimmed. */
+    default java.awt.Color keyColor() {
+        return null;
+    }
+
     default Icon icon() {
         return null;
     }
