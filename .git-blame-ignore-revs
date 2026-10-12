@@ -160,3 +160,6 @@ bfb783adbc0ce1ecd21e6c50281a1d8a3c124b2d
 
 # reformat: the eight files phase 2 of the git tooling changes
 d8899b23dc08b94ef4b093431503b44e17cdcea2
+
+# reformat: KeyStrokeTrie and StatusRenderer, which phase 3 of the git tooling changes
+65a9674232d5a0e5dd2713f5eb8023d7b77d5ed2
