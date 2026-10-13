@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.AbstractMode;
@@ -40,7 +41,9 @@ import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
+import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
@@ -99,6 +102,21 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return modalKeyMap;
     }
 
+    private static KeyMap visualKeyMap;
+
+    // Vim's V or v then s stages the lines selected.
+    @Override
+    public synchronized KeyMap getVisualKeyMap() {
+        if (visualKeyMap == null) {
+            final KeyMap km = new KeyMap();
+            km.mapKey('s', "vcsStage");
+            km.mapKey('u', "vcsUnstage");
+            km.mapKey('x', "vcsDiscard");
+            visualKeyMap = km;
+        }
+        return visualKeyMap;
+    }
+
     private static void common(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisit");
@@ -111,14 +129,21 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_N, ALT_MASK, "vcsStatusNextSection");
         km.mapKey(KeyEvent.VK_P, ALT_MASK, "vcsStatusPreviousSection");
         km.mapKey('$', "vcsCommandLog");
+        km.mapKey('s', "vcsStage");
+        km.mapKey('u', "vcsUnstage");
+        km.mapKey('x', "vcsDiscard");
+        km.mapKey('S', "vcsStageAll");
+        km.mapKey('U', "vcsUnstageAll");
+        km.mapKey('c', "vcsCommitPopup");
         km.mapKey('q', "killBuffer");
         km.mapKey('?', "modePopup");
     }
 
     private static final String[][] HINTS = {
-        { "vcsStatusToggle", "expand" },
-        { "vcsStatusVisit", "visit" },
-        { "vcsStatusRefresh", "refresh" },
+        { "vcsStage", "stage" },
+        { "vcsUnstage", "unstage" },
+        { "vcsDiscard", "discard" },
+        { "vcsCommitPopup", "commit" },
         { "modePopup", "more" }, };
 
     @Override
@@ -129,25 +154,43 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     @Override
     public Transient getTransient(Editor editor) {
         final boolean vim = editor != null && editor.getInputHandler() != null;
-        return new Transient("vcs.status",
-                "Status",
-                "git.html#status",
-                List.of(
-                    Group.of(
-                        "Show",
-                        new Command("1", "vcsStatusDepth 1", "sections", true),
-                        new Command("2", "vcsStatusDepth 2", "files", true),
-                        new Command("3", "vcsStatusDepth 3", "hunks", true),
-                        new Command("4", "vcsStatusDepth 4", "diffs", true)),
-                    Group.of(
-                        "Go",
-                        new Command("n", "vcsStatusNext", "next", true),
-                        new Command("p", "vcsStatusPrevious", "previous", true)),
-                    Group.of(
-                        "Repository",
-                        Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
-                        Command.of("$", "vcsCommandLog", "command log"),
-                        Command.of("q", "killBuffer", "close"))));
+        final List<Group> groups = new ArrayList<>();
+        groups.add(
+            Group.of(
+                "Show",
+                new Command("1", "vcsStatusDepth 1", "sections", true),
+                new Command("2", "vcsStatusDepth 2", "files", true),
+                new Command("3", "vcsStatusDepth 3", "hunks", true),
+                new Command("4", "vcsStatusDepth 4", "diffs", true)));
+        groups.add(
+            Group.of(
+                "Go",
+                new Command("n", "vcsStatusNext", "next", true),
+                new Command("p", "vcsStatusPrevious", "previous", true)));
+        // Staging, and so committing what is staged, is for a backend that has an index.
+        if (editor == null || stages(editor.getBuffer())) {
+            groups.add(
+                Group.of(
+                    "Stage",
+                    new Command("s", "vcsStage", "stage", true),
+                    new Command("u", "vcsUnstage", "unstage", true),
+                    new Command("x", "vcsDiscard", "discard", true),
+                    new Command("S", "vcsStageAll", "stage all", true),
+                    new Command("U", "vcsUnstageAll", "unstage all", true)));
+            groups.add(Group.of("Commit", new Prefix("c", "commit…", CommitCommands::popup)));
+        }
+        groups.add(
+            Group.of(
+                "Repository",
+                Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
+                Command.of("$", "vcsCommandLog", "command log"),
+                Command.of("q", "killBuffer", "close")));
+        return new Transient("vcs.status", "Status", "git.html#status", groups);
+    }
+
+    static boolean stages(Buffer buffer) {
+        return buffer instanceof VcsStatusBuffer b
+                && b.getRepositories().stream().allMatch(r -> r.backend().capabilities().contains(Capability.STAGING));
     }
 
     // Folding: a node's lines are left out of the buffer, not hidden.

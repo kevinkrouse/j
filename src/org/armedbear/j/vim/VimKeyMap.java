@@ -81,6 +81,15 @@ public final class VimKeyMap {
             builtIn.add(row);
     }
 
+    /** Drops the built-in bindings of longer sequences that start with keys, in modes. */
+    void shadowBuiltIns(Set<MappingMode> modes, List<String> keys) {
+        final Set<VimCommand> builtIns = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        builtIns.addAll(getBuiltIn().rows);
+        builtIns.removeAll(leaderBound);
+        for (MappingMode mode : modes)
+            tries.get(mode).removeLonger(keys, builtIns::contains);
+    }
+
     /** The map without a vimrc's mappings. */
     public VimKeyMap getBuiltIn() {
         return builtIn != null ? builtIn : this;
@@ -305,6 +314,10 @@ public final class VimKeyMap {
         }
     }
 
+    // The rows bound under the leader: like a plugin's mappings in vim, a
+    // vimrc's mapping of the start of one keeps it, and waits for it.
+    private final Set<VimCommand> leaderBound = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
     // Rows with <leader> in their keys, bound once the leader is known.
     private final List<String> leaderRows = new ArrayList<>();
 
@@ -313,7 +326,9 @@ public final class VimKeyMap {
         final String notation = leader.equals(" ") ? "<Space>" : leader.equals("<") ? "<lt>" : leader;
         for (String row : leaderRows) {
             try {
-                add(parse(row.replace("<leader>", notation)));
+                final VimCommand command = parse(row.replace("<leader>", notation));
+                leaderBound.add(command);
+                add(command);
             }
             catch (RuntimeException e) {
                 Log.error("vim key map: " + e.getMessage() + " in: " + row);

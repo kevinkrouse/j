@@ -361,9 +361,22 @@ public final class WindowFuzz {
                 "foldAll",
                 "unfoldAll",
                 "down",
-                "up" };
+                "up",
+                "vcsStage",
+                "vcsUnstage",
+                "vcsStageAll",
+                "vcsUnstageAll",
+                "vcsCommitPopup" };
             final String c = commands[rnd.nextInt(commands.length)];
             command(ed, c, c.equals("vcsStatusDepth") ? String.valueOf(1 + rnd.nextInt(4)) : null);
+        }),
+        new Op("statusCommitMessage", ed -> {
+            // Opened and given up: it is empty, so nothing asks.
+            if (!(ed.getBuffer() instanceof VcsStatusBuffer))
+                return;
+            command(ed, "vcsCommit", null);
+            if (current().getBuffer() instanceof org.armedbear.j.vcs.status.CommitMessageBuffer)
+                command(current(), "vcsCommitCancel", null);
         }),
         new Op("statusChange", ed -> {
             // A change j didn't make, as an edit elsewhere would be.

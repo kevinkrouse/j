@@ -266,4 +266,11 @@ public class VimKeyMapTest {
         assertEquals(";", VimKeyMap.leaderOf("let mapleader = ;   \" a comment\n"));
         assertEquals("x", VimKeyMap.leaderOf("let mapleader = \",\"\nlet mapleader = \"x\"\n"), "the last wins");
     }
+
+    @Test
+    public void aVimrcMappingKeepsTheLeaderRowsItStarts() throws Exception {
+        final VimKeyMap map = VimKeyMap.getDefault();
+        new VimrcParser(map, new VimOptions()).load(new java.io.StringReader("nnoremap <leader>g :help<CR>\n"));
+        assertEquals("\\gg", map.keysFor("gitStatus"), "as a plugin's mapping in vim is kept");
+    }
 }

@@ -64,8 +64,11 @@ import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.git.Git;
+import org.armedbear.j.vcs.status.CommitCommands;
+import org.armedbear.j.vcs.status.StatusActions;
 import org.armedbear.j.vcs.status.VcsStatusMode;
 import org.armedbear.j.vcs.svn.SVN;
+import org.armedbear.j.vim.VimInputHandler;
 
 public class CommandTable {
     // The default load factor is 0.75, so an initial capacity of 600 will
@@ -343,7 +346,22 @@ public class CommandTable {
             add("unsplitWindow", WindowCommands::unsplitWindow);
             add("unwrapParagraph", IndentCommands::unwrapParagraph);
             add("up", MotionCommands::up);
+            add("vimQuitDiscard", e -> VimInputHandler.ex(e, "q!"));
+            add("vimWriteQuit", e -> VimInputHandler.ex(e, "x"));
             add("vcsCommandLog", e -> CommandLog.vcsCommandLog());
+            add("vcsCommit", CommitCommands::vcsCommit);
+            add("vcsCommitAmend", CommitCommands::vcsCommitAmend);
+            add("vcsCommitAbort", CommitCommands::vcsCommitAbort);
+            add("vcsCommitCancel", CommitCommands::vcsCommitCancel);
+            add("vcsCommitExtend", CommitCommands::vcsCommitExtend);
+            add("vcsCommitFinish", CommitCommands::vcsCommitFinish);
+            add("vcsCommitNextMessage", CommitCommands::vcsCommitNextMessage);
+            add("vcsCommitPopup", CommitCommands::vcsCommitPopup);
+            add("vcsCommitPreviousMessage", CommitCommands::vcsCommitPreviousMessage);
+            add("vcsCommitReword", CommitCommands::vcsCommitReword);
+            add("vcsDiscard", e -> StatusActions.run(e, StatusActions.Op.DISCARD));
+            add("vcsStage", e -> StatusActions.run(e, StatusActions.Op.STAGE));
+            add("vcsStageAll", e -> StatusActions.all(e, true));
             add("vcsStatusCycle", VcsStatusMode::vcsStatusCycle);
             add("vcsStatusDepth", e -> VcsStatusMode.vcsStatusDepth(e, "2"), VcsStatusMode::vcsStatusDepth);
             add("vcsStatusNext", VcsStatusMode::vcsStatusNext);
@@ -353,6 +371,8 @@ public class CommandTable {
             add("vcsStatusRefresh", VcsStatusMode::vcsStatusRefresh);
             add("vcsStatusToggle", VcsStatusMode::vcsStatusToggle);
             add("vcsStatusVisit", VcsStatusMode::vcsStatusVisit);
+            add("vcsUnstage", e -> StatusActions.run(e, StatusActions.Op.UNSTAGE));
+            add("vcsUnstageAll", e -> StatusActions.all(e, false));
             add("visibleTabs", WindowCommands::visibleTabs);
             add("vsplitWindow", WindowCommands::vsplitWindow, (e, s) -> WindowCommands.vsplitWindow(e, s));
             add("whatChar", EditCommands::whatChar);

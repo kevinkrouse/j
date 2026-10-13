@@ -24,6 +24,8 @@ import org.armedbear.j.File;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.Capability;
+import org.armedbear.j.vcs.CommitOption;
+import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.RepositoryWatcher;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.VcsBackend;
@@ -100,6 +102,72 @@ public final class GitBackend implements VcsBackend {
     @Override
     public List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths) {
         return GitStatusReader.diff(repository, staged, paths);
+    }
+
+    @Override
+    public VcsResult stage(VcsRepository repository, List<String> paths) {
+        return GitWrites.stage(repository, paths);
+    }
+
+    @Override
+    public VcsResult stageAll(VcsRepository repository) {
+        return GitWrites.stageAll(repository);
+    }
+
+    @Override
+    public VcsResult unstage(VcsRepository repository, List<FileChange> changes) {
+        return GitWrites.unstage(repository, changes);
+    }
+
+    @Override
+    public VcsResult unstageAll(VcsRepository repository) {
+        return GitWrites.unstageAll(repository);
+    }
+
+    @Override
+    public VcsResult discard(VcsRepository repository, List<String> paths) {
+        return GitWrites.discard(repository, paths);
+    }
+
+    @Override
+    public VcsResult apply(
+            VcsRepository repository,
+            byte[] patch,
+            boolean index,
+            boolean workingTree,
+            boolean reverse) {
+        return GitWrites.apply(repository, patch, index, workingTree, reverse);
+    }
+
+    @Override
+    public boolean applies(
+            VcsRepository repository,
+            byte[] patch,
+            boolean index,
+            boolean workingTree,
+            boolean reverse) {
+        final VcsResult r = GitWrites.apply(repository, patch, index, workingTree, reverse, true);
+        return r != null && r.succeeded();
+    }
+
+    @Override
+    public VcsResult commit(VcsRepository repository, String message, Set<CommitOption> options) {
+        return GitWrites.commit(repository, message, options);
+    }
+
+    @Override
+    public boolean verboseCommits(VcsRepository repository) {
+        return GitWrites.verboseCommits(repository);
+    }
+
+    @Override
+    public byte[] readCommitDiff(VcsRepository repository, Set<CommitOption> options) {
+        return GitWrites.commitDiff(repository, options);
+    }
+
+    @Override
+    public String lastMessage(VcsRepository repository) {
+        return GitWrites.lastMessage(repository);
     }
 
     @Override

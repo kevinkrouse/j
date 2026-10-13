@@ -780,6 +780,8 @@ approve. It looks at:
 - failures: git missing or old, a command that fails or hangs, a repository
   mid-rebase, a detached HEAD, an empty repository, paths with spaces or
   non-ASCII names;
+- security: look for injection attacks, possible data-loss, file operations,
+  path traversal;
 - tests: ones that pass for the wrong reason, and the cases above that
   have none.
 Each finding is fixed, or recorded under "Review notes" at the end of this
@@ -824,8 +826,31 @@ plan with why it is left, before the next phase starts.
      and conflicted files' diffs (8). Enter on a commit shows `git show` in
      a diff buffer until the log (5).
    - Paging counts virtual rows (`Display.pageAbove`, `getBottomLine`).
-3. **Staging and committing.** Stage, unstage and discard for files, hunks
-   and lines, commit, amend, reword, and the commit popup.
+3. **Done. Staging and committing.** Stage, unstage and discard for files, hunks
+   and lines, commit, amend, reword, and the commit popup. As built:
+   - `VcsBackend` has the writes (`stage`, `stageAll`, `unstage`,
+     `unstageAll`, `discard`, `apply`, `commit`, `lastMessage`) and
+     `CommitOption`; git's are `GitWrites`. `StatusActions` works out what
+     the caret or selection takes (a section's files, files, hunks, lines of
+     a hunk) and runs them in the background; a failure shows the command
+     log.
+   - Unstaging is `git reset -- paths`, before the first commit too;
+     discarding a staged change takes its reverse out of the working tree,
+     then the index, hunk by hunk from the bottom, each step checked first; a
+     file no commit has goes to the desktop's trash where there is one.
+   - A selection takes a changed line's removed and added halves together.
+   - The commit popup's `-v` (or git's `commit.verbose`) puts the commit's
+     diff under a scissors line, as `git commit -v` does. In vim, `ZZ` and
+     `:wq` commit, `ZQ` and `:q!` give up the message: `Mode.runExCommand`
+     lets a mode take ex commands, and `ZZ`/`ZQ` are `:x`/`:q!` everywhere.
+   - The message is a `CommitMessageBuffer` in a window beside the status,
+     not over the staged diff: the status buffer's Staged section, beside it,
+     shows the diff, and the message lists the staged files as # lines.
+     Commits run with `--cleanup=strip -F -` and no editor, and a 30 minute
+     timeout for hooks. Escape is mapped in vim's normal mode only, so it
+     still leaves insert mode first; a new message starts in insert mode.
+   - After a write, the caret goes to the next thing in the buffer, or to a
+     heading just closed.
 4. **Editor hunks.** `util/Diff`, gutter column providers, `ChangeSource`,
    signs (solid, dimmed staged), hunk navigation, stage, reset and preview in
    the editor, and the mark popup.
@@ -950,3 +975,31 @@ background, updating open buffers; command input in the log.)
 - Git leaks into shared code: `VcsStatusMode`'s help is `git.html#status`, `BufferListStatus` reads git's porcelain codes, and the preference is `gitBufferListStatus`. Svn's backend (phase 10) gives the mode its help topic and the entry its letters.
 - A render empties the buffer, which invalidates the views other windows keep of it; a window that comes back to it later starts at its top. Windows showing it keep their place.
 - No tests for git missing, a rebase in progress, or a path with a leading dash (a review's scratch test showed one renders).
+
+**Phase 3** (fixed:
+- **Intent-to-add files:** `x` emptied one (`git checkout` wrote its empty index entry over it). A file no commit has, untracked, added or noted with `git add -N`, now goes whole to the trash, out of the index first.
+- **A commit's message:** Escape or closing its buffer while the commit ran threw the message away, and a failing hook then lost it. It can't be closed while committing, and closing it any other way (j quitting) puts it in the comment ring.
+- **Staged new files:** discarding one deleted it outright; it goes to the trash, as an untracked file does.
+- **Staged changes in files with unstaged ones:** `git apply --index -R` refused them all. The change comes out of the working tree, then the index, and every step of a discard is checked (`git apply --check`) before any runs, so a discard is all or nothing.
+- **Pressing twice:** a second `s` or `x` before the refresh applied the same patch again, wherever its context matched. An action waits until the last one's refresh is shown.
+- **Vim:** Escape in normal mode never reached the commit message's mode, and visual `s` was vim's. A mode's modal key map now gets an idle Escape, and `Mode.getVisualKeyMap` gives the status buffer `s`, `u` and `x` on a visual selection, which is taken line for line.
+- **Reword with `-a`:** git refuses `--only` with `--all`; reword leaves `-a` out.
+- **Unstaging before the first commit:** `git rm --cached` refused a file changed since; `git reset` works on an unborn branch.
+- **Staged renames:** discarding one in more than one hunk left the rename; it is refused, with a word to unstage it first.
+- **Templates:** a reword lists no files, and `-a` lists what it commits. A last message with # lines of its own keeps them (`--cleanup=whitespace`).
+- **Stale diffs:** staging or unstaging a hunk checks it is still in the file's diff.
+- **Selections:** one starting at the end of a line leaves that line out.)
+
+- The status code names git's sections (`"staged"`, `"unstaged"`) and its staging model in the shared layer. Svn's backend (phase 10) gives the sections and actions by capability.
+- `VcsBackend.commit` takes no paths and no index file; phase 9's private-index commits and svn's commits of paths add them.
+- On a desktop without a trash, a file no commit has is deleted, as the question says.
+
+**Phase 3, second review** (fixed:
+- **The write guard:** a read already running when a write started could end it, its data from before the write. A write now marks the buffer as written at the end of time until it is done.
+- **Commits:** they went around the guard, so a status action could race a `-a` commit, and a double extend ran two amends. They take the guard too.
+- **`U` in a merge:** `git reset` ended the merge, keeping its markers. It is refused while a merge or rebase is in progress; `u` on a conflicted file was refused already.
+- **Refreshes:** each action read the status twice. The repositories' refresh tells the buffer, which reads once.
+- **Ctrl N:** a fresh one went to the oldest message. It now comes forward toward the message being written, as a shell's history does.
+- **Gates:** the commit popup and `S`/`U` check `Capability.STAGING`, as the popup's groups did.
+- **Docs:** this phase's note had unstaging and the discard's order wrong.)
+

@@ -147,6 +147,9 @@ public final class VimrcParser {
             return false;
 
         keyMap.keepBuiltIn();
+        // As in vim, where the built-in commands are not mappings: a mapping of
+        // Z is run at once, not held for the ZZ it could start.
+        keyMap.shadowBuiltIns(modes, KeyNotation.tokenize(keys));
         keyMap.add(mapping(modes, keys, to, remap));
         return true;
     }

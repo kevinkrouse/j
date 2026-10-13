@@ -485,6 +485,11 @@ public final class EditorHarness {
         return line;
     }
 
+    /** Forgets the errors j logged, for a test that makes one on purpose. */
+    public void clearLoggedErrors() {
+        ERRORS.clear();
+    }
+
     /** Shows another buffer in the editor, as switching to it would but for the frame. */
     public void showBuffer(Buffer b) {
         editor.setBufferDirectly(b);

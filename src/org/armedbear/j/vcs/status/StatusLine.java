@@ -48,6 +48,7 @@ public final class StatusLine extends TextLine {
     private Hunk hunk;
     private DiffLine diffLine;
     private int oldLine;
+    private int diffIndex = -1;
     private int newLine;
     private CommitItem commit;
     private boolean expandable;
@@ -99,6 +100,11 @@ public final class StatusLine extends TextLine {
         return diffLine;
     }
 
+    /** A diff line's index in its hunk's lines, or -1. */
+    public int diffIndex() {
+        return diffIndex;
+    }
+
     /** A diff line's number in the old file, 0 if it has none there. */
     public int oldLine() {
         return oldLine;
@@ -142,8 +148,9 @@ public final class StatusLine extends TextLine {
         return this;
     }
 
-    StatusLine diff(DiffLine line, int oldLine, int newLine) {
+    StatusLine diff(DiffLine line, int index, int oldLine, int newLine) {
         this.diffLine = line;
+        this.diffIndex = index;
         this.oldLine = oldLine;
         this.newLine = newLine;
         return this;

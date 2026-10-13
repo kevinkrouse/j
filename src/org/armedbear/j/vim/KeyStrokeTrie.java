@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Key sequences to whatever they mean, matched one keystroke at a time.
@@ -103,6 +104,33 @@ public final class KeyStrokeTrie<T> {
         final Node<T> node = walk(keys);
         if (node != null)
             node.value = null;
+    }
+
+    /** Removes the bindings of longer sequences that start with keys and drop says to. */
+    public void removeLonger(List<String> keys, Predicate<T> drop) {
+        final Node<T> node = walk(keys);
+        if (node == null)
+            return;
+        prune(node, drop);
+    }
+
+    // Drops the children's bindings drop says to, and the nodes left with
+    // none below them, so that keys is no longer the start of them.
+    private static <T> void prune(Node<T> node, Predicate<T> drop) {
+        node.children.values().removeIf(child -> {
+            if (child.value != null && drop.test(child.value))
+                child.value = null;
+            prune(child, drop);
+            return child.value == null && child.children.isEmpty() && child.anyCharacter == null;
+        });
+        if (node.anyCharacter != null) {
+            final Node<T> any = node.anyCharacter;
+            if (any.value != null && drop.test(any.value))
+                any.value = null;
+            prune(any, drop);
+            if (any.value == null && any.children.isEmpty() && any.anyCharacter == null)
+                node.anyCharacter = null;
+        }
     }
 
     public boolean isEmpty() {

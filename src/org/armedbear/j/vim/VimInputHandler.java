@@ -175,8 +175,17 @@ public final class VimInputHandler implements InputHandler {
         final int keyCode = event.getKeyCode();
         final int modifiers = event.getModifiers();
 
-        if (isEscape(keyCode, modifiers))
+        if (isEscape(keyCode, modifiers)) {
+            // With nothing left to leave, the buffer's mode may take it, as a
+            // commit message's gives the message up.
+            if (idleInNormalMode()
+                    && pendingSearch == null
+                    && editor.getMark() == null
+                    && !replaying
+                    && runModeKey(editor, event))
+                return Result.CONSUMED;
             return escape(editor);
+        }
 
         if (typedLine != null) {
             // Enter and Backspace are the only key-coded ones a pattern
@@ -381,7 +390,7 @@ public final class VimInputHandler implements InputHandler {
         // j closes a transient buffer for q, whatever its mode.
         if (event.getKeyChar() == 'q' && editor.getBuffer().isTransient() && idleInNormalMode())
             return Result.PASS_THROUGH;
-        if (highSurrogate == 0 && runModeKey(editor, event))
+        if (highSurrogate == 0 && (runModeKey(editor, event) || runVisualModeKey(editor, event)))
             return Result.CONSUMED;
         // AWT sends a character outside the Basic Multilingual Plane as two
         // key typed events. A command takes it as one key, so that f can
@@ -465,6 +474,21 @@ public final class VimInputHandler implements InputHandler {
             return false;
         final KeyMap km = editor.getMode().getModalKeyMap();
         return km != null && editor.runKeyMap(km, event);
+    }
+
+    /**
+     * A key the buffer's mode takes in visual mode, on the selection, as a
+     * status buffer's s stages the lines selected. Visual mode ends after.
+     */
+    private boolean runVisualModeKey(Editor editor, JEvent event) {
+        if (!state.getMode().isVisual() || !builder.isEmpty() || typedLine != null)
+            return false;
+        final KeyMap km = editor.getMode().getVisualKeyMap();
+        if (km == null || !editor.runKeyMap(km, event))
+            return false;
+        if (state.getMode().isVisual())
+            VimVisual.leave(editor, state);
+        return true;
     }
 
     // Nothing part-typed, in normal mode.
@@ -1106,6 +1130,12 @@ public final class VimInputHandler implements InputHandler {
     /** True while a : is waiting for its line. */
     public boolean isAwaitingExCommand() {
         return typedLine != null && typedKind == LineKind.EX;
+    }
+
+    /** Runs an ex line in editor, if it is in vim edit mode: ZZ's :wq, say. */
+    public static void ex(Editor editor, String line) {
+        if (editor.getInputHandler() instanceof VimInputHandler vim)
+            vim.runExLine(editor, line);
     }
 
     /**

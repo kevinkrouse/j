@@ -69,6 +69,81 @@ public interface VcsBackend {
         return List.of();
     }
 
+    // Writes, run off the event thread at the repository's root. Each
+    // returns what ran, or null if the backend can't.
+
+    /** Stages files whole, new, changed or deleted, by path. */
+    default VcsResult stage(VcsRepository repository, List<String> paths) {
+        return null;
+    }
+
+    /** Stages every change to a tracked file. */
+    default VcsResult stageAll(VcsRepository repository) {
+        return null;
+    }
+
+    /** Takes files' staged changes back out of the next commit, both paths of a rename. */
+    default VcsResult unstage(VcsRepository repository, List<FileChange> changes) {
+        return null;
+    }
+
+    /** Takes everything staged back out. */
+    default VcsResult unstageAll(VcsRepository repository) {
+        return null;
+    }
+
+    /** Puts files in the working tree back as they are staged, losing their unstaged changes. */
+    default VcsResult discard(VcsRepository repository, List<String> paths) {
+        return null;
+    }
+
+    /**
+     * Applies a patch (see Patch) to the index, the working tree, or both,
+     * or with reverse takes it back out.
+     */
+    default VcsResult apply(
+            VcsRepository repository,
+            byte[] patch,
+            boolean index,
+            boolean workingTree,
+            boolean reverse) {
+        return null;
+    }
+
+    /** Whether apply would apply the patch so, changing nothing. */
+    default boolean applies(
+            VcsRepository repository,
+            byte[] patch,
+            boolean index,
+            boolean workingTree,
+            boolean reverse) {
+        return false;
+    }
+
+    /** Commits what is staged with message (null to keep the last's, with AMEND and KEEP_MESSAGE). */
+    default VcsResult commit(VcsRepository repository, String message, Set<CommitOption> options) {
+        return null;
+    }
+
+    /** Whether commits show their diff under the message unless told not to: git's commit.verbose. */
+    default boolean verboseCommits(VcsRepository repository) {
+        return false;
+    }
+
+    /**
+     * The diff a commit made with options would make, as patch text, for
+     * the message's verbose view; null if it can't be read. Off the event
+     * thread.
+     */
+    default byte[] readCommitDiff(VcsRepository repository, Set<CommitOption> options) {
+        return null;
+    }
+
+    /** The last commit's message, or null. Off the event thread. */
+    default String lastMessage(VcsRepository repository) {
+        return null;
+    }
+
     /** A commit's message and diff, as patch text; null if it can't be read. Off the event thread. */
     default byte[] readCommit(VcsRepository repository, String id) {
         return null;

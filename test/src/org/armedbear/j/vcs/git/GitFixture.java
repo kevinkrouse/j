@@ -116,13 +116,13 @@ public final class GitFixture {
     }
 
     /** The file as the index has it, or null if it is not in the index. */
-    String index(String path) {
+    public String index(String path) {
         VcsResult r = run("cat-file", "blob", ":" + path);
         return r.succeeded() ? new String(r.stdout(), StandardCharsets.ISO_8859_1) : null;
     }
 
     /** The file as HEAD has it, or null. */
-    String head(String path) {
+    public String head(String path) {
         VcsResult r = run("cat-file", "blob", "HEAD:" + path);
         return r.succeeded() ? new String(r.stdout(), StandardCharsets.ISO_8859_1) : null;
     }

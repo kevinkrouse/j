@@ -45,6 +45,9 @@ public final class VimExCommands {
      */
     static boolean run(Editor editor, VimState state, VimEx.Command command) throws VimEx.BadCommand {
         final String name = command.name;
+        // The buffer's mode first: a commit message's :wq commits it.
+        if (!name.isEmpty() && editor.getMode().runExCommand(editor, name, command.bang))
+            return true;
         // The commands here that take a bang. :normal! is accepted but runs
         // the keys through your mappings as :normal does: j merges mappings
         // into the same table as the built-ins, so there is no unmapped
@@ -58,6 +61,8 @@ public final class VimExCommands {
                 && !matches(name, "norm", "normal")
                 && !matches(name, "w", "write")
                 && !name.equals("wq")
+                && !matches(name, "x", "xit")
+                && !matches(name, "exi", "exit")
                 && !matches(name, "q", "quit")
                 && !matches(name, "clo", "close")
                 && !matches(name, "on", "only"))
@@ -121,6 +126,13 @@ public final class VimExCommands {
         }
         if (name.equals("wq")) {
             if (write(editor, command))
+                closeWindow(editor, true);
+            return true;
+        }
+        // :x [file], and ZZ: written, to file if given, only if it was
+        // changed, then closed.
+        if (matches(name, "x", "xit") || matches(name, "exi", "exit")) {
+            if (!editor.getBuffer().isModified() || write(editor, command))
                 closeWindow(editor, true);
             return true;
         }

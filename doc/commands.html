@@ -427,6 +427,19 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#up">up</a></li>
     <li><a href="commands.html#upperCaseRegion">upperCaseRegion</a></li>
     <li><a href="commands.html#vcsCommandLog">vcsCommandLog</a></li>
+    <li><a href="commands.html#vcsCommit">vcsCommit</a></li>
+    <li><a href="commands.html#vcsCommitAbort">vcsCommitAbort</a></li>
+    <li><a href="commands.html#vcsCommitAmend">vcsCommitAmend</a></li>
+    <li><a href="commands.html#vcsCommitCancel">vcsCommitCancel</a></li>
+    <li><a href="commands.html#vcsCommitExtend">vcsCommitExtend</a></li>
+    <li><a href="commands.html#vcsCommitFinish">vcsCommitFinish</a></li>
+    <li><a href="commands.html#vcsCommitNextMessage">vcsCommitNextMessage</a></li>
+    <li><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></li>
+    <li><a href="commands.html#vcsCommitPreviousMessage">vcsCommitPreviousMessage</a></li>
+    <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
+    <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
+    <li><a href="commands.html#vcsStage">vcsStage</a></li>
+    <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
     <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
     <li><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></li>
     <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
@@ -436,6 +449,10 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></li>
     <li><a href="commands.html#vcsStatusToggle">vcsStatusToggle</a></li>
     <li><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></li>
+    <li><a href="commands.html#vcsUnstage">vcsUnstage</a></li>
+    <li><a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></li>
+    <li><a href="commands.html#vimQuitDiscard">vimQuitDiscard</a></li>
+    <li><a href="commands.html#vimWriteQuit">vimWriteQuit</a></li>
     <li><a href="commands.html#visibleTabs">visibleTabs</a></li>
     <li><a href="commands.html#vsplitWindow">vsplitWindow</a></li>
     <li><a href="commands.html#whatChar">whatChar</a></li>
@@ -5839,6 +5856,136 @@ last 500.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsCommit">vcsCommit</a><dl><dd>
+<p>
+In a status buffer, opens a message to commit what is staged with, in a window beside it.
+<br><br>
+<b>Default key mapping:</b> c c in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitAbort">vcsCommitAbort</a><dl><dd>
+<p>
+Gives up the commit message being written without asking; it goes to the comment ring.
+<br><br>
+<b>Default key mapping:</b> ZQ and :q! in commit messages, in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitAmend">vcsCommitAmend</a><dl><dd>
+<p>
+In a status buffer, opens the last commit's message, to replace the last commit with it and what is staged.
+<br><br>
+<b>Default key mapping:</b> c a in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitCancel">vcsCommitCancel</a><dl><dd>
+<p>
+Gives up the commit message being written, asking first if it has one; it goes to the comment ring.
+<br><br>
+<b>Default key mapping:</b> Escape in commit messages; in vim edit mode, in normal mode, and :q
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitExtend">vcsCommitExtend</a><dl><dd>
+<p>
+In a status buffer, adds what is staged to the last commit, keeping its message.
+<br><br>
+<b>Default key mapping:</b> c e in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitFinish">vcsCommitFinish</a><dl><dd>
+<p>
+Commits with the message being written, its # lines left out.
+<br><br>
+<b>Default key mapping:</b> Ctrl Enter in commit messages; ZZ and :wq in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitNextMessage">vcsCommitNextMessage</a><dl><dd>
+<p>
+In a commit message, steps forward through the messages committed or given up before.
+<br><br>
+<b>Default key mapping:</b> Ctrl N in commit messages
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitPopup">vcsCommitPopup</a><dl><dd>
+<p>
+In a status buffer, opens the commit popup: its switches, and commit, amend, extend and reword.
+<br><br>
+<b>Default key mapping:</b> c in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitPreviousMessage">vcsCommitPreviousMessage</a><dl><dd>
+<p>
+In a commit message, steps back through the messages committed or given up before.
+<br><br>
+<b>Default key mapping:</b> Ctrl P in commit messages
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitReword">vcsCommitReword</a><dl><dd>
+<p>
+In a status buffer, opens the last commit's message, to change only its message.
+<br><br>
+<b>Default key mapping:</b> c w in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsDiscard">vcsDiscard</a><dl><dd>
+<p>
+In a status buffer, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash.
+<br><br>
+<b>Default key mapping:</b> x in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStage">vcsStage</a><dl><dd>
+<p>
+In a status buffer, stages the thing at the caret, or what the selection covers, down to single lines of a hunk.
+<br><br>
+<b>Default key mapping:</b> s in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStageAll">vcsStageAll</a><dl><dd>
+<p>
+In a status buffer, stages every change to a tracked file.
+<br><br>
+<b>Default key mapping:</b> S in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsStatusCycle">vcsStatusCycle</a><dl><dd>
 <p>
 In a status buffer, opens everything one depth further: sections, then files, then hunks, then the lines of the diffs, then back to the sections.
@@ -5926,6 +6073,46 @@ In a status buffer, visits the thing at the caret: a file, at the line of the hu
 <b>Default key mapping:</b> Enter or a double click in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsUnstage">vcsUnstage</a><dl><dd>
+<p>
+In a status buffer, unstages the thing at the caret, or what the selection covers, down to single lines of a hunk.
+<br><br>
+<b>Default key mapping:</b> u in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsUnstageAll">vcsUnstageAll</a><dl><dd>
+<p>
+In a status buffer, unstages everything.
+<br><br>
+<b>Default key mapping:</b> U in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vimQuitDiscard">vimQuitDiscard</a><dl><dd>
+<p>
+In vim edit mode, runs :q!, which a buffer's mode may take as its own.
+<br><br>
+<b>Default key mapping:</b> ZQ in vim edit mode
+<br><br>
+<b>See also:</b> <a href="editmodes.html">Edit Modes</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vimWriteQuit">vimWriteQuit</a><dl><dd>
+<p>
+In vim edit mode, runs :x, which writes the buffer if it was changed and closes the window; a buffer's mode may take it as its own.
+<br><br>
+<b>Default key mapping:</b> ZZ in vim edit mode
+<br><br>
+<b>See also:</b> <a href="editmodes.html">Edit Modes</a>
 <br><br>
 </dl><!--<hr>-->
 

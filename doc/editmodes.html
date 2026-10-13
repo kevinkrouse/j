@@ -482,7 +482,10 @@ These are known and deliberate:
     one leaves j, which asks first if other buffers have unsaved changes where
     vim refuses with E37. <code>:w FILE</code> and <code>:w! FILE</code> work;
     writing part of a buffer (<code>:1,5w</code>) and writing to a command
-    (<code>:w !cmd</code>) do not.</li>
+    (<code>:w !cmd</code>) do not. <code>ZZ</code> is <code>:x</code>, which writes only a changed
+    buffer before closing, and <code>ZQ</code> is <code>:q!</code>; a buffer's mode may take them as its
+    own, as a <a href="git.html#committing">commit message</a>'s commits and
+    gives the message up.</li>
 <li><code>Ctrl ^</code> takes no count: j's buffers have no numbers to give
     it.</li>
 <li>A window left in visual mode keeps its selection, and the one

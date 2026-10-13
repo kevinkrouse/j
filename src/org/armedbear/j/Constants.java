@@ -221,6 +221,8 @@ public interface Constants {
     String VCS_STATUS_MODE_NAME = "Status";
     int VCS_REPOSITORY_STATUS_MODE = 48;
     String VCS_REPOSITORY_STATUS_MODE_NAME = "VcsStatus";
+    int VCS_COMMIT_MESSAGE_MODE = 49;
+    String VCS_COMMIT_MESSAGE_MODE_NAME = "VcsCommit";
 
     int SUCCESS = 0;
     int ERROR = -1;

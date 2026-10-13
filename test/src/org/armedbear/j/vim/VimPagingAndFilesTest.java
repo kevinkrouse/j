@@ -269,6 +269,21 @@ public class VimPagingAndFilesTest {
     }
 
     @Test
+    public void zzWritesOnlyAChangedBuffer() throws Exception {
+        vim("data", 0, 0);
+        Files.writeString(ownFile(), "data"); // As if opened from it.
+        Files.setLastModifiedTime(ownFile(), java.nio.file.attribute.FileTime.fromMillis(0));
+        onEdt(() -> h.exCommand("x"));
+        assertEquals(0, Files.getLastModifiedTime(ownFile()).toMillis(), "not rewritten");
+        final Path other = ownFile().resolveSibling(ownFile().getFileName() + ".x");
+        onEdt(() -> h.exCommand("x " + other));
+        assertFalse(Files.exists(other), "nor written elsewhere, unchanged");
+        h.keys("ccmore<Esc>");
+        onEdt(() -> h.keys("ZZ"));
+        assertEquals("more", read(ownFile()));
+    }
+
+    @Test
     public void writingPartOfABufferIsRefusedRatherThanIgnored() {
         vim("a\nb", 0, 0).exCommand("1w /tmp/nowhere");
         assertEquals("Writing part of a buffer is not supported", h.status());

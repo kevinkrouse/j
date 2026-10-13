@@ -67,6 +67,10 @@ public final class VcsStatusBuffer extends Buffer {
     private boolean reading;
     private boolean readAgain;
     private volatile boolean disposed;
+    // A write is running, or its refresh not shown yet: what the lines show is old.
+    private volatile boolean writing;
+    private final java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong();
+    private volatile long wroteAt;
 
     private VcsStatusBuffer(List<VcsRepository> repositories) {
         this.repositories = List.copyOf(repositories);
@@ -147,6 +151,7 @@ public final class VcsStatusBuffer extends Buffer {
     private void readLoop() {
         try {
             while (true) {
+                final long startedAt = clock.incrementAndGet();
                 final Map<VcsRepository, StatusData> read = new LinkedHashMap<>();
                 final Set<String> diffs = ConcurrentHashMap.newKeySet();
                 for (VcsRepository r : repositories) {
@@ -167,7 +172,7 @@ public final class VcsStatusBuffer extends Buffer {
                     }
                     read.put(r, d != null ? d : StatusData.failed(r.backend().name() + " has no status"));
                 }
-                SwingUtilities.invokeLater(() -> show(read, diffs));
+                SwingUtilities.invokeLater(() -> show(read, diffs, startedAt));
                 synchronized (this) {
                     if (!readAgain || disposed) {
                         reading = false;
@@ -186,9 +191,11 @@ public final class VcsStatusBuffer extends Buffer {
         }
     }
 
-    private void show(Map<VcsRepository, StatusData> read, Set<String> diffs) {
+    private void show(Map<VcsRepository, StatusData> read, Set<String> diffs, long startedAt) {
         if (disposed)
             return;
+        if (startedAt > wroteAt)
+            writing = false;
         // A refresh comes with each save and each return to j's window: most
         // find nothing new, and leave the lines, and the selection, as they are.
         if (getFirstLine() instanceof StatusLine
@@ -198,6 +205,28 @@ public final class VcsStatusBuffer extends Buffer {
         data.putAll(read);
         diffsRead.addAll(diffs);
         render();
+    }
+
+    /** Whether a write is running, or its refresh not shown yet. */
+    public boolean isWriting() {
+        return writing;
+    }
+
+    /**
+     * A write starts. Until it is done no read can count as after it, even
+     * one already running, whose data may be from before it.
+     */
+    void startWriting() {
+        wroteAt = Long.MAX_VALUE;
+        writing = true;
+    }
+
+    /**
+     * A write is done: writing until a read that starts from now is shown.
+     * The repositories' refresh, which tells this buffer, starts it.
+     */
+    void wrote() {
+        wroteAt = clock.incrementAndGet();
     }
 
     /** What was last read of a repository, or null. For tests. */
@@ -321,7 +350,7 @@ public final class VcsStatusBuffer extends Buffer {
             if (ed.getBuffer() != this)
                 continue;
             final Place p = places.get(ed);
-            final Line dot = p == null ? lines.get(0) : find(byKey, oldKeys, p.dotKey(), p.dotIndex(), lines.get(0));
+            final Line dot = p == null ? lines.get(0) : findDot(byKey, oldKeys, p.dotKey(), p.dotIndex(), lines.get(0));
             final Line top = p == null ? lines.get(0) : find(byKey, oldKeys, p.topKey(), p.topIndex(), lines.get(0));
             ed.setTopLine(top);
             ed.setDot(
@@ -348,6 +377,33 @@ public final class VcsStatusBuffer extends Buffer {
                 top == null ? 0 : top.lineNumber(),
                 mark != null && mark.getLine() instanceof StatusLine m ? m.key() : null,
                 mark == null ? 0 : mark.getOffset());
+    }
+
+    /**
+     * Where the caret goes when its line is gone. Inside a node now closed,
+     * the node's heading; else, as when a file is staged away, the next
+     * thing still there, or the one before.
+     */
+    private static Line findDot(
+            Map<String, StatusLine> byKey,
+            List<String> oldKeys,
+            String key,
+            int index,
+            Line first) {
+        if (key == null || byKey.containsKey(key))
+            return find(byKey, oldKeys, key, index, first);
+        StatusLine around = null;
+        for (StatusLine l : byKey.values())
+            if (key.startsWith(l.key() + "|") && (around == null || l.key().length() > around.key().length()))
+                around = l;
+        if (around != null && around.isExpandable() && !around.isOpen())
+            return around;
+        for (int i = index + 1; i < oldKeys.size(); i++) {
+            final String k = oldKeys.get(i);
+            if (k != null && !k.contains("|blank|") && byKey.containsKey(k))
+                return byKey.get(k);
+        }
+        return find(byKey, oldKeys, key, index, first);
     }
 
     // The line with key, else the nearest before where it was that is still there.

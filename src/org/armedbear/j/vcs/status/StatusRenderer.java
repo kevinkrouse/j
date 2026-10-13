@@ -207,11 +207,11 @@ final class StatusRenderer {
                     repository,
                     section).file(f).hunk(hunk);
             if (d.isContext())
-                line.diff(d, oldLine++, newLine++);
+                line.diff(d, i, oldLine++, newLine++);
             else if (d.isRemoved())
-                line.diff(d, oldLine++, newLine);
+                line.diff(d, i, oldLine++, newLine);
             else
-                line.diff(d, 0, newLine++);
+                line.diff(d, i, 0, newLine++);
             shown.add(line);
             add(line);
         }

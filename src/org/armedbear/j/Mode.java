@@ -78,6 +78,22 @@ public interface Mode {
     public KeyMap getKeyMap();
 
     /**
+     * Runs a vim ex command (:wq, :q!) as this mode means it, as a commit
+     * message's :wq commits; false to leave it to vim.
+     */
+    public default boolean runExCommand(Editor editor, String name, boolean bang) {
+        return false;
+    }
+
+    /**
+     * Keys the mode takes in vim's visual mode, to act on the selection, or
+     * null for none. Vim's own keys are asked after.
+     */
+    public default KeyMap getVisualKeyMap() {
+        return null;
+    }
+
+    /**
      * Keys that win over vim's normal mode in this mode's buffers, when no
      * command is part-typed: read-only buffers whose commands want keys vim
      * has for editing. Null for none.

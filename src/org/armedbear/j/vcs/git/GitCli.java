@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.git;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -77,6 +78,18 @@ public final class GitCli {
     /** A command that changes the repository at root, reading stdin if not null. */
     public static VcsCommand write(Path root, byte[] stdin, String... args) {
         return new VcsCommand(root, argv(args), env(WRITE_ENV), stdin, true, null);
+    }
+
+    /** As write, with a timeout of its own and more environment, as a commit's hooks want. */
+    public static VcsCommand write(
+            Path root,
+            byte[] stdin,
+            Duration timeout,
+            Map<String, String> environment,
+            String... args) {
+        Map<String, String> env = new HashMap<>(env(WRITE_ENV));
+        env.putAll(environment);
+        return new VcsCommand(root, argv(args), env, stdin, true, timeout);
     }
 
     public static VcsResult run(VcsCommand command) {
