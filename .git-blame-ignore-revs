@@ -163,3 +163,6 @@ d8899b23dc08b94ef4b093431503b44e17cdcea2
 
 # reformat: KeyStrokeTrie and StatusRenderer, which phase 3 of the git tooling changes
 65a9674232d5a0e5dd2713f5eb8023d7b77d5ed2
+
+# reformat: ChangeMarks, which phase 4 of the git tooling changes
+8ffc53204ebc1cde93ce6021045a88ac7afee87b
