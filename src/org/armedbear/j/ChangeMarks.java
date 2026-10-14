@@ -253,14 +253,9 @@ public final class ChangeMarks {
             }
             String output = shellCommand.getOutput();
             if (output.length() == 0) {
-                MessageDialog.showMessageDialog(
-                    editor,
-                    "No changes",
-                    buffer.getFile().getName()
-                );
+                MessageDialog.showMessageDialog(editor, "No changes", buffer.getFile().getName());
             } else {
-                DiffOutputBuffer outputBuffer =
-                    new DiffOutputBuffer(buffer, output, 0);
+                DiffOutputBuffer outputBuffer = new DiffOutputBuffer(buffer, output, 0);
                 sb.setLength(0);
                 sb.append("diff -ub ");
                 sb.append(file.getName());
