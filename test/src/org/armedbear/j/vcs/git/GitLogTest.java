@@ -253,4 +253,23 @@ public class GitLogTest {
             List.of(new LogRef("origin/main", LogRef.Kind.REMOTE, false)),
             GitLog.parseRefs(" \trefs/remotes/origin/HEAD\n \trefs/remotes/origin/main\n"));
     }
+
+    @Test
+    public void aPathsLogNamesTheParentsItLists() throws Exception {
+        init();
+        git.write("a.txt", "1\n");
+        git.commitAll("a1");
+        final String a1 = id("HEAD");
+        git.write("b.txt", "1\n");
+        git.commitAll("b1");
+        git.write("a.txt", "2\n");
+        git.commitAll("a2");
+        final List<LogCommit> log = GitLog.read(repository, LogQuery.ALL.withPath("a.txt", false), 0, 10);
+        assertEquals(List.of("a2", "a1"), subjects(log));
+        assertEquals(List.of(a1), log.get(0).graphParents(), "b1, not in it, left out");
+        assertEquals(List.of(id("HEAD~")), log.get(0).parents(), "its own, for its diff");
+        assertEquals(List.of(), log.get(1).parents());
+        assertTrue(LogQuery.file("a.txt").skipsCommits(), "followed, git leaves its parents as they are");
+        assertEquals(List.of(id("HEAD~")), GitLog.read(repository, LogQuery.file("a.txt"), 0, 10).get(0).parents());
+    }
 }

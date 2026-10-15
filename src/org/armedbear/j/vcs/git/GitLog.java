@@ -22,7 +22,9 @@ package org.armedbear.j.vcs.git;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
@@ -43,6 +45,11 @@ final class GitLog {
     static List<LogCommit> read(VcsRepository repository, LogQuery query, int skip, int max) {
         final List<String> args = new ArrayList<>(
                 List.of("log", "--topo-order", "-z", "--no-color", "--no-show-signature", "--decorate=full", FORMAT));
+        // A path's history, but for one followed, names its parents in it,
+        // for the graph; the commits' own come apart.
+        final boolean rewrites = query.path() != null && !query.follow();
+        if (rewrites)
+            args.add("--parents");
         args.add("--skip=" + skip);
         args.add("--max-count=" + max);
         if (query.author() != null)
@@ -76,7 +83,46 @@ final class GitLog {
         // An empty repository, or a revision gone: nothing to show.
         if (!r.succeeded())
             return List.of();
-        return parse(r.stdout());
+        final List<LogCommit> commits = parse(r.stdout());
+        return rewrites ? withOwnParents(repository, commits) : commits;
+    }
+
+    // commits, read with their parents rewritten, with their own: the
+    // rewritten ones the graph's.
+    private static List<LogCommit> withOwnParents(VcsRepository repository, List<LogCommit> commits) {
+        if (commits.isEmpty())
+            return commits;
+        final StringBuilder ids = new StringBuilder();
+        for (LogCommit c : commits)
+            ids.append(c.id()).append('\n');
+        final VcsResult r = GitCli.run(
+            GitCli.read(
+                repository.root(),
+                ids.toString().getBytes(StandardCharsets.UTF_8),
+                "rev-list",
+                "--no-walk=unsorted",
+                "--parents",
+                "--stdin"));
+        if (!r.succeeded())
+            return List.of();
+        final Map<String, List<String>> parents = new HashMap<>();
+        for (String line : r.out().split("\n")) {
+            final List<String> w = words(line.strip(), " ");
+            if (!w.isEmpty())
+                parents.put(w.get(0), w.subList(1, w.size()));
+        }
+        final List<LogCommit> out = new ArrayList<>(commits.size());
+        for (LogCommit c : commits)
+            out.add(
+                new LogCommit(c.id(),
+                        parents.getOrDefault(c.id(), c.parents()),
+                        c.author(),
+                        c.email(),
+                        c.time(),
+                        c.refs(),
+                        c.subject(),
+                        c.parents()));
+        return out;
     }
 
     // An unborn branch's HEAD names no commit, and git log fails on it.

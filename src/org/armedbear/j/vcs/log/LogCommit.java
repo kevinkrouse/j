@@ -29,12 +29,26 @@ import java.util.List;
  * @param parents its parents' ids, the first first; none for a root
  * @param time when it was authored, in seconds since the epoch
  * @param refs the branches, tags and HEAD at it
+ * @param graphParents the parents the graph joins it to: in a path's log,
+ *     the commits listed that it comes from, not its own parents
  */
 public record LogCommit(String id, List<String> parents, String author, String email, long time, List<LogRef> refs,
-        String subject) {
+        String subject, List<String> graphParents) {
     public LogCommit {
         parents = List.copyOf(parents);
         refs = List.copyOf(refs);
+        graphParents = List.copyOf(graphParents);
+    }
+
+    public LogCommit(
+            String id,
+            List<String> parents,
+            String author,
+            String email,
+            long time,
+            List<LogRef> refs,
+            String subject) {
+        this(id, parents, author, email, time, refs, subject, parents);
     }
 
     /** The first parent, or null for a root. */

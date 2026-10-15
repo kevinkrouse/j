@@ -75,6 +75,11 @@ public final class GitCli {
         return new VcsCommand(dir, argv(args), env(READ_ENV), null, false, null);
     }
 
+    /** A command that only reads, run in dir, reading stdin. */
+    public static VcsCommand read(Path dir, byte[] stdin, String... args) {
+        return new VcsCommand(dir, argv(args), env(READ_ENV), stdin, false, null);
+    }
+
     /** A command that changes the repository at root, reading stdin if not null. */
     public static VcsCommand write(Path root, byte[] stdin, String... args) {
         return new VcsCommand(root, argv(args), env(WRITE_ENV), stdin, true, null);

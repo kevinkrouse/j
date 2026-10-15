@@ -1149,8 +1149,34 @@ plan with why it is left, before the next phase starts.
      `-` move there, and `x` can't clear the filters by habit. The names the filters offer are a repository's
      (`LogNames`: refs, paths, and the authors of its newest 500 commits
      and of every log read), read when the popup opens.
+   - The graph: `LogGraph` (shared) gives each commit a `Row` as pages are
+     read, the lanes in between kept, so a page added later continues the
+     rows before; a lane's color comes from the commit it starts at.
+     Tested on histories by hand (a merge, a second head, lanes moving
+     left, an octopus, pages apart) and on 200 random ones: each row's
+     lanes out are the next row's lanes in, with no gap. `LogGraphColumn`
+     paints a row in the gutter, before the text: `GutterColumn`, a
+     buffer's column there (`Buffer.getGutterColumn`), which
+     `Display.getGutterWidth` counts, so clicks, columns and the rows'
+     width leave room for it; it is the first of the gutter column
+     providers the blame column needs; `Display` lays a buffer out again
+     (`windowResized`) when its gutter's width changes. Lanes past 16 are
+     cut off at the right. `git log --parents` rewrites a path's parents
+     to those it lists, which the graph takes (`graphParents`); the
+     commits' own, for their diffs, come from `rev-list --no-walk
+     --parents --stdin`. An author, message or change filter, or
+     `--follow`, leaves commits out that nothing rewrites, so those logs
+     have no graph and no column. A new lane takes a color none of the
+     lanes beside it has. A lane is named for the ref at its
+     first commit, else the branch its merge's subject names ("Merge
+     branch 'x'", a pull request's), else that commit; the column's tool
+     tip (`GutterColumn.getToolTipText`) gives it over a lane. Branch
+     badges (HEAD's, local, remote) take their row's lane color through
+     `LogFormatter`'s lane formats; tags, and every badge when there is
+     no graph, keep the kind colors.
    - Left: the status's diff beside it (its design under "Status buffer":
-     the log's diff pane made shared), dir mode's filter bar, the graph,
+     the log's diff pane made shared), dir mode's filter bar, a very long
+     edge as a stub with an arrow, collapsing linear runs,
      several repositories, the
      badges' smaller font, the files pane's height fitted to its files,
      keeping the panes out of the sidebar's buffer list, and the refs tree

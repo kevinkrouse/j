@@ -25,12 +25,19 @@ import org.armedbear.j.TextLine;
 /** A commit's row in the log, its text laid out for the window's width. */
 public final class LogLine extends TextLine {
     private final LogCommit commit;
+    private final LogGraph.Row graph;
     private LogRow row;
 
-    LogLine(LogCommit commit, LogRow row) {
+    LogLine(LogCommit commit, LogGraph.Row graph, LogRow row) {
         super(row.text());
         this.commit = commit;
+        this.graph = graph;
         this.row = row;
+    }
+
+    /** What its row of the graph draws. */
+    LogGraph.Row graph() {
+        return graph;
     }
 
     public LogCommit commit() {

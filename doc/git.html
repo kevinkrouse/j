@@ -192,8 +192,16 @@ into the full log. <a href="commands.html#vcsLogFile">vcsLogFile</a> shows the
 current file's commits, through its renames.
 
 <p>
-A row is the commit's subject, its branches and tags as badges (HEAD's
-branch first, in bold), then the author and how long ago. In a narrow window
+A row is the commit's place in the graph, its subject, its branches and
+tags as badges (HEAD's branch first, in bold), then the author and how long
+ago. The graph draws each line of history as a lane in its own color, a
+commit as a dot on it, hollow for a merge and ringed for HEAD, with curves
+where a branch forks or joins. A branch's badge is in its lane's color;
+a tag's keeps its own. A hover over a lane names its branch: the
+branch at its newest commit, or else the one its merge's message names, or
+else its newest commit. While an author, message or change filter
+leaves commits out, or the log follows a file through renames, there is
+no graph, as a commit's parents may not be in the list. In a narrow window
 the tags go first, then the remote branches, then the author is cut to
 initials, and then the subject; a hover over a row that is cut shows it
 whole. More commits are read as the caret nears the end.

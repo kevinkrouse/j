@@ -29,6 +29,7 @@ import javax.swing.Timer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
+import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
@@ -62,6 +63,10 @@ public final class LogBuffer extends ViewBuffer {
     private boolean loading;
     private volatile boolean disposed;
     private int width = 80;
+    // The lanes of the commits read, and the most any row spans.
+    private LogGraph graph = new LogGraph();
+    private int graphWidth;
+    private final LogGraphColumn graphColumn = new LogGraphColumn(this);
     // The commit to put the caret on when its page is read, as after a refresh.
     private String select;
 
@@ -229,6 +234,7 @@ public final class LogBuffer extends ViewBuffer {
         generation++;
         loading = false;
         commits.clear();
+        graph = new LogGraph();
         more = true;
         loadMore();
     }
@@ -243,8 +249,25 @@ public final class LogBuffer extends ViewBuffer {
         names.addAuthors(page);
         final long now = System.currentTimeMillis() / 1000;
         final List<Line> lines = new ArrayList<>();
-        for (LogCommit c : page)
-            lines.add(new LogLine(c, LogRow.layout(c, width, now)));
+        // No graph of commits whose parents may be left out.
+        final List<LogGraph.Row> rows = query.skipsCommits() ? null : graph.add(page);
+        // The old rows keep their graph's width until these replace them.
+        if (first)
+            graphWidth = 0;
+        for (int i = 0; i < page.size(); i++) {
+            final LogGraph.Row row = rows == null ? null : rows.get(i);
+            if (row != null)
+                graphWidth = Math.max(graphWidth, row.width());
+        }
+        // The first page laid out for the room its graph leaves; the rows
+        // after, a wider graph's display lays out again when it paints.
+        final Editor shown = first ? LogBuffers.windowOf(this) : null;
+        if (shown != null && shown.getDisplay().getColumns() > 0)
+            width = shown.getDisplay().getColumns();
+        for (int i = 0; i < page.size(); i++) {
+            final LogGraph.Row row = rows == null ? null : rows.get(i);
+            lines.add(new LogLine(page.get(i), row, LogRow.layout(page.get(i), width, now)));
+        }
         if (first)
             empty();
         withWriteLock(() -> {
@@ -287,6 +310,16 @@ public final class LogBuffer extends ViewBuffer {
             return "No commits match the filters";
         final String none = repository.backend().name() + ": no commits";
         return query.path() != null ? none + " of " + query.path() : none;
+    }
+
+    @Override
+    public GutterColumn getGutterColumn() {
+        return graphColumn;
+    }
+
+    /** How many lanes the widest row of the graph spans. */
+    int graphWidth() {
+        return graphWidth;
     }
 
     // Laying out.

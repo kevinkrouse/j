@@ -46,6 +46,16 @@ public record LogQuery(List<String> revisions, String author, String path, Strin
         return new LogQuery(List.of(), null, path, null, null, null, true);
     }
 
+    /**
+     * Whether it leaves out commits between those it lists, by author or
+     * text, or following a file, whose parents git does not rewrite, so
+     * that a commit's parents may not be listed, and no graph can be drawn
+     * of them.
+     */
+    public boolean skipsCommits() {
+        return author != null || grep != null || pickaxe != null || follow && path != null;
+    }
+
     /** Whether anything narrows it. */
     public boolean isFiltered() {
         return !revisions.isEmpty()

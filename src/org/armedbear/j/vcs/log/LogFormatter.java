@@ -31,7 +31,8 @@ import org.armedbear.j.TextStyle;
 
 /**
  * The log's colors: the subject plain, refs as tinted badges, HEAD's
- * bold, and the author and date dimmed.
+ * bold, and the author and date dimmed. A branch's badge is in its
+ * commit's lane's color, when there is a graph.
  */
 final class LogFormatter extends Formatter {
     static final int TEXT = 0;
@@ -40,6 +41,9 @@ final class LogFormatter extends Formatter {
     static final int BRANCH = 3;
     static final int REMOTE = 4;
     static final int TAG = 5;
+    // A branch's badge in a lane's color, and HEAD's: these plus the color.
+    private static final int LANE = 16;
+    private static final int HEAD_LANE = LANE + LogGraph.COLORS;
 
     LogFormatter(Buffer buffer) {
         this.buffer = buffer;
@@ -53,6 +57,7 @@ final class LogFormatter extends Formatter {
             addSegment(text, DIM);
             return segmentList;
         }
+        final int lane = l.graph() == null ? -1 : l.graph().color();
         int at = 0;
         for (LogRow.Span s : l.row().spans()) {
             final int start = Math.min(s.start(), text.length());
@@ -60,7 +65,7 @@ final class LogFormatter extends Formatter {
             if (start > at)
                 addSegment(text, at, start, TEXT);
             if (end > start)
-                addSegment(text, start, end, format(s.part()));
+                addSegment(text, start, end, format(s.part(), lane));
             at = Math.max(at, end);
         }
         if (at < text.length() || at == 0)
@@ -68,26 +73,38 @@ final class LogFormatter extends Formatter {
         return segmentList;
     }
 
-    private static int format(LogRow.Part part) {
+    // A part's format; a branch's in lane's color when it is 0 or more.
+    static int format(LogRow.Part part, int lane) {
         return switch (part) {
             case SUBJECT -> TEXT;
-            case HEAD -> HEAD;
-            case BRANCH -> BRANCH;
-            case REMOTE -> REMOTE;
+            case HEAD -> lane < 0 ? HEAD : HEAD_LANE + lane;
+            case BRANCH -> lane < 0 ? BRANCH : LANE + lane;
+            case REMOTE -> lane < 0 ? REMOTE : LANE + lane;
             case TAG -> TAG;
             case AUTHOR, DATE -> DIM;
         };
     }
 
+    private static boolean isLane(int format) {
+        return format >= LANE && format < HEAD_LANE + LogGraph.COLORS;
+    }
+
+    @Override
+    public Color getColor(int format) {
+        return isLane(format) ? LogGraphColumn.color((format - LANE) % LogGraph.COLORS) : super.getColor(format);
+    }
+
     @Override
     public int getStyle(int format) {
+        if (isLane(format))
+            return format >= HEAD_LANE ? TextStyle.BOLD : TextStyle.PLAIN;
         return format == HEAD ? TextStyle.BOLD : super.getStyle(format);
     }
 
     // A badge: a shade of its text's color behind it.
     @Override
     public Color getRunBackground(int format) {
-        if (format != HEAD && format != BRANCH && format != REMOTE && format != TAG)
+        if (format != HEAD && format != BRANCH && format != REMOTE && format != TAG && !isLane(format))
             return null;
         return DefaultTheme.blend(getBackgroundColor(), getColor(format), 0.18);
     }

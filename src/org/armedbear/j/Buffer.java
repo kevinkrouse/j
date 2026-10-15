@@ -1943,6 +1943,11 @@ public class Buffer extends SystemBuffer {
     /** A window showing this buffer was resized, as text laid out to its width wants to know. */
     public void windowResized(Editor editor) {}
 
+    /** A column it paints in the gutter before its text, as the log's graph; null for none. */
+    public GutterColumn getGutterColumn() {
+        return null;
+    }
+
     // The text changed: the signs are worked out again.
     private void signsChanged() {
         final SignsUpdater updater = signsUpdater;

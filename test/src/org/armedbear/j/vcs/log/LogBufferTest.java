@@ -126,7 +126,10 @@ public class LogBufferTest {
         repo(3);
         open(100);
         assertEquals(List.of("commit 2", "commit 1", "commit 0"), subjects());
-        assertEquals(60, log.getFirstLine().getText().length());
+        assertEquals(
+            h.editor().getDisplay().getColumns(),
+            log.getFirstLine().getText().length(),
+            "the window's width, past the graph");
         assertTrue(log.getFirstLine().getText().startsWith("commit 2  main "), log.getFirstLine().getText());
         assertEquals(0, h.editor().getDotLineNumber());
     }
@@ -828,5 +831,60 @@ public class LogBufferTest {
                     .revisions()
                     .isEmpty(),
             "not the other repository's");
+    }
+
+    @Test
+    public void theGraphIsAColumnBeforeTheTextButNotWhenCommitsAreLeftOut() throws Exception {
+        twoAuthors();
+        open(100);
+        assertTrue(log.graphWidth() >= 1);
+        final int gutter = org.armedbear.j.Display.getGutterWidth(log);
+        assertTrue(log.getGutterColumn().width() > 0);
+        assertTrue(gutter >= log.getGutterColumn().width(), "in the gutter");
+        assertTrue(((LogLine) log.getFirstLine()).graph() != null);
+        // Over its lane, the branch's name.
+        final org.armedbear.j.Display display = h.editor().getDisplay();
+        final java.util.Set<String> tips = new java.util.HashSet<>();
+        onEdt(() -> {
+            for (int x = gutter - log.getGutterColumn().width(); x < gutter; x++)
+                tips.add(
+                    display.getToolTipText(
+                        new java.awt.event.MouseEvent(display,
+                                0,
+                                0,
+                                0,
+                                x,
+                                log.getFirstLine().getHeight() / 2,
+                                0,
+                                false)));
+        });
+        assertTrue(tips.contains("main"), tips.toString());
+        final LogLine first = (LogLine) log.getFirstLine();
+        assertEquals(LogGraphColumn.color(first.graph().color()), badgeColor(first, "main"), "its lane's color");
+        final LogFormatter formatter = new LogFormatter(log);
+        assertEquals(
+            org.armedbear.j.TextStyle.PLAIN,
+            formatter.getStyle(LogFormatter.format(LogRow.Part.BRANCH, 3)),
+            "a branch's, not the table's");
+        assertEquals(org.armedbear.j.TextStyle.BOLD, formatter.getStyle(LogFormatter.format(LogRow.Part.HEAD, 3)));
+        onEdt(() -> LogFilters.AUTHOR.binding().set(h.editor(), "Ada"));
+        until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
+        assertEquals(null, ((LogLine) log.getFirstLine()).graph(), "an author's commits: no graph");
+        assertEquals(0, log.graphWidth());
+        assertEquals(0, log.getGutterColumn().width(), "no room kept for it");
+        assertEquals(
+            h.editor().getDisplay().getColumns(),
+            log.getFirstLine().getText().length(),
+            "laid out for the room it left");
+    }
+
+    // The color of the segment of line that is text.
+    private java.awt.Color badgeColor(LogLine line, String text) {
+        final org.armedbear.j.Formatter f = log.getFormatter();
+        final org.armedbear.j.LineSegmentList segments = f.formatLine(line);
+        for (int i = 0; i < segments.size(); i++)
+            if (segments.getSegment(i).getText().strip().equals(text))
+                return f.getColor(segments.getSegment(i).getFormat());
+        return null;
     }
 }
