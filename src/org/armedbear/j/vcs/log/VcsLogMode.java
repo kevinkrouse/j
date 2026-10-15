@@ -41,6 +41,8 @@ import org.armedbear.j.Property;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
+import org.armedbear.j.transients.Transient.Option;
+import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.vcs.status.StatusLine;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.armedbear.j.vcs.status.VcsStatusFormatter;
@@ -77,29 +79,65 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         return "git.html#log";
     }
 
+    // The list's keys; the files and diff have all but its filters'.
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
-        common(km);
-        km.mapKey('g', "vcsLogRefresh");
+        common(km, false);
+        listKeys(km);
     }
 
     private static KeyMap modalKeyMap;
+    private static KeyMap paneKeyMap;
+    private static KeyMap paneModalKeyMap;
 
     @Override
     public synchronized KeyMap getModalKeyMap() {
         if (modalKeyMap == null) {
-            final KeyMap km = new KeyMap();
-            common(km);
-            km.mapKey('r', "vcsLogRefresh");
-            modalKeyMap = km;
+            modalKeyMap = new KeyMap();
+            common(modalKeyMap, true);
+            listKeys(modalKeyMap);
         }
         return modalKeyMap;
+    }
+
+    @Override
+    public synchronized KeyMap getKeyMap(Buffer buffer) {
+        if (!(buffer instanceof LogPane))
+            return getKeyMap();
+        if (paneKeyMap == null) {
+            paneKeyMap = new KeyMap();
+            common(paneKeyMap, false);
+        }
+        return paneKeyMap;
+    }
+
+    @Override
+    public synchronized KeyMap getModalKeyMap(Buffer buffer) {
+        if (!(buffer instanceof LogPane))
+            return getModalKeyMap();
+        if (paneModalKeyMap == null) {
+            paneModalKeyMap = new KeyMap();
+            common(paneModalKeyMap, true);
+        }
+        return paneModalKeyMap;
+    }
+
+    // The filters' keys, in the list alone: in the files and diff vim's l
+    // and - move, and x out of habit would clear every filter.
+    private static void listKeys(KeyMap km) {
+        km.mapKey('l', "vcsLogFilter");
+        // -b, -a and the rest, as in the popup of the filters.
+        final KeyMap filters = new KeyMap();
+        for (Option o : LogFilters.ALL)
+            filters.mapKey(o.key().charAt(1), "vcsLogFilter " + o.description());
+        km.mapKey('-', filters);
+        km.mapKey('x', "vcsLogClearFilters");
     }
 
     // As the status buffer's where they mean the same: Enter visits, Tab
     // opens or closes a hunk, n and p go to the next thing; the diff
     // scrolls from any pane as magit's revision buffer does from its log.
-    private static void common(KeyMap km) {
+    private static void common(KeyMap km, boolean vim) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsLogVisit");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsLogVisit");
         km.mapKey(KeyEvent.VK_ENTER, SHIFT_MASK, "vcsLogRevision");
@@ -119,6 +157,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         km.mapKey('o', "vcsLogOpenFile");
         km.mapKey('O', "vcsLogRevision");
         km.mapKey('D', "vcsLogToggleDetails");
+        km.mapKey(vim ? 'r' : 'g', "vcsLogRefresh");
         km.mapKey('$', "vcsCommandLog");
         km.mapKey('q', "vcsLogQuit");
         km.mapKey('?', "modePopup");
@@ -127,6 +166,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
     // Each pane's main keys, with what Enter does there.
     private static final String[][] LIST_HINTS = {
         { "vcsLogVisit", "files" },
+        { "vcsLogFilter", "filter" },
         { "vcsLogToggleDetails", "layout" },
         { "vcsLogQuit", "quit" },
         { "modePopup", "more" }, };
@@ -179,13 +219,22 @@ public final class VcsLogMode extends AbstractMode implements Mode {
                 new Command("d", "vcsLogScrollDiff", "scroll down", true),
                 new Command("u", "vcsLogScrollDiffBack", "scroll up", true),
                 new Command("D", "vcsLogToggleDetails", "at the bottom or right", true)));
-        groups.add(
-            Group.of(
-                "Log",
-                Command.of(vim ? "r" : "g", "vcsLogRefresh", "refresh"),
-                Command.of("$", "vcsCommandLog", "command log"),
-                Command.of("q", "vcsLogQuit", "close")));
+        final List<Transient.Item> log = new ArrayList<>();
+        // The filters' keys are the list's alone.
+        if (editor == null || editor.getBuffer() instanceof LogBuffer) {
+            log.add(new Prefix("l", "filters", LogFilters::popup));
+            log.add(Command.of("x", "vcsLogClearFilters", "clear the filters"));
+        }
+        log.add(Command.of(vim ? "r" : "g", "vcsLogRefresh", "refresh"));
+        log.add(Command.of("$", "vcsCommandLog", "command log"));
+        log.add(Command.of("q", "vcsLogQuit", "close"));
+        groups.add(new Group("Log", log));
         return new Transient("vcs.log", "Log", "git.html#log", groups);
+    }
+
+    @Override
+    public List<Option> getFilters(Editor editor) {
+        return editor.getBuffer() instanceof LogBuffer ? LogFilters.ALL : null;
     }
 
     @Override

@@ -63,6 +63,8 @@ import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.transients.FilterBar;
+import org.armedbear.j.transients.Transient;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
@@ -394,6 +396,32 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     // The owner of the hint's virtual text.
     private static final String HINT = "hint";
 
+    private FilterBar filterBar;
+
+    /** Shows the mode's filters in a bar over the window, or takes the bar away when it has none. */
+    public void updateFilterBar() {
+        final List<Transient.Option> filters = buffer == null ? null : getMode().getFilters(this);
+        if (filters == null || filters.isEmpty()) {
+            if (filterBar != null) {
+                north.remove(filterBar);
+                filterBar = null;
+                north.revalidate();
+            }
+            return;
+        }
+        if (filterBar == null) {
+            filterBar = new FilterBar(this);
+            north.add(filterBar, BorderLayout.SOUTH);
+            north.revalidate();
+        }
+        filterBar.refresh();
+    }
+
+    /** The bar of the mode's filters over the window, or null. */
+    public FilterBar getFilterBar() {
+        return filterBar;
+    }
+
     /**
      * Shows the mode's hint over the buffer's first line, as Neogit does,
      * with the keys of the edit mode in use. It scrolls away with the text.
@@ -443,7 +471,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (hints == null || hints.length == 0)
             return null;
         final boolean vim = getInputHandler() != null;
-        final KeyMap modal = vim ? getMode().getModalKeyMap() : null;
+        final KeyMap modal = vim ? getMode().getModalKeyMap(buffer) : null;
         final List<String[]> items = new ArrayList<>();
         for (String[] h : hints) {
             KeyMapping mapping = modal == null ? null : modal.getKeyMapping(h[0]);
@@ -1253,7 +1281,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             }
         } else {
             // Look in mode-specific key map.
-            mapping = buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
+            mapping = buffer.getKeyMapForMode().lookup(keyChar, keyCode, modifiers);
             if (mapping != null)
                 local = true;
             else if (event.getID() == JEvent.KEY_TYPED && keyChar == 'q' && modifiers == 0 && buffer.isTransient()) {
@@ -1278,11 +1306,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             Object command = mapping.getCommand();
             if (command instanceof KeyMap keyMap) {
                 // Emacs-style key sequence.
-                if (currentEventSequence == null)
-                    currentEventSequence = new EventSequence();
-                currentEventSequence.addEvent(event);
-                requestedKeyMap = keyMap;
-                status(currentEventSequence.getStatusText() + "-");
+                beginSequence(event, keyMap);
                 return true;
             }
             if (isRecordingMacro())
@@ -1332,11 +1356,27 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return false;
     }
 
+    // A key sequence goes on: the next key is looked up in keyMap.
+    private void beginSequence(JEvent event, KeyMap keyMap) {
+        if (currentEventSequence == null)
+            currentEventSequence = new EventSequence();
+        currentEventSequence.addEvent(event);
+        requestedKeyMap = keyMap;
+        status(currentEventSequence.getStatusText() + "-");
+    }
+
     /** Runs the command km binds an event to, if it binds one. */
     public boolean runKeyMap(KeyMap km, JEvent event) {
         final KeyMapping mapping = km.lookup(event.getKeyChar(), event.getKeyCode(), event.getModifiers());
         if (mapping == null)
             return false;
+        // A prefix, as a mode's "-" before "-a": the next key is looked up in its map.
+        if (mapping.getCommand() instanceof KeyMap prefix) {
+            currentEventSequence = null;
+            local = true;
+            beginSequence(event, prefix);
+            return true;
+        }
         try {
             if (mapping.getCommand() instanceof Command c) {
                 execute(c, null);
@@ -1355,7 +1395,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (requestedKeyMap != null)
             return requestedKeyMap.lookup(keyChar, keyCode, modifiers);
         // Look in mode-specific key map.
-        KeyMapping mapping = buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
+        KeyMapping mapping = buffer.getKeyMapForMode().lookup(keyChar, keyCode, modifiers);
         if (mapping != null)
             return mapping;
         // Look in global key map.
@@ -2682,6 +2722,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         }
 
         updateHint();
+        updateFilterBar();
 
         // A frameless editor, as a test's, has none of these.
         if (frame != null) {

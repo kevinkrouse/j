@@ -214,6 +214,38 @@ final class GitLog {
         return r.succeeded() ? r.out().stripTrailing() : null;
     }
 
+    static List<LogRef> allRefs(VcsRepository repository) {
+        final VcsResult r = GitCli.run(
+            GitCli.read(
+                repository.root(),
+                "for-each-ref",
+                "--format=%(HEAD)%09%(refname)",
+                "refs/heads",
+                "refs/remotes",
+                "refs/tags"));
+        return r.succeeded() ? parseRefs(r.out()) : List.of();
+    }
+
+    // "*\trefs/heads/main", " \trefs/tags/v1"; a remote's HEAD, a pointer to one of its branches, left out.
+    static List<LogRef> parseRefs(String out) {
+        final List<LogRef> refs = new ArrayList<>();
+        for (String line : out.split("\n")) {
+            final int tab = line.indexOf('\t');
+            if (tab < 0 || line.endsWith("/HEAD"))
+                continue;
+            final boolean head = line.startsWith("*");
+            final String name = line.substring(tab + 1);
+            for (LogRef r : refs(name))
+                refs.add(new LogRef(r.name(), r.kind(), head));
+        }
+        return refs;
+    }
+
+    static List<String> paths(VcsRepository repository) {
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "ls-files", "-z"));
+        return r.succeeded() ? words(new String(r.stdout(), StandardCharsets.UTF_8), "\0") : List.of();
+    }
+
     static byte[] fileAt(VcsRepository repository, String id, String path) {
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), "show", id + ":" + path));
         return r.succeeded() ? r.stdout() : null;

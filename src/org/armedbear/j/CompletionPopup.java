@@ -134,7 +134,7 @@ public final class CompletionPopup<T> {
     }
 
     /**
-     * Shows items, selecting the one at selected. Hides if there are none;
+     * Shows items, selecting the one at selected, or none when it is -1. Hides if there are none;
      * false if nothing is showing.
      */
     public boolean show(List<T> items, int selected) {
@@ -155,11 +155,16 @@ public final class CompletionPopup<T> {
             showing = true;
         }
         model.set(items);
-        int index = Math.max(0, Math.min(selected, items.size() - 1));
-        list.setSelectedIndex(index);
         list.setVisibleRowCount(Math.min(items.size(), maxRows));
         place();
-        list.ensureIndexIsVisible(index);
+        if (selected < 0) {
+            list.clearSelection();
+            list.ensureIndexIsVisible(0);
+        } else {
+            final int index = Math.min(selected, items.size() - 1);
+            list.setSelectedIndex(index);
+            list.ensureIndexIsVisible(index);
+        }
         return true;
     }
 
@@ -210,7 +215,8 @@ public final class CompletionPopup<T> {
         if (count == 0)
             return false;
         int index = list.getSelectedIndex();
-        int i = index + delta;
+        // From nothing selected, Down takes the first and Up the last.
+        int i = index < 0 ? (delta > 0 ? delta - 1 : count + delta) : index + delta;
         if (wrap)
             i = Math.floorMod(i, count);
         else

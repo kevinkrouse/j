@@ -45,4 +45,42 @@ public record LogQuery(List<String> revisions, String author, String path, Strin
     public static LogQuery file(String path) {
         return new LogQuery(List.of(), null, path, null, null, null, true);
     }
+
+    /** Whether anything narrows it. */
+    public boolean isFiltered() {
+        return !revisions.isEmpty()
+                || author != null
+                || path != null
+                || since != null
+                || grep != null
+                || pickaxe != null;
+    }
+
+    /** From revision alone, or every branch and tag for null. */
+    public LogQuery withRevision(String revision) {
+        return new LogQuery(revision == null
+                ? List.of()
+                : List.of(revision), author, path, since, grep, pickaxe, follow);
+    }
+
+    public LogQuery withAuthor(String author) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+    }
+
+    /** Under path, following a file's renames when follow says it is one. */
+    public LogQuery withPath(String path, boolean follow) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, path != null && follow);
+    }
+
+    public LogQuery withSince(String since) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+    }
+
+    public LogQuery withGrep(String grep) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+    }
+
+    public LogQuery withPickaxe(String pickaxe) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+    }
 }

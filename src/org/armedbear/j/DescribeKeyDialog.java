@@ -156,8 +156,7 @@ public final class DescribeKeyDialog extends AbstractDialog {
                 mapping = KeyMap.getGlobalKeyMap().lookupEventSequence(copy);
             }
         } else {
-            final Mode mode = buffer.getMode();
-            mapping = mode.getKeyMap().lookup(keyChar, keyCode, modifiers);
+            mapping = buffer.getKeyMapForMode().lookup(keyChar, keyCode, modifiers);
             if (mapping != null)
                 local = true;
             else

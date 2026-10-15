@@ -32,6 +32,7 @@ import org.armedbear.j.Frame;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
+import org.armedbear.j.Sidebar;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.util.Background;
@@ -52,7 +53,9 @@ public final class LogBuffer extends ViewBuffer {
     static final int FOLLOW_DELAY = 100;
 
     private final VcsRepository repository;
-    private final LogQuery query;
+    private LogQuery query;
+    // Bumped by each read from the first page, so a page read before it is dropped.
+    private int generation;
     private final int pageSize;
     private final List<LogCommit> commits = new ArrayList<>();
     private boolean more = true;
@@ -72,11 +75,9 @@ public final class LogBuffer extends ViewBuffer {
     private final Timer follow;
 
     private LogBuffer(VcsRepository repository, LogQuery query, int pageSize) {
-        super(VcsLogMode.getMode(),
-                repository.backend().name() + " log: " + repository.root().getFileName()
-                        + (query.path() != null ? " " + query.path() : ""),
-                "Reading…");
+        super(VcsLogMode.getMode(), title(repository, query), "Reading…");
         this.repository = repository;
+        this.names = LogNames.of(repository);
         this.query = query;
         this.pageSize = pageSize;
         follow = new Timer(FOLLOW_DELAY, e -> showDetails());
@@ -91,6 +92,7 @@ public final class LogBuffer extends ViewBuffer {
     static LogBuffer open(VcsRepository repository, LogQuery query, int pageSize) {
         final LogBuffer log = new LogBuffer(repository, query, pageSize);
         log.loadMore();
+        log.names.read(false);
         return log;
     }
 
@@ -101,6 +103,30 @@ public final class LogBuffer extends ViewBuffer {
     public LogQuery getQuery() {
         return query;
     }
+
+    /** Shows the commits query takes, read again from the first page. */
+    void setQuery(LogQuery query) {
+        if (query.equals(this.query))
+            return;
+        this.query = query;
+        title = title(repository, query);
+        for (Editor ed : Editor.getEditorList())
+            if (ed.getBuffer() == this && ed.getFrame() != null) {
+                ed.updateLocation();
+                ed.getFrame().updateTitle();
+            }
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
+        readAgain();
+    }
+
+    // "git log: j", or "git log: j src/Foo.java" for a path's.
+    private static String title(VcsRepository repository, LogQuery query) {
+        return repository.backend().name() + " log: " + repository.root().getFileName()
+                + (query.path() != null ? " " + query.path() : "");
+    }
+
+    // What the filters' lists offer.
+    private final LogNames names;
 
     /** Whether the log has the whole frame, with its details. */
     boolean isFull() {
@@ -151,7 +177,7 @@ public final class LogBuffer extends ViewBuffer {
         return disposed;
     }
 
-    /** The commits read so far. For tests. */
+    /** The commits read so far. */
     List<LogCommit> commits() {
         return commits;
     }
@@ -169,26 +195,39 @@ public final class LogBuffer extends ViewBuffer {
             return;
         loading = true;
         final int skip = commits.size();
+        final int at = generation;
+        final LogQuery q = query;
         Background.start("vcs log", () -> {
             List<LogCommit> page;
             try {
-                page = repository.backend().readLog(repository, query, skip, pageSize);
+                page = repository.backend().readLog(repository, q, skip, pageSize);
             }
             catch (RuntimeException e) {
                 Log.error(e);
                 page = List.of();
             }
             final List<LogCommit> read = page != null ? page : List.of();
-            SwingUtilities.invokeLater(() -> append(read));
+            SwingUtilities.invokeLater(() -> {
+                if (at == generation)
+                    append(read);
+            });
         });
     }
 
-    /** Reads it again from the first page, the caret staying on its commit. */
+    /** Reads it again from the first page, the caret staying on its commit, and the refs and paths. */
     void refresh() {
-        if (loading || disposed)
+        readAgain();
+        names.read(true);
+    }
+
+    // From the first page again, any page being read dropped.
+    private void readAgain() {
+        if (disposed)
             return;
         final LogCommit at = commitAt(LogBuffers.windowOf(this));
         select = at != null ? at.id() : null;
+        generation++;
+        loading = false;
         commits.clear();
         more = true;
         loadMore();
@@ -201,6 +240,7 @@ public final class LogBuffer extends ViewBuffer {
         more = page.size() == pageSize;
         final boolean first = commits.isEmpty();
         commits.addAll(page);
+        names.addAuthors(page);
         final long now = System.currentTimeMillis() / 1000;
         final List<Line> lines = new ArrayList<>();
         for (LogCommit c : page)
@@ -209,7 +249,7 @@ public final class LogBuffer extends ViewBuffer {
             empty();
         withWriteLock(() -> {
             if (first && lines.isEmpty())
-                appendLine(new TextLine(repository.backend().name() + ": no commits"));
+                appendLine(new TextLine(emptyText()));
             for (Line l : lines)
                 appendLine(l);
             renumber();
@@ -239,6 +279,14 @@ public final class LogBuffer extends ViewBuffer {
         select = null;
         if (first && isFull())
             showDetails();
+    }
+
+    // A file's log with no commits has none; filters, as an author, match none.
+    private String emptyText() {
+        if (query.withPath(null, false).isFiltered())
+            return "No commits match the filters";
+        final String none = repository.backend().name() + ": no commits";
+        return query.path() != null ? none + " of " + query.path() : none;
     }
 
     // Laying out.

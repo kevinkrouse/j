@@ -767,7 +767,7 @@ public class Buffer extends SystemBuffer {
 
     public final KeyMap getKeyMapForMode() {
         // Should never return null.
-        return mode.getKeyMap();
+        return mode.getKeyMap(this);
     }
 
     public final int getFileType() {

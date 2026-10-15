@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
-import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JLayeredPane;
 import javax.swing.JRootPane;
@@ -52,10 +51,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import org.armedbear.j.CommandTable;
-import org.armedbear.j.CompletionPopup;
 import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
@@ -68,7 +64,6 @@ import org.armedbear.j.transients.Transient.Field;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Item;
 import org.armedbear.j.transients.Transient.Option;
-import org.armedbear.j.transients.Transient.Pick;
 import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.transients.Transient.Switch;
 import org.armedbear.j.util.Utilities;
@@ -106,7 +101,7 @@ public final class TransientPopup extends JComponent {
         }
     };
     private Option fieldOption;
-    private CompletionPopup<String> completion;
+    private OptionField optionField;
 
     private List<List<Cell>> rows = List.of();
     private boolean closed;
@@ -437,9 +432,7 @@ public final class TransientPopup extends JComponent {
     // A binding changed the buffer: what a command's end does, in every
     // window showing it, since no command ran.
     private void updateWindows() {
-        for (Editor ed : Editor.getEditorList())
-            if (ed.getBuffer() == editor.getBuffer())
-                ed.updateDisplay();
+        FilterBar.refreshAll(editor.getBuffer());
     }
 
     // An option's field, on its row where the value is.
@@ -447,68 +440,12 @@ public final class TransientPopup extends JComponent {
     private void openField(Option o) {
         closeField();
         fieldOption = o;
-        field = new JTextField(value(o) == null ? "" : value(o));
-        field.setFont(Display.getPlainFont());
-        field.setBorder(BorderFactory.createEmptyBorder());
-        field.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                final int code = e.getKeyCode();
-                if (code == KeyEvent.VK_ENTER) {
-                    final String picked =
-                            completion != null && completion.isShowing() ? completion.getSelected() : null;
-                    acceptField(picked != null ? picked : field.getText());
-                    e.consume();
-                } else if (code == KeyEvent.VK_ESCAPE) {
-                    escape();
-                    e.consume();
-                } else if (completion != null
-                        && completion.isShowing()
-                        && (code == KeyEvent.VK_DOWN || code == KeyEvent.VK_UP)) {
-                    completion.move(code == KeyEvent.VK_DOWN ? 1 : -1, true);
-                    e.consume();
-                }
-            }
-        });
+        optionField = new OptionField(o, editor, value(o), this::acceptField, this::escape);
+        field = optionField.field();
         field.addFocusListener(fieldFocus);
-        List<String> all = null;
-        if (o.chooser() instanceof Pick pick) {
-            completion = new CompletionPopup<>(field, 10);
-            completion.setOnClick(this::acceptField);
-            all = pick.candidates().apply(editor);
-            final List<String> candidates = all;
-            field.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
-                    filter(candidates);
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    filter(candidates);
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {}
-            });
-        }
         add(field);
         refresh();
-        field.selectAll();
-        field.requestFocusInWindow();
-        if (all != null)
-            filter(all);
-    }
-
-    private void filter(List<String> all) {
-        if (field == null || completion == null)
-            return;
-        final String typed = field.getText().toLowerCase(Locale.ROOT);
-        final List<String> shown = new ArrayList<>();
-        for (String s : all)
-            if (s.toLowerCase(Locale.ROOT).contains(typed))
-                shown.add(s);
-        completion.show(shown, 0);
+        optionField.start();
     }
 
     /** Sets the option whose field is open to value, and closes the field. */
@@ -523,9 +460,9 @@ public final class TransientPopup extends JComponent {
     }
 
     private void closeField() {
-        if (completion != null) {
-            completion.hide();
-            completion = null;
+        if (optionField != null) {
+            optionField.close();
+            optionField = null;
         }
         if (field != null) {
             // Removing a focused field sends the focus on to whatever is next,

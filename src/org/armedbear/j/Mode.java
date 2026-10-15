@@ -103,6 +103,16 @@ public interface Mode {
         return null;
     }
 
+    /** The key map of this mode in buffer: its own, unless the mode gives some buffers others, as a pane of a view. */
+    public default KeyMap getKeyMap(Buffer buffer) {
+        return getKeyMap();
+    }
+
+    /** The modal key map of this mode in buffer, as {@link #getKeyMap(Buffer)} is to the key map. */
+    public default KeyMap getModalKeyMap(Buffer buffer) {
+        return getModalKeyMap();
+    }
+
     /** A word for what a transient buffer in this mode is, as Help or Results. */
     public default String getTransientTag() {
         return "Output";
@@ -577,6 +587,15 @@ public interface Mode {
      * move as vim's ]] does.
      */
     public default Line sectionFrom(Line from, boolean forward) {
+        return null;
+    }
+
+    /**
+     * The filters on the view in editor, each an option of the buffer's
+     * popup with a binding, shown as chips in a bar over the window; null
+     * for none.
+     */
+    public default List<org.armedbear.j.transients.Transient.Option> getFilters(Editor editor) {
         return null;
     }
 

@@ -36,6 +36,11 @@ import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
 import org.armedbear.j.WindowLayout.Split;
 import org.armedbear.j.WindowLayout.Window;
+import org.armedbear.j.transients.FilterBar;
+import org.armedbear.j.transients.Transient;
+import org.armedbear.j.transients.Transient.Option;
+import org.armedbear.j.transients.TransientPopup;
+import org.armedbear.j.transients.Transients;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
@@ -50,7 +55,7 @@ public final class LogCommands {
     // Opening.
 
     /** The log of the current buffer's repository, taking the whole frame; from the quick log, it grows. */
-    public static void gitLog(Editor editor) {
+    public static void vcsLog(Editor editor) {
         if (editor.getBuffer() instanceof LogBuffer log) {
             showFull(editor, log);
             return;
@@ -58,15 +63,33 @@ public final class LogCommands {
         final VcsRepository r = repository(editor);
         if (r == null)
             return;
-        showFull(editor, LogBuffer.open(r, LogQuery.ALL));
+        showFull(editor, LogBuffer.open(r, startingQuery(editor, LogQuery.ALL, r)));
+    }
+
+    // query narrowed by the filters set in r's log popup, as editor's buffer keeps them.
+    private static LogQuery startingQuery(Editor editor, LogQuery query, VcsRepository r) {
+        return LogFilters.withArguments(query, Transients.args(editor, LogFilters.openingId(r)), r);
+    }
+
+    /** l in a status buffer: the popup that opens a log, its filters set first. */
+    public static void vcsLogPopup(Editor editor) {
+        TransientPopup.open(editor, openingPopup(editor));
+    }
+
+    /** The popup that opens a log from editor, the names its filters offer read meanwhile. */
+    public static Transient openingPopup(Editor editor) {
+        final VcsRepository r = repositoryOf(editor);
+        if (r != null)
+            LogNames.of(r).read(false);
+        return LogFilters.openingPopup(r);
     }
 
     /** The log alone in a window under this one, with no details. */
-    public static void gitLogQuick(Editor editor) {
+    public static void vcsLogQuick(Editor editor) {
         final VcsRepository r = repository(editor);
         if (r == null)
             return;
-        final LogBuffer log = LogBuffer.open(r, LogQuery.ALL);
+        final LogBuffer log = LogBuffer.open(r, startingQuery(editor, LogQuery.ALL, r));
         final Frame frame = editor.getFrame();
         if (frame == null) {
             editor.show(log);
@@ -78,29 +101,33 @@ public final class LogCommands {
     }
 
     /** The current file's log, through its renames. */
-    public static void gitLogFile(Editor editor) {
+    public static void vcsLogFile(Editor editor) {
         final File file = editor.getBuffer().getFile();
         final VcsRepository r = file != null && file.isLocal() ? Repositories.forFile(file) : null;
         if (r == null) {
             editor.status("Not a file in a repository");
             return;
         }
-        showFull(editor, LogBuffer.open(r, LogQuery.file(r.relativePath(file))));
+        showFull(editor, LogBuffer.open(r, startingQuery(editor, LogQuery.file(r.relativePath(file)), r)));
     }
 
-    // The repository of the thing at the caret in a status buffer, or of the current buffer.
+    // The repository a log opens from editor, or says there is none.
     private static VcsRepository repository(Editor editor) {
+        final VcsRepository r = repositoryOf(editor);
+        if (r == null)
+            editor.status("Not in a repository");
+        return r;
+    }
+
+    /** The log's repository, the one of the thing at the caret in a status buffer, or the current buffer's; else null. */
+    static VcsRepository repositoryOf(Editor editor) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());
         if (log != null)
             return log.getRepository();
         if (editor.getDot() != null && editor.getDotLine() instanceof StatusLine s && s.repository() != null)
             return s.repository();
         final List<VcsRepository> rs = VcsStatusMode.repositoriesFor(editor.getBuffer());
-        if (rs.isEmpty()) {
-            editor.status("Not in a repository");
-            return null;
-        }
-        return rs.get(0);
+        return rs.isEmpty() ? null : rs.get(0);
     }
 
     /**
@@ -323,6 +350,40 @@ public final class LogCommands {
             final Buffer focused = editor.getBuffer();
             layOut(frame, log);
             focus(focused);
+        }
+    }
+
+    /** l: the popup of the log's filters. */
+    public static void vcsLogFilter(Editor editor) {
+        vcsLogFilter(editor, null);
+    }
+
+    /**
+     * -a and the rest: the filter named ("author"), its value typed in the
+     * field over its chip in the list's filter bar; the popup for none.
+     */
+    public static void vcsLogFilter(Editor editor, String name) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log == null)
+            return;
+        final Option option = name == null ? null : LogFilters.named(name.strip());
+        final Editor list = LogBuffers.windowOf(log);
+        final FilterBar bar = list == null ? null : list.getFilterBar();
+        if (option == null || bar == null) {
+            if (name != null && option == null)
+                editor.status("No filter " + name.strip());
+            TransientPopup.open(editor, LogFilters.popup());
+            return;
+        }
+        bar.choose(option);
+    }
+
+    /** x: every filter cleared, a file's log's path too. */
+    public static void vcsLogClearFilters(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log != null) {
+            log.setQuery(LogQuery.ALL);
+            FilterBar.refreshAll(log);
         }
     }
 

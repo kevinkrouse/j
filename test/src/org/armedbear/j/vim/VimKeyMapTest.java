@@ -255,7 +255,7 @@ public class VimKeyMapTest {
 
     @Test
     public void theDefaultMapBindsLeaderRowsToABackslash() {
-        assertEquals("\\gg", VimKeyMap.getDefault().keysFor("gitStatus"));
+        assertEquals("\\gg", VimKeyMap.getDefault().keysFor("vcsStatus"));
     }
 
     @Test
@@ -271,6 +271,6 @@ public class VimKeyMapTest {
     public void aVimrcMappingKeepsTheLeaderRowsItStarts() throws Exception {
         final VimKeyMap map = VimKeyMap.getDefault();
         new VimrcParser(map, new VimOptions()).load(new java.io.StringReader("nnoremap <leader>g :help<CR>\n"));
-        assertEquals("\\gg", map.keysFor("gitStatus"), "as a plugin's mapping in vim is kept");
+        assertEquals("\\gg", map.keysFor("vcsStatus"), "as a plugin's mapping in vim is kept");
     }
 }

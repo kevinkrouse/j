@@ -416,4 +416,23 @@ public class TransientPopupTest {
     public void aBadPatternMatchesNothing() {
         assertFalse(new DirectoryFilenameFilter("[", false).accepts("["));
     }
+
+    @Test
+    public void aBlankFieldHighlightsTheFirstCandidateUnlessAValueWasErased() {
+        assertEquals(0, OptionField.highlight("", false), "unset: Enter takes the first");
+        assertEquals(-1, OptionField.highlight("", true), "erased: Enter clears it");
+        assertEquals(-1, OptionField.highlight("  ", true));
+        assertEquals(0, OptionField.highlight("ma", true), "typed: the first match");
+    }
+
+    @Test
+    public void candidatesThatAreTheTextComeFirstThenThoseThatStartWithIt() {
+        final List<String> all = List.of("domain-x", "origin/main", "main", "maintenance", "MAIN-2");
+        assertEquals(
+            List.of("main", "maintenance", "MAIN-2", "domain-x", "origin/main"),
+            OptionField.matches(all, "main", 10));
+        assertEquals(List.of("main", "maintenance"), OptionField.matches(all, " Main ", 2));
+        assertEquals(all, OptionField.matches(all, "", 10), "blank: all, in order");
+        assertEquals(List.of(), OptionField.matches(all, "zzz", 10));
+    }
 }

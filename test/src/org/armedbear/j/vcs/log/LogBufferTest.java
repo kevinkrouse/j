@@ -55,6 +55,11 @@ public class LogBufferTest {
 
     @AfterEach
     public void tearDown() throws Exception {
+        // Nothing reads the repository once it is gone.
+        if (log != null)
+            until(() -> !log.isLoading());
+        if (repository != null)
+            until(() -> !LogNames.of(repository).isReading());
         onEdt(() -> {
             for (Buffer b : new Buffer[] { log == null ? null : log.diff, log == null ? null : log.files, log })
                 if (b != null)
@@ -434,9 +439,10 @@ public class LogBufferTest {
                         log.diff.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
                     }
                 });
-                final org.armedbear.j.KeyMap km =
-                        vim ? VcsLogMode.getMode().getModalKeyMap() : VcsLogMode.getMode().getKeyMap();
-                for (EditorHarness e : List.of(h, d))
+                for (EditorHarness e : List.of(h, d)) {
+                    final org.armedbear.j.KeyMap km = vim
+                            ? VcsLogMode.getMode().getModalKeyMap(e.editor().getBuffer())
+                            : VcsLogMode.getMode().getKeyMap(e.editor().getBuffer());
                     for (org.armedbear.j.transients.Transient.Group g : VcsLogMode.getMode()
                             .getTransient(e.editor())
                             .groups())
@@ -447,6 +453,7 @@ public class LogBufferTest {
                                 assertNotNull(m, (vim ? "vim: " : "") + c.key() + " is no key in the log");
                                 assertEquals(c.command(), m.getCommand(), (vim ? "vim: " : "") + c.key());
                             }
+                }
             }
         }
         finally {
@@ -547,5 +554,279 @@ public class LogBufferTest {
         finally {
             close(d);
         }
+    }
+
+    // Two commits of a.txt, then one of Ada's adding b/c.txt.
+    private void twoAuthors() throws Exception {
+        repo(2);
+        git.write("b/c.txt", "c\n");
+        git.git("add", "-A");
+        git.git("commit", "-q", "--author=Ada Lovelace <ada@example.com>", "-m", "by ada");
+    }
+
+    @Test
+    public void aFilterReadsTheLogAgainAndItsChipShowsIt() throws Exception {
+        twoAuthors();
+        open(100);
+        onEdt(() -> h.editor().updateFilterBar());
+        final org.armedbear.j.transients.FilterBar bar = h.editor().getFilterBar();
+        assertNotNull(bar, "the list has a filter bar");
+        assertEquals(
+            List.of("-b branch ▾", "-a author ▾", "-p path ▾", "-d since ▾", "-g message ▾", "-s change ▾"),
+            bar.text());
+        onEdt(() -> {
+            LogFilters.AUTHOR.binding().set(h.editor(), "Ada");
+            org.armedbear.j.transients.FilterBar.refreshAll(log);
+        });
+        until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
+        assertTrue(bar.text().contains("-a author: Ada ▾ ×"), bar.text().toString());
+        onEdt(() -> LogCommands.vcsLogClearFilters(h.editor()));
+        until(() -> !log.isLoading() && log.commits().size() == 3);
+        assertEquals(LogQuery.ALL, log.getQuery());
+        assertEquals("-a author ▾", bar.text().get(1));
+    }
+
+    @Test
+    public void aPageReadBeforeTheFilterChangedIsDropped() throws Exception {
+        twoAuthors();
+        h = EditorHarness.create();
+        onEdt(() -> {
+            log = LogBuffer.open(repository, LogQuery.ALL, 100);
+            log.setWidth(60);
+            h.showBuffer(log);
+            log.setQuery(LogQuery.ALL.withAuthor("Ada"));
+        });
+        until(() -> !log.isLoading() && !log.commits().isEmpty());
+        Thread.sleep(200);
+        until(() -> !log.isLoading());
+        assertEquals(List.of("by ada"), subjects());
+    }
+
+    @Test
+    public void thePathFilterFollowsAFileButNotADirectory() throws Exception {
+        twoAuthors();
+        open(100);
+        final LogNames names = LogNames.of(repository);
+        until(() -> !names.paths().isEmpty() && !names.refs().isEmpty());
+        assertEquals(List.of("a.txt", "b/", "b/c.txt"), names.paths());
+        assertEquals("main", names.refs().get(0).name());
+        onEdt(() -> LogFilters.PATH.binding().set(h.editor(), "b/c.txt"));
+        assertTrue(log.getQuery().follow());
+        until(() -> !log.isLoading());
+        assertEquals(List.of("by ada"), subjects());
+        onEdt(() -> LogFilters.PATH.binding().set(h.editor(), "b/"));
+        assertFalse(log.getQuery().follow());
+        until(() -> !log.isLoading());
+        assertEquals(List.of("by ada"), subjects());
+    }
+
+    @Test
+    public void aChipsClickTypesItsValueAndItsCrossClearsIt() throws Exception {
+        twoAuthors();
+        open(100);
+        onEdt(() -> h.editor().updateFilterBar());
+        final org.armedbear.j.transients.FilterBar bar = h.editor().getFilterBar();
+        onEdt(() -> {
+            final java.awt.Rectangle r = bar.boundsOf(LogFilters.GREP);
+            press(bar, r.x + 1, r.y + 1);
+        });
+        assertNotNull(bar.getField(), "a field over the chip");
+        onEdt(() -> bar.acceptField(" ada "));
+        assertNull(bar.getField());
+        assertEquals("ada", log.getQuery().grep());
+        until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
+        onEdt(() -> {
+            final java.awt.Rectangle r = bar.clearBoundsOf(LogFilters.GREP);
+            press(bar, r.x + 1, r.y + 1);
+        });
+        assertNull(log.getQuery().grep());
+    }
+
+    private static void press(java.awt.Component c, int x, int y) {
+        c.dispatchEvent(
+            new java.awt.event.MouseEvent(c,
+                    java.awt.event.MouseEvent.MOUSE_PRESSED,
+                    0,
+                    0,
+                    x,
+                    y,
+                    1,
+                    false,
+                    java.awt.event.MouseEvent.BUTTON1));
+    }
+
+    @Test
+    public void theFilesAndDiffHaveNoFilterBar() throws Exception {
+        repo(1);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        final EditorHarness d = diffWindow();
+        try {
+            onEdt(() -> d.editor().updateFilterBar());
+            assertNull(d.editor().getFilterBar());
+        }
+        finally {
+            close(d);
+        }
+    }
+
+    @Test
+    public void withDirectoriesListsEachDirectoryBeforeItsFiles() {
+        assertEquals(
+            List.of("a/", "a/b/", "a/b/c", "a/d", "e"),
+            LogNames.withDirectories(List.of("a/b/c", "a/d", "e")));
+    }
+
+    @Test
+    public void aFilesLogKeepsItsPathWhateverThePopupSays() throws Exception {
+        twoAuthors();
+        final org.armedbear.j.transients.TransientArgs args = new org.armedbear.j.transients.TransientArgs();
+        args.set("-- path", "b/");
+        args.set("--grep", "x");
+        final LogQuery q = LogFilters.withArguments(LogQuery.file("a.txt"), args, repository);
+        assertEquals("a.txt", q.path());
+        assertTrue(q.follow());
+        assertEquals("x", q.grep());
+        final LogQuery all = LogFilters.withArguments(LogQuery.ALL, args, repository);
+        assertEquals("b/", all.path());
+        assertFalse(all.follow(), "a directory's history doesn't follow renames");
+    }
+
+    @Test
+    public void dashKeysOpenTheirChipsFieldInEitherEditMode() throws Exception {
+        twoAuthors();
+        open(100);
+        onEdt(() -> h.editor().updateFilterBar());
+        final org.armedbear.j.transients.FilterBar bar = h.editor().getFilterBar();
+        for (boolean vim : new boolean[] { false, true }) {
+            onEdt(() -> {
+                if (vim) {
+                    h.vim();
+                    log.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+                }
+                h.keys("-a");
+            });
+            assertNotNull(bar.getField(), (vim ? "vim: " : "") + "-a opens the author's field");
+            onEdt(() -> bar.acceptField(vim ? "Ada" : ""));
+            assertNull(bar.getField());
+        }
+        assertEquals("Ada", log.getQuery().author());
+    }
+
+    @Test
+    public void theFilterPopupsKeysAreTheLogsDashKeys() throws Exception {
+        for (org.armedbear.j.KeyMap km : List
+                .of(VcsLogMode.getMode().getKeyMap(), VcsLogMode.getMode().getModalKeyMap())) {
+            final org.armedbear.j.KeyMapping dash = km.lookup('-', 0, 0);
+            assertNotNull(dash);
+            final org.armedbear.j.KeyMap filters = (org.armedbear.j.KeyMap) dash.getCommand();
+            for (org.armedbear.j.transients.Transient.Item item : LogFilters.popup().groups().get(0).items()) {
+                final org.armedbear.j.KeyMapping m = filters.lookup(item.key().charAt(1), 0, 0);
+                assertNotNull(m, item.key());
+                assertEquals("vcsLogFilter " + item.description(), m.getCommand());
+                assertNotNull(LogFilters.named(item.description()));
+            }
+        }
+    }
+
+    @Test
+    public void theFilterKeysAreTheListsAlone() throws Exception {
+        repo(1);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        final VcsLogMode mode = VcsLogMode.getMode();
+        for (char c : new char[] { 'l', '-', 'x' }) {
+            assertNotNull(mode.getKeyMap(log).lookup(c, 0, 0), c + " in the list");
+            assertNotNull(mode.getModalKeyMap(log).lookup(c, 0, 0), c + " in the list, vim");
+            for (Buffer pane : new Buffer[] { log.files, log.diff }) {
+                assertNull(mode.getKeyMap(pane).lookup(c, 0, 0), c + " in " + pane);
+                assertNull(mode.getModalKeyMap(pane).lookup(c, 0, 0), c + " in " + pane + ", vim");
+            }
+        }
+        assertNotNull(mode.getKeyMap(log.diff).lookup('n', 0, 0), "the rest are shared");
+    }
+
+    @Test
+    public void theStatusLogPopupsFiltersAreTheLogsToStartWith() throws Exception {
+        twoAuthors();
+        h = EditorHarness.create();
+        Editor.setCurrentEditor(h.editor());
+        final org.armedbear.j.vcs.status.VcsStatusBuffer[] status = new org.armedbear.j.vcs.status.VcsStatusBuffer[1];
+        onEdt(() -> {
+            status[0] = org.armedbear.j.vcs.status.VcsStatusBuffer.of(List.of(repository));
+            h.showBuffer(status[0]);
+            h.editor().setDot(status[0].getFirstLine(), 0);
+        });
+        try {
+            until(() -> !status[0].getFirstLine().getText().startsWith("Reading"));
+            onEdt(() -> h.keys("l"));
+            final org.armedbear.j.transients.TransientPopup popup = org.armedbear.j.transients.TransientPopup.getOpen();
+            assertNotNull(popup, "l opens the log popup");
+            for (String key : List.of("-b", "-a", "-p", "-d", "-g", "-s"))
+                assertTrue(
+                    popup.getTransient().item(key) instanceof org.armedbear.j.transients.Transient.Option o
+                            && o.binding() == null,
+                    key + " is an argument of the popup");
+            final String id = popup.getTransient().id();
+            onEdt(() -> {
+                popup.close(false);
+                org.armedbear.j.transients.Transients.args(h.editor(), id).set("--author", "nobody");
+                org.armedbear.j.transients.Transients.args(h.editor(), id).set("-- path", "a.txt");
+                LogCommands.vcsLogQuick(h.editor());
+            });
+            assertTrue(h.editor().getBuffer() instanceof LogBuffer, "the quick log, frameless, in the window");
+            log = (LogBuffer) h.editor().getBuffer();
+            assertEquals("nobody", log.getQuery().author());
+            assertEquals("a.txt", log.getQuery().path());
+            assertTrue(log.getQuery().follow(), "a file follows its renames");
+            until(() -> "No commits match the filters".equals(log.getFirstLine().getText()));
+        }
+        finally {
+            onEdt(() -> {
+                status[0].dispose();
+                Editor.getBufferList().remove(status[0]);
+            });
+        }
+    }
+
+    @Test
+    public void aFilesLogWithNoCommitsSaysSoAndItsTitleFollowsThePath() throws Exception {
+        twoAuthors();
+        h = EditorHarness.create();
+        onEdt(() -> {
+            log = LogBuffer.open(repository, LogQuery.file("new.txt"), 100);
+            h.showBuffer(log);
+        });
+        until(() -> !log.isLoading());
+        assertEquals(List.of("git: no commits of new.txt"), subjects());
+        assertTrue(log.getFileNameForDisplay().endsWith(" new.txt"), log.getFileNameForDisplay());
+        onEdt(() -> LogCommands.vcsLogClearFilters(h.editor()));
+        assertFalse(log.getFileNameForDisplay().contains("new.txt"), "the whole log's title");
+        onEdt(() -> LogFilters.AUTHOR.binding().set(h.editor(), "nobody"));
+        until(() -> !log.isLoading());
+        assertEquals(List.of("No commits match the filters"), subjects());
+    }
+
+    @Test
+    public void eachRepositoryKeepsItsOwnOpeningFilters() throws Exception {
+        twoAuthors();
+        final VcsRepository other = Repositories
+                .forDirectory(GitFixture.init(java.nio.file.Files.createDirectories(tmp.resolve("other"))).root);
+        final String a = LogFilters.openingId(repository);
+        final String b = LogFilters.openingId(other);
+        assertFalse(a.equals(b));
+        h = EditorHarness.create();
+        org.armedbear.j.transients.Transients.args(h.buffer(), a).set("<revision>", "feature-x");
+        assertEquals(
+            "feature-x",
+            LogFilters
+                    .withArguments(LogQuery.ALL, org.armedbear.j.transients.Transients.args(h.buffer(), a), repository)
+                    .revisions()
+                    .get(0));
+        assertTrue(
+            LogFilters.withArguments(LogQuery.ALL, org.armedbear.j.transients.Transients.args(h.buffer(), b), other)
+                    .revisions()
+                    .isEmpty(),
+            "not the other repository's");
     }
 }

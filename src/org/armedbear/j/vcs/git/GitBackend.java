@@ -216,6 +216,16 @@ public final class GitBackend implements VcsBackend {
         return GitLog.fileAt(repository, id, path);
     }
 
+    @Override
+    public List<org.armedbear.j.vcs.log.LogRef> readRefs(VcsRepository repository) {
+        return GitLog.allRefs(repository);
+    }
+
+    @Override
+    public List<String> readPaths(VcsRepository repository) {
+        return GitLog.paths(repository);
+    }
+
     // HEAD and the index in the working tree's git directory; refs and
     // packed-refs in the common one.
     @Override

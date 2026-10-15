@@ -233,4 +233,24 @@ public class GitLogTest {
         assertTrue(GitLog.diff(repository, id("HEAD"), id("HEAD~"), a).hunks().isEmpty());
         assertNull(GitLog.diff(repository, "0".repeat(40), id("HEAD~"), a));
     }
+
+    @Test
+    public void readsTheRefsAndTheTrackedPaths() throws Exception {
+        init();
+        git.write("a.txt", "a\n");
+        git.write("d/b.txt", "b\n");
+        git.commitAll("first");
+        git.git("tag", "v1");
+        git.git("branch", "feature/x");
+        assertEquals(
+            List.of(
+                new LogRef("feature/x", LogRef.Kind.BRANCH, false),
+                new LogRef("main", LogRef.Kind.BRANCH, true),
+                new LogRef("v1", LogRef.Kind.TAG, false)),
+            GitLog.allRefs(repository));
+        assertEquals(List.of("a.txt", "d/b.txt"), GitLog.paths(repository));
+        assertEquals(
+            List.of(new LogRef("origin/main", LogRef.Kind.REMOTE, false)),
+            GitLog.parseRefs(" \trefs/remotes/origin/HEAD\n \trefs/remotes/origin/main\n"));
+    }
 }

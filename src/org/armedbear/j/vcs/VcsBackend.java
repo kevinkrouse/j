@@ -208,6 +208,16 @@ public interface VcsBackend {
         return null;
     }
 
+    /** The branches, remotes and tags, HEAD's branch marked; empty if none can be read. */
+    default List<org.armedbear.j.vcs.log.LogRef> readRefs(VcsRepository repository) {
+        return List.of();
+    }
+
+    /** The paths of the files tracked, from the root, separated by '/'. */
+    default List<String> readPaths(VcsRepository repository) {
+        return List.of();
+    }
+
     /** What to watch for changes made outside j: the repository's metadata, not its working tree. */
     default List<RepositoryWatcher.Watch> watches(VcsRepository repository) {
         return List.of();

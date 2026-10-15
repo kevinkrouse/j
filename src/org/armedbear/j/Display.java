@@ -1657,8 +1657,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
-    // Antialiased, so its four corners round alike.
-    private static void fillChip(Graphics2D g, Color color, int x, int y, int width, int height) {
+    /** A rounded background, as a badge's or a chip's; antialiased, so its four corners round alike. */
+    public static void fillChip(Graphics2D g, Color color, int x, int y, int width, int height) {
         final Graphics2D g2d = (Graphics2D) g.create();
         try {
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

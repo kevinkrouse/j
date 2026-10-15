@@ -340,10 +340,10 @@ public final class WindowFuzz {
             if (ed.getBuffer().isTransient())
                 ed.closeTransient();
         }),
-        new Op("gitStatus", ed -> {
+        new Op("vcsStatus", ed -> {
             if (!(ed.getBuffer() instanceof VcsStatusBuffer))
                 ed = ed.show(Editor.getBuffer(file("proj/file" + (1 + rnd.nextInt(4)) + ".txt")));
-            command(ed, "gitStatus", null);
+            command(ed, "vcsStatus", null);
         }),
         new Op("statusKey", ed -> {
             if (!(ed.getBuffer() instanceof VcsStatusBuffer))

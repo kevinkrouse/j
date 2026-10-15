@@ -48,6 +48,7 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
@@ -180,7 +181,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                     new Command("U", "vcsUnstageAll", "unstage all", true)));
             groups.add(Group.of("Commit", new Prefix("c", "commit…", CommitCommands::popup)));
         }
-        groups.add(Group.of("Log", new Prefix("l", "log…", VcsStatusMode::logPopup)));
+        groups.add(Group.of("Log", new Prefix("l", "log…", () -> LogCommands.openingPopup(editor))));
         groups.add(
             Group.of(
                 "Repository",
@@ -188,19 +189,6 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 Command.of("$", "vcsCommandLog", "command log"),
                 Command.of("q", "killBuffer", "close")));
         return new Transient("vcs.status", "Status", "git.html#status", groups);
-    }
-
-    /** The log's popup: the full log, the quick log, or the current file's. */
-    static Transient logPopup() {
-        return new Transient("vcs.log.open",
-                "Log",
-                "git.html#log",
-                List.of(
-                    Group.of("Log", Command.of("l", "gitLog", "log"), Command.of("q", "gitLogQuick", "quick log"))));
-    }
-
-    public static void vcsLogPopup(Editor editor) {
-        org.armedbear.j.transients.TransientPopup.open(editor, logPopup());
     }
 
     static boolean stages(Buffer buffer) {
@@ -268,7 +256,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     // Commands.
 
     /** Opens the status of the current buffer's repository, or of the project's repositories. */
-    public static void gitStatus(Editor editor) {
+    public static void vcsStatus(Editor editor) {
         final List<VcsRepository> repositories = repositoriesFor(editor.getBuffer());
         if (repositories.isEmpty()) {
             editor.status("Not in a repository");

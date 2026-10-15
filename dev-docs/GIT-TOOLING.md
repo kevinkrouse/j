@@ -304,7 +304,7 @@ origin/my-feature" against `@{push}`. A section whose branch is the same as
 another's is left out, so the parent and the upstream are never listed
 twice.
 
-### Status buffer (`gitStatus`, `Ctrl Alt G` / `<leader>gg` in vim)
+### Status buffer (`vcsStatus`, `Ctrl Alt G` / `<leader>gg` in vim)
 
 There is one buffer per repository, or one for all of them when the project
 has several, with a heading per repository in its color. Sections, in
@@ -509,13 +509,13 @@ lines on one side to its lines on the other.
   BASE, a stash or two commits work the same, and the merge view later is
   three panes and two tracks of the same parts.
 
-### Blame in the gutter (`gitBlame`, toggles)
+### Blame in the gutter (`vcsBlame`, toggles)
 
 - `git blame --porcelain --incremental --contents - <file>`, with the
   buffer's text on stdin, so lines added since are "not committed yet". It
   fills in as it streams and runs again after a save.
 - A gutter column as wide as its widest entry, `2026-10-08 kkrouse` by
-  default (`gitBlameFormat`: date, author, short hash, summary). An
+  default (`vcsBlameFormat`: date, author, short hash, summary). An
   annotation shows on the first line of each run of the same commit, and the
   lines after it get a thin bar in the commit's color.
 - Brightness by age, as IntelliJ does it: the commits in view are ranked by
@@ -524,7 +524,7 @@ lines on one side to its lines on the other.
   absolute age, keeps an old file from being all dim.
 - Hover shows the commit's hash, author, date and full message. A click (or
   `Enter` on the gutter in vim, `<leader>gb` to toggle) opens that commit in
-  the log, with the file selected. `gitBlameParent` re-blames at the commit's
+  the log, with the file selected. `vcsBlameParent` re-blames at the commit's
   parent, which is how you dig past a reformat. `.git-blame-ignore-revs` is
   honored, since git honors it.
 - **The current line's blame**, as Gitsigns' `current_line_blame`: virtual
@@ -555,14 +555,14 @@ lines on one side to its lines on the other.
   color swatches and blame then become providers in a list instead of special
   cases.
 
-### Log (`gitLog`, `l l` from status)
+### Log (`vcsLog`, `l l` from status)
 
-**It takes the whole frame**, as magit's and Neogit's do. `gitLog` saves the
+**It takes the whole frame**, as magit's and Neogit's do. `vcsLog` saves the
 frame's window layout (below), then shows only the log and its details. `q`
 closes the log and puts the layout back: the same splits and weights, the
 same buffers, and each window's caret and scroll.
 
-**The quick log** (`gitLogQuick`, `l q` from status, `<leader>gl`) opens the
+**The quick log** (`vcsLogQuick`, `l q` from status, `<leader>gl`) opens the
 list alone in a split under the current window, with no details. `Enter`
 (or a double click) on a commit grows it into the full-frame log with that
 commit selected. `q` in the full log then goes back to the layout from
@@ -635,11 +635,11 @@ splits with it later.
 - **Several repositories**, as IntelliJ's log shows a project's roots
   together: one list of every repository's commits, each row marked with
   its repository.
-  - **Which.** `gitLog` shows the repositories the status would
+  - **Which.** `vcsLog` shows the repositories the status would
     (`VcsStatusMode.repositoriesFor`): all of the project's when it has
     several, from a file or from a status buffer of them all. From a status
     buffer of one repository, or with a prefix argument, that repository
-    alone, which is the repository filter set to it. `gitLogFile` is always
+    alone, which is the repository filter set to it. `vcsLogFile` is always
     the file's own repository.
   - **The order.** Each repository's log is read in its own topological
     order, then merged by commit time (committer time, `%ct`): the next row
@@ -678,7 +678,7 @@ splits with it later.
     one repository empty, one far older, one ending first; paging that
     never moves a row once shown; the same id in two repositories.
 - **Filters**: repository, branch, author, path (the current file for
-  `gitLogFile`), date and text (`--grep`, and `-S` for a change). Each runs
+  `vcsLogFile`), date and text (`--grep`, and `-S` for a change). Each runs
   git again with the filter. The filters sit in a **filter bar** at the top
   of the log window, outside the buffer:
   - **Why outside.** The filters are the state of the view, so they stay in
@@ -699,12 +699,25 @@ splits with it later.
     the log, paths in the repository, or the repositories as a checklist.
     Typing narrows it, `Enter` or a click picks. The text and date chips open
     a field. `×` clears one.
-  - **Keyboard.** `f` opens the log's filter popup (below). Each filter has
-    a key, as magit's arguments do (`-b` branch, `-a` author, `-p` path, `-r`
-    repository, `-d` since, `-g` grep, `-s` pickaxe), and opens the same
-    fuzzy list under its chip. `x` clears every filter. In the bar, the
-    key is shown in bold beside each chip (`-b branch: master ▾`), so the
-    keys can be learned from it.
+  - **Keyboard.** `l` opens the log's filter popup, as magit's `l` in its
+    log does (`f` is the next file). Each filter has a key, as magit's
+    arguments do (`-b` branch, `-a` author, `-p` path, `-r` repository, `-d`
+    since, `-g` grep, `-s` pickaxe): in the popup it opens its field there,
+    and in the log the field over its chip, with the same fuzzy list
+    (`vcsLogFilter author`; `-` is a prefix key map, which a mode's vim
+    key map can now have too). `x` clears every filter.
+  - **Enter in a field** takes the candidate highlighted, as fuzzy pickers
+    do (VS Code, fzf, Telescope, vertico), or the text when none is. The
+    first match is highlighted, and the first candidate when the field
+    opens blank, so Enter in an unset filter's field picks it; erasing a
+    value that was set leaves none highlighted, so Enter clears it, as an
+    editable combo box does. Down highlights one again. A candidate that
+    is the text comes first, then those that start with it, then those
+    with it inside, so `main` takes main, not domain-x. A list still being
+    read, as the names when the status's popup opens, is asked for again
+    until it comes. In the bar, the key is shown in
+    bold beside each chip (`-b branch: master ▾`), so the keys can be
+    learned from it.
 - **Sidebar: refs.** The sidebar's lower half shows the repository's refs,
   as nearly every client has them beside its log (IntelliJ's Branches pane,
   Sublime Merge's locations, GitKraken's left panel, Fork, Tower, and
@@ -747,7 +760,7 @@ splits with it later.
   <commit> -- <file>`, adding up the hunks above it, as IntelliJ's "show in
   file" does. `Shift Enter` opens the file as it was at that commit,
   read-only (`git show <commit>:<path>`, named `File.java @ 1a2b3c4`).
-- **Other logs**: `gitLogFile` (the current file, `--follow`), `gitLogLine`
+- **Other logs**: `vcsLogFile` (the current file, `--follow`), `vcsLogLine`
   (the region, `-L`), the parent-branch sections, and stash, all in the same
   buffer with a different query.
 
@@ -779,14 +792,14 @@ snapshot changes, not on a timer.
   ours · accept theirs · both · base" links above them, clickable as VS Code
   and IntelliJ's inline ones are. The links are a virtual line above
   `<<<<<<<`, so the conflict's own text is left alone. The commands are
-  `gitConflictNext`/`Previous` (`]x`/`[x` in vim) and
-  `gitConflictOurs`/`Theirs`/`Both`/`Base` (`u`/`l`/`a`, as smerge has them,
+  `vcsConflictNext`/`Previous` (`]x`/`[x` in vim) and
+  `vcsConflictOurs`/`Theirs`/`Both`/`Base` (`u`/`l`/`a`, as smerge has them,
   after the simple-mode prefix, and `<leader>co`, `ct`, `cb` in vim).
   `merge.conflictStyle=diff3` (or `zdiff3`) is suggested so there is a base
   to show.
 - After the last conflict is resolved and the file is saved, the status bar
   offers `s` to mark it resolved (`git add`). Deleted-by-them and the like
-  get `gitConflictKeep`/`gitConflictDelete`.
+  get `vcsConflictKeep`/`vcsConflictDelete`.
 - The finish line (`git commit` for a merge, `git stash drop` after a
   conflicted pop) is in the popup.
 - Later: IntelliJ's three panes. Out of the first cut.
@@ -1110,8 +1123,34 @@ plan with why it is left, before the next phase starts.
      does there.
    - Enter on a diff line, and Shift Enter's file at the commit, close the
      log and open the file in the window the log was opened from.
+   - Filters: `FilterBar` (transients, shared) is a strip in the window's
+     `north` panel under the location bar, shown when the mode's
+     `getFilters(editor)` gives options. Each filter is a popup `Option`
+     with a `Binding`, so the bar's chips and the popup's items set the
+     same value; `OptionField`, the field and its fuzzy list, came out of
+     `TransientPopup` for both. The log's (`LogFilters`) are bound to its
+     `LogQuery`: setting one reads the log again from the first page, and
+     a page read for the query before is dropped (`LogBuffer`'s
+     generation). Branches and tags (`readRefs`, `for-each-ref`) and the
+     tracked paths with their directories (`readPaths`, `ls-files`) are
+     read in the background when the log opens and on a refresh; the
+     authors are those of the commits read. A path that is a file follows
+     its renames. The bar is over the list only, not the files or diff.
+   - The status buffer's `l` popup has the same filters, unbound, as
+     Neogit's log popup: set first, they are the popup's arguments
+     (`vcs.log.open`, kept per buffer and session, `Ctrl S` defaults),
+     and `vcsLog`, `vcsLogQuick` and `vcsLogFile` start from them (a file's
+     log keeps its path). They are kept per repository (the popup's id is
+     `vcs.log.open:<root>`), so one repository's branch never filters
+     another's log.
+   - The filters' keys (`l`, `-` and its letters, `x`) are the list's alone:
+     the files and diff panes have a key map without them
+     (`Mode.getKeyMap(Buffer)`, `getModalKeyMap(Buffer)`), so vim's `l` and
+     `-` move there, and `x` can't clear the filters by habit. The names the filters offer are a repository's
+     (`LogNames`: refs, paths, and the authors of its newest 500 commits
+     and of every log read), read when the popup opens.
    - Left: the status's diff beside it (its design under "Status buffer":
-     the log's diff pane made shared), the filter bar and popup, the graph,
+     the log's diff pane made shared), dir mode's filter bar, the graph,
      several repositories, the
      badges' smaller font, the files pane's height fitted to its files,
      keeping the panes out of the sidebar's buffer list, and the refs tree

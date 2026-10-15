@@ -154,10 +154,6 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#followLinkOrTask">followLinkOrTask</a></li>
     <li><a href="commands.html#forwardSexp">forwardSexp</a></li>
     <li><a href="commands.html#git">git</a></li>
-    <li><a href="commands.html#gitLog">gitLog</a></li>
-    <li><a href="commands.html#gitLogFile">gitLogFile</a></li>
-    <li><a href="commands.html#gitLogQuick">gitLogQuick</a></li>
-    <li><a href="commands.html#gitStatus">gitStatus</a></li>
     <li><a href="commands.html#gotoBookmark">gotoBookmark</a></li>
     <li><a href="commands.html#gotoTemporaryMarker">gotoTemporaryMarker</a></li>
     <li><a href="commands.html#gotoFile">gotoFile</a></li>
@@ -444,12 +440,17 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitPreviousMessage">vcsCommitPreviousMessage</a></li>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
+    <li><a href="commands.html#vcsLog">vcsLog</a></li>
+    <li><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></li>
+    <li><a href="commands.html#vcsLogFile">vcsLogFile</a></li>
+    <li><a href="commands.html#vcsLogFilter">vcsLogFilter</a></li>
     <li><a href="commands.html#vcsLogNext">vcsLogNext</a></li>
     <li><a href="commands.html#vcsLogNextFile">vcsLogNextFile</a></li>
     <li><a href="commands.html#vcsLogOpenFile">vcsLogOpenFile</a></li>
     <li><a href="commands.html#vcsLogPopup">vcsLogPopup</a></li>
     <li><a href="commands.html#vcsLogPrevious">vcsLogPrevious</a></li>
     <li><a href="commands.html#vcsLogPreviousFile">vcsLogPreviousFile</a></li>
+    <li><a href="commands.html#vcsLogQuick">vcsLogQuick</a></li>
     <li><a href="commands.html#vcsLogQuit">vcsLogQuit</a></li>
     <li><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></li>
     <li><a href="commands.html#vcsLogRevision">vcsLogRevision</a></li>
@@ -462,6 +463,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsStage">vcsStage</a></li>
     <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
     <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a></li>
+    <li><a href="commands.html#vcsStatus">vcsStatus</a></li>
     <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
     <li><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></li>
     <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
@@ -2314,46 +2316,6 @@ is "diff".  The git command is run in the directory of the current
 editor.
 <p>
 <b>Default key mapping:</b> None
-<br><br>
-</dl><!--<hr>-->
-
-<a name="gitLog">gitLog</a><dl><dd>
-<p>
-Shows the log of the current buffer's repository, every branch and tag, newest first, taking the whole frame: the commit at the caret's files and diff beside the list. q closes it and puts the windows back. From the quick log, it grows into the full log.
-<br><br>
-<b>Default key mapping:</b> l l in the status buffer
-<br><br>
-<b>See also:</b> <a href="git.html#log">The log</a>
-<br><br>
-</dl><!--<hr>-->
-
-<a name="gitLogFile">gitLogFile</a><dl><dd>
-<p>
-Shows the log of the current file, through its renames, taking the whole frame.
-<br><br>
-<b>Default key mapping:</b> None
-<br><br>
-<b>See also:</b> <a href="git.html#log">The log</a>
-<br><br>
-</dl><!--<hr>-->
-
-<a name="gitLogQuick">gitLogQuick</a><dl><dd>
-<p>
-Shows the log of the current buffer's repository alone, in a window under the current one; Enter on a commit there opens the full log at it.
-<br><br>
-<b>Default key mapping:</b> l q in the status buffer; &lt;leader&gt;gl in vim edit mode
-<br><br>
-<b>See also:</b> <a href="git.html#log">The log</a>
-<br><br>
-</dl><!--<hr>-->
-
-<a name="gitStatus">gitStatus</a><dl><dd>
-<p>
-Opens the status of the current buffer's git repository, or of the project's repositories when its directory holds several: what has changed, what is staged, and the recent commits.
-<br><br>
-<b>Default key mapping:</b> Ctrl Alt G; &lt;leader&gt;gg in vim edit mode
-<br><br>
-<b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -6055,6 +6017,46 @@ In a status buffer, discards the thing at the caret, or what the selection cover
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsLog">vcsLog</a><dl><dd>
+<p>
+Shows the log of the current buffer's repository, every branch and tag, newest first, taking the whole frame: the commit at the caret's files and diff beside the list. q closes it and puts the windows back. From the quick log, it grows into the full log.
+<br><br>
+<b>Default key mapping:</b> l l in the status buffer
+<br><br>
+<b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsLogClearFilters">vcsLogClearFilters</a><dl><dd>
+<p>
+In the log, clears every filter, a file's log's path too, and reads the log again.
+<br><br>
+<b>Default key mapping:</b> x in the log's list
+<br><br>
+<b>See also:</b> <a href="git.html#log-filters">The log's filters</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsLogFile">vcsLogFile</a><dl><dd>
+<p>
+Shows the log of the current file, through its renames, taking the whole frame.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsLogFilter">vcsLogFilter</a><dl><dd>
+<p>
+In the log, with a filter's name (branch, author, path, since, message or change), opens the field over its chip in the filter bar to type its value; with none, opens the popup of its filters.
+<br><br>
+<b>Default key mapping:</b> l, and -b, -a, -p, -d, -g and -s, in the log's list
+<br><br>
+<b>See also:</b> <a href="git.html#log-filters">The log's filters</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsLogNext">vcsLogNext</a><dl><dd>
 <p>
 In the log, goes to the next thing in the pane: the next commit, the next file, or the diff's next hunk, around to the first past the last.
@@ -6087,11 +6089,11 @@ In the log's files or diff, opens the file at the caret in the working tree, at 
 
 <a name="vcsLogPopup">vcsLogPopup</a><dl><dd>
 <p>
-In a status buffer, opens a popup of the logs: the full log, or the quick log.
+In a status buffer, opens a popup of the logs: the filters to start from (a branch, an author, a path, a date, text in the message or a change), then the full log or the quick log.
 <br><br>
 <b>Default key mapping:</b> l in the status buffer
 <br><br>
-<b>See also:</b> <a href="git.html#log">The log</a>
+<b>See also:</b> <a href="git.html#log-filters">The log's filters</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -6110,6 +6112,16 @@ In the log, goes to the previous commit, file or hunk.
 In the log, shows the previous file's diff, the focus staying where it is.
 <br><br>
 <b>Default key mapping:</b> F, Alt Up in the log
+<br><br>
+<b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsLogQuick">vcsLogQuick</a><dl><dd>
+<p>
+Shows the log of the current buffer's repository alone, in a window under the current one; Enter on a commit there opens the full log at it.
+<br><br>
+<b>Default key mapping:</b> l q in the status buffer; &lt;leader&gt;gl in vim edit mode
 <br><br>
 <b>See also:</b> <a href="git.html#log">The log</a>
 <br><br>
@@ -6233,6 +6245,16 @@ In a file the version control tracks, stages the change at the caret, or the lin
 <b>Default key mapping:</b> &lt;leader&gt;hs in vim edit mode
 <br><br>
 <b>See also:</b> <a href="git.html#signs">Change marks in the editor</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatus">vcsStatus</a><dl><dd>
+<p>
+Opens the status of the current buffer's repository, or of the project's repositories when its directory holds several: what has changed, what is staged, and the recent commits.
+<br><br>
+<b>Default key mapping:</b> Ctrl Alt G; &lt;leader&gt;gg in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>
 </dl><!--<hr>-->
 
