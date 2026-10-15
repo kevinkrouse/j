@@ -323,7 +323,7 @@ Unstaged (4)
   M  TODO.md
      @@ -60,6 +60,12 @@ …           ← expanded with Tab
 Staged (1)
-Changelists                           ← phase 9
+Changelists                           ← phase 10
 Stashes (2)
 Unmerged from origin/main (5)
 Unpushed to origin/master (2)
@@ -352,6 +352,32 @@ Recent commits (10)
   commit popup, `z` the stash popup, `l` the log, and `g` refreshes. `d`
   opens the diff of the thing in its own buffer. `?` opens the popup of all
   of these.
+- **The diff beside it** (`D`, as the log's details; `vcsStatusDiff=off|right`
+  for how it opens): the status keeps the left of the frame and the diff of
+  the file at the caret fills a window at the right, as lazygit's main panel
+  and IntelliJ's commit window's preview have it. It follows the caret 100
+  ms after it stops: a file's whole diff, the unstaged or staged one as its
+  section says; on a hunk, scrolled to that hunk. The pane is the log's diff
+  pane, made shared (`LogDiffBuffer` becomes a `DiffPane` that takes any
+  `FileDiff`), so Tab folds its hunks, `n`/`p` and `]c`/`[c` go by hunk,
+  Space and Shift Space scroll it from the status, and Enter visits the
+  file. Files can stay closed in the status while it is open; inline diffs
+  still work. `D` again, or `q` in the pane, closes it, through
+  `Frame.captureLayout` and `restoreLayout` as the log does. With the
+  side-by-side diff (phase 6) the pane can show that instead.
+- **Sidebar: an outline by directory.** The sidebar's lower half, the
+  mode's `getSidebarComponent` (empty for the status today), shows the
+  buffer's outline, as the Java tree does for code: a node per repository
+  when there are several, then each section with its count (Untracked 3,
+  Unstaged 5, Staged 2, and the unpushed and unpulled ones of phase 7), and
+  under each its files as a directory tree, with their letters in the
+  buffer list's colors. It is the grouping by directory that VS Code's
+  Source Control view and IntelliJ's commit window offer and the buffer's
+  flat lists don't. A click, or Enter in it, puts the status's caret on
+  that section or file. Its label (`getLabelText`) is the branch, its
+  upstream and ahead/behind, which stay in sight however far the buffer
+  scrolls. It is rebuilt from the same `StatusData` as the buffer, on each
+  refresh, its open nodes kept by key.
 - **Commit**: `CheckinBuffer` in its own window, the staged diff below the
   message (folded per file), and a summary length ruler at 50/72. `Ctrl
   Enter` finishes and `Escape` asks. The popup also has amend, extend (amend,
@@ -398,6 +424,90 @@ Recent commits (10)
   it is open shows that one in its place.
 - `revertLines`, `previewChange` and `changePopup` work on j's own marks
   too; in a tracked file they reset, preview and offer the git hunk.
+
+### Side-by-side diff (`vcsDiffSideBySide`)
+
+Two panes, the old text at the left and the new at the right, scrolled
+together, as nvim's diff mode and IntelliJ's diff viewer have it, with
+IntelliJ's track between them: each change a band whose edges curve from its
+lines on one side to its lines on the other.
+
+```
+ old (HEAD)                 │╲  new (working tree)
+ 60   private int width;    │ ╲ 60   private int width;
+ 61   private int height;   ├──┤ 61   private int heightPx;     ← changed: blue
+ 62                         │  ╲62   private int depth;        ← added: green,
+ 63   void paint() {        │  ╱63                               a curve fanning
+                            │ ╱ 64   void paint() {              out from a line
+```
+
+- **Where it opens.** From the status's and the log's diff panes (`v` there
+  toggles unified and side by side), on a file in the status, from a file
+  (`vcsDiffSideBySide`: the buffer against the index, or HEAD), and against a
+  revision from the log. It takes the frame's windows the way the log does,
+  through `Frame.captureLayout` and `restoreLayout`, and `q` puts them back.
+- **In the log.** Side by side, the diff wants the frame's width: two panes
+  beside the list at the right, or under the files at the bottom, are each
+  narrower than the unified diff. So the log gains a third layout for it:
+  the list at the top left, the commit's details (fields, message and files)
+  at the top right, and the two panes and their track across the whole
+  width at the bottom.
+
+  ```
+  ┌──────────────────────────┬─────────────────┐
+  │ list                     │ details: commit │
+  │                          │ message, files  │
+  ├────────────┬──┬──────────┴─────────────────┤
+  │ old        │╲╱│ new                        │
+  │            │  │                            │
+  └────────────┴──┴────────────────────────────┘
+  ```
+
+  `v` in the log's diff switches to it, and back to the layout `D` chose.
+  Side by side has only this layout, as stacking the two sides would undo
+  them, so `D` does nothing there. Whether the diff is side by side is
+  remembered in the session, as `D`'s choice is. The panes follow the file at
+  the caret in the files pane as the unified diff does, and Space, `d` and
+  `u` scroll both from any pane.
+- **The panes are buffers.** Each side is a read-only buffer of that side's
+  text in the file's mode, so it has the file's colors, search, motions and
+  folds. The right side of a working-tree diff can later be the file's own
+  buffer, edited in place and diffed again as you type (IntelliJ lets you
+  edit only the right); this phase keeps both sides read-only.
+- **Aligned.** A side with fewer lines in a change gets filler rows under
+  them, virtual lines (`VIRTUAL-TEXT.md`), striped, so both sides' unchanged
+  lines are level, as nvim's filler lines and IntelliJ's "align changes"
+  are. The alignment is a model of its own (`DiffAlignment`), from
+  `util/Diff`'s edits: for each row of either pane, the line or the filler on
+  the other side. It is what the scroll lock, the track and the folds read.
+- **Scroll lock.** A scroll of either pane, by key, wheel or the smooth
+  scroll (`Display.scrollByPixels`), moves the other to the same row through
+  the alignment, a pixel offset and all, so they never drift. The carets are
+  bound too (vim's `cursorbind`): moving to a line on one side moves the
+  other's caret to its row. A toggle (`s`) unlocks them, as IntelliJ's
+  Synchronize Scrolling does.
+- **Highlights.** Removed lines on red at the left, added on green at the
+  right, a changed pair on blue on both, its words or characters that differ
+  stronger (`WordDiff`, as the status buffer and the hunk preview do).
+- **The track.** A narrow component between the panes, not an editor,
+  painted from the two panes' scroll positions and the alignment: for each
+  change on screen, a band from its rows on the left to its rows on the
+  right, two cubic Béziers for its edges, filled with the change's color and
+  outlined a shade darker; a change with no lines on one side narrows to a
+  point at the line it would go after. Antialiased, in `UIScale`, and only
+  the changes in view. Later, as IntelliJ's chevrons, arrows on a band to
+  take the change from one side to the other.
+- **Folding unchanged runs.** Runs of unchanged lines longer than twice the
+  context (`vcsDiffContext`, 3) fold on both sides together, "⋯ 120 lines",
+  as nvim's diff folds and IntelliJ's "collapse unchanged fragments"; Tab on
+  a fold opens it on both sides.
+- **Keys.** `]c`/`[c`, Ctrl Alt N/P and `n`/`p` (and F7/Shift F7 outside vim)
+  go by change on either side (`Mode.getChangeStarts`); Space and Shift
+  Space page both; `v` back to unified; `s` scroll lock; `w` whitespace
+  ignored or not; Enter visits the file at the line.
+- **Shared.** The panes, alignment and track take any two texts, so svn's
+  BASE, a stash or two commits work the same, and the merge view later is
+  three panes and two tracks of the same parts.
 
 ### Blame in the gutter (`gitBlame`, toggles)
 
@@ -493,8 +603,8 @@ splits with it later.
   left column, the way `ImageLine` is painted. That makes it a line
   decoration with a width, not text, so text selection and columns stay
   plain.
-- **A row**, left to right: the graph, the repository's strip (several
-  repositories only), the subject, ref badges (branches, tags), the author and
+- **A row**, left to right: the repository's strip (several repositories
+  only), the graph, the subject, ref badges (branches, tags), the author and
   the date. The subject takes what is left. As the window narrows, first
   the tags go, then the remote branches (local branches and HEAD stay),
   then the author shortens to initials, and then the subject is cut with an
@@ -522,12 +632,51 @@ splits with it later.
   painted only needs its own row record, so painting stays O(visible rows).
 - **Refs**: badges after the subject: local branch, remote, tag, HEAD, and
   stash in the log of stashes. They are tinted and the font is smaller.
-- **Several repositories**: each repository's log is loaded, then merged by
-  commit date. A colored strip (`▌`) in the repository's color is drawn
-  to the right of the graph, and the graph is drawn per repository: lanes
-  from different repositories never join, and each repository's lanes sit in
-  its own band of columns. The repo filter (`r`) is a checklist, and
-  "only this repo" is a click on the strip.
+- **Several repositories**, as IntelliJ's log shows a project's roots
+  together: one list of every repository's commits, each row marked with
+  its repository.
+  - **Which.** `gitLog` shows the repositories the status would
+    (`VcsStatusMode.repositoriesFor`): all of the project's when it has
+    several, from a file or from a status buffer of them all. From a status
+    buffer of one repository, or with a prefix argument, that repository
+    alone, which is the repository filter set to it. `gitLogFile` is always
+    the file's own repository.
+  - **The order.** Each repository's log is read in its own topological
+    order, then merged by commit time (committer time, `%ct`): the next row
+    is the newest of the repositories' next commits, ties going by the
+    repositories' order. A repository's commits keep their order among
+    themselves, so its graph holds. This is IntelliJ's "by commit date"
+    across roots; within one repository the order stays topological.
+  - **Paging.** Each repository is read a page at a time on its own. A
+    commit is only shown once every repository with more to read has a
+    commit read that is no newer, so a page arriving later never puts a
+    row above one already shown. A repository that runs low is read
+    again; one that ends drops out. The reads run in parallel, one git
+    process per repository.
+  - **The strip.** A colored strip (`▌`) at the row's left, in the
+    repository's color (`Repositories.colorIndex`, as the status buffer's
+    headings and the buffer list's strips have it). A hover shows the
+    repository's path. `vcsLogRepositoryNames` (off) widens the strip into
+    a column with the repository's short name, as IntelliJ's "Show Root
+    Names".
+  - **The graph.** Lanes come from one pool, as for one repository: an
+    edge never joins two repositories, since a commit's parents are in its
+    own, so no bands of columns are needed. A lane's color is the
+    palette's, its strip the repository's.
+  - **A commit's repository.** `LogCommit` carries its repository; the
+    files, the diff, Enter, `O` and the refresh's caret go by the commit's
+    repository and id together, as two repositories can hold the same
+    commit (a fork cloned twice, a vendored copy).
+  - **Filters.** The repository chip (`-r`) is a checklist of the
+    repositories, and a click on a row's strip is "only this one". A
+    branch filter applies in each repository that has the branch, and the
+    others drop out while it is set, as IntelliJ does. A path filter goes
+    to the repository that holds the path.
+  - **The rest.** The title is "git log: 3 repositories". The refs tree in
+    the sidebar has a node per repository. The quick log shows them all too.
+  - **Tests.** The merge on synthetic logs: interleaved times, equal times,
+    one repository empty, one far older, one ending first; paging that
+    never moves a row once shown; the same id in two repositories.
 - **Filters**: repository, branch, author, path (the current file for
   `gitLogFile`), date and text (`--grep`, and `-S` for a change). Each runs
   git again with the filter. The filters sit in a **filter bar** at the top
@@ -556,6 +705,29 @@ splits with it later.
     fuzzy list under its chip. `x` clears every filter. In the bar, the
     key is shown in bold beside each chip (`-b branch: master ▾`), so the
     keys can be learned from it.
+- **Sidebar: refs.** The sidebar's lower half shows the repository's refs,
+  as nearly every client has them beside its log (IntelliJ's Branches pane,
+  Sublime Merge's locations, GitKraken's left panel, Fork, Tower, and
+  magit's refs buffer): HEAD, then local branches, remotes by remote, tags
+  (newest first, the newest 100 unless widened, as Tower limits them), and
+  stashes (phase 7); a node per repository when there are several. Names
+  with a slash are folders (`feature/x` under `feature`), as IntelliJ
+  groups them. The branch checked out is bold, and each local branch has
+  its upstream's ahead and behind after it (`↑2 ↓1`), or "gone" when the
+  upstream was deleted, as Fork and magit show. It is read with one `git
+  for-each-ref` (`%(upstream:track)`), not from the log's decorations, which
+  cover only the pages read so far.
+  - **Click** a ref: the log's caret goes to its commit, reading pages
+    until it is loaded, as Sublime Merge reveals a ref in its graph.
+  - **Enter or a double click**: the log filtered to that ref, the filter
+    bar's branch chip set, as IntelliJ's branch filter and GitKraken's solo
+    do (`LogQuery.revisions`). The chip's `×` clears it.
+  - **Typing** narrows the tree, as the filter fields of Sublime Merge,
+    Tower and GitKraken do.
+  - **Actions** on a ref (checkout, delete, merge, rebase) come with phase
+    7's branch popups; until then the tree is for finding.
+  - **One tree per log.** The list, files and diff share it, so the
+    lower half doesn't change as the focus moves between the panes.
 - **The selected commit**: a tree of its files (status letter, icon, path)
   and the diff of the selected file, laid out as `vcsLogDetails` says.
   The focus stays in the list, as in magit and IntelliJ: `Up`/`Down` (or
@@ -777,7 +949,8 @@ conversation that produced it) is asked to find what is wrong, not to
 approve. It looks at:
 - architecture: whether the shared layer stays free of git, whether the
   phase leans on something a later phase will have to undo, whether its
-  parts would hold for svn;
+  parts would hold for svn, whether duplicate code has been introduced,
+  whether unnecessary or overly complicated abstractions have been added;
 - logic: patches and line mappings off by one, refresh races, a stale
   snapshot used after a write, caret and selection after a refresh;
 - threads: git off the event thread, Swing on it, and locks taken in a
@@ -827,8 +1000,8 @@ plan with why it is left, before the next phase starts.
      `<leader>gg` comes from rows of the vim key map with `<leader>`, bound
      with the vimrc's mapleader before the vimrc's own maps.
    - Left for later phases: old and new line numbers in the gutter (phase
-     4's gutter columns), the `Parent:` line (6), untracked files' contents
-     and conflicted files' diffs (8). Enter on a commit shows `git show` in
+     4's gutter columns), the `Parent:` line (7), untracked files' contents
+     and conflicted files' diffs (9). Enter on a commit shows `git show` in
      a diff buffer until the log (5).
    - Paging counts virtual rows (`Display.pageAbove`, `getBottomLine`).
 3. **Done. Staging and committing.** Stage, unstage and discard for files, hunks
@@ -867,7 +1040,7 @@ plan with why it is left, before the next phase starts.
      buffer tells its `SignsUpdater` of each edit, and the change-mark column
      draws a buffer's signs in place of j's marks when it has them. It is
      that one column, not yet general column providers: blame's column
-     (phase 7) makes them.
+     (phase 8) makes them.
    - `vcs/signs`: `SignsUpdater` (per buffer, 100 ms after typing stops or
      when the repository changes) and `SignsMath` work out the signs from
      `VcsBackend.readBases`, git's `GitBases` (`ls-files -s`, `ls-tree`,
@@ -884,27 +1057,91 @@ plan with why it is left, before the next phase starts.
    - `nextChange`/`previousChange` go by hunk; `revertLines`, now a
      command, resets the hunk in a tracked file. Vim: `]c`, `[c`,
      `<leader>hs`/`hr`/`hp`/`hu`.
-   - Left for phase 9: outlined marks for other changelists, and moving a
+   - Left for phase 10: outlined marks for other changelists, and moving a
      hunk to one from the popup.
-5. **Log.** `WindowLayout` capture and restore, the full-frame log and the
+5. **In progress. Log.** `WindowLayout` capture and restore, the full-frame log and the
    quick log, the list buffer with streaming load, rows that fit the width,
    details at the bottom or the right, to-file and at-revision, the filter
    bar and the filter popup, then the graph
-   (lanes, then painting), then several repositories (merge, strip, bands,
+   (lanes, then painting), then several repositories (the merge by commit
+   time, paging per repository, the strip and names, the repository
    filter). The graph gets its own tests, of the lane layout on synthetic
    histories (octopus merges, criss-cross merges, 500 parallel branches, a
    root commit in the middle), apart from painting.
-6. **Branches relative to others, and stash.** The parent branch, the
-   unmerged, unpulled and unpushed sections, the stash section and popup, and
-   stashes in the log.
-7. **Blame.** Streaming blame, aging, hovers, to the log, blame at the
+   Built so far:
+   - `WindowLayout` (core): a frame's split tree, each split's shares, and
+     each window's buffer, caret and top line; `capture` and `restore`
+     (`Frame.restoreLayout`, through `EditorPane.capture`/`restore`), a
+     buffer closed meanwhile left out. The log builds its own layouts with
+     it too. `EditorPane.place` shares space by the weights, so a restored
+     split keeps its shares.
+   - `vcs.log`, shared: `LogCommit`, `LogRef` (typed, so the shared layer
+     never reads git's decorations), `LogQuery`, `CommitChange`, and the
+     backend's `readLog` (a page: `--skip`/`--max-count` over
+     `--topo-order`, which gives the same order each time; not a stream),
+     `readMessage`, `readCommitChanges`, `readChangeDiff` (against the first
+     parent; a root's with `show`), `readDiffToWorkingTree` and
+     `readFileAt`. Git's are `GitLog` (`--decorate=full`, so `feature/x` is
+     a branch and `origin/x` a remote).
+   - `LogRow` lays a row out for a width as the plan says; `LogBuffer`
+     reads pages of 2,000 as the caret comes within 200 rows of the end and
+     lays its rows out again on a resize (`Buffer.windowResized`). Its
+     details are two buffers of `StatusLine`s, so they draw as the status
+     buffer does: `LogFilesBuffer` (the commit's fields and message, then
+     its files) and `LogDiffBuffer` (one file, its hunks folding with `=`
+     and vim's z keys). They follow the caret 100 ms after it stops
+     (`Buffer.afterCommand`, from `Editor.commandRan`).
+   - The quick log is `Frame.openBelow`; its layout is taken before the
+     split, so `q` from the full log it grew into goes back to before it.
+   - Keys, after looking at magit, Neogit, fugitive, lazygit and tig: as
+     the status buffer's where they mean the same. Tab opens or closes the
+     diff's hunk (Shift Tab all of them), not a pane: the panes are windows,
+     and j's window keys (Alt O, vim's Ctrl W) move between them. n and p
+     are the next commit, file or hunk in the pane, as magit's sections.
+     Space, and Shift Space or Backspace (magit's DEL), scroll the diff from
+     any pane; the popup has d and u. `]c`/`[c` go by hunk in a diff, the
+     status buffer's too (`Mode.getChangeStarts`). Vim mode let a shifted
+     key wait for its typed character, which drops the Shift; a mode's
+     binding by key code, as Shift Space, now runs first. A transient's keys
+     are typed text, so Enter and Tab can't be in the popup: its keys are
+     letters that are the log's own keys too (o opens the file, O the file
+     as of the commit, f/F files, d/u scroll), as `Mode.getTransient` asks,
+     and a test holds them to it. Each pane's hint row shows what Enter
+     does there.
+   - Enter on a diff line, and Shift Enter's file at the commit, close the
+     log and open the file in the window the log was opened from.
+   - Left: the status's diff beside it (its design under "Status buffer":
+     the log's diff pane made shared), the filter bar and popup, the graph,
+     several repositories, the
+     badges' smaller font, the files pane's height fitted to its files,
+     keeping the panes out of the sidebar's buffer list, and the refs tree
+     in the sidebar (reveal, filter to a ref, narrow by typing).
+6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
+   rows, tested on its own (a change at the top and the bottom, an empty
+   side, a file new or deleted, a change of only blank lines, CR LF); the two
+   panes as buffers with filler virtual lines; the scroll and caret lock,
+   by key, wheel and smooth scroll, tested headless on the rows; the
+   highlights and word diffs; folding unchanged runs on both sides; the
+   track's geometry (a band's corners and curves for a change, a pure
+   function tested apart from its painting), then its painting; the keys;
+   and the ways in, from the status and log panes and from a file; the log's
+   layout with the list and details at the top and the panes across the
+   bottom. It comes after the log, several repositories and all, so the log
+   has its third layout; it needs only phase 4's `util/Diff` and virtual
+   lines otherwise.
+7. **Branches relative to others, and stash.** The parent branch, the
+   unmerged, unpulled and unpushed sections, the stash section and popup,
+   stashes in the log and the refs tree, the status's outline in the
+   sidebar (sections and files by directory), and actions on the refs
+   tree's branches.
+8. **Blame.** Streaming blame, aging, hovers, to the log, blame at the
    parent, the current line's blame, and the authors of each method.
-8. **Conflicts.** Markers, inline actions, navigation, marking resolved,
+9. **Conflicts.** Markers, inline actions, navigation, marking resolved,
    and finishing.
-9. **Changelists.** The store, ranges as markers, re-anchoring, the status
+10. **Changelists.** The store, ranges as markers, re-anchoring, the status
    section, moving, outlined marks, committing with a private index, and
    drag and drop.
-10. **Subversion.** Its backend on the shared layer: status, diff, marks,
+11. **Subversion.** Its backend on the shared layer: status, diff, marks,
    blame, log (one lane), conflicts, and svn's own changelists. This proves
    the split. Any git-only leaks found here are fixed in the shared code.
 
@@ -925,7 +1162,7 @@ diff view.
 
 Rebase (interactive, as a buffer to edit), fixup and autosquash, cherry-pick,
 revert, worktrees, branch create, delete and rename popups, push and pull and
-fetch popups, a side-by-side diff view, the three-pane merge, comparing two
+fetch popups, the three-pane merge (phase 6's panes and tracks), comparing two
 commits or branches, a file's history in the log with the graph narrowed to
 it, a changes tab on the file tree (TODO.md), signs on the scrollbar (TODO.md
 scrollbar item), GitHub PRs.
@@ -946,7 +1183,7 @@ background, updating open buffers; command input in the log.)
 - A repository's first snapshot is still read on the thread that asks, the
   event thread for the status bar, as before. Later ones are not.
 - `Patch` writes git's headers (`diff --git`, a/ and b/, mode lines). svn's
-  backend will need its own header writer, behind the backend, in phase 10.
+  backend will need its own header writer, behind the backend, in phase 11.
 - `Snapshot` has no branch or revision; shared UI reads `GitSnapshot`. A
   neutral "where you are" (branch, revision, upstream) comes with the
   status buffer's header in phase 2.
@@ -1004,7 +1241,7 @@ background, updating open buffers; command input in the log.)
 - **Comments:** four left on the wrong method by inserted code.)
 
 - A change only of tabs to spaces shows `-` and `+` lines that look alike, with no word marked: both are detabbed before the word diff.
-- Git leaks into shared code: `VcsStatusMode`'s help is `git.html#status`, `BufferListStatus` reads git's porcelain codes, and the preference is `gitBufferListStatus`. Svn's backend (phase 10) gives the mode its help topic and the entry its letters.
+- Git leaks into shared code: `VcsStatusMode`'s help is `git.html#status`, `BufferListStatus` reads git's porcelain codes, and the preference is `gitBufferListStatus`. Svn's backend (phase 11) gives the mode its help topic and the entry its letters.
 - A render empties the buffer, which invalidates the views other windows keep of it; a window that comes back to it later starts at its top. Windows showing it keep their place.
 - No tests for git missing, a rebase in progress, or a path with a leading dash (a review's scratch test showed one renders).
 
@@ -1022,8 +1259,8 @@ background, updating open buffers; command input in the log.)
 - **Stale diffs:** staging or unstaging a hunk checks it is still in the file's diff.
 - **Selections:** one starting at the end of a line leaves that line out.)
 
-- The status code names git's sections (`"staged"`, `"unstaged"`) and its staging model in the shared layer. Svn's backend (phase 10) gives the sections and actions by capability.
-- `VcsBackend.commit` takes no paths and no index file; phase 9's private-index commits and svn's commits of paths add them.
+- The status code names git's sections (`"staged"`, `"unstaged"`) and its staging model in the shared layer. Svn's backend (phase 11) gives the sections and actions by capability.
+- `VcsBackend.commit` takes no paths and no index file; phase 10's private-index commits and svn's commits of paths add them.
 - On a desktop without a trash, a file no commit has is deleted, as the question says.
 
 **Phase 3, second review** (fixed:
@@ -1051,13 +1288,13 @@ background, updating open buffers; command input in the log.)
 
 - Each repository refresh reads every open file's bases again: two git processes per buffer. Batching them (`ls-files -s` for all at once) can come when it shows.
 - A file with smudge and clean filters (LFS, git-crypt) compares its text with the clean blob, so all of it may show as changed; staging a hunk of it would bypass the clean filter. Not handled.
-- `Signs.Sign.staged` becomes a state with a third value, another changelist, in phase 9; the drawing moves into a column provider with blame's column in phase 7.
+- `Signs.Sign.staged` becomes a state with a third value, another changelist, in phase 10; the drawing moves into a column provider with blame's column in phase 8.
 - A reset whose buffer is reloaded from disk between its read and its edit could edit the new text: `modCount` starts again at 0 on a reload. The window is a git command long.
 
 
 ### Simplicity review, phases 0–4
 
-Removed: code nothing called (`VcsRunner.runAsync` and its pool, `CommandLog`'s listeners, `Repositories.all`, `GitCli.apply`, `GitStatusCache.invalidate`), `WordDiff`'s own LCS table (it uses `util/Diff`), and the change colors hard-coded in five places (`VcsColors`). Kept, though nothing uses them yet, because later phases need them: the popup's `Pick` option (phase 5's filters), virtual text's `EOL` and `RIGHT` placements and priorities (blame, phase 7), and the `Capability` values past `STAGING`.
+Removed: code nothing called (`VcsRunner.runAsync` and its pool, `CommandLog`'s listeners, `Repositories.all`, `GitCli.apply`, `GitStatusCache.invalidate`), `WordDiff`'s own LCS table (it uses `util/Diff`), and the change colors hard-coded in five places (`VcsColors`). Kept, though nothing uses them yet, because later phases need them: the popup's `Pick` option (phase 5's filters), virtual text's `EOL` and `RIGHT` placements and priorities (blame, phase 8), and the `Capability` values past `STAGING`.
 
 ### Phase 4 feedback
 
@@ -1119,3 +1356,50 @@ Removed: code nothing called (`VcsRunner.runAsync` and its pool, `CommandLog`'s 
   follows them.
 - Hunk numbers renumber the buffer first: after a split they were stale.
 
+
+### Phase 5 review, so far
+
+Fixed:
+
+- Quitting the quick log closes its window. Only the full log puts back the
+  windows from before it, which a quick log keeps for when it grows.
+- `LogBuffer.close` runs once. Killing the log or a pane, from the buffer
+  list or `:bd`, closes it all as `q` does. A file opened from the log
+  (`o`, Enter, Shift Enter) after a `q` is given up.
+- After a refresh, the caret's commit is looked for in the first page
+  only, so a later page can't take the caret.
+- `git log` and `git show` read with `--no-show-signature`, and a root
+  commit with `--root`, whatever `log.showSignature` and `log.showRoot`
+  say. A diff that fails to read says "No diff: see vcsCommandLog";
+  `FileDiff.EMPTY` is one with no change to its content.
+- Folding in the log's diff keeps each window's top and caret on their
+  lines, or on their hunks' when those close.
+- A subject is never cut inside a surrogate pair.
+- Shared: the diff line's file line and showing a buffer at it
+  (`VcsStatusMode.lineNumber`, `showAt`), the change letters
+  (`FileChange.Kind.letter`, `of`), `VcsRepository.relativePath`, the last
+  commit's message (`GitLog.message`), HEAD's check (`GitLog.hasHead`), and
+  the read-only view buffer (`vcs/ViewBuffer`) the status buffer and the
+  log's buffers extend; the modes' properties alone keep line numbers and
+  the like off.
+- `WindowLayout` is the tree's types alone; `Frame.captureLayout` and
+  `restoreLayout` take and put back a `WindowLayout.Node`. The log's `full`
+  is whether it has its panes.
+
+Left open:
+
+- Rows are laid out for one width, the last window resized; one shown in a
+  window of another width, with no resize, is laid out wrong, and a drag
+  lays out every row read. The formatter could lay a row out for the
+  width it draws at.
+- Each page runs `git log --skip=N` again, so later pages of a large
+  repository take longer. One `git log` read as it goes would not.
+- Wide characters (CJK) count one column, as everywhere in j.
+- `Frame.restoreLayout` makes new windows, so they lose their views of
+  other buffers. It could keep the windows aside and reuse them.
+- The backend's diffs overlap (`readDiff`, `readCommit`, `readChangeDiff`,
+  `readDiffToWorkingTree`): one `readDiff(from, to, paths)` could serve
+  them all. `GitStatusReader.recent` is a second log parser.
+- `LogQuery`'s filters are only tested, until the filter bar uses them.
+- `LogRef.Kind.HEAD` is kept: it marks a detached HEAD, which the `head`
+  flag alone doesn't tell from a branch checked out.

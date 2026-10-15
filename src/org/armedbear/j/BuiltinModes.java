@@ -49,6 +49,7 @@ import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.vcs.StatusMode;
+import org.armedbear.j.vcs.log.VcsLogMode;
 import org.armedbear.j.vcs.status.CommitMessageMode;
 import org.armedbear.j.vcs.status.VcsStatusMode;
 
@@ -333,6 +334,14 @@ final class BuiltinModes implements ModeProvider {
                     VCS_REPOSITORY_STATUS_MODE_NAME,
                     VcsStatusMode.class,
                     id -> VcsStatusMode.getMode(),
+                    false,
+                    null,
+                    List.of(),
+                    List.of()),
+            new ModeDescriptor(VCS_LOG_MODE,
+                    VCS_LOG_MODE_NAME,
+                    VcsLogMode.class,
+                    id -> VcsLogMode.getMode(),
                     false,
                     null,
                     List.of(),

@@ -1937,6 +1937,12 @@ public class Buffer extends SystemBuffer {
         signsChanged();
     }
 
+    /** A command ran in editor, which shows this buffer: the caret may have moved. */
+    public void afterCommand(Editor editor) {}
+
+    /** A window showing this buffer was resized, as text laid out to its width wants to know. */
+    public void windowResized(Editor editor) {}
+
     // The text changed: the signs are worked out again.
     private void signsChanged() {
         final SignsUpdater updater = signsUpdater;

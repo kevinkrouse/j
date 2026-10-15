@@ -32,7 +32,36 @@ package org.armedbear.j.vcs;
  */
 public record FileChange(String path, String origPath, Kind staged, Kind unstaged, String code) {
     public enum Kind {
-        MODIFIED, ADDED, DELETED, RENAMED, COPIED, TYPE_CHANGED, UNTRACKED, IGNORED, CONFLICTED
+        MODIFIED, ADDED, DELETED, RENAMED, COPIED, TYPE_CHANGED, UNTRACKED, IGNORED, CONFLICTED;
+
+        /** The letter shown for it: M, A, D, R, C, T, ?, ! or U. */
+        public char letter() {
+            return switch (this) {
+                case MODIFIED -> 'M';
+                case ADDED -> 'A';
+                case DELETED -> 'D';
+                case RENAMED -> 'R';
+                case COPIED -> 'C';
+                case TYPE_CHANGED -> 'T';
+                case UNTRACKED -> '?';
+                case IGNORED -> '!';
+                case CONFLICTED -> 'U';
+            };
+        }
+
+        /** The kind a change letter names, or null. */
+        public static Kind of(char c) {
+            return switch (c) {
+                case 'M' -> MODIFIED;
+                case 'A' -> ADDED;
+                case 'D' -> DELETED;
+                case 'R' -> RENAMED;
+                case 'C' -> COPIED;
+                case 'T' -> TYPE_CHANGED;
+                case 'U' -> CONFLICTED;
+                default -> null;
+            };
+        }
     }
 
     public boolean isConflicted() {

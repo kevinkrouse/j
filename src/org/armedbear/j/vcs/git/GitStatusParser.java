@@ -90,20 +90,7 @@ final class GitStatusParser {
     // status bar shows, a space.
     private static FileChange change(String path, String orig, String xy) {
         String code = xy.replace('.', ' ');
-        return new FileChange(path, orig, kind(xy.charAt(0)), kind(xy.charAt(1)), code);
-    }
-
-    private static Kind kind(char c) {
-        return switch (c) {
-            case 'M' -> Kind.MODIFIED;
-            case 'A' -> Kind.ADDED;
-            case 'D' -> Kind.DELETED;
-            case 'R' -> Kind.RENAMED;
-            case 'C' -> Kind.COPIED;
-            case 'T' -> Kind.TYPE_CHANGED;
-            case 'U' -> Kind.CONFLICTED;
-            default -> null;
-        };
+        return new FileChange(path, orig, Kind.of(xy.charAt(0)), Kind.of(xy.charAt(1)), code);
     }
 
     private static List<String> split(byte[] output) {

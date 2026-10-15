@@ -34,6 +34,9 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.VersionControlEntry;
 import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.log.CommitChange;
+import org.armedbear.j.vcs.log.LogCommit;
+import org.armedbear.j.vcs.log.LogQuery;
 import org.armedbear.j.vcs.status.StatusData;
 
 public final class GitBackend implements VcsBackend {
@@ -173,7 +176,7 @@ public final class GitBackend implements VcsBackend {
 
     @Override
     public String lastMessage(VcsRepository repository) {
-        return GitWrites.lastMessage(repository);
+        return GitLog.message(repository, "HEAD");
     }
 
     @Override
@@ -181,6 +184,36 @@ public final class GitBackend implements VcsBackend {
         final VcsResult r = GitCli
                 .run(GitCli.read(repository.root(), "show", "--no-ext-diff", "--no-color", "--format=fuller", id));
         return r.succeeded() ? r.stdout() : null;
+    }
+
+    @Override
+    public List<LogCommit> readLog(VcsRepository repository, LogQuery query, int skip, int max) {
+        return GitLog.read(repository, query, skip, max);
+    }
+
+    @Override
+    public String readMessage(VcsRepository repository, String id) {
+        return GitLog.message(repository, id);
+    }
+
+    @Override
+    public List<CommitChange> readCommitChanges(VcsRepository repository, String id, String parent) {
+        return GitLog.changes(repository, id, parent);
+    }
+
+    @Override
+    public FileDiff readChangeDiff(VcsRepository repository, String id, String parent, CommitChange change) {
+        return GitLog.diff(repository, id, parent, change);
+    }
+
+    @Override
+    public FileDiff readDiffToWorkingTree(VcsRepository repository, String id, String path) {
+        return GitLog.toWorkingTree(repository, id, path);
+    }
+
+    @Override
+    public byte[] readFileAt(VcsRepository repository, String id, String path) {
+        return GitLog.fileAt(repository, id, path);
     }
 
     // HEAD and the index in the working tree's git directory; refs and

@@ -1164,8 +1164,13 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         caretPopupReplaced = caretPopup != null;
     }
 
-    /** A command ran: the caret popup closes, unless a key sequence is only begun. */
+    /**
+     * A command ran: the caret popup closes, unless a key sequence is only
+     * begun, and the buffer hears of it.
+     */
     void commandRan() {
+        if (buffer != null)
+            buffer.afterCommand(this);
         if (isKeySequencePending())
             return;
         if (caretPopupReplaced)
@@ -1838,6 +1843,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     @Override
     public void componentResized(ComponentEvent e) {
         updateScrollBars();
+        if (buffer != null)
+            buffer.windowResized(this);
     }
 
     @Override

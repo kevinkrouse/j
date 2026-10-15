@@ -152,8 +152,10 @@ final class GitStatusReader {
             for (FileDiff d : diff(repository, staged, paths.subList(i, Math.min(paths.size(), i + BATCH))))
                 diffs.put(d.path(), d);
         final List<Item> items = new ArrayList<>();
-        for (FileChange c : changes)
-            items.add(new FileItem(c, letter(staged ? c.staged() : c.unstaged()), staged, diffs.get(c.path())));
+        for (FileChange c : changes) {
+            final Kind kind = staged ? c.staged() : c.unstaged();
+            items.add(new FileItem(c, kind == null ? ' ' : kind.letter(), staged, diffs.get(c.path())));
+        }
         return items;
     }
 
@@ -166,22 +168,6 @@ final class GitStatusReader {
         args.addAll(paths);
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
         return r.succeeded() ? DiffParser.parse(r.stdout()) : List.of();
-    }
-
-    private static char letter(Kind kind) {
-        if (kind == null)
-            return ' ';
-        return switch (kind) {
-            case MODIFIED -> 'M';
-            case ADDED -> 'A';
-            case DELETED -> 'D';
-            case RENAMED -> 'R';
-            case COPIED -> 'C';
-            case TYPE_CHANGED -> 'T';
-            case CONFLICTED -> 'U';
-            case UNTRACKED -> '?';
-            case IGNORED -> '!';
-        };
     }
 
     private static List<Item> recent(VcsRepository repository, GitSnapshot git) {

@@ -253,7 +253,10 @@ public final class VimInputHandler implements InputHandler {
         }
 
         final boolean modified = (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK | Constants.META_MASK)) != 0;
-        if ((modified || isNamedKey(keyCode)) && runModeKey(editor, event))
+        // Shifted, a key the mode binds by its code, as the log's Shift
+        // Space: its key typed event would be the plain character.
+        final boolean shifted = (modifiers & Constants.SHIFT_MASK) != 0;
+        if ((modified || shifted || isNamedKey(keyCode)) && runModeKey(editor, event))
             return Result.CONSUMED;
         if (!modified && !isNamedKey(keyCode)) {
             // An ordinary character: decide once we know which one it is.

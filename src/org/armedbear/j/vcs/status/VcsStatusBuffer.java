@@ -41,6 +41,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.ViewBuffer;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -52,7 +53,7 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
  * read again in the background whenever its repositories change, and a
  * refresh keeps the caret on the thing it was on.
  */
-public final class VcsStatusBuffer extends Buffer {
+public final class VcsStatusBuffer extends ViewBuffer {
     private final List<VcsRepository> repositories;
     // What was last read of each repository, on the event thread.
     private final Map<VcsRepository, StatusData> data = new LinkedHashMap<>();
@@ -73,31 +74,18 @@ public final class VcsStatusBuffer extends Buffer {
     private volatile long wroteAt;
 
     private VcsStatusBuffer(List<VcsRepository> repositories) {
+        super(VcsStatusMode.getMode(), title(repositories), "Reading…");
         this.repositories = List.copyOf(repositories);
-        supportsUndo = false;
-        type = TYPE_OUTPUT;
-        mode = VcsStatusMode.getMode();
-        formatter = mode.getFormatter(this);
-        readOnly = true;
-        setProperty(Property.VERTICAL_RULE, 0);
-        setProperty(Property.SHOW_LINE_NUMBERS, false);
-        setProperty(Property.SHOW_CHANGE_MARKS, false);
-        setProperty(Property.HIGHLIGHT_MATCHING_BRACKET, false);
-        setProperty(Property.HIGHLIGHT_BRACKETS, false);
-        setProperty(Property.RAINBOW_DELIMITERS, false);
         setProperty(Property.FOLD_MARKERS, "always");
-        final VcsRepository first = repositories.get(0);
-        title = repositories.size() == 1
-                ? first.backend().name() + " status: " + first.root().getFileName()
-                : first.backend().name() + " status: " + repositories.size() + " repositories";
-        withWriteLock(() -> {
-            appendLine("Reading…");
-            renumber();
-        });
-        setInitialized(true);
-        setLoaded(true);
         for (VcsRepository r : repositories)
             r.addListener(listener);
+    }
+
+    private static String title(List<VcsRepository> repositories) {
+        final VcsRepository first = repositories.get(0);
+        return repositories.size() == 1
+                ? first.backend().name() + " status: " + first.root().getFileName()
+                : first.backend().name() + " status: " + repositories.size() + " repositories";
     }
 
     /** The status buffer of these repositories, the one open if there is one. */
@@ -112,16 +100,6 @@ public final class VcsStatusBuffer extends Buffer {
 
     public List<VcsRepository> getRepositories() {
         return repositories;
-    }
-
-    @Override
-    public int load() {
-        return LOAD_COMPLETED;
-    }
-
-    @Override
-    public String getFileNameForDisplay() {
-        return title;
     }
 
     @Override

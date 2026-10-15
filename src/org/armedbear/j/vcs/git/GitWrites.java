@@ -173,8 +173,7 @@ final class GitWrites {
     }
 
     private static String headOrNull(VcsRepository repository) {
-        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "rev-parse", "-q", "--verify", "HEAD"));
-        return r.succeeded() ? "HEAD" : null;
+        return GitLog.hasHead(repository) ? "HEAD" : null;
     }
 
     // HEAD's parent, or the empty tree when HEAD is a first commit.
@@ -185,10 +184,5 @@ final class GitWrites {
         final VcsResult empty =
                 GitCli.run(GitCli.write(repository.root(), new byte[0], "hash-object", "-t", "tree", "--stdin"));
         return empty.succeeded() ? empty.out().strip() : null;
-    }
-
-    static String lastMessage(VcsRepository repository) {
-        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "log", "-1", "--format=%B"));
-        return r.succeeded() ? r.out().stripTrailing() : null;
     }
 }

@@ -67,6 +67,8 @@ public final class Property implements Comparable<Property> {
     public static final Property STATUS_BAR_DISPLAY_CONTEXT = createProperty("StatusBar.displayContext", 1);
     public static final Property TAB_WIDTH = createProperty("tabWidth", 8);
     public static final Property TEXT_FIELD_FONT_SIZE = createProperty("textFieldFontSize", 0);
+    // Below this many columns, the log's details at the bottom stack its files over its diff.
+    public static final Property VCS_LOG_STACKED_WIDTH = createProperty("vcsLogStackedWidth", 100);
     public static final Property VERTICAL_RULE = createProperty("verticalRule", 0);
     public static final Property VERTICAL_SCROLL_INCREMENT = createProperty("verticalScrollIncrement", 5);
     public static final Property WHEEL_SCROLL_DURATION = createProperty("wheelScrollDuration", 60);
@@ -200,6 +202,8 @@ public final class Property implements Comparable<Property> {
     // A fractional value is allowed, so this is stored as a string. Unset or
     // 0 means detect it from the display; see UIScale.
     public static final Property UI_SCALE = createProperty("uiScale", "0");
+    // Where the log shows a commit's details: bottom, right, or auto (right in a wide frame).
+    public static final Property VCS_LOG_DETAILS = createProperty("vcsLogDetails", "auto");
     public static final Property TEXT_FIELD_FONT_NAME = createProperty("textFieldFontName", "Monospaced");
 
     // String properties with no default values.

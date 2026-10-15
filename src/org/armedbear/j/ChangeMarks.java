@@ -51,14 +51,17 @@ public final class ChangeMarks {
 
     /**
      * The lines the buffer's hunks start on, in order: where nextChange and
-     * previousChange go. The version control's, or the first lines of j's
-     * own runs of changed lines.
+     * previousChange go: the mode's, as a diff's hunks; else the version
+     * control's, or the first lines of j's own runs of changed lines.
      */
     public static List<Line> hunkStarts(Editor editor) {
         final Buffer buffer = editor.getBuffer();
         // Line numbers are stale after a split until renumbered.
         if (buffer.needsRenumbering())
             buffer.renumber();
+        final List<Line> own = editor.getMode().getChangeStarts(buffer);
+        if (own != null)
+            return own;
         final Signs signs = buffer.getSigns();
         final List<Line> starts = new ArrayList<>();
         if (signs == null) {

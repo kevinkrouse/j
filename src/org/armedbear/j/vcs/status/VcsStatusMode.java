@@ -135,6 +135,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey('S', "vcsStageAll");
         km.mapKey('U', "vcsUnstageAll");
         km.mapKey('c', "vcsCommitPopup");
+        km.mapKey('l', "vcsLogPopup");
         km.mapKey('q', "killBuffer");
         km.mapKey('?', "modePopup");
     }
@@ -179,6 +180,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                     new Command("U", "vcsUnstageAll", "unstage all", true)));
             groups.add(Group.of("Commit", new Prefix("c", "commit…", CommitCommands::popup)));
         }
+        groups.add(Group.of("Log", new Prefix("l", "log…", VcsStatusMode::logPopup)));
         groups.add(
             Group.of(
                 "Repository",
@@ -188,9 +190,27 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return new Transient("vcs.status", "Status", "git.html#status", groups);
     }
 
+    /** The log's popup: the full log, the quick log, or the current file's. */
+    static Transient logPopup() {
+        return new Transient("vcs.log.open",
+                "Log",
+                "git.html#log",
+                List.of(
+                    Group.of("Log", Command.of("l", "gitLog", "log"), Command.of("q", "gitLogQuick", "quick log"))));
+    }
+
+    public static void vcsLogPopup(Editor editor) {
+        org.armedbear.j.transients.TransientPopup.open(editor, logPopup());
+    }
+
     static boolean stages(Buffer buffer) {
         return buffer instanceof VcsStatusBuffer b
                 && b.getRepositories().stream().allMatch(r -> r.backend().capabilities().contains(Capability.STAGING));
+    }
+
+    @Override
+    public List<Line> getChangeStarts(Buffer buffer) {
+        return StatusLine.hunks(buffer);
     }
 
     // Folding: a node's lines are left out of the buffer, not hidden.
@@ -260,7 +280,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     // The project's, if it has more than one and the buffer is in one of
     // them; else the buffer's own.
-    static List<VcsRepository> repositoriesFor(Buffer buffer) {
+    public static List<VcsRepository> repositoriesFor(Buffer buffer) {
         if (buffer instanceof VcsStatusBuffer s)
             return s.getRepositories();
         final File file = buffer.getFile();
@@ -388,12 +408,18 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         });
     }
 
-    // The file's line the caret's line shows, from 1; 0 for none.
-    private static int lineNumber(StatusLine line) {
+    /**
+     * The file's line a diff's line shows, from 1: an added or context
+     * line's own, a removed line's place on the new side; a hunk's or a
+     * file's first change. 0 for none.
+     */
+    public static int lineNumber(StatusLine line) {
         if (line.kind() == Kind.DIFF)
-            return line.newLine();
+            return Math.max(1, line.newLine());
         if (line.hunk() != null)
             return firstChange(line.hunk());
+        if (line.file() == null)
+            return 0;
         final FileDiff diff = line.file().diff();
         return diff != null && !diff.hunks().isEmpty() ? firstChange(diff.hunks().get(0)) : 0;
     }
@@ -413,7 +439,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
      * Where line n of the old side of a diff is on its new side: moved by
      * the hunks before it, at the start of the hunk it is in.
      */
-    static int throughHunks(List<Hunk> hunks, int n) {
+    public static int throughHunks(List<Hunk> hunks, int n) {
         int shift = 0;
         for (Hunk h : hunks) {
             // A side with no lines starts after the line its start names.
@@ -430,8 +456,12 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     private static void visit(Editor editor, File file, int lineNumber) {
         final Buffer buffer = Editor.getBuffer(file);
-        if (buffer == null)
-            return;
+        if (buffer != null)
+            showAt(editor, buffer, lineNumber);
+    }
+
+    /** Shows buffer in editor's window at its line lineNumber, from 1; 0 for where it was. */
+    public static void showAt(Editor editor, Buffer buffer, int lineNumber) {
         final Editor ed = editor.show(buffer);
         if (lineNumber > 0) {
             ed.jumpToLine(lineNumber - 1);

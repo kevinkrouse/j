@@ -155,7 +155,7 @@ line and its virtual lines as one step.
 1. Done. The model, the layer and `EOL`/`RIGHT`. Tests: anchors through
    insertions and deletions on and around the line, and an owner replacing
    and clearing its decorations. The blame owner comes with git's blame
-   (`GIT-TOOLING.md`, phase 7), not as a stub.
+   (`GIT-TOOLING.md`, phase 8), not as a stub.
 2. Done. `ABOVE`/`BELOW`/`TOP`. Dir mode's hint moves onto `TOP`, and
    `Editor.updateHint`'s label goes. Tests: y to line and back with virtual
    lines on the first, last and a folded line; scrolling by the pixel and by

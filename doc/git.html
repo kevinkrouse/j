@@ -71,7 +71,8 @@ A file starts closed; opening it reads its diff. Shift Tab steps everything
 through four depths, and <b>1</b> to <b>4</b> go to one: 1 shows the sections,
 2 their files, 3 the files' hunks, and 4 every line of the diffs. In vim edit
 mode <b>za</b>, <b>zo</b> and <b>zc</b> toggle, open and close, and <b>zR</b>
-and <b>zM</b> open and close everything.
+and <b>zM</b> open and close everything. <b>]c</b> and <b>[c</b> in vim edit
+mode, and Ctrl Alt N and Ctrl Alt P, go to the next and previous hunk shown.
 
 <p>
 In a diff, the words that changed in a line are on a stronger shade than the
@@ -176,6 +177,61 @@ whose hooks fail is kept for another try.
 <tr><td>?</td><td>?</td><td><a href="commands.html#modePopup">modePopup</a></td><td>the popup</td></tr>
 <tr><td>q</td><td>q</td><td><a href="commands.html#killBuffer">killBuffer</a></td><td>close it</td></tr>
 </table>
+
+<h2><a name="log">The log</a></h2>
+
+<p>
+<a href="commands.html#gitLog">gitLog</a> (<b>l l</b> in the status buffer)
+shows the repository's commits, newest first, every branch and tag, and takes
+the whole frame for it: <b>q</b> closes it and puts the windows back as they
+were, each with its buffer, caret and scroll.
+<a href="commands.html#gitLogQuick">gitLogQuick</a> (<b>l q</b> in the status
+buffer, <code>&lt;leader&gt;gl</code> in vim edit mode) opens the list alone
+in a window under the current one; <b>Enter</b> on a commit there grows it
+into the full log. <a href="commands.html#gitLogFile">gitLogFile</a> shows the
+current file's commits, through its renames.
+
+<p>
+A row is the commit's subject, its branches and tags as badges (HEAD's
+branch first, in bold), then the author and how long ago. In a narrow window
+the tags go first, then the remote branches, then the author is cut to
+initials, and then the subject; a hover over a row that is cut shows it
+whole. More commits are read as the caret nears the end.
+
+<p>
+Beside the list, at the right in a wide frame and at the bottom in a tall
+one, are the commit at the caret's details: its id, author, date and message
+and the files it changed, and the diff of a file, against the commit's first
+parent. They follow the caret a moment after it stops, and the focus stays
+in the list. <b>D</b> moves them to the bottom or the right, and the next log
+opens with them there;
+<a href="preferences.html#vcsLogDetails">vcsLogDetails</a> says where they
+are until then. At the bottom, in a frame narrower than
+<a href="preferences.html#vcsLogStackedWidth">vcsLogStackedWidth</a>, the
+files are over the diff.
+
+<table>
+<tr><th>Key</th><th>Command</th><th></th></tr>
+<tr><td>Enter</td><td><a href="commands.html#vcsLogVisit">vcsLogVisit</a></td><td>in the quick log, the full log; on a commit, its files; on a file, its diff; on a diff line, the file at that line</td></tr>
+<tr><td>o</td><td><a href="commands.html#vcsLogOpenFile">vcsLogOpenFile</a></td><td>the file at the caret in the working tree, at the diff line's line</td></tr>
+<tr><td>O, Shift Enter</td><td><a href="commands.html#vcsLogRevision">vcsLogRevision</a></td><td>the file as the commit has it, read-only</td></tr>
+<tr><td>n p</td><td><a href="commands.html#vcsLogNext">vcsLogNext</a>, <a href="commands.html#vcsLogPrevious">vcsLogPrevious</a></td><td>the next or previous commit, file or hunk</td></tr>
+<tr><td>Tab, Shift Tab</td><td><a href="commands.html#vcsLogToggle">vcsLogToggle</a>, <a href="commands.html#vcsLogToggleAll">vcsLogToggleAll</a></td><td>open or close the diff's hunk, or all of them</td></tr>
+<tr><td>f F, Alt Down, Alt Up</td><td><a href="commands.html#vcsLogNextFile">vcsLogNextFile</a>, <a href="commands.html#vcsLogPreviousFile">vcsLogPreviousFile</a></td><td>the next or previous file's diff</td></tr>
+<tr><td>Space, d; Shift Space, Backspace, u</td><td><a href="commands.html#vcsLogScrollDiff">vcsLogScrollDiff</a>, <a href="commands.html#vcsLogScrollDiffBack">vcsLogScrollDiffBack</a></td><td>the diff a page on, or back</td></tr>
+<tr><td>D</td><td><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></td><td>the details at the bottom or the right</td></tr>
+<tr><td>g (r in vim)</td><td><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></td><td>read it again</td></tr>
+<tr><td>q</td><td><a href="commands.html#vcsLogQuit">vcsLogQuit</a></td><td>close it</td></tr>
+<tr><td>?</td><td><a href="commands.html#modePopup">modePopup</a></td><td>the popup</td></tr>
+</table>
+
+<p>
+<b>Enter</b> on a line of the diff opens the file in the working tree at the
+line it is now, past the changes made since the commit, and closes the log.
+In the diff, <b>]c</b> and <b>[c</b> in vim edit mode (Ctrl Alt N and Ctrl
+Alt P) go to the next and previous hunk too, as in a file git tracks. To
+move between the list, the files and the diff, use the window keys: Alt O
+and Alt Shift O, or Ctrl W in vim edit mode.
 
 <h2><a name="signs">Change marks in the editor</a></h2>
 

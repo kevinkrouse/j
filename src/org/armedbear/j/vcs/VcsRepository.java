@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 
@@ -59,6 +60,14 @@ public final class VcsRepository {
 
     public VcsBackend backend() {
         return backend;
+    }
+
+    /** file's path from the root, separated by '/'; its whole path when outside. */
+    public String relativePath(File file) {
+        final Path path = Path.of(file.canonicalPath());
+        if (!path.startsWith(root))
+            return path.toString();
+        return root.relativize(path).toString().replace(java.io.File.separatorChar, '/');
     }
 
     /** The latest snapshot, stale or not; null if none has been read. */

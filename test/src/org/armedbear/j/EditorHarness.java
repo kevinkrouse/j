@@ -86,6 +86,8 @@ public final class EditorHarness {
                 }));
             }
             Directories.initialize(File.getInstance(scratchHome.toString()));
+            if (Editor.getSessionProperties() == null)
+                Editor.setSessionProperties(new SessionProperties());
             final java.io.File registers = new java.io.File(Directories.getRegistersDirectory().getCanonicalPath());
             final java.io.File[] files = registers.listFiles();
             if (files != null)

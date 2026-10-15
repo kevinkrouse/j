@@ -35,6 +35,9 @@ import java.util.List;
  */
 public record FileDiff(List<String> header, String oldPath, String newPath, boolean isNew, boolean isDeleted,
         boolean isBinary, boolean isCombined, List<Hunk> hunks) {
+    /** A diff with no hunks: no change to the file's content. */
+    public static final FileDiff EMPTY = new FileDiff(List.of(), null, null, false, false, false, false, List.of());
+
     public FileDiff {
         header = List.copyOf(header);
         hunks = List.copyOf(hunks);

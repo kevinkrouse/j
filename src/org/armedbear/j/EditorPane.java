@@ -26,6 +26,7 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import org.jdesktop.swingx.JXMultiSplitPane;
 import org.jdesktop.swingx.MultiSplitLayout;
@@ -412,7 +413,7 @@ public class EditorPane extends JXMultiSplitPane {
         node.setBounds(scaled);
     }
 
-    /** Shares the space out evenly, row or column, all the way down. */
+    /** Shares the space out by the weights, row or column, all the way down. */
     private void place(Node node, Rectangle bounds) {
         node.setBounds(bounds);
         if (!(node instanceof Split split))
@@ -423,16 +424,22 @@ public class EditorPane extends JXMultiSplitPane {
         final int count = (children.size() + 1) / 2;
         final int total = (row ? bounds.width : bounds.height) - divider * (count - 1);
         final int panelSize = split == panelSplit() ? (int) (total * PANEL_WEIGHT) : 0;
+        // By the weights, the last taking what is left.
         int at = row ? bounds.x : bounds.y;
         int i = 0;
+        double before = 0;
         for (Node child : children) {
             final int size;
             if (child instanceof Divider)
                 size = divider;
             else if (split == panelSplit())
                 size = child == panel ? panelSize : total - panelSize;
-            else
-                size = total * (i + 1) / count - total * i++ / count;
+            else if (++i == count)
+                size = total - (int) Math.round(total * before);
+            else {
+                size = (int) Math.round(total * (before + child.getWeight())) - (int) Math.round(total * before);
+                before += child.getWeight();
+            }
             final Rectangle r = row
                     ? new Rectangle(at, bounds.y, size, bounds.height)
                     : new Rectangle(bounds.x, at, bounds.width, size);
@@ -442,6 +449,102 @@ public class EditorPane extends JXMultiSplitPane {
                 place(child, r);
             at += size;
         }
+    }
+
+    /** The windows as they are now, focused the one that has the focus; the panel left out. */
+    WindowLayout.Node capture(Editor focused) {
+        Node model = getMultiSplitLayout().getModel();
+        if (model == panelSplit())
+            model = ((Split) model).getChildren().get(0);
+        return capture(model, focused);
+    }
+
+    private WindowLayout.Node capture(Node node, Editor focused) {
+        if (node instanceof Leaf) {
+            final Editor ed = (Editor) getMultiSplitLayout().getComponentForNode(node);
+            final Position dot = ed.getDot();
+            final Line top = ed.getTopLine();
+            return new WindowLayout.Window(ed.getBuffer(),
+                    dot == null ? 0 : dot.lineNumber(),
+                    dot == null ? 0 : dot.getOffset(),
+                    top == null ? 0 : top.lineNumber(),
+                    ed == focused);
+        }
+        final Split split = (Split) node;
+        final List<Node> windows = new ArrayList<>();
+        for (Node child : split.getChildren())
+            if (!(child instanceof Divider))
+                windows.add(child);
+        // Their shares as laid out, or by their weights before they are.
+        double laid = 0;
+        double weights = 0;
+        for (Node w : windows) {
+            laid += split.isRowLayout() ? w.getBounds().width : w.getBounds().height;
+            weights += w.getWeight();
+        }
+        final List<WindowLayout.Node> children = new ArrayList<>();
+        final List<Double> shares = new ArrayList<>();
+        for (Node w : windows) {
+            children.add(capture(w, focused));
+            final double size = split.isRowLayout() ? w.getBounds().width : w.getBounds().height;
+            shares.add(laid > 0 ? size / laid : weights > 0 ? w.getWeight() / weights : 1.0 / windows.size());
+        }
+        return new WindowLayout.Split(split.isRowLayout(), children, shares);
+    }
+
+    /**
+     * Lays the windows out as shape has them, given its windows' editors in
+     * order: the first may be one shown now, which keeps its leaf; the rest
+     * are new.
+     */
+    void restore(WindowLayout.Node shape, List<Editor> editors) {
+        panel = null;
+        removeAll();
+        final Node model = build(shape, editors.iterator());
+        setModel(model);
+        final MultiSplitLayout layout = getMultiSplitLayout();
+        if (!layout.getFloatingDividers()) {
+            final Insets insets = getInsets();
+            place(
+                model,
+                new Rectangle(insets.left,
+                        insets.top,
+                        getWidth() - insets.left - insets.right,
+                        getHeight() - insets.top - insets.bottom));
+        }
+        assert checkEditorLeafCount() : "count mismatch after restore";
+        revalidate();
+    }
+
+    private Node build(WindowLayout.Node shape, Iterator<Editor> editors) {
+        if (shape instanceof WindowLayout.Window) {
+            final Editor ed = editors.next();
+            Leaf leaf = ed.getLayoutLeaf();
+            if (leaf == null) {
+                leaf = new LayoutLeaf();
+                ed.setLayoutLeaf(leaf);
+            }
+            leaf.setParent(null);
+            add(ed, leaf.getName());
+            return leaf;
+        }
+        final WindowLayout.Split s = (WindowLayout.Split) shape;
+        final List<Node> children = new ArrayList<>();
+        double left = 1;
+        for (int i = 0; i < s.children().size(); i++) {
+            if (i > 0)
+                children.add(new Divider());
+            final Node child = build(s.children().get(i), editors);
+            // The last what is left: they can add up to a hair over 1, which the layout refuses.
+            final double weight = i == s.children().size() - 1 ? Math.max(0, left) : s.shares().get(i);
+            child.setWeight(weight);
+            left -= weight;
+            children.add(child);
+        }
+        final Split split = new Split();
+        split.setRowLayout(s.row());
+        split.setChildren(children);
+        return split;
     }
 
     // Get the list of Editor siblings (other Editors in the same row or column) including the argument editor.

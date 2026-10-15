@@ -20,7 +20,6 @@
 
 package org.armedbear.j.vcs.git;
 
-import java.nio.file.Path;
 import org.armedbear.j.File;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Repositories;
@@ -55,7 +54,7 @@ public final class GitStatusCache {
         } else if (repository.isStale()) {
             repository.refresh();
         }
-        return code(snapshot, relativePath(repository.root(), file));
+        return code(snapshot, repository.relativePath(file));
     }
 
     // The file's own entry, or "!!" if a directory it is in is ignored: git
@@ -70,12 +69,5 @@ public final class GitStatusCache {
                 return dir.code();
         }
         return null;
-    }
-
-    static String relativePath(Path root, File file) {
-        Path path = Path.of(file.canonicalPath());
-        if (!path.startsWith(root))
-            return path.toString();
-        return root.relativize(path).toString().replace(java.io.File.separatorChar, '/');
     }
 }

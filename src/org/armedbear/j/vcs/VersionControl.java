@@ -22,7 +22,6 @@ package org.armedbear.j.vcs;
 
 import static org.armedbear.j.Constants.*;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -108,10 +107,7 @@ public abstract class VersionControl {
             buffer.setSignsUpdater(null);
             return;
         }
-        final String path = repository.root()
-                .relativize(Path.of(file.canonicalPath()))
-                .toString()
-                .replace(java.io.File.separatorChar, '/');
+        final String path = repository.relativePath(file);
         // The same file in the same repository: only what it is against changed.
         // Saved as another, it is another file's signs.
         if (u != null && u.getRepository() == repository && u.getPath().equals(path)) {

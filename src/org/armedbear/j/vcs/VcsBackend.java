@@ -18,6 +18,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.vcs.diff.FileDiff;
 
 /**
  * A version control system. Core provides git and svn; an extension declares
@@ -155,6 +156,55 @@ public interface VcsBackend {
 
     /** A commit's message and diff, as patch text; null if it can't be read. Off the event thread. */
     default byte[] readCommit(VcsRepository repository, String id) {
+        return null;
+    }
+
+    // The log's reads, off the event thread.
+
+    /**
+     * Commits query takes, newest first with each before its parents, from
+     * the skip-th on, at most max; null if this backend has no log.
+     */
+    default List<org.armedbear.j.vcs.log.LogCommit> readLog(
+            VcsRepository repository,
+            org.armedbear.j.vcs.log.LogQuery query,
+            int skip,
+            int max) {
+        return null;
+    }
+
+    /** A commit's whole message, or null. */
+    default String readMessage(VcsRepository repository, String id) {
+        return null;
+    }
+
+    /** The files a commit changed against parent (null for a root), or null if they can't be read. */
+    default List<org.armedbear.j.vcs.log.CommitChange> readCommitChanges(
+            VcsRepository repository,
+            String id,
+            String parent) {
+        return null;
+    }
+
+    /**
+     * One file's diff in a commit against parent (null for a root):
+     * {@link FileDiff#EMPTY} for none, null if it can't be read.
+     */
+    default FileDiff readChangeDiff(
+            VcsRepository repository,
+            String id,
+            String parent,
+            org.armedbear.j.vcs.log.CommitChange change) {
+        return null;
+    }
+
+    /** The working tree's file against a commit's, path at the commit, or null if they don't differ. */
+    default FileDiff readDiffToWorkingTree(VcsRepository repository, String id, String path) {
+        return null;
+    }
+
+    /** A file as a commit has it, or null. */
+    default byte[] readFileAt(VcsRepository repository, String id, String path) {
         return null;
     }
 

@@ -20,7 +20,10 @@
 
 package org.armedbear.j.vcs.status;
 
+import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.Buffer;
+import org.armedbear.j.Line;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.DiffLine;
@@ -34,7 +37,7 @@ import org.armedbear.j.vcs.status.StatusData.FileItem;
  */
 public final class StatusLine extends TextLine {
     public enum Kind {
-        REPOSITORY, FIELD, MESSAGE, BLANK, SECTION, FILE, HUNK, DIFF, COMMIT
+        REPOSITORY, FIELD, MESSAGE, BLANK, SECTION, FILE, HUNK, DIFF, COMMIT, TEXT
     }
 
     private final Kind kind;
@@ -56,6 +59,20 @@ public final class StatusLine extends TextLine {
     private int repositoryColor = -1;
     // Changed words in a diff line, as {start, end} offsets into the text.
     private List<int[]> words = List.of();
+
+    /** The hunks' headings among buffer's lines, in order: where nextChange goes in a diff. */
+    public static List<Line> hunks(Buffer buffer) {
+        final List<Line> out = new ArrayList<>();
+        for (Line l = buffer.getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.kind() == Kind.HUNK)
+                out.add(l);
+        return out;
+    }
+
+    /** A line of text alone: a label and its value (FIELD), a message, a blank, or plain text. */
+    public static StatusLine of(Kind kind, String text, String key) {
+        return new StatusLine(kind, text, key, null, null, null);
+    }
 
     StatusLine(Kind kind, String text, String key, String node, VcsRepository repository, String section) {
         super(text);

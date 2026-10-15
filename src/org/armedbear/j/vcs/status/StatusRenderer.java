@@ -38,7 +38,7 @@ import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
 /** The lines of a status buffer: its repositories' data, with what is expanded shown. */
-final class StatusRenderer {
+public final class StatusRenderer {
     /** Before a file, a hunk, a diff line or a commit. */
     static final String INDENT = "  ";
 
@@ -54,6 +54,22 @@ final class StatusRenderer {
         final StatusRenderer r = new StatusRenderer(expanded, diffRead);
         for (Part part : parts)
             r.part(part, parts.size() > 1);
+        return r.lines;
+    }
+
+    /**
+     * Files' lines under key, as a status buffer's section has them, each
+     * open to its hunks or not as expanded says: the log's files, and its
+     * diff of one.
+     */
+    public static List<StatusLine> renderFiles(
+            VcsRepository repository,
+            String key,
+            List<FileItem> files,
+            BiPredicate<String, Kind> expanded) {
+        final StatusRenderer r = new StatusRenderer(expanded, k -> true);
+        for (FileItem f : files)
+            r.file(repository, key, null, f);
         return r.lines;
     }
 

@@ -226,6 +226,25 @@ public class VcsStatusBufferTest {
     }
 
     @Test
+    public void bracketCGoesByTheHunksShown() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.setDepth(3));
+        until(() -> text().contains("  @@ -1 +1 @@") && text().contains("  @@ -1,6 +1,6 @@"));
+        onEdt(() -> {
+            h.editor().setDot(status.getFirstLine(), 0);
+            org.armedbear.j.ChangeMarks.nextChange(h.editor());
+            assertEquals(Kind.HUNK, ((StatusLine) h.editor().getDotLine()).kind());
+            final Line first = h.editor().getDotLine();
+            org.armedbear.j.ChangeMarks.nextChange(h.editor());
+            assertEquals(Kind.HUNK, ((StatusLine) h.editor().getDotLine()).kind());
+            assertFalse(first == h.editor().getDotLine(), "the next hunk");
+            org.armedbear.j.ChangeMarks.nextChange(h.editor());
+            assertSame(first, h.editor().getDotLine(), "around to the first");
+        });
+    }
+
+    @Test
     public void aCleanRepositorySaysSo() throws Exception {
         git = GitFixture.init(tmp);
         git.write("a.txt", "a\n");

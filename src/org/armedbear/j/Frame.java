@@ -612,6 +612,14 @@ public final class Frame extends JFrame
         updateControls();
     }
 
+    /** Splits a window under ed for buffer, with the focus in it. */
+    public Editor openBelow(Editor ed, Buffer buffer) {
+        if (isPanel(ed))
+            ed = getWindowBehindPanel();
+        splitWindow(ed, ed.getBuffer(), buffer, 0.5f, false, true);
+        return currentEditor;
+    }
+
     /** The windows the same size again, row by row and column by column. */
     public void balanceWindows() {
         editorPane.balance();
@@ -1055,6 +1063,54 @@ public final class Frame extends JFrame
         List<Editor> kill = new ArrayList<>(editors);
         kill.remove(keep);
         unsplitInternal(keep, kill);
+    }
+
+    /** The windows as they are now: the splits, each one's share, and each window's buffer and place. */
+    public final WindowLayout.Node captureLayout() {
+        return editorPane.capture(currentEditor);
+    }
+
+    /**
+     * Puts the windows back as layout has them, but for buffers closed
+     * since: the current window shows the first, and the others are new.
+     */
+    public final void restoreLayout(WindowLayout.Node layout) {
+        final WindowLayout.Node kept = WindowLayout.keeping(layout, b -> Editor.getBufferList().contains(b));
+        if (kept == null)
+            return;
+        final Editor keep = currentEditor;
+        unsplitAll(keep);
+        final List<WindowLayout.Window> windows = WindowLayout.windows(kept);
+        final List<Editor> eds = new ArrayList<>();
+        eds.add(keep);
+        Editor after = keep;
+        for (int i = 1; i < windows.size(); i++) {
+            final Editor ed = new Editor(this);
+            editors.addAfter(ed, after);
+            eds.add(ed);
+            after = ed;
+        }
+        editorPane.restore(kept, eds);
+        validate();
+        Editor focus = keep;
+        for (int i = 0; i < windows.size(); i++) {
+            final Editor ed = eds.get(i);
+            final WindowLayout.Window w = windows.get(i);
+            ed.activate(w.buffer());
+            ed.updateLocation();
+            w.applyTo(ed);
+            if (w.focused())
+                focus = ed;
+        }
+        Editor.setCurrentEditor(focus);
+        setMenu();
+        setToolbar();
+        for (Editor ed : eds) {
+            ed.setUpdateFlag(REFRAME | REPAINT);
+            ed.updateDisplay();
+        }
+        restoreFocus();
+        updateControls();
     }
 
     /**

@@ -223,6 +223,8 @@ public interface Constants {
     String VCS_REPOSITORY_STATUS_MODE_NAME = "VcsStatus";
     int VCS_COMMIT_MESSAGE_MODE = 49;
     String VCS_COMMIT_MESSAGE_MODE_NAME = "VcsCommit";
+    int VCS_LOG_MODE = 50;
+    String VCS_LOG_MODE_NAME = "VcsLog";
 
     int SUCCESS = 0;
     int ERROR = -1;

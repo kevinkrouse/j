@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import java.awt.Color;
 import java.awt.event.MouseEvent;
+import java.util.List;
 import javax.swing.JPopupMenu;
 
 /**
@@ -105,6 +106,15 @@ public interface Mode {
     /** A word for what a transient buffer in this mode is, as Help or Results. */
     public default String getTransientTag() {
         return "Output";
+    }
+
+    /**
+     * The lines buffer's changes start on, in order, for nextChange and
+     * previousChange to go by, as a diff's hunks; null to go by the change
+     * marks.
+     */
+    public default List<Line> getChangeStarts(Buffer buffer) {
+        return null;
     }
 
     /**
