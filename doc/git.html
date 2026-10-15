@@ -177,6 +177,39 @@ whose hooks fail is kept for another try.
 <tr><td>q</td><td>q</td><td><a href="commands.html#killBuffer">killBuffer</a></td><td>close it</td></tr>
 </table>
 
+<h2><a name="signs">Change marks in the editor</a></h2>
+
+<p>
+In a file git tracks, the change marks beside the lines are git's, in place
+of j's own marks of what changed since the file was loaded: a green bar for a
+line added, a blue one for a line changed, and a red triangle where lines
+were deleted, against what is staged. A change that is staged keeps its
+mark, dimmed, until it is committed. They are worked out again as you type,
+a moment after you stop, and when the repository changes.
+<a href="preferences.html#vcsSigns">vcsSigns</a> turns them off, and a file
+git does not track keeps j's marks.
+
+<p>
+The commands of <a href="changes.html">Change Marks</a> work on git's
+changes: <a href="commands.html#nextChange">nextChange</a> and
+<a href="commands.html#previousChange">previousChange</a> go by them,
+<a href="commands.html#revertLines">revertLines</a> puts one back as it is
+staged, and <a href="commands.html#previewChange">previewChange</a> shows it
+against what is staged, or the staged change there when there is no other.
+On the change at the caret, or the lines of the selection, too:
+
+<ul>
+    <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a>
+    (<code>&lt;leader&gt;hs</code>) stages it, as the buffer has it, saved
+    or not;</li>
+    <li><a href="commands.html#vcsUnstageHunk">vcsUnstageHunk</a>
+    (<code>&lt;leader&gt;hu</code>) takes a staged change back out of the
+    index.</li>
+</ul>
+
+<p>
+The preview's bar and the popup a click on a mark opens have these too.
+
 <h2><a name="bufferlist">The buffer list</a></h2>
 
 <p>

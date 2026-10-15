@@ -43,10 +43,11 @@ public final class BufferListStatus {
 
     public record Badge(String text, Color color) {}
 
-    private static final Color CHANGED = new Color(0x2b6cb0);
-    private static final Color STAGED = new Color(0x2a9d4b);
-    private static final Color ADDED = new Color(0x3f9142);
-    private static final Color DELETED = new Color(0x8b1a1a);
+    // On the look and feel's light list background.
+    private static final Color CHANGED = VcsColors.modified(false);
+    private static final Color STAGED = VcsColors.added(false);
+    private static final Color ADDED = STAGED;
+    private static final Color DELETED = VcsColors.removed(false);
     private static final Color CONFLICT = new Color(0xe03131);
     private static final Color UNTRACKED = new Color(0x888888);
 

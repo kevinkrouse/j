@@ -28,8 +28,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.MotionCommands;
 import org.armedbear.j.OutputBuffer;
@@ -52,7 +50,6 @@ public final class CommandLog {
     }
 
     private static final ArrayDeque<Entry> entries = new ArrayDeque<>();
-    private static final List<Consumer<Entry>> listeners = new CopyOnWriteArrayList<>();
 
     private CommandLog() {}
 
@@ -71,8 +68,6 @@ public final class CommandLog {
             while (entries.size() > CAPACITY)
                 entries.removeFirst();
         }
-        for (Consumer<Entry> listener : listeners)
-            listener.accept(entry);
     }
 
     private static String text(byte[] bytes) {
@@ -85,15 +80,6 @@ public final class CommandLog {
         synchronized (entries) {
             return new ArrayList<>(entries);
         }
-    }
-
-    /** Called on the thread that ran the command, for each one. */
-    public static void addListener(Consumer<Entry> listener) {
-        listeners.add(listener);
-    }
-
-    public static void removeListener(Consumer<Entry> listener) {
-        listeners.remove(listener);
     }
 
     static void clear() {

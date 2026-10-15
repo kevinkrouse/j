@@ -52,16 +52,21 @@ public final class Icons {
     }
 
     /** The icon rendered at exactly {@code size} pixels. */
-    public static synchronized ImageIcon getIconFromFile(String name, int size) {
+    public static ImageIcon getIconFromFile(String name, int size) {
+        return getIconFromFile(name, size, null);
+    }
+
+    /** The icon at {@code size} pixels drawn in color, or in the icons' own with null. */
+    public static synchronized ImageIcon getIconFromFile(String name, int size, Color color) {
         if (size <= 0)
             return null;
-        final String key = name + '@' + size;
+        final String key = colored(name, color) + '@' + size;
         if (iconCache.containsKey(key))
             return iconCache.get(key);
 
         ImageIcon icon = null;
         try {
-            SvgIcon svg = getSvgIcon(name);
+            SvgIcon svg = color == null ? getSvgIcon(name) : getSvgIcon(name, color);
             if (svg != null)
                 icon = new ImageIcon(new VectorImage(size, svg::paint));
         }
@@ -133,17 +138,27 @@ public final class Icons {
     private static final float BADGE_GAP = 1.6f;
 
     private static SvgIcon getSvgIcon(String name) throws Exception {
-        if (svgCache.containsKey(name))
-            return svgCache.get(name);
+        return getSvgIcon(name, getIconColor());
+    }
+
+    private static SvgIcon getSvgIcon(String name, Color color) throws Exception {
+        final String key = colored(name, color == getIconColor() ? null : color);
+        if (svgCache.containsKey(key))
+            return svgCache.get(key);
         SvgIcon svg = null;
         try {
-            svg = new SvgIcon(name, getIconColor());
+            svg = new SvgIcon(name, color);
         }
         catch (IllegalArgumentException e) {
             Log.warn("failed to get icon: " + name + " (" + e.getMessage() + ")");
         }
-        svgCache.put(name, svg);
+        svgCache.put(key, svg);
         return svg;
+    }
+
+    // A cache key: the name, and the color when not the icons' own.
+    private static String colored(String name, Color color) {
+        return color == null ? name : name + '#' + Integer.toHexString(color.getRGB());
     }
 
     public static synchronized Color getIconColor() {

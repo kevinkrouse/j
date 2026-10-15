@@ -36,6 +36,7 @@ import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.VersionControl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -173,7 +174,7 @@ public class GitSnapshotTest {
         assertEquals("!!", GitStatusCache.statusFor(File.getInstance(f.root.resolve("build/out.class").toString())));
         f.write("a.txt", "changed\n");
         // After a save: the stale answer at once, the fresh one once read in the background.
-        GitStatusCache.invalidate();
+        VersionControl.invalidate();
         assertNull(GitStatusCache.statusFor(a));
         VcsRepository repo = Repositories.forDirectory(f.root);
         for (int i = 0; i < 100 && repo.isStale(); i++)

@@ -59,6 +59,7 @@ import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.VersionControlEntry;
+import org.armedbear.j.vcs.signs.SignsUpdater;
 
 public class Buffer extends SystemBuffer {
     private static int untitledCount;
@@ -1933,6 +1934,14 @@ public class Buffer extends SystemBuffer {
         }
         invalidate();
         ChangeList.changed(this);
+        signsChanged();
+    }
+
+    // The text changed: the signs are worked out again.
+    private void signsChanged() {
+        final SignsUpdater updater = signsUpdater;
+        if (updater != null)
+            updater.changed();
     }
 
     public void unmodified() {
@@ -2176,6 +2185,7 @@ public class Buffer extends SystemBuffer {
             catch (CannotUndoException e) {
                 Editor.currentEditor().status("Nothing to undo");
             }
+            signsChanged(); // Undo sets the text back without modified().
         }
     }
 
@@ -2193,6 +2203,7 @@ public class Buffer extends SystemBuffer {
             catch (CannotRedoException e) {
                 Editor.currentEditor().status("Nothing to redo");
             }
+            signsChanged();
         }
     }
 
@@ -2959,6 +2970,33 @@ public class Buffer extends SystemBuffer {
     public final void checkVCS() {
         vcsEntry = VersionControl.getEntry(this);
         vcsChecked = true;
+        // What is staged or committed may have changed: the signs too.
+        VersionControl.attachSigns(this);
+    }
+
+    // Change marks from version control, and what works them out.
+    private volatile Signs signs;
+    private volatile SignsUpdater signsUpdater;
+
+    /** The version control's change marks, drawn in place of j's own; null for j's, or with vcsSigns off. */
+    public final Signs getSigns() {
+        final Signs s = signs;
+        return s != null && getBooleanProperty(Property.VCS_SIGNS) ? s : null;
+    }
+
+    public final void setSigns(Signs signs) {
+        this.signs = signs;
+    }
+
+    public final SignsUpdater getSignsUpdater() {
+        return signsUpdater;
+    }
+
+    /** What works the signs out; null for j's own marks. */
+    public final void setSignsUpdater(SignsUpdater updater) {
+        signsUpdater = updater;
+        if (updater == null)
+            signs = null;
     }
 
     /**

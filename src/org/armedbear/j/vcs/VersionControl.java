@@ -22,6 +22,7 @@ package org.armedbear.j.vcs;
 
 import static org.armedbear.j.Constants.*;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -38,9 +39,12 @@ import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Property;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.Sidebar;
+import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.signs.SignsUpdater;
 
 public abstract class VersionControl {
     /** Marks every repository's snapshot stale, after a change j made to the working tree. */
@@ -83,6 +87,41 @@ public abstract class VersionControl {
                 frame.repaintStatusBar();
         }
         Sidebar.repaintBufferListInAllFrames();
+    }
+
+    /**
+     * Gives a file's buffer, in a repository, the version control's change
+     * marks; or takes them away, when it is in none or vcsSigns is off. When
+     * it has them, they are worked out again: the repository changed.
+     */
+    public static void attachSigns(Buffer buffer) {
+        final File file = buffer.getFile();
+        // A web buffer shows its file rendered, not its text.
+        final boolean wanted = file != null
+                && file.isLocal()
+                && buffer.getType() == SystemBuffer.TYPE_NORMAL
+                && !(buffer instanceof WebBuffer)
+                && buffer.getBooleanProperty(Property.VCS_SIGNS);
+        final VcsRepository repository = wanted ? Repositories.forFile(file) : null;
+        final SignsUpdater u = buffer.getSignsUpdater();
+        if (repository == null) {
+            buffer.setSignsUpdater(null);
+            return;
+        }
+        final String path = repository.root()
+                .relativize(Path.of(file.canonicalPath()))
+                .toString()
+                .replace(java.io.File.separatorChar, '/');
+        // The same file in the same repository: only what it is against changed.
+        // Saved as another, it is another file's signs.
+        if (u != null && u.getRepository() == repository && u.getPath().equals(path)) {
+            u.basesChanged();
+            u.changed();
+            return;
+        }
+        final SignsUpdater updater = new SignsUpdater(buffer, repository, path);
+        buffer.setSignsUpdater(updater);
+        updater.changed();
     }
 
     public static VersionControlEntry getEntry(Buffer buffer) {

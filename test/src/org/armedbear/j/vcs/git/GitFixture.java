@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.armedbear.j.util.ProcessRunner;
@@ -137,7 +138,13 @@ public final class GitFixture {
 
     /** Applies a patch; returns git's error, or null if it applied. */
     String apply(byte[] patch, boolean cached, boolean reverse) {
-        VcsResult r = GitCli.run(GitCli.apply(root, patch, cached, reverse));
+        List<String> args = new ArrayList<>(List.of("apply", "--whitespace=nowarn"));
+        if (cached)
+            args.add("--cached");
+        if (reverse)
+            args.add("--reverse");
+        args.add("-");
+        VcsResult r = GitCli.run(GitCli.write(root, patch, args.toArray(new String[0])));
         return r.succeeded() ? null : r.stderr() + "\n--- patch:\n" + new String(patch, StandardCharsets.ISO_8859_1);
     }
 }

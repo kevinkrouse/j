@@ -202,6 +202,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         editor.setCurrentCommand(COMMAND_NOTHING);
 
         Extensions.hooks().eventHandled();
+        editor.commandRan();
 
         SystemSelection.updateSystemSelection(editor);
 
@@ -493,6 +494,11 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         // Folding.
         if (x < Display.getGutterWidth(buffer)) {
             Position pos = display.positionFromPoint(x, y);
+            if (button == MouseEvent.BUTTON1 && modifiers == 0 && display.isChangeMarkAt(x, pos.getLine())) {
+                editor.moveDotTo(pos.getLine(), 0);
+                ChangeMarks.changePopup(editor);
+                return true;
+            }
             if (button == MouseEvent.BUTTON1 && modifiers == 0 && display.isFoldMarkerAt(x, pos.getLine())) {
                 mode.toggleFoldAt(editor, pos.getLine());
                 return true;
@@ -647,7 +653,9 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         if (buffer.isBusy())
             editor.setWaitCursor();
         else if (e.getX() < Display.getGutterWidth(buffer)) {
-            final boolean marker = pos != null && display.isFoldMarkerAt(e.getX(), pos.getLine());
+            final boolean marker = pos != null
+                    && (display.isFoldMarkerAt(e.getX(), pos.getLine())
+                            || display.isChangeMarkAt(e.getX(), pos.getLine()));
             editor.setCursor(Cursor.getPredefinedCursor(marker ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
         } else
             editor.setCursor(buffer.getDefaultCursor(pos));

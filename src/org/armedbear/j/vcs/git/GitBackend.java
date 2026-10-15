@@ -23,6 +23,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FileChange;
@@ -163,6 +164,11 @@ public final class GitBackend implements VcsBackend {
     @Override
     public byte[] readCommitDiff(VcsRepository repository, Set<CommitOption> options) {
         return GitWrites.commitDiff(repository, options);
+    }
+
+    @Override
+    public Bases readBases(VcsRepository repository, String path) {
+        return GitBases.read(repository, path);
     }
 
     @Override

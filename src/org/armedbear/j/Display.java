@@ -23,6 +23,7 @@ package org.armedbear.j;
 import static org.armedbear.j.Constants.*;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -43,11 +44,14 @@ import java.awt.font.FontRenderContext;
 import java.awt.font.GlyphVector;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import javax.swing.JComponent;
+import javax.swing.JLayeredPane;
+import javax.swing.JRootPane;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.mode.image.ImageBuffer;
@@ -111,6 +115,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private int gutterWidth;
     private Color changeColor;
     private Color savedChangeColor;
+    // The version control's signs, and their colors by kind.
+    private Signs signs;
+    private final Color[] signColors = new Color[Signs.Kind.values().length];
     private Color lineNumberColor;
     private int verticalRuleX;
     private Color verticalRuleColor;
@@ -391,6 +398,18 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         return new Point(gutterWidth + Math.max(0, caretCol) * spaceWidth + spaceWidth / 2, y + charHeight / 2);
     }
 
+    /** The top of line's text in this display, or -1 unless all of it is on screen. */
+    public int getLineTop(Line line) {
+        if (line == null || topLine == null)
+            return -1;
+        if (editor.getBuffer().needsRenumbering())
+            editor.getBuffer().renumber();
+        if (line.isHidden() || line.lineNumber() < topLine.lineNumber())
+            return -1;
+        final int y = getY(line);
+        return y < 0 || y + charHeight > getHeight() ? -1 : y;
+    }
+
     public int getAbsoluteCaretCol() {
         return caretCol + shift;
     }
@@ -412,6 +431,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
         if (changedLines.isEmpty())
             return;
+        if (overlaid()) {
+            changedLines.clear();
+            repaint();
+            return;
+        }
         final Buffer buffer = editor.getBuffer();
         initializePaint();
         try {
@@ -524,6 +548,10 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if (savedChangeColor == null)
                 savedChangeColor = DefaultTheme.getColor("savedChange");
         }
+        signs = enableChangeMarks ? buffer.getSigns() : null;
+        if (signs != null)
+            for (Signs.Kind kind : Signs.Kind.values())
+                signColors[kind.ordinal()] = Signs.color(kind, editor.getFormatter().getBackgroundColor());
         showLineNumbers = buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS);
         foldMarkers = buffer.getStringProperty(Property.FOLD_MARKERS);
         gutterWidth = getGutterWidth(showChangeMarks, showLineNumbers);
@@ -966,7 +994,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private synchronized void repaintLine(Line l) {
         if (!Editor.displayReady())
             return;
-        if ((updateFlag & REPAINT) == REPAINT) {
+        if ((updateFlag & REPAINT) == REPAINT || overlaid()) {
             repaint();
             return;
         }
@@ -1553,7 +1581,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     private void drawBackgroundForLine(Graphics2D g2d, Color backgroundColor, Line line, int y) {
-        if (enableChangeMarks && line.isModified()) {
+        if (signs != null) {
+            // The version control's marks, in place of j's own.
+            g2d.setColor(backgroundColor);
+            g2d.fillRect(0, y, getWidth(), line.getHeight());
+            final Signs.Sign sign = signs.get(line);
+            if (sign != null)
+                drawSign(g2d, sign, backgroundColor, y, line.getHeight());
+        } else if (enableChangeMarks && line.isModified()) {
             g2d.setColor(line.isSaved() ? savedChangeColor : changeColor);
             g2d.fillRect(0, y, changeMarkWidth, line.getHeight());
             g2d.setColor(backgroundColor);
@@ -1571,6 +1606,23 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, line.getHeight());
             }
         }
+    }
+
+    // A bar beside a line added or changed, a triangle where lines were
+    // deleted; dimmed halfway to the background when staged.
+    private void drawSign(Graphics2D g2d, Signs.Sign sign, Color background, int y, int height) {
+        Color color = signColors[sign.kind().ordinal()];
+        if (sign.staged())
+            color = DefaultTheme.blend(background, color, 0.5);
+        g2d.setColor(color);
+        if (sign.kind() != Signs.Kind.DELETED) {
+            g2d.fillRect(0, y, changeMarkWidth, height);
+            return;
+        }
+        final int size = Math.max(changeMarkWidth + 2, charHeight / 3);
+        final int edge = sign.above() ? y : y + height;
+        final int toward = sign.above() ? size : -size;
+        g2d.fillPolygon(new int[] { 0, size, 0 }, new int[] { edge, edge, edge + toward }, 3);
     }
 
     /**
@@ -1600,9 +1652,22 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 --end;
             final int x1 = gutterWidth + measureLine(g2d, textArray, start, formatArray);
             final int x2 = gutterWidth + measureLine(g2d, textArray, end, formatArray);
-            g2d.setColor(color);
-            g2d.fillRoundRect(x1 - 1, y + 1, x2 - x1 + 2, charAscent + charDescent - 1, 5, 5);
+            fillChip(g2d, color, x1 - 1, y + 1, x2 - x1 + 2, charAscent + charDescent - 1);
             i = end;
+        }
+    }
+
+    // Antialiased, so its four corners round alike.
+    private static void fillChip(Graphics2D g, Color color, int x, int y, int width, int height) {
+        final Graphics2D g2d = (Graphics2D) g.create();
+        try {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g2d.setColor(color);
+            g2d.fill(new RoundRectangle2D.Float(x, y, width, height, 5, 5));
+        }
+        finally {
+            g2d.dispose();
         }
     }
 
@@ -1658,6 +1723,15 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             foldStartsMode = editor.getMode();
         }
         return foldStarts.computeIfAbsent(line, l -> editor.getMode().isFoldStart(buffer, l));
+    }
+
+    /** Whether a change mark is drawn beside line at x, to click for its change. */
+    public boolean isChangeMarkAt(int x, Line line) {
+        final Buffer buffer = editor.getBuffer();
+        if (line == null || !buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS) || x >= Math.max(changeMarkWidth, 4))
+            return false;
+        final Signs signs = buffer.getSigns();
+        return signs != null ? signs.get(line) != null : !buffer.isNewFile() && line.isModified();
     }
 
     /**
@@ -2205,6 +2279,21 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
+    // Whether a popup in the window's layered pane is over this display.
+    // Painting straight to the screen would then draw over it until it
+    // painted itself again, a flash; repaint() keeps it on top.
+    private boolean overlaid() {
+        final JRootPane root = getRootPane();
+        if (root == null || !isShowing())
+            return false;
+        final JLayeredPane layers = root.getLayeredPane();
+        final Rectangle bounds = SwingUtilities.convertRectangle(this, new Rectangle(getSize()), layers);
+        for (Component c : layers.getComponentsInLayer(JLayeredPane.POPUP_LAYER))
+            if (c.isVisible() && c.getBounds().intersects(bounds))
+                return true;
+        return false;
+    }
+
     // Moves what is on screen dy pixels up, or down when dy is negative.
     // The display's own graphics, so no asking where it is on the screen,
     // which a Wayland toolkit cannot know.
@@ -2424,8 +2513,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         dy = moveTop(dy, clampBottom);
         if (dy == 0)
             return 0;
+        // A popup by the caret's line goes with it.
+        if (editor.getCaretPopup() != null)
+            editor.getCaretPopup().scrolled();
         final int height = getHeight();
-        if (Math.abs(dy) >= height || !isShowing() || !editor.isShowing()) {
+        if (Math.abs(dy) >= height || !isShowing() || !editor.isShowing() || overlaid()) {
             setUpdateFlag(REPAINT);
             return dy;
         }

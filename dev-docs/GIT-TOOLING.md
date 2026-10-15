@@ -11,7 +11,7 @@ Out of scope for now: rebase, fixup and autosquash, cherry-pick, worktrees,
 push and pull beyond what the status buffer shows, and submodule management.
 
 Git comes first, on a VCS layer that Subversion can sit on too (below).
-Hints, inline blame, hunk previews and conflict actions are virtual text,
+Hints, inline blame and conflict actions are virtual text,
 which `dev-docs/VIRTUAL-TEXT.md` plans. The `?` and prefix-key popups are
 `dev-docs/TRANSIENT.md`, shared with dir mode and mail. Both come before
 the tools that use them.
@@ -382,17 +382,22 @@ Recent commits (10)
   100 ms after typing stops, by `util/Diff`.
 - `nextChange`/`previousChange` go by git hunk when signs are on (`]c` and
   `[c` in vim, `Ctrl Alt N`/`Ctrl Alt P` in simple mode, as now).
-  `gitStageHunk`/`gitResetHunk`/`gitPreviewHunk`/`gitUndoStageHunk` work on
+  `vcsStageHunk`/`revertLines`/`previewChange`/`vcsUnstageHunk` work on
   the hunk at the caret, or on the lines of the region. In vim they are
   `<leader>hs`, `hr`, `hp` and `hu`, as Gitsigns suggests. Staging from a
   buffer with unsaved changes stages what is in the buffer: the patch is
   built from the buffer's text, not the file's.
 - A click on a mark opens a popup with the hunk's old text and buttons to
   stage, reset, move to a changelist and go to the next hunk (IntelliJ).
-  Preview shows the old lines as virtual lines above the hunk, struck
-  through, until the caret leaves the hunk.
-- `revertLines` keeps working on j's own marks, and in a tracked file it
-  does what `gitResetHunk` does.
+  Preview shows the hunk's removed and added lines in a window floating
+  under the caret, the characters that differ marked (gitsigns'
+  `preview_hunk`), until the next command or a scroll. With no unstaged
+  change at the caret it shows the staged one. Its bar has the hunk's
+  number and buttons for the previous and next hunk (around at the ends),
+  stage or unstage, and reset (unstaged only); going to another hunk while
+  it is open shows that one in its place.
+- `revertLines`, `previewChange` and `changePopup` work on j's own marks
+  too; in a tracked file they reset, preview and offer the git hunk.
 
 ### Blame in the gutter (`gitBlame`, toggles)
 
@@ -851,9 +856,36 @@ plan with why it is left, before the next phase starts.
      still leaves insert mode first; a new message starts in insert mode.
    - After a write, the caret goes to the next thing in the buffer, or to a
      heading just closed.
-4. **Editor hunks.** `util/Diff`, gutter column providers, `ChangeSource`,
+4. **Done. Editor hunks.** `util/Diff`, gutter column providers, `ChangeSource`,
    signs (solid, dimmed staged), hunk navigation, stage, reset and preview in
-   the editor, and the mark popup.
+   the editor, and the mark popup. As built:
+   - `util/Diff` is Myers' diff between the lines the two sides don't share
+     at their ends, with lines in only one side left out of the search
+     first (histogram diff's idea, not all of it), and one replacement past
+     1024 differences.
+   - The core has `Signs` (each line's mark, and where hunks start); a
+     buffer tells its `SignsUpdater` of each edit, and the change-mark column
+     draws a buffer's signs in place of j's marks when it has them. It is
+     that one column, not yet general column providers: blame's column
+     (phase 7) makes them.
+   - `vcs/signs`: `SignsUpdater` (per buffer, 100 ms after typing stops or
+     when the repository changes) and `SignsMath` work out the signs from
+     `VcsBackend.readBases`, git's `GitBases` (`ls-files -s`, `ls-tree`,
+     blobs by id, cached). j's last newline is an empty last line, which git
+     does not count; buffers are read as git counts them.
+   - `HunkCommands`: `vcsStageHunk`, `vcsUnstageHunk`, and the reset and
+     preview `revertLines` and `previewChange` call in a tracked file;
+     `ChangeMarks.changePopup` (a click on a mark: the preview and a popup of
+     the rest). Patches come from the buffer's text against the
+     index, CR LF and a missing last newline kept (`EditorHunks`); a hunk's
+     context is the unchanged lines only, so a patch applies to either side.
+     A changed line's halves stage together, as in the status buffer
+     (`Patch.pairChanges`).
+   - `nextChange`/`previousChange` go by hunk; `revertLines`, now a
+     command, resets the hunk in a tracked file. Vim: `]c`, `[c`,
+     `<leader>hs`/`hr`/`hp`/`hu`.
+   - Left for phase 9: outlined marks for other changelists, and moving a
+     hunk to one from the popup.
 5. **Log.** `WindowLayout` capture and restore, the full-frame log and the
    quick log, the list buffer with streaming load, rows that fit the width,
    details at the bottom or the right, to-file and at-revision, the filter
@@ -1002,4 +1034,88 @@ background, updating open buffers; command input in the log.)
 - **Ctrl N:** a fresh one went to the oldest message. It now comes forward toward the message being written, as a shell's history does.
 - **Gates:** the commit popup and `S`/`U` check `Capability.STAGING`, as the popup's groups did.
 - **Docs:** this phase's note had unstaging and the discard's order wrong.)
+
+**Phase 4** (fixed:
+- **Save As:** the buffer kept its old file's signs and path, so staging wrote into the other file's index entry. A new path is a new `SignsUpdater`.
+- **Undo and redo:** they left the signs as they were before. `Buffer.undo` and `redo` tell the sign source.
+- **A last line with no newline:** it compared equal to one with, so lines added below it could not be staged, and a reset at the end dropped the file's last newline. A side's last line is compared with its newline or lack of one (`SignsMath.keys`), and a reset at the end takes the index's.
+- **Staged deletions:** one under a line changed again in the buffer had no mark, and could be unstaged from line 1. Both go under the nearest line before that the buffer still has.
+- **Line numbers:** a command right after a newline was typed read the caret's stale line number. The hunk commands renumber first.
+- **The diff's limit:** past 4096 differences it had kept 140 MB to give up. The limit is 1024, a few MB.
+- **Bases:** a read begun before a stage could put its old bases back; a generation guards them. A file in a conflict no longer runs git on each pause in typing.
+- **Renames:** a staged one was all "added", against the new name in HEAD; it is against its old name.
+- **An emptied buffer:** its deletion now has a mark, on j's empty last line.
+- **vcsSigns:** turning it off shows j's marks at once.
+- **Core and vcs:** this review moved core's calls to the hunk commands behind a `SignSource` interface and a caret hook. A later simplicity review took them out again, because core already uses vcs in a dozen places and there was one implementation.
+- **`nextChange`:** it walked the buffer once per hunk; once now.)
+
+- Each repository refresh reads every open file's bases again: two git processes per buffer. Batching them (`ls-files -s` for all at once) can come when it shows.
+- A file with smudge and clean filters (LFS, git-crypt) compares its text with the clean blob, so all of it may show as changed; staging a hunk of it would bypass the clean filter. Not handled.
+- `Signs.Sign.staged` becomes a state with a third value, another changelist, in phase 9; the drawing moves into a column provider with blame's column in phase 7.
+- A reset whose buffer is reloaded from disk between its read and its edit could edit the new text: `modCount` starts again at 0 on a reload. The window is a git command long.
+
+
+### Simplicity review, phases 0–4
+
+Removed: code nothing called (`VcsRunner.runAsync` and its pool, `CommandLog`'s listeners, `Repositories.all`, `GitCli.apply`, `GitStatusCache.invalidate`), `WordDiff`'s own LCS table (it uses `util/Diff`), and the change colors hard-coded in five places (`VcsColors`). Kept, though nothing uses them yet, because later phases need them: the popup's `Pick` option (phase 5's filters), virtual text's `EOL` and `RIGHT` placements and priorities (blame, phase 7), and the `Capability` values past `STAGING`.
+
+### Phase 4 feedback
+
+- The preview was virtual text: the old lines struck through over the
+  hunk. It is now a floating window under the caret with the removed and
+  added lines, the characters that differ marked (`WordDiff.chars`), as
+  gitsigns' `preview_hunk` has it. The next command or a scroll closes it,
+  except `]c`/`[c`, which show the hunk they go to in its place (no
+  flash), and the first key of a sequence, as `[`. A bar over it has
+  "Hunk n of m", numbered as `]c`/`[c` go, and buttons for previous, next,
+  stage or unstage, and reset, in the text color (`Icons` caches an icon by
+  color too), dimmed when they can't be used. Icons: `up`, `down` (new),
+  `plus`/`minus` (new; VS Code's and JetBrains' stage and unstage), `undo`
+  (their discard and rollback).
+- `nextChange`/`previousChange` go around past the last or first hunk, in a
+  file git tracks, saying so in the status bar. Unlike vim's `]c`, by
+  request.
+- `Display` paints changed lines, the caret and scrolls straight to the
+  screen. Over a popup in the layered pane (the hunk popup, the preview)
+  that drew over it until it painted again, a flash; with one over it,
+  the display repaints through Swing instead.
+- The preview is placed against the caret's line again on each step of a
+  scroll (`Display.scrollByPixels`), so one shown while `]c` eases the
+  window to a hunk ends up beside it, not where the line was.
+- With no unstaged change at the caret, the preview shows the staged hunk
+  there (a new file's is all of it), with unstage in place of stage.
+- Web buffers (the help pages) have no signs: their text is the file
+  rendered, so every line differed from the index.
+
+### Review fixes
+
+- Reset and preview check that the editor still shows the buffer they read,
+  not only its modCount: two unedited buffers both have 0.
+- The preview hides while the caret's line is off screen
+  (`Display.getLineTop`), rather than being placed outside the window.
+- `WordDiff` skips pairs past 40,000 token cells again, so long minified
+  lines don't stall the event thread.
+- `Display` resolves the sign colors once per paint; `hunkStarts` hashes
+  the starts, not every line; `attachSigns` starts the computation itself.
+- The preview's lifecycle is the editor's: `Editor.showCaretPopup` holds
+  one `CaretPopup` per editor and closes it after a command (not on the
+  first key of a sequence) or on a wheel scroll; `Display` tells it of
+  scrolls. Only `ChangeMarks` knows of the preview, to follow `]c`/`[c`
+  (`replacingCaretPopup`). Its bar is a `JToolBar` of `JButton`s, flat
+  until hovered as j's toolbar's are.
+
+### Commands for any change marks
+
+- Previewing, resetting and the mark's popup aren't git's: `previewChange`,
+  `revertLines` and `changePopup` work on j's own marks (the lines as
+  loaded, from `Line.getOriginalText`) and, in a tracked file, on the
+  version control's hunks. Only staging needs an index: `vcsStageHunk` and
+  `vcsUnstageHunk`, named as the status buffer's `vcsStage`. The
+  `gitHunkPopup`, `gitPreviewHunk`, `gitResetHunk`, `gitStageHunk` and
+  `gitUndoStageHunk` names are gone (never released). Help is
+  `changes.html`.
+- `nextChange`/`previousChange` go by the first lines of j's runs of
+  changed lines as by git's hunks, around at the ends, and an open preview
+  follows them.
+- Hunk numbers renumber the buffer first: after a split they were stale.
 

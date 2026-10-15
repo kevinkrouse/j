@@ -1132,6 +1132,56 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     private EventSequence currentEventSequence;
     private boolean local;
 
+    // The popup by the caret, and whether the command running replaces it.
+    private CaretPopup caretPopup;
+    private boolean caretPopupReplaced;
+
+    /** Shows popup in place of any caret popup there was. */
+    public void showCaretPopup(CaretPopup popup) {
+        if (caretPopup != null && caretPopup != popup)
+            caretPopup.removed();
+        caretPopup = popup;
+    }
+
+    public CaretPopup getCaretPopup() {
+        return caretPopup;
+    }
+
+    public void closeCaretPopup() {
+        final CaretPopup popup = caretPopup;
+        caretPopup = null;
+        caretPopupReplaced = false;
+        if (popup != null)
+            popup.removed();
+    }
+
+    /**
+     * The command running shows another caret popup in place of this one,
+     * later: it is kept past the command's end until then, so it doesn't
+     * flash.
+     */
+    public void replacingCaretPopup() {
+        caretPopupReplaced = caretPopup != null;
+    }
+
+    /** A command ran: the caret popup closes, unless a key sequence is only begun. */
+    void commandRan() {
+        if (isKeySequencePending())
+            return;
+        if (caretPopupReplaced)
+            caretPopupReplaced = false;
+        else
+            closeCaretPopup();
+    }
+
+    /** Whether a key sequence is begun and waits for its next key. */
+    public boolean isKeySequencePending() {
+        if (requestedKeyMap != null)
+            return true;
+        final InputHandler handler = getInputHandler();
+        return handler != null && handler.getPendingCommand() != null;
+    }
+
     public boolean handleJEvent(JEvent event) {
         char keyChar = event.getKeyChar();
         int keyCode = event.getKeyCode();
@@ -1795,6 +1845,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
+        closeCaretPopup();
         // Without this, focus ends up in the location bar textfield if you use
         // the mouse wheel in the edit window after using the openFile
         // completion list to open a file.

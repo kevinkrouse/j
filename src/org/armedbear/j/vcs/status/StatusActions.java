@@ -147,42 +147,13 @@ public final class StatusActions {
         }
         for (Part p : parts.values())
             if (p.lines() != null)
-                pairChanges(p.hunk(), p.lines());
+                Patch.pairChanges(p.hunk(), p.lines());
         // A file taken whole takes its hunks.
         targets.removeIf(
             t -> t instanceof Part p
                     && files.containsKey(p.repository().root() + "|" + p.section())
                     && files.get(p.repository().root() + "|" + p.section()).files().contains(p.file()));
         return targets;
-    }
-
-    /**
-     * A line changed is a removed line and the added one after it, as a
-     * word diff pairs them: either half selected takes both, so that staging
-     * an edited line stages the edit, not the new text beside the old.
-     */
-    static void pairChanges(Hunk hunk, BitSet lines) {
-        final List<org.armedbear.j.vcs.diff.DiffLine> d = hunk.lines();
-        int i = 0;
-        while (i < d.size()) {
-            if (!d.get(i).isRemoved()) {
-                i++;
-                continue;
-            }
-            int removedEnd = i;
-            while (removedEnd < d.size() && d.get(removedEnd).isRemoved())
-                removedEnd++;
-            int addedEnd = removedEnd;
-            while (addedEnd < d.size() && d.get(addedEnd).isAdded())
-                addedEnd++;
-            for (int k = 0; k < Math.min(removedEnd - i, addedEnd - removedEnd); k++) {
-                if (lines.get(i + k) || lines.get(removedEnd + k)) {
-                    lines.set(i + k);
-                    lines.set(removedEnd + k);
-                }
-            }
-            i = addedEnd;
-        }
     }
 
     private static boolean covers(Map<String, Files> files, StatusLine l) {

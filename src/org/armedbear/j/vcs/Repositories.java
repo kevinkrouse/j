@@ -141,11 +141,6 @@ public final class Repositories {
         return i < 0 ? -1 : i % RepositoryColors.COUNT;
     }
 
-    /** Every repository j has looked at. */
-    public static List<VcsRepository> all() {
-        return new ArrayList<>(repositories.values());
-    }
-
     /**
      * Marks every snapshot stale and forgets which directories are in which
      * repository; a repository with listeners is read again in the background.

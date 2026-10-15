@@ -29,6 +29,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.TextStyle;
 import org.armedbear.j.vcs.RepositoryColors;
+import org.armedbear.j.vcs.VcsColors;
 
 /**
  * A status buffer's colors: headings bold, a file's letter by what
@@ -163,7 +164,7 @@ public final class VcsStatusFormatter extends Formatter {
         final Color own = switch (format) {
             case LETTER_ADDED -> addedHue();
             case LETTER_REMOVED -> removedHue();
-            case LETTER_MODIFIED -> themed("modified", dark ? 0x6ea2ff : 0x3574f0);
+            case LETTER_MODIFIED -> themed("modified", VcsColors.modified(dark));
             default -> null;
         };
         return own != null ? own : super.getColor(format);
@@ -171,11 +172,11 @@ public final class VcsStatusFormatter extends Formatter {
 
     // Added and removed lines keep the text's color on a shade of these.
     private Color addedHue() {
-        return themed("added", DefaultTheme.isDark(getBackgroundColor()) ? 0x7ccf86 : 0x1a7f37);
+        return themed("added", VcsColors.added(DefaultTheme.isDark(getBackgroundColor())));
     }
 
     private Color removedHue() {
-        return themed("removed", DefaultTheme.isDark(getBackgroundColor()) ? 0xf08080 : 0xc0262d);
+        return themed("removed", VcsColors.removed(DefaultTheme.isDark(getBackgroundColor())));
     }
 
     @Override
@@ -190,10 +191,10 @@ public final class VcsStatusFormatter extends Formatter {
         return super.getStyle(format);
     }
 
-    // A color the theme or the user gives thing, or else rgb.
-    private Color themed(String thing, int rgb) {
+    // A color the theme or the user gives thing, or else fallback.
+    private Color themed(String thing, Color fallback) {
         final Color c = getFormatTable().resolveColor(thing, false);
-        return c != null ? c : new Color(rgb);
+        return c != null ? c : fallback;
     }
 
     @Override

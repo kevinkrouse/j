@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<title>J User's Guide - Change Marks</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+
+<body>
+
+<a href="contents.html">Top</a>
+
+<hr>
+
+<h1>Change Marks</h1>
+
+<hr>
+
+<p>
+A bar in the left margin marks each line changed since the file was loaded,
+in <a href="preferences.html#color.change">color.change</a>, or once saved,
+<a href="preferences.html#color.savedChange">color.savedChange</a>.
+<a href="preferences.html#showChangeMarks">showChangeMarks</a> turns them
+off. In a file git tracks, the marks are git's, against what is staged: see
+<a href="git.html#signs">Change marks in the editor</a>. The commands here
+work on either.
+
+<ul>
+    <li><a href="commands.html#nextChange">nextChange</a> and
+    <a href="commands.html#previousChange">previousChange</a> (Ctrl Alt N and
+    Ctrl Alt P; <b>]c</b> and <b>[c</b> in vim edit mode) go to the first line
+    of the next and previous change, around to the first past the last and
+    the last before the first;</li>
+    <li><a href="commands.html#previewChange">previewChange</a>
+    (<code>&lt;leader&gt;hp</code> in vim edit mode) shows the change at the
+    caret, its removed and added lines with the characters that differ
+    marked, in a window under the caret until the next command. Its bar has
+    buttons for the previous and next change and to revert it, and in a file
+    git tracks to stage or unstage it; going to another change while it is
+    open shows that one;</li>
+    <li><a href="commands.html#revertLines">revertLines</a>
+    (<code>&lt;leader&gt;hr</code>) puts the change at the caret, or the
+    changes under the selection, back, an edit undo takes back;</li>
+    <li>a click on a mark (<a href="commands.html#changePopup">changePopup</a>)
+    shows its preview and a popup of these.</li>
+</ul>
+
+</body>
+
+</html>

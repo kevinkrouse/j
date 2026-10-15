@@ -64,6 +64,7 @@ import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.git.Git;
+import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.CommitCommands;
 import org.armedbear.j.vcs.status.StatusActions;
 import org.armedbear.j.vcs.status.VcsStatusMode;
@@ -295,6 +296,7 @@ public class CommandTable {
             add("redo", EditCommands::redo);
             add("resetDisplay", e -> Editor.resetDisplay());
             add("revertBuffer", FileCommands::revertBuffer);
+            add("revertLines", ChangeMarks::revertLines);
             add("right", MotionCommands::right);
             add("save", FileCommands::save);
             add("saveAll", FileCommands::saveAll);
@@ -362,6 +364,7 @@ public class CommandTable {
             add("vcsDiscard", e -> StatusActions.run(e, StatusActions.Op.DISCARD));
             add("vcsStage", e -> StatusActions.run(e, StatusActions.Op.STAGE));
             add("vcsStageAll", e -> StatusActions.all(e, true));
+            add("vcsStageHunk", HunkCommands::vcsStageHunk);
             add("vcsStatusCycle", VcsStatusMode::vcsStatusCycle);
             add("vcsStatusDepth", e -> VcsStatusMode.vcsStatusDepth(e, "2"), VcsStatusMode::vcsStatusDepth);
             add("vcsStatusNext", VcsStatusMode::vcsStatusNext);
@@ -373,6 +376,7 @@ public class CommandTable {
             add("vcsStatusVisit", VcsStatusMode::vcsStatusVisit);
             add("vcsUnstage", e -> StatusActions.run(e, StatusActions.Op.UNSTAGE));
             add("vcsUnstageAll", e -> StatusActions.all(e, false));
+            add("vcsUnstageHunk", HunkCommands::vcsUnstageHunk);
             add("visibleTabs", WindowCommands::visibleTabs);
             add("vsplitWindow", WindowCommands::vsplitWindow, (e, s) -> WindowCommands.vsplitWindow(e, s));
             add("whatChar", EditCommands::whatChar);
@@ -396,6 +400,7 @@ public class CommandTable {
             add("browseFileAtDot", e -> BrowseFile.browseFileAtDot());
             add("centerTag", e -> TagCommands.centerTag());
             add("changeList", Finders::changeList);
+            add("changePopup", ChangeMarks::changePopup);
             add("changes", e -> ChangeMarks.changes());
             add("checkPath", e -> CheckPath.checkPath());
             add("chmod", e -> DirectoryBuffer.chmod());
@@ -511,7 +516,7 @@ public class CommandTable {
             add("mouseFindTag", e -> TagCommands.mouseFindTag());
             add("mouseJumpToTag", e -> ListTagsMode.mouseJumpToTag());
             add("newerChange", ChangeList::newerChange);
-            add("nextChange", e -> ChangeMarks.nextChange());
+            add("nextChange", ChangeMarks::nextChange);
             add("nextComment", e -> CheckinBuffer.nextComment());
             add("nextError", e -> CompilationCommands.nextError());
             add("nextTag", e -> TagCommands.nextTag());
@@ -519,7 +524,8 @@ public class CommandTable {
             add("pastePrimarySelection", e -> SystemSelection.pastePrimarySelection());
             add("phpHelp", e -> PHPMode.phpHelp(), (e, s) -> PHPMode.phpHelp(s));
             add("playbackMacro", e -> Macro.playbackMacro());
-            add("previousChange", e -> ChangeMarks.previousChange());
+            add("previewChange", ChangeMarks::previewChange);
+            add("previousChange", ChangeMarks::previousChange);
             add("previousComment", e -> CheckinBuffer.previousComment());
             add("previousError", e -> CompilationCommands.previousError());
             add("previousTag", e -> TagCommands.previousTag());

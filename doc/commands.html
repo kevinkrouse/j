@@ -41,6 +41,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#ccGroup">ccGroup</a></li>
     <li><a href="commands.html#centerTag">centerTag</a></li>
     <li><a href="commands.html#changeList">changeList</a></li>
+    <li><a href="commands.html#changePopup">changePopup</a></li>
     <li><a href="commands.html#changes">changes</a></li>
     <li><a href="commands.html#checkPath">checkPath</a></li>
     <li><a href="commands.html#clearRegister">clearRegister</a></li>
@@ -309,6 +310,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#playbackMacro">playbackMacro</a></li>
     <li><a href="commands.html#popPosition">popPosition</a></li>
     <li><a href="commands.html#prevBuffer">prevBuffer</a></li>
+    <li><a href="commands.html#previewChange">previewChange</a></li>
     <li><a href="commands.html#previousChange">previousChange</a></li>
     <li><a href="commands.html#previousComment">previousComment</a></li>
     <li><a href="commands.html#previousError">previousError</a></li>
@@ -330,6 +332,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#resetDisplay">resetDisplay</a></li>
     <li><a href="commands.html#resetLisp">resetLisp</a></li>
     <li><a href="commands.html#revertBuffer">revertBuffer</a></li>
+    <li><a href="commands.html#revertLines">revertLines</a></li>
     <li><a href="commands.html#right">right</a></li>
     <li><a href="commands.html#save">save</a></li>
     <li><a href="commands.html#saveAll">saveAll</a></li>
@@ -440,6 +443,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsStage">vcsStage</a></li>
     <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
+    <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a></li>
     <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
     <li><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></li>
     <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
@@ -451,6 +455,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></li>
     <li><a href="commands.html#vcsUnstage">vcsUnstage</a></li>
     <li><a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></li>
+    <li><a href="commands.html#vcsUnstageHunk">vcsUnstageHunk</a></li>
     <li><a href="commands.html#vimQuitDiscard">vimQuitDiscard</a></li>
     <li><a href="commands.html#vimWriteQuit">vimWriteQuit</a></li>
     <li><a href="commands.html#visibleTabs">visibleTabs</a></li>
@@ -682,6 +687,16 @@ Because it uses diff, this command will not work unless diff is installed and
 in your path, which is more likely to be the case on Unix than on Windows.
 <p>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="changePopup">changePopup</a><dl><dd>
+<p>
+Opens a popup of what to do with the change at the caret, under its preview: revert it, stage or unstage it in a file the version control tracks, and go to the next or previous change.
+<br><br>
+<b>Default key mapping:</b> A click on a change mark
+<br><br>
+<b>See also:</b> <a href="changes.html">Change marks</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3904,10 +3919,12 @@ Switches to the next buffer.
 
 <a name="nextChange">nextChange</a><dl><dd>
 <p>
-Moves to the next group of changed lines (below the position of the caret in
-the current buffer).
+Moves to the first line of the next group of changed lines, around to the
+first past the last: changed since the file was loaded, or in a file the
+version control tracks, the next change it sees. See
+<a href="changes.html">Change marks</a>.
 <p>
-<b>Default key mapping:</b> Ctrl Alt N
+<b>Default key mapping:</b> Ctrl Alt N; ]c in vim edit mode
 <p>
 <b>See also:</b> <a href="#previousChange">previousChange</a>,
 <a href="preferences.html#showChangeMarks">showChangeMarks</a>
@@ -4334,12 +4351,23 @@ vim's alternate file, <code>Ctrl ^</code>.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="previewChange">previewChange</a><dl><dd>
+<p>
+Shows the change at the caret, its removed and added lines with the characters that differ marked, in a window under the caret until the next command: since the file was loaded, or in a file the version control tracks, against what is staged, or the staged change when there is no other. Its bar has buttons for the previous and next change, to stage or unstage it, and to revert it; going to another change shows that one.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;hp in vim edit mode
+<br><br>
+<b>See also:</b> <a href="changes.html">Change marks</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="previousChange">previousChange</a><dl><dd>
 <p>
-Moves to the previous group of changed lines (above the position of the caret
-in the current buffer).
+Moves to the first line of the previous group of changed lines, around to the
+last before the first: changed since the file was loaded, or in a file the
+version control tracks, the previous change it sees.
 <p>
-<b>Default key mapping:</b> Ctrl Alt P
+<b>Default key mapping:</b> Ctrl Alt P; [c in vim edit mode
 <p>
 <b>See also:</b> <a href="#nextChange">nextChange</a>,
 <a href="preferences.html#showChangeMarks">showChangeMarks</a>
@@ -4707,6 +4735,18 @@ Reloads the current buffer. If the buffer has unsaved changes, you will be
 prompted for confirmation before they are discarded.
 <p>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="revertLines">revertLines</a><dl><dd>
+<p>
+Puts the changed lines at the caret, or under the selection, back: as they were
+when the file was loaded, or in a file the version control tracks, as they are
+staged. Undo takes it back.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;hr in vim edit mode
+<br><br>
+<b>See also:</b> <a href="#nextChange">nextChange</a>, <a href="changes.html">Change marks</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -5986,6 +6026,16 @@ In a status buffer, stages every change to a tracked file.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsStageHunk">vcsStageHunk</a><dl><dd>
+<p>
+In a file the version control tracks, stages the change at the caret, or the lines of the selection, as the buffer has them, saved or not.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;hs in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#signs">Change marks in the editor</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsStatusCycle">vcsStatusCycle</a><dl><dd>
 <p>
 In a status buffer, opens everything one depth further: sections, then files, then hunks, then the lines of the diffs, then back to the sections.
@@ -6093,6 +6143,16 @@ In a status buffer, unstages everything.
 <b>Default key mapping:</b> U in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsUnstageHunk">vcsUnstageHunk</a><dl><dd>
+<p>
+In a file the version control tracks, takes the staged change at the caret, or under the selection, back out of the index; in a file new to the index, the whole file.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;hu in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#signs">Change marks in the editor</a>
 <br><br>
 </dl><!--<hr>-->
 

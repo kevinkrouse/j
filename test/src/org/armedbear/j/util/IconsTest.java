@@ -14,8 +14,11 @@ package org.armedbear.j.util;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
@@ -55,5 +58,19 @@ public class IconsTest {
         assertSame(disabled, Icons.getDisabledIcon(Icons.getIconFromFile("attach", 16)), "made once");
         assertEquals(16, disabled.getIconWidth());
         assertArrayEquals(painted(Icons.getDisabledIcon(Icons.getIconFromFile("attach", 32)), 1), painted(disabled, 2));
+    }
+
+    @Test
+    public void anIconInAColorIsCachedByItsColor() {
+        final ImageIcon red = Icons.getIconFromFile("up", 16, Color.RED);
+        assertSame(red, Icons.getIconFromFile("up", 16, new Color(255, 0, 0)), "made once");
+        final int[] pixels = painted(red, 1);
+        boolean drawn = false;
+        for (int p : pixels)
+            if ((p >>> 24) != 0)
+                drawn |= (p & 0xffffff) == 0xff0000;
+        assertTrue(drawn, "drawn in red, not the icons' own color");
+        assertNotSame(red, Icons.getIconFromFile("up", 16, Color.BLUE));
+        assertNotSame(red, Icons.getIconFromFile("up", 16));
     }
 }

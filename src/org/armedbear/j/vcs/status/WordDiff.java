@@ -21,7 +21,10 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import org.armedbear.j.util.Diff;
+import org.armedbear.j.util.Diff.Edit;
 
 /**
  * The words that differ between a removed line and the added line paired
@@ -29,10 +32,11 @@ import java.util.List;
  * and underscores, runs of white space, and single other characters.
  */
 public final class WordDiff {
-    // Past this many token pairs, lines are left unrefined.
-    private static final int MAX_CELLS = 40_000;
     // Lines sharing less of their text than this are too different to refine.
     private static final double MIN_COMMON = 0.3;
+    // Past this many token pairs, as long minified lines have, a pair is not
+    // refined: too slow on the event thread.
+    private static final long MAX_CELLS = 40_000;
 
     private WordDiff() {}
 
@@ -58,50 +62,44 @@ public final class WordDiff {
             if (r != null)
                 return r;
         }
-        final Result r = refine(removed, added);
+        final Result r = refine(removed, added, tokens(removed), tokens(added));
         synchronized (cache) {
             cache.put(key, r);
         }
         return r;
     }
 
-    private static Result refine(String removed, String added) {
-        final List<int[]> a = tokens(removed);
-        final List<int[]> b = tokens(added);
-        final int n = a.size();
-        final int m = b.size();
-        if (n == 0 || m == 0 || (long) n * m > MAX_CELLS)
+    /** As diff, character by character. */
+    public static Result chars(String removed, String added) {
+        return refine(removed, added, chars(removed), chars(added));
+    }
+
+    private static Result refine(String removed, String added, List<int[]> a, List<int[]> b) {
+        if (a.isEmpty() || b.isEmpty() || (long) a.size() * b.size() > MAX_CELLS)
             return Result.NONE;
-        // lcs[i][j]: the longest common run of tokens a[i..] and b[j..] share.
-        final int[][] lcs = new int[n + 1][m + 1];
-        for (int i = n - 1; i >= 0; i--)
-            for (int j = m - 1; j >= 0; j--)
-                lcs[i][j] = same(removed, a.get(i), added, b.get(j))
-                        ? lcs[i + 1][j + 1] + 1
-                        : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
-        final boolean[] keptA = new boolean[n];
-        final boolean[] keptB = new boolean[m];
-        int common = 0;
-        for (int i = 0, j = 0; i < n && j < m;) {
-            if (same(removed, a.get(i), added, b.get(j))) {
-                keptA[i] = true;
-                keptB[j] = true;
-                common += a.get(i)[1] - a.get(i)[0];
-                i++;
-                j++;
-            } else if (lcs[i + 1][j] >= lcs[i][j + 1])
-                i++;
-            else
-                j++;
+        final boolean[] keptA = new boolean[a.size()];
+        final boolean[] keptB = new boolean[b.size()];
+        Arrays.fill(keptA, true);
+        Arrays.fill(keptB, true);
+        for (Edit e : Diff.diff(texts(removed, a), texts(added, b))) {
+            Arrays.fill(keptA, e.oldStart(), e.oldStart() + e.oldCount(), false);
+            Arrays.fill(keptB, e.newStart(), e.newStart() + e.newCount(), false);
         }
+        int common = 0;
+        for (int i = 0; i < a.size(); i++)
+            if (keptA[i])
+                common += a.get(i)[1] - a.get(i)[0];
         final int shorter = Math.min(removed.strip().length(), added.strip().length());
         if (common < MIN_COMMON * shorter)
             return Result.NONE;
         return new Result(ranges(a, keptA), ranges(b, keptB));
     }
 
-    private static boolean same(String s, int[] a, String t, int[] b) {
-        return a[1] - a[0] == b[1] - b[0] && s.regionMatches(a[0], t, b[0], a[1] - a[0]);
+    private static List<String> texts(String s, List<int[]> tokens) {
+        final List<String> texts = new ArrayList<>(tokens.size());
+        for (int[] t : tokens)
+            texts.add(s.substring(t[0], t[1]));
+        return texts;
     }
 
     // The tokens not kept, adjacent ones joined.
@@ -136,6 +134,13 @@ public final class WordDiff {
             tokens.add(new int[] { start, i });
         }
         return tokens;
+    }
+
+    private static List<int[]> chars(String s) {
+        final List<int[]> chars = new ArrayList<>(s.length());
+        for (int i = 0; i < s.length(); i++)
+            chars.add(new int[] { i, i + 1 });
+        return chars;
     }
 
     private static boolean isWord(char c) {

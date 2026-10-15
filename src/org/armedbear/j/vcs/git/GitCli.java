@@ -96,20 +96,6 @@ public final class GitCli {
         return VcsRunner.run(command);
     }
 
-    /**
-     * Applies a patch to the index (cached) or the working tree, or takes it
-     * back out (reverse).
-     */
-    public static VcsCommand apply(Path root, byte[] patch, boolean cached, boolean reverse) {
-        List<String> args = new ArrayList<>(List.of("apply", "--whitespace=nowarn"));
-        if (cached)
-            args.add("--cached");
-        if (reverse)
-            args.add("--reverse");
-        args.add("-");
-        return write(root, patch, args.toArray(new String[0]));
-    }
-
     private static volatile int[] version;
     private static volatile String versionString;
 

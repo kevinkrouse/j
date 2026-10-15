@@ -71,6 +71,35 @@ public final class Patch {
         return sb.toString().getBytes(StandardCharsets.ISO_8859_1);
     }
 
+    /**
+     * A line changed is a removed line and the added one after it, as a
+     * word diff pairs them: either half selected takes both, so that staging
+     * an edited line stages the edit, not the new text beside the old.
+     */
+    public static void pairChanges(Hunk hunk, BitSet lines) {
+        final List<DiffLine> d = hunk.lines();
+        int i = 0;
+        while (i < d.size()) {
+            if (!d.get(i).isRemoved()) {
+                i++;
+                continue;
+            }
+            int removedEnd = i;
+            while (removedEnd < d.size() && d.get(removedEnd).isRemoved())
+                removedEnd++;
+            int addedEnd = removedEnd;
+            while (addedEnd < d.size() && d.get(addedEnd).isAdded())
+                addedEnd++;
+            for (int k = 0; k < Math.min(removedEnd - i, addedEnd - removedEnd); k++) {
+                if (lines.get(i + k) || lines.get(removedEnd + k)) {
+                    lines.set(i + k);
+                    lines.set(removedEnd + k);
+                }
+            }
+            i = addedEnd;
+        }
+    }
+
     /** The part of hunk the selection makes, or null if it changes nothing. */
     static Hunk select(Hunk hunk, BitSet selected, boolean reverse) {
         List<DiffLine> out = new ArrayList<>();
@@ -202,7 +231,7 @@ public final class Patch {
     }
 
     // Git's quoting, for the characters it always quotes.
-    static String quote(String path) {
+    public static String quote(String path) {
         boolean plain = true;
         for (int k = 0; k < path.length() && plain; k++) {
             char c = path.charAt(k);

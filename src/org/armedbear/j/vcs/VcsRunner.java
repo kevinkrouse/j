@@ -26,10 +26,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.armedbear.j.Log;
@@ -42,7 +39,6 @@ import org.armedbear.j.util.ProcessRunner;
  * error. Writes to one directory run one at a time; reads run as they come.
  */
 public final class VcsRunner {
-    private static final ExecutorService pool = Executors.newFixedThreadPool(4, r -> Background.newThread("vcs", r));
     private static final Map<String, ReentrantLock> writeLocks = new ConcurrentHashMap<>();
 
     private VcsRunner() {}
@@ -59,11 +55,6 @@ public final class VcsRunner {
         finally {
             lock.unlock();
         }
-    }
-
-    /** Runs the command on a background thread. */
-    public static CompletableFuture<VcsResult> runAsync(VcsCommand command) {
-        return CompletableFuture.supplyAsync(() -> run(command), pool);
     }
 
     private static VcsResult exec(VcsCommand command) {

@@ -139,6 +139,15 @@ public interface VcsBackend {
         return null;
     }
 
+    /**
+     * The texts a file's change marks are against, path relative to the
+     * root; null if this backend gives none, or the file is in a conflict.
+     * Off the event thread.
+     */
+    default Bases readBases(VcsRepository repository, String path) {
+        return null;
+    }
+
     /** The last commit's message, or null. Off the event thread. */
     default String lastMessage(VcsRepository repository) {
         return null;

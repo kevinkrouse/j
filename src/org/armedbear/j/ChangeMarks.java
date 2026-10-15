@@ -22,70 +22,186 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
+import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.transients.Transient;
+import org.armedbear.j.transients.Transient.Command;
+import org.armedbear.j.transients.Transient.Group;
+import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.signs.HunkCommands;
+import org.armedbear.j.vcs.signs.HunkPreview;
 
 public final class ChangeMarks {
-    public static void nextChange() {
-        final Editor editor = Editor.currentEditor();
-        if (editor.getDot() == null)
-            return;
-        Line line = editor.getDotLine();
-        // Advance to first unmodified line.
-        while (line.isModified()) {
-            line = line.next();
-            if (line == null)
-                break;
-        }
-        if (line != null) {
-            Debug.assertTrue(!line.isModified());
-            // Advance to next modified line.
-            while (!line.isModified()) {
-                line = line.next();
-                if (line == null)
-                    break;
-            }
-        }
-        if (line != null) {
-            Debug.assertTrue(line.isModified());
-            editor.moveDotTo(line, 0);
-        } else
-            editor.status("No more changes");
+    public static void nextChange(Editor editor) {
+        if (editor.getDot() != null)
+            byHunk(editor, true);
     }
 
-    public static void previousChange() {
-        final Editor editor = Editor.currentEditor();
-        if (editor.getDot() == null)
-            return;
-        Line line = editor.getDotLine();
-        // Go back to last unmodified line.
-        while (line.isModified()) {
-            line = line.previous();
-            if (line == null)
-                break;
-        }
-        if (line != null) {
-            Debug.assertTrue(!line.isModified());
-            // Go back to last modified line.
-            while (!line.isModified()) {
-                line = line.previous();
-                if (line == null)
-                    break;
-            }
-        }
-        if (line != null) {
-            Debug.assertTrue(line.isModified());
-            editor.moveDotTo(line, 0);
-        } else
-            editor.status("No more changes");
+    public static void previousChange(Editor editor) {
+        if (editor.getDot() != null)
+            byHunk(editor, false);
     }
 
-    public static void revertLines() {
-        final Editor editor = Editor.currentEditor();
+    /**
+     * The lines the buffer's hunks start on, in order: where nextChange and
+     * previousChange go. The version control's, or the first lines of j's
+     * own runs of changed lines.
+     */
+    public static List<Line> hunkStarts(Editor editor) {
+        final Buffer buffer = editor.getBuffer();
+        // Line numbers are stale after a split until renumbered.
+        if (buffer.needsRenumbering())
+            buffer.renumber();
+        final Signs signs = buffer.getSigns();
+        final List<Line> starts = new ArrayList<>();
+        if (signs == null) {
+            if (buffer.isNewFile())
+                return starts;
+            for (Line l = buffer.getFirstLine(); l != null; l = l.next())
+                if (l.isModified() && !l.isHidden() && (l.previous() == null || !l.previous().isModified()))
+                    starts.add(l);
+            return starts;
+        }
+        // The starts the buffer still has, in its order: one may be a line
+        // since deleted.
+        final Set<Line> wanted = Collections.newSetFromMap(new IdentityHashMap<>());
+        wanted.addAll(signs.starts());
+        for (Line l = buffer.getFirstLine(); l != null && starts.size() < wanted.size(); l = l.next())
+            if (wanted.contains(l) && !l.isHidden())
+                starts.add(l);
+        return starts;
+    }
+
+    // To the first line of the next or previous hunk, around at the ends.
+    private static void byHunk(Editor editor, boolean forward) {
+        final List<Line> starts = hunkStarts(editor);
+        if (starts.isEmpty()) {
+            editor.status("No changes");
+            return;
+        }
+        final int at = editor.getDotLineNumber();
+        Line found = null;
+        for (Line l : starts) {
+            final int n = l.lineNumber();
+            if (forward && n > at) {
+                found = l;
+                break;
+            }
+            if (!forward && n < at)
+                found = l;
+        }
+        // Past the last or first, around to the other end.
+        if (found == null) {
+            found = forward ? starts.get(0) : starts.get(starts.size() - 1);
+            editor.status(forward ? "Wrapped to the first change" : "Wrapped to the last change");
+        }
+        editor.moveDotTo(found, 0);
+        // An open preview shows the hunk gone to in its place.
+        if (HunkPreview.showing(editor)) {
+            editor.replacingCaretPopup();
+            previewChange(editor);
+        }
+    }
+
+    // Whether the version control's hunks are the buffer's, to stage and reset.
+    private static boolean tracked(Editor editor) {
+        return editor.getBuffer().getSigns() != null && editor.getBuffer().getSignsUpdater() != null;
+    }
+
+    /**
+     * Shows the change at the caret, its removed and added lines, in a
+     * window under it until the next command.
+     */
+    public static void previewChange(Editor editor) {
+        if (editor.getDot() == null)
+            return;
+        if (tracked(editor)) {
+            HunkCommands.previewHunk(editor);
+            return;
+        }
+        final List<List<String>> sides = sinceLoaded(editor);
+        if (sides == null) {
+            HunkPreview.close(editor);
+            editor.status("No change here");
+            return;
+        }
+        // After the command, as the version control's shows: the editor
+        // closes its caret popup when a command ends.
+        final Buffer buffer = editor.getBuffer();
+        final int modCount = buffer.getModCount();
+        final Line line = editor.getDotLine();
+        SwingUtilities.invokeLater(() -> {
+            // Moved on meanwhile.
+            if (editor.getBuffer() != buffer || buffer.getModCount() != modCount || editor.getDotLine() != line)
+                return;
+            HunkPreview.show(editor, false, false, sides.get(0), sides.get(1));
+        });
+    }
+
+    // The run of changed lines at the caret, as loaded and as now; null if
+    // the caret's line is unchanged.
+    private static List<List<String>> sinceLoaded(Editor editor) {
+        final Buffer buffer = editor.getBuffer();
+        Line first = editor.getDotLine();
+        if (buffer.getSigns() != null || buffer.isNewFile() || !first.isModified())
+            return null;
+        while (first.previous() != null && first.previous().isModified())
+            first = first.previous();
+        final List<String> old = new ArrayList<>();
+        final List<String> now = new ArrayList<>();
+        for (Line l = first; l != null && l.isModified(); l = l.next()) {
+            now.add(l.getText());
+            // As revertLines puts it back: a new line goes, a changed one
+            // gets its text, maybe several lines', back.
+            if (!l.isNew() && l.getOriginalText() != null)
+                old.addAll(List.of(l.getOriginalText().split("\n", -1)));
+        }
+        return List.of(old, now);
+    }
+
+    /** A click on a change mark: its change's preview, and a popup of what to do with it. */
+    public static void changePopup(Editor editor) {
+        if (editor.getDot() == null)
+            return;
+        previewChange(editor);
+        TransientPopup.open(editor, popup(tracked(editor)));
+    }
+
+    /** What to do with a change: stage and unstage too where the version control tracks it. */
+    public static Transient popup(boolean tracked) {
+        final List<Command> change = new ArrayList<>();
+        if (tracked) {
+            change.add(Command.of("s", "vcsStageHunk", "stage"));
+            change.add(Command.of("u", "vcsUnstageHunk", "unstage"));
+        }
+        change.add(Command.of("r", "revertLines", "revert"));
+        return new Transient("change",
+                "Change",
+                "changes.html",
+                List.of(
+                    Group.of("Change", change.toArray(Command[]::new)),
+                    Group.of(
+                        "Go",
+                        new Command("n", "nextChange", "next", true),
+                        new Command("p", "previousChange", "previous", true))));
+    }
+
+    public static void revertLines(Editor editor) {
         final Position dot = editor.getDot(); // Alias.
         if (dot == null)
             return;
+        // In a file the version control tracks, back as staged.
+        if (editor.getBuffer().getSigns() != null && editor.getBuffer().getSignsUpdater() != null) {
+            HunkCommands.resetHunk(editor);
+            return;
+        }
         if (editor.isColumnSelection()) {
             editor.notSupportedForColumnSelections();
             return;

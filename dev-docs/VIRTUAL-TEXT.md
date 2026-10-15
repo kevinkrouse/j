@@ -92,7 +92,7 @@ holds inline hints, and its `BlockMap` holds blocks between lines
     `LineSegment` has), or a `Painter` for a renderer that paints and gives
     its width or height. A run may carry an action, which makes it a link.
 - **`VirtualTextLayer`**: per buffer, a map from owner (`"vcs.blame"`,
-  `"vcs.preview"`, `"hint"`) to its decorations, indexed by line. An owner
+  `"vcs.conflict"`, `"hint"`) to its decorations, indexed by line. An owner
   replaces all of its decorations at once with `set(owner, list)`, or clears
   them. Changes tell the displays to repaint the lines involved, or the
   whole window when rows come or go. Providers are added by modes and
@@ -144,7 +144,6 @@ line and its virtual lines as one step.
 |---|---|---|
 | The key hint over a listing (dir mode, VCS buffers) | `TOP` | the mode, from `getHints` |
 | The caret line's blame | `EOL` | `vcs.blame` |
-| A hunk's old lines, struck through | `ABOVE` | `vcs.preview` |
 | "accept ours · theirs · both · base" | `ABOVE` the `<<<<<<<` | `vcs.conflict` |
 | The commit message's 50/72 length notes | `EOL` | checkin mode |
 | Later: diagnostics, compile errors under a line | `BELOW` | compilation |

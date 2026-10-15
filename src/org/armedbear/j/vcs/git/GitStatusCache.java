@@ -72,11 +72,6 @@ public final class GitStatusCache {
         return null;
     }
 
-    /** Forgets every snapshot, so the next question re-runs git. */
-    public static void invalidate() {
-        Repositories.invalidateAll();
-    }
-
     static String relativePath(Path root, File file) {
         Path path = Path.of(file.canonicalPath());
         if (!path.startsWith(root))

@@ -67,4 +67,19 @@ public class WordDiffTest {
             List.of("a_1", "  ", "+", "+", "b"),
             WordDiff.tokens("a_1  ++b").stream().map(t -> "a_1  ++b".substring(t[0], t[1])).toList());
     }
+
+    @Test
+    public void charsMarksEachCharacterThatDiffers() {
+        final WordDiff.Result r = WordDiff.chars("hello world", "hallo worlD");
+        assertEquals("e|d", pieces("hello world", r.removed()));
+        assertEquals("a|D", pieces("hallo worlD", r.added()));
+    }
+
+    @Test
+    public void longLinesAreLeftWhole() {
+        final String a = "x".repeat(300);
+        final String b = "x".repeat(150) + "y" + "x".repeat(150);
+        assertEquals("", pieces(a, WordDiff.chars(a, b).removed()), "300 by 301 characters: past the limit");
+        assertEquals("y", pieces(b.substring(150), WordDiff.chars(a.substring(150), b.substring(150)).added()));
+    }
 }
