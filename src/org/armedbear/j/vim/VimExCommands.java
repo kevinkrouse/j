@@ -334,8 +334,8 @@ public final class VimExCommands {
 
     /**
      * :q, :close and CTRL-W q and c: close this window, and the caret goes to
-     * the one that takes its space. The last one is :q leaving j, and E444
-     * for :close.
+     * the one that takes its space. The frame's last one is :q closing the
+     * frame, or leaving j in the last frame, and E444 for :close.
      *
      * Vim's :q is the window's, not the buffer's -- in a split only that
      * split goes and vim carries on, which nvim confirms -- and the last
@@ -349,7 +349,7 @@ public final class VimExCommands {
         if (frame.getEditorCount() > 1)
             WindowCommands.killWindow(editor, "vim");
         else if (quit)
-            FileCommands.quit(editor);
+            WindowCommands.killFrame(editor);
         else
             editor.status("E444: Cannot close last window");
     }

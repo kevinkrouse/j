@@ -491,7 +491,8 @@ These are known and deliberate:
 <li>A window left in visual mode keeps its selection, and the one
     <code>Ctrl W</code> goes to is in normal mode; vim carries visual mode
     into it. A count before <code>Ctrl W s</code> or <code>v</code> is not a
-    size. <code>:q!</code> is <code>:q</code>: on the last window j asks
+    size. <code>:q</code> on a frame's last window closes the frame,
+    and leaves j only in the last frame. <code>:q!</code> is <code>:q</code>: on the last window j asks
     before leaving if buffers have unsaved changes. The other
     <code>Ctrl W</code> commands (<code>n x r R T + - &lt; &gt; _ |</code>)
     are not there.</li>

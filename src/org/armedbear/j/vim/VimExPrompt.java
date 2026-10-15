@@ -226,7 +226,7 @@ final class VimExPrompt extends FinderTextFieldHandler {
         { "normal", "norm", "Run normal mode keys on each line." },
         { "only", "on", "Close every other window." },
         { "close", "clo", "Close this window." },
-        { "quit", "q", "Close this window, or the editor." },
+        { "quit", "q", "Close this window, or the frame on its last." },
         { "set", "se", "Set an option." },
         { "sort", "sor", "Sort lines." },
         { "split", "sp", "Split the window, opening a file in the new one." },
