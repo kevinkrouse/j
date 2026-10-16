@@ -918,11 +918,29 @@ public final class Frame extends JFrame
      */
     public final void leaveView(FrameView view) {
         saveViews();
-        final WindowLayout.Node before = view.before();
+        final WindowLayout.Node before = current(view, view.before());
         view.setBefore(null);
         // laidOut, not shownView: a view closing is no longer one.
         if ((before == null || !restoreLayout(before)) && laidOut(view))
             unsplitAll(currentEditor);
+    }
+
+    // before, a window of view's own buffers, as of the status's before its
+    // diff opened, where the buffer is now rather than where it was then.
+    // A buffer in two windows has one place now, so those keep theirs.
+    private static WindowLayout.Node current(FrameView view, WindowLayout.Node before) {
+        if (before == null || !(view instanceof Buffer b))
+            return before;
+        final List<Buffer> own = new ArrayList<>(b.getChildren());
+        own.add(b);
+        final Map<Buffer, Integer> count = new HashMap<>();
+        for (WindowLayout.Window w : WindowLayout.windows(before))
+            count.merge(w.buffer(), 1, Integer::sum);
+        return WindowLayout.map(
+            before,
+            w -> own.contains(w.buffer()) && count.get(w.buffer()) == 1
+                    ? WindowLayout.Window.of(w.buffer(), w.focused())
+                    : w);
     }
 
     // UNDONE: enlarge window by N lines.
@@ -1239,6 +1257,9 @@ public final class Frame extends JFrame
     }
 
     private void unsplitInternal(final Editor keep, final Collection<Editor> kill) {
+        // Each window's place kept, for its buffer shown again.
+        for (Editor ed : kill)
+            ed.saveView();
         Editor.removeEditors(kill);
         editors.removeAll(kill);
         Debug.bugIfNot(editors.contains(keep));

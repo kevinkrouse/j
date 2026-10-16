@@ -89,6 +89,22 @@ caret: a file, at the line of the hunk or diff line the caret is on, or a
 commit, shown with its diff. A staged line is visited where it is now, after
 the changes made since it was staged.
 
+<h3><a name="status-diff">The diff beside it</a></h3>
+
+<p>
+<b>D</b> shows the diff of the file at the caret in a window at the right,
+the status keeping the left of the frame. It follows the caret when the
+caret rests: a file's whole diff, the unstaged or staged one as its section
+says, or, on a hunk, scrolled to that hunk. A file can stay closed in the
+status. <b>Space</b> and <b>Shift Space</b> (or <b>Backspace</b>) scroll it
+from either side. In it, <b>Enter</b> visits the file at the line, <b>Tab</b>
+opens or closes a hunk, <b>n</b> and <b>p</b> go from hunk to hunk, and
+<b>D</b> or <b>q</b> closes it. With it open, the status and its diff are
+switched to and away from as one, as the log is: going to another buffer
+puts back the windows from before, and coming back to either lays them out
+again. <a href="preferences.html#vcsStatusDiff">vcsStatusDiff</a> opens a new
+status buffer with it.
+
 <h3>Refreshing</h3>
 
 <p>
@@ -169,6 +185,8 @@ whose hooks fail is kept for another try.
 <tr><td>n p</td><td>n p</td><td><a href="commands.html#vcsStatusNext">vcsStatusNext</a>, <a href="commands.html#vcsStatusPrevious">vcsStatusPrevious</a></td><td>the next or previous thing</td></tr>
 <tr><td>Alt N, Alt P</td><td>]] [[</td><td><a href="commands.html#vcsStatusNextSection">vcsStatusNextSection</a>, <a href="commands.html#vcsStatusPreviousSection">vcsStatusPreviousSection</a></td><td>the next or previous section</td></tr>
 <tr><td>Enter</td><td>Enter</td><td><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></td><td>visit</td></tr>
+<tr><td>D</td><td>D</td><td><a href="commands.html#vcsStatusDiff">vcsStatusDiff</a></td><td>the diff beside it, or not</td></tr>
+<tr><td>Space, Shift Space</td><td>Space, Shift Space</td><td><a href="commands.html#vcsStatusScrollDiff">vcsStatusScrollDiff</a>, <a href="commands.html#vcsStatusScrollDiffBack">vcsStatusScrollDiffBack</a></td><td>scroll the diff beside it</td></tr>
 <tr><td>g</td><td>r</td><td><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></td><td>read it again</td></tr>
 <tr><td>s u x</td><td>s u x</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
 <tr><td>S U</td><td>S U</td><td><a href="commands.html#vcsStageAll">vcsStageAll</a>, <a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></td><td>stage or unstage everything</td></tr>
@@ -345,8 +363,8 @@ after its name: <b>M</b> changed, <b>M</b> in green staged, <b>A</b> added,
 <a href="preferences.html#gitBufferListStatus">gitBufferListStatus</a> shows a
 dot instead, or nothing. When the project has several repositories, a strip at
 the left of a row is its repository's color. A buffer that is part of
-another is listed under it: the log's files and diff, and mail's message
-under its mailbox. A click on the arrow before one closes or opens it.
+another is listed under it: the log's files and diff, the status's diff, and
+mail's message under its mailbox. A click on the arrow before one closes or opens it.
 
 <p>
 See also: <a href="vcs.html">Version Control</a>.

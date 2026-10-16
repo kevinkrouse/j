@@ -1231,12 +1231,39 @@ plan with why it is left, before the next phase starts.
      it comes back a row before its commit, or at it if read too late.
      A click on an arrow goes to the other end (`LogBuffer.jump`, reading
      on to it). efx's widest row: 61 lanes before, 2 now, 6 with tags.
-   - Left: the status's diff beside it (its design under "Status buffer":
-     the log's diff pane made shared), dir mode's filter bar, collapsing
-     linear runs, `-r` as a
-     checklist (a pick of one now), the badges' smaller font, the files pane's height fitted to its files,
-     keeping the panes out of the sidebar's buffer list, and the refs tree
-     in the sidebar (reveal, filter to a ref, narrow by typing).
+   - The status's diff beside it, a frame view too. `ViewPane` (shared) is
+     a view buffer that is part of another: listed under its owner, shown
+     in its frame view, the log's panes' fill and place; one killed on its
+     own asks its owner (`FrameView.partKilled`), so the log closes whole
+     and the status closes only its diff. `DiffPane` is one file's diff
+     with folding hunks, out of `LogDiffBuffer`: the log's diff extends it,
+     and so does `StatusDiffBuffer`, keyed as the status's lines, so a hunk
+     at the status's caret is found in it. The status follows its caret 100
+     ms after it rests, as the log does, reading the diff of a file it has
+     closed. `D` opens and closes it (`vcsStatusDiff`, and
+     `vcsStatusDiff=right` opens a new status with it), Space and Shift
+     Space scroll it from either side, and in it Enter, Tab, `n`/`p` and
+     `q` are the status's own commands. Found on the way: a frame view
+     left puts back its windows with its own buffers where they are now,
+     not where they were when it opened (the status was in a window then);
+     `WindowLayout.Window.of(buffer)` falls back to the view's kept line
+     numbers when the buffer's lines were replaced, as a status refresh
+     replaces them; `Editor.show` returns the window a frame view's leaving
+     put the buffer in. The review's fixes: the diff follows the caret for a
+     reason (`StatusDiffBuffer.Follow`): moved to another file or hunk, it
+     goes there, reading a closed file's diff; a redraw shows it again in
+     place, reading nothing; a refresh reads it again in place, so a closed
+     file's change shows though the status's lines don't. `D` lays out a
+     diff open but not laid out, as after its window was closed by hand.
+     Space and Backspace move as they would with no diff. The diff has its
+     own popup. A buffer in two windows of the layout before keeps their
+     places. A window closed saves its place (`Frame.unsplitInternal`).
+     `Editor.windowShowing` is the one lookup of a buffer's window.
+   - Left: dir mode's filter bar, collapsing linear runs, `-r` as a
+     checklist (a pick of one now), the badges' smaller font, the files
+     pane's height fitted to its files, staging from the status's diff, and
+     the refs tree in the sidebar (reveal, filter to a ref, narrow by
+     typing).
 6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
    rows, tested on its own (a change at the top and the bottom, an empty
    side, a file new or deleted, a change of only blank lines, CR LF); the two

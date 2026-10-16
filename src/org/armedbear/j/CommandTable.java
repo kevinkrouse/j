@@ -386,11 +386,14 @@ public class CommandTable {
             add("vcsStageHunk", HunkCommands::vcsStageHunk);
             add("vcsStatusCycle", VcsStatusMode::vcsStatusCycle);
             add("vcsStatusDepth", e -> VcsStatusMode.vcsStatusDepth(e, "2"), VcsStatusMode::vcsStatusDepth);
+            add("vcsStatusDiff", VcsStatusMode::vcsStatusDiff);
             add("vcsStatusNext", VcsStatusMode::vcsStatusNext);
             add("vcsStatusNextSection", VcsStatusMode::vcsStatusNextSection);
             add("vcsStatusPrevious", VcsStatusMode::vcsStatusPrevious);
             add("vcsStatusPreviousSection", VcsStatusMode::vcsStatusPreviousSection);
             add("vcsStatusRefresh", VcsStatusMode::vcsStatusRefresh);
+            add("vcsStatusScrollDiff", VcsStatusMode::vcsStatusScrollDiff);
+            add("vcsStatusScrollDiffBack", VcsStatusMode::vcsStatusScrollDiffBack);
             add("vcsStatusToggle", VcsStatusMode::vcsStatusToggle);
             add("vcsStatusVisit", VcsStatusMode::vcsStatusVisit);
             add("vcsUnstage", e -> StatusActions.run(e, StatusActions.Op.UNSTAGE));

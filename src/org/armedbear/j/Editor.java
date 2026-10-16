@@ -601,6 +601,18 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return -1;
     }
 
+    /** The window showing buffer, the current one if it does; else null. */
+    public static Editor windowShowing(Buffer buffer) {
+        if (buffer == null)
+            return null;
+        if (currentEditor != null && currentEditor.getBuffer() == buffer)
+            return currentEditor;
+        for (Editor ed : editorList)
+            if (ed.getBuffer() == buffer)
+                return ed;
+        return null;
+    }
+
     public static final EditorList getEditorList() {
         return editorList;
     }
@@ -2070,11 +2082,12 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             ed.switchToBuffer(buf);
         }
         // Half of a pair goes in its own window, as a message under its
-        // mailbox's: the window it is in is the one returned.
-        if (buf != null && ed.getBuffer() != buf && frame != null) {
+        // mailbox's, and leaving a frame view puts its windows back, ed's
+        // gone or showing another: the window it is in is the one returned.
+        if (buf != null && frame != null) {
             if (frame.getCurrentEditor().getBuffer() == buf)
                 ed = frame.getCurrentEditor();
-            else if (frame.findEditor(buf) != null)
+            else if (ed.getBuffer() != buf && frame.findEditor(buf) != null)
                 ed = frame.findEditor(buf);
         }
         return ed;

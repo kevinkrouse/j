@@ -467,11 +467,14 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsStatus">vcsStatus</a></li>
     <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
     <li><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></li>
+    <li><a href="commands.html#vcsStatusDiff">vcsStatusDiff</a></li>
     <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
     <li><a href="commands.html#vcsStatusNextSection">vcsStatusNextSection</a></li>
     <li><a href="commands.html#vcsStatusPrevious">vcsStatusPrevious</a></li>
     <li><a href="commands.html#vcsStatusPreviousSection">vcsStatusPreviousSection</a></li>
     <li><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></li>
+    <li><a href="commands.html#vcsStatusScrollDiff">vcsStatusScrollDiff</a></li>
+    <li><a href="commands.html#vcsStatusScrollDiffBack">vcsStatusScrollDiffBack</a></li>
     <li><a href="commands.html#vcsStatusToggle">vcsStatusToggle</a></li>
     <li><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></li>
     <li><a href="commands.html#vcsUnstage">vcsUnstage</a></li>
@@ -6289,6 +6292,16 @@ In a status buffer, opens everything to a depth, 1 to 4, given as an argument: 1
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsStatusDiff">vcsStatusDiff</a><dl><dd>
+<p>
+In a status buffer, shows the diff of the file at the caret at the right, following the caret, or closes it.
+<br><br>
+<b>Default key mapping:</b> D in status buffers; D and q in the diff beside
+<br><br>
+<b>See also:</b> <a href="git.html#status-diff">The diff beside it</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsStatusNext">vcsStatusNext</a><dl><dd>
 <p>
 In a status buffer, goes to the next section, file, hunk or commit.
@@ -6336,6 +6349,26 @@ Reads a status buffer's repositories again, for a change j could not see.
 <b>Default key mapping:</b> g in status buffers; r in vim edit mode
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusScrollDiff">vcsStatusScrollDiff</a><dl><dd>
+<p>
+In a status buffer, scrolls the diff beside it down a page, from the status or the diff.
+<br><br>
+<b>Default key mapping:</b> Space in status buffers and the diff beside
+<br><br>
+<b>See also:</b> <a href="git.html#status-diff">The diff beside it</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusScrollDiffBack">vcsStatusScrollDiffBack</a><dl><dd>
+<p>
+In a status buffer, scrolls the diff beside it up a page, from the status or the diff.
+<br><br>
+<b>Default key mapping:</b> Shift Space and Backspace in status buffers and the diff beside
+<br><br>
+<b>See also:</b> <a href="git.html#status-diff">The diff beside it</a>
 <br><br>
 </dl><!--<hr>-->
 

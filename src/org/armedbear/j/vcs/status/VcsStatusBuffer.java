@@ -32,12 +32,19 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Frame;
+import org.armedbear.j.FrameView;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.Sidebar;
+import org.armedbear.j.WindowLayout;
+import org.armedbear.j.WindowLayout.Split;
+import org.armedbear.j.WindowLayout.Window;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
@@ -51,9 +58,13 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
  * The status of one repository, or of a project's several: sections of
  * files and commits, each file's diff shown inline when expanded. It is
  * read again in the background whenever its repositories change, and a
- * refresh keeps the caret on the thing it was on.
+ * refresh keeps the caret on the thing it was on. With the diff beside it,
+ * it is a frame view, the diff following its caret.
  */
-public final class VcsStatusBuffer extends ViewBuffer {
+public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
+    // How long the caret rests on a file before the diff beside follows it.
+    private static final int FOLLOW_DELAY = 100;
+
     private final List<VcsRepository> repositories;
     // What was last read of each repository, on the event thread.
     private final Map<VcsRepository, StatusData> data = new LinkedHashMap<>();
@@ -72,11 +83,20 @@ public final class VcsStatusBuffer extends ViewBuffer {
     private volatile boolean writing;
     private final java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong();
     private volatile long wroteAt;
+    // The diff beside it, or null; what it was last shown to follow, and
+    // why it follows next, null for nothing new.
+    private StatusDiffBuffer diff;
+    private String followed;
+    private StatusDiffBuffer.Follow pending;
+    private final Timer follow = new Timer(FOLLOW_DELAY, e -> followCaret());
+    // The windows before the diff beside took the frame; null when it isn't shown.
+    private WindowLayout.Node before;
 
     private VcsStatusBuffer(List<VcsRepository> repositories) {
         super(VcsStatusMode.getMode(), title(repositories), "Reading…");
         this.repositories = List.copyOf(repositories);
         setProperty(Property.FOLD_MARKERS, "always");
+        follow.setRepeats(false);
         for (VcsRepository r : repositories)
             r.addListener(listener);
     }
@@ -88,11 +108,19 @@ public final class VcsStatusBuffer extends ViewBuffer {
                 : first.backend().name() + " status: " + repositories.size() + " repositories";
     }
 
-    /** The status buffer of these repositories, the one open if there is one. */
-    public static VcsStatusBuffer of(List<VcsRepository> repositories) {
+    /** The status buffer of these repositories open, or null. */
+    public static VcsStatusBuffer find(List<VcsRepository> repositories) {
         for (Buffer b : Editor.getBufferList())
             if (b instanceof VcsStatusBuffer s && s.repositories.equals(repositories))
                 return s;
+        return null;
+    }
+
+    /** The status buffer of these repositories, the one open if there is one. */
+    public static VcsStatusBuffer of(List<VcsRepository> repositories) {
+        final VcsStatusBuffer open = find(repositories);
+        if (open != null)
+            return open;
         final VcsStatusBuffer buffer = new VcsStatusBuffer(repositories);
         buffer.refresh();
         return buffer;
@@ -105,6 +133,7 @@ public final class VcsStatusBuffer extends ViewBuffer {
     @Override
     public void dispose() {
         disposed = true;
+        follow.stop();
         for (VcsRepository r : repositories)
             r.removeListener(listener);
         super.dispose();
@@ -172,6 +201,8 @@ public final class VcsStatusBuffer extends ViewBuffer {
     private void show(Map<VcsRepository, StatusData> read, Set<String> diffs, long startedAt) {
         if (disposed)
             return;
+        // A file the status has closed may have changed with nothing it shows.
+        followAgain(StatusDiffBuffer.Follow.REFRESHED);
         if (startedAt > wroteAt)
             writing = false;
         // A refresh comes with each save and each return to j's window: most
@@ -304,6 +335,7 @@ public final class VcsStatusBuffer extends ViewBuffer {
         if (parts.isEmpty())
             return;
         final List<StatusLine> lines = StatusRenderer.render(parts, this::isExpanded, diffsRead::contains);
+        followAgain(StatusDiffBuffer.Follow.REDRAWN);
 
         final List<String> oldKeys = new ArrayList<>();
         for (Line l = getFirstLine(); l != null; l = l.next())
@@ -394,6 +426,136 @@ public final class VcsStatusBuffer extends ViewBuffer {
                 return byKey.get(k);
         }
         return first;
+    }
+
+    // The diff beside it.
+
+    /** The diff beside it, or null. */
+    StatusDiffBuffer getDiff() {
+        return diff;
+    }
+
+    /** Opens the diff beside it, across frame when there is one. */
+    void openDiff(Frame frame) {
+        if (diff != null || disposed)
+            return;
+        diff = new StatusDiffBuffer(this);
+        followed = null;
+        pending = null;
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
+        if (frame != null)
+            frame.showView(this, this);
+        followCaret();
+    }
+
+    /** Closes the diff beside it: the windows from before it come back. */
+    void closeDiff(Frame frame) {
+        if (diff == null)
+            return;
+        final StatusDiffBuffer d = diff;
+        follow.stop();
+        if (frame != null)
+            frame.leaveView(this);
+        diff = null;
+        before = null;
+        // With no windows from before, the diff's own shows the status.
+        for (Editor ed : d.windows())
+            ed.activate(this);
+        if (Editor.getBufferList().contains(d))
+            d.kill();
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
+    }
+
+    @Override
+    public void afterCommand(Editor editor) {
+        if (diff != null && editor.getDot() != null && editor.getDotLine() instanceof StatusLine s) {
+            final String target = StatusDiffBuffer.target(s);
+            if (target != null && !target.equals(followed))
+                follow.restart();
+        }
+    }
+
+    // The diff beside to follow the caret again soon, for why, or for a
+    // stronger reason already asked.
+    private void followAgain(StatusDiffBuffer.Follow why) {
+        if (diff == null)
+            return;
+        if (pending == null || why.compareTo(pending) > 0)
+            pending = why;
+        follow.restart();
+    }
+
+    // The diff beside shows what the caret of a window on it is on: at its
+    // hunk when that is new, else where it was.
+    void followCaret() {
+        final StatusDiffBuffer.Follow why = pending;
+        pending = null;
+        if (diff == null)
+            return;
+        final Editor ed = Editor.windowShowing(this);
+        if (ed == null || ed.getDot() == null || !(ed.getDotLine() instanceof StatusLine s))
+            return;
+        final String target = StatusDiffBuffer.target(s);
+        if (target == null)
+            return;
+        final boolean moved = !target.equals(followed) || diff.item() == null;
+        if (!moved && why == null)
+            return;
+        followed = target;
+        diff.follow(s, moved ? StatusDiffBuffer.Follow.MOVED : why);
+    }
+
+    /** Whether the diff beside is open and laid out across the frame. */
+    boolean isDiffShown(Frame frame) {
+        return diff != null && frame != null && frame.shownView() == this;
+    }
+
+    @Override
+    public FrameView getFrameView() {
+        return diff != null && !disposed ? this : null;
+    }
+
+    @Override
+    public List<Buffer> getChildren() {
+        return diff == null ? List.of() : List.of(diff);
+    }
+
+    // The status at the left, the diff at the right.
+    @Override
+    public WindowLayout.Node layout(Frame frame, Buffer focus) {
+        return new Split(true,
+                List.of(Window.showing(this, focus != diff), Window.showing(diff, focus == diff)),
+                List.of(0.45, 0.55));
+    }
+
+    @Override
+    public WindowLayout.Node before() {
+        return before;
+    }
+
+    @Override
+    public void setBefore(WindowLayout.Node before) {
+        this.before = before;
+    }
+
+    // The diff killed on its own closes as D does.
+    @Override
+    public boolean partKilled(Buffer part) {
+        if (part != diff)
+            return false;
+        final Editor current = Editor.currentEditor();
+        closeDiff(current != null ? current.getFrame() : null);
+        return true;
+    }
+
+    // Closed, the diff beside goes first, and the windows from before come back.
+    @Override
+    public synchronized void kill() {
+        if (diff != null) {
+            final Editor current = Editor.currentEditor();
+            closeDiff(current != null ? current.getFrame() : null);
+        }
+        super.kill();
     }
 
     /** The files of a section of a repository, as last read. */

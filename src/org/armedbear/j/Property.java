@@ -206,6 +206,8 @@ public final class Property implements Comparable<Property> {
     public static final Property UI_SCALE = createProperty("uiScale", "0");
     // Where the log shows a commit's details: bottom, right, or auto (right in a wide frame).
     public static final Property VCS_LOG_DETAILS = createProperty("vcsLogDetails", "auto");
+    // Whether a status buffer opens with the diff beside it: off or right.
+    public static final Property VCS_STATUS_DIFF = createProperty("vcsStatusDiff", "off");
     public static final Property TEXT_FIELD_FONT_NAME = createProperty("textFieldFontName", "Monospaced");
 
     // String properties with no default values.

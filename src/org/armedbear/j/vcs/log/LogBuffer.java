@@ -214,7 +214,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
             if (isFull())
                 frame.leaveView(this);
             else {
-                final Editor ed = LogBuffers.windowOf(this);
+                final Editor ed = Editor.windowShowing(this);
                 if (ed != null && frame.hasSplit())
                     frame.closeEditor(ed);
             }
@@ -222,6 +222,15 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         for (Buffer b : new Buffer[] { diff, files, this })
             if (b != null && Editor.getBufferList().contains(b))
                 b.kill();
+    }
+
+    // A pane killed on its own closes the log, as q does.
+    @Override
+    public boolean partKilled(Buffer part) {
+        if (disposed)
+            return false;
+        kill();
+        return true;
     }
 
     // Killed from the buffer list or :bd, it closes as q does.
@@ -305,7 +314,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     private void readAgain() {
         if (disposed)
             return;
-        final LogCommit at = commitAt(LogBuffers.windowOf(this));
+        final LogCommit at = commitAt(Editor.windowShowing(this));
         select = at;
         merge = newMerge();
         fresh = true;
@@ -342,7 +351,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         }
         // The first page laid out for the room its graph leaves; the rows
         // after, a wider graph's display lays out again when it paints.
-        final Editor shown = first ? LogBuffers.windowOf(this) : null;
+        final Editor shown = first ? Editor.windowShowing(this) : null;
         if (shown != null && shown.getDisplay().getColumns() > 0)
             width = shown.getDisplay().getColumns();
         if (first)
@@ -495,7 +504,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     void showDetails() {
         if (!isFull() || disposed)
             return;
-        final LogCommit c = commitAt(LogBuffers.windowOf(this));
+        final LogCommit c = commitAt(Editor.windowShowing(this));
         if (c == null || c == shown)
             return;
         shown = c;

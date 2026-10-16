@@ -37,6 +37,7 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.transients.TransientCommands;
 import org.armedbear.j.transients.TransientPopup;
+import org.armedbear.j.vcs.ViewPane;
 import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.status.VcsStatusBuffer;
 import org.armedbear.j.vim.VimInputHandler;
@@ -485,28 +486,37 @@ public final class WindowFuzz {
         }),
         new Op("logQuit", ed -> {
             final LogBuffer l = log(ed);
-            if (l == null)
+            if (l != null)
+                closing(l, () -> command(ed, "vcsLogQuit", null));
+        }),
+        new Op("statusDiff", ed -> {
+            // D: the diff beside, opened, or closed as q in it does.
+            final Buffer owner = ed.getBuffer().getPrimary() instanceof VcsStatusBuffer s ? s : ed.getBuffer();
+            if (!(owner instanceof VcsStatusBuffer s))
                 return;
-            // Laid out, it puts back the windows it kept, those of them
-            // still open, or leaves one.
-            final WindowLayout.Node before = frame().shownView() == l ? l.before() : null;
-            final boolean shown = frame().shownView() == l;
-            command(ed, "vcsLogQuit", null);
-            if (!shown)
+            if (s.getFrameView() != null)
+                closing(s, () -> command(ed, "vcsStatusDiff", null));
+            else
+                command(ed, "vcsStatusDiff", null);
+        }),
+        new Op("statusDiffKey", ed -> {
+            if (!(ed.getBuffer().getPrimary() instanceof VcsStatusBuffer))
                 return;
-            quitsChecked++;
-            final WindowLayout.Node kept =
-                    before == null ? null : WindowLayout.keeping(before, b -> Editor.getBufferList().contains(b));
-            final List<String> want = new ArrayList<>();
-            if (kept != null)
-                for (WindowLayout.Window w : WindowLayout.windows(kept))
-                    want.add(kind(w.buffer()));
-            final List<String> got = new ArrayList<>();
-            for (int i = 0; i < Editor.getEditorCount(); i++)
-                if (!frame().isPanel(Editor.getEditor(i)))
-                    got.add(kind(Editor.getEditor(i).getBuffer()));
-            if (kept != null ? !got.equals(want) : got.size() != 1)
-                errors.add("q left " + got + ", not " + (kept != null ? want : "one window"));
+            final String[] commands = {
+                "vcsStatusVisit",
+                "vcsStatusToggle",
+                "vcsStatusCycle",
+                "vcsStatusNext",
+                "vcsStatusPrevious",
+                "vcsStatusScrollDiff",
+                "vcsStatusScrollDiffBack",
+                "vcsStatusRefresh",
+                "toggleFold",
+                "foldAll",
+                "unfoldAll",
+                "down",
+                "up" };
+            command(ed, commands[rnd.nextInt(commands.length)], null);
         }),
         new Op("statusKey", ed -> {
             if (!(ed.getBuffer() instanceof VcsStatusBuffer))
@@ -529,7 +539,9 @@ public final class WindowFuzz {
                 "vcsUnstage",
                 "vcsStageAll",
                 "vcsUnstageAll",
-                "vcsCommitPopup" };
+                "vcsCommitPopup",
+                "vcsStatusScrollDiff",
+                "vcsStatusDiff" };
             final String c = commands[rnd.nextInt(commands.length)];
             command(ed, c, c.equals("vcsStatusDepth") ? String.valueOf(1 + rnd.nextInt(4)) : null);
         }),
@@ -608,6 +620,34 @@ public final class WindowFuzz {
         }),
         new Op("clearVirtualText", ed -> ed.getBuffer().getVirtualText().clear("fuzz")));
 
+    /**
+     * Runs close, which closes view's frame view: laid out, it must put
+     * back the windows it kept, those of them still open, or leave one.
+     */
+    private static void closing(Buffer view, Runnable close) {
+        final boolean shown = frame().shownView() == view;
+        final WindowLayout.Node before = shown ? ((FrameView) view).before() : null;
+        final String was = layout();
+        close.run();
+        if (!shown)
+            return;
+        quitsChecked++;
+        final WindowLayout.Node kept =
+                before == null ? null : WindowLayout.keeping(before, b -> Editor.getBufferList().contains(b));
+        final List<String> want = new ArrayList<>();
+        if (kept != null)
+            for (WindowLayout.Window w : WindowLayout.windows(kept))
+                want.add(kind(w.buffer()));
+        final List<String> got = new ArrayList<>();
+        for (int i = 0; i < Editor.getEditorCount(); i++)
+            if (!frame().isPanel(Editor.getEditor(i)))
+                got.add(kind(Editor.getEditor(i).getBuffer()));
+        if (kept != null ? !got.equals(want) : got.size() != 1)
+            errors.add(
+                "closing " + kind(view) + " left " + got + ", not " + (kept != null ? want : "one window")
+                        + "; it kept " + before + " from " + was);
+    }
+
     // ----------------------------------------------------------- invariants
 
     private static int maxWindows;
@@ -671,12 +711,12 @@ public final class WindowFuzz {
         }
         if (panels > 1)
             bad.add("more than one panel");
-        // A log's panes live and die with it.
+        // A view's parts, as a log's panes and the status's diff, live and die with it.
         for (Buffer b : Editor.getBufferList()) {
-            if (b.getPrimary() instanceof LogBuffer l && !Editor.getBufferList().contains(l))
-                bad.add(b + " outlives its log");
+            if (b instanceof ViewPane<?> p && !Editor.getBufferList().contains(p.getOwner()))
+                bad.add(b + " outlives " + kind(p.getOwner()));
             for (Buffer child : b.getChildren())
-                if (b instanceof LogBuffer && !Editor.getBufferList().contains(child))
+                if (!Editor.getBufferList().contains(child))
                     bad.add(kind(b) + " lost its " + child);
         }
         checkPopup(frame, bad);
@@ -839,12 +879,18 @@ public final class WindowFuzz {
             System.exit(2);
         }
         final List<Op> logOps = OPS.stream().filter(o -> o.name().startsWith("log")).toList();
+        final List<Op> diffOps = OPS.stream().filter(o -> o.name().startsWith("statusDiff")).toList();
         for (int step = 0; step < steps; step++) {
-            // In a log, more often what a log does.
-            final boolean[] inLog = new boolean[1];
-            onEdt(() -> inLog[0] = log(current()) != null, "log");
-            final Op op = inLog[0] && rnd.nextInt(3) == 0
-                    ? logOps.get(rnd.nextInt(logOps.size()))
+            // In a log, or a status, more often what it does.
+            final List<?>[] focused = new List<?>[1];
+            onEdt(() -> {
+                final Buffer b = current().getBuffer();
+                focused[0] = log(current()) != null ? logOps
+                        : b instanceof VcsStatusBuffer || b.getPrimary() instanceof VcsStatusBuffer ? diffOps
+                        : null;
+            }, "focused");
+            final Op op = focused[0] != null && rnd.nextInt(3) == 0
+                    ? (Op) focused[0].get(rnd.nextInt(focused[0].size()))
                     : OPS.get(rnd.nextInt(OPS.size()));
             final int before = errors.size();
             final String[] shown = new String[1];
@@ -858,7 +904,7 @@ public final class WindowFuzz {
             // Mail loads in the background, as do the log's pages and details.
             Thread.sleep(
                 op.name().contains("Mail") || op.name().contains("Message") ? 700
-                        : op.name().contains("og") ? 250
+                        : op.name().contains("og") || op.name().contains("Diff") ? 250
                         : 60);
             onEdt(() -> check(what), "check");
             if (errors.size() > before) {
@@ -876,8 +922,8 @@ public final class WindowFuzz {
         report(
             "seed " + seed + " " + (errors.isEmpty() ? "OK" : "FAILED") + "; " + steps + " steps, up to " + maxWindows
                     + " windows, the panel on " + panelSteps + " steps, a message window on " + boundSteps
-                    + ", a popup on " + popupSteps + ", the log on " + logSteps + ", " + quitsChecked
-                    + " of its q checked, " + layouts.size() + " layouts");
+                    + ", a popup on " + popupSteps + ", a frame view on " + logSteps + ", " + quitsChecked
+                    + " of its closes checked, " + layouts.size() + " layouts");
         System.exit(errors.isEmpty() ? 0 : 1);
     }
 }

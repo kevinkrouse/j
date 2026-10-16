@@ -33,6 +33,7 @@ import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.ViewPane;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
@@ -42,7 +43,7 @@ import org.armedbear.j.vcs.status.StatusRenderer;
  * The log's selected commit: its id, author, date and message, then the
  * files it changed. The diff pane follows the file at the caret.
  */
-final class LogFilesBuffer extends LogPane {
+final class LogFilesBuffer extends ViewPane<LogBuffer> {
     private static final DateTimeFormatter DATE =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
 
@@ -52,7 +53,7 @@ final class LogFilesBuffer extends LogPane {
     private final Timer follow;
 
     LogFilesBuffer(LogBuffer owner) {
-        super(owner, "files");
+        super(VcsLogMode.getMode(), owner, "files", "");
         follow = new Timer(LogBuffer.FOLLOW_DELAY, e -> showDiff());
         follow.setRepeats(false);
     }
@@ -192,7 +193,7 @@ final class LogFilesBuffer extends LogPane {
     void showDiff() {
         if (owner.diff == null || commit == null)
             return;
-        CommitChange ch = changeAt(LogBuffers.windowOf(this));
+        CommitChange ch = changeAt(Editor.windowShowing(this));
         if (ch == null && !changes.isEmpty())
             ch = changes.get(0);
         if (ch == shown && ch != null)

@@ -43,6 +43,7 @@ import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Option;
 import org.armedbear.j.transients.Transient.Prefix;
+import org.armedbear.j.vcs.ViewPane;
 import org.armedbear.j.vcs.status.StatusLine;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.armedbear.j.vcs.status.VcsStatusFormatter;
@@ -106,7 +107,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
 
     @Override
     public synchronized KeyMap getKeyMap(Buffer buffer) {
-        if (!(buffer instanceof LogPane))
+        if (!(buffer instanceof ViewPane))
             return getKeyMap();
         if (paneKeyMap == null) {
             paneKeyMap = new KeyMap();
@@ -117,7 +118,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
 
     @Override
     public synchronized KeyMap getModalKeyMap(Buffer buffer) {
-        if (!(buffer instanceof LogPane))
+        if (!(buffer instanceof ViewPane))
             return getModalKeyMap();
         if (paneModalKeyMap == null) {
             paneModalKeyMap = new KeyMap();
@@ -272,9 +273,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
     public boolean setFoldAt(Editor editor, Line line, Boolean open) {
         if (!(editor.getBuffer() instanceof LogDiffBuffer d) || !(line instanceof StatusLine s))
             return false;
-        final String hunk = s.kind() == Kind.HUNK ? s.key() : s.kind() == Kind.DIFF ? s.node() : null;
-        if (hunk != null)
-            d.setExpanded(hunk, open != null ? open : !s.isOpen());
+        d.setFold(s, open);
         return true;
     }
 

@@ -23,6 +23,7 @@ package org.armedbear.j.vcs.status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -56,8 +57,11 @@ public class VcsStatusBufferTest {
     @AfterEach
     public void tearDown() throws Exception {
         if (status != null) {
+            final VcsStatusBuffer b = status;
+            SwingUtilities.invokeAndWait(() -> b.closeDiff(null));
             status.dispose();
-            Editor.getBufferList().remove(status);
+            if (Editor.getBufferList().contains(status))
+                Editor.getBufferList().remove(status);
         }
         if (h != null) {
             h.showBuffer(h.buffer());
@@ -458,6 +462,112 @@ public class VcsStatusBufferTest {
         assertEquals(Kind.REPOSITORY, lines.get(0).kind());
         assertTrue(text.contains("two  /r/two"));
         assertEquals(1, lines.get(text.indexOf("two  /r/two")).repositoryColor());
+    }
+
+    // The diff beside.
+
+    private List<String> paneText() {
+        final List<String> list = new ArrayList<>();
+        for (Line l = status.getDiff().getFirstLine(); l != null; l = l.next())
+            list.add(l.getText());
+        return list;
+    }
+
+    // The caret on line, and the diff beside told, as after the caret rests.
+    private void caretOn(StatusLine line) throws Exception {
+        onEdt(() -> {
+            h.editor().setDot(line, 0);
+            status.followCaret();
+        });
+    }
+
+    @Test
+    public void theDiffBesideIsAPartOfTheStatusAndFollowsItsCaret() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        final StatusDiffBuffer diff = status.getDiff();
+        assertEquals(List.of(diff), status.getChildren());
+        assertSame(status, status.getFrameView());
+        assertSame(status, diff.getPrimary());
+        assertFalse(diff.isPrimary());
+        // A file the status has closed: its diff is read for the pane.
+        caretOn(line("  M  a.txt"));
+        until(() -> paneText().contains("  +three blind cats"));
+        assertTrue(paneText().contains("  -three blind mice"));
+        // The staged one's is the next commit's.
+        caretOn(line("  M  b.txt"));
+        until(() -> paneText().contains("  +b changed"));
+        // A line of no file leaves it as it is.
+        caretOn((StatusLine) status.getFirstLine());
+        assertTrue(paneText().contains("  +b changed"));
+    }
+
+    @Test
+    public void theDiffBesideOfAClosedFileIsReadAgainOnARefresh() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(line("  M  a.txt"));
+        until(() -> paneText().contains("  +three blind cats"));
+        // Still M a.txt, so the status shows nothing new; the diff is.
+        git.write("a.txt", TEN.replace("mice", "dogs"));
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
+        until(() -> paneText().contains("  +three blind dogs"));
+    }
+
+    @Test
+    public void theDiffBesideKeepsTheStatusesHunkKeys() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.toggle(line("  M  a.txt")));
+        until(() -> text().contains("  +three blind cats"));
+        StatusLine hunk = null;
+        for (Line l = status.getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.kind() == Kind.HUNK)
+                hunk = s;
+        assertNotNull(hunk);
+        final String key = hunk.key();
+        onEdt(() -> status.openDiff(null));
+        caretOn(hunk);
+        until(() -> paneText().contains("  +three blind cats"));
+        boolean found = false;
+        for (Line l = status.getDiff().getFirstLine(); l != null; l = l.next())
+            found |= l instanceof StatusLine s && s.key().equals(key);
+        assertTrue(found, "the hunk keyed as the status's, to scroll to");
+    }
+
+    @Test
+    public void closingTheDiffBesideKillsItAndLeavesTheStatus() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        final StatusDiffBuffer diff = status.getDiff();
+        onEdt(() -> status.closeDiff(null));
+        assertNull(status.getDiff());
+        assertNull(status.getFrameView());
+        assertFalse(Editor.getBufferList().contains(diff));
+        // Killed on its own, as from the buffer list, it closes as D does.
+        onEdt(() -> status.openDiff(null));
+        final StatusDiffBuffer again = status.getDiff();
+        onEdt(again::kill);
+        assertNull(status.getDiff());
+        assertFalse(Editor.getBufferList().contains(again));
+        assertTrue(Editor.getBufferList().contains(status));
+    }
+
+    @Test
+    public void closingTheStatusClosesTheDiffBeside() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        final StatusDiffBuffer diff = status.getDiff();
+        onEdt(status::kill);
+        assertFalse(Editor.getBufferList().contains(diff));
+        assertFalse(Editor.getBufferList().contains(status));
     }
 
     private static VcsRepository fake(String root) {

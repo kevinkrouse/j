@@ -21,7 +21,6 @@
 package org.armedbear.j.vcs.log;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Editor;
 
 /** What the log's buffers share. */
 final class LogBuffers {
@@ -31,21 +30,9 @@ final class LogBuffers {
     static LogBuffer owner(Buffer buffer) {
         return switch (buffer) {
             case LogBuffer l -> l;
-            case LogPane p -> p.owner;
+            case LogFilesBuffer f -> f.getOwner();
+            case LogDiffBuffer d -> d.getOwner();
             case null, default -> null;
         };
-    }
-
-    /** The window showing buffer, the current one if it does; else null. */
-    static Editor windowOf(Buffer buffer) {
-        if (buffer == null)
-            return null;
-        final Editor current = Editor.currentEditor();
-        if (current != null && current.getBuffer() == buffer)
-            return current;
-        for (Editor ed : Editor.getEditorList())
-            if (ed.getBuffer() == buffer)
-                return ed;
-        return null;
     }
 }

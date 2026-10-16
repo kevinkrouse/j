@@ -36,4 +36,13 @@ public interface FrameView {
     WindowLayout.Node before();
 
     void setBefore(WindowLayout.Node before);
+
+    /**
+     * One of its buffers is killed on its own, from the buffer list or :bd:
+     * true if the view closes it itself, as the log closes whole; false to
+     * let it go alone.
+     */
+    default boolean partKilled(Buffer part) {
+        return false;
+    }
 }

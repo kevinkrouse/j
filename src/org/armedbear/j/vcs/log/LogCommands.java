@@ -189,9 +189,9 @@ public final class LogCommands {
     // The list, then the files over or beside the diff, as the details go;
     // focus's window focused.
     static WindowLayout.Node layout(Frame frame, LogBuffer log, Buffer focus) {
-        final Window list = window(log, focus != log.files && focus != log.diff);
-        final Window files = window(log.files, focus == log.files);
-        final Window diff = window(log.diff, focus == log.diff);
+        final Window list = Window.showing(log, focus != log.files && focus != log.diff);
+        final Window files = Window.showing(log.files, focus == log.files);
+        final Window diff = Window.showing(log.diff, focus == log.diff);
         final Split details;
         final Split shape;
         if (log.right) {
@@ -205,13 +205,6 @@ public final class LogCommands {
             shape = new Split(false, List.of(list, details), List.of(0.55, 0.45));
         }
         return shape;
-    }
-
-    // A window of buffer with its caret and top where a window showing it
-    // has them now, or where its last one left them.
-    private static Window window(Buffer buffer, boolean focused) {
-        final Editor ed = LogBuffers.windowOf(buffer);
-        return ed != null ? Window.of(ed, focused) : Window.of(buffer, focused);
     }
 
     // Closing.
@@ -239,13 +232,13 @@ public final class LogCommands {
                 focus(log.files);
         } else if (b instanceof LogFilesBuffer f) {
             f.showDiff();
-            focus(f.owner.diff);
+            focus(f.getOwner().diff);
         } else if (b instanceof LogDiffBuffer d)
             visitLine(editor, d);
     }
 
     private static void focus(Buffer buffer) {
-        final Editor ed = LogBuffers.windowOf(buffer);
+        final Editor ed = Editor.windowShowing(buffer);
         if (ed == null)
             return;
         Editor.setCurrentEditor(ed);
@@ -295,7 +288,7 @@ public final class LogCommands {
 
     private static void scrollDiff(Editor editor, boolean forward) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        final Editor ed = log == null ? null : LogBuffers.windowOf(log.diff);
+        final Editor ed = log == null ? null : Editor.windowShowing(log.diff);
         if (ed == null)
             return;
         if (forward)
@@ -318,7 +311,7 @@ public final class LogCommands {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());
         if (log == null || log.files == null)
             return;
-        final Editor ed = LogBuffers.windowOf(log.files);
+        final Editor ed = Editor.windowShowing(log.files);
         final Line to = log.files.nextFile(ed, forward);
         if (ed == null || to == null)
             return;
@@ -339,12 +332,8 @@ public final class LogCommands {
 
     /** Shift Tab: closes every hunk of the diff, or opens them all when none is open. */
     public static void vcsLogToggleAll(Editor editor) {
-        if (!(editor.getBuffer() instanceof LogDiffBuffer d))
-            return;
-        boolean anyOpen = false;
-        for (Line l : StatusLine.hunks(d))
-            anyOpen |= ((StatusLine) l).isOpen();
-        d.setAll(!anyOpen);
+        if (editor.getBuffer() instanceof LogDiffBuffer d)
+            d.toggleAll();
     }
 
     /** D: the details at the bottom, or at the right. */
@@ -375,7 +364,7 @@ public final class LogCommands {
         if (log == null)
             return;
         final Option option = name == null ? null : LogFilters.named(name.strip());
-        final Editor list = LogBuffers.windowOf(log);
+        final Editor list = Editor.windowShowing(log);
         final FilterBar bar = list == null ? null : list.getFilterBar();
         if (option == null || bar == null) {
             if (name != null && option == null)
@@ -426,7 +415,7 @@ public final class LogCommands {
         if (editor.getBuffer() instanceof LogDiffBuffer d)
             visitLine(editor, d);
         else if (editor.getBuffer() instanceof LogFilesBuffer f && f.commit() != null && f.changeAt(editor) != null)
-            visit(editor, f.owner, f.commit(), f.changeAt(editor), 0);
+            visit(editor, f.getOwner(), f.commit(), f.changeAt(editor), 0);
         else
             editor.status("No file here");
     }
@@ -435,7 +424,7 @@ public final class LogCommands {
     private static void visitLine(Editor editor, LogDiffBuffer d) {
         if (d.commit() == null || d.change() == null || editor.getDot() == null)
             return;
-        visit(editor, d.owner, d.commit(), d.change(), diffLine(editor));
+        visit(editor, d.getOwner(), d.commit(), d.change(), diffLine(editor));
     }
 
     // The change's file in the working tree, at the commit's line n mapped to now; 0 for its top.

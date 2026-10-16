@@ -57,7 +57,7 @@ final class LogDetailsFormatter extends VcsStatusFormatter {
 
     private LogFormatter refs() {
         if (refs == null)
-            refs = new LogFormatter(files.owner);
+            refs = new LogFormatter(files.getOwner());
         return refs;
     }
 

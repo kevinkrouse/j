@@ -1,5 +1,5 @@
 /*
- * LogPane.java
+ * ViewPane.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.log;
+package org.armedbear.j.vcs;
 
 import static org.armedbear.j.Constants.*;
 
@@ -28,21 +28,27 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FrameView;
 import org.armedbear.j.Line;
-import org.armedbear.j.vcs.ViewBuffer;
+import org.armedbear.j.Mode;
 
-/** A pane of the log's details: the commit's files, or a file's diff. */
-abstract class LogPane extends ViewBuffer {
-    final LogBuffer owner;
+/**
+ * A view that is part of another buffer, its owner, as the log's files and
+ * diff are the log's: listed under it, shown in its frame view, skipped
+ * going through the buffers.
+ */
+public abstract class ViewPane<B extends Buffer> extends ViewBuffer {
+    protected final B owner;
     // Each read's number, so that only the last one asked for is shown.
-    int generation;
+    protected int generation;
 
-    LogPane(LogBuffer owner, String title) {
-        super(VcsLogMode.getMode(), title, "");
+    protected ViewPane(Mode mode, B owner, String title, String placeholder) {
+        super(mode, title, placeholder);
         this.owner = owner;
     }
 
-    // Part of the log: listed under it, shown in its view, skipped going
-    // through the buffers.
+    public B getOwner() {
+        return owner;
+    }
+
     @Override
     public boolean isPrimary() {
         return false;
@@ -58,12 +64,10 @@ abstract class LogPane extends ViewBuffer {
         return owner.getFrameView();
     }
 
-    // Killed on its own, the whole log closes.
+    // Killed on its own, its owner may close it, with more.
     @Override
     public synchronized void kill() {
-        if (!owner.isDisposed())
-            owner.kill();
-        else
+        if (!(owner instanceof FrameView v) || !v.partKilled(this))
             super.kill();
     }
 
@@ -71,14 +75,14 @@ abstract class LogPane extends ViewBuffer {
      * Puts lines in place of what it had, each window showing it with its
      * caret on dot (null for the first line) and the first line at the top.
      */
-    void replace(List<? extends Line> lines, Line dot) {
+    protected void replace(List<? extends Line> lines, Line dot) {
         fill(lines);
         for (Editor ed : windows())
             place(ed, dot != null ? dot : getFirstLine(), getFirstLine());
     }
 
     /** Puts lines in place of what it had, leaving the windows to be placed. */
-    void fill(List<? extends Line> lines) {
+    protected void fill(List<? extends Line> lines) {
         empty();
         withWriteLock(() -> {
             for (Line l : lines)
@@ -91,7 +95,7 @@ abstract class LogPane extends ViewBuffer {
     }
 
     /** The windows showing it. */
-    List<Editor> windows() {
+    public List<Editor> windows() {
         final List<Editor> out = new ArrayList<>();
         for (Editor ed : Editor.getEditorList())
             if (ed.getBuffer() == this)
@@ -100,7 +104,7 @@ abstract class LogPane extends ViewBuffer {
     }
 
     /** Puts ed's caret on dot and top at its top. */
-    static void place(Editor ed, Line dot, Line top) {
+    protected static void place(Editor ed, Line dot, Line top) {
         ed.setDot(dot, 0);
         ed.setMark(null);
         ed.moveCaretToDotCol();

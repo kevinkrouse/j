@@ -20,34 +20,21 @@
 
 package org.armedbear.j.vcs.log;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.Editor;
-import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.status.DiffPane;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
-import org.armedbear.j.vcs.status.StatusLine;
-import org.armedbear.j.vcs.status.StatusLine.Kind;
-import org.armedbear.j.vcs.status.StatusRenderer;
 
-/**
- * The diff of one file of the log's selected commit, against its first
- * parent, its hunks folding as the status buffer's do.
- */
-final class LogDiffBuffer extends LogPane {
+/** The log's diff: the commit's change to the file picked in the files. */
+final class LogDiffBuffer extends DiffPane<LogBuffer> {
     private LogCommit commit;
     private CommitChange change;
-    private FileDiff diff;
-    // Hunks closed or opened by hand, by key; open by default.
-    private final Map<String, Boolean> expanded = new HashMap<>();
 
     LogDiffBuffer(LogBuffer owner) {
-        super(owner, "diff");
+        super(VcsLogMode.getMode(), owner, "diff", "");
     }
 
     LogCommit commit() {
@@ -64,8 +51,7 @@ final class LogDiffBuffer extends LogPane {
         if (ch == null) {
             commit = c;
             change = null;
-            diff = null;
-            replace(List.of(), null);
+            clear("");
             return;
         }
         final VcsRepository r = owner.repositoryOf(c);
@@ -84,80 +70,10 @@ final class LogDiffBuffer extends LogPane {
                     return;
                 commit = c;
                 change = ch;
-                diff = d;
-                expanded.clear();
-                render(null, false);
+                final FileItem f = LogFilesBuffer.item(ch);
+                // Keyed by the commit, so another commit's diff of the file starts afresh.
+                show(r, "diff|" + c.id(), new FileItem(f.change(), f.letter(), true, d), null);
             });
         });
-    }
-
-    /**
-     * Lays the lines out again, the caret on the line keyed at, or the first
-     * change. Kept, each window's caret and top stay on their lines, or on
-     * their hunks when those close.
-     */
-    private void render(String at, boolean kept) {
-        if (change == null)
-            return;
-        final Map<Editor, StatusLine[]> was = new HashMap<>();
-        if (kept)
-            for (Editor ed : windows())
-                if (ed.getDot() != null
-                        && ed.getDotLine() instanceof StatusLine d
-                        && ed.getTopLine() instanceof StatusLine t)
-                    was.put(ed, new StatusLine[] { d, t });
-        final FileItem f = LogFilesBuffer.item(change);
-        final FileItem item = new FileItem(f.change(), f.letter(), true, diff);
-        final List<StatusLine> lines = StatusRenderer.renderFiles(
-            owner.repositoryOf(commit),
-            "diff",
-            List.of(item),
-            (key, kind) -> kind == Kind.FILE || expanded.getOrDefault(key, true));
-        Line first = null;
-        for (StatusLine l : lines)
-            if (at != null ? l.key().equals(at) : l.kind() == Kind.DIFF && !l.diffLine().isContext()) {
-                first = l;
-                break;
-            }
-        fill(lines);
-        for (Editor ed : windows()) {
-            final StatusLine[] w = was.get(ed);
-            final Line dot = at == null && w != null ? same(lines, w[0]) : first;
-            final Line top = w != null ? same(lines, w[1]) : null;
-            place(ed, dot != null ? dot : getFirstLine(), top != null ? top : getFirstLine());
-        }
-    }
-
-    // The line keyed as l was, or its hunk's line; null if neither is there.
-    private static Line same(List<StatusLine> lines, StatusLine l) {
-        for (StatusLine s : lines)
-            if (s.key().equals(l.key()))
-                return s;
-        for (StatusLine s : lines)
-            if (s.key().equals(l.node()))
-                return s;
-        return null;
-    }
-
-    /** Opens or closes the hunk line is in or heads. False if there is none. */
-    boolean toggle(StatusLine line) {
-        final String hunk = line.kind() == Kind.HUNK ? line.key() : line.kind() == Kind.DIFF ? line.node() : null;
-        if (hunk == null)
-            return false;
-        setExpanded(hunk, !expanded.getOrDefault(hunk, true));
-        return true;
-    }
-
-    /** Opens or closes every hunk. */
-    void setAll(boolean open) {
-        for (Line l = getFirstLine(); l != null; l = l.next())
-            if (l instanceof StatusLine s && s.kind() == Kind.HUNK)
-                expanded.put(s.key(), open);
-        render(null, true);
-    }
-
-    void setExpanded(String hunk, boolean open) {
-        expanded.put(hunk, open);
-        render(hunk, true);
     }
 }

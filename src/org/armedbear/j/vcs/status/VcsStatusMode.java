@@ -32,9 +32,11 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
@@ -103,6 +105,55 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return modalKeyMap;
     }
 
+    private static KeyMap paneKeyMap;
+    private static KeyMap paneModalKeyMap;
+
+    // The diff beside has its own keys: none of staging's, which act on the status's lines.
+    @Override
+    public synchronized KeyMap getKeyMap(Buffer buffer) {
+        if (!(buffer instanceof StatusDiffBuffer))
+            return getKeyMap();
+        if (paneKeyMap == null) {
+            paneKeyMap = new KeyMap();
+            paneKeys(paneKeyMap, false);
+        }
+        return paneKeyMap;
+    }
+
+    @Override
+    public synchronized KeyMap getModalKeyMap(Buffer buffer) {
+        if (!(buffer instanceof StatusDiffBuffer))
+            return getModalKeyMap();
+        if (paneModalKeyMap == null) {
+            paneModalKeyMap = new KeyMap();
+            paneKeys(paneModalKeyMap, true);
+        }
+        return paneModalKeyMap;
+    }
+
+    // As the status's where they mean the same, and as the log's diff's.
+    private static void paneKeys(KeyMap km, boolean vim) {
+        km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
+        km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisit");
+        km.mapKey(KeyEvent.VK_TAB, 0, "vcsStatusToggle");
+        km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "vcsStatusCycle");
+        km.mapKey('n', "vcsStatusNext");
+        km.mapKey('p', "vcsStatusPrevious");
+        scrollKeys(km);
+        km.mapKey(vim ? 'r' : 'g', "vcsStatusRefresh");
+        km.mapKey('$', "vcsCommandLog");
+        km.mapKey('q', "vcsStatusDiff");
+        km.mapKey('?', "modePopup");
+    }
+
+    // D, and the diff beside scrolled from either side.
+    private static void scrollKeys(KeyMap km) {
+        km.mapKey('D', "vcsStatusDiff");
+        km.mapKey(' ', "vcsStatusScrollDiff");
+        km.mapKey(KeyEvent.VK_SPACE, SHIFT_MASK, "vcsStatusScrollDiffBack");
+        km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "vcsStatusScrollDiffBack");
+    }
+
     private static KeyMap visualKeyMap;
 
     // Vim's V or v then s stages the lines selected.
@@ -139,6 +190,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey('l', "vcsLogPopup");
         km.mapKey('q', "killBuffer");
         km.mapKey('?', "modePopup");
+        scrollKeys(km);
     }
 
     private static final String[][] HINTS = {
@@ -148,14 +200,24 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         { "vcsCommitPopup", "commit" },
         { "modePopup", "more" }, };
 
+    private static final String[][] DIFF_HINTS = {
+        { "vcsStatusVisit", "open at this line" },
+        { "vcsStatusToggle", "fold" },
+        { "vcsStatusDiff", "close" },
+        { "modePopup", "more" }, };
+
     @Override
     public String[][] getHints(Buffer buffer) {
-        return buffer.getBooleanProperty(Property.VCS_HINTS) ? HINTS : null;
+        if (!buffer.getBooleanProperty(Property.VCS_HINTS))
+            return null;
+        return buffer instanceof StatusDiffBuffer ? DIFF_HINTS : HINTS;
     }
 
     @Override
     public Transient getTransient(Editor editor) {
         final boolean vim = editor != null && editor.getInputHandler() != null;
+        if (editor != null && editor.getBuffer() instanceof StatusDiffBuffer)
+            return diffTransient(vim);
         final List<Group> groups = new ArrayList<>();
         groups.add(
             Group.of(
@@ -169,6 +231,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 "Go",
                 new Command("n", "vcsStatusNext", "next", true),
                 new Command("p", "vcsStatusPrevious", "previous", true)));
+        groups.add(Group.of("Diff", Command.of("D", "vcsStatusDiff", "beside, or not")));
         // Staging, and so committing what is staged, is for a backend that has an index.
         if (editor == null || stages(editor.getBuffer())) {
             groups.add(
@@ -191,6 +254,23 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return new Transient("vcs.status", "Status", "git.html#status", groups);
     }
 
+    // The diff beside's: what its keys do there.
+    private static Transient diffTransient(boolean vim) {
+        return new Transient("vcs.status.diff",
+                "Diff",
+                "git.html#status-diff",
+                List.of(
+                    Group.of(
+                        "Go",
+                        new Command("n", "vcsStatusNext", "next hunk", true),
+                        new Command("p", "vcsStatusPrevious", "previous hunk", true)),
+                    Group.of(
+                        "Diff",
+                        Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
+                        Command.of("$", "vcsCommandLog", "command log"),
+                        Command.of("q", "vcsStatusDiff", "close"))));
+    }
+
     static boolean stages(Buffer buffer) {
         return buffer instanceof VcsStatusBuffer b
                 && b.getRepositories().stream().allMatch(r -> r.backend().capabilities().contains(Capability.STAGING));
@@ -205,7 +285,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     @Override
     public boolean isFoldStart(Buffer buffer, Line line) {
-        return line instanceof StatusLine s && s.isExpandable();
+        if (!(line instanceof StatusLine s))
+            return false;
+        return buffer instanceof DiffPane ? s.kind() == Kind.HUNK : s.isExpandable();
     }
 
     @Override
@@ -217,10 +299,16 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     public void toggleFoldAt(Editor editor, Line line) {
         if (editor.getBuffer() instanceof VcsStatusBuffer b && line instanceof StatusLine s)
             b.toggle(s);
+        else if (editor.getBuffer() instanceof DiffPane<?> d && line instanceof StatusLine s)
+            d.toggle(s);
     }
 
     @Override
     public boolean setFoldAt(Editor editor, Line line, Boolean open) {
+        if (editor.getBuffer() instanceof DiffPane<?> d && line instanceof StatusLine s) {
+            d.setFold(s, open);
+            return true;
+        }
         if (!(editor.getBuffer() instanceof VcsStatusBuffer b) || !(line instanceof StatusLine s))
             return false;
         StatusLine head = b.head(s);
@@ -234,6 +322,10 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     @Override
     public boolean setAllFolds(Editor editor, boolean open) {
+        if (editor.getBuffer() instanceof DiffPane<?> d) {
+            d.setAll(open);
+            return true;
+        }
         if (!(editor.getBuffer() instanceof VcsStatusBuffer b))
             return false;
         b.setDepth(open ? 4 : 1);
@@ -262,8 +354,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             editor.status("Not in a repository");
             return;
         }
+        final boolean opening = VcsStatusBuffer.find(repositories) == null;
         final VcsStatusBuffer buffer = VcsStatusBuffer.of(repositories);
         editor.show(buffer);
+        if (opening && "right".equals(Editor.preferences().getStringProperty(Property.VCS_STATUS_DIFF)))
+            buffer.openDiff(editor.getFrame());
     }
 
     // The project's, if it has more than one and the buffer is in one of
@@ -271,6 +366,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     public static List<VcsRepository> repositoriesFor(Buffer buffer) {
         if (buffer instanceof VcsStatusBuffer s)
             return s.getRepositories();
+        if (buffer instanceof StatusDiffBuffer d)
+            return d.getOwner().getRepositories();
         final File file = buffer.getFile();
         final VcsRepository own = file != null ? Repositories.forFile(file) : null;
         final File root = ProjectRoot.find(buffer);
@@ -286,11 +383,68 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return editor.getBuffer() instanceof VcsStatusBuffer b ? b : null;
     }
 
+    // The status of editor's buffer: the buffer itself, or the status whose diff it is.
+    private static VcsStatusBuffer owner(Editor editor) {
+        return editor.getBuffer() instanceof StatusDiffBuffer d ? d.getOwner() : statusBuffer(editor);
+    }
+
+    /**
+     * D: the diff of the file at the caret beside the status, or not; open
+     * but not laid out, as with its window closed by hand, laid out again.
+     */
+    public static void vcsStatusDiff(Editor editor) {
+        final VcsStatusBuffer b = owner(editor);
+        if (b == null)
+            return;
+        final Frame frame = editor.getFrame();
+        if (b.getDiff() == null)
+            b.openDiff(frame);
+        else if (frame != null && !b.isDiffShown(frame))
+            frame.showView(b, editor.getBuffer());
+        else
+            b.closeDiff(frame);
+    }
+
+    /** Space: the diff beside a page on, from the status or the diff. */
+    public static void vcsStatusScrollDiff(Editor editor) {
+        scrollDiff(editor, true);
+    }
+
+    public static void vcsStatusScrollDiffBack(Editor editor) {
+        scrollDiff(editor, false);
+    }
+
+    private static void scrollDiff(Editor editor, boolean forward) {
+        final VcsStatusBuffer b = owner(editor);
+        final StatusDiffBuffer d = b == null ? null : b.getDiff();
+        final List<Editor> windows = d == null ? List.of() : d.windows();
+        // None: Space and Backspace move as they would.
+        if (windows.isEmpty()) {
+            if (forward)
+                MotionCommands.right(editor);
+            else
+                MotionCommands.left(editor);
+            return;
+        }
+        final Editor ed = windows.contains(editor) ? editor : windows.get(0);
+        if (forward)
+            MotionCommands.pageDown(ed);
+        else
+            MotionCommands.pageUp(ed);
+        ed.updateDisplay();
+    }
+
     private static StatusLine dotLine(Editor editor) {
         return editor.getDot() != null && editor.getDotLine() instanceof StatusLine s ? s : null;
     }
 
     public static void vcsStatusToggle(Editor editor) {
+        if (editor.getBuffer() instanceof StatusDiffBuffer d) {
+            final StatusLine line = dotLine(editor);
+            if (line == null || !d.toggle(line))
+                editor.status("No hunk here");
+            return;
+        }
         final VcsStatusBuffer b = statusBuffer(editor);
         final StatusLine line = dotLine(editor);
         if (b != null && line != null && !b.toggle(line))
@@ -299,6 +453,10 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     /** Steps every node through the depths: sections, files, hunks, diffs. */
     public static void vcsStatusCycle(Editor editor) {
+        if (editor.getBuffer() instanceof StatusDiffBuffer d) {
+            d.toggleAll();
+            return;
+        }
         final VcsStatusBuffer b = statusBuffer(editor);
         if (b != null)
             b.setDepth(b.getDepth() % 4 + 1);
@@ -317,7 +475,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     public static void vcsStatusRefresh(Editor editor) {
-        final VcsStatusBuffer b = statusBuffer(editor);
+        final VcsStatusBuffer b = owner(editor);
         if (b == null)
             return;
         for (VcsRepository r : b.getRepositories()) {

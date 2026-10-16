@@ -58,16 +58,27 @@ public final class WindowLayout {
                     focused);
         }
 
-        /** A window of buffer, shown in none: where its last window left it, or its start. */
+        /**
+         * A window of buffer, shown in none: where its last window left it,
+         * by line number if its lines have been replaced since; or its start.
+         */
         public static Window of(Buffer buffer, boolean focused) {
             final View view = buffer.getLastView();
-            final Position dot = view == null ? null : view.getDot();
-            final Line top = view == null ? null : view.getTopLine();
+            if (view == null)
+                return new Window(buffer, 0, 0, 0, focused);
+            final Position dot = view.getDot();
+            final Line top = view.getTopLine();
             return new Window(buffer,
-                    dot == null ? 0 : dot.lineNumber(),
-                    dot == null ? 0 : dot.getOffset(),
-                    top == null ? 0 : top.lineNumber(),
+                    dot != null ? dot.lineNumber() : view.getDotLineNumber(),
+                    dot != null ? dot.getOffset() : view.getDotOffset(),
+                    top != null ? top.lineNumber() : view.getTopLineNumber(),
                     focused);
+        }
+
+        /** A window of buffer with its caret and top where a window showing it has them now, or its last one left them. */
+        public static Window showing(Buffer buffer, boolean focused) {
+            final Editor ed = Editor.windowShowing(buffer);
+            return ed != null ? of(ed, focused) : of(buffer, focused);
         }
 
         /** Puts editor's caret and top line back, as near as the buffer allows now. */
@@ -105,6 +116,17 @@ public final class WindowLayout {
         else if (node instanceof Split s)
             for (Node child : s.children())
                 windows(child, out);
+    }
+
+    /** The layout with each window replaced by what f makes of it. */
+    static Node map(Node node, java.util.function.UnaryOperator<Window> f) {
+        if (node instanceof Window w)
+            return f.apply(w);
+        final Split s = (Split) node;
+        final List<Node> children = new ArrayList<>();
+        for (Node child : s.children())
+            children.add(map(child, f));
+        return new Split(s.row(), children, s.shares());
     }
 
     /**
