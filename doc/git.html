@@ -182,7 +182,7 @@ whose hooks fail is kept for another try.
 
 <p>
 <a href="commands.html#vcsLog">vcsLog</a> (<b>l l</b> in the status buffer)
-shows the repository's commits, newest first, every branch and tag, and takes
+shows the repository's commits, newest first, every branch's and HEAD's, and takes
 the whole frame for it: <b>q</b> closes it and puts the windows back as they
 were, each with its buffer, caret and scroll.
 <a href="commands.html#vcsLogQuick">vcsLogQuick</a> (<b>l q</b> in the status
@@ -192,11 +192,35 @@ into the full log. <a href="commands.html#vcsLogFile">vcsLogFile</a> shows the
 current file's commits, through its renames.
 
 <p>
+The full log is switched to and away from as one, as a tab of its own: going
+to any other buffer from it, from the buffer list, <code>:b</code> or
+the switcher, puts the windows back as they were before it, and it stays,
+with each pane where you left it; going to it again lays the frame out as it
+was. In the buffer list its files and diff are under it, a click on one going
+to that pane; going through the buffers passes it once. <b>q</b> closes it.
+
+<p>
+In a project of several repositories, the log shows them all together, as
+the status buffer does: their commits in one list, by when each was
+committed, each repository's in its own order. A strip at the left of each
+row is in its repository's color; a hover over it shows the repository's
+path, and a click shows that repository alone (click again for all of
+them). <a href="preferences.html#vcsLogRepositoryNames">vcsLogRepositoryNames</a>
+names the repository beside the strip. A commit's files and diff are from
+its own repository, and they begin with its repository's name as a badge in
+its color, then its branches and tags as the list's badges. Two repositories
+of the same directory name are named by their paths. A file's log is always
+of the file's repository.
+
+<p>
 A row is the commit's place in the graph, its subject, its branches and
 tags as badges (HEAD's branch first, in bold), then the author and how long
 ago. The graph draws each line of history as a lane in its own color, a
 commit as a dot on it, hollow for a merge and ringed for HEAD, with curves
-where a branch forks or joins. A branch's badge is in its lane's color;
+where a branch forks or joins. A lane longer than 30 rows is drawn as a
+short stub at each end, with an arrow, as IntelliJ does, and takes no room
+between; a click on an arrow goes to the lane's other end, reading on to it
+if it isn't read yet. A branch's badge is in its lane's color;
 a tag's keeps its own. A hover over a lane names its branch: the
 branch at its newest commit, or else the one its merge's message names, or
 else its newest commit. While an author, message or change filter
@@ -229,7 +253,8 @@ files are over the diff.
 <tr><td>Space, d; Shift Space, Backspace, u</td><td><a href="commands.html#vcsLogScrollDiff">vcsLogScrollDiff</a>, <a href="commands.html#vcsLogScrollDiffBack">vcsLogScrollDiffBack</a></td><td>the diff a page on, or back</td></tr>
 <tr><td>D</td><td><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></td><td>the details at the bottom or the right</td></tr>
 <tr><td>l (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>the popup of the filters</td></tr>
-<tr><td>-b -a -p -d -g -s (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>type a filter's value in the field over its chip</td></tr>
+<tr><td>-b -a -p -d -g -s -r (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>type a filter's value in the field over its chip</td></tr>
+<tr><td>-t (in the list)</td><td><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></td><td>show the commits only tags reach too, or not</td></tr>
 <tr><td>x (in the list)</td><td><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></td><td>clear every filter</td></tr>
 <tr><td>g (r in vim)</td><td><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></td><td>read it again</td></tr>
 <tr><td>q</td><td><a href="commands.html#vcsLogQuit">vcsLogQuit</a></td><td>close it</td></tr>
@@ -251,22 +276,30 @@ A bar over the list shows the log's filters, each a chip with its key:
 <b>-b</b> a branch or tag to start from (every one when unset),
 <b>-a</b> an author, <b>-p</b> a path (a file's history follows its
 renames), <b>-d</b> since a date (<code>2 weeks ago</code>,
-<code>2026-01-31</code>), <b>-g</b> text in the message, and <b>-s</b> text
-a change adds or removes. A click on a chip, or its key in the log, types
+<code>2026-01-31</code>), <b>-g</b> text in the message, <b>-s</b> text
+a change adds or removes, and, for several repositories, <b>-r</b> the one
+to show alone. With several, a path is from the directory above them all
+(<code>lib/src/</code>), and only its repository is shown; a branch shows
+the repositories that have it. A click on a chip, or its key in the log, types
 its value in a field over it, with the branches and tags, the authors, or
-the files and directories listed under it as they match. <b>Enter</b> takes
+the files and directories listed under it as they match; a branch has a box
+of its lane's color before it, and a repository one of its color. <b>Enter</b> takes
 the one highlighted (one that is the text first, then those that start
 with it), the first unless you move with <b>Up</b> and <b>Down</b>, or the
 text when none is: erase a value and <b>Enter</b> clears
 it, as does the <b>×</b> after a set chip. <b>l</b> opens the popup of the
-filters, where the same keys set them, and <b>x</b> clears every one. The
+filters, where the same keys set them, and <b>x</b> clears every one.
+<b>-t</b> shows the commits only tags reach too: off at first, as a
+repository converted from CVS has a commit of its own for each tag, apart
+from its branch, which would each take a lane; a tag on a branch's commit
+shows on it either way. The
 log is read again as each is set.
 
 <p>
 In the status buffer, <b>l</b> opens the log's popup with the same filters,
 to set before the log opens, as Neogit's does: <b>-a</b> an author, then
 <b>l</b> for the log or <b>q</b> for the quick log. They are kept for the
-repository, so its next log starts from them too, opened from any of its
+repository, or for the project's several, so its next log starts from them too, opened from any of its
 files, and another repository's doesn't; <b>Ctrl S</b> in the popup saves
 them as its defaults.
 
@@ -311,7 +344,9 @@ after its name: <b>M</b> changed, <b>M</b> in green staged, <b>A</b> added,
 <b>?</b> untracked, <b>D</b> deleted, <b>R</b> renamed, <b>C</b> copied and <b>U</b> conflicted.
 <a href="preferences.html#gitBufferListStatus">gitBufferListStatus</a> shows a
 dot instead, or nothing. When the project has several repositories, a strip at
-the left of a row is its repository's color.
+the left of a row is its repository's color. A buffer that is part of
+another is listed under it: the log's files and diff, and mail's message
+under its mailbox. A click on the arrow before one closes or opens it.
 
 <p>
 See also: <a href="vcs.html">Version Control</a>.

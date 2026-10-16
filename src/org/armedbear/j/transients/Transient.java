@@ -20,9 +20,11 @@
 
 package org.armedbear.j.transients;
 
+import java.awt.Color;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.armedbear.j.Editor;
@@ -118,8 +120,16 @@ public record Transient(String id, String title, String help, List<Group> groups
     /** Typed in a field on the option's row; an empty one unsets it. */
     public record Field() implements Chooser {}
 
-    /** Typed in a field on the option's row, with the candidates listed under it. */
-    public record Pick(Function<Editor, List<String>> candidates) implements Chooser {}
+    /**
+     * Typed in a field on the option's row, with the candidates listed under
+     * it, each after a box of its color if swatch gives one.
+     */
+    public record Pick(Function<Editor, List<String>> candidates, BiFunction<Editor, String, Color> swatch)
+            implements Chooser {
+        public Pick(Function<Editor, List<String>> candidates) {
+            this(candidates, null);
+        }
+    }
 
     /** Where a value lives when it is not the popup's own: the buffer's sort, say. */
     public interface Binding<T> {

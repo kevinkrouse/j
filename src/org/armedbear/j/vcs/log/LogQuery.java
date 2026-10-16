@@ -31,14 +31,28 @@ import java.util.List;
  * @param grep text the message has
  * @param pickaxe text a change adds or removes
  * @param follow a single path's history through renames
+ * @param repository the name of the one repository of several shown
+ * @param tags whether the commits only tags reach are shown too, with no
+ *     revisions given
  */
 public record LogQuery(List<String> revisions, String author, String path, String since, String grep, String pickaxe,
-        boolean follow) {
+        boolean follow, String repository, boolean tags) {
     /** Everything. */
     public static final LogQuery ALL = new LogQuery(List.of(), null, null, null, null, null, false);
 
     public LogQuery {
         revisions = List.copyOf(revisions);
+    }
+
+    public LogQuery(
+            List<String> revisions,
+            String author,
+            String path,
+            String since,
+            String grep,
+            String pickaxe,
+            boolean follow) {
+        this(revisions, author, path, since, grep, pickaxe, follow, null, false);
     }
 
     /** A file's history, through its renames. */
@@ -63,34 +77,45 @@ public record LogQuery(List<String> revisions, String author, String path, Strin
                 || path != null
                 || since != null
                 || grep != null
-                || pickaxe != null;
+                || pickaxe != null
+                || repository != null;
     }
 
-    /** From revision alone, or every branch and tag for null. */
+    /** From revision alone, or every branch for null. */
     public LogQuery withRevision(String revision) {
         return new LogQuery(revision == null
                 ? List.of()
-                : List.of(revision), author, path, since, grep, pickaxe, follow);
+                : List.of(revision), author, path, since, grep, pickaxe, follow, repository, tags);
     }
 
     public LogQuery withAuthor(String author) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repository, tags);
     }
 
     /** Under path, following a file's renames when follow says it is one. */
     public LogQuery withPath(String path, boolean follow) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, path != null && follow);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, path != null && follow, repository, tags);
     }
 
     public LogQuery withSince(String since) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repository, tags);
     }
 
     public LogQuery withGrep(String grep) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repository, tags);
     }
 
     public LogQuery withPickaxe(String pickaxe) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repository, tags);
+    }
+
+    /** Of the repository named alone, or all of them for null. */
+    public LogQuery withRepository(String repository) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repository, tags);
+    }
+
+    /** With the commits only tags reach, or without. */
+    public LogQuery withTags(boolean tags) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repository, tags);
     }
 }

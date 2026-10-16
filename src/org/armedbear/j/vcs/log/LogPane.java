@@ -24,7 +24,9 @@ import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.FrameView;
 import org.armedbear.j.Line;
 import org.armedbear.j.vcs.ViewBuffer;
 
@@ -37,6 +39,23 @@ abstract class LogPane extends ViewBuffer {
     LogPane(LogBuffer owner, String title) {
         super(VcsLogMode.getMode(), title, "");
         this.owner = owner;
+    }
+
+    // Part of the log: listed under it, shown in its view, skipped going
+    // through the buffers.
+    @Override
+    public boolean isPrimary() {
+        return false;
+    }
+
+    @Override
+    public Buffer getPrimary() {
+        return owner;
+    }
+
+    @Override
+    public FrameView getFrameView() {
+        return owner.getFrameView();
     }
 
     // Killed on its own, the whole log closes.

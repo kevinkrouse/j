@@ -3254,15 +3254,30 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (run != null && run.tooltip() != null)
             return run.tooltip();
         final GutterColumn column = editor.getBuffer().getGutterColumn();
-        if (column != null) {
-            final int right = getGutterWidth(editor.getBuffer());
-            final int left = right - column.width();
-            final Line line = lineFromY(e.getY());
-            if (e.getX() >= left && e.getX() < right && line != null) {
-                final int y = e.getY() - getY(line);
-                return y >= 0 && y < line.getHeight() ? column.getToolTipText(line, e.getX() - left, y) : null;
-            }
+        if (column != null && inGutterColumn(e.getX())) {
+            final GutterColumn.At at = gutterColumnAt(e.getX(), e.getY());
+            return at == null ? null : column.getToolTipText(at.line(), at.x(), at.y());
         }
         return editor.getMode().getToolTipText(editor, e);
+    }
+
+    /** Whether x is in the buffer's gutter column. */
+    public boolean inGutterColumn(int x) {
+        final GutterColumn column = editor.getBuffer().getGutterColumn();
+        final int right = getGutterWidth(editor.getBuffer());
+        return column != null && x >= right - column.width() && x < right;
+    }
+
+    /** Where x and y are in the buffer's gutter column, or null if not on a line's part of it. */
+    public GutterColumn.At gutterColumnAt(int x, int y) {
+        final Line line = lineFromY(y);
+        if (!inGutterColumn(x) || line == null)
+            return null;
+        final int top = y - getY(line);
+        return top >= 0 && top < line.getHeight()
+                ? new GutterColumn.At(line,
+                        x - (getGutterWidth(editor.getBuffer()) - editor.getBuffer().getGutterColumn().width()),
+                        top)
+                : null;
     }
 }

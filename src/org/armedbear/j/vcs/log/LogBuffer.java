@@ -23,12 +23,15 @@ package org.armedbear.j.vcs.log;
 import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
+import org.armedbear.j.FrameView;
 import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -41,26 +44,28 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.ViewBuffer;
 
 /**
- * A repository's log: a row per commit, newest first, read a page at a time
- * as the caret nears the end. In the full log, the commit at the caret has
- * its files and the diff of one shown beside it, a moment after the caret
- * stops on it.
+ * A repository's log, or several's together: a row per commit, newest
+ * first, read a page at a time as the caret nears the end. In the full
+ * log, the commit at the caret has its files and the diff of one shown
+ * beside it, a moment after the caret stops on it.
  */
-public final class LogBuffer extends ViewBuffer {
+public final class LogBuffer extends ViewBuffer implements FrameView {
     private static final int PAGE = 2000;
     // How near the end the caret comes before the next page is read.
     private static final int AHEAD = 200;
     // How long the caret rests on a commit before its details are read.
     static final int FOLLOW_DELAY = 100;
 
-    private final VcsRepository repository;
+    private final LogScope scope;
     private LogQuery query;
-    // Bumped by each read from the first page, so a page read before it is dropped.
-    private int generation;
     private final int pageSize;
+    // Each repository's pages, listed as one, new for each read from the
+    // first page, so a page read for one before it is dropped; the commits
+    // listed.
+    private LogMerge merge;
     private final List<LogCommit> commits = new ArrayList<>();
-    private boolean more = true;
-    private boolean loading;
+    // Until the first rows of a read from the first page, the old rows stay.
+    private boolean fresh = true;
     private volatile boolean disposed;
     private int width = 80;
     // The lanes of the commits read, and the most any row spans.
@@ -68,10 +73,11 @@ public final class LogBuffer extends ViewBuffer {
     private int graphWidth;
     private final LogGraphColumn graphColumn = new LogGraphColumn(this);
     // The commit to put the caret on when its page is read, as after a refresh.
-    private String select;
+    private LogCommit select;
 
-    // The windows before the log, put back when it closes; null until taken.
-    WindowLayout.Node before;
+    // The windows before the log took the frame, put back when it is left
+    // or closes; null when it isn't shown.
+    private WindowLayout.Node before;
     // Where the details are: at the right, or at the bottom; null until first shown.
     Boolean right;
     LogFilesBuffer files;
@@ -79,30 +85,64 @@ public final class LogBuffer extends ViewBuffer {
     private LogCommit shown;
     private final Timer follow;
 
-    private LogBuffer(VcsRepository repository, LogQuery query, int pageSize) {
-        super(VcsLogMode.getMode(), title(repository, query), "Reading…");
-        this.repository = repository;
-        this.names = LogNames.of(repository);
+    private LogBuffer(LogScope scope, LogQuery query, int pageSize) {
+        super(VcsLogMode.getMode(), scope.title(query), "Reading…");
+        this.scope = scope;
         this.query = query;
         this.pageSize = pageSize;
+        merge = newMerge();
         follow = new Timer(FOLLOW_DELAY, e -> showDetails());
         follow.setRepeats(false);
     }
 
-    /** A new log of repository, reading its first page. */
-    public static LogBuffer open(VcsRepository repository, LogQuery query) {
-        return open(repository, query, PAGE);
+    /** A new log of scope's repositories, reading their first pages. */
+    public static LogBuffer open(LogScope scope, LogQuery query) {
+        return open(scope, query, PAGE);
     }
 
-    static LogBuffer open(VcsRepository repository, LogQuery query, int pageSize) {
-        final LogBuffer log = new LogBuffer(repository, query, pageSize);
+    static LogBuffer open(LogScope scope, LogQuery query, int pageSize) {
+        final LogBuffer log = new LogBuffer(scope, query, pageSize);
         log.loadMore();
-        log.names.read(false);
+        LogNames.read(scope, false);
         return log;
     }
 
-    public VcsRepository getRepository() {
-        return repository;
+    static LogBuffer open(VcsRepository repository, LogQuery query, int pageSize) {
+        return open(LogScope.of(repository), query, pageSize);
+    }
+
+    public LogScope getScope() {
+        return scope;
+    }
+
+    /** The color of the lane of the first commit read that branch, not a tag, is at; -1 for none. */
+    int laneColorOf(String branch) {
+        return branchLanes.getOrDefault(branch, -1);
+    }
+
+    // Each branch's lane's color, as the rows are read.
+    private final Map<String, Integer> branchLanes = new HashMap<>();
+
+    /** The color of the lane c is in, its row read; -1 for none, as with no graph. */
+    int laneColorOf(LogCommit c) {
+        for (Line l = getFirstLine(); l != null; l = l.next())
+            if (l instanceof LogLine ll && ll.commit().isSame(c))
+                return ll.graph() == null ? -1 : ll.graph().color();
+        return -1;
+    }
+
+    /** The repository c is in. */
+    VcsRepository repositoryOf(LogCommit c) {
+        return c.repository() != null ? c.repository() : scope.first();
+    }
+
+    // The repositories query reads, each a source.
+    private LogMerge newMerge() {
+        final List<VcsRepository> read = new ArrayList<>();
+        for (VcsRepository r : scope.repositories())
+            if (scope.queryFor(r, query) != null)
+                read.add(r);
+        return new LogMerge(read, pageSize);
     }
 
     public LogQuery getQuery() {
@@ -113,8 +153,12 @@ public final class LogBuffer extends ViewBuffer {
     void setQuery(LogQuery query) {
         if (query.equals(this.query))
             return;
+        // With a branch, tags change nothing read: kept for when it is unset.
+        final boolean same = !query.revisions().isEmpty() && query.withTags(this.query.tags()).equals(this.query);
         this.query = query;
-        title = title(repository, query);
+        if (same)
+            return;
+        title = scope.title(query);
         for (Editor ed : Editor.getEditorList())
             if (ed.getBuffer() == this && ed.getFrame() != null) {
                 ed.updateLocation();
@@ -124,18 +168,37 @@ public final class LogBuffer extends ViewBuffer {
         readAgain();
     }
 
-    // "git log: j", or "git log: j src/Foo.java" for a path's.
-    private static String title(VcsRepository repository, LogQuery query) {
-        return repository.backend().name() + " log: " + repository.root().getFileName()
-                + (query.path() != null ? " " + query.path() : "");
-    }
-
-    // What the filters' lists offer.
-    private final LogNames names;
-
     /** Whether the log has the whole frame, with its details. */
     boolean isFull() {
         return files != null;
+    }
+
+    // The full log is a frame view: switched to and away from as one, its
+    // files and diff with it.
+
+    @Override
+    public FrameView getFrameView() {
+        return isFull() && !disposed ? this : null;
+    }
+
+    @Override
+    public List<Buffer> getChildren() {
+        return files == null ? List.of() : List.of(files, diff);
+    }
+
+    @Override
+    public WindowLayout.Node layout(Frame frame, Buffer focus) {
+        return LogCommands.layout(frame, this, focus);
+    }
+
+    @Override
+    public WindowLayout.Node before() {
+        return before;
+    }
+
+    @Override
+    public void setBefore(WindowLayout.Node before) {
+        this.before = before;
     }
 
     /**
@@ -148,8 +211,8 @@ public final class LogBuffer extends ViewBuffer {
         disposed = true;
         follow.stop();
         if (frame != null) {
-            if (isFull() && before != null)
-                frame.restoreLayout(before);
+            if (isFull())
+                frame.leaveView(this);
             else {
                 final Editor ed = LogBuffers.windowOf(this);
                 if (ed != null && frame.hasSplit())
@@ -189,40 +252,53 @@ public final class LogBuffer extends ViewBuffer {
 
     /** Whether a page is being read. */
     boolean isLoading() {
-        return loading;
+        return merge.isLoading();
     }
 
     // Reading.
 
-    /** Reads the next page in the background, unless one is being read or there is no more. */
+    /**
+     * Reads the next page of each repository that has more and none read
+     * left to list, in the background: in parallel, a process each.
+     */
     void loadMore() {
-        if (loading || !more || disposed)
+        if (disposed)
             return;
-        loading = true;
-        final int skip = commits.size();
-        final int at = generation;
-        final LogQuery q = query;
-        Background.start("vcs log", () -> {
-            List<LogCommit> page;
-            try {
-                page = repository.backend().readLog(repository, q, skip, pageSize);
-            }
-            catch (RuntimeException e) {
-                Log.error(e);
-                page = List.of();
-            }
-            final List<LogCommit> read = page != null ? page : List.of();
-            SwingUtilities.invokeLater(() -> {
-                if (at == generation)
-                    append(read);
+        final LogMerge m = merge;
+        // None to read, as when the filters leave every repository out: no rows.
+        if (fresh && !m.hasMore() && !m.isLoading()) {
+            append(List.of());
+            return;
+        }
+        for (LogMerge.Source source : m.wanted()) {
+            m.loading(source);
+            final VcsRepository r = (VcsRepository) source.key;
+            final int skip = source.skip();
+            final LogQuery q = scope.queryFor(r, query);
+            Background.start("vcs log", () -> {
+                List<LogCommit> page;
+                try {
+                    page = r.backend().readLog(r, q, skip, pageSize);
+                }
+                catch (RuntimeException e) {
+                    Log.error(e);
+                    page = List.of();
+                }
+                final List<LogCommit> read = page != null ? page : List.of();
+                SwingUtilities.invokeLater(() -> {
+                    if (m == merge) {
+                        m.add(source, read);
+                        append(m.take());
+                    }
+                });
             });
-        });
+        }
     }
 
     /** Reads it again from the first page, the caret staying on its commit, and the refs and paths. */
     void refresh() {
         readAgain();
-        names.read(true);
+        LogNames.read(scope, true);
     }
 
     // From the first page again, any page being read dropped.
@@ -230,23 +306,28 @@ public final class LogBuffer extends ViewBuffer {
         if (disposed)
             return;
         final LogCommit at = commitAt(LogBuffers.windowOf(this));
-        select = at != null ? at.id() : null;
-        generation++;
-        loading = false;
+        select = at;
+        merge = newMerge();
+        fresh = true;
+        jumping = null;
         commits.clear();
         graph = new LogGraph();
-        more = true;
         loadMore();
     }
 
+    // The commits the pages read let be listed next.
     private void append(List<LogCommit> page) {
-        loading = false;
         if (disposed)
             return;
-        more = page.size() == pageSize;
-        final boolean first = commits.isEmpty();
+        // The old rows stay until there are new ones, or none are coming.
+        final boolean first = fresh;
+        if (first && page.isEmpty() && (merge.hasMore() || merge.isLoading())) {
+            loadMore();
+            return;
+        }
+        fresh = false;
         commits.addAll(page);
-        names.addAuthors(page);
+        LogNames.addAuthorsOf(page);
         final long now = System.currentTimeMillis() / 1000;
         final List<Line> lines = new ArrayList<>();
         // No graph of commits whose parents may be left out.
@@ -264,9 +345,15 @@ public final class LogBuffer extends ViewBuffer {
         final Editor shown = first ? LogBuffers.windowOf(this) : null;
         if (shown != null && shown.getDisplay().getColumns() > 0)
             width = shown.getDisplay().getColumns();
+        if (first)
+            branchLanes.clear();
         for (int i = 0; i < page.size(); i++) {
             final LogGraph.Row row = rows == null ? null : rows.get(i);
             lines.add(new LogLine(page.get(i), row, LogRow.layout(page.get(i), width, now)));
+            if (row != null)
+                for (LogRef r : page.get(i).refs())
+                    if (r.kind() != LogRef.Kind.TAG)
+                        branchLanes.putIfAbsent(r.name(), row.color());
         }
         if (first)
             empty();
@@ -281,7 +368,7 @@ public final class LogBuffer extends ViewBuffer {
         Line to = null;
         if (select != null)
             for (Line l = getFirstLine(); l != null && to == null; l = l.next())
-                if (l instanceof LogLine ll && ll.commit().id().equals(select))
+                if (l instanceof LogLine ll && ll.commit().isSame(select))
                     to = l;
         for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() != this)
@@ -302,13 +389,18 @@ public final class LogBuffer extends ViewBuffer {
         select = null;
         if (first && isFull())
             showDetails();
+        // A page read and nothing listed: another repository's is wanted first.
+        if (page.isEmpty())
+            loadMore();
+        if (jumping != null && !page.isEmpty())
+            jump(jumping.editor(), jumping.key());
     }
 
     // A file's log with no commits has none; filters, as an author, match none.
     private String emptyText() {
         if (query.withPath(null, false).isFiltered())
             return "No commits match the filters";
-        final String none = repository.backend().name() + ": no commits";
+        final String none = scope.first().backend().name() + ": no commits";
         return query.path() != null ? none + " of " + query.path() : none;
     }
 
@@ -353,11 +445,39 @@ public final class LogBuffer extends ViewBuffer {
     public void afterCommand(Editor editor) {
         if (editor.getDot() == null)
             return;
-        if (more && !loading && editor.getDotLineNumber() >= getLineCount() - AHEAD)
+        if (editor.getDotLineNumber() >= getLineCount() - AHEAD)
             loadMore();
         if (isFull() && commitAt(editor) != shown)
             follow.restart();
     }
+
+    /**
+     * Puts editor's caret on the commit key names (LogGraph.key), the other
+     * end of a lane's arrow; one not read yet is read on toward.
+     */
+    void jump(Editor editor, String key) {
+        jumping = null;
+        for (Line l = getFirstLine(); l != null; l = l.next())
+            if (l instanceof LogLine ll && LogGraph.key(ll.commit(), ll.commit().id()).equals(key)) {
+                editor.moveDotTo(l, 0);
+                editor.updateDisplay();
+                // As after a command: its details follow, and pages near the end are read.
+                afterCommand(editor);
+                return;
+            }
+        if (!merge.hasMore()) {
+            editor.status("Not in the log");
+            return;
+        }
+        jumping = new Jump(editor, key);
+        editor.status("Reading on to it…");
+        loadMore();
+    }
+
+    // A jump to a commit not read yet, made when its page is.
+    private record Jump(Editor editor, String key) {}
+
+    private Jump jumping;
 
     /** The commit at editor's caret, or null. */
     static LogCommit commitAt(Editor editor) {

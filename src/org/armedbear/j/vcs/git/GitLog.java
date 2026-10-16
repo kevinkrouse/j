@@ -38,7 +38,7 @@ import org.armedbear.j.vcs.log.LogRef;
 /** The log's reads from git. */
 final class GitLog {
     // Fields apart by US, commits by -z's NUL: a subject is one line.
-    private static final String FORMAT = "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%D%x1f%s";
+    private static final String FORMAT = "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%D%x1f%ct%x1f%s";
 
     private GitLog() {}
 
@@ -66,7 +66,11 @@ final class GitLog {
         if (query.follow() && query.path() != null)
             args.add("--follow");
         if (query.revisions().isEmpty()) {
-            args.addAll(List.of("--branches", "--remotes", "--tags"));
+            // Tags only with tags: a commit only one reaches is often
+            // made for it, as cvs2git's are, apart from any branch.
+            args.addAll(List.of("--branches", "--remotes"));
+            if (query.tags())
+                args.add("--tags");
             if (hasHead(repository))
                 args.add("HEAD");
         } else
@@ -83,7 +87,9 @@ final class GitLog {
         // An empty repository, or a revision gone: nothing to show.
         if (!r.succeeded())
             return List.of();
-        final List<LogCommit> commits = parse(r.stdout());
+        final List<LogCommit> commits = new ArrayList<>();
+        for (LogCommit c : parse(r.stdout()))
+            commits.add(c.in(repository));
         return rewrites ? withOwnParents(repository, commits) : commits;
     }
 
@@ -121,7 +127,9 @@ final class GitLog {
                         c.time(),
                         c.refs(),
                         c.subject(),
-                        c.parents()));
+                        c.parents(),
+                        c.committed(),
+                        c.repository()));
         return out;
     }
 
@@ -137,18 +145,22 @@ final class GitLog {
             if (s.isEmpty())
                 continue;
             final String[] f = s.split("\u001f", -1);
-            if (f.length < 7)
+            if (f.length < 8)
                 continue;
-            long time;
-            try {
-                time = Long.parseLong(f[4]);
-            }
-            catch (NumberFormatException e) {
-                time = 0;
-            }
-            commits.add(new LogCommit(f[0], words(f[1], " "), f[2], f[3], time, refs(f[5]), f[6]));
+            final List<String> parents = words(f[1], " ");
+            commits.add(
+                new LogCommit(f[0], parents, f[2], f[3], number(f[4]), refs(f[5]), f[7], parents, number(f[6]), null));
         }
         return commits;
+    }
+
+    private static long number(String s) {
+        try {
+            return Long.parseLong(s);
+        }
+        catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     // "HEAD -> refs/heads/main, tag: refs/tags/v1, refs/remotes/origin/main", or "HEAD" detached.

@@ -67,6 +67,16 @@ final class LogFilesBuffer extends LogPane {
         return commit;
     }
 
+    /** The key of the line of the commit's badges: its repository's, of several, and its refs'. */
+    static final String BADGES = "badges";
+
+    // The shown commit's badges.
+    private List<LogDetailsFormatter.Badge> badges = List.of();
+
+    List<LogDetailsFormatter.Badge> badges() {
+        return badges;
+    }
+
     /** The files the commit shown changed. For tests. */
     List<CommitChange> changes() {
         return changes;
@@ -75,7 +85,7 @@ final class LogFilesBuffer extends LogPane {
     /** Reads a commit's message and files in the background, then shows them, and the first file's diff. */
     void show(LogCommit c) {
         final int at = ++generation;
-        final VcsRepository r = owner.getRepository();
+        final VcsRepository r = owner.repositoryOf(c);
         Background.start("vcs log files", () -> {
             String message;
             List<CommitChange> read;
@@ -102,6 +112,9 @@ final class LogFilesBuffer extends LogPane {
         changes = files;
         shown = null;
         final List<StatusLine> lines = new ArrayList<>();
+        badges = LogDetailsFormatter.badges(owner, c);
+        if (!badges.isEmpty())
+            lines.add(StatusLine.of(Kind.TEXT, LogDetailsFormatter.text(badges), BADGES));
         lines.add(StatusLine.of(Kind.FIELD, field("Commit:", c.id()), "commit"));
         lines.add(StatusLine.of(Kind.FIELD, field("Author:", c.author() + " <" + c.email() + ">"), "author"));
         lines.add(StatusLine.of(Kind.FIELD, field("Date:", DATE.format(Instant.ofEpochSecond(c.time()))), "date"));
@@ -116,7 +129,7 @@ final class LogFilesBuffer extends LogPane {
         for (CommitChange ch : files)
             items.add(item(ch));
         final List<StatusLine> fileLines =
-                StatusRenderer.renderFiles(owner.getRepository(), "files", items, (k, kind) -> false);
+                StatusRenderer.renderFiles(owner.repositoryOf(c), "files", items, (k, kind) -> false);
         lines.addAll(fileLines);
         if (files.isEmpty())
             lines.add(StatusLine.of(Kind.MESSAGE, "  No files changed", "none"));

@@ -178,6 +178,21 @@ public class Buffer extends SystemBuffer {
         return null;
     }
 
+    /**
+     * The buffers shown as part of this one, listed under it in the buffer
+     * list: a pair's second half, or a frame view's own buffers. Each is
+     * not primary, and its getPrimary is this.
+     */
+    public List<Buffer> getChildren() {
+        final Buffer secondary = getSecondary();
+        return secondary == null ? List.of() : List.of(secondary);
+    }
+
+    /** The frame view this buffer is shown in, itself or the one it is part of; null for none. */
+    public FrameView getFrameView() {
+        return null;
+    }
+
     public float getSplit() {
         return 0.5F;
     }
@@ -1179,8 +1194,16 @@ public class Buffer extends SystemBuffer {
         Marker.invalidateMarkers(this);
 
         // A window showing this goes back to the buffer before it that is
-        // not transient; the panel closes.
+        // not transient, nor a frame view, which would take the frame; the
+        // panel closes.
         Buffer buf = bufferList.getPreviousListedBuffer(this);
+        for (int i = bufferList.size(); buf != null && buf.getFrameView() != null && i-- > 0;) {
+            buf = bufferList.getPreviousListedBuffer(buf);
+            if (buf == this)
+                buf = null;
+        }
+        if (buf != null && buf.getFrameView() != null)
+            buf = null;
         if (buf != null && buf.isPaired()) {
             Buffer secondary = buf.getSecondary();
             if (secondary != null) {

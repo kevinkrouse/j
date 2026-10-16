@@ -20,12 +20,23 @@
 
 package org.armedbear.j.transients;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.Icon;
+import javax.swing.JList;
 import javax.swing.JTextField;
 import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
@@ -83,6 +94,8 @@ final class OptionField {
         if (o.chooser() instanceof Pick pick) {
             completion = new CompletionPopup<>(field, 10);
             completion.setOnClick(accept);
+            if (pick.swatch() != null)
+                completion.setCellRenderer(new SwatchRenderer(s -> pick.swatch().apply(editor, s)));
             candidates = pick.candidates().apply(editor);
             // Still being read, as a log's names when its popup opens: asked again until they come.
             if (candidates.isEmpty()) {
@@ -111,6 +124,61 @@ final class OptionField {
                 @Override
                 public void changedUpdate(DocumentEvent e) {}
             });
+        }
+    }
+
+    // Each candidate after a box of its color, or a space as wide for none.
+    private static final class SwatchRenderer extends DefaultListCellRenderer {
+        private final Map<String, Color> colors = new HashMap<>();
+        private final Function<String, Color> swatch;
+
+        SwatchRenderer(Function<String, Color> swatch) {
+            this.swatch = swatch;
+        }
+
+        @Override
+        public Component getListCellRendererComponent(
+                JList<?> list,
+                Object value,
+                int index,
+                boolean selected,
+                boolean focused) {
+            super.getListCellRendererComponent(list, value, index, selected, focused);
+            final String s = String.valueOf(value);
+            final Color color = colors.computeIfAbsent(s, k -> {
+                final Color c = swatch.apply(k);
+                return c != null ? c : NONE;
+            });
+            setIcon(new Box(color == NONE ? null : color, list.getFontMetrics(list.getFont()).getAscent()));
+            setIconTextGap(list.getFontMetrics(list.getFont()).charWidth(' '));
+            return this;
+        }
+
+        private static final Color NONE = new Color(0, 0, 0, 0);
+    }
+
+    // A small rounded square of a color, or room for one.
+    private record Box(Color color, int size) implements Icon {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            if (color == null)
+                return;
+            final Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(color);
+            final int inset = size / 6;
+            g2d.fillRoundRect(x + inset, y + inset, size - 2 * inset, size - 2 * inset, size / 3, size / 3);
+            g2d.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return size;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return size;
         }
     }
 

@@ -60,7 +60,9 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
@@ -74,6 +76,9 @@ import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.TreeExpansionEvent;
+import javax.swing.event.TreeExpansionListener;
+import javax.swing.plaf.basic.BasicTreeUI;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeCellRenderer;
@@ -121,6 +126,22 @@ public final class SidebarBufferTree extends SidebarTree
         addMouseMotionListener(this);
         setToolTipText("");
         setRootVisible(false);
+        // Which parents are closed, kept as the tree is built again.
+        addTreeExpansionListener(new TreeExpansionListener() {
+            @Override
+            public void treeExpanded(TreeExpansionEvent e) {
+                final Buffer b = getBufferFromPath(e.getPath());
+                if (b != null && !building)
+                    collapsed.remove(b);
+            }
+
+            @Override
+            public void treeCollapsed(TreeExpansionEvent e) {
+                final Buffer b = getBufferFromPath(e.getPath());
+                if (b != null && !building)
+                    collapsed.add(b);
+            }
+        });
         // The rows are laid out against the width of the view, so a change to
         // that width has to throw away the sizes the tree cached for them.
         addComponentListener(new ComponentAdapter() {
@@ -149,22 +170,37 @@ public final class SidebarBufferTree extends SidebarTree
     // against that later on. If the session changes, this needs to be called
     // again to repopulate the tree.
     private void initializeTreeStructure() {
-        final ArrayList<Buffer> arrayList = new ArrayList<>();
-        for (Buffer buf : Editor.getBufferList()) {
-            if (buf.isPrimary()) {
-                arrayList.add(buf);
-                // Add secondary buffer (if any) right after the corresponding
-                // primary buffer.
-                Buffer secondary = buf.getSecondary();
-                if (secondary != null)
-                    arrayList.add(secondary);
-            }
-        }
-        // Re-create the tree.
+        // Each primary buffer, its children under it: a pair's second half,
+        // a frame view's own buffers.
         rootNode = new DefaultMutableTreeNode("");
-        buildTreeFromList(rootNode, arrayList);
-        setModel(new DefaultTreeModel(rootNode));
+        final BufferList buffers = Editor.getBufferList();
+        for (Buffer buf : buffers) {
+            if (!buf.isPrimary())
+                continue;
+            final DefaultMutableTreeNode node = new DefaultMutableTreeNode(buf);
+            for (Buffer child : buf.getChildren())
+                if (buffers.contains(child))
+                    node.add(new DefaultMutableTreeNode(child));
+            rootNode.add(node);
+        }
+        building = true;
+        try {
+            setModel(new DefaultTreeModel(rootNode));
+            // Open, but for those closed: a child is a buffer to go to like any other.
+            collapsed.removeIf(b -> !Editor.getBufferList().contains(b));
+            for (int i = 0; i < getRowCount(); i++)
+                if (!collapsed.contains(getBufferFromPath(getPathForRow(i))))
+                    expandRow(i);
+        }
+        finally {
+            building = false;
+        }
     }
+
+    // The parents closed in the tree; whether it is being built, which
+    // opens and closes nodes of its own.
+    private final Set<Buffer> collapsed = new HashSet<>();
+    private boolean building;
 
     private void updatePreferences(Preferences p) {
         alpha = p.getBooleanProperty(Property.SORT_BUFFER_LIST);
@@ -172,13 +208,6 @@ public final class SidebarBufferTree extends SidebarTree
             reorder = false;
         else
             reorder = p.getIntegerProperty(Property.REORDER_BUFFERS) > 1;
-    }
-
-    private void buildTreeFromList(DefaultMutableTreeNode node, List<Buffer> buffers) {
-        for (Buffer next : buffers) {
-            Buffer buffer = next;
-            node.add(new DefaultMutableTreeNode(buffer));
-        }
     }
 
     public synchronized void setUpdateFlag(int mask) {
@@ -695,8 +724,8 @@ public final class SidebarBufferTree extends SidebarTree
         if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor) && draggedBuffer != null) {
             BufferList bufList = Editor.getBufferList();
             Buffer movedTo = getSelectedBuffer();
-            // No dropping onto secondary buffers.
-            if (movedTo.isSecondary()) {
+            // No dropping onto a buffer that is part of another.
+            if (!movedTo.isPrimary()) {
                 setSelectionRow(draggedBufferRow);
                 event.rejectDrop();
                 return;
@@ -706,7 +735,7 @@ public final class SidebarBufferTree extends SidebarTree
                 bufList.move(draggedBuffer, index);
                 refresh();
                 // Make it so that the dragged buffer is selected in the tree.
-                setSelectionRow(index);
+                setSelectedBuffer(draggedBuffer);
             }
         } else
             event.rejectDrop();
@@ -722,7 +751,7 @@ public final class SidebarBufferTree extends SidebarTree
         if (alpha || reorder)
             return;
         Buffer buf = getSelectedBuffer();
-        if (buf != null && !buf.isSecondary()) {
+        if (buf != null && buf.isPrimary()) {
             String name = buf.getFileNameForDisplay();
             Transferable transferable = new BufferSelection(new java.io.File(name));
             draggedBuffer = buf;
@@ -922,6 +951,11 @@ public final class SidebarBufferTree extends SidebarTree
             this.tree = tree;
             this.rowIndent =
                     (tree instanceof SidebarBufferTree sidebarBufferTree) ? sidebarBufferTree.getRowIndent() : 0;
+            // A child row is in by a level more.
+            if (value instanceof DefaultMutableTreeNode node
+                    && node.getLevel() > 1
+                    && tree.getUI() instanceof BasicTreeUI ui)
+                this.rowIndent += (node.getLevel() - 1) * (ui.getLeftChildIndent() + ui.getRightChildIndent());
             boolean isTransient = false;
             if (userObject instanceof Buffer) {
                 Buffer buffer = (Buffer) userObject;
@@ -931,8 +965,6 @@ public final class SidebarBufferTree extends SidebarTree
                 setIcon(buffer.getIcon());
                 badge = BufferListStatus.badge(buffer);
                 strip = BufferListStatus.repositoryColor(buffer, textBackground);
-                if (buffer.isSecondary())
-                    innerBorder = new EmptyBorder(0, UIScale.scale(10), 0, 0);
             } else {
                 setIcon(null);
                 badge = null;

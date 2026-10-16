@@ -71,7 +71,11 @@ public final class VcsLogMode extends AbstractMode implements Mode {
 
     @Override
     public Formatter getFormatter(Buffer buffer) {
-        return buffer instanceof LogBuffer ? new LogFormatter(buffer) : new VcsStatusFormatter(buffer);
+        return switch (buffer) {
+            case LogBuffer l -> new LogFormatter(l);
+            case LogFilesBuffer f -> new LogDetailsFormatter(f);
+            default -> new VcsStatusFormatter(buffer);
+        };
     }
 
     @Override
@@ -130,6 +134,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         final KeyMap filters = new KeyMap();
         for (Option o : LogFilters.ALL)
             filters.mapKey(o.key().charAt(1), "vcsLogFilter " + o.description());
+        filters.mapKey(LogFilters.TAGS.key().charAt(1), "vcsLogToggleTags");
         km.mapKey('-', filters);
         km.mapKey('x', "vcsLogClearFilters");
     }
@@ -222,7 +227,10 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         final List<Transient.Item> log = new ArrayList<>();
         // The filters' keys are the list's alone.
         if (editor == null || editor.getBuffer() instanceof LogBuffer) {
-            log.add(new Prefix("l", "filters", LogFilters::popup));
+            log.add(
+                new Prefix("l",
+                        "filters",
+                        () -> LogFilters.popup(editor == null ? null : LogCommands.scopeOf(editor))));
             log.add(Command.of("x", "vcsLogClearFilters", "clear the filters"));
         }
         log.add(Command.of(vim ? "r" : "g", "vcsLogRefresh", "refresh"));
@@ -234,7 +242,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
 
     @Override
     public List<Option> getFilters(Editor editor) {
-        return editor.getBuffer() instanceof LogBuffer ? LogFilters.ALL : null;
+        return editor.getBuffer() instanceof LogBuffer log ? LogFilters.of(log.getScope()) : null;
     }
 
     @Override

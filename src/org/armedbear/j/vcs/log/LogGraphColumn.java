@@ -29,16 +29,24 @@ import java.awt.geom.CubicCurve2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.util.List;
+import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.Display;
+import org.armedbear.j.Editor;
 import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
+import org.armedbear.j.Property;
+import org.armedbear.j.transients.FilterBar;
+import org.armedbear.j.vcs.RepositoryColors;
+import org.armedbear.j.vcs.VcsRepository;
 
 /**
  * The log's graph, painted in the gutter before each row's text: a lane's
  * line straight down, a cubic curve where it moves between lanes or to or
  * from a commit, and the commit a dot, hollow for a merge and ringed for
  * HEAD. Antialiased, sized from the font, so it scales with it. Over a
- * lane, its tool tip names the branch.
+ * lane, its tool tip names the branch. A log of several repositories has
+ * a strip before it in the row's repository's color, and its name with
+ * vcsLogRepositoryNames; a click on the strip shows that one alone.
  */
 final class LogGraphColumn implements GutterColumn {
     // Lanes past this many are left out of sight at the right.
@@ -81,8 +89,40 @@ final class LogGraphColumn implements GutterColumn {
 
     @Override
     public int width() {
+        return strip() + graph();
+    }
+
+    // The graph's part.
+    private int graph() {
         final int lanes = Math.min(log.graphWidth(), MAX_LANES);
         return lanes == 0 ? 0 : inset() + lanes * laneWidth() + Display.getCharWidth() / 2;
+    }
+
+    private static int bar() {
+        return Math.max(3, Display.getCharWidth() / 2);
+    }
+
+    // The repository's strip, with its name when they are shown; none for one.
+    private int strip() {
+        final LogScope scope = log.getScope();
+        if (!scope.isSeveral())
+            return 0;
+        if (!log.getBooleanProperty(Property.VCS_LOG_REPOSITORY_NAMES))
+            return bar() + gap();
+        int longest = 0;
+        for (VcsRepository r : scope.repositories())
+            longest = Math.max(longest, scope.name(r).length());
+        return bar() + (longest + 1) * Display.getCharWidth() + gap();
+    }
+
+    // Between the strip, or its name, and the graph.
+    private static int gap() {
+        return Display.getCharWidth();
+    }
+
+    private Color repositoryColor(VcsRepository repository) {
+        final int i = log.getScope().colorIndex(repository);
+        return RepositoryColors.color(i, DefaultTheme.isDark(log.getFormatter().getBackgroundColor()));
     }
 
     static Color color(int index) {
@@ -91,15 +131,35 @@ final class LogGraphColumn implements GutterColumn {
 
     @Override
     public void paint(Graphics2D g, Line line, int x, int y, int height) {
-        if (!(line instanceof LogLine l) || l.graph() == null)
+        if (!(line instanceof LogLine l))
             return;
+        final int strip = strip();
+        if (strip > 0) {
+            final VcsRepository r = log.repositoryOf(l.commit());
+            g.setColor(repositoryColor(r));
+            g.fillRect(x, y, bar(), height);
+            if (strip > bar() + gap()) {
+                // Its own font: the gutter's last drawing leaves another set.
+                g.setFont(Display.getPlainFont());
+                g.drawString(
+                    log.getScope().name(r),
+                    x + bar() + Display.getCharWidth() / 2,
+                    y + g.getFontMetrics().getAscent());
+            }
+        }
+        if (l.graph() == null)
+            return;
+        paintGraph(g, l, x + strip, y, height);
+    }
+
+    private void paintGraph(Graphics2D g, LogLine l, int x, int y, int height) {
         final LogGraph.Row row = l.graph();
         final Graphics2D g2d = (Graphics2D) g.create();
         try {
             final float stroke = stroke(height);
             final float mid = y + height / 2f;
             final float cx = center(x, row.column());
-            final Area clip = new Area(new java.awt.Rectangle(x, y, width(), height));
+            final Area clip = new Area(new java.awt.Rectangle(x, y, graph(), height));
             // A merge's dot hollow, whatever the row's background: the
             // lines stop at its ring.
             if (row.merge()) {
@@ -110,8 +170,8 @@ final class LogGraphColumn implements GutterColumn {
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             g2d.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            edges(g2d, row.top(), x, y, mid);
-            edges(g2d, row.bottom(), x, mid, y + height);
+            edges(g2d, row.top(), x, y, mid, true);
+            edges(g2d, row.bottom(), x, mid, y + height, false);
             node(g2d, row, l.commit(), cx, mid, stroke);
         }
         finally {
@@ -125,42 +185,116 @@ final class LogGraphColumn implements GutterColumn {
 
     @Override
     public String getToolTipText(Line line, int x, int y) {
-        if (!(line instanceof LogLine l) || l.graph() == null)
+        if (!(line instanceof LogLine l))
             return null;
+        if (x < strip())
+            return log.repositoryOf(l.commit()).root().toString();
+        return l.graph() == null ? null : graphToolTip(l, x - strip(), y);
+    }
+
+    @Override
+    public boolean isClickable(Line line, int x, int y) {
+        return line instanceof LogLine l && (x < strip() || arrowAt(l, x - strip(), y) != null);
+    }
+
+    // On the strip, the repository alone, or all of them again when it is
+    // so already; on an arrow, the lane's other end.
+    @Override
+    public boolean clicked(Editor editor, Line line, int x, int y) {
+        if (!(line instanceof LogLine l))
+            return false;
+        if (x >= strip()) {
+            final LogGraph.Edge arrow = arrowAt(l, x - strip(), y);
+            if (arrow == null)
+                return false;
+            log.jump(editor, arrow.jump());
+            return true;
+        }
+        final String name = log.getScope().name(log.repositoryOf(l.commit()));
+        LogFilters.REPOSITORY.binding().set(editor, name.equals(log.getQuery().repository()) ? null : name);
+        FilterBar.refreshAll(log);
+        return true;
+    }
+
+    private String graphToolTip(LogLine l, int x, int y) {
         final LogGraph.Row row = l.graph();
-        final float mid = line.getHeight() / 2f;
+        final float mid = l.getHeight() / 2f;
         if (Math.abs(x - center(0, row.column())) <= laneWidth() / 2f && Math.abs(y - mid) <= radius() * 2)
             return row.lane().name();
-        // The nearest edge in this half row, along its curve.
+        final LogGraph.Edge e = edgeAt(l, x, y);
+        if (e == null)
+            return null;
+        return switch (e.arrow()) {
+            case NONE -> e.lane().name();
+            case DOWN -> e.lane().name() + ": goes on down; click to go to it";
+            case UP -> e.lane().name() + ": comes from up above; click to go to it";
+        };
+    }
+
+    // The nearest edge in the half row at y, along its curve, or null.
+    private static LogGraph.Edge edgeAt(LogLine l, int x, int y) {
+        final LogGraph.Row row = l.graph();
+        final float mid = l.getHeight() / 2f;
         final boolean top = y < mid;
-        final float t = top ? y / mid : (y - mid) / (line.getHeight() - mid);
+        final float t = top ? y / mid : (y - mid) / (l.getHeight() - mid);
         final float s = t * t * (3 - 2 * t);
-        LogGraph.Lane nearest = null;
+        LogGraph.Edge nearest = null;
         float distance = laneWidth() / 2f;
         for (LogGraph.Edge e : top ? row.top() : row.bottom()) {
             final float x0 = center(0, e.from());
             final float d = Math.abs(x - (x0 + (center(0, e.to()) - x0) * s));
             if (d <= distance) {
                 distance = d;
-                nearest = e.lane();
+                nearest = e;
             }
         }
-        return nearest == null ? null : nearest.name();
+        return nearest;
     }
 
-    // Each edge from its lane at y0 to its lane at y1: straight, or an S curve.
-    private static void edges(Graphics2D g, List<LogGraph.Edge> edges, int x, float y0, float y1) {
+    // The edge with an arrow at x and y, or null.
+    private static LogGraph.Edge arrowAt(LogLine l, int x, int y) {
+        if (l.graph() == null)
+            return null;
+        final LogGraph.Edge e = edgeAt(l, x, y);
+        return e != null && e.arrow() != LogGraph.Arrow.NONE ? e : null;
+    }
+
+    // Each edge from its lane at y0 to its lane at y1: straight, or an S
+    // curve; a stub's with its arrow, an arrow at the row's top set in, so
+    // it is whole.
+    private static void edges(Graphics2D g, List<LogGraph.Edge> edges, int x, float y0, float y1, boolean top) {
+        final float a = laneWidth() * 0.3f;
         for (LogGraph.Edge e : edges) {
             final float x0 = center(x, e.from());
             final float x1 = center(x, e.to());
             g.setColor(color(e.color()));
-            if (e.from() == e.to())
-                g.draw(new Line2D.Float(x0, y0, x1, y1));
-            else {
-                final float ym = (y0 + y1) / 2;
-                g.draw(new CubicCurve2D.Float(x0, y0, x0, ym, x1, ym, x1, y1));
+            switch (e.arrow()) {
+                case DOWN -> {
+                    g.draw(new Line2D.Float(x1, y0, x1, y1));
+                    chevron(g, x1, y1, a, 1);
+                }
+                case UP -> {
+                    final float tip = top ? y0 + a : y0;
+                    g.draw(new Line2D.Float(x0, tip, x0, y1));
+                    chevron(g, x0, tip, a, -1);
+                }
+                case NONE -> {
+                    if (e.from() == e.to())
+                        g.draw(new Line2D.Float(x0, y0, x1, y1));
+                    else {
+                        final float ym = (y0 + y1) / 2;
+                        g.draw(new CubicCurve2D.Float(x0, y0, x0, ym, x1, ym, x1, y1));
+                    }
+                }
             }
         }
+    }
+
+    // An arrowhead's two strokes back from its tip at x and y, pointing down
+    // for 1 or up for -1.
+    private static void chevron(Graphics2D g, float x, float y, float size, int down) {
+        g.draw(new Line2D.Float(x - size, y - down * size, x, y));
+        g.draw(new Line2D.Float(x + size, y - down * size, x, y));
     }
 
     private static void node(Graphics2D g, LogGraph.Row row, LogCommit commit, float cx, float cy, float stroke) {

@@ -462,13 +462,7 @@ public class EditorPane extends JXMultiSplitPane {
     private WindowLayout.Node capture(Node node, Editor focused) {
         if (node instanceof Leaf) {
             final Editor ed = (Editor) getMultiSplitLayout().getComponentForNode(node);
-            final Position dot = ed.getDot();
-            final Line top = ed.getTopLine();
-            return new WindowLayout.Window(ed.getBuffer(),
-                    dot == null ? 0 : dot.lineNumber(),
-                    dot == null ? 0 : dot.getOffset(),
-                    top == null ? 0 : top.lineNumber(),
-                    ed == focused);
+            return WindowLayout.Window.of(ed, ed == focused);
         }
         final Split split = (Split) node;
         final List<Node> windows = new ArrayList<>();
@@ -535,8 +529,9 @@ public class EditorPane extends JXMultiSplitPane {
             if (i > 0)
                 children.add(new Divider());
             final Node child = build(s.children().get(i), editors);
-            // The last what is left: they can add up to a hair over 1, which the layout refuses.
-            final double weight = i == s.children().size() - 1 ? Math.max(0, left) : s.shares().get(i);
+            // The last what is left, less a hair: added up again they can
+            // come to a hair over 1, which the layout refuses.
+            final double weight = i == s.children().size() - 1 ? Math.max(0, left - 1e-9) : s.shares().get(i);
             child.setWeight(weight);
             left -= weight;
             children.add(child);

@@ -47,6 +47,29 @@ public final class WindowLayout {
 
     /** A window: its buffer, its caret, its top line, and whether it had the focus. */
     public record Window(Buffer buffer, int dotLine, int dotOffset, int topLine, boolean focused) implements Node {
+        /** A window of editor's buffer, at its caret and top. */
+        public static Window of(Editor editor, boolean focused) {
+            final Position dot = editor.getDot();
+            final Line top = editor.getTopLine();
+            return new Window(editor.getBuffer(),
+                    dot == null ? 0 : dot.lineNumber(),
+                    dot == null ? 0 : dot.getOffset(),
+                    top == null ? 0 : top.lineNumber(),
+                    focused);
+        }
+
+        /** A window of buffer, shown in none: where its last window left it, or its start. */
+        public static Window of(Buffer buffer, boolean focused) {
+            final View view = buffer.getLastView();
+            final Position dot = view == null ? null : view.getDot();
+            final Line top = view == null ? null : view.getTopLine();
+            return new Window(buffer,
+                    dot == null ? 0 : dot.lineNumber(),
+                    dot == null ? 0 : dot.getOffset(),
+                    top == null ? 0 : top.lineNumber(),
+                    focused);
+        }
+
         /** Puts editor's caret and top line back, as near as the buffer allows now. */
         void applyTo(Editor editor) {
             if (editor.getBuffer() != buffer || editor.getDot() == null)

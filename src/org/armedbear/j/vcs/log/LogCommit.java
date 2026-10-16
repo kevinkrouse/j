@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.log;
 
 import java.util.List;
+import org.armedbear.j.vcs.VcsRepository;
 
 /**
  * A commit as the log lists it.
@@ -31,9 +32,12 @@ import java.util.List;
  * @param refs the branches, tags and HEAD at it
  * @param graphParents the parents the graph joins it to: in a path's log,
  *     the commits listed that it comes from, not its own parents
+ * @param committed when it was committed, in seconds since the epoch: the
+ *     order of several repositories' commits
+ * @param repository the repository it is in; null in tests of none
  */
 public record LogCommit(String id, List<String> parents, String author, String email, long time, List<LogRef> refs,
-        String subject, List<String> graphParents) {
+        String subject, List<String> graphParents, long committed, VcsRepository repository) {
     public LogCommit {
         parents = List.copyOf(parents);
         refs = List.copyOf(refs);
@@ -48,7 +52,17 @@ public record LogCommit(String id, List<String> parents, String author, String e
             long time,
             List<LogRef> refs,
             String subject) {
-        this(id, parents, author, email, time, refs, subject, parents);
+        this(id, parents, author, email, time, refs, subject, parents, time, null);
+    }
+
+    /** It in repository. */
+    public LogCommit in(VcsRepository repository) {
+        return new LogCommit(id, parents, author, email, time, refs, subject, graphParents, committed, repository);
+    }
+
+    /** Whether it is other: the same commit in the same repository. */
+    public boolean isSame(LogCommit other) {
+        return other != null && id.equals(other.id) && repository == other.repository;
     }
 
     /** The first parent, or null for a root. */

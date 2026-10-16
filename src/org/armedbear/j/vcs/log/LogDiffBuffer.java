@@ -68,7 +68,7 @@ final class LogDiffBuffer extends LogPane {
             replace(List.of(), null);
             return;
         }
-        final VcsRepository r = owner.getRepository();
+        final VcsRepository r = owner.repositoryOf(c);
         Background.start("vcs log diff", () -> {
             FileDiff read;
             try {
@@ -109,7 +109,7 @@ final class LogDiffBuffer extends LogPane {
         final FileItem f = LogFilesBuffer.item(change);
         final FileItem item = new FileItem(f.change(), f.letter(), true, diff);
         final List<StatusLine> lines = StatusRenderer.renderFiles(
-            owner.getRepository(),
+            owner.repositoryOf(commit),
             "diff",
             List.of(item),
             (key, kind) -> kind == Kind.FILE || expanded.getOrDefault(key, true));

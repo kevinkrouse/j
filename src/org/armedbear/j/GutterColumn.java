@@ -38,4 +38,17 @@ public interface GutterColumn {
     default String getToolTipText(Line line, int x, int y) {
         return null;
     }
+
+    /** Whether a click at x and y in line's part of it does something: the pointer is a hand there. */
+    default boolean isClickable(Line line, int x, int y) {
+        return false;
+    }
+
+    /** A click of the first button at x and y in line's part of it, where isClickable; true if it took it. */
+    default boolean clicked(Editor editor, Line line, int x, int y) {
+        return false;
+    }
+
+    /** A point in a column: the line, and x and y from the column's left and the row's top. */
+    record At(Line line, int x, int y) {}
 }

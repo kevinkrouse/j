@@ -803,6 +803,24 @@ public final class Frame extends JFrame
      * a window leaving the first half takes the second's window with it.
      */
     public void switchToBuffer(Editor fromEditor, final Buffer buf) {
+        // A frame view, to it or away from it.
+        final FrameView to = buf.getFrameView();
+        final FrameView from = fromEditor.getBuffer() != null ? fromEditor.getBuffer().getFrameView() : null;
+        if (to != null) {
+            showView(to, buf);
+            buf.setLastActivated(System.currentTimeMillis());
+            return;
+        }
+        if (from != null) {
+            leaveView(from);
+            // Its window, with nothing from before left to put back, simply shows buf.
+            if (currentEditor.getBuffer() != null && currentEditor.getBuffer().getFrameView() != null) {
+                currentEditor.activate(buf);
+                buf.setLastActivated(System.currentTimeMillis());
+            } else
+                currentEditor.switchToBuffer(buf);
+            return;
+        }
         // The window whose bound window fromEditor is, if it is one.
         final Editor above = getPrimaryWindow(fromEditor);
         if (buf.isSecondary()) {
@@ -832,6 +850,79 @@ public final class Frame extends JFrame
             Editor.setCurrentEditor(fromEditor);
         }
         buf.setLastActivated(System.currentTimeMillis());
+    }
+
+    /** The frame view the windows are laid out as, or null. */
+    public final FrameView shownView() {
+        for (Editor ed : editors) {
+            final FrameView v = ed.getBuffer() != null ? ed.getBuffer().getFrameView() : null;
+            if (v != null && laidOut(v))
+                return v;
+        }
+        return null;
+    }
+
+    // Whether view's buffers each have a window: not one of them alone in a
+    // window among others, as the quick log is as it grows into the log.
+    private boolean laidOut(FrameView view) {
+        if (!(view instanceof Buffer b))
+            return true;
+        if (findEditor(b) == null)
+            return false;
+        for (Buffer child : b.getChildren())
+            if (findEditor(child) == null)
+                return false;
+        return true;
+    }
+
+    /**
+     * Shows view across the frame, focus's window focused: the windows
+     * before kept to put back, or, from another view, the windows that one
+     * kept. Shown already, focus's window is focused, or the view laid out
+     * again if focus has none.
+     */
+    public final void showView(FrameView view, Buffer focus) {
+        final FrameView shown = shownView();
+        if (shown == view) {
+            final Editor ed = findEditor(focus);
+            if (ed != null) {
+                Editor.setCurrentEditor(ed);
+                ed.setFocusToDisplay();
+                return;
+            }
+        } else if (shown != null) {
+            view.setBefore(shown.before());
+            shown.setBefore(null);
+        } else if (view.before() == null)
+            view.setBefore(captureLayout());
+        saveViews();
+        restoreLayout(view.layout(this, focus));
+    }
+
+    // Each window's place kept, for when its buffer is shown again: a view
+    // left is laid out again from its buffers' last views.
+    private void saveViews() {
+        for (Editor ed : editors)
+            ed.saveView();
+    }
+
+    /** Lays view out again, as when its shape changes, focus's window focused. */
+    public final void layOutView(FrameView view, Buffer focus) {
+        restoreLayout(view.layout(this, focus));
+    }
+
+    /**
+     * Puts back the windows from before view, which stays to come back to;
+     * with none, or none of their buffers open still, the current window is
+     * the one left.
+     */
+    public final void leaveView(FrameView view) {
+        saveViews();
+        final WindowLayout.Node before = view.before();
+        view.setBefore(null);
+        // laidOut, not shownView: a view closing is no longer one.
+        if ((before == null || !restoreLayout(before)) && laidOut(view))
+            unsplitAll(currentEditor);
     }
 
     // UNDONE: enlarge window by N lines.
@@ -1073,11 +1164,14 @@ public final class Frame extends JFrame
     /**
      * Puts the windows back as layout has them, but for buffers closed
      * since: the current window shows the first, and the others are new.
+     *
+     * @return false, with the windows left as they are, if every one of
+     *     layout's buffers is closed
      */
-    public final void restoreLayout(WindowLayout.Node layout) {
+    public final boolean restoreLayout(WindowLayout.Node layout) {
         final WindowLayout.Node kept = WindowLayout.keeping(layout, b -> Editor.getBufferList().contains(b));
         if (kept == null)
-            return;
+            return false;
         final Editor keep = currentEditor;
         unsplitAll(keep);
         final List<WindowLayout.Window> windows = WindowLayout.windows(kept);
@@ -1111,6 +1205,7 @@ public final class Frame extends JFrame
         }
         restoreFocus();
         updateControls();
+        return true;
     }
 
     /**

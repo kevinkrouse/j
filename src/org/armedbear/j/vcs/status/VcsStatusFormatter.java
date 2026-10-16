@@ -36,7 +36,7 @@ import org.armedbear.j.vcs.VcsColors;
  * happened to it, and diffs green and red, the words that changed in a
  * line on a stronger shade.
  */
-public final class VcsStatusFormatter extends Formatter {
+public class VcsStatusFormatter extends Formatter {
     static final int TEXT = 0;
     static final int HEADING = 1;
     static final int DIM = 2;

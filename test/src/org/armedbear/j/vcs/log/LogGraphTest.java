@@ -182,43 +182,109 @@ public class LogGraphTest {
         assertEquals(List.of(), LogGraph.mergedBranches("Merged things"));
     }
 
-    // Random histories, children before parents: each row's lanes out are
-    // the next row's lanes in, every lane drawn once, and nothing outside
-    // the row's width.
+    // Random histories, children before parents, some parents far down,
+    // added in pages of random sizes: each row's lanes out are the next
+    // row's lanes in, every lane drawn once, nothing outside the row's
+    // width, and each lane that goes away comes back once.
     @Test
     public void lanesRunUnbrokenFromRowToRow() {
         final Random random = new Random(42);
-        for (int round = 0; round < 200; round++) {
-            final int n = 1 + random.nextInt(60);
+        for (int round = 0; round < 300; round++) {
+            final int n = 1 + random.nextInt(200);
             final List<LogCommit> commits = new ArrayList<>();
             for (int i = 0; i < n; i++) {
                 final int count = i == n - 1 ? 0
                         : random.nextInt(10) == 0 ? 0
                         : 1 + (random.nextInt(4) == 0 ? 1 + random.nextInt(2) : 0);
                 final Set<String> parents = new java.util.LinkedHashSet<>();
-                for (int p = 0; p < count; p++)
-                    parents.add("c" + (i + 1 + random.nextInt(Math.min(5, n - 1 - i))));
+                for (int p = 0; p < count; p++) {
+                    final int span = random.nextInt(8) == 0 ? 120 : 5;
+                    parents.add("c" + (i + 1 + random.nextInt(Math.min(span, n - 1 - i))));
+                }
                 commits.add(c("c" + i, parents.toArray(new String[0])));
             }
-            final List<LogGraph.Row> rows = new LogGraph().add(commits);
+            final LogGraph graph = new LogGraph();
+            final List<LogGraph.Row> rows = new ArrayList<>();
+            for (int at = 0; at < n;) {
+                final int size = 1 + random.nextInt(random.nextBoolean() ? 10 : 80);
+                rows.addAll(graph.add(commits.subList(at, Math.min(n, at + size))));
+                at += size;
+            }
             int lanesIn = 0;
+            final java.util.Map<LogGraph.Lane, Integer> away = new java.util.HashMap<>();
             for (int r = 0; r < rows.size(); r++) {
+                final String where = "round " + round + " row " + r;
                 final LogGraph.Row row = rows.get(r);
                 final Set<Integer> from = new HashSet<>();
                 for (LogGraph.Edge e : row.top()) {
-                    assertTrue(from.add(e.from()), "round " + round + " row " + r + ": a lane in twice");
                     assertTrue(e.to() < row.width());
+                    if (e.arrow() == LogGraph.Arrow.UP) {
+                        assertEquals(1, away.remove(e.lane()), where + ": back once");
+                        continue;
+                    }
+                    assertTrue(from.add(e.from()), where + ": a lane in twice");
+                    if (e.arrow() == LogGraph.Arrow.DOWN)
+                        assertEquals(null, away.put(e.lane(), 1), where + ": away once");
                 }
-                assertEquals(lanesIn, from.size(), "round " + round + " row " + r + ": every lane in");
+                assertEquals(lanesIn, from.size(), where + ": every lane in");
                 final Set<Integer> to = new HashSet<>();
                 for (LogGraph.Edge e : row.bottom()) {
                     to.add(e.to());
                     assertTrue(e.from() < row.width() && e.to() < row.width());
+                    if (e.arrow() == LogGraph.Arrow.UP)
+                        assertEquals(1, away.remove(e.lane()), where + ": back once");
                 }
                 for (int i = 0; i < to.size(); i++)
-                    assertTrue(to.contains(i), "round " + round + " row " + r + ": lanes out without a gap");
+                    assertTrue(to.contains(i), where + ": lanes out without a gap");
                 lanesIn = to.size();
             }
+            assertTrue(away.isEmpty(), "round " + round + ": every lane away comes back");
         }
+    }
+
+    // t's parent p is 41 rows down, past a line of 40 commits.
+    private static List<LogCommit> farParent() {
+        final List<LogCommit> commits = new ArrayList<>();
+        commits.add(c("t", "p"));
+        for (int i = 0; i < 40; i++)
+            commits.add(c("x" + i, i < 39 ? "x" + (i + 1) : "p"));
+        commits.add(c("p"));
+        return commits;
+    }
+
+    @Test
+    public void aLaneLongerThanLongIsAStubAtEachEnd() {
+        final List<LogGraph.Row> rows = new LogGraph().add(farParent());
+        assertEquals("0>0 DOWN p", arrows(rows.get(1).top()), "a row on, it goes away");
+        for (int r = 2; r < 40; r++)
+            assertEquals(1, rows.get(r).width(), "row " + r + ": no place kept for it");
+        assertEquals("1>1 UP t", arrows(rows.get(40).bottom()), "a row before p, it comes back");
+        assertEquals(rows.get(0).lane(), rows.get(40).bottom().get(1).lane(), "the same lane, its color");
+        assertEquals(0, rows.get(41).column(), "p takes the first lane waiting");
+    }
+
+    @Test
+    public void aLaneWhoseCommitIsntReadGoesAwayAfterLongRowsAndComesBackAtIt() {
+        final List<LogCommit> commits = farParent();
+        final LogGraph graph = new LogGraph();
+        final List<LogGraph.Row> rows = new ArrayList<>(graph.add(commits.subList(0, 10)));
+        assertEquals("", arrows(rows.get(1).top()), "p might be on the next page: it stays");
+        rows.addAll(graph.add(commits.subList(10, 41)));
+        int leaves = -1;
+        for (int r = 0; r < rows.size() && leaves < 0; r++)
+            if (arrows(rows.get(r).top()).contains("DOWN"))
+                leaves = r;
+        assertEquals(LogGraph.LONG + 1, leaves, "after LONG rows passed");
+        rows.addAll(graph.add(commits.subList(41, 42)));
+        assertEquals("0>0 UP t", arrows(rows.get(41).top()), "back at p, read too late to come before it");
+    }
+
+    // Each edge with an arrow: "from>to ARROW jump".
+    private static String arrows(List<LogGraph.Edge> edges) {
+        final List<String> out = new ArrayList<>();
+        for (LogGraph.Edge e : edges)
+            if (e.arrow() != LogGraph.Arrow.NONE)
+                out.add(e.from() + ">" + e.to() + " " + e.arrow() + " " + e.jump());
+        return String.join(" ", out);
     }
 }

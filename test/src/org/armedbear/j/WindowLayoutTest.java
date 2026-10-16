@@ -150,4 +150,13 @@ public class WindowLayoutTest {
             other.getDotLineNumber() == 1 && other.getBuffer() == a.getBuffer(),
             "another buffer's: left alone");
     }
+
+    @Test
+    public void aBufferShownInNoWindowIsWhereItsLastOneLeftIt() {
+        final Editor a = editor(ten("a"));
+        a.setDot(a.getBuffer().getLine(4), 1);
+        a.saveView();
+        assertEquals("a0@4,1*", shape(WindowLayout.Window.of(a.getBuffer(), true)));
+        assertEquals("a0@4,1", shape(WindowLayout.Window.of(a, false)), "and a window's, as it is");
+    }
 }

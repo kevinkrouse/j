@@ -69,7 +69,7 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
     }
 
     // HEAD's first, then the branches, the remotes and the tags, as they came.
-    private static List<LogRef> badges(List<LogRef> refs) {
+    static List<LogRef> badges(List<LogRef> refs) {
         final List<LogRef> out = new ArrayList<>();
         for (LogRef r : refs)
             if (r.head())
@@ -134,7 +134,7 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
         return Character.isHighSurrogate(s.charAt(n - 1)) ? n - 1 : n;
     }
 
-    private static Part part(LogRef r) {
+    static Part part(LogRef r) {
         if (r.head())
             return Part.HEAD;
         return switch (r.kind()) {

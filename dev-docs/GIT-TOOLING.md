@@ -1174,11 +1174,67 @@ plan with why it is left, before the next phase starts.
      badges (HEAD's, local, remote) take their row's lane color through
      `LogFormatter`'s lane formats; tags, and every badge when there is
      no graph, keep the kind colors.
+   - Several repositories: `LogScope` is what a log covers, one
+     repository or the status's several, with `base`, the directory above
+     them, that a path filter is from; `queryFor` gives each repository its
+     query, or null when the repository (`-r`) or a path in another leaves
+     it out. `LogMerge` reads each a page at a time, in parallel, and lists
+     the newest of their next by committer time (`%ct`), ties by their
+     order; nothing is listed while a repository with more has none read,
+     so a row never moves. Tested on synthetic logs, with pages read in
+     random order. `LogCommit` carries its repository: the details, `o`,
+     `O` and a refresh's caret go by it (`isSame`); the graph keys lanes
+     by repository and id. The strip and, with `vcsLogRepositoryNames`,
+     the name are the gutter column's, before the graph; its hover is the
+     path and a click (`GutterColumn.clicked`, a hand over it by
+     `isClickable`) toggles `-r`. A `Pick` can give each candidate a
+     color (`swatch`), a box before it in the list: a branch's lane's, from
+     the rows read, and a repository's. The filters'
+     names are the repositories' together (`LogNames.refs`/`paths`/
+     `authors` of a scope), paths under each one's prefix. The popup's
+     arguments are kept per scope. No prefix argument for one repository
+     alone: j has none; `-r` does it.
+   - The full log as one view: `FrameView` (core), a buffer that takes
+     the frame with buffers of its own, switched to and away from as one.
+     `Frame.switchToBuffer` goes to one with `showView` (the windows before
+     kept in it, or taken over from the view shown) and away from one with
+     `leaveView` (they come back; the view stays), beside mail's pair,
+     which binds one window under another and is unchanged. Each window's
+     view is saved first, so `WindowLayout.Window.of(buffer)` lays a pane
+     out again where it was (one `Window.of(editor)` for `EditorPane` and
+     the log). `Buffer.getChildren` (a pair's second half by default) puts
+     a buffer's parts under it in the buffer list, a real tree now, its
+     closed parents kept; a pane is not primary, so going through the
+     buffers passes the log once. The status's diff beside it will be one
+     too.
+   - The review's fixes and the details' badges: filters that leave every
+     repository out show none, not "Reading…" forever (a merge of no
+     sources lists nothing at once); a name shared by two repositories is
+     their paths' (`LogScope.name`); paths are by each repository's
+     prefix, from the project's directory (`scopeOf` passes it), one
+     outside under its name, so `base` never runs out; several have a key
+     of their own; a column's click is taken once, a double click's second
+     press swallowed (`Dispatcher`, `GutterColumn.isClickable`); a jump
+     runs `afterCommand`, so the details follow; `-t` with a branch set
+     is kept and reads nothing again; branch colors come from a map the
+     rows fill (`LogBuffer.laneColorOf`). The details' first line is
+     badges (`LogDetailsFormatter`, a `VcsStatusFormatter` subclass): the
+     repository's in its color, for several, then the refs' as the list's.
+   - Tags and long edges: the log reads `--branches --remotes HEAD`, and
+     `--tags` only with `-t` (`LogQuery.tags`, `LogFilters.TAGS`, a
+     switch in both popups, `vcsLogToggleTags` in the list): cvs2git makes
+     a commit of its own for each CVS tag, and efx's 226 of them, each far
+     above its parent in topological order, kept up to 61 lanes open. A
+     lane longer than `LogGraph.LONG` (30) rows is a stub at each end with
+     an arrow (`Edge.arrow`, `jump`): a page's rows tell near from far,
+     and a lane whose commit isn't read leaves once it has passed 30 rows;
+     it comes back a row before its commit, or at it if read too late.
+     A click on an arrow goes to the other end (`LogBuffer.jump`, reading
+     on to it). efx's widest row: 61 lanes before, 2 now, 6 with tags.
    - Left: the status's diff beside it (its design under "Status buffer":
-     the log's diff pane made shared), dir mode's filter bar, a very long
-     edge as a stub with an arrow, collapsing linear runs,
-     several repositories, the
-     badges' smaller font, the files pane's height fitted to its files,
+     the log's diff pane made shared), dir mode's filter bar, collapsing
+     linear runs, `-r` as a
+     checklist (a pick of one now), the badges' smaller font, the files pane's height fitted to its files,
      keeping the panes out of the sidebar's buffer list, and the refs tree
      in the sidebar (reveal, filter to a ref, narrow by typing).
 6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler

@@ -20,7 +20,10 @@
 
 package org.armedbear.j.vcs.log;
 
+import static org.armedbear.j.Constants.*;
+
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
@@ -32,8 +35,11 @@ import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.Line;
 import org.armedbear.j.MotionCommands;
+import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
+import org.armedbear.j.Sidebar;
+import org.armedbear.j.WindowLayout;
 import org.armedbear.j.WindowLayout.Split;
 import org.armedbear.j.WindowLayout.Window;
 import org.armedbear.j.transients.FilterBar;
@@ -54,21 +60,25 @@ public final class LogCommands {
 
     // Opening.
 
-    /** The log of the current buffer's repository, taking the whole frame; from the quick log, it grows. */
+    /**
+     * The log of the current buffer's repository, or of the project's as
+     * its status shows them, taking the whole frame; from the quick log, it
+     * grows.
+     */
     public static void vcsLog(Editor editor) {
         if (editor.getBuffer() instanceof LogBuffer log) {
             showFull(editor, log);
             return;
         }
-        final VcsRepository r = repository(editor);
-        if (r == null)
+        final LogScope scope = scope(editor);
+        if (scope == null)
             return;
-        showFull(editor, LogBuffer.open(r, startingQuery(editor, LogQuery.ALL, r)));
+        showFull(editor, LogBuffer.open(scope, startingQuery(editor, LogQuery.ALL, scope)));
     }
 
-    // query narrowed by the filters set in r's log popup, as editor's buffer keeps them.
-    private static LogQuery startingQuery(Editor editor, LogQuery query, VcsRepository r) {
-        return LogFilters.withArguments(query, Transients.args(editor, LogFilters.openingId(r)), r);
+    // query narrowed by the filters set in scope's log popup, as editor's buffer keeps them.
+    private static LogQuery startingQuery(Editor editor, LogQuery query, LogScope scope) {
+        return LogFilters.withArguments(query, Transients.args(editor, LogFilters.openingId(scope)), scope);
     }
 
     /** l in a status buffer: the popup that opens a log, its filters set first. */
@@ -78,25 +88,25 @@ public final class LogCommands {
 
     /** The popup that opens a log from editor, the names its filters offer read meanwhile. */
     public static Transient openingPopup(Editor editor) {
-        final VcsRepository r = repositoryOf(editor);
-        if (r != null)
-            LogNames.of(r).read(false);
-        return LogFilters.openingPopup(r);
+        final LogScope scope = scopeOf(editor);
+        if (scope != null)
+            LogNames.read(scope, false);
+        return LogFilters.openingPopup(scope);
     }
 
     /** The log alone in a window under this one, with no details. */
     public static void vcsLogQuick(Editor editor) {
-        final VcsRepository r = repository(editor);
-        if (r == null)
+        final LogScope scope = scope(editor);
+        if (scope == null)
             return;
-        final LogBuffer log = LogBuffer.open(r, startingQuery(editor, LogQuery.ALL, r));
+        final LogBuffer log = LogBuffer.open(scope, startingQuery(editor, LogQuery.ALL, scope));
         final Frame frame = editor.getFrame();
         if (frame == null) {
             editor.show(log);
             return;
         }
         // Kept for when it grows to the full log.
-        log.before = frame.captureLayout();
+        log.setBefore(frame.captureLayout());
         frame.openBelow(editor, log);
     }
 
@@ -108,45 +118,51 @@ public final class LogCommands {
             editor.status("Not a file in a repository");
             return;
         }
-        showFull(editor, LogBuffer.open(r, startingQuery(editor, LogQuery.file(r.relativePath(file)), r)));
+        final LogScope scope = LogScope.of(r);
+        showFull(editor, LogBuffer.open(scope, startingQuery(editor, LogQuery.file(r.relativePath(file)), scope)));
     }
 
-    // The repository a log opens from editor, or says there is none.
-    private static VcsRepository repository(Editor editor) {
-        final VcsRepository r = repositoryOf(editor);
-        if (r == null)
+    // The repositories a log opens from editor, or says there are none.
+    private static LogScope scope(Editor editor) {
+        final LogScope scope = scopeOf(editor);
+        if (scope == null)
             editor.status("Not in a repository");
-        return r;
-    }
-
-    /** The log's repository, the one of the thing at the caret in a status buffer, or the current buffer's; else null. */
-    static VcsRepository repositoryOf(Editor editor) {
-        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        if (log != null)
-            return log.getRepository();
-        if (editor.getDot() != null && editor.getDotLine() instanceof StatusLine s && s.repository() != null)
-            return s.repository();
-        final List<VcsRepository> rs = VcsStatusMode.repositoriesFor(editor.getBuffer());
-        return rs.isEmpty() ? null : rs.get(0);
+        return scope;
     }
 
     /**
-     * Gives the log the whole frame, with its details, the windows before
-     * kept to put back. Without a frame, as in tests, only the details.
+     * The log's repositories, or those a log opens from editor: the ones
+     * the status would show, the project's several or the buffer's own;
+     * null for none.
+     */
+    static LogScope scopeOf(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log != null)
+            return log.getScope();
+        final List<VcsRepository> rs = VcsStatusMode.repositoriesFor(editor.getBuffer());
+        if (rs.isEmpty())
+            return null;
+        final File project = rs.size() > 1 ? ProjectRoot.find(editor.getBuffer()) : null;
+        return LogScope.of(rs, project != null && project.isLocal() ? Path.of(project.canonicalPath()) : null);
+    }
+
+    /**
+     * Gives the log the whole frame, with its details: its frame view, the
+     * windows before kept to put back. Without a frame, as in tests, only
+     * the details.
      */
     static void showFull(Editor editor, LogBuffer log) {
         final Frame frame = editor.getFrame();
-        if (frame != null && log.before == null)
-            log.before = frame.captureLayout();
         if (log.files == null) {
             log.files = new LogFilesBuffer(log);
             log.diff = new LogDiffBuffer(log);
+            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         }
         log.forgetShown();
         if (frame != null) {
             if (log.right == null)
                 log.right = detailsAtRight(frame);
-            layOut(frame, log);
+            frame.showView(log, log);
         }
         log.showDetails();
     }
@@ -170,11 +186,12 @@ public final class LogCommands {
         return h > 0 && w > 1.5 * h;
     }
 
-    // The list, then the files over or beside the diff, as the details go.
-    private static void layOut(Frame frame, LogBuffer log) {
-        final Window list = window(log, true);
-        final Window files = window(log.files, false);
-        final Window diff = window(log.diff, false);
+    // The list, then the files over or beside the diff, as the details go;
+    // focus's window focused.
+    static WindowLayout.Node layout(Frame frame, LogBuffer log, Buffer focus) {
+        final Window list = window(log, focus != log.files && focus != log.diff);
+        final Window files = window(log.files, focus == log.files);
+        final Window diff = window(log.diff, focus == log.diff);
         final Split details;
         final Split shape;
         if (log.right) {
@@ -187,20 +204,14 @@ public final class LogCommands {
             details = new Split(!stacked, List.of(files, diff), List.of(0.3, 0.7));
             shape = new Split(false, List.of(list, details), List.of(0.55, 0.45));
         }
-        frame.restoreLayout(shape);
+        return shape;
     }
 
-    // A window of buffer with its caret and top where a window showing it has them now.
+    // A window of buffer with its caret and top where a window showing it
+    // has them now, or where its last one left them.
     private static Window window(Buffer buffer, boolean focused) {
         final Editor ed = LogBuffers.windowOf(buffer);
-        if (ed == null || ed.getDot() == null)
-            return new Window(buffer, 0, 0, 0, focused);
-        final Line top = ed.getTopLine();
-        return new Window(buffer,
-                ed.getDotLineNumber(),
-                ed.getDotOffset(),
-                top == null ? 0 : top.lineNumber(),
-                focused);
+        return ed != null ? Window.of(ed, focused) : Window.of(buffer, focused);
     }
 
     // Closing.
@@ -346,11 +357,8 @@ public final class LogCommands {
         final SessionProperties session = Editor.getSessionProperties();
         if (session != null)
             session.setStringProperty(DETAILS_KEY, log.right ? "right" : "bottom");
-        if (frame != null) {
-            final Buffer focused = editor.getBuffer();
-            layOut(frame, log);
-            focus(focused);
-        }
+        if (frame != null)
+            frame.layOutView(log, editor.getBuffer());
     }
 
     /** l: the popup of the log's filters. */
@@ -372,10 +380,25 @@ public final class LogCommands {
         if (option == null || bar == null) {
             if (name != null && option == null)
                 editor.status("No filter " + name.strip());
-            TransientPopup.open(editor, LogFilters.popup());
+            TransientPopup.open(editor, LogFilters.popup(log.getScope()));
+            return;
+        }
+        if (!LogFilters.of(log.getScope()).contains(option)) {
+            editor.status("The log is of one repository");
             return;
         }
         bar.choose(option);
+    }
+
+    /** -t: the commits only tags reach shown too, or not. */
+    public static void vcsLogToggleTags(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log == null)
+            return;
+        final boolean on = !log.getQuery().tags();
+        log.setQuery(log.getQuery().withTags(on));
+        final String what = on ? "Showing the commits only tags reach" : "Not showing the commits only tags reach";
+        editor.status(log.getQuery().revisions().isEmpty() ? what : what + ", once no branch is set");
     }
 
     /** x: every filter cleared, a file's log's path too. */
@@ -417,7 +440,7 @@ public final class LogCommands {
 
     // The change's file in the working tree, at the commit's line n mapped to now; 0 for its top.
     private static void visit(Editor editor, LogBuffer log, LogCommit commit, CommitChange change, int n) {
-        final VcsRepository r = log.getRepository();
+        final VcsRepository r = log.repositoryOf(commit);
         final File file = File.getInstance(r.root().resolve(change.path()).toString());
         if (file == null || !file.isFile()) {
             editor.status(change.path() + " is not in the working tree");
@@ -466,7 +489,7 @@ public final class LogCommands {
             return;
         }
         final int n = editor.getBuffer() instanceof LogDiffBuffer ? diffLine(editor) : 0;
-        final VcsRepository r = log.getRepository();
+        final VcsRepository r = log.repositoryOf(commit);
         final String id = commit.id();
         final String path = change.path();
         Background.start("vcs log revision", () -> {

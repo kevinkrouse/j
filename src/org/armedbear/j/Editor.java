@@ -2030,7 +2030,10 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     public void switchToBuffer(Buffer buf) {
         if (buf != null) {
-            if (!buf.isPaired() && (buffer == null || !buffer.isPaired())) {
+            if (!buf.isPaired()
+                    && (buffer == null || !buffer.isPaired())
+                    && buf.getFrameView() == null
+                    && (buffer == null || buffer.getFrameView() == null)) {
                 // This is the easy case. Both the buffer we're switching in
                 // and the buffer we're switching out are unpaired.
                 activate(buf);

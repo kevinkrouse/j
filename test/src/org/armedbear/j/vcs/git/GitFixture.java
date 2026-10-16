@@ -116,6 +116,20 @@ public final class GitFixture {
         git("commit", "-q", "--allow-empty", "-m", message);
     }
 
+    /** As commitAll, authored and committed at seconds since the epoch. */
+    public void commitAllAt(String message, long seconds) {
+        final Map<String, String> env = new java.util.HashMap<>(ENV);
+        env.put("GIT_AUTHOR_DATE", "@" + seconds + " +0000");
+        env.put("GIT_COMMITTER_DATE", "@" + seconds + " +0000");
+        GitCli.testEnvironment = env;
+        try {
+            commitAll(message);
+        }
+        finally {
+            GitCli.testEnvironment = ENV;
+        }
+    }
+
     /** The file as the index has it, or null if it is not in the index. */
     public String index(String path) {
         VcsResult r = run("cat-file", "blob", ":" + path);

@@ -195,7 +195,8 @@ public class LogBufferTest {
         onEdt(() -> LogCommands.showFull(h.editor(), log));
         until(() -> log.files.commit() != null && log.diff.change() != null);
         final List<String> files = texts(log.files);
-        assertTrue(files.get(0).startsWith("Commit:   "), files.toString());
+        assertEquals("   main ", files.get(0), "its branch's badge");
+        assertTrue(files.get(1).startsWith("Commit:   "), files.toString());
         assertTrue(files.contains("  Second"), files.toString());
         assertTrue(files.contains("  With a body."), files.toString());
         assertTrue(files.contains("  M  a.txt"), files.toString());
@@ -686,13 +687,38 @@ public class LogBufferTest {
         final org.armedbear.j.transients.TransientArgs args = new org.armedbear.j.transients.TransientArgs();
         args.set("-- path", "b/");
         args.set("--grep", "x");
-        final LogQuery q = LogFilters.withArguments(LogQuery.file("a.txt"), args, repository);
+        final LogQuery q = LogFilters.withArguments(LogQuery.file("a.txt"), args, LogScope.of(repository));
         assertEquals("a.txt", q.path());
         assertTrue(q.follow());
         assertEquals("x", q.grep());
-        final LogQuery all = LogFilters.withArguments(LogQuery.ALL, args, repository);
+        final LogQuery all = LogFilters.withArguments(LogQuery.ALL, args, LogScope.of(repository));
         assertEquals("b/", all.path());
         assertFalse(all.follow(), "a directory's history doesn't follow renames");
+        assertFalse(all.tags());
+        args.setOn(LogFilters.TAGS.name(), true);
+        assertTrue(LogFilters.withArguments(LogQuery.ALL, args, LogScope.of(repository)).tags(), "-t in the popup");
+    }
+
+    @Test
+    public void theCommitsOnlyTagsReachAreLeftOutUntilAskedFor() throws Exception {
+        repo(2);
+        // A commit of a tag's own, off the first, as cvs2git makes.
+        git.git("checkout", "-q", "HEAD~");
+        git.write("tagged.txt", "t\n");
+        git.commitAll("made for a tag");
+        git.git("tag", "old-tag");
+        git.git("checkout", "-q", "main");
+        git.git("tag", "on-main", "HEAD");
+        open(100);
+        assertEquals(List.of("commit 1", "commit 0"), subjects());
+        assertTrue(texts(log).get(0).contains("on-main"), "a tag on a branch shows either way");
+        onEdt(() -> LogCommands.vcsLogToggleTags(h.editor()));
+        until(() -> !log.isLoading() && subjects().size() == 3);
+        assertTrue(subjects().contains("made for a tag"));
+        onEdt(() -> LogFilters.TAGS.binding().set(h.editor(), false));
+        until(() -> !log.isLoading() && subjects().size() == 2);
+        onEdt(() -> LogFilters.BRANCH.binding().set(h.editor(), "old-tag"));
+        until(() -> !log.isLoading() && subjects().equals(List.of("made for a tag", "commit 0")));
     }
 
     @Test
@@ -723,9 +749,13 @@ public class LogBufferTest {
             final org.armedbear.j.KeyMapping dash = km.lookup('-', 0, 0);
             assertNotNull(dash);
             final org.armedbear.j.KeyMap filters = (org.armedbear.j.KeyMap) dash.getCommand();
-            for (org.armedbear.j.transients.Transient.Item item : LogFilters.popup().groups().get(0).items()) {
+            for (org.armedbear.j.transients.Transient.Item item : LogFilters.popup(null).groups().get(0).items()) {
                 final org.armedbear.j.KeyMapping m = filters.lookup(item.key().charAt(1), 0, 0);
                 assertNotNull(m, item.key());
+                if (item == LogFilters.TAGS) {
+                    assertEquals("vcsLogToggleTags", m.getCommand());
+                    continue;
+                }
                 assertEquals("vcsLogFilter " + item.description(), m.getCommand());
                 assertNotNull(LogFilters.named(item.description()));
             }
@@ -815,19 +845,26 @@ public class LogBufferTest {
         twoAuthors();
         final VcsRepository other = Repositories
                 .forDirectory(GitFixture.init(java.nio.file.Files.createDirectories(tmp.resolve("other"))).root);
-        final String a = LogFilters.openingId(repository);
-        final String b = LogFilters.openingId(other);
+        final String a = LogFilters.openingId(LogScope.of(repository));
+        final String b = LogFilters.openingId(LogScope.of(other));
         assertFalse(a.equals(b));
         h = EditorHarness.create();
         org.armedbear.j.transients.Transients.args(h.buffer(), a).set("<revision>", "feature-x");
         assertEquals(
             "feature-x",
             LogFilters
-                    .withArguments(LogQuery.ALL, org.armedbear.j.transients.Transients.args(h.buffer(), a), repository)
+                    .withArguments(
+                        LogQuery.ALL,
+                        org.armedbear.j.transients.Transients.args(h.buffer(), a),
+                        LogScope.of(repository))
                     .revisions()
                     .get(0));
         assertTrue(
-            LogFilters.withArguments(LogQuery.ALL, org.armedbear.j.transients.Transients.args(h.buffer(), b), other)
+            LogFilters
+                    .withArguments(
+                        LogQuery.ALL,
+                        org.armedbear.j.transients.Transients.args(h.buffer(), b),
+                        LogScope.of(other))
                     .revisions()
                     .isEmpty(),
             "not the other repository's");
@@ -886,5 +923,232 @@ public class LogBufferTest {
             if (segments.getSegment(i).getText().strip().equals(text))
                 return f.getColor(segments.getSegment(i).getFormat());
         return null;
+    }
+
+    // Several repositories.
+
+    private GitFixture a;
+    private GitFixture b;
+
+    // A project of repositories a and b, their commits a1 at 100, b2 at
+    // 200, a3 at 300 and b4 at 400; and its log, read whole.
+    private LogScope project() throws Exception {
+        final Path proj = tmp.resolve("proj");
+        java.nio.file.Files.createDirectories(proj.resolve(org.armedbear.j.ProjectRoot.MARKER));
+        java.nio.file.Files.createDirectories(proj.resolve("a"));
+        java.nio.file.Files.createDirectories(proj.resolve("b"));
+        a = GitFixture.init(proj.resolve("a"));
+        b = GitFixture.init(proj.resolve("b"));
+        a.write("x.txt", "1\n");
+        a.commitAllAt("a1", 100);
+        b.write("x.txt", "2\n");
+        b.commitAllAt("b2", 200);
+        a.write("y.txt", "3\n");
+        a.commitAllAt("a3", 300);
+        b.write("y.txt", "4\n");
+        b.commitAllAt("b4", 400);
+        final List<VcsRepository> rs = Repositories.forProject(org.armedbear.j.File.getInstance(proj.toString()));
+        assertEquals(2, rs.size());
+        repository = rs.get(0);
+        return LogScope.of(rs);
+    }
+
+    private void open(LogScope scope, int pageSize) throws Exception {
+        h = EditorHarness.create();
+        onEdt(() -> {
+            log = LogBuffer.open(scope, LogQuery.ALL, pageSize);
+            h.showBuffer(log);
+        });
+        until(() -> !log.isLoading() && !log.commits().isEmpty());
+    }
+
+    private String repositoryAt(int line) {
+        return log.getScope().name(log.repositoryOf(((LogLine) log.getLine(line)).commit()));
+    }
+
+    @Test
+    public void severalRepositoriesCommitsAreListedTogetherByTime() throws Exception {
+        final LogScope scope = project();
+        open(scope, 100);
+        assertEquals(List.of("b4", "a3", "b2", "a1"), subjects());
+        assertEquals("git log: 2 repositories", log.getTitle());
+        assertEquals(
+            List.of("b", "a", "b", "a"),
+            List.of(repositoryAt(0), repositoryAt(1), repositoryAt(2), repositoryAt(3)));
+        // Each repository's lane its own, the strip before them.
+        assertEquals(2, log.graphWidth());
+        final org.armedbear.j.GutterColumn column = log.getGutterColumn();
+        assertEquals(b.root.toString(), column.getToolTipText(log.getFirstLine(), 1, 1), "the strip: its repository");
+        // A commit's details are from its repository.
+        onEdt(() -> {
+            h.editor().setDot(log.getLine(1), 0);
+            LogCommands.showFull(h.editor(), log);
+        });
+        until(() -> log.files.commit() != null && log.files.changes() != null && !log.files.changes().isEmpty());
+        assertEquals("a3", log.files.commit().subject());
+        assertEquals(
+            List.of(new CommitChange("y.txt", null, org.armedbear.j.vcs.FileChange.Kind.ADDED)),
+            log.files.changes());
+        // Its repository's badge in its color, then its branch's in its lane's.
+        assertEquals("   a   main ", texts(log.files).get(0));
+        final org.armedbear.j.Formatter f = VcsLogMode.getMode().getFormatter(log.files);
+        final org.armedbear.j.LineSegmentList segments = f.formatLine(log.files.getFirstLine());
+        final List<java.awt.Color> colors = new ArrayList<>();
+        for (int i = 0; i < segments.size(); i++)
+            if (!segments.getSegment(i).getText().isBlank())
+                colors.add(f.getColor(segments.getSegment(i).getFormat()));
+        final boolean dark = org.armedbear.j.DefaultTheme.isDark(f.getBackgroundColor());
+        assertEquals(
+            List.of(
+                org.armedbear.j.vcs.RepositoryColors.color(scope.colorIndex(scope.named("a")), dark),
+                LogGraphColumn.color(((LogLine) log.getLine(1)).graph().color())),
+            colors);
+        assertTrue(f.getRunBackground(segments.getSegment(1).getFormat()) != null, "a badge's chip");
+    }
+
+    @Test
+    public void aRepositoryPagedApartNeverPutsARowAboveOneListed() throws Exception {
+        open(project(), 1);
+        until(() -> !log.isLoading() && log.commits().size() == 1);
+        assertEquals(List.of("b4"), subjects(), "a's next read before b4 is listed; b's next not");
+        for (int i = 0; i < 6 && log.commits().size() < 4; i++) {
+            onEdt(() -> log.loadMore());
+            until(() -> !log.isLoading());
+        }
+        assertEquals(List.of("b4", "a3", "b2", "a1"), subjects());
+    }
+
+    @Test
+    public void theRepositoryFilterOrAClickOnTheStripShowsOneAlone() throws Exception {
+        open(project(), 100);
+        final org.armedbear.j.GutterColumn column = log.getGutterColumn();
+        assertTrue(column.isClickable(log.getFirstLine(), 1, 1), "the strip: a hand");
+        assertFalse(column.isClickable(log.getFirstLine(), column.width() - 1, 1), "the graph");
+        // The lists' boxes: a repository's color, a branch's lane's.
+        final org.armedbear.j.transients.Transient.Pick repos =
+                (org.armedbear.j.transients.Transient.Pick) LogFilters.REPOSITORY.chooser();
+        final boolean dark = org.armedbear.j.DefaultTheme.isDark(h.editor().getFormatter().getBackgroundColor());
+        assertEquals(
+            org.armedbear.j.vcs.RepositoryColors.color(log.getScope().colorIndex(log.getScope().named("b")), dark),
+            repos.swatch().apply(h.editor(), "b"));
+        final org.armedbear.j.transients.Transient.Pick branches =
+                (org.armedbear.j.transients.Transient.Pick) LogFilters.BRANCH.chooser();
+        assertEquals(
+            LogGraphColumn.color(((LogLine) log.getFirstLine()).graph().color()),
+            branches.swatch().apply(h.editor(), "main"),
+            "b's main, the first row's");
+        assertNull(branches.swatch().apply(h.editor(), "no-such"));
+        onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), "a"));
+        until(() -> !log.isLoading() && subjects().equals(List.of("a3", "a1")));
+        onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), null));
+        until(() -> !log.isLoading() && subjects().size() == 4);
+        onEdt(() -> assertTrue(log.getGutterColumn().clicked(h.editor(), log.getFirstLine(), 1, 1)));
+        until(() -> !log.isLoading() && subjects().equals(List.of("b4", "b2")));
+        assertEquals("b", log.getQuery().repository());
+        onEdt(() -> log.getGutterColumn().clicked(h.editor(), log.getFirstLine(), 1, 1));
+        until(() -> !log.isLoading() && subjects().size() == 4);
+        assertTrue(LogFilters.of(log.getScope()).contains(LogFilters.REPOSITORY));
+        assertFalse(LogFilters.of(LogScope.of(repository)).contains(LogFilters.REPOSITORY), "not for one");
+    }
+
+    @Test
+    public void aPathGoesToTheRepositoryHoldingIt() throws Exception {
+        open(project(), 100);
+        onEdt(() -> LogFilters.PATH.binding().set(h.editor(), "b/x.txt"));
+        until(() -> !log.isLoading() && subjects().equals(List.of("b2")));
+        assertTrue(LogNames.paths(log.getScope()).containsAll(List.of("a/", "a/x.txt", "b/y.txt")));
+    }
+
+    @Test
+    public void theSameCommitInTwoRepositoriesIsTwoRows() throws Exception {
+        final Path proj = tmp.resolve("proj");
+        java.nio.file.Files.createDirectories(proj.resolve(org.armedbear.j.ProjectRoot.MARKER));
+        java.nio.file.Files.createDirectories(proj.resolve("a"));
+        a = GitFixture.init(proj.resolve("a"));
+        a.write("x.txt", "1\n");
+        a.commitAllAt("first", 100);
+        a.write("x.txt", "2\n");
+        a.commitAllAt("second", 200);
+        a.git("clone", "-q", a.root.toString(), proj.resolve("c").toString());
+        final List<VcsRepository> rs = Repositories.forProject(org.armedbear.j.File.getInstance(proj.toString()));
+        repository = rs.get(0);
+        open(LogScope.of(rs), 100);
+        assertEquals(List.of("second", "second", "first", "first"), subjects());
+        final LogLine last = (LogLine) log.getLine(3);
+        assertEquals("c", repositoryAt(3));
+        assertFalse(last.graph().top().isEmpty(), "c's first joins c's second, not a's");
+        // The caret stays on c's commit through a refresh, not a's.
+        onEdt(() -> h.editor().setDot(log.getLine(3), 0));
+        onEdt(() -> log.refresh());
+        until(() -> !log.isLoading() && log.commits().size() == 4);
+        assertEquals(3, h.editor().getDotLineNumber());
+    }
+
+    @Test
+    public void anArrowsJumpGoesToItsCommitReadingOnToIt() throws Exception {
+        repo(7);
+        open(2);
+        final String first = git.git("rev-list", "--max-parents=0", "HEAD").strip();
+        final String key = LogGraph.key(log.commits().get(0), first);
+        onEdt(() -> log.jump(h.editor(), key));
+        until(() -> !log.isLoading() && h.editor().getDotLine() instanceof LogLine l && l.commit().id().equals(first));
+        assertEquals(6, h.editor().getDotLineNumber(), "read on to the last page");
+        onEdt(() -> log.jump(h.editor(), LogGraph.key(log.commits().get(0), log.commits().get(1).id())));
+        assertEquals(1, h.editor().getDotLineNumber(), "one read: at once");
+    }
+
+    @Test
+    public void filtersThatLeaveEveryRepositoryOutListNone() throws Exception {
+        open(project(), 100);
+        onEdt(() -> LogFilters.PATH.binding().set(h.editor(), "nowhere/x.txt"));
+        until(() -> !log.isLoading() && log.getLineCount() == 1 && !(log.getFirstLine() instanceof LogLine));
+        assertTrue(log.getFirstLine().getText().contains("no commits"), log.getFirstLine().getText());
+        onEdt(() -> LogFilters.PATH.binding().set(h.editor(), null));
+        until(() -> !log.isLoading() && subjects().size() == 4);
+        onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), "gone"));
+        until(() -> !log.isLoading() && subjects().equals(List.of("No commits match the filters")));
+    }
+
+    @Test
+    public void aJumpsDetailsFollowAndTagsWithABranchReadNothingAgain() throws Exception {
+        repo(4);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        until(() -> log.files.commit() != null);
+        final LogCommit last = log.commits().get(3);
+        onEdt(() -> log.jump(h.editor(), LogGraph.key(last, last.id())));
+        until(() -> log.files.commit() != null && log.files.commit().isSame(last));
+        onEdt(() -> LogFilters.BRANCH.binding().set(h.editor(), "main"));
+        until(() -> !log.isLoading() && log.getQuery().revisions().equals(List.of("main")));
+        final List<LogCommit> before = List.copyOf(log.commits());
+        onEdt(() -> LogCommands.vcsLogToggleTags(h.editor()));
+        assertTrue(log.getQuery().tags(), "kept for when the branch is unset");
+        assertFalse(log.isLoading(), "not read again");
+        assertEquals(before, log.commits());
+    }
+
+    @Test
+    public void theFullLogIsAFrameViewItsPanesItsChildren() throws Exception {
+        repo(2);
+        open(100);
+        assertNull(log.getFrameView(), "the quick log: a buffer like any other");
+        assertEquals(List.of(), log.getChildren());
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        assertEquals(log, log.getFrameView());
+        assertEquals(List.of(log.files, log.diff), log.getChildren());
+        for (Buffer pane : List.<Buffer>of(log.files, log.diff)) {
+            assertEquals(log, pane.getFrameView());
+            assertFalse(pane.isPrimary(), "listed under the log");
+            assertEquals(log, pane.getPrimary());
+        }
+        // Going through the buffers, the log is one stop.
+        onEdt(() -> {
+            final org.armedbear.j.BufferList list = Editor.getBufferList();
+            Buffer at = log;
+            for (int i = 0; i < list.size(); i++) {
+                at = list.getNextListedBuffer(at);
+                assertFalse(at == log.files || at == log.diff, "a pane: " + at);
+            }
+        });
     }
 }

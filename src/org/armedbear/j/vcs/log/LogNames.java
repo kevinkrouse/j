@@ -20,6 +20,8 @@
 
 package org.armedbear.j.vcs.log;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +114,53 @@ final class LogNames {
     synchronized void addAuthors(List<LogCommit> commits) {
         for (LogCommit c : commits)
             authors.add(c.author());
+    }
+
+    /** Adds the authors of commits a log has read to their repositories'. */
+    static void addAuthorsOf(List<LogCommit> commits) {
+        final Map<VcsRepository, List<LogCommit>> by = new LinkedHashMap<>();
+        for (LogCommit c : commits)
+            if (c.repository() != null)
+                by.computeIfAbsent(c.repository(), r -> new ArrayList<>()).add(c);
+        by.forEach((r, cs) -> of(r).addAuthors(cs));
+    }
+
+    /** Reads each of scope's repositories' names, as read does. */
+    static void read(LogScope scope, boolean force) {
+        for (VcsRepository r : scope.repositories())
+            of(r).read(force);
+    }
+
+    /** scope's refs: each name once, in its repositories' order. */
+    static List<LogRef> refs(LogScope scope) {
+        final Map<String, LogRef> out = new LinkedHashMap<>();
+        for (VcsRepository r : scope.repositories())
+            for (LogRef ref : of(r).refs())
+                out.putIfAbsent(ref.kind() + ref.name(), ref);
+        return List.copyOf(out.values());
+    }
+
+    /** scope's paths, from its base: each repository's under its prefix. */
+    static List<String> paths(LogScope scope) {
+        if (!scope.isSeveral())
+            return of(scope.first()).paths();
+        final List<String> out = new ArrayList<>();
+        for (VcsRepository r : scope.repositories()) {
+            final String prefix = scope.prefix(r);
+            if (!prefix.isEmpty())
+                out.add(prefix);
+            for (String p : of(r).paths())
+                out.add(prefix + p);
+        }
+        return out;
+    }
+
+    /** scope's authors, each once. */
+    static List<String> authors(LogScope scope) {
+        final Set<String> out = new LinkedHashSet<>();
+        for (VcsRepository r : scope.repositories())
+            out.addAll(of(r).authors());
+        return List.copyOf(out);
     }
 
     // Each directory the files are in, before its files, as "src/".
