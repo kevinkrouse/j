@@ -37,6 +37,7 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.transients.TransientCommands;
 import org.armedbear.j.transients.TransientPopup;
+import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.status.VcsStatusBuffer;
 import org.armedbear.j.vim.VimInputHandler;
 import org.jdesktop.swingx.MultiSplitLayout;
@@ -60,11 +61,14 @@ public final class WindowFuzz {
     private static final List<String> trail = new ArrayList<>();
     private static String home;
     private static Random rnd;
+    private static int quitsChecked;
 
     private record Op(String name, Consumer<Editor> run) {}
 
+    // Each line, as the runner keeps only those marked.
     private static void report(String s) {
-        System.out.println("FUZZ " + s);
+        for (String line : s.split("\n"))
+            System.out.println("FUZZ " + line);
     }
 
     // ------------------------------------------------------------ fixtures
@@ -99,6 +103,8 @@ public final class WindowFuzz {
         }
         Files.writeString(h.resolve("test.mbox"), mbox, StandardCharsets.UTF_8);
         gitFixture(h.resolve("proj"));
+        if (org.armedbear.j.util.ProcessRunner.exists("git"))
+            multiFixture(h.resolve("multi"));
     }
 
     // proj as a repository: everything committed, then two files changed,
@@ -109,12 +115,51 @@ public final class WindowFuzz {
         git(proj, "init", "-q", "-b", "main");
         git(proj, "add", "-A");
         git(proj, "commit", "-q", "-m", "first");
+        history(proj);
         Files.writeString(
             proj.resolve("file1.txt"),
             Files.readString(proj.resolve("file1.txt")).replace("line 1 7\n", "changed\n"));
         Files.writeString(proj.resolve("A.java"), "class A {\n  long x;\n}\n");
         git(proj, "add", "A.java");
         Files.writeString(proj.resolve("new.txt"), "new\n");
+    }
+
+    // For the log: commits on main and on a branch merged into it, a tag.
+    private static void history(Path repo) throws IOException {
+        git(repo, "checkout", "-q", "-b", "topic");
+        for (int i = 1; i <= 3; i++) {
+            Files.writeString(repo.resolve("topic.txt"), "topic " + i + "\n");
+            git(repo, "add", "-A");
+            git(repo, "commit", "-q", "-m", "topic " + i);
+        }
+        git(repo, "checkout", "-q", "main");
+        for (int i = 1; i <= 3; i++) {
+            Files.writeString(repo.resolve("main.txt"), "main " + i + "\n");
+            git(repo, "add", "-A");
+            git(repo, "commit", "-q", "-m", "main " + i);
+        }
+        git(repo, "tag", "v1");
+        git(repo, "merge", "-q", "--no-edit", "topic");
+    }
+
+    // A project of three repositories, for a log and a status of several:
+    // its own, so that none it is in counts, and two in it.
+    private static void multiFixture(Path multi) throws IOException {
+        Files.createDirectories(multi.resolve(".j-project"));
+        Files.writeString(multi.resolve("multi.txt"), "multi\n");
+        git(multi, "init", "-q", "-b", "main");
+        git(multi, "add", "multi.txt");
+        git(multi, "commit", "-q", "-m", "multi first");
+        for (String name : new String[] { "one", "two" }) {
+            final Path repo = multi.resolve(name);
+            Files.createDirectories(repo);
+            Files.writeString(repo.resolve(name + ".txt"), name + "\n");
+            git(repo, "init", "-q", "-b", "main");
+            git(repo, "add", "-A");
+            git(repo, "commit", "-q", "-m", name + " first");
+            history(repo);
+            Files.writeString(repo.resolve(name + ".txt"), name + " changed\n");
+        }
     }
 
     private static void git(Path dir, String... args) throws IOException {
@@ -175,9 +220,30 @@ public final class WindowFuzz {
             return "dir";
         if (name.contains("ListOccurrences"))
             return "occ";
+        if (b instanceof LogBuffer l)
+            return (l.getFrameView() != null ? "log" : "qlog") + "(" + l.toString().replaceFirst("^git log: ", "")
+                    + ")";
+        if (b.getPrimary() instanceof LogBuffer)
+            return b.toString();
+        if (b instanceof VcsStatusBuffer)
+            return "status";
         if (name.contains("Output"))
             return "out";
         return b.getFile() != null ? b.getFile().getName() : name;
+    }
+
+    // The log ed shows, its list or one of its panes; null for none.
+    private static LogBuffer log(Editor ed) {
+        final Buffer b = ed.getBuffer();
+        if (b instanceof LogBuffer l)
+            return l;
+        return b.getPrimary() instanceof LogBuffer l ? l : null;
+    }
+
+    // A file of proj or of the project of two, for the logs and statuses to start from.
+    private static Editor showRepositoryFile(Editor ed) {
+        final String[] files = { "proj/file1.txt", "proj/A.java", "multi/one/one.txt", "multi/two/two.txt" };
+        return ed.show(Editor.getBuffer(file(files[rnd.nextInt(files.length)])));
     }
 
     private static void ex(Editor ed, String line) {
@@ -342,8 +408,105 @@ public final class WindowFuzz {
         }),
         new Op("vcsStatus", ed -> {
             if (!(ed.getBuffer() instanceof VcsStatusBuffer))
-                ed = ed.show(Editor.getBuffer(file("proj/file" + (1 + rnd.nextInt(4)) + ".txt")));
+                ed = showRepositoryFile(ed);
             command(ed, "vcsStatus", null);
+        }),
+        new Op("statusVisit", ed -> {
+            if (ed.getBuffer() instanceof VcsStatusBuffer)
+                command(ed, "vcsStatusVisit", null);
+        }),
+        new Op("changeKey", ed -> {
+            // The change marks of a file with changes.
+            if (ed.getBuffer().getFile() == null || ed.getBuffer() instanceof DirectoryBuffer)
+                ed = ed.show(Editor.getBuffer(file(rnd.nextBoolean() ? "proj/file1.txt" : "multi/one/one.txt")));
+            final String[] commands = { "nextChange", "previousChange", "previewChange", "olderChange", "newerChange" };
+            command(ed, commands[rnd.nextInt(commands.length)], null);
+        }),
+        new Op("vcsLog", ed -> {
+            if (log(ed) == null && !(ed.getBuffer() instanceof VcsStatusBuffer))
+                ed = showRepositoryFile(ed);
+            command(ed, rnd.nextInt(3) == 0 ? "vcsLogQuick" : "vcsLog", null);
+        }),
+        new Op("vcsLogFile", ed -> {
+            if (ed.getBuffer().getFile() == null || ed.getBuffer() instanceof DirectoryBuffer)
+                ed = showRepositoryFile(ed);
+            command(ed, "vcsLogFile", null);
+        }),
+        new Op("logLine", ed -> {
+            // The caret to a commit, as a click or j and k do.
+            if (ed.getBuffer() instanceof LogBuffer l && l.getLineCount() > 0) {
+                ed.setDot(l.getLine(rnd.nextInt(l.getLineCount())), 0);
+                ed.moveCaretToDotCol();
+                command(ed, "down", null);
+            }
+        }),
+        new Op("logKey", ed -> {
+            if (log(ed) == null)
+                return;
+            final String[] commands = {
+                "vcsLogVisit",
+                "vcsLogVisit",
+                "vcsLogNext",
+                "vcsLogPrevious",
+                "vcsLogNextFile",
+                "vcsLogPreviousFile",
+                "vcsLogScrollDiff",
+                "vcsLogScrollDiffBack",
+                "vcsLogToggle",
+                "vcsLogToggleAll",
+                "vcsLogToggleDetails",
+                "vcsLogToggleTags",
+                "vcsLogClearFilters",
+                "vcsLogRefresh",
+                "vcsLogPopup",
+                "vcsLogOpenFile",
+                "vcsLogRevision",
+                "down",
+                "up" };
+            command(ed, commands[rnd.nextInt(commands.length)], null);
+        }),
+        new Op("logFilter", ed -> {
+            // A filter typed in the field over its chip, or cleared.
+            if (log(ed) == null)
+                return;
+            final String[][] filters = {
+                { "branch", "main", "topic", "v1", "nothing" },
+                { "author", "Fuzz", "nobody" },
+                { "path", "file1.txt", "topic.txt", "one.txt", "missing" },
+                { "since", "1 year ago", "tomorrow" },
+                { "message", "topic", "main 2", "absent" },
+                { "change", "line", "topic 2" },
+                { "repository", "one", "two", "proj" } };
+            final String[] f = filters[rnd.nextInt(filters.length)];
+            command(ed, "vcsLogFilter", f[0]);
+            final Editor list = current();
+            if (list.getFilterBar() != null)
+                list.getFilterBar().acceptField(rnd.nextInt(4) == 0 ? "" : f[1 + rnd.nextInt(f.length - 1)]);
+        }),
+        new Op("logQuit", ed -> {
+            final LogBuffer l = log(ed);
+            if (l == null)
+                return;
+            // Laid out, it puts back the windows it kept, those of them
+            // still open, or leaves one.
+            final WindowLayout.Node before = frame().shownView() == l ? l.before() : null;
+            final boolean shown = frame().shownView() == l;
+            command(ed, "vcsLogQuit", null);
+            if (!shown)
+                return;
+            quitsChecked++;
+            final WindowLayout.Node kept =
+                    before == null ? null : WindowLayout.keeping(before, b -> Editor.getBufferList().contains(b));
+            final List<String> want = new ArrayList<>();
+            if (kept != null)
+                for (WindowLayout.Window w : WindowLayout.windows(kept))
+                    want.add(kind(w.buffer()));
+            final List<String> got = new ArrayList<>();
+            for (int i = 0; i < Editor.getEditorCount(); i++)
+                if (!frame().isPanel(Editor.getEditor(i)))
+                    got.add(kind(Editor.getEditor(i).getBuffer()));
+            if (kept != null ? !got.equals(want) : got.size() != 1)
+                errors.add("q left " + got + ", not " + (kept != null ? want : "one window"));
         }),
         new Op("statusKey", ed -> {
             if (!(ed.getBuffer() instanceof VcsStatusBuffer))
@@ -403,7 +566,7 @@ public final class WindowFuzz {
                             System.currentTimeMillis(),
                             0,
                             KeyEvent.VK_UNDEFINED,
-                            "s.loubftr".charAt(rnd.nextInt(9))));
+                            "s.loubftr-abgx".charAt(rnd.nextInt(14))));
         }),
         new Op("popupLimit", ed -> {
             final TransientPopup popup = TransientPopup.getOpen();
@@ -451,6 +614,7 @@ public final class WindowFuzz {
     private static int panelSteps;
     private static int boundSteps;
     private static int popupSteps;
+    private static int logSteps;
     private static final Set<String> layouts = new TreeSet<>();
 
     private static void check(String after) {
@@ -466,6 +630,8 @@ public final class WindowFuzz {
             }
         }
         layouts.add(layout().replace("*", ""));
+        if (frame.shownView() != null)
+            logSteps++;
 
         final List<String> bad = new ArrayList<>();
         if (!pane.checkEditorLeafCount())
@@ -505,6 +671,14 @@ public final class WindowFuzz {
         }
         if (panels > 1)
             bad.add("more than one panel");
+        // A log's panes live and die with it.
+        for (Buffer b : Editor.getBufferList()) {
+            if (b.getPrimary() instanceof LogBuffer l && !Editor.getBufferList().contains(l))
+                bad.add(b + " outlives its log");
+            for (Buffer child : b.getChildren())
+                if (b instanceof LogBuffer && !Editor.getBufferList().contains(child))
+                    bad.add(kind(b) + " lost its " + child);
+        }
         checkPopup(frame, bad);
         final Editor panel = frame.getPanelEditor();
         if (panel != null) {
@@ -553,7 +727,7 @@ public final class WindowFuzz {
         for (int i = 0; i < Editor.getEditorCount(); i++) {
             final Editor e = Editor.getEditor(i);
             sb.append(frame().isPanel(e) ? "P:" : "")
-                    .append(kind(e.getBuffer()))
+                    .append(e.getBuffer() == null ? "none" : kind(e.getBuffer()))
                     .append(e == current() ? "*" : "")
                     .append(' ');
         }
@@ -567,7 +741,24 @@ public final class WindowFuzz {
                     + pane.getMultiSplitLayout().getFloatingDividers());
         for (int i = 0; i < Editor.getEditorCount(); i++) {
             final Editor e = Editor.getEditor(i);
-            report("    " + kind(e.getBuffer()) + " " + e.getBounds());
+            report("    " + (e.getBuffer() == null ? "no buffer" : kind(e.getBuffer())) + " " + e.getBounds());
+        }
+        report("  model:");
+        dumpModel(pane, pane.getMultiSplitLayout().getModel(), "    ");
+    }
+
+    // The splits and their weights, each leaf's window.
+    private static void dumpModel(EditorPane pane, MultiSplitLayout.Node node, String indent) {
+        if (node instanceof MultiSplitLayout.Divider)
+            return;
+        final String weight = String.format("%.3f", node.getWeight());
+        if (node instanceof MultiSplitLayout.Split split) {
+            report(indent + (split.isRowLayout() ? "row " : "column ") + weight);
+            for (MultiSplitLayout.Node child : split.getChildren())
+                dumpModel(pane, child, indent + "  ");
+        } else {
+            final Component c = pane.getMultiSplitLayout().getComponentForNode(node);
+            report(indent + weight + " " + (c instanceof Editor e && e.getBuffer() != null ? kind(e.getBuffer()) : c));
         }
     }
 
@@ -647,8 +838,14 @@ public final class WindowFuzz {
             report("seed " + seed + ": j did not start");
             System.exit(2);
         }
+        final List<Op> logOps = OPS.stream().filter(o -> o.name().startsWith("log")).toList();
         for (int step = 0; step < steps; step++) {
-            final Op op = OPS.get(rnd.nextInt(OPS.size()));
+            // In a log, more often what a log does.
+            final boolean[] inLog = new boolean[1];
+            onEdt(() -> inLog[0] = log(current()) != null, "log");
+            final Op op = inLog[0] && rnd.nextInt(3) == 0
+                    ? logOps.get(rnd.nextInt(logOps.size()))
+                    : OPS.get(rnd.nextInt(OPS.size()));
             final int before = errors.size();
             final String[] shown = new String[1];
             onEdt(() -> shown[0] = layout(), "layout");
@@ -658,8 +855,11 @@ public final class WindowFuzz {
                 report("FAIL " + what);
                 break;
             }
-            // Mail loads in the background.
-            Thread.sleep(op.name().contains("Mail") || op.name().contains("Message") ? 700 : 60);
+            // Mail loads in the background, as do the log's pages and details.
+            Thread.sleep(
+                op.name().contains("Mail") || op.name().contains("Message") ? 700
+                        : op.name().contains("og") ? 250
+                        : 60);
             onEdt(() -> check(what), "check");
             if (errors.size() > before) {
                 report("FAIL " + what);
@@ -676,7 +876,8 @@ public final class WindowFuzz {
         report(
             "seed " + seed + " " + (errors.isEmpty() ? "OK" : "FAILED") + "; " + steps + " steps, up to " + maxWindows
                     + " windows, the panel on " + panelSteps + " steps, a message window on " + boundSteps
-                    + ", a popup on " + popupSteps + ", " + layouts.size() + " layouts");
+                    + ", a popup on " + popupSteps + ", the log on " + logSteps + ", " + quitsChecked
+                    + " of its q checked, " + layouts.size() + " layouts");
         System.exit(errors.isEmpty() ? 0 : 1);
     }
 }
