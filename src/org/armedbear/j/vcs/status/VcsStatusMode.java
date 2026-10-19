@@ -111,7 +111,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     private static KeyMap paneKeyMap;
     private static KeyMap paneModalKeyMap;
 
-    // The diff beside has its own keys: none of staging's, which act on the status's lines.
+    // The diff beside has its own keys: the status's for its hunks and lines, staging too.
     @Override
     public synchronized KeyMap getKeyMap(Buffer buffer) {
         if (!(buffer instanceof StatusDiffBuffer))
@@ -142,6 +142,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "vcsStatusCycle");
         km.mapKey('n', "vcsStatusNext");
         km.mapKey('p', "vcsStatusPrevious");
+        km.mapKey('s', "vcsStage");
+        km.mapKey('u', "vcsUnstage");
+        km.mapKey('d', "vcsDiscard");
         scrollKeys(km);
         km.mapKey(vim ? 'r' : 'g', "vcsStatusRefresh");
         km.mapKey('$', "vcsCommandLog");
@@ -210,18 +213,30 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         { "vcsStatusDiff", "close" },
         { "modePopup", "more" }, };
 
+    // As the popup has them: staging only for a backend with an index.
+    private static final String[][] DIFF_STAGING_HINTS = {
+        { "vcsStage", "stage" },
+        { "vcsUnstage", "unstage" },
+        { "vcsDiscard", "discard" },
+        { "vcsStatusVisit", "open at this line" },
+        { "vcsStatusToggle", "fold" },
+        { "vcsStatusDiff", "close" },
+        { "modePopup", "more" }, };
+
     @Override
     public String[][] getHints(Buffer buffer) {
         if (!buffer.getBooleanProperty(Property.VCS_HINTS))
             return null;
-        return buffer instanceof StatusDiffBuffer ? DIFF_HINTS : HINTS;
+        if (buffer instanceof StatusDiffBuffer d)
+            return stages(d.getOwner()) ? DIFF_STAGING_HINTS : DIFF_HINTS;
+        return HINTS;
     }
 
     @Override
     public Transient getTransient(Editor editor) {
         final boolean vim = editor != null && editor.getInputHandler() != null;
-        if (editor != null && editor.getBuffer() instanceof StatusDiffBuffer)
-            return diffTransient(vim);
+        if (editor != null && editor.getBuffer() instanceof StatusDiffBuffer d)
+            return diffTransient(vim, stages(d.getOwner()));
         final List<Group> groups = new ArrayList<>();
         groups.add(
             Group.of(
@@ -259,20 +274,28 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     // The diff beside's: what its keys do there.
-    private static Transient diffTransient(boolean vim) {
-        return new Transient("vcs.status.diff",
+    private static Transient diffTransient(boolean vim, boolean stages) {
+        final List<Group> groups = new ArrayList<>();
+        groups.add(
+            Group.of(
+                "Go",
+                new Command("n", "vcsStatusNext", "next hunk", true),
+                new Command("p", "vcsStatusPrevious", "previous hunk", true)));
+        // The hunk at the caret, or the lines selected.
+        if (stages)
+            groups.add(
+                Group.of(
+                    "Stage",
+                    new Command("s", "vcsStage", "stage", true),
+                    new Command("u", "vcsUnstage", "unstage", true),
+                    new Command("d", "vcsDiscard", "discard", true)));
+        groups.add(
+            Group.of(
                 "Diff",
-                "git.html#status-diff",
-                List.of(
-                    Group.of(
-                        "Go",
-                        new Command("n", "vcsStatusNext", "next hunk", true),
-                        new Command("p", "vcsStatusPrevious", "previous hunk", true)),
-                    Group.of(
-                        "Diff",
-                        Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
-                        Command.of("$", "vcsCommandLog", "command log"),
-                        Command.of("q", "vcsStatusDiff", "close"))));
+                Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
+                Command.of("$", "vcsCommandLog", "command log"),
+                Command.of("q", "vcsStatusDiff", "close")));
+        return new Transient("vcs.status.diff", "Diff", "git.html#status-diff", groups);
     }
 
     static boolean stages(Buffer buffer) {
@@ -315,7 +338,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         }
         if (!(editor.getBuffer() instanceof VcsStatusBuffer b) || !(line instanceof StatusLine s))
             return false;
-        StatusLine head = b.head(s);
+        StatusLine head = StatusLine.head(s);
         // As vim's zc does, closing what is closed already closes the fold around it.
         if (Boolean.FALSE.equals(open) && (head == null || !head.isOpen()))
             head = b.parent(s);
@@ -392,7 +415,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     // The status of editor's buffer: the buffer itself, or the status whose diff it is.
-    private static VcsStatusBuffer owner(Editor editor) {
+    static VcsStatusBuffer owner(Editor editor) {
         return editor.getBuffer() instanceof StatusDiffBuffer d ? d.getOwner() : statusBuffer(editor);
     }
 

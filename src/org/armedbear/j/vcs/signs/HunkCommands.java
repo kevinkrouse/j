@@ -41,6 +41,7 @@ import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
+import org.armedbear.j.vcs.status.StatusActions;
 
 /**
  * The editor's hunks: staging, resetting and previewing the hunk at the
@@ -112,8 +113,15 @@ public final class HunkCommands {
         return new Sides(head, index, now);
     }
 
-    /** Stages the hunk at the caret, or the lines of the selection, from the buffer's text. */
+    /**
+     * Stages the hunk at the caret, or the lines of the selection, from the
+     * buffer's text; in the status's diff, from the diff.
+     */
     public static void vcsStageHunk(Editor editor) {
+        if (StatusActions.takesHunkCommands(editor)) {
+            StatusActions.run(editor, StatusActions.Op.STAGE);
+            return;
+        }
         final SignsUpdater u = updater(editor);
         if (u == null)
             return;
@@ -142,8 +150,15 @@ public final class HunkCommands {
         });
     }
 
-    /** Takes the staged hunk at the caret, or under the selection, back out of the index. */
+    /**
+     * Takes the staged hunk at the caret, or under the selection, back out
+     * of the index; in the status's diff, as the diff shows it.
+     */
     public static void vcsUnstageHunk(Editor editor) {
+        if (StatusActions.takesHunkCommands(editor)) {
+            StatusActions.run(editor, StatusActions.Op.UNSTAGE);
+            return;
+        }
         final SignsUpdater u = updater(editor);
         if (u == null)
             return;

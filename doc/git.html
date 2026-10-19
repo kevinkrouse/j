@@ -98,8 +98,15 @@ caret rests: a file's whole diff, the unstaged or staged one as its section
 says, or, on a hunk, scrolled to that hunk. A file can stay closed in the
 status. <b>Space</b> and <b>Shift Space</b> (or <b>Backspace</b>) scroll it
 from either side. In it, <b>Enter</b> visits the file at the line, <b>Tab</b>
-opens or closes a hunk, <b>n</b> and <b>p</b> go from hunk to hunk, and
-<b>D</b> or <b>q</b> closes it. With it open, the status and its diff are
+opens or closes a hunk, <b>n</b> and <b>p</b> go from hunk to hunk,
+<b>s</b>, <b>u</b> and <b>d</b> stage, unstage or discard the hunk at the
+caret or the lines selected, or the whole file on its heading, the first
+line, as in the status (see <a href="#staging">Staging and discarding</a>),
+and <b>D</b> or <b>q</b> closes it. Until it is read again after one, the
+next waits. With the vim keys, the hunk commands of a file being edited do
+the same there: <code>&lt;leader&gt;hs</code> stages,
+<code>&lt;leader&gt;hu</code> unstages and <code>&lt;leader&gt;hr</code>
+discards. With it open, the status and its diff are
 switched to and away from as one, as the log is: going to another buffer
 puts back the windows from before, and coming back to either lays them out
 again. <a href="preferences.html#vcsStatusDiff">vcsStatusDiff</a> opens a new
@@ -117,8 +124,10 @@ file or line it was on.
 <h2><a name="staging">Staging and discarding</a></h2>
 
 <p>
-<b>s</b> stages the thing at the caret, <b>u</b> unstages it, and <b>x</b>
+<b>s</b> stages the thing at the caret, <b>u</b> unstages it, and <b>d</b>
 discards it: a section heading's files, a file, or the hunk the caret is in.
+They do the same in the diff beside the status: to its file on its
+heading, or the hunk the caret is in.
 With a selection, they take what it covers, down to single lines of a hunk:
 select the lines to stage and press <b>s</b> (in vim edit mode, <b>V</b> or
 <b>v</b> and then <b>s</b>). A changed line is its removed line and the added

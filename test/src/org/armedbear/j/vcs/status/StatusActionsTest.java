@@ -86,6 +86,9 @@ public class StatusActionsTest {
         for (org.armedbear.j.Buffer b : Editor.getBufferList())
             buffers.add(b);
         for (org.armedbear.j.Buffer b : buffers)
+            if (b instanceof VcsStatusBuffer status && status.getDiff() != null)
+                status.closeDiff(null);
+        for (org.armedbear.j.Buffer b : buffers)
             if (b instanceof VcsStatusBuffer || b instanceof CommitMessageBuffer) {
                 b.dispose();
                 Editor.getBufferList().remove(b);
@@ -854,5 +857,143 @@ public class StatusActionsTest {
         final org.armedbear.j.LineSegmentList segments = message().getFormatter().formatLine(message().getFirstLine());
         assertEquals(2, segments.size());
         assertEquals(50, segments.getSegment(0).getText().length());
+    }
+
+    // The diff beside, showing the file at status line at; then the
+    // harness's window on the diff, as when it has the focus.
+    private StatusDiffBuffer paneOn(String at, String waitFor) throws Exception {
+        onEdt(() -> {
+            if (status.getDiff() == null)
+                status.openDiff(null);
+            h.editor().setDot(line(at), 0);
+            status.followCaret();
+        });
+        final StatusDiffBuffer diff = status.getDiff();
+        until(() -> paneLine(diff, waitFor) != null);
+        onEdt(() -> h.showBuffer(diff));
+        return diff;
+    }
+
+    private static StatusLine paneLine(StatusDiffBuffer diff, String prefix) {
+        for (Line l = diff.getFirstLine(); l != null; l = l.next())
+            if (l.getText().startsWith(prefix))
+                return (StatusLine) l;
+        return null;
+    }
+
+    @Test
+    public void sInTheDiffBesideStagesTheHunkAtTheCaret() throws Exception {
+        repository();
+        open();
+        final StatusDiffBuffer diff = paneOn("  M  a.txt", "  @@ -1,6");
+        onEdt(() -> {
+            // On a line of the hunk, not its heading: the hunk all the same.
+            h.editor().setDot(paneLine(diff, "  +line three"), 0);
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        until(() -> text().contains("Staged changes (2)"));
+        assertEquals(SIXTY.replace("line 3\n", "line three\n"), git.index("a.txt"), "that hunk, not line 50's");
+    }
+
+    @Test
+    public void aSelectionInTheDiffBesideStagesItsLines() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "one\ntwo\nthree\n");
+        git.commitAll("first");
+        git.write("a.txt", "one\nTWO\nthree\nfour\n");
+        open();
+        final StatusDiffBuffer diff = paneOn("  M  a.txt", "  +four");
+        onEdt(() -> {
+            final StatusLine four = paneLine(diff, "  +four");
+            h.editor().setMark(new Position(four, 0));
+            h.editor().setDot(four, 4);
+            assertEquals("a line of a.txt", StatusActions.names(StatusActions.targets(status, h.editor())));
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        until(() -> text().contains("Staged changes (1)"));
+        assertEquals("one\ntwo\nthree\nfour\n", git.index("a.txt"));
+    }
+
+    @Test
+    public void theDiffBesideUnstagesAndDiscardsAsTheStatusDoes() throws Exception {
+        repository();
+        open();
+        StatusDiffBuffer diff = paneOn("  M  b.txt", "  +b changed");
+        onEdt(() -> {
+            h.editor().setDot(paneLine(diff, "  +b changed"), 0);
+            final List<StatusActions.Target> t = StatusActions.targets(status, h.editor());
+            assertEquals("Already staged", StatusActions.refuse(Op.STAGE, t.get(0)));
+            StatusActions.run(h.editor(), Op.STAGE);
+            assertFalse(status.isWriting(), "refused");
+        });
+        onEdt(() -> StatusActions.run(h.editor(), Op.UNSTAGE));
+        until(() -> text().contains("Unstaged changes (2)"));
+        assertEquals("b\n", git.index("b.txt"));
+        onEdt(() -> h.showBuffer(status));
+        final StatusDiffBuffer again = paneOn("  M  a.txt", "  +line fifty");
+        onEdt(() -> {
+            h.editor().setDot(paneLine(again, "  +line fifty"), 0);
+            StatusActions.run(h.editor(), Op.DISCARD);
+        });
+        assertEquals(1, asked.size(), "asked first");
+        until(() -> !status.isWriting());
+        assertFalse(git.read("a.txt").contains("line fifty"));
+        assertTrue(git.read("a.txt").contains("line three"), "only that hunk");
+    }
+
+    @Test
+    public void afterStagingFromTheDiffBesideItsCaretIsInTheNextHunkAndItWaitsToBeReadAgain() throws Exception {
+        repository();
+        open();
+        final StatusDiffBuffer diff = paneOn("  M  a.txt", "  @@ -1,6");
+        onEdt(() -> {
+            h.editor().setDot(paneLine(diff, "  +line three"), 0);
+            StatusActions.run(h.editor(), Op.STAGE);
+            assertTrue(diff.isStale(), "shows what was there before the write");
+            // A second, at once: refused until the diff is read again.
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        until(() -> !status.isWriting() && !diff.isStale() && paneLine(diff, "  +line three") == null);
+        assertEquals(SIXTY.replace("line 3\n", "line three\n"), git.index("a.txt"), "the first hunk alone");
+        onEdt(() -> {
+            final StatusLine dot = (StatusLine) h.editor().getDotLine();
+            assertTrue(dot.kind() != StatusLine.Kind.FILE, "not on the file, where s takes it all: " + dot.getText());
+            assertEquals(paneLine(diff, "  @@ -47").key(), StatusLine.head(dot).key(), "in the hunk after");
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        // Nothing of a.txt left unstaged: the diff, whose file the status no longer has there, is cleared.
+        until(() -> !status.isWriting() && !diff.isStale() && paneLine(diff, "  M  a.txt") == null);
+        assertEquals(git.read("a.txt"), git.index("a.txt"));
+        assertTrue(paneLine(diff, "No file") != null, String.valueOf(diff.getFirstLine().getText()));
+    }
+
+    @Test
+    public void vimsHunkKeysStageAndUnstageInTheDiffBeside() throws Exception {
+        repository();
+        open();
+        h.vim();
+        final StatusDiffBuffer diff = paneOn("  M  a.txt", "  @@ -1,6");
+        onEdt(() -> h.editor().setDot(paneLine(diff, "  +line three"), 0));
+        h.keys("\\hs");
+        until(() -> text().contains("Staged changes (2)") && !status.isWriting());
+        assertEquals(SIXTY.replace("line 3\n", "line three\n"), git.index("a.txt"), "the hunk at the caret");
+        // The staged a.txt, under Staged changes, in the diff beside.
+        final StatusDiffBuffer staged = diff;
+        onEdt(() -> {
+            h.showBuffer(status);
+            h.editor().setDot(after(line("Staged changes (2)"), "  M  a.txt"), 0);
+            status.followCaret();
+        });
+        until(
+            () -> paneLine(staged, "  +line three") != null
+                    && paneLine(staged, "  +line fifty") == null
+                    && !staged.isStale());
+        onEdt(() -> {
+            h.showBuffer(staged);
+            h.editor().setDot(paneLine(staged, "  +line three"), 0);
+        });
+        h.keys("\\hu");
+        until(() -> !text().contains("Staged changes (2)") && !status.isWriting());
+        assertEquals(SIXTY, git.index("a.txt"), "unstaged again");
     }
 }

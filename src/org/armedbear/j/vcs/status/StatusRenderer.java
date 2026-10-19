@@ -60,16 +60,18 @@ public final class StatusRenderer {
     /**
      * Files' lines under key, as a status buffer's section has them, each
      * open to its hunks or not as expanded says: the log's files, and its
-     * diff of one.
+     * diff of one, in no section; the status's diff beside it, in the
+     * status's section, so that staging there acts on what it would there.
      */
     public static List<StatusLine> renderFiles(
             VcsRepository repository,
             String key,
+            String section,
             List<FileItem> files,
             BiPredicate<String, Kind> expanded) {
         final StatusRenderer r = new StatusRenderer(expanded, k -> true);
         for (FileItem f : files)
-            r.file(repository, key, null, f);
+            r.file(repository, key, section, f);
         return r.lines;
     }
 

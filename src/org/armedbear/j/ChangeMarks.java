@@ -37,6 +37,7 @@ import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.signs.HunkPreview;
+import org.armedbear.j.vcs.status.StatusActions;
 
 public final class ChangeMarks {
     public static void nextChange(Editor editor) {
@@ -200,6 +201,11 @@ public final class ChangeMarks {
         final Position dot = editor.getDot(); // Alias.
         if (dot == null)
             return;
+        // In the status's diff, the hunk or lines discarded, after asking.
+        if (StatusActions.takesHunkCommands(editor)) {
+            StatusActions.run(editor, StatusActions.Op.DISCARD);
+            return;
+        }
         // In a file the version control tracks, back as staged.
         if (editor.getBuffer().getSigns() != null && editor.getBuffer().getSignsUpdater() != null) {
             HunkCommands.resetHunk(editor);

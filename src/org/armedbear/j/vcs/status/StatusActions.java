@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
@@ -55,10 +56,10 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.armedbear.j.vim.VimInputHandler;
 
 /**
- * Staging, unstaging and discarding in a status buffer: of the thing at the
- * caret (a section's files, a file, a hunk), or of what the selection takes
- * in, down to single lines of a hunk. Git runs in the background; a
- * failure says so and shows the command log.
+ * Staging, unstaging and discarding in a status buffer, or in its diff
+ * beside it: of the thing at the caret (a section's files, a file, a hunk),
+ * or of what the selection takes in, down to single lines of a hunk. Git
+ * runs in the background; a failure says so and shows the command log.
  */
 public final class StatusActions {
     private StatusActions() {}
@@ -83,14 +84,19 @@ public final class StatusActions {
     static BiPredicate<Editor, String> confirm =
             (editor, text) -> ConfirmDialog.showConfirmDialog(editor, text, "Discard") == RESPONSE_YES;
 
-    /** What the selection takes in, or with none what the caret is on. */
+    /**
+     * What the selection takes in, or with none what the caret is on, in
+     * editor's buffer: the status's, or its diff's, whose lines are keyed
+     * as the status's are.
+     */
     static List<Target> targets(VcsStatusBuffer buffer, Editor editor) {
+        final Buffer shown = editor.getBuffer();
         final List<StatusLine> lines = new ArrayList<>();
         final Position mark = editor.getMark();
         final boolean visual =
                 editor.getInputHandler() instanceof VimInputHandler vim && vim.getState().getMode().isVisual();
         if (mark != null && (visual || !mark.equals(editor.getDot()))) {
-            final Region r = new Region(buffer, mark, editor.getDot());
+            final Region r = new Region(shown, mark, editor.getDot());
             for (Line l = r.getBeginLine(); l != null; l = l.next()) {
                 // A selection takes the lines it has text of; vim's visual
                 // one, every line from end to end.
@@ -105,7 +111,7 @@ public final class StatusActions {
             }
         } else if (editor.getDotLine() instanceof StatusLine s) {
             // The caret in a hunk acts on the hunk, as on its heading.
-            lines.add(s.kind() == Kind.DIFF ? buffer.head(s) : s);
+            lines.add(s.kind() == Kind.DIFF ? StatusLine.head(s) : s);
         }
 
         final Map<String, Files> files = new LinkedHashMap<>();
@@ -178,10 +184,25 @@ public final class StatusActions {
             f.files().add(file);
     }
 
-    /** Does op to what the caret or selection is on. */
+    /**
+     * Whether editor's buffer is the status's diff beside it, where the
+     * hunk commands of a file being edited (vim's {@code <leader>hs},
+     * {@code hu} and {@code hr}) stage, unstage and discard as {@link #run} does.
+     */
+    public static boolean takesHunkCommands(Editor editor) {
+        return editor.getBuffer() instanceof StatusDiffBuffer;
+    }
+
+    /** Does op to what the caret or selection is on, in the status or its diff. */
     public static void run(Editor editor, Op op) {
-        if (!(editor.getBuffer() instanceof VcsStatusBuffer buffer) || editor.getDot() == null)
+        final VcsStatusBuffer buffer = VcsStatusMode.owner(editor);
+        if (buffer == null || editor.getDot() == null)
             return;
+        // The diff beside shows what was there before the last write until it is read again.
+        if (editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale()) {
+            editor.status("Wait: the diff is being read again");
+            return;
+        }
         // What the buffer shows is out of date until the last write's refresh.
         if (buffer.isWriting()) {
             editor.status("Wait: the last change is still being made");

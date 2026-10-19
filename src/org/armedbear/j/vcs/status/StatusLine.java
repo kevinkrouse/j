@@ -69,6 +69,19 @@ public final class StatusLine extends TextLine {
         return out;
     }
 
+    /**
+     * The line that heads the node line is in or heads: a hunk's heading for
+     * a diff line, and a heading itself for a heading; null if none.
+     */
+    public static StatusLine head(StatusLine line) {
+        if (line.node() == null)
+            return null;
+        for (Line l = line; l != null; l = l.previous())
+            if (l instanceof StatusLine s && s.key().equals(line.node()))
+                return s;
+        return null;
+    }
+
     /** A line of text alone: a label and its value (FIELD), a message, a blank, or plain text. */
     public static StatusLine of(Kind kind, String text, String key) {
         return new StatusLine(kind, text, key, null, null, null);

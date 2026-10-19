@@ -41,8 +41,32 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
         MOVED
     }
 
+    private static final String NONE = "No file at the caret";
+
+    // The status's writes this has been shown after: fewer than it has
+    // started, and what this shows may be from before the last.
+    private int caughtUp;
+
     StatusDiffBuffer(VcsStatusBuffer owner) {
-        super(VcsStatusMode.getMode(), owner, "diff", "No file at the caret");
+        super(VcsStatusMode.getMode(), owner, "diff", NONE);
+    }
+
+    /** Whether a write has started since this was last shown from a read: staging here waits. */
+    boolean isStale() {
+        return caughtUp < getOwner().writes();
+    }
+
+    // The writes a follow starting now would catch up to: none while one is
+    // still being made, whose read may be from before it.
+    private int upTo() {
+        return getOwner().isWriting() ? caughtUp : getOwner().writes();
+    }
+
+    /** Shows no file, as when the status no longer has the one shown. */
+    void none() {
+        final int upTo = upTo();
+        clear(NONE);
+        caughtUp = Math.max(caughtUp, upTo);
     }
 
     /**
@@ -72,9 +96,11 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
             return;
         final VcsRepository r = line.repository();
         final String at = why == Follow.MOVED ? hunkOf(line) : null;
+        final int upTo = upTo();
         if (!f.hasDiff() || f.diff() != null) {
             ++generation;
-            show(r, key(line), f, at);
+            show(r, key(line), line.section(), f, at);
+            caughtUp = Math.max(caughtUp, upTo);
             return;
         }
         if (why == Follow.REDRAWN)
@@ -91,8 +117,10 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
             }
             final FileDiff d = diffs.isEmpty() ? FileDiff.EMPTY : diffs.get(0);
             SwingUtilities.invokeLater(() -> {
-                if (read == generation && Editor.getBufferList().contains(this))
-                    show(r, key(line), new FileItem(f.change(), f.letter(), f.staged(), d), at);
+                if (read == generation && Editor.getBufferList().contains(this)) {
+                    show(r, key(line), line.section(), new FileItem(f.change(), f.letter(), f.staged(), d), at);
+                    caughtUp = Math.max(caughtUp, upTo);
+                }
             });
         });
     }

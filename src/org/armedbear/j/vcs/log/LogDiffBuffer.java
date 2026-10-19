@@ -72,7 +72,7 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
                 change = ch;
                 final FileItem f = LogFilesBuffer.item(ch);
                 // Keyed by the commit, so another commit's diff of the file starts afresh.
-                show(r, "diff|" + c.id(), new FileItem(f.change(), f.letter(), true, d), null);
+                show(r, "diff|" + c.id(), null, new FileItem(f.change(), f.letter(), true, d), null);
             });
         });
     }

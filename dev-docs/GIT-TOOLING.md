@@ -1359,8 +1359,23 @@ plan with why it is left, before the next phase starts.
      the whole line so that a run is always measured whole.
    - The files pane keeps a fixed share of its column: fitting it to each
      commit's text was tried and dropped.
-   - Left: staging from the status's diff, and the refs tree in the
-     sidebar (reveal, filter to a ref, narrow by typing).
+   - Staging from the status's diff: `s`, `u` and `d` in the pane (its keys,
+     popup and hints) run `StatusActions` on the pane's lines, which are
+     drawn in the status's section (`StatusRenderer.renderFiles` with a
+     section, `DiffPane.show` passes it; the log's have none, so nothing
+     stages there), writing through the status (`VcsStatusMode.owner`);
+     `StatusLine.head` finds a diff line's hunk in either buffer. The pane
+     is stale from a write the status starts (`VcsStatusBuffer.writes`)
+     until a follow begun after it shows (`StatusDiffBuffer.isStale`), and
+     staging there waits; with no file at the status's caret, a refresh
+     reads the pane's own file again, or clears it once its section has
+     none. After one, its caret goes to the nearest line still there
+     (`DiffPane.nearest`), never the file's heading while a hunk is left.
+     Vim's hunk keys there (`<leader>hs`, `hu`, `hr`: `vcsStageHunk`,
+     `vcsUnstageHunk`, `revertLines`) hand off to `StatusActions.run`
+     when `StatusActions.takesHunkCommands`.
+   - Left: the refs tree in the sidebar (reveal, filter to a ref, narrow by
+     typing).
 6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
    rows, tested on its own (a change at the top and the bottom, an empty
    side, a file new or deleted, a change of only blank lines, CR LF); the two

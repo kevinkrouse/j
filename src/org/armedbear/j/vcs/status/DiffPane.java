@@ -20,6 +20,7 @@
 
 package org.armedbear.j.vcs.status;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,8 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
     // What its lines' keys start with: the status's section's, so a hunk
     // keeps the status's key.
     private String key;
+    // The status's section the file is in, or null: the log's.
+    private String section;
     private FileItem item;
     // Hunks closed or opened by hand, by key; open by default.
     private final Map<String, Boolean> expanded = new HashMap<>();
@@ -55,12 +58,18 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         return item;
     }
 
+    /** The key of the file shown, as its line's in the status: under key, its path; null for none. */
+    protected String fileKey() {
+        return key == null || item == null ? null : key + "|" + item.path();
+    }
+
     /**
-     * Shows item's diff, its lines keyed under key, the caret on the line
-     * keyed at, else the first change. The same file again keeps its hunks
+     * Shows item's diff, its lines keyed under key and in the status's
+     * section, null for the log's, the caret on the line keyed at, else the
+     * first change. The same file again keeps its hunks
      * as they were opened or closed, and each window's place.
      */
-    protected void show(VcsRepository repository, String key, FileItem item, String at) {
+    protected void show(VcsRepository repository, String key, String section, FileItem item, String at) {
         final boolean same = this.item != null
                 && this.repository == repository
                 && key.equals(this.key)
@@ -69,6 +78,7 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
             expanded.clear();
         this.repository = repository;
         this.key = key;
+        this.section = section;
         this.item = item;
         render(at, same && at == null);
     }
@@ -77,6 +87,7 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
     protected void clear(String message) {
         repository = null;
         key = null;
+        section = null;
         item = null;
         expanded.clear();
         replace(List.of(StatusLine.of(Kind.MESSAGE, message, "message")), null);
@@ -91,6 +102,11 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         if (item == null)
             return;
         final Map<Editor, StatusLine[]> was = new HashMap<>();
+        // The keys in order, to find what is nearest a line now gone.
+        final List<String> oldKeys = new ArrayList<>();
+        if (kept)
+            for (Line l = getFirstLine(); l != null; l = l.next())
+                oldKeys.add(l instanceof StatusLine s ? s.key() : null);
         if (kept)
             for (Editor ed : windows())
                 if (ed.getDot() != null
@@ -100,6 +116,7 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         final List<StatusLine> lines = StatusRenderer.renderFiles(
             repository,
             key,
+            section,
             List.of(item),
             (k, kind) -> kind == Kind.FILE || expanded.getOrDefault(k, true));
         Line first = null;
@@ -111,8 +128,8 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         fill(lines);
         for (Editor ed : windows()) {
             final StatusLine[] w = was.get(ed);
-            final Line dot = at == null && w != null ? same(lines, w[0]) : first;
-            final Line top = w != null ? same(lines, w[1]) : at != null ? first : null;
+            final Line dot = at == null && w != null ? nearest(lines, oldKeys, w[0]) : first;
+            final Line top = w != null ? nearest(lines, oldKeys, w[1]) : at != null ? first : null;
             place(ed, dot != null ? dot : getFirstLine(), top != null ? top : getFirstLine());
         }
     }
@@ -125,6 +142,26 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         for (StatusLine s : lines)
             if (s.key().equals(l.node()))
                 return s;
+        return null;
+    }
+
+    // The line keyed as l was, or its hunk's; else, as when its hunk was
+    // staged away, the next line still there, or the one before, rather
+    // than the file's heading, where staging takes the whole file.
+    private static Line nearest(List<StatusLine> lines, List<String> oldKeys, StatusLine l) {
+        final Line same = same(lines, l);
+        if (same != null)
+            return same;
+        final Map<String, StatusLine> byKey = new HashMap<>();
+        for (StatusLine s : lines)
+            byKey.put(s.key(), s);
+        final int index = oldKeys.indexOf(l.key());
+        for (int i = index + 1; index >= 0 && i < oldKeys.size(); i++)
+            if (byKey.containsKey(oldKeys.get(i)))
+                return byKey.get(oldKeys.get(i));
+        for (int i = index - 1; i >= 0; i--)
+            if (byKey.containsKey(oldKeys.get(i)))
+                return byKey.get(oldKeys.get(i));
         return null;
     }
 

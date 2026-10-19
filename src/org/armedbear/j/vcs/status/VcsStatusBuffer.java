@@ -229,6 +229,15 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
     void startWriting() {
         wroteAt = Long.MAX_VALUE;
         writing = true;
+        ++writes;
+    }
+
+    // How many writes have started: the diff beside is stale until it has
+    // been shown from a read after the last.
+    private int writes;
+
+    int writes() {
+        return writes;
     }
 
     /**
@@ -258,22 +267,12 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         };
     }
 
-    /** The line that heads the node line is in or heads, or null. */
-    public StatusLine head(StatusLine line) {
-        if (line.node() == null)
-            return null;
-        for (Line l = line; l != null; l = l.previous())
-            if (l instanceof StatusLine s && s.key().equals(line.node()))
-                return s;
-        return null;
-    }
-
     /**
      * The node around the one line heads or is in: a file's section, a
      * hunk's file; null if there is none.
      */
     public StatusLine parent(StatusLine line) {
-        final StatusLine head = head(line);
+        final StatusLine head = StatusLine.head(line);
         final String key = head != null ? head.key() : line.key();
         for (Line l = line.previous(); l != null; l = l.previous())
             if (l instanceof StatusLine s && s.isExpandable() && key.startsWith(s.key() + "|"))
@@ -283,7 +282,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
 
     /** Opens or closes the node line heads or is in. False if there is none. */
     public boolean toggle(StatusLine line) {
-        final StatusLine head = head(line);
+        final StatusLine head = StatusLine.head(line);
         if (head == null || !head.isExpandable())
             return false;
         setExpanded(head, !isExpanded(head.key(), head.kind()));
@@ -499,16 +498,37 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         if (diff == null)
             return;
         final Editor ed = Editor.windowShowing(this);
-        if (ed == null || ed.getDot() == null || !(ed.getDotLine() instanceof StatusLine s))
+        final StatusLine s = ed != null && ed.getDot() != null && ed.getDotLine() instanceof StatusLine l ? l : null;
+        final String target = s == null ? null : StatusDiffBuffer.target(s);
+        if (target == null) {
+            // No file at the caret: the diff keeps its own, read again with
+            // the status, or cleared once its section no longer has it.
+            if (why != null) {
+                final StatusLine own = fileLine(diff.fileKey());
+                if (own != null)
+                    diff.follow(own, why);
+                else {
+                    followed = null;
+                    diff.none();
+                }
+            }
             return;
-        final String target = StatusDiffBuffer.target(s);
-        if (target == null)
-            return;
+        }
         final boolean moved = !target.equals(followed) || diff.item() == null;
         if (!moved && why == null)
             return;
         followed = target;
         diff.follow(s, moved ? StatusDiffBuffer.Follow.MOVED : why);
+    }
+
+    // The file's line keyed so, or null.
+    private StatusLine fileLine(String key) {
+        if (key == null)
+            return null;
+        for (Line l = getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.kind() == StatusLine.Kind.FILE && s.key().equals(key))
+                return s;
+        return null;
     }
 
     /** Whether the diff beside is open and laid out across the frame. */

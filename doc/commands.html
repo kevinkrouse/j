@@ -4863,7 +4863,9 @@ prompted for confirmation before they are discarded.
 <p>
 Puts the changed lines at the caret, or under the selection, back: as they were
 when the file was loaded, or in a file the version control tracks, as they are
-staged. Undo takes it back.
+staged. Undo takes it back. In the diff beside a status buffer, discards the
+hunk at the caret or the lines selected, after asking, as
+<a href="#vcsDiscard">vcsDiscard</a> does there.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;hr in vim edit mode
 <br><br>
@@ -6119,7 +6121,7 @@ In a status buffer, opens the last commit's message, to change only its message.
 
 <a name="vcsDiscard">vcsDiscard</a><dl><dd>
 <p>
-In a status buffer, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash.
+In a status buffer or the diff beside it, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash.
 <br><br>
 <b>Default key mapping:</b> d in status buffers
 <br><br>
@@ -6368,7 +6370,7 @@ In the quick log, opens the full log at the commit; in the full log, moves to th
 
 <a name="vcsStage">vcsStage</a><dl><dd>
 <p>
-In a status buffer, stages the thing at the caret, or what the selection covers, down to single lines of a hunk.
+In a status buffer or the diff beside it, stages the thing at the caret, or what the selection covers, down to single lines of a hunk.
 <br><br>
 <b>Default key mapping:</b> s in status buffers
 <br><br>
@@ -6388,7 +6390,7 @@ In a status buffer, stages every change to a tracked file.
 
 <a name="vcsStageHunk">vcsStageHunk</a><dl><dd>
 <p>
-In a file the version control tracks, stages the change at the caret, or the lines of the selection, as the buffer has them, saved or not.
+In a file the version control tracks, stages the change at the caret, or the lines of the selection, as the buffer has them, saved or not. In the diff beside a status buffer, stages the hunk at the caret or the lines selected, as <a href="#vcsStage">vcsStage</a> does there.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;hs in vim edit mode
 <br><br>
@@ -6528,7 +6530,7 @@ In a status buffer, visits the thing at the caret: a file, at the line of the hu
 
 <a name="vcsUnstage">vcsUnstage</a><dl><dd>
 <p>
-In a status buffer, unstages the thing at the caret, or what the selection covers, down to single lines of a hunk.
+In a status buffer or the diff beside it, unstages the thing at the caret, or what the selection covers, down to single lines of a hunk.
 <br><br>
 <b>Default key mapping:</b> u in status buffers
 <br><br>
@@ -6548,7 +6550,7 @@ In a status buffer, unstages everything.
 
 <a name="vcsUnstageHunk">vcsUnstageHunk</a><dl><dd>
 <p>
-In a file the version control tracks, takes the staged change at the caret, or under the selection, back out of the index; in a file new to the index, the whole file.
+In a file the version control tracks, takes the staged change at the caret, or under the selection, back out of the index; in a file new to the index, the whole file. In the diff beside a status buffer, unstages the hunk at the caret or the lines selected, as <a href="#vcsUnstage">vcsUnstage</a> does there.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;hu in vim edit mode
 <br><br>

@@ -131,7 +131,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
         for (CommitChange ch : files)
             items.add(item(ch));
         final List<StatusLine> fileLines =
-                StatusRenderer.renderFiles(owner.repositoryOf(c), "files", items, (k, kind) -> false);
+                StatusRenderer.renderFiles(owner.repositoryOf(c), "files", null, items, (k, kind) -> false);
         lines.addAll(fileLines);
         if (files.isEmpty())
             lines.add(StatusLine.of(Kind.MESSAGE, "  No files changed", "none"));
