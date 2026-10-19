@@ -84,6 +84,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#dir">dir</a></li>
     <li><a href="commands.html#dirBack">dirBack</a></li>
     <li><a href="commands.html#dirBrowseFile">dirBrowseFile</a></li>
+    <li><a href="commands.html#dirClearFilters">dirClearFilters</a></li>
     <li><a href="commands.html#dirCopyFile">dirCopyFile</a></li>
     <li><a href="commands.html#dirCycleSortBy">dirCycleSortBy</a></li>
     <li><a href="commands.html#dirDeleteFiles">dirDeleteFiles</a></li>
@@ -93,12 +94,20 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#dirHomeDir">dirHomeDir</a></li>
     <li><a href="commands.html#dirLimit">dirLimit</a></li>
     <li><a href="commands.html#dirMoveFile">dirMoveFile</a></li>
+    <li><a href="commands.html#dirNewDirectory">dirNewDirectory</a></li>
+    <li><a href="commands.html#dirNewFile">dirNewFile</a></li>
     <li><a href="commands.html#dirOpenFile">dirOpenFile</a></li>
     <li><a href="commands.html#dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a></li>
+    <li><a href="commands.html#dirOpenFileInSplit">dirOpenFileInSplit</a></li>
+    <li><a href="commands.html#dirOpenFileInVsplit">dirOpenFileInVsplit</a></li>
     <li><a href="commands.html#dirProjectDir">dirProjectDir</a></li>
     <li><a href="commands.html#dirRescan">dirRescan</a></li>
     <li><a href="commands.html#dirTagFile">dirTagFile</a></li>
+    <li><a href="commands.html#dirTimeStyle">dirTimeStyle</a></li>
+    <li><a href="commands.html#dirToggleDirectoriesFirst">dirToggleDirectoriesFirst</a></li>
     <li><a href="commands.html#dirToggleHidden">dirToggleHidden</a></li>
+    <li><a href="commands.html#dirToggleHumanSizes">dirToggleHumanSizes</a></li>
+    <li><a href="commands.html#dirToggleReverse">dirToggleReverse</a></li>
     <li><a href="commands.html#dirUnlimit">dirUnlimit</a></li>
     <li><a href="commands.html#dirUpDir">dirUpDir</a></li>
     <li><a href="commands.html#doShellCommandOnRegion">doShellCommandOnRegion</a></li>
@@ -459,6 +468,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsLogToggle">vcsLogToggle</a></li>
     <li><a href="commands.html#vcsLogToggleAll">vcsLogToggleAll</a></li>
     <li><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></li>
+    <li><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></li>
     <li><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></li>
     <li><a href="commands.html#vcsLogVisit">vcsLogVisit</a></li>
     <li><a href="commands.html#vcsStage">vcsStage</a></li>
@@ -1239,6 +1249,16 @@ For this command to work, you need to specify the properties
 <br><br>
 </dl><!--<hr>-->
 
+<a name="dirClearFilters">dirClearFilters</a><dl><dd>
+<p>
+Clears a directory listing's filters: sorts it by name, forward, lifts its limit, and shows or hides the hidden names as <a href="preferences.html#dirShowHidden">dirShowHidden</a> says.
+<br><br>
+<b>Default key mapping:</b> x in directory buffers
+<br><br>
+<b>See also:</b> <a href="directories.html#popup">The popup</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="dirCopyFile">dirCopyFile</a><dl><dd>
 <p>
 Copies the file at the current location of the caret to a specified destination.
@@ -1256,7 +1276,7 @@ Cycles through the possibilities (name, date, size) for the sort order of the
 directory listing. The sort order that is currently in effect is displayed in
 the title bar of the editor window.
 <br><br>
-<b>Default key mapping:</b> Ctrl S or s in directory buffers
+<b>Default key mapping:</b> '-s', s, and Ctrl S in simple edit mode, in directory buffers
 <br><br>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
 <br><br>
@@ -1354,6 +1374,26 @@ You can specify either a filename or a directory as the destination.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="dirNewDirectory">dirNewDirectory</a><dl><dd>
+<p>
+Makes a new directory in a directory listing, with the directories it is in, its name asked for or given as an argument, and leaves the caret on it.
+<br><br>
+<b>Default key mapping:</b> A in directory buffers
+<br><br>
+<b>See also:</b> <a href="directories.html">Directory Buffers</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirNewFile">dirNewFile</a><dl><dd>
+<p>
+Opens a new file from a directory listing, its name asked for or given as an argument, in a buffer that writes it when saved, as <a href="#openFile">openFile</a> does; the directories it is in are made if they aren't there. A file that is there is opened.
+<br><br>
+<b>Default key mapping:</b> a in directory buffers
+<br><br>
+<b>See also:</b> <a href="directories.html">Directory Buffers</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="dirOpenFile">dirOpenFile</a><dl><dd>
 <p>
 Opens the file or directory at the location of the caret or mouse click in a
@@ -1366,12 +1406,35 @@ directory buffer.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="dirOpenFileInSplit">dirOpenFileInSplit</a><dl><dd>
+<p>
+Opens the file or directory at the caret in a new window over the
+directory listing, with the caret, as vim's <code>:split</code>; a
+directory in a listing of its own.
+<br><br>
+<b>Default key mapping:</b> Shift Enter in directory buffers.
+<br><br>
+<b>See also:</b> <a href="#dirOpenFileInVsplit">dirOpenFileInVsplit</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirOpenFileInVsplit">dirOpenFileInVsplit</a><dl><dd>
+<p>
+Opens the file or directory at the caret in a new window beside the
+directory listing, on the left, as vim's <code>:vsplit</code>.
+<br><br>
+<b>Default key mapping:</b> Ctrl Enter in directory buffers.
+<br><br>
+<b>See also:</b> <a href="#dirOpenFileInSplit">dirOpenFileInSplit</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a><dl><dd>
 <p>
 Opens the file or directory at the location of the caret or mouse click in a
 directory buffer and then closes the directory buffer.
 <p>
-<b>Default key mapping:</b> Ctrl Enter in directory buffers
+<b>Default key mapping:</b> none
 <p>
 <b>See also:</b> <a href="#dirOpenFile">dirOpenFile</a>,
 <a href="directories.html">Directory Buffers</a>.
@@ -1406,10 +1469,11 @@ directory tree.
 <a name="dirLimit">dirLimit</a><dl><dd>
 <p>
 Sets a limit pattern (something like "*.java") to control what files are
-displayed in the directory listing. Entering a blank string removes the limit,
-so that all files are displayed.
+displayed in the directory listing, typed over the limit chip in the
+listing's filter bar; Up and Down step through the patterns used before.
+Entering a blank string removes the limit, so that all files are displayed.
 <br><br>
-<b>Default key mapping:</b> 'l' in directory buffers.
+<b>Default key mapping:</b> '-p', and 'l' in simple edit mode, in directory buffers.
 <br><br>
 <b>See also:</b> <a href="#dirUnlimit">dirUnlimit</a>,
 <a href="directories.html">Directory Buffers</a>.
@@ -1426,11 +1490,52 @@ Tags or untags the file at the current location of the caret.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="dirTimeStyle">dirTimeStyle</a><dl><dd>
+<p>
+Steps the listing's dates through the time styles locale (<code>Oct 16 09:02</code>), iso (<code>10-16 09:02</code>) and long-iso (<code>2026-10-16 09:02</code>), as <code>ls --time-style</code> writes them, and age (<code>3h</code>, <code>4mo</code>), as the git log's; with one named, uses it. With <code>ls</code>, only GNU's takes the first three; an age is j's in any listing.
+<br><br>
+<b>Default key mapping:</b> '-t' in directory buffers.
+<br><br>
+<b>See also:</b> <a href="directories.html#popup">Directory Buffers</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirToggleDirectoriesFirst">dirToggleDirectoriesFirst</a><dl><dd>
+<p>
+Lists directories over the files, whatever the sort, or among them.
+<br><br>
+<b>Default key mapping:</b> '-d' in directory buffers.
+<br><br>
+<b>See also:</b> <a href="directories.html#popup">Directory Buffers</a>.
+<br><br>
+</dl><!--<hr>-->
+
 <a name="dirToggleHidden">dirToggleHidden</a><dl><dd>
 <p>
-Shows or hides the names in the directory listing that start with a dot.
+Shows or hides the hidden names in the directory listing: those starting with
+a dot, those matching filenameCompletionsExcludePattern, and those version control ignores.
 <br><br>
-<b>Default key mapping:</b> '.' in directory buffers.
+<b>Default key mapping:</b> '-.' and '.' in directory buffers.
+<br><br>
+<b>See also:</b> <a href="directories.html#popup">Directory Buffers</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirToggleHumanSizes">dirToggleHumanSizes</a><dl><dd>
+<p>
+Writes the listing's sizes as <code>ls -h</code> does, 4.0K and 12M, or in bytes.
+<br><br>
+<b>Default key mapping:</b> '-h' in directory buffers.
+<br><br>
+<b>See also:</b> <a href="directories.html#popup">Directory Buffers</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirToggleReverse">dirToggleReverse</a><dl><dd>
+<p>
+Reverses the listing's sort, with the current and parent directories kept on top.
+<br><br>
+<b>Default key mapping:</b> '-r' in directory buffers.
 <br><br>
 <b>See also:</b> <a href="directories.html#popup">Directory Buffers</a>.
 <br><br>
@@ -1452,7 +1557,7 @@ buffer, so that all files are displayed.
 <p>
 Navigates to the parent of the current directory.
 <br><br>
-<b>Default key mapping:</b> 'u' and Backspace in directory buffers
+<b>Default key mapping:</b> Backspace, and 'u' in simple edit mode, in directory buffers
 <br><br>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
 <br><br>
@@ -1993,7 +2098,7 @@ Escape, to cancel a search in progress.
 <a href="navigation.html#projects">project</a>: all of it, relative file
 specifications starting at its root, skipping what
 <a href="commands.html#findFileInProject">findFileInProject</a> skips (what
-<code>.gitignore</code> ignores, build and tool directories).
+version control ignores, build and tool directories).
 <li><b>Current file's directory</b>: relative file specifications start
 there, and "Include subdirectories" searches below it, with the same skips.
 <li><b>Open files</b>: the open buffers the file specification names, as
@@ -6015,7 +6120,7 @@ In a status buffer, opens the last commit's message, to change only its message.
 <p>
 In a status buffer, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash.
 <br><br>
-<b>Default key mapping:</b> x in status buffers
+<b>Default key mapping:</b> d in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
 <br><br>
@@ -6053,9 +6158,9 @@ Shows the log of the current file, through its renames, taking the whole frame.
 
 <a name="vcsLogFilter">vcsLogFilter</a><dl><dd>
 <p>
-In the log, with a filter's name (branch, author, path, since, message or change), opens the field over its chip in the filter bar to type its value; with none, opens the popup of its filters.
+In the log, with a filter's name (branch, author, path, since, message or change), opens the field over its chip in the filter bar to type its value; with none, opens the log's popup, its filters first.
 <br><br>
-<b>Default key mapping:</b> l, and -b, -a, -p, -d, -g and -s, in the log's list
+<b>Default key mapping:</b> -b, -a, -p, -s, -g and -c, in the log's list
 <br><br>
 <b>See also:</b> <a href="git.html#log-filters">The log's filters</a>
 <br><br>
@@ -6212,11 +6317,25 @@ the next log opens with them there.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsLogTimeStyle">vcsLogTimeStyle</a><dl><dd>
+<p>
+In the log, steps how the dates are written through age (<code>3h</code>,
+<code>4mo</code>), locale (<code>Oct 16 09:02</code>), iso
+(<code>10-16 09:02</code>) and long-iso (<code>2026-10-16 09:02</code>),
+in the rows and the details' Date, which shows the full date with an age;
+with a style named, uses it.
+<br><br>
+<b>Default key mapping:</b> -t in the log's list
+<br><br>
+<b>See also:</b> <a href="preferences.html#vcsLogTimeStyle">vcsLogTimeStyle</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsLogToggleTags">vcsLogToggleTags</a><dl><dd>
 <p>
 In the log, shows the commits only tags reach too, or stops showing them, and reads the log again.
 <br><br>
-<b>Default key mapping:</b> -t in the log's list
+<b>Default key mapping:</b> -T in the log's list
 <br><br>
 <b>See also:</b> <a href="git.html#log-filters">The log's filters</a>
 <br><br>
@@ -6264,7 +6383,7 @@ In a file the version control tracks, stages the change at the caret, or the lin
 
 <a name="vcsStatus">vcsStatus</a><dl><dd>
 <p>
-Opens the status of the current buffer's repository, or of the project's repositories when its directory holds several: what has changed, what is staged, and the recent commits.
+Opens the status of the current buffer's repository, or of the project's repositories when its directory holds several, or from the log of the log's: what has changed, what is staged, and the recent commits.
 <br><br>
 <b>Default key mapping:</b> Ctrl Alt G; &lt;leader&gt;gg in vim edit mode
 <br><br>

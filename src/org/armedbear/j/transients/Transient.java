@@ -117,8 +117,16 @@ public record Transient(String id, String title, String help, List<Group> groups
         }
     }
 
-    /** Typed in a field on the option's row; an empty one unsets it. */
-    public record Field() implements Chooser {}
+    /**
+     * Typed in a field on the option's row; an empty one unsets it.
+     *
+     * @param history the name of the {@link org.armedbear.j.History} Up and Down step through, or null
+     */
+    public record Field(String history) implements Chooser {
+        public Field() {
+            this(null);
+        }
+    }
 
     /**
      * Typed in a field on the option's row, with the candidates listed under
@@ -138,6 +146,9 @@ public record Transient(String id, String title, String help, List<Group> groups
         void set(Editor editor, T value);
     }
 
+    /** An item's key that is Backspace, not a character typed. */
+    public static final String BACKSPACE = "<BS>";
+
     /** The item whose key is key, or null. */
     public Item item(String key) {
         for (Group g : groups)
@@ -151,7 +162,7 @@ public record Transient(String id, String title, String help, List<Group> groups
     public boolean isPrefixOfKey(String key) {
         for (Group g : groups)
             for (Item item : g.items())
-                if (item.key().length() > key.length() && item.key().startsWith(key))
+                if (item.key().length() > key.length() && item.key().startsWith(key) && !item.key().equals(BACKSPACE))
                     return true;
         return false;
     }

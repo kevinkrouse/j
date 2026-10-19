@@ -106,4 +106,19 @@ public class LogRowTest {
         assertEquals("G", LogRow.initials("grace"));
         assertEquals("?", LogRow.initials(" "));
     }
+
+    @Test
+    public void anOldDateInIsoEndsAtTheRightEdgeAsARecentOneDoes() {
+        final LogCommit old = new LogCommit("abc",
+                List.of(),
+                "Ada Lovelace",
+                "ada@example.com",
+                NOW - 400L * 86400,
+                List.of(),
+                "Old");
+        final LogRow row = LogRow.layout(old, 60, NOW, "iso");
+        assertEquals(60, row.text().length());
+        assertTrue(row.text().matches(".*\\d{4}-\\d{2}-\\d{2}"), row.text());
+        assertEquals(60, LogRow.layout(commit("New"), 60, NOW, "iso").text().length());
+    }
 }

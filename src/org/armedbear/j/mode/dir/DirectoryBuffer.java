@@ -26,14 +26,21 @@ import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.Icon;
@@ -73,8 +80,11 @@ import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.SshFile;
 import org.armedbear.j.SshSession;
 import org.armedbear.j.StatusBarProgressNotifier;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.ProcessRunner;
+import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.util.Utilities;
 
 public final class DirectoryBuffer extends Buffer {
@@ -91,7 +101,14 @@ public final class DirectoryBuffer extends Buffer {
 
     private String limitPattern;
     // Whether names starting with a dot are listed.
-    private boolean showHidden = true;
+    private boolean showHidden = Editor.preferences().getBooleanProperty(Property.DIR_SHOW_HIDDEN);
+    // The sort backward, but for . and .., which stay on top.
+    private boolean reverse;
+    // Directories over the files, or null for what dirSortDirectoriesFirst says.
+    private Boolean directoriesFirst;
+    private ListingStyle style =
+            new ListingStyle(Editor.preferences().getBooleanProperty(Property.DIR_HUMAN_READABLE_SIZES),
+                    Editor.preferences().getStringProperty(Property.DIR_TIME_STYLE));
 
     private ArrayList<DirectoryEntry> entries = new ArrayList<>();
 
@@ -105,11 +122,14 @@ public final class DirectoryBuffer extends Buffer {
     private boolean loadError;
 
     static {
-        // Letters.
-        final String letter = "\\p{Alpha}";
+        // Letters, in any language.
+        final String letter = "\\p{L}";
 
-        // Month is 2 or more letters, possibly padded on the right with spaces.
-        final String month = letter + letter + "+";
+        // Month is 2 or more letters, as "Oct" or "févr.", possibly padded on the right with spaces.
+        final String month = letter + letter + "+[.]?";
+
+        // A size in bytes, or as ls -h writes it: 4.0K, 12M, 123B.
+        final String size = "[0-9]+([.,][0-9])?[KMGTPEB]?";
 
         // Year.
         final String yyyy = "[0-9][0-9][0-9][0-9]";
@@ -126,7 +146,7 @@ public final class DirectoryBuffer extends Buffer {
         // Time or year.
         final String timeOrYear = "(" + HHMM + "|" + " " + yyyy + "|" + yyyy + " " + ")";
 
-        String traditional = "[0-9]+" + " " + monthAndDay + timeOrYear + " ";
+        String traditional = size + " " + monthAndDay + timeOrYear + " ";
 
         // --time-style=long-iso
         // -rw-r--r--    1 peter    peter         147 2002-11-13 13:10 notes
@@ -136,18 +156,19 @@ public final class DirectoryBuffer extends Buffer {
         final String isoMaybeYear = "(" + yyyy + "-)?";
         final String isoMonthAndDay = "[01][0-9]-[0-3][0-9]";
         final String isoMaybeTime = "(" + HHMM + ")?";
-        String iso = "[0-9]+" + " " + isoMaybeYear + isoMonthAndDay + " " + isoMaybeTime + " *";
+        String iso = size + " " + isoMaybeYear + isoMonthAndDay + " " + isoMaybeTime + " *";
 
         // Mac OS X (Pete Kirkham)
         // --time-style="+%e %b  %Y"
         // -rw-r--r--    1 pete  pete    6065 23 Oct  2003 Directories.java
         // --time-style="+%e %b %H:%M"
         // -rw-r--r--    1 pete  pete   75350 21 May 19:58 DirectoryBuffer.java
-        String osx = "[0-9]+" + " " + dd + " " + month + " " + timeOrYear + " ";
+        String osx = size + " " + dd + " " + month + " " + timeOrYear + " ";
 
         nativeMoveToFilenameRegExp = Pattern.compile("(" + traditional + ")|(" + iso + ")|(" + osx + ")");
 
-        internalMoveToFilenameRegExp = Pattern.compile(":[0-5][0-9]" + " ");
+        // The internal format is written as ls writes its columns.
+        internalMoveToFilenameRegExp = nativeMoveToFilenameRegExp;
     }
 
     public static final Pattern getNativeMoveToFilenameRegExp() {
@@ -225,6 +246,9 @@ public final class DirectoryBuffer extends Buffer {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer directory) {
+            // Typed over the filter bar's chip, as the log's filters are.
+            if (editor.getFilterBar() != null && editor.getFilterBar().choose(DirectoryMode.LIMIT))
+                return;
             InputDialog dialog = new InputDialog(editor, "Pattern:", "Limit", directory.getLimitPattern());
             dialog.setHistory(new History("dirLimit"));
             editor.centerDialog(dialog);
@@ -254,6 +278,145 @@ public final class DirectoryBuffer extends Buffer {
         }
     }
 
+    // Making files and directories.
+
+    /**
+     * a: a new file, its name asked for, opened in a buffer, as openFile
+     * opens one: it is written when the buffer is saved.
+     */
+    public static void dirNewFile() {
+        newEntry(false, null);
+    }
+
+    public static void dirNewFile(String name) {
+        newEntry(false, name);
+    }
+
+    /** A: a new directory, its name asked for, the caret on it in the listing. */
+    public static void dirNewDirectory() {
+        newEntry(true, null);
+    }
+
+    public static void dirNewDirectory(String name) {
+        newEntry(true, name);
+    }
+
+    private static void newEntry(boolean directory, String name) {
+        final Editor editor = Editor.currentEditor();
+        if (!(editor.getBuffer() instanceof DirectoryBuffer dir))
+            return;
+        if (name == null)
+            name = InputDialog.showInputDialog(
+                editor,
+                directory ? "Directory:" : "File:",
+                directory ? "New Directory" : "New File");
+        if (name == null || name.isBlank())
+            return;
+        name = name.strip();
+        final String error = directory ? dir.makeDirectory(name) : dir.prepareFile(name);
+        if (error != null) {
+            editor.status(error);
+            return;
+        }
+        if (directory)
+            return;
+        // Its buffer if it has one, else the file's, or a new one's to save.
+        final File file = dir.resolve(name);
+        Buffer buf = Editor.getBufferList().findBuffer(file);
+        if (buf == null)
+            buf = file.exists() ? Editor.getBuffer(file) : Buffer.createBuffer(file);
+        if (buf != null) {
+            editor.recordJump();
+            editor.makeNext(buf);
+            editor.activate(buf);
+        }
+    }
+
+    // name as the file it names here, as a typed file name is: ~ and quotes; null if it is none.
+    private File resolve(String name) {
+        final File file = File.getInstance(getFile(), name);
+        return file != null && file.isLocal() ? file : null;
+    }
+
+    /**
+     * Makes name, relative to this directory, a directory, with those it is
+     * in; lists the directory again with the caret on it, or on the
+     * directory it is in. Returns why it couldn't, or null.
+     */
+    public String makeDirectory(String name) {
+        if (!getFile().isLocal())
+            return "Can't make directories in a remote directory";
+        final File dir = resolve(name);
+        if (dir == null)
+            return "Not a name here: " + name;
+        if (dir.exists())
+            return name + " exists";
+        if (!dir.mkdirs())
+            return "Can't make " + name;
+        showMade(dir);
+        return null;
+    }
+
+    /**
+     * name, relative to this directory, ready to open as a file: the
+     * directories it is in made if they aren't there, and listed, so its
+     * buffer can be saved. Returns why it couldn't be, or null.
+     */
+    public String prepareFile(String name) {
+        if (!getFile().isLocal())
+            return "Can't make files in a remote directory";
+        final File file = resolve(name);
+        if (file == null)
+            return "Not a name here: " + name;
+        if (file.isDirectory())
+            return name + " is a directory";
+        final File parent = file.getParentFile();
+        if (parent != null && !parent.isDirectory()) {
+            if (!parent.mkdirs())
+                return "Can't make " + parent.canonicalPath();
+            showMade(parent);
+        }
+        return null;
+    }
+
+    // Lists the directory again, the caret on made's first part here: itself, or the directory it is in.
+    private void showMade(File made) {
+        keepingTags(this::rescan);
+        final Path here = Path.of(getFile().canonicalPath());
+        final Path path = Path.of(made.canonicalPath());
+        final Line line = path.startsWith(here) && !path.equals(here)
+                ? findName(here.relativize(path).getName(0).toString())
+                : null;
+        if (line != null)
+            for (Editor ed : Editor.getEditorList())
+                if (ed.getBuffer() == this) {
+                    ed.setDot(line, getNameOffset(line));
+                    ed.setMark(null);
+                    ed.moveCaretToDotCol();
+                    ed.setUpdateFlag(REFRAME | REPAINT);
+                }
+    }
+
+    /** The sort, limit and hidden files back as a listing starts: by name, all of them. */
+    public void clearFilters() {
+        final boolean show = Editor.preferences().getBooleanProperty(Property.DIR_SHOW_HIDDEN);
+        if (limitPattern != null || showHidden != show || sortBy != SORT_BY_NAME || reverse) {
+            // One listing, which sorts it too.
+            relist(() -> {
+                setLimitPattern(null);
+                showHidden = show;
+                sortBy = SORT_BY_NAME;
+                reverse = false;
+            });
+            updateHints();
+        }
+    }
+
+    public static void dirClearFilters() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer directory)
+            directory.clearFilters();
+    }
+
     /** Whether names starting with a dot are listed. */
     public final boolean getShowHidden() {
         return showHidden;
@@ -264,10 +427,102 @@ public final class DirectoryBuffer extends Buffer {
             directory.setShowHidden(!directory.getShowHidden());
     }
 
+    public final boolean getReverse() {
+        return reverse;
+    }
+
+    /** The sort backward, or not. */
+    public void setReverse(boolean b) {
+        if (b != reverse) {
+            reverse = b;
+            rearrange(null);
+            updateHints();
+        }
+    }
+
+    /** Whether directories are listed over the files, whatever the sort. */
+    public final boolean getDirectoriesFirst() {
+        return directoriesFirst != null
+                ? directoriesFirst
+                : preferences.getBooleanProperty(Property.DIR_SORT_DIRECTORIES_FIRST, !usingNativeFormat);
+    }
+
+    public void setDirectoriesFirst(boolean b) {
+        if (b != getDirectoriesFirst()) {
+            directoriesFirst = b;
+            rearrange(null);
+            updateHints();
+        }
+    }
+
+    public final boolean getHumanSizes() {
+        return style.human();
+    }
+
+    /** Sizes as 4.0K and 12M, as ls -h writes them, or in bytes. */
+    public void setHumanSizes(boolean b) {
+        if (b != style.human()) {
+            restyle(new ListingStyle(b, style.timeStyle()));
+            updateHints();
+        }
+    }
+
+    public final String getTimeStyle() {
+        return style.timeStyle();
+    }
+
+    /** Dates as ls's --time-style writes them: locale, iso or long-iso. */
+    public void setTimeStyle(String timeStyle) {
+        if (!timeStyle.equals(style.timeStyle()) && ListingStyle.TIME_STYLES.contains(timeStyle)) {
+            restyle(new ListingStyle(style.human(), timeStyle));
+            updateHints();
+        }
+    }
+
+    // j's own listing written again from what it read; ls run again for its -h and dates.
+    private void restyle(ListingStyle next) {
+        if (usingNativeFormat)
+            relist(() -> style = next);
+        else {
+            style = next;
+            rearrange(next);
+        }
+    }
+
+    public static void dirToggleReverse() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer d)
+            d.setReverse(!d.getReverse());
+    }
+
+    public static void dirToggleDirectoriesFirst() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer d)
+            d.setDirectoriesFirst(!d.getDirectoriesFirst());
+    }
+
+    public static void dirToggleHumanSizes() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer d)
+            d.setHumanSizes(!d.getHumanSizes());
+    }
+
+    /** The next time style, or the one named. */
+    public static void dirTimeStyle() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer d) {
+            final List<String> styles = ListingStyle.TIME_STYLES;
+            d.setTimeStyle(styles.get((styles.indexOf(d.getTimeStyle()) + 1) % styles.size()));
+        }
+    }
+
+    public static void dirTimeStyle(String timeStyle) {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer d)
+            d.setTimeStyle(timeStyle.strip());
+    }
+
     /** Lists names starting with a dot, or leaves them out. */
     public void setShowHidden(boolean b) {
-        if (b != showHidden)
+        if (b != showHidden) {
             relist(() -> showHidden = b);
+            updateHints();
+        }
     }
 
     public void limit(String pattern) {
@@ -284,22 +539,26 @@ public final class DirectoryBuffer extends Buffer {
         if (reload) {
             final String p = pattern;
             relist(() -> setLimitPattern(p));
+            updateHints();
         }
     }
 
     // Lists the directory again after change, keeping the caret on its name.
     private void relist(Runnable change) {
-        final Editor editor = Editor.currentEditor();
+        // The window showing the listing, as a chip clicked in one not current.
+        final Editor editor = window();
         editor.setWaitCursor();
         String name = null;
-        Line dotLine = editor.getDotLine();
+        Line dotLine = editor.getBuffer() == this ? editor.getDotLine() : null;
         if (dotLine instanceof DirectoryLine)
             name = getName(dotLine);
         change.run();
-        if (getListing() != null)
-            reloadFromListing();
-        else
-            reload();
+        keepingTags(() -> {
+            if (getListing() != null)
+                reloadFromListing();
+            else
+                reload();
+        });
         Line line = findName(name);
         Position pos;
         if (line != null)
@@ -316,6 +575,40 @@ public final class DirectoryBuffer extends Buffer {
             }
         }
         editor.setDefaultCursor();
+    }
+
+    // The current window if it shows this listing, else one that does.
+    private Editor window() {
+        final Editor current = Editor.currentEditor();
+        if (current.getBuffer() == this)
+            return current;
+        for (Editor ed : Editor.getEditorList())
+            if (ed.getBuffer() == this)
+                return ed;
+        return current;
+    }
+
+    // Runs a reload, then tags again the names tagged before it that it lists.
+    private void keepingTags(Runnable reload) {
+        final Set<String> tagged = new HashSet<>();
+        for (Line line = getFirstLine(); line != null; line = line.next())
+            if (line instanceof DirectoryLine dl && dl.getDirectoryEntry().isMarked())
+                tagged.add(getName(line));
+        reload.run();
+        if (tagged.isEmpty())
+            return;
+        for (Line line = getFirstLine(); line != null; line = line.next())
+            if (line instanceof DirectoryLine dl && tagged.contains(getName(line))) {
+                final DirectoryEntry de = dl.getDirectoryEntry();
+                if (!de.isMarked()) {
+                    de.setMarked(true);
+                    ++numMarked;
+                    line.setText(de.toString());
+                }
+            }
+        for (Editor ed : Editor.getEditorList())
+            if (ed.getBuffer() == this)
+                ed.setUpdateFlag(REPAINT);
     }
 
     public void rescan() {
@@ -437,16 +730,18 @@ public final class DirectoryBuffer extends Buffer {
     }
 
     // Called only from synchronized methods.
-    private void addEntry(String name) {
+    private DirectoryEntry addEntry(String name) {
         Debug.assertTrue(!usingNativeFormat);
         File f = File.getInstance(getFile(), name);
         if (f == null)
-            return;
+            return null;
         DirectoryEntry de;
         if (f.isDirectory())
-            de = new DirectoryEntry(name, f.lastModified(), 0, true);
+            de = new DirectoryEntry(name, f.lastModified(), f.length(), true);
         else
             de = new DirectoryEntry(name, f.lastModified(), f.length());
+        de.setMode(modeOf(f, de.isDirectory()));
+        de.setStyle(style);
         if (!name.equals(".") && !name.equals("..")) {
             try {
                 String cp = f.getCanonicalPath();
@@ -464,6 +759,7 @@ public final class DirectoryBuffer extends Buffer {
             }
         }
         entries.add(de);
+        return de;
     }
 
     private final void appendLine(DirectoryEntry entry) {
@@ -520,24 +816,63 @@ public final class DirectoryBuffer extends Buffer {
         Collections.sort(entries, comparator);
     }
 
+    private static Boolean gnuLs;
+    // As long as a listing of a slow mount is waited for.
+    private static final Duration LS_TIMEOUT = Duration.ofSeconds(30);
+
+    // Whether the ls on the PATH is GNU's, which takes --time-style.
+    private static synchronized boolean isGnuLs() {
+        if (gnuLs == null) {
+            final ProcessRunner.Result r = Platform.isPlatformUnix()
+                    ? ProcessRunner.shell("\\ls --version").timeout(Duration.ofSeconds(5)).run()
+                    : null;
+            gnuLs = r != null && r.succeeded() && r.output().contains("GNU");
+        }
+        return gnuLs;
+    }
+
+    // ls -l's first column for f: its type, then read, write and execute
+    // for its owner, group and others; just the owner's where there are no
+    // POSIX permissions, as on Windows.
+    private static String modeOf(File f, boolean isDirectory) {
+        final Path p = Path.of(f.getAbsolutePath());
+        final char type = Files.isSymbolicLink(p) ? 'l' : isDirectory ? 'd' : '-';
+        try {
+            return type + PosixFilePermissions.toString(Files.getPosixFilePermissions(p));
+        }
+        catch (UnsupportedOperationException | IOException e) {
+            return type + (f.canRead() ? "r" : "-") + (f.canWrite() ? "w" : "-") + (Files.isExecutable(p) ? "x" : "-")
+                    + "------";
+        }
+    }
+
     // Called only from synchronized methods.
     private void addEntriesToBuffer() {
-        final int size = entries.size();
-        if (preferences.getBooleanProperty(Property.DIR_SORT_DIRECTORIES_FIRST, !usingNativeFormat)) {
-            // Add lines to the buffer in two passes so directories will always be on top.
-            for (DirectoryEntry entry : entries) {
-                if (entry.isDirectory())
-                    appendLine(entry);
-            }
-            for (DirectoryEntry entry : entries) {
-                if (!entry.isDirectory())
-                    appendLine(entry);
-            }
-        } else {
-            for (DirectoryEntry entry : entries) {
-                appendLine(entry);
-            }
+        // . and .. on top, then the rest in the sort's order or backward.
+        final List<DirectoryEntry> dots = new ArrayList<>();
+        final List<DirectoryEntry> rest = new ArrayList<>();
+        for (DirectoryEntry entry : entries) {
+            final String name = entry.getName() != null ? entry.getName() : entry.extractName();
+            if (".".equals(name) || "..".equals(name))
+                dots.add(entry);
+            else
+                rest.add(entry);
         }
+        if (reverse)
+            Collections.reverse(rest);
+        final List<DirectoryEntry> ordered = new ArrayList<>(dots);
+        if (getDirectoriesFirst()) {
+            // Directories in a pass of their own, so they're on top.
+            for (DirectoryEntry entry : rest)
+                if (entry.isDirectory())
+                    ordered.add(entry);
+            for (DirectoryEntry entry : rest)
+                if (!entry.isDirectory())
+                    ordered.add(entry);
+        } else
+            ordered.addAll(rest);
+        for (DirectoryEntry entry : ordered)
+            appendLine(entry);
         if (getFirstLine() == null)
             appendLine("");
         setLoaded(true);
@@ -572,17 +907,77 @@ public final class DirectoryBuffer extends Buffer {
         }
     }
 
-    // The hint says what the listing is sorted by.
+    // The hint says what the listing is sorted by, and the filter bar its
+    // sort, limit and hidden files.
     private void updateHints() {
         for (Editor ed : Editor.getEditorList()) {
-            if (ed.getBuffer() == this)
+            if (ed.getBuffer() == this) {
                 ed.updateHint();
+                ed.updateFilterBar();
+            }
         }
+    }
+
+    // The files' total under the sizes' column, as the listing writes sizes.
+    private void appendTotal() {
+        final long totalSize = getTotalSize();
+        if (totalSize <= 0)
+            return;
+        int end = getFileSizeEndOffset();
+        if (end <= 0)
+            end = usingNativeFormat ? 45 : 24;
+        final String s = style.size(totalSize);
+        final int begin = Math.max(0, end - s.length());
+        appendLine(Utilities.spaces(begin) + "-".repeat(s.length()));
+        appendLine(Utilities.spaces(begin) + s);
+    }
+
+    /**
+     * The entries read laid out again, in order, as reverse and directories
+     * first change only that: nothing read again. With style, j's own
+     * listing's sizes and dates are written again too. The caret stays on
+     * its name in each window.
+     */
+    private void rearrange(ListingStyle style) {
+        final Map<Editor, String> names = new HashMap<>();
+        for (Editor ed : Editor.getEditorList())
+            if (ed.getBuffer() == this && ed.getDotLine() != null)
+                names.put(ed, getName(ed.getDotLine()));
+        if (style != null)
+            for (DirectoryEntry entry : entries)
+                entry.setStyle(style);
+        try {
+            lockWrite();
+        }
+        catch (InterruptedException e) {
+            Log.error(e);
+            return; // Shouldn't happen.
+        }
+        try {
+            empty();
+            addEntriesToBuffer();
+            appendTotal();
+            renumber();
+        }
+        finally {
+            unlockWrite();
+        }
+        for (Editor ed : Editor.getEditorList())
+            if (ed.getBuffer() == this) {
+                final Line line = findName(names.get(ed));
+                final Line at = line != null ? line : getFirstLine();
+                // The lines are new: the old top is gone.
+                ed.setTopLine(getFirstLine());
+                ed.setDot(at, getNameOffset(at));
+                ed.setMark(null);
+                ed.moveCaretToDotCol();
+                ed.setUpdateFlag(REFRAME | REPAINT);
+            }
     }
 
     private void resort() {
         if (usingNativeFormat) {
-            reload();
+            keepingTags(this::reload);
         } else {
             sort();
             try {
@@ -625,12 +1020,14 @@ public final class DirectoryBuffer extends Buffer {
         }
         loadError = false;
         try {
-            final DirectoryFilenameFilter dff;
-            if (limitPattern != null || !showHidden)
-                dff = new DirectoryFilenameFilter(limitPattern, !showHidden);
-            else
-                dff = null;
+            final DirectoryFilenameFilter dff = limitPattern != null ? new DirectoryFilenameFilter(limitPattern) : null;
             final File file = getFile();
+            final HiddenNames hidden = new HiddenNames(file);
+            // Rules still being read, as svn's: listed again with them, if this is still the directory.
+            hidden.whenRead(() -> {
+                if (file.equals(getFile()) && Editor.getBufferList().contains(this))
+                    relist(() -> {});
+            });
             if (useNativeFormat || file.isRemote()) {
                 usingNativeFormat = true;
                 String flags = "-la"; // Default is sort by name.
@@ -638,6 +1035,13 @@ public final class DirectoryBuffer extends Buffer {
                     flags = "-lat";
                 else if (sortBy == SORT_BY_SIZE)
                     flags = "-laS";
+                // -h is GNU's, the BSDs' and busybox's; --time-style GNU's alone.
+                if (style.human())
+                    flags += "h";
+                // An age is written over a long-iso date, which has the year and the time.
+                if (isGnuLs())
+                    flags += " --time-style="
+                            + (style.timeStyle().equals(TimeStyle.AGE) ? TimeStyle.LONG_ISO : style.timeStyle());
                 String extraOptions = getStringProperty(Property.LS_EXTRA_OPTIONS);
                 if (extraOptions != null) {
                     flags += " ";
@@ -655,29 +1059,36 @@ public final class DirectoryBuffer extends Buffer {
                         loadError = true;
                 } else {
                     // Local file.
-                    Process process = null;
+                    final ProcessRunner runner;
                     if (Platform.isPlatformUnix()) {
                         // flags is the user's ls preference, so the shell reads it.
-                        process = new ProcessBuilder("/bin/sh", "-c", "\\ls " + flags)
-                                .directory(new java.io.File(file.canonicalPath()))
-                                .start();
+                        runner = ProcessRunner.shell("\\ls " + flags).directory(file);
                     } else {
                         // Windows.
                         String cp = file.canonicalPath();
                         // Convert "C:\" into "//c" for Cygwin ls.
                         if (cp.length() == 3 && cp.charAt(1) == ':' && cp.charAt(2) == '\\')
                             cp = "//" + Character.toLowerCase(cp.charAt(0));
-                        String[] cmdarray = { "ls", flags, cp };
-                        process = Runtime.getRuntime().exec(cmdarray);
+                        runner = ProcessRunner.of("ls", flags, cp);
                     }
-                    reader = new BufferedReader(
-                            new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+                    // What ls lists, though it may say it couldn't read some; a hung one given up.
+                    final ProcessRunner.Result result =
+                            runner.charset(StandardCharsets.UTF_8).discardErrors().timeout(LS_TIMEOUT).run();
+                    if (result.exitValue() == -1)
+                        loadError = true;
+                    reader = new BufferedReader(new StringReader(result.output()));
                 }
                 if (reader != null) {
+                    final long now = System.currentTimeMillis();
                     String s;
                     while ((s = reader.readLine()) != null) {
                         DirectoryEntry entry = DirectoryEntry.getDirectoryEntry(s, dff);
-                        if (entry != null)
+                        if (entry == null)
+                            continue;
+                        if (style.timeStyle().equals(TimeStyle.AGE))
+                            entry.writeAge(now);
+                        entry.setHidden(hidden.kind(entry.extractName(), entry.isDirectory()));
+                        if (showHidden || entry.getHidden() == HiddenNames.SHOWN)
                             entries.add(entry);
                     }
                 }
@@ -695,21 +1106,15 @@ public final class DirectoryBuffer extends Buffer {
                 }
                 String[] names = file.list();
                 if (names != null) {
-                    if (dff == null) {
-                        for (String name : names)
-                            addEntry(name);
-                    } else {
-                        for (String name : names) {
-                            if (dff.hides(name))
-                                continue; // A directory too.
-                            if (dff.accepts(name))
-                                addEntry(name);
-                            else {
-                                File f = File.getInstance(file, name);
-                                if (f != null && f.isDirectory())
-                                    addEntry(name);
-                            }
-                        }
+                    for (String name : names) {
+                        final DirectoryEntry de = addEntry(name);
+                        if (de == null)
+                            continue;
+                        de.setHidden(hidden.kind(name, de.isDirectory()));
+                        // A limit leaves directories in.
+                        if ((!showHidden && de.getHidden() != HiddenNames.SHOWN)
+                                || (dff != null && !de.isDirectory() && !dff.accepts(name)))
+                            entries.remove(entries.size() - 1);
                     }
                 }
                 sort();
@@ -723,33 +1128,7 @@ public final class DirectoryBuffer extends Buffer {
             }
             try {
                 addEntriesToBuffer();
-                long totalSize = getTotalSize();
-                if (totalSize > 0) {
-                    int end;
-                    if (usingNativeFormat) {
-                        end = getFileSizeEndOffset();
-                        if (end <= 0)
-                            end = 45;
-                    } else {
-                        int nameOffset = getNameOffset();
-                        end = nameOffset - 19;
-                        if (end <= 0)
-                            end = 13;
-                    }
-                    String s = String.valueOf(totalSize);
-                    int begin = end - s.length();
-                    if (begin < 0)
-                        begin = 0;
-                    StringBuilder sb = new StringBuilder(80);
-                    sb.append(Utilities.spaces(begin));
-                    for (int i = s.length(); i > 0; i--)
-                        sb.append('-');
-                    appendLine(sb.toString());
-                    sb.setLength(0);
-                    sb.append(Utilities.spaces(begin));
-                    sb.append(s);
-                    appendLine(sb.toString());
-                }
+                appendTotal();
                 renumber();
             }
             finally {
@@ -762,56 +1141,20 @@ public final class DirectoryBuffer extends Buffer {
     }
 
     private long getTotalSize() {
+        // The files' bytes: a directory's size is its own inode's, . and .. too.
         long totalSize = 0;
-        int endOffset = -1;
-        final int limit = entries.size();
         for (DirectoryEntry entry : entries) {
-            long size = entry.getSize();
-            if (size >= 0) {
-                totalSize += size;
+            if (entry.isDirectory())
                 continue;
-            }
-            String text = entry.getString();
-            if (endOffset < 0) {
-                Matcher matcher = nativeMoveToFilenameRegExp.matcher(text);
-                if (matcher.find()) {
-                    // The file size is followed by a single space.
-                    endOffset = text.indexOf(' ', matcher.start());
-                }
-                if (endOffset < 0)
-                    endOffset = 42;
-            }
-            if (endOffset < text.length()) {
-                int end;
-                if (text.charAt(endOffset) == ' ') {
-                    // Expected.
-                    end = endOffset;
-                } else {
-                    // Encountered unexpected char at endOffset.
-                    Matcher matcher = nativeMoveToFilenameRegExp.matcher(text);
-                    if (!matcher.find())
-                        return totalSize = -1;
-                    end = text.indexOf(' ', matcher.start());
-                    if (end < endOffset) {
-                        // Correct anomaly.
-                        endOffset = end;
-                        Log.debug("endOffset = " + endOffset);
-                    }
-                }
-                int begin = text.lastIndexOf(' ', end - 1);
-                if (begin < 0)
+            long size = entry.getSize();
+            if (size < 0) {
+                // ls's, read from its line.
+                size = entry.nativeSize();
+                if (size < 0)
                     return -1;
-                try {
-                    size = Long.parseLong(text.substring(begin + 1, end));
-                    entry.setSize(size);
-                    totalSize += size;
-                }
-                catch (NumberFormatException e) {
-                    Log.error(e);
-                    return -1;
-                }
-            } else
-                return -1; // Shouldn't happen.
+                entry.setSize(size);
+            }
+            totalSize += size;
         }
         return totalSize;
     }
@@ -945,6 +1288,49 @@ public final class DirectoryBuffer extends Buffer {
         _dirOpenFile(false);
     }
 
+    /** Shift Enter: the file or directory at the caret in a new window over the listing, as vim's :split. */
+    public static void dirOpenFileInSplit() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer d)
+            d.openAtDotInSplit(false);
+    }
+
+    /** Ctrl Enter: the same beside the listing, on the left, as vim's :vsplit. */
+    public static void dirOpenFileInVsplit() {
+        if (Editor.currentEditor().getBuffer() instanceof DirectoryBuffer d)
+            d.openAtDotInSplit(true);
+    }
+
+    private void openAtDotInSplit(boolean vertical) {
+        final Editor editor = Editor.currentEditor();
+        if (editor.getFrame() == null || !(editor.getDotLine() instanceof DirectoryLine))
+            return;
+        final String name = getName(editor.getDotLine());
+        if (name == null || name.equals("."))
+            return;
+        if (getFile().isRemote()) {
+            editor.status("Not in a remote directory");
+            return;
+        }
+        final File f = File.getInstance(getFile(), name);
+        if (f == null || !f.exists()) {
+            editor.status("File not found");
+            return;
+        }
+        // A directory as a listing of its own, not this one changed.
+        final Buffer buf = Editor.getBuffer(f);
+        if (buf == null)
+            return;
+        editor.recordJump();
+        // The caret goes to the new window, top or left; the listing stays in the other.
+        if (vertical)
+            WindowCommands.vsplitWindow(editor, "vim");
+        else
+            WindowCommands.splitWindow(editor, "vim");
+        final Editor top = Editor.currentEditor();
+        top.makeNext(buf);
+        top.switchToBuffer(buf);
+    }
+
     public static void dirOpenFileAndKillDirectory() {
         _dirOpenFile(true);
     }
@@ -1041,6 +1427,7 @@ public final class DirectoryBuffer extends Buffer {
                     buf = new RemoteBuffer(newFile);
                 else
                     Debug.assertTrue(false);
+                editor.recordJump();
                 editor.makeNext(buf);
                 editor.activate(buf);
             }
@@ -1059,6 +1446,8 @@ public final class DirectoryBuffer extends Buffer {
         }
         Buffer buf = Editor.getBuffer(f);
         if (buf != null) {
+            // A jump, so that CTRL-O comes back to the listing.
+            editor.recordJump();
             editor.makeNext(buf);
             editor.activate(buf);
         }
@@ -1103,6 +1492,17 @@ public final class DirectoryBuffer extends Buffer {
             }
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
         }
+    }
+
+    /**
+     * Lists dir in place, the back and forward history left as it is, as a
+     * jump back to it does; false if it isn't a directory j can read.
+     */
+    public boolean goTo(File dir) {
+        if (dir == null || !dir.isDirectory() || (dir.isLocal() && !dir.canRead()))
+            return false;
+        changeDirectory(new DirectoryHistoryEntry(dir, null, 0));
+        return true;
     }
 
     // No history.
@@ -1693,7 +2093,7 @@ public final class DirectoryBuffer extends Buffer {
         final FtpSession session = FtpSession.getSession((FtpFile) getFile());
         if (session == null)
             return;
-        final long fileSize = getFileSize(dotLine.getText());
+        final long fileSize = getFileSize(dotLine);
         final FtpLoadProcess loadProcess = new FtpLoadProcess(this, sourceFile, session);
         final Runnable successRunnable = () -> {
             File cache = loadProcess.getCache();
@@ -1751,7 +2151,12 @@ public final class DirectoryBuffer extends Buffer {
         return title;
     }
 
+    // The entry's name; a line of another kind's by the pattern ls's dates match.
     private String getName(Line line) {
+        if (line instanceof DirectoryLine dl) {
+            final DirectoryEntry entry = dl.getDirectoryEntry();
+            return entry.getName() != null ? entry.getName() : entry.extractName();
+        }
         return getName(line.getText());
     }
 
@@ -1775,23 +2180,9 @@ public final class DirectoryBuffer extends Buffer {
         return null;
     }
 
-    private long getFileSize(String s) {
-        if (usingNativeFormat) {
-            try {
-                Matcher matcher = nativeMoveToFilenameRegExp.matcher(s);
-                if (matcher.find()) {
-                    String toBeParsed = s.substring(matcher.start());
-                    int index = toBeParsed.indexOf(' ');
-                    if (index >= 0) {
-                        toBeParsed = toBeParsed.substring(0, index);
-                        return Long.parseLong(toBeParsed);
-                    }
-                }
-            }
-            catch (NumberFormatException e) {
-                Log.error(e);
-            }
-        }
+    private long getFileSize(Line line) {
+        if (usingNativeFormat && line instanceof DirectoryLine dl)
+            return Math.max(dl.getDirectoryEntry().nativeSize(), 0);
         return 0;
     }
 
@@ -1908,6 +2299,8 @@ public final class DirectoryBuffer extends Buffer {
     }
 
     private int getNameOffset(Line line) {
+        if (line instanceof DirectoryLine dl && dl.getDirectoryEntry().nameColumn() >= 0)
+            return dl.getDirectoryEntry().nameColumn();
         if (line != null) {
             Matcher matcher;
             if (usingNativeFormat)
@@ -1920,12 +2313,10 @@ public final class DirectoryBuffer extends Buffer {
         return 0;
     }
 
-    private int getNameOffset() {
-        return getNameOffset(getFirstLine());
-    }
-
     private int getFileSizeEndOffset() {
         Line line = getFirstLine();
+        if (line instanceof DirectoryLine dl && dl.getDirectoryEntry().sizeEndColumn() >= 0)
+            return dl.getDirectoryEntry().sizeEndColumn();
         if (line != null) {
             final String text = line.getText();
             Matcher matcher;
@@ -1942,7 +2333,7 @@ public final class DirectoryBuffer extends Buffer {
         return -1; // Error!
     }
 
-    private Line findName(String name) {
+    Line findName(String name) {
         if (name != null) {
             if (Platform.isPlatformWindows()) {
                 // Case-insensitive filesystem.

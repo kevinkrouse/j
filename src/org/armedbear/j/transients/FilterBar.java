@@ -42,14 +42,18 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.transients.Transient.Cycle;
+import org.armedbear.j.transients.Transient.Item;
 import org.armedbear.j.transients.Transient.Option;
+import org.armedbear.j.transients.Transient.Switch;
 import org.armedbear.j.util.Utilities;
 
 /**
  * A strip over a window of the filters on its view, as the log's branch and
  * author, from {@code Mode.getFilters}: each a chip, its popup key in bold,
- * "-b branch: master ▾", or dimmed "-a author ▾" when unset. A click on a
- * chip picks its value, as the popup does, and one on its "×" clears it.
+ * "-b branch: master ▾", or dimmed "-a author ▾" when unset; a cycle's
+ * always with its value, set when it isn't the first; a switch's with its
+ * name alone, set when on. A click on a chip picks its value, or turns a
+ * switch over, as the popup does, and one on its "×" clears it.
  * It never takes the focus but for the field a value is typed in.
  */
 public final class FilterBar extends JComponent {
@@ -61,7 +65,7 @@ public final class FilterBar extends JComponent {
     private Option fieldOption;
 
     // A filter as drawn: its key, then the chip, then "×" when set.
-    private record Chip(Option option, int keyX, int x, int width, int clearX, String text, boolean set) {}
+    private record Chip(Item item, int keyX, int x, int width, int clearX, String text, boolean set) {}
 
     public FilterBar(Editor editor) {
         this.editor = editor;
@@ -87,22 +91,36 @@ public final class FilterBar extends JComponent {
 
     /** Lays the chips out again from the mode's filters and their values. */
     public void refresh() {
-        final List<Option> options = editor.getMode().getFilters(editor);
+        final List<? extends Item> items = editor.getMode().getFilters(editor);
         final Font plain = Display.getPlainFont();
         final FontMetrics fm = Utilities.getFontMetrics(plain);
         final FontMetrics bfm = Utilities.getFontMetrics(plain.deriveFont(Font.BOLD));
         final int cw = Display.getCharWidth();
         final List<Chip> out = new ArrayList<>();
         int x = cw;
-        for (Option o : options == null ? List.<Option>of() : options) {
-            final String value = o.binding().get(editor);
-            final boolean set = value != null && !value.isEmpty();
-            final String text = set ? o.description() + ": " + value + " ▾" : o.description() + " ▾";
+        for (Item item : items == null ? List.<Item>of() : items) {
+            final boolean set;
+            final String text;
+            switch (item) {
+                case Switch sw when sw.binding() != null -> {
+                    set = Boolean.TRUE.equals(sw.binding().get(editor));
+                    text = sw.description();
+                }
+                case Option o when o.binding() != null -> {
+                    final String value = o.binding().get(editor);
+                    final boolean has = value != null && !value.isEmpty();
+                    set = has && !(o.chooser() instanceof Cycle c && value.equals(c.values().get(0)));
+                    text = has ? o.description() + ": " + value + " ▾" : o.description() + " ▾";
+                }
+                default -> {
+                    continue;
+                }
+            }
             final int keyX = x;
-            x += bfm.stringWidth(o.key()) + cw / 2;
+            x += bfm.stringWidth(item.key()) + cw / 2;
             final int width = fm.stringWidth(text) + cw;
             final int clearX = set ? x + width + cw / 2 : -1;
-            out.add(new Chip(o, keyX, x, width, clearX, text, set));
+            out.add(new Chip(item, keyX, x, width, clearX, text, set));
             x += width + (set ? cw / 2 + fm.stringWidth("×") : 0) + 2 * cw;
         }
         chips = out;
@@ -137,8 +155,8 @@ public final class FilterBar extends JComponent {
         for (Chip c : chips) {
             g2d.setFont(plain.deriveFont(Font.BOLD));
             g2d.setColor(f.getHoverLinkColor());
-            g2d.drawString(c.option().key(), c.keyX(), PAD + ascent);
-            if (c.option() == fieldOption)
+            g2d.drawString(c.item().key(), c.keyX(), PAD + ascent);
+            if (c.item() == fieldOption)
                 continue;
             Display.fillChip(g2d, DefaultTheme.blend(bg, text, c.set() ? 0.14 : 0.07), c.x(), PAD, c.width(), ch);
             g2d.setFont(plain);
@@ -164,15 +182,36 @@ public final class FilterBar extends JComponent {
         return Utilities.getFontMetrics(Display.getPlainFont()).stringWidth("×");
     }
 
-    /** A click at x: a chip picks its value, its "×" clears it. */
+    /** A click at x: a chip picks its value, or turns its switch over; its "×" clears it. */
     void clicked(int x) {
         final Chip c = chipAt(x);
         if (c == null)
             return;
-        if (c.set() && x >= c.clearX())
-            set(c.option(), "");
-        else
-            choose(c.option());
+        final boolean clear = c.set() && x >= c.clearX();
+        switch (c.item()) {
+            case Switch sw -> {
+                closeField();
+                sw.binding().set(editor, !clear && !c.set());
+                refreshAll(editor.getBuffer());
+            }
+            case Option o -> {
+                if (clear)
+                    set(o, o.chooser() instanceof Cycle cycle ? cycle.values().get(0) : "");
+                else
+                    choose(o);
+            }
+            default -> {}
+        }
+    }
+
+    /** Picks the value of the option of that name, as choose does; false if the bar has none. */
+    public boolean choose(String name) {
+        for (Chip c : chips)
+            if (c.item() instanceof Option o && o.name().equals(name)) {
+                choose(o);
+                return true;
+            }
+        return false;
     }
 
     /** Picks option's value: the next of a cycle, else typed in a field over its chip. */
@@ -186,7 +225,7 @@ public final class FilterBar extends JComponent {
         }
         Chip chip = null;
         for (Chip c : chips)
-            if (c.option() == o)
+            if (c.item() == o)
                 chip = c;
         if (chip == null)
             return;
@@ -257,26 +296,34 @@ public final class FilterBar extends JComponent {
     }
 
     /** Where option's chip is drawn, for tests to click. */
-    public Rectangle boundsOf(Option o) {
+    public Rectangle boundsOf(Item o) {
         for (Chip c : chips)
-            if (c.option() == o)
+            if (c.item() == o)
                 return new Rectangle(c.x(), PAD, c.width(), Display.getCharHeight());
         return null;
     }
 
     /** Where option's "×" is drawn, or null when it is unset. */
-    public Rectangle clearBoundsOf(Option o) {
+    public Rectangle clearBoundsOf(Item o) {
         for (Chip c : chips)
-            if (c.option() == o && c.set())
+            if (c.item() == o && c.set())
                 return new Rectangle(c.clearX(), PAD, clearWidth(), Display.getCharHeight());
         return null;
+    }
+
+    /** The filters drawn, in order, for tests. */
+    List<Item> items() {
+        final List<Item> out = new ArrayList<>();
+        for (Chip c : chips)
+            out.add(c.item());
+        return out;
     }
 
     /** The chips as text, for tests: "-b branch ▾", "-a author: kk ▾ ×". */
     public List<String> text() {
         final List<String> out = new ArrayList<>();
         for (Chip c : chips)
-            out.add(c.option().key() + " " + c.text() + (c.set() ? " ×" : ""));
+            out.add(c.item().key() + " " + c.text() + (c.set() ? " ×" : ""));
         return out;
     }
 
@@ -285,6 +332,7 @@ public final class FilterBar extends JComponent {
         final Chip c = chipAt(e.getX());
         if (c == null)
             return null;
-        return c.set() && e.getX() >= c.clearX() ? "Clear " + c.option().description() : c.option().name();
+        final String name = c.item() instanceof Option o ? o.name() : ((Switch) c.item()).name();
+        return c.set() && e.getX() >= c.clearX() ? "Clear " + c.item().description() : name;
     }
 }

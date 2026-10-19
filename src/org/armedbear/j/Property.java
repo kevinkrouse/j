@@ -69,6 +69,7 @@ public final class Property implements Comparable<Property> {
     public static final Property TEXT_FIELD_FONT_SIZE = createProperty("textFieldFontSize", 0);
     // Below this many columns, the log's details at the bottom stack its files over its diff.
     public static final Property VCS_LOG_STACKED_WIDTH = createProperty("vcsLogStackedWidth", 100);
+    public static final Property VCS_LOG_TIME_STYLE = createProperty("vcsLogTimeStyle", "age");
     public static final Property VERTICAL_RULE = createProperty("verticalRule", 0);
     public static final Property VERTICAL_SCROLL_INCREMENT = createProperty("verticalScrollIncrement", 5);
     public static final Property WHEEL_SCROLL_DURATION = createProperty("wheelScrollDuration", 60);
@@ -91,6 +92,9 @@ public final class Property implements Comparable<Property> {
     public static final Property DEBUG = createProperty("debug", false);
     public static final Property DEBUG_SCROLL_TIMING = createProperty("debugScrollTiming", false);
     public static final Property DETECT_ENCODING = createProperty("detectEncoding", true);
+    public static final Property DIR_HUMAN_READABLE_SIZES = createProperty("dirHumanReadableSizes", false);
+    public static final Property DIR_SHOW_HIDDEN = createProperty("dirShowHidden", false);
+    public static final Property DIR_TIME_STYLE = createProperty("dirTimeStyle", "locale");
     public static final Property DIR_SORT_DIRECTORIES_FIRST = createProperty("dirSortDirectoriesFirst", true);
     public static final Property DIR_USE_NATIVE_FORMAT = createProperty("dirUseNativeFormat", false);
     public static final Property EMULATE_BOLD = createProperty("emulateBold", false);

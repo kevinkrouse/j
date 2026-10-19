@@ -40,6 +40,7 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.ViewBuffer;
 
@@ -68,6 +69,9 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     private boolean fresh = true;
     private volatile boolean disposed;
     private int width = 80;
+    // How the rows' dates are written: their age, or as ls's --time-style.
+    private String timeStyle =
+            TimeStyle.valid(Editor.preferences().getStringProperty(Property.VCS_LOG_TIME_STYLE), TimeStyle.AGE);
     // The lanes of the commits read, and the most any row spans.
     private LogGraph graph = new LogGraph();
     private int graphWidth;
@@ -212,7 +216,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         follow.stop();
         if (frame != null) {
             if (isFull())
-                frame.leaveView(this);
+                frame.leaveView(this, getChildren().isEmpty() ? List.of(this) : List.of(this, files, diff));
             else {
                 final Editor ed = Editor.windowShowing(this);
                 if (ed != null && frame.hasSplit())
@@ -358,7 +362,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
             branchLanes.clear();
         for (int i = 0; i < page.size(); i++) {
             final LogGraph.Row row = rows == null ? null : rows.get(i);
-            lines.add(new LogLine(page.get(i), row, LogRow.layout(page.get(i), width, now)));
+            lines.add(new LogLine(page.get(i), row, LogRow.layout(page.get(i), width, now, timeStyle)));
             if (row != null)
                 for (LogRef r : page.get(i).refs())
                     if (r.kind() != LogRef.Kind.TAG)
@@ -431,10 +435,29 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         if (columns <= 0 || columns == width)
             return;
         width = columns;
+        relayout();
+    }
+
+    public String getTimeStyle() {
+        return timeStyle;
+    }
+
+    /** The rows' and the details' dates in a time style: age, locale, iso or long-iso. */
+    void setTimeStyle(String style) {
+        if (!TimeStyle.ALL.contains(style) || style.equals(timeStyle))
+            return;
+        timeStyle = style;
+        relayout();
+        if (files != null)
+            files.restyle();
+    }
+
+    // Each row laid out again, for the width and the time style.
+    private void relayout() {
         final long now = System.currentTimeMillis() / 1000;
         for (Line l = getFirstLine(); l != null; l = l.next())
             if (l instanceof LogLine ll)
-                ll.layout(LogRow.layout(ll.commit(), width, now));
+                ll.layout(LogRow.layout(ll.commit(), width, now, timeStyle));
         invalidate();
         for (Editor ed : Editor.getEditorList())
             if (ed.getBuffer() == this) {

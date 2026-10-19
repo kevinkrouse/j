@@ -20,12 +20,10 @@
 
 package org.armedbear.j.mode.dir;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import org.armedbear.j.DirectoryFilenameFilter;
 import org.armedbear.j.Log;
+import org.armedbear.j.util.TimeStyle;
 
 public final class DirectoryEntry {
     private String name;
@@ -35,14 +33,20 @@ public final class DirectoryEntry {
     private boolean isLink;
     private String linkedTo;
     private boolean isMarked;
+    // HiddenNames' kind: shown, hidden or ignored.
+    private int hidden;
 
-    // For native format, this is all we store.
-    private final String string;
+    // For native format, this is all we store: as ls wrote it, or with its date as an age.
+    private String string;
+    // Where the size starts and ends and the name starts in the text past the
+    // tag's two columns, so nothing reads a line's columns by its dates; -1 if not found.
+    private int sizeStart = -1;
+    private int sizeEnd = -1;
+    private int nameStart = -1;
 
-    private static final String DIR = "     <DIR>";
-    private static final int DIRLENGTH = DIR.length();
-    private static final String DATEFORMAT = "MMM dd yyyy HH:mm";
-    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(DATEFORMAT);
+    // The internal format's: as ls -l's first column, and how sizes and dates are written.
+    private String mode = "----------";
+    private ListingStyle style = ListingStyle.DEFAULT;
 
     // Constructor for native "ls -l" format.
     private DirectoryEntry(String string, char firstChar) {
@@ -52,6 +56,51 @@ public final class DirectoryEntry {
         else if (firstChar == 'l')
             isLink = true;
         size = -1;
+        findColumns();
+    }
+
+    // The columns of ls's line, by its date, read once.
+    private void findColumns() {
+        final int link = string.indexOf(" -> ");
+        final String s = link >= 0 ? string.substring(0, link) : string;
+        final Matcher matcher = DirectoryBuffer.getNativeMoveToFilenameRegExp().matcher(s);
+        if (!matcher.find())
+            return;
+        sizeStart = matcher.start();
+        sizeEnd = s.indexOf(' ', sizeStart);
+        nameStart = matcher.end();
+        name = s.substring(nameStart);
+    }
+
+    /** Where the name starts in the line, past the tag's columns; -1 if not known. */
+    final int nameColumn() {
+        return nameStart < 0 ? -1 : 2 + nameStart;
+    }
+
+    /** Where the size starts in the line; -1 if not known. */
+    final int sizeColumn() {
+        return sizeStart < 0 ? -1 : 2 + sizeStart;
+    }
+
+    /** Where the size ends in the line; -1 if not known. */
+    final int sizeEndColumn() {
+        return sizeEnd < 0 ? -1 : 2 + sizeEnd;
+    }
+
+    /**
+     * ls's date written as how long ago, as the age time style has it, read
+     * back from the date ls wrote; left as it is if that isn't a date.
+     */
+    final void writeAge(long now) {
+        if (string == null || sizeEnd < 0 || nameStart <= sizeEnd)
+            return;
+        final long millis = ListingStyle.parseDate(string.substring(sizeEnd, nameStart).strip(), now);
+        if (millis < 0)
+            return;
+        date = millis;
+        final String age = ListingStyle.padAge(TimeStyle.age(millis / 1000, now / 1000));
+        string = string.substring(0, sizeEnd) + " " + age + " " + string.substring(nameStart);
+        nameStart = sizeEnd + 1 + age.length() + 1;
     }
 
     // Constructor for internal format.
@@ -84,13 +133,8 @@ public final class DirectoryEntry {
             return null;
         if (c == 'l' && s.startsWith("ls "))
             return null;
-        if (filter != null) {
-            final String name = getName(s);
-            if (filter.hides(name))
-                return null;
-            if (c != 'd' && !filter.accepts(name))
-                return null;
-        }
+        if (filter != null && c != 'd' && !filter.accepts(getName(s)))
+            return null;
         return new DirectoryEntry(s, c);
     }
 
@@ -122,6 +166,13 @@ public final class DirectoryEntry {
         if (name == null && string != null)
             name = getName(string);
         return name;
+    }
+
+    /** The size ls wrote, in bytes as near as it says; -1 if not known. */
+    final long nativeSize() {
+        if (string == null || sizeStart < 0 || sizeEnd <= sizeStart)
+            return -1;
+        return ListingStyle.parseSize(string.substring(sizeStart, sizeEnd));
     }
 
     // nameColumn must be > 0. It's just a hint.
@@ -160,6 +211,22 @@ public final class DirectoryEntry {
         this.size = size;
     }
 
+    public final int getHidden() {
+        return hidden;
+    }
+
+    final void setHidden(int kind) {
+        hidden = kind;
+    }
+
+    final void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    final void setStyle(ListingStyle style) {
+        this.style = style;
+    }
+
     public final boolean isDirectory() {
         return isDirectory;
     }
@@ -190,21 +257,20 @@ public final class DirectoryEntry {
         // Use saved string for native format.
         if (string != null)
             return marked.concat(string);
-        // Construct string for internal format.
+        // Construct string for internal format: as ls -l writes it, but for
+        // links, owner and group.
         StringBuilder sb = new StringBuilder(256);
         sb.append(marked);
-        if (isDirectory) {
-            sb.append(DIR);
-        } else {
-            String sizeString = String.valueOf(size);
-            for (int j = 0; j < DIRLENGTH - sizeString.length(); j++)
-                sb.append(' ');
-            sb.append(sizeString);
-        }
+        sb.append(mode).append(' ');
+        final String sizeString = style.size(Math.max(size, 0));
+        for (int j = sizeString.length(); j < (style.human() ? 5 : 10); j++)
+            sb.append(' ');
+        sizeStart = sb.length() - 2;
+        sb.append(sizeString);
+        sizeEnd = sb.length() - 2;
         sb.append(' ');
-        String dateString = dateFormatter.format(Instant.ofEpochMilli(date).atZone(ZoneId.systemDefault()));
-        sb.append(dateString);
-        sb.append(' ');
+        sb.append(style.date(date, System.currentTimeMillis())).append(' ');
+        nameStart = sb.length() - 2;
         sb.append(name);
         if (linkedTo != null) {
             sb.append(" -> ");

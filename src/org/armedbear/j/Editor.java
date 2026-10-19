@@ -30,6 +30,8 @@ import java.awt.GraphicsEnvironment;
 import java.awt.dnd.DropTarget;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -52,7 +54,9 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.extension.EvalException;
 import org.armedbear.j.extension.EvalRequest;
@@ -69,6 +73,8 @@ import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
+import org.armedbear.j.vim.KeyNotation;
+import org.armedbear.j.vim.VimInputHandler;
 import org.jdesktop.swingx.MultiSplitLayout;
 
 public final class Editor extends JPanel implements ComponentListener, MouseWheelListener {
@@ -400,7 +406,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     /** Shows the mode's filters in a bar over the window, or takes the bar away when it has none. */
     public void updateFilterBar() {
-        final List<Transient.Option> filters = buffer == null ? null : getMode().getFilters(this);
+        final List<? extends Transient.Item> filters = buffer == null ? null : getMode().getFilters(this);
         if (filters == null || filters.isEmpty()) {
             if (filterBar != null) {
                 north.remove(filterBar);
@@ -480,8 +486,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             if (mapping == null)
                 continue;
             final String key = vim
-                    ? org.armedbear.j.vim.KeyNotation
-                            .name(mapping.getKeyCode(), mapping.getKeyChar(), mapping.getModifiers())
+                    ? KeyNotation.name(mapping.getKeyCode(), mapping.getKeyChar(), mapping.getModifiers())
                     : shortKey(mapping.getKeyText());
             items.add(new String[] { key, h[1] });
         }
@@ -512,9 +517,9 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             locationBar.update();
             // Gone when the prompt is, wherever focus goes: a file opened from
             // the panel takes it to the window behind.
-            locationBar.getTextField().addFocusListener(new java.awt.event.FocusAdapter() {
+            locationBar.getTextField().addFocusListener(new FocusAdapter() {
                 @Override
-                public void focusLost(java.awt.event.FocusEvent e) {
+                public void focusLost(FocusEvent e) {
                     if (!e.isTemporary())
                         SwingUtilities.invokeLater(Editor.this::dropPromptLocationBar);
                 }
@@ -567,7 +572,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void updateLocation() {
         if (locationBar != null) {
             HistoryTextField textField = locationBar.getTextField();
-            if (textField == null || textField != frame.getFocusedComponent())
+            // A window with no frame, as in tests, has no focus to keep.
+            if (textField == null || frame == null || textField != frame.getFocusedComponent())
                 locationBar.update();
         }
     }
@@ -702,7 +708,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (editMode == null || editMode.equals("simple"))
             return null;
         if (!editMode.equals(inputHandlerEditMode)) {
-            inputHandler = "vim".equals(editMode) ? new org.armedbear.j.vim.VimInputHandler() : null;
+            inputHandler = "vim".equals(editMode) ? new VimInputHandler() : null;
             inputHandlerEditMode = editMode;
             if (inputHandler == null)
                 Log.error("unknown editMode \"" + editMode + "\"");
@@ -1078,7 +1084,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     // closeParen's highlight of the matching paren, while it shows.
-    javax.swing.Timer parenFlash;
+    Timer parenFlash;
     /*package*/ static int parenFlashMillis = 300;
 
     public final void moveDotTo(Position pos) {
@@ -1426,8 +1432,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             // Don't let a global mapping hide a different mapping of the same
             // keystroke in the buffer-local keymap!
             if (mapping != null) {
-                javax.swing.KeyStroke keyStroke =
-                        javax.swing.KeyStroke.getKeyStroke(mapping.getKeyCode(), mapping.getModifiers());
+                KeyStroke keyStroke = KeyStroke.getKeyStroke(mapping.getKeyCode(), mapping.getModifiers());
                 if (buffer.getKeyMapForMode().lookup(keyStroke) != null)
                     mapping = null;
             }

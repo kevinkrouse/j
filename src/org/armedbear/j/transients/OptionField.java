@@ -44,6 +44,8 @@ import javax.swing.event.DocumentListener;
 import org.armedbear.j.CompletionPopup;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
+import org.armedbear.j.History;
+import org.armedbear.j.transients.Transient.Field;
 import org.armedbear.j.transients.Transient.Option;
 import org.armedbear.j.transients.Transient.Pick;
 
@@ -65,10 +67,13 @@ final class OptionField {
     private int waited;
     // Whether the option had a value when the field opened, which erasing clears.
     private final boolean wasSet;
+    // What was typed in it before, for a Field that keeps it.
+    private final History history;
 
     OptionField(Option o, Editor editor, String value, Consumer<String> accept, Runnable escape) {
         field = new JTextField(value == null ? "" : value);
         wasSet = value != null && !value.isBlank();
+        history = o.chooser() instanceof Field f && f.history() != null ? new History(f.history()) : null;
         field.setFont(Display.getPlainFont());
         field.setBorder(BorderFactory.createEmptyBorder());
         field.addKeyListener(new KeyAdapter() {
@@ -78,7 +83,12 @@ final class OptionField {
                 if (code == KeyEvent.VK_ENTER) {
                     final String selected =
                             completion != null && completion.isShowing() ? completion.getSelected() : null;
-                    accept.accept(selected != null ? selected : field.getText());
+                    final String text = selected != null ? selected : field.getText();
+                    if (history != null && !text.isBlank()) {
+                        history.append(text.strip());
+                        history.save();
+                    }
+                    accept.accept(text);
                     e.consume();
                 } else if (code == KeyEvent.VK_ESCAPE) {
                     escape.run();
@@ -87,6 +97,14 @@ final class OptionField {
                         && completion.isShowing()
                         && (code == KeyEvent.VK_DOWN || code == KeyEvent.VK_UP)) {
                     completion.move(code == KeyEvent.VK_DOWN ? 1 : -1, true);
+                    e.consume();
+                } else if (history != null && (code == KeyEvent.VK_UP || code == KeyEvent.VK_DOWN)) {
+                    final String s = code == KeyEvent.VK_UP ? history.getPrevious() : history.getNext();
+                    if (s != null || code == KeyEvent.VK_DOWN) {
+                        field.setText(s != null ? s : "");
+                        if (s == null)
+                            history.reset();
+                    }
                     e.consume();
                 }
             }

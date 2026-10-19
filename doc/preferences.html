@@ -763,6 +763,45 @@ Color for marked files in directory buffers.
 <b>Default value:</b> None
 </dl>
 
+<code><a name="DirectoryMode.color.hidden">DirectoryMode.color.hidden</a></code>
+<dl>
+<dd>
+Color for hidden names in directory buffers, when they are shown. It links to
+<code>muted</code>.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="DirectoryMode.color.permissionRead">DirectoryMode.color.permissionRead</a></code>,
+<code>DirectoryMode.color.permissionWrite</code>,
+<code>DirectoryMode.color.permissionExecute</code>,
+<code>DirectoryMode.color.permissionNone</code>
+<dl>
+<dd>
+Colors for the r, w and x of the first column in directory buffers, and for
+its -.
+<p>
+<b>Default value:</b> yellow, red, green and gray
+</dl>
+
+<code><a name="DirectoryMode.color.size">DirectoryMode.color.size</a></code>,
+<code>DirectoryMode.color.date</code>
+<dl>
+<dd>
+Colors for sizes and dates in directory buffers.
+<p>
+<b>Default value:</b> green and blue
+</dl>
+
+<code><a name="DirectoryMode.color.ignored">DirectoryMode.color.ignored</a></code>
+<dl>
+<dd>
+Color for names version control ignores in directory buffers, when they are shown;
+italic by default. It links to <code>muted</code>.
+<p>
+<b>Default value:</b> None
+</dl>
+
 <code><a name="DirectoryMode.color.symlink">DirectoryMode.color.symlink</a></code>
 <dl>
 <dd>
@@ -779,13 +818,48 @@ If true, a directory tree is displayed in the sidebar in Directory mode.
 <b>Default value:</b> true
 </dl>
 
+<code><a name="dirHumanReadableSizes">dirHumanReadableSizes</a></code>
+<dl>
+<dd>
+If true, directory buffers write sizes as <code>ls -h</code> does, 4.0K and
+12M. -h turns it over in one listing.
+<p>
+<b>Default value:</b> false
+</dl>
+
+<code><a name="dirShowHidden">dirShowHidden</a></code>
+<dl>
+<dd>
+If true, directory buffers list hidden names: those starting with a dot,
+those matching
+<a href="#filenameCompletionsExcludePattern">filenameCompletionsExcludePattern</a>,
+and, in a repository, those its version control (git, Subversion) ignores. The show hidden filter, or
+<code>.</code>, shows or hides them in one listing.
+<p>
+<b>Default value:</b> false
+</dl>
+
 <code><a name="dirSortDirectoriesFirst">dirSortDirectoriesFirst</a></code>
 <dl>
 <dd>
 If true, directories appear grouped together at the top of directory
-buffers, followed by ordinary files.
+buffers, followed by ordinary files, whatever the sort. -d turns it over in
+one listing.
 <p>
 <b>Default value:</b> <code>!dirUseNativeFormat</code>
+</dl>
+
+<code><a name="dirTimeStyle">dirTimeStyle</a></code>
+<dl>
+<dd>
+How directory buffers write dates, as <code>ls --time-style</code> does:
+<code>locale</code> (<code>Oct 16 09:02</code>), <code>iso</code>
+(<code>10-16 09:02</code>), <code>long-iso</code>
+(<code>2026-10-16 09:02</code>), or <code>age</code>, how long ago
+(<code>3h</code>, <code>4mo</code>). With <code>ls</code>, only GNU's takes
+the first three; an age is j's in any listing. -t steps it in one listing.
+<p>
+<b>Default value:</b> locale
 </dl>
 
 <code><a name="dirUseNativeFormat">dirUseNativeFormat</a></code>
@@ -2296,6 +2370,17 @@ Whether a log of several repositories names each row's repository beside its
 colored strip, not only on a hover over it. See <a href="git.html#log">The log</a>.
 <p>
 <b>Default value:</b> false
+</dl>
+
+<code><a name="vcsLogTimeStyle">vcsLogTimeStyle</a></code>
+<dl>
+<dd>
+How the log writes its dates: <code>age</code> (<code>3h</code>,
+<code>4mo</code>), <code>locale</code>, <code>iso</code> or
+<code>long-iso</code>, as the directory's
+<a href="#dirTimeStyle">dirTimeStyle</a>. -t steps it in one log.
+<p>
+<b>Default value:</b> age
 </dl>
 
 <code><a name="vcsLogStackedWidth">vcsLogStackedWidth</a></code>

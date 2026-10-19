@@ -41,6 +41,7 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 
@@ -394,20 +395,18 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
     }
 
     // dir and everything under it, skipping what a project's file list skips:
-    // what .gitignore ignores, build and tool directories, nested worktrees.
+    // what version control ignores, build and tool directories, nested worktrees.
     // Each file is searched as the walk finds it.
     private void walkDirectory(File dir, List<Filter> filters, Pattern excludesRE) {
         final char sep = LocalFile.getSeparatorChar();
-        new ProjectFiles.Walker(java.nio.file.Path.of(dir.canonicalPath()),
-                Integer.MAX_VALUE,
-                excludesRE,
-                ProjectFiles.Walker.globalIgnoreFile(),
-                () -> cancelled,
-                null).visiting(rel -> {
+        new ProjectFiles.Walker(java.nio.file.Path
+                .of(dir.canonicalPath()), Integer.MAX_VALUE, excludesRE, Ignores::atRoot, () -> cancelled, null)
+                .visiting(rel -> {
                     String name = rel.substring(rel.lastIndexOf('/') + 1);
                     if (accepts(filters, name))
                         searchFile(File.getInstance(dir, sep == '/' ? rel : rel.replace('/', sep)));
-                }).walk();
+                })
+                .walk();
     }
 
     // The open buffers' files that the patterns name, as they are in memory.

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -81,7 +82,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
     private volatile boolean disposed;
     // A write is running, or its refresh not shown yet: what the lines show is old.
     private volatile boolean writing;
-    private final java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong();
+    private final AtomicLong clock = new AtomicLong();
     private volatile long wroteAt;
     // The diff beside it, or null; what it was last shown to follow, and
     // why it follows next, null for nothing new.
@@ -450,12 +451,17 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
 
     /** Closes the diff beside it: the windows from before it come back. */
     void closeDiff(Frame frame) {
+        closeDiff(frame, false);
+    }
+
+    // Closing too, the status is left out of the windows from before.
+    private void closeDiff(Frame frame, boolean closing) {
         if (diff == null)
             return;
         final StatusDiffBuffer d = diff;
         follow.stop();
         if (frame != null)
-            frame.leaveView(this);
+            frame.leaveView(this, closing ? List.of(this, d) : List.of(d));
         diff = null;
         before = null;
         // With no windows from before, the diff's own shows the status.
@@ -553,7 +559,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
     public synchronized void kill() {
         if (diff != null) {
             final Editor current = Editor.currentEditor();
-            closeDiff(current != null ? current.getFrame() : null);
+            closeDiff(current != null ? current.getFrame() : null, true);
         }
         super.kill();
     }

@@ -32,16 +32,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import org.armedbear.j.vcs.Ignores;
 
 /**
  * The files under a project root, as root-relative paths with '/'
  * separators. Scanned in the background and cached per root; a caller gets
  * the last snapshot at once and asks for a rescan when it's stale.
  *
- * <p>The scan skips what .gitignore files ignore (no "!" negation), a
- * default list of build and tool directories, names matching
+ * <p>The scan skips what each repository's version control ignores
+ * ({@link Ignores}), a default list of build and tool directories, names matching
  * filenameCompletionsExcludePattern, and nested git worktrees.
  */
 public final class ProjectFiles {
@@ -162,12 +164,8 @@ public final class ProjectFiles {
                     if (gen == generation.get())
                         publish(snapshot);
                 };
-                Walker walker = new Walker(root,
-                        max,
-                        excludes,
-                        Walker.globalIgnoreFile(),
-                        () -> gen != generation.get(),
-                        partial);
+                Walker walker =
+                        new Walker(root, max, excludes, Ignores::atRoot, () -> gen != generation.get(), partial);
                 List<String> result = walker.walk();
                 if (gen != generation.get())
                     return;
@@ -242,7 +240,7 @@ public final class ProjectFiles {
         Walker walker = new Walker(root,
                 Integer.MAX_VALUE,
                 FilenameCompletion.excludesPattern(),
-                Walker.globalIgnoreFile(),
+                Ignores::atRoot,
                 () -> false,
                 null);
         if (!walker.accepts(p))
@@ -275,12 +273,13 @@ public final class ProjectFiles {
         private final Path root;
         private final int max;
         private final Pattern excludes;
-        private final Path globalIgnore;
+        // The repository at a directory that is the root of one, or null.
+        private final Function<Path, Ignores> repositoryAt;
         private final BooleanSupplier cancelled;
         private final Consumer<List<String>> partial;
         private final List<String> found = new ArrayList<>();
-        // The .gitignore rules in effect, innermost last.
-        private final Deque<Ignore> ignores = new ArrayDeque<>();
+        // The rules of the repository each directory entered is in, innermost last.
+        private final Deque<Ignores> ignores = new ArrayDeque<>();
         private long lastPublish = System.currentTimeMillis();
         private int lastPublishCount;
         boolean truncated;
@@ -289,13 +288,13 @@ public final class ProjectFiles {
                 Path root,
                 int max,
                 Pattern excludes,
-                Path globalIgnore,
+                Function<Path, Ignores> repositoryAt,
                 BooleanSupplier cancelled,
                 Consumer<List<String>> partial) {
             this.root = root;
             this.max = max;
             this.excludes = excludes;
-            this.globalIgnore = globalIgnore;
+            this.repositoryAt = repositoryAt;
             this.cancelled = cancelled;
             this.partial = partial;
         }
@@ -309,8 +308,6 @@ public final class ProjectFiles {
         }
 
         List<String> walk() {
-            if (globalIgnore != null)
-                ignores.add(Ignore.read(globalIgnore, root));
             try {
                 Files.walkFileTree(root, new SimpleFileVisitor<>() {
                     @Override
@@ -363,8 +360,6 @@ public final class ProjectFiles {
 
         /** Whether a walk would list file, which is under root. */
         boolean accepts(Path file) {
-            if (globalIgnore != null)
-                ignores.add(Ignore.read(globalIgnore, root));
             Path dir = root;
             enter(dir);
             // A file in root itself has no directories between: an empty path
@@ -379,11 +374,23 @@ public final class ProjectFiles {
             return !skipFile(file);
         }
 
+        // Root takes the rules of the repository it is in, or none if they
+        // ignore root itself, which git wouldn't list; a directory under it
+        // its own, if it's a repository's root, or its parent's.
         private void enter(Path dir) {
-            Ignore ignore = Ignore.read(dir.resolve(".gitignore"), dir);
-            if (Files.isDirectory(dir.resolve(".git")))
-                ignore = ignore.with(Ignore.read(dir.resolve(".git/info/exclude"), dir));
-            ignores.addLast(ignore);
+            Ignores in = null;
+            if (dir.equals(root)) {
+                for (Path d = root; d != null && in == null; d = d.getParent()) {
+                    in = repositoryAt.apply(d);
+                    if (in != null && !d.equals(root) && in.ignored(root, true))
+                        in = Ignores.NONE;
+                }
+            } else {
+                in = repositoryAt.apply(dir);
+                if (in == null)
+                    in = ignores.peekLast();
+            }
+            ignores.addLast(in != null ? in : Ignores.NONE);
         }
 
         private boolean skipDirectory(Path dir) {
@@ -412,11 +419,8 @@ public final class ProjectFiles {
         }
 
         private boolean ignored(Path p, boolean isDirectory) {
-            for (Ignore ignore : ignores) {
-                if (ignore.matches(p, isDirectory))
-                    return true;
-            }
-            return false;
+            final Ignores in = ignores.peekLast();
+            return in != null && in.ignored(p, isDirectory);
         }
 
         // A linked worktree's .git is a file naming .git/worktrees/NAME in the main
@@ -436,142 +440,5 @@ public final class ProjectFiles {
         }
 
         private static final Pattern WORKTREE_GITDIR = Pattern.compile("/worktrees/[^/]+/*$");
-
-        static Path globalIgnoreFile() {
-            String xdg = System.getenv("XDG_CONFIG_HOME");
-            Path base =
-                    xdg != null && !xdg.isEmpty() ? Path.of(xdg) : Path.of(System.getProperty("user.home"), ".config");
-            Path p = base.resolve("git/ignore");
-            return Files.isRegularFile(p) ? p : null;
-        }
-    }
-
-    /** The rules of one .gitignore file, relative to the directory it applies to. */
-    static final class Ignore {
-        private record Rule(Pattern pattern, boolean anchored, boolean directoryOnly) {}
-
-        private final Path base;
-        private final List<Rule> rules;
-
-        private Ignore(Path base, List<Rule> rules) {
-            this.base = base;
-            this.rules = rules;
-        }
-
-        static Ignore read(Path file, Path base) {
-            List<String> lines = List.of();
-            if (Files.isRegularFile(file)) {
-                try {
-                    lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-                }
-                catch (IOException e) {
-                    Log.debug(e);
-                }
-            }
-            return parse(lines, base);
-        }
-
-        static Ignore parse(List<String> lines, Path base) {
-            List<Rule> rules = new ArrayList<>();
-            for (String line : lines) {
-                Rule rule = parseRule(line);
-                if (rule != null)
-                    rules.add(rule);
-            }
-            return new Ignore(base, rules);
-        }
-
-        Ignore with(Ignore other) {
-            List<Rule> all = new ArrayList<>(rules);
-            all.addAll(other.rules);
-            return new Ignore(base, all);
-        }
-
-        private static Rule parseRule(String line) {
-            String s = line.stripTrailing();
-            if (s.isEmpty() || s.startsWith("#") || s.startsWith("!"))
-                return null;
-            if (s.startsWith("\\#") || s.startsWith("\\!"))
-                s = s.substring(1);
-            boolean directoryOnly = s.endsWith("/");
-            if (directoryOnly)
-                s = s.substring(0, s.length() - 1);
-            if (s.isEmpty())
-                return null;
-            // A slash anywhere but the end ties the pattern to the base directory.
-            boolean anchored = s.indexOf('/') >= 0;
-            if (s.startsWith("/"))
-                s = s.substring(1);
-            if (s.startsWith("**/")) {
-                s = s.substring(3);
-                anchored = s.indexOf('/') >= 0;
-                if (anchored)
-                    s = "**/" + s;
-            }
-            try {
-                return new Rule(Pattern.compile(globToRegex(s)), anchored, directoryOnly);
-            }
-            catch (PatternSyntaxException e) {
-                return null;
-            }
-        }
-
-        static String globToRegex(String glob) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < glob.length(); i++) {
-                char c = glob.charAt(i);
-                if (c == '*') {
-                    if (i + 1 < glob.length() && glob.charAt(i + 1) == '*') {
-                        i++;
-                        if (i + 1 < glob.length() && glob.charAt(i + 1) == '/') {
-                            i++;
-                            sb.append("(?:.*/)?"); // "**/": any number of directories.
-                        } else {
-                            sb.append(".*");
-                        }
-                    } else {
-                        sb.append("[^/]*");
-                    }
-                } else if (c == '?') {
-                    sb.append("[^/]");
-                } else if (c == '[') {
-                    int close = glob.indexOf(']', i + 1);
-                    if (close < 0) {
-                        sb.append("\\[");
-                    } else {
-                        String set = glob.substring(i + 1, close);
-                        if (set.startsWith("!"))
-                            set = "^" + set.substring(1);
-                        sb.append('[').append(set.replace("\\", "\\\\")).append(']');
-                        i = close;
-                    }
-                } else if (c == '\\' && i + 1 < glob.length()) {
-                    sb.append(Pattern.quote(String.valueOf(glob.charAt(++i))));
-                } else {
-                    sb.append(Pattern.quote(String.valueOf(c)));
-                }
-            }
-            return sb.toString();
-        }
-
-        boolean matches(Path p, boolean isDirectory) {
-            if (rules.isEmpty() || !p.startsWith(base) || p.equals(base))
-                return false;
-            String rel = null;
-            String name = p.getFileName().toString();
-            for (Rule rule : rules) {
-                if (rule.directoryOnly && !isDirectory)
-                    continue;
-                if (rule.anchored) {
-                    if (rel == null)
-                        rel = relative(base, p);
-                    if (rule.pattern.matcher(rel).matches())
-                        return true;
-                } else if (rule.pattern.matcher(name).matches()) {
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 }

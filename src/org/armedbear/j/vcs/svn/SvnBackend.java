@@ -13,12 +13,16 @@ package org.armedbear.j.vcs.svn;
 
 import static org.armedbear.j.Constants.*;
 
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VersionControlEntry;
 
@@ -33,8 +37,30 @@ public final class SvnBackend implements VcsBackend {
         return "svn";
     }
 
+    // A working copy's rules, read again a while after they were, each read
+    // costing two svn runs; never while one is running, as a listing waiting
+    // for them would start another when they came.
+    private static final long REREAD_MILLIS = 10_000;
+    private final Map<Path, SvnIgnores> ignores = new ConcurrentHashMap<>();
+
+    @Override
+    public Ignores ignores(Path root) {
+        final long now = System.currentTimeMillis();
+        return ignores
+                .compute(root, (r, read) -> read != null && read.fresh(now, REREAD_MILLIS) ? read : new SvnIgnores(r));
+    }
+
+    // The top of a working copy: before svn 1.7, each of its directories has
+    // a .svn too, and only the one whose parent hasn't is its root.
     @Override
     public boolean isRoot(File dir) {
+        if (!hasSvn(dir))
+            return false;
+        final File parent = dir.getParentFile();
+        return parent == null || !hasSvn(parent);
+    }
+
+    private static boolean hasSvn(File dir) {
         File svn = File.getInstance(dir, ".svn");
         return svn != null && svn.isDirectory();
     }

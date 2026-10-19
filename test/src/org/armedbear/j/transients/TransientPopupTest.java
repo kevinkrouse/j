@@ -28,18 +28,25 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Cursor;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.DirectoryFilenameFilter;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.KeyMap;
+import org.armedbear.j.KeyMapping;
+import org.armedbear.j.mode.dir.DirectoryMode;
 import org.armedbear.j.transients.Transient.Binding;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Cycle;
@@ -188,6 +195,26 @@ public class TransientPopupTest {
     }
 
     @Test
+    public void backspaceIsAKeyWhenAnItemHasIt() throws Exception {
+        assertFalse(popup.pressed(KeyEvent.VK_BACK_SPACE, false, false), "none here");
+        popup.close(false);
+        popup = TransientPopup.open(
+            h.editor(),
+            new Transient("test.bs",
+                    "BS",
+                    "commands.html",
+                    List.of(Group.of("Go", Command.of(Transient.BACKSPACE, "eob", "end")))));
+        assertTrue(popup.text().toString().contains("<BS> end"), popup.text().toString());
+        popup.typed('<');
+        assertFalse(popup.isClosed());
+        assertTrue(popup.text().toString().contains("< is not a key here"), "not half of <BS>");
+        assertTrue(popup.pressed(KeyEvent.VK_BACK_SPACE, false, false));
+        assertTrue(popup.isClosed());
+        flush();
+        assertEquals(2, h.editor().getDotLineNumber(), "the last line");
+    }
+
+    @Test
     public void aCommandMarkedToStayLeavesItOpen() throws Exception {
         h.cursor(2, 0);
         popup.typed('t');
@@ -226,7 +253,7 @@ public class TransientPopupTest {
 
     @Test
     public void ctrlSWithOnlyTheBuffersSettingsSaysThereIsNothingToSave() {
-        final Transient dir = org.armedbear.j.mode.dir.DirectoryMode.getMode().getTransient(null);
+        final Transient dir = DirectoryMode.getMode().getTransient(null);
         popup = TransientPopup.open(h.editor(), dir);
         popup.pressed(KeyEvent.VK_S, true, false);
         assertTrue(popup.text().get(0).contains("nothing to save"), popup.text().toString());
@@ -305,7 +332,7 @@ public class TransientPopupTest {
         assertTrue(Transients.args(h.editor(), "test.bound").arguments().isEmpty());
     }
 
-    private static <T> Binding<T> binding(java.util.function.Supplier<T> get, java.util.function.Consumer<T> set) {
+    private static <T> Binding<T> binding(Supplier<T> get, Consumer<T> set) {
         return new Binding<>() {
             @Override
             public T get(Editor editor) {
@@ -339,38 +366,25 @@ public class TransientPopupTest {
 
     @Test
     public void dirModesPopupHasItsFiltersAndModePopupOpensIt() {
-        final Transient dir = org.armedbear.j.mode.dir.DirectoryMode.getMode().getTransient(null);
+        final Transient dir = DirectoryMode.getMode().getTransient(null);
         assertEquals("directories.html#popup", dir.help());
-        assertNotNull(dir.item("s"));
-        assertNotNull(dir.item("."));
+        assertNotNull(dir.item("-s"));
+        assertNotNull(dir.item("-."));
         assertEquals("dirRescan", ((Command) dir.item("r")).command());
         TransientCommands.modePopup(h.editor());
         assertSame(popup, TransientPopup.getOpen(), "plain text has no popup");
     }
 
     @Test
-    public void hiddenNamesAreLeftOutButNotDotOrDotDot() {
-        final DirectoryFilenameFilter hide = new DirectoryFilenameFilter(null, true);
-        assertTrue(hide.hides(".git"));
-        assertFalse(hide.hides("."));
-        assertFalse(hide.hides(".."));
-        assertFalse(hide.accepts(".env"));
-        assertTrue(hide.accepts("src"));
-        final DirectoryFilenameFilter both = new DirectoryFilenameFilter("*.java", true);
-        assertTrue(both.accepts("A.java"));
-        assertFalse(both.accepts(".A.java"));
-        assertFalse(both.accepts("A.txt"));
-        assertTrue(new DirectoryFilenameFilter(null, false).accepts(".git"));
-    }
-
-    @Test
     public void dirPopupKeysAreTheBuffersOwnInEitherEditMode() {
-        final org.armedbear.j.mode.dir.DirectoryMode mode = org.armedbear.j.mode.dir.DirectoryMode.getMode();
+        final DirectoryMode mode = DirectoryMode.getMode();
         final EditorHarness vim = EditorHarness.create().vim();
         try {
             assertKeysMapped(mode.getTransient(h.editor()), mode.getKeyMap());
             assertKeysMapped(mode.getTransient(vim.editor()), mode.getModalKeyMap());
-            assertEquals("-", mode.getTransient(vim.editor()).groups().get(1).items().get(1).key());
+            // Up is Backspace in vim; - is the options' prefix.
+            assertEquals(Transient.BACKSPACE, mode.getTransient(vim.editor()).groups().get(2).items().get(1).key());
+            assertEquals("dirUpDir", mode.getModalKeyMap().lookup('\b', KeyEvent.VK_BACK_SPACE, 0).getCommand());
         }
         finally {
             vim.close();
@@ -378,17 +392,26 @@ public class TransientPopupTest {
     }
 
     // Each item's key does in the buffer what it does in the popup.
-    private static void assertKeysMapped(Transient t, org.armedbear.j.KeyMap km) {
+    private static void assertKeysMapped(Transient t, KeyMap km) {
         for (Group g : t.groups())
             for (Item item : g.items()) {
                 final String command = switch (item) {
                     case Command c -> c.command();
                     case Option o when o.name().equals("sort") -> "dirCycleSortBy";
+                    case Option o when o.name().equals("--time-style") -> "dirTimeStyle";
                     case Option o -> "dirLimit";
+                    case Switch s when s.name().equals("-r") -> "dirToggleReverse";
+                    case Switch s when s.name().equals("-h") -> "dirToggleHumanSizes";
+                    case Switch s when s.name().equals("--group-directories-first") -> "dirToggleDirectoriesFirst";
                     case Switch s -> "dirToggleHidden";
                     default -> throw new AssertionError(item);
                 };
-                final org.armedbear.j.KeyMapping m = km.lookup(item.key().charAt(0), 0, 0);
+                // Backspace, pressed; a key of two, as -r, the second in the first's map.
+                KeyMapping m = item.key().equals(Transient.BACKSPACE)
+                        ? km.lookup('\b', KeyEvent.VK_BACK_SPACE, 0)
+                        : km.lookup(item.key().charAt(0), 0, 0);
+                if (item.key().length() == 2 && m != null && m.getCommand() instanceof KeyMap sub)
+                    m = sub.lookup(item.key().charAt(1), 0, 0);
                 assertNotNull(m, item.key());
                 assertEquals(command, m.getCommand(), item.key());
             }
@@ -397,24 +420,15 @@ public class TransientPopupTest {
     @Test
     public void linksGetTheHandCursor() {
         final Rectangle o = popup.boundsOf(ORDER);
-        popup.dispatchEvent(
-            new java.awt.event.MouseEvent(popup,
-                    java.awt.event.MouseEvent.MOUSE_MOVED,
-                    0,
-                    0,
-                    o.x + 1,
-                    o.y + 1,
-                    0,
-                    false));
-        assertEquals(java.awt.Cursor.HAND_CURSOR, popup.getCursor().getType());
-        popup.dispatchEvent(
-            new java.awt.event.MouseEvent(popup, java.awt.event.MouseEvent.MOUSE_MOVED, 0, 0, 0, 0, 0, false));
-        assertEquals(java.awt.Cursor.DEFAULT_CURSOR, popup.getCursor().getType());
+        popup.dispatchEvent(new MouseEvent(popup, MouseEvent.MOUSE_MOVED, 0, 0, o.x + 1, o.y + 1, 0, false));
+        assertEquals(Cursor.HAND_CURSOR, popup.getCursor().getType());
+        popup.dispatchEvent(new MouseEvent(popup, MouseEvent.MOUSE_MOVED, 0, 0, 0, 0, 0, false));
+        assertEquals(Cursor.DEFAULT_CURSOR, popup.getCursor().getType());
     }
 
     @Test
     public void aBadPatternMatchesNothing() {
-        assertFalse(new DirectoryFilenameFilter("[", false).accepts("["));
+        assertFalse(new DirectoryFilenameFilter("[").accepts("["));
     }
 
     @Test

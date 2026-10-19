@@ -26,20 +26,50 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.BufferList;
+import org.armedbear.j.DefaultTheme;
+import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.File;
+import org.armedbear.j.Formatter;
+import org.armedbear.j.GutterColumn;
+import org.armedbear.j.KeyMap;
+import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
+import org.armedbear.j.LineSegmentList;
+import org.armedbear.j.ProjectRoot;
+import org.armedbear.j.Property;
+import org.armedbear.j.SessionProperties;
+import org.armedbear.j.TextStyle;
+import org.armedbear.j.transients.FilterBar;
+import org.armedbear.j.transients.Transient;
+import org.armedbear.j.transients.TransientArgs;
+import org.armedbear.j.transients.TransientPopup;
+import org.armedbear.j.transients.Transients;
+import org.armedbear.j.util.TimeStyle;
+import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.RepositoryColors;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.status.StatusLine;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
+import org.armedbear.j.vcs.status.VcsStatusBuffer;
+import org.armedbear.j.vcs.status.VcsStatusMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -290,10 +320,10 @@ public class LogBufferTest {
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
         until(() -> log.diff.change() != null && hunk() != null);
-        assertEquals(6, org.armedbear.j.vcs.status.VcsStatusMode.lineNumber(hunk()));
+        assertEquals(6, VcsStatusMode.lineNumber(hunk()));
         for (Line l = log.diff.getFirstLine(); l != null; l = l.next())
             if (l instanceof StatusLine s && s.kind() == Kind.DIFF && s.getText().endsWith("+six"))
-                assertEquals(6, org.armedbear.j.vcs.status.VcsStatusMode.lineNumber(s));
+                assertEquals(6, VcsStatusMode.lineNumber(s));
     }
 
     @Test
@@ -351,7 +381,7 @@ public class LogBufferTest {
         try {
             onEdt(() -> {
                 h.vim();
-                log.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+                log.setProperty(Property.EDIT_MODE, "vim");
                 h.keys("<Space>");
             });
             final int down = d.editor().getTopLine().lineNumber();
@@ -387,7 +417,7 @@ public class LogBufferTest {
             assertEquals(hunks.get(2), d.editor().getDotLine(), "before the first: around to the last");
             onEdt(() -> {
                 d.vim();
-                log.diff.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+                log.diff.setProperty(Property.EDIT_MODE, "vim");
                 d.keys("]c");
             });
             assertEquals(hunks.get(0), d.editor().getDotLine(), "]c, past the last: around to the first");
@@ -439,21 +469,19 @@ public class LogBufferTest {
                     if (vim) {
                         h.vim();
                         d.vim();
-                        log.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
-                        log.diff.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+                        log.setProperty(Property.EDIT_MODE, "vim");
+                        log.diff.setProperty(Property.EDIT_MODE, "vim");
                     }
                 });
                 for (EditorHarness e : List.of(h, d)) {
-                    final org.armedbear.j.KeyMap km = vim
+                    final KeyMap km = vim
                             ? VcsLogMode.getMode().getModalKeyMap(e.editor().getBuffer())
                             : VcsLogMode.getMode().getKeyMap(e.editor().getBuffer());
-                    for (org.armedbear.j.transients.Transient.Group g : VcsLogMode.getMode()
-                            .getTransient(e.editor())
-                            .groups())
-                        for (org.armedbear.j.transients.Transient.Item item : g.items())
-                            if (item instanceof org.armedbear.j.transients.Transient.Command c) {
+                    for (Transient.Group g : VcsLogMode.getMode().getTransient(e.editor()).groups())
+                        for (Transient.Item item : g.items())
+                            if (item instanceof Transient.Command c) {
                                 assertEquals(1, c.key().length(), c.key());
-                                final org.armedbear.j.KeyMapping m = km.lookup(c.key().charAt(0), 0, 0);
+                                final KeyMapping m = km.lookup(c.key().charAt(0), 0, 0);
                                 assertNotNull(m, (vim ? "vim: " : "") + c.key() + " is no key in the log");
                                 assertEquals(c.command(), m.getCommand(), (vim ? "vim: " : "") + c.key());
                             }
@@ -466,19 +494,14 @@ public class LogBufferTest {
     }
 
     private static List<String> groups(EditorHarness e) {
-        return VcsLogMode.getMode()
-                .getTransient(e.editor())
-                .groups()
-                .stream()
-                .map(org.armedbear.j.transients.Transient.Group::label)
-                .toList();
+        return VcsLogMode.getMode().getTransient(e.editor()).groups().stream().map(Transient.Group::label).toList();
     }
 
     @Test
     public void dIsRememberedForTheNextLog() throws Exception {
         repo(1);
         open(100);
-        final org.armedbear.j.SessionProperties session = Editor.getSessionProperties();
+        final SessionProperties session = Editor.getSessionProperties();
         final String key = "vcsLog.details";
         final String was = session.getStringProperty(key, null);
         try {
@@ -573,14 +596,14 @@ public class LogBufferTest {
         twoAuthors();
         open(100);
         onEdt(() -> h.editor().updateFilterBar());
-        final org.armedbear.j.transients.FilterBar bar = h.editor().getFilterBar();
+        final FilterBar bar = h.editor().getFilterBar();
         assertNotNull(bar, "the list has a filter bar");
         assertEquals(
-            List.of("-b branch ▾", "-a author ▾", "-p path ▾", "-d since ▾", "-g message ▾", "-s change ▾"),
+            List.of("-b branch ▾", "-a author ▾", "-p path ▾", "-s since ▾", "-g message ▾", "-c change ▾"),
             bar.text());
         onEdt(() -> {
             LogFilters.AUTHOR.binding().set(h.editor(), "Ada");
-            org.armedbear.j.transients.FilterBar.refreshAll(log);
+            FilterBar.refreshAll(log);
         });
         until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
         assertTrue(bar.text().contains("-a author: Ada ▾ ×"), bar.text().toString());
@@ -629,9 +652,9 @@ public class LogBufferTest {
         twoAuthors();
         open(100);
         onEdt(() -> h.editor().updateFilterBar());
-        final org.armedbear.j.transients.FilterBar bar = h.editor().getFilterBar();
+        final FilterBar bar = h.editor().getFilterBar();
         onEdt(() -> {
-            final java.awt.Rectangle r = bar.boundsOf(LogFilters.GREP);
+            final Rectangle r = bar.boundsOf(LogFilters.GREP);
             press(bar, r.x + 1, r.y + 1);
         });
         assertNotNull(bar.getField(), "a field over the chip");
@@ -640,23 +663,14 @@ public class LogBufferTest {
         assertEquals("ada", log.getQuery().grep());
         until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
         onEdt(() -> {
-            final java.awt.Rectangle r = bar.clearBoundsOf(LogFilters.GREP);
+            final Rectangle r = bar.clearBoundsOf(LogFilters.GREP);
             press(bar, r.x + 1, r.y + 1);
         });
         assertNull(log.getQuery().grep());
     }
 
-    private static void press(java.awt.Component c, int x, int y) {
-        c.dispatchEvent(
-            new java.awt.event.MouseEvent(c,
-                    java.awt.event.MouseEvent.MOUSE_PRESSED,
-                    0,
-                    0,
-                    x,
-                    y,
-                    1,
-                    false,
-                    java.awt.event.MouseEvent.BUTTON1));
+    private static void press(Component c, int x, int y) {
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, 0, 0, x, y, 1, false, MouseEvent.BUTTON1));
     }
 
     @Test
@@ -684,7 +698,7 @@ public class LogBufferTest {
     @Test
     public void aFilesLogKeepsItsPathWhateverThePopupSays() throws Exception {
         twoAuthors();
-        final org.armedbear.j.transients.TransientArgs args = new org.armedbear.j.transients.TransientArgs();
+        final TransientArgs args = new TransientArgs();
         args.set("-- path", "b/");
         args.set("--grep", "x");
         final LogQuery q = LogFilters.withArguments(LogQuery.file("a.txt"), args, LogScope.of(repository));
@@ -696,7 +710,7 @@ public class LogBufferTest {
         assertFalse(all.follow(), "a directory's history doesn't follow renames");
         assertFalse(all.tags());
         args.setOn(LogFilters.TAGS.name(), true);
-        assertTrue(LogFilters.withArguments(LogQuery.ALL, args, LogScope.of(repository)).tags(), "-t in the popup");
+        assertTrue(LogFilters.withArguments(LogQuery.ALL, args, LogScope.of(repository)).tags(), "-T in the popup");
     }
 
     @Test
@@ -726,12 +740,12 @@ public class LogBufferTest {
         twoAuthors();
         open(100);
         onEdt(() -> h.editor().updateFilterBar());
-        final org.armedbear.j.transients.FilterBar bar = h.editor().getFilterBar();
+        final FilterBar bar = h.editor().getFilterBar();
         for (boolean vim : new boolean[] { false, true }) {
             onEdt(() -> {
                 if (vim) {
                     h.vim();
-                    log.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+                    log.setProperty(Property.EDIT_MODE, "vim");
                 }
                 h.keys("-a");
             });
@@ -744,13 +758,14 @@ public class LogBufferTest {
 
     @Test
     public void theFilterPopupsKeysAreTheLogsDashKeys() throws Exception {
-        for (org.armedbear.j.KeyMap km : List
-                .of(VcsLogMode.getMode().getKeyMap(), VcsLogMode.getMode().getModalKeyMap())) {
-            final org.armedbear.j.KeyMapping dash = km.lookup('-', 0, 0);
+        for (KeyMap km : List.of(VcsLogMode.getMode().getKeyMap(), VcsLogMode.getMode().getModalKeyMap())) {
+            final KeyMapping dash = km.lookup('-', 0, 0);
             assertNotNull(dash);
-            final org.armedbear.j.KeyMap filters = (org.armedbear.j.KeyMap) dash.getCommand();
-            for (org.armedbear.j.transients.Transient.Item item : LogFilters.popup(null).groups().get(0).items()) {
-                final org.armedbear.j.KeyMapping m = filters.lookup(item.key().charAt(1), 0, 0);
+            final KeyMap filters = (KeyMap) dash.getCommand();
+            for (Transient.Item item : LogFilters.group(null).items()) {
+                if (item.key().equals("x"))
+                    continue;
+                final KeyMapping m = filters.lookup(item.key().charAt(1), 0, 0);
                 assertNotNull(m, item.key());
                 if (item == LogFilters.TAGS) {
                     assertEquals("vcsLogToggleTags", m.getCommand());
@@ -768,7 +783,7 @@ public class LogBufferTest {
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
         final VcsLogMode mode = VcsLogMode.getMode();
-        for (char c : new char[] { 'l', '-', 'x' }) {
+        for (char c : new char[] { '-', 'x' }) {
             assertNotNull(mode.getKeyMap(log).lookup(c, 0, 0), c + " in the list");
             assertNotNull(mode.getModalKeyMap(log).lookup(c, 0, 0), c + " in the list, vim");
             for (Buffer pane : new Buffer[] { log.files, log.diff }) {
@@ -784,27 +799,26 @@ public class LogBufferTest {
         twoAuthors();
         h = EditorHarness.create();
         Editor.setCurrentEditor(h.editor());
-        final org.armedbear.j.vcs.status.VcsStatusBuffer[] status = new org.armedbear.j.vcs.status.VcsStatusBuffer[1];
+        final VcsStatusBuffer[] status = new VcsStatusBuffer[1];
         onEdt(() -> {
-            status[0] = org.armedbear.j.vcs.status.VcsStatusBuffer.of(List.of(repository));
+            status[0] = VcsStatusBuffer.of(List.of(repository));
             h.showBuffer(status[0]);
             h.editor().setDot(status[0].getFirstLine(), 0);
         });
         try {
             until(() -> !status[0].getFirstLine().getText().startsWith("Reading"));
             onEdt(() -> h.keys("l"));
-            final org.armedbear.j.transients.TransientPopup popup = org.armedbear.j.transients.TransientPopup.getOpen();
+            final TransientPopup popup = TransientPopup.getOpen();
             assertNotNull(popup, "l opens the log popup");
-            for (String key : List.of("-b", "-a", "-p", "-d", "-g", "-s"))
+            for (String key : List.of("-b", "-a", "-p", "-s", "-g", "-c"))
                 assertTrue(
-                    popup.getTransient().item(key) instanceof org.armedbear.j.transients.Transient.Option o
-                            && o.binding() == null,
+                    popup.getTransient().item(key) instanceof Transient.Option o && o.binding() == null,
                     key + " is an argument of the popup");
             final String id = popup.getTransient().id();
             onEdt(() -> {
                 popup.close(false);
-                org.armedbear.j.transients.Transients.args(h.editor(), id).set("--author", "nobody");
-                org.armedbear.j.transients.Transients.args(h.editor(), id).set("-- path", "a.txt");
+                Transients.args(h.editor(), id).set("--author", "nobody");
+                Transients.args(h.editor(), id).set("-- path", "a.txt");
                 LogCommands.vcsLogQuick(h.editor());
             });
             assertTrue(h.editor().getBuffer() instanceof LogBuffer, "the quick log, frameless, in the window");
@@ -843,28 +857,20 @@ public class LogBufferTest {
     @Test
     public void eachRepositoryKeepsItsOwnOpeningFilters() throws Exception {
         twoAuthors();
-        final VcsRepository other = Repositories
-                .forDirectory(GitFixture.init(java.nio.file.Files.createDirectories(tmp.resolve("other"))).root);
+        final VcsRepository other =
+                Repositories.forDirectory(GitFixture.init(Files.createDirectories(tmp.resolve("other"))).root);
         final String a = LogFilters.openingId(LogScope.of(repository));
         final String b = LogFilters.openingId(LogScope.of(other));
         assertFalse(a.equals(b));
         h = EditorHarness.create();
-        org.armedbear.j.transients.Transients.args(h.buffer(), a).set("<revision>", "feature-x");
+        Transients.args(h.buffer(), a).set("<revision>", "feature-x");
         assertEquals(
             "feature-x",
-            LogFilters
-                    .withArguments(
-                        LogQuery.ALL,
-                        org.armedbear.j.transients.Transients.args(h.buffer(), a),
-                        LogScope.of(repository))
+            LogFilters.withArguments(LogQuery.ALL, Transients.args(h.buffer(), a), LogScope.of(repository))
                     .revisions()
                     .get(0));
         assertTrue(
-            LogFilters
-                    .withArguments(
-                        LogQuery.ALL,
-                        org.armedbear.j.transients.Transients.args(h.buffer(), b),
-                        LogScope.of(other))
+            LogFilters.withArguments(LogQuery.ALL, Transients.args(h.buffer(), b), LogScope.of(other))
                     .revisions()
                     .isEmpty(),
             "not the other repository's");
@@ -875,35 +881,28 @@ public class LogBufferTest {
         twoAuthors();
         open(100);
         assertTrue(log.graphWidth() >= 1);
-        final int gutter = org.armedbear.j.Display.getGutterWidth(log);
+        final int gutter = Display.getGutterWidth(log);
         assertTrue(log.getGutterColumn().width() > 0);
         assertTrue(gutter >= log.getGutterColumn().width(), "in the gutter");
         assertTrue(((LogLine) log.getFirstLine()).graph() != null);
         // Over its lane, the branch's name.
-        final org.armedbear.j.Display display = h.editor().getDisplay();
-        final java.util.Set<String> tips = new java.util.HashSet<>();
+        final Display display = h.editor().getDisplay();
+        final Set<String> tips = new HashSet<>();
         onEdt(() -> {
             for (int x = gutter - log.getGutterColumn().width(); x < gutter; x++)
                 tips.add(
                     display.getToolTipText(
-                        new java.awt.event.MouseEvent(display,
-                                0,
-                                0,
-                                0,
-                                x,
-                                log.getFirstLine().getHeight() / 2,
-                                0,
-                                false)));
+                        new MouseEvent(display, 0, 0, 0, x, log.getFirstLine().getHeight() / 2, 0, false)));
         });
         assertTrue(tips.contains("main"), tips.toString());
         final LogLine first = (LogLine) log.getFirstLine();
         assertEquals(LogGraphColumn.color(first.graph().color()), badgeColor(first, "main"), "its lane's color");
         final LogFormatter formatter = new LogFormatter(log);
         assertEquals(
-            org.armedbear.j.TextStyle.PLAIN,
+            TextStyle.PLAIN,
             formatter.getStyle(LogFormatter.format(LogRow.Part.BRANCH, 3)),
             "a branch's, not the table's");
-        assertEquals(org.armedbear.j.TextStyle.BOLD, formatter.getStyle(LogFormatter.format(LogRow.Part.HEAD, 3)));
+        assertEquals(TextStyle.BOLD, formatter.getStyle(LogFormatter.format(LogRow.Part.HEAD, 3)));
         onEdt(() -> LogFilters.AUTHOR.binding().set(h.editor(), "Ada"));
         until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
         assertEquals(null, ((LogLine) log.getFirstLine()).graph(), "an author's commits: no graph");
@@ -916,9 +915,9 @@ public class LogBufferTest {
     }
 
     // The color of the segment of line that is text.
-    private java.awt.Color badgeColor(LogLine line, String text) {
-        final org.armedbear.j.Formatter f = log.getFormatter();
-        final org.armedbear.j.LineSegmentList segments = f.formatLine(line);
+    private Color badgeColor(LogLine line, String text) {
+        final Formatter f = log.getFormatter();
+        final LineSegmentList segments = f.formatLine(line);
         for (int i = 0; i < segments.size(); i++)
             if (segments.getSegment(i).getText().strip().equals(text))
                 return f.getColor(segments.getSegment(i).getFormat());
@@ -934,9 +933,9 @@ public class LogBufferTest {
     // 200, a3 at 300 and b4 at 400; and its log, read whole.
     private LogScope project() throws Exception {
         final Path proj = tmp.resolve("proj");
-        java.nio.file.Files.createDirectories(proj.resolve(org.armedbear.j.ProjectRoot.MARKER));
-        java.nio.file.Files.createDirectories(proj.resolve("a"));
-        java.nio.file.Files.createDirectories(proj.resolve("b"));
+        Files.createDirectories(proj.resolve(ProjectRoot.MARKER));
+        Files.createDirectories(proj.resolve("a"));
+        Files.createDirectories(proj.resolve("b"));
         a = GitFixture.init(proj.resolve("a"));
         b = GitFixture.init(proj.resolve("b"));
         a.write("x.txt", "1\n");
@@ -947,7 +946,7 @@ public class LogBufferTest {
         a.commitAllAt("a3", 300);
         b.write("y.txt", "4\n");
         b.commitAllAt("b4", 400);
-        final List<VcsRepository> rs = Repositories.forProject(org.armedbear.j.File.getInstance(proj.toString()));
+        final List<VcsRepository> rs = Repositories.forProject(File.getInstance(proj.toString()));
         assertEquals(2, rs.size());
         repository = rs.get(0);
         return LogScope.of(rs);
@@ -977,7 +976,7 @@ public class LogBufferTest {
             List.of(repositoryAt(0), repositoryAt(1), repositoryAt(2), repositoryAt(3)));
         // Each repository's lane its own, the strip before them.
         assertEquals(2, log.graphWidth());
-        final org.armedbear.j.GutterColumn column = log.getGutterColumn();
+        final GutterColumn column = log.getGutterColumn();
         assertEquals(b.root.toString(), column.getToolTipText(log.getFirstLine(), 1, 1), "the strip: its repository");
         // A commit's details are from its repository.
         onEdt(() -> {
@@ -986,21 +985,19 @@ public class LogBufferTest {
         });
         until(() -> log.files.commit() != null && log.files.changes() != null && !log.files.changes().isEmpty());
         assertEquals("a3", log.files.commit().subject());
-        assertEquals(
-            List.of(new CommitChange("y.txt", null, org.armedbear.j.vcs.FileChange.Kind.ADDED)),
-            log.files.changes());
+        assertEquals(List.of(new CommitChange("y.txt", null, FileChange.Kind.ADDED)), log.files.changes());
         // Its repository's badge in its color, then its branch's in its lane's.
         assertEquals("   a   main ", texts(log.files).get(0));
-        final org.armedbear.j.Formatter f = VcsLogMode.getMode().getFormatter(log.files);
-        final org.armedbear.j.LineSegmentList segments = f.formatLine(log.files.getFirstLine());
-        final List<java.awt.Color> colors = new ArrayList<>();
+        final Formatter f = VcsLogMode.getMode().getFormatter(log.files);
+        final LineSegmentList segments = f.formatLine(log.files.getFirstLine());
+        final List<Color> colors = new ArrayList<>();
         for (int i = 0; i < segments.size(); i++)
             if (!segments.getSegment(i).getText().isBlank())
                 colors.add(f.getColor(segments.getSegment(i).getFormat()));
-        final boolean dark = org.armedbear.j.DefaultTheme.isDark(f.getBackgroundColor());
+        final boolean dark = DefaultTheme.isDark(f.getBackgroundColor());
         assertEquals(
             List.of(
-                org.armedbear.j.vcs.RepositoryColors.color(scope.colorIndex(scope.named("a")), dark),
+                RepositoryColors.color(scope.colorIndex(scope.named("a")), dark),
                 LogGraphColumn.color(((LogLine) log.getLine(1)).graph().color())),
             colors);
         assertTrue(f.getRunBackground(segments.getSegment(1).getFormat()) != null, "a badge's chip");
@@ -1021,18 +1018,16 @@ public class LogBufferTest {
     @Test
     public void theRepositoryFilterOrAClickOnTheStripShowsOneAlone() throws Exception {
         open(project(), 100);
-        final org.armedbear.j.GutterColumn column = log.getGutterColumn();
+        final GutterColumn column = log.getGutterColumn();
         assertTrue(column.isClickable(log.getFirstLine(), 1, 1), "the strip: a hand");
         assertFalse(column.isClickable(log.getFirstLine(), column.width() - 1, 1), "the graph");
         // The lists' boxes: a repository's color, a branch's lane's.
-        final org.armedbear.j.transients.Transient.Pick repos =
-                (org.armedbear.j.transients.Transient.Pick) LogFilters.REPOSITORY.chooser();
-        final boolean dark = org.armedbear.j.DefaultTheme.isDark(h.editor().getFormatter().getBackgroundColor());
+        final Transient.Pick repos = (Transient.Pick) LogFilters.REPOSITORY.chooser();
+        final boolean dark = DefaultTheme.isDark(h.editor().getFormatter().getBackgroundColor());
         assertEquals(
-            org.armedbear.j.vcs.RepositoryColors.color(log.getScope().colorIndex(log.getScope().named("b")), dark),
+            RepositoryColors.color(log.getScope().colorIndex(log.getScope().named("b")), dark),
             repos.swatch().apply(h.editor(), "b"));
-        final org.armedbear.j.transients.Transient.Pick branches =
-                (org.armedbear.j.transients.Transient.Pick) LogFilters.BRANCH.chooser();
+        final Transient.Pick branches = (Transient.Pick) LogFilters.BRANCH.chooser();
         assertEquals(
             LogGraphColumn.color(((LogLine) log.getFirstLine()).graph().color()),
             branches.swatch().apply(h.editor(), "main"),
@@ -1062,15 +1057,15 @@ public class LogBufferTest {
     @Test
     public void theSameCommitInTwoRepositoriesIsTwoRows() throws Exception {
         final Path proj = tmp.resolve("proj");
-        java.nio.file.Files.createDirectories(proj.resolve(org.armedbear.j.ProjectRoot.MARKER));
-        java.nio.file.Files.createDirectories(proj.resolve("a"));
+        Files.createDirectories(proj.resolve(ProjectRoot.MARKER));
+        Files.createDirectories(proj.resolve("a"));
         a = GitFixture.init(proj.resolve("a"));
         a.write("x.txt", "1\n");
         a.commitAllAt("first", 100);
         a.write("x.txt", "2\n");
         a.commitAllAt("second", 200);
         a.git("clone", "-q", a.root.toString(), proj.resolve("c").toString());
-        final List<VcsRepository> rs = Repositories.forProject(org.armedbear.j.File.getInstance(proj.toString()));
+        final List<VcsRepository> rs = Repositories.forProject(File.getInstance(proj.toString()));
         repository = rs.get(0);
         open(LogScope.of(rs), 100);
         assertEquals(List.of("second", "second", "first", "first"), subjects());
@@ -1143,12 +1138,61 @@ public class LogBufferTest {
         }
         // Going through the buffers, the log is one stop.
         onEdt(() -> {
-            final org.armedbear.j.BufferList list = Editor.getBufferList();
+            final BufferList list = Editor.getBufferList();
             Buffer at = log;
             for (int i = 0; i < list.size(); i++) {
                 at = list.getNextListedBuffer(at);
                 assertFalse(at == log.files || at == log.diff, "a pane: " + at);
             }
         });
+    }
+
+    @Test
+    public void theStatusOpensOnTheLogsRepositoryFromItsListFilesOrDiff() throws Exception {
+        repo(2);
+        open(10);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        for (Buffer b : new Buffer[] { log, log.files, log.diff })
+            assertEquals(List.of(repository), VcsStatusMode.repositoriesFor(b), b.toString());
+    }
+
+    @Test
+    public void theFiltersAreInTheLogsOnePopupNotOnLOrA() throws Exception {
+        repo(1);
+        open(100);
+        for (KeyMap km : List.of(VcsLogMode.getMode().getKeyMap(), VcsLogMode.getMode().getModalKeyMap())) {
+            assertNull(km.lookup('l', 0, 0));
+            assertNull(km.lookup('a', 0, 0));
+        }
+        final Transient popup = VcsLogMode.getMode().getTransient(h.editor());
+        assertEquals("Filters", popup.groups().get(0).label());
+        assertNotNull(popup.item("-a"));
+        assertNotNull(popup.item("x"));
+    }
+
+    @Test
+    public void dashTStepsTheTimeStyleOfTheRowsAndTheDetails() throws Exception {
+        repo(2);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        until(() -> log.files.commit() != null);
+        final LogLine first = (LogLine) log.getFirstLine();
+        assertEquals(TimeStyle.AGE, log.getTimeStyle());
+        // The fixture's commits are dated, months back.
+        assertTrue(first.getText().matches(".*  (now|\\d+(m|h|d|w|mo|y))"), first.getText());
+        assertTrue(
+            texts(log.files).stream().anyMatch(t -> t.matches("Date: +\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} \\(\\w+\\)")),
+            texts(log.files).toString());
+        final KeyMap dash = (KeyMap) VcsLogMode.getMode().getModalKeyMap().lookup('-', 0, 0).getCommand();
+        assertEquals("vcsLogTimeStyle", dash.lookup('t', 0, 0).getCommand());
+        onEdt(() -> LogCommands.vcsLogTimeStyle(h.editor()));
+        assertEquals(TimeStyle.LOCALE, log.getTimeStyle());
+        onEdt(() -> LogCommands.vcsLogTimeStyle(h.editor(), "long-iso"));
+        final String row = ((LogLine) log.getFirstLine()).getText();
+        assertTrue(row.matches(".*  \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}"), row);
+        assertTrue(
+            texts(log.files).stream().anyMatch(t -> t.matches("Date: +\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}")),
+            texts(log.files).toString());
+        assertNotNull(VcsLogMode.getMode().getTransient(h.editor()).item("-t"), "in the popup's View");
     }
 }

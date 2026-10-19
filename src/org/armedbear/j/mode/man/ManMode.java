@@ -24,6 +24,10 @@ import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
@@ -41,10 +45,12 @@ import org.armedbear.j.Platform;
 import org.armedbear.j.Property;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
+import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 
 public final class ManMode extends AbstractMode implements Mode {
     private static final ManMode mode = new ManMode();
+    private static final Duration MAN_TIMEOUT = Duration.ofSeconds(30);
 
     private ManMode() {
         super(MAN_MODE, MAN_MODE_NAME);
@@ -198,16 +204,20 @@ public final class ManMode extends AbstractMode implements Mode {
                 }
                 cmd.add(word);
             }
-            try {
-                Process process =
-                        new ProcessBuilder(cmd).redirectOutput(new java.io.File(tempFile.canonicalPath())).start();
-                process.waitFor();
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            catch (IOException e) {
-                Log.error(e);
+            // The page as man writes it, its "No manual entry" on stderr left out; a
+            // byte to a char and back, as ManBuffer reads bytes, overstrikes and all.
+            final ProcessRunner.Result result = ProcessRunner.of(cmd)
+                    .charset(StandardCharsets.ISO_8859_1)
+                    .discardErrors()
+                    .timeout(MAN_TIMEOUT)
+                    .run();
+            if (result.succeeded() && !result.output().isEmpty()) {
+                try {
+                    Files.writeString(Path.of(tempFile.canonicalPath()), result.output(), StandardCharsets.ISO_8859_1);
+                }
+                catch (IOException e) {
+                    Log.error(e);
+                }
             }
             if (tempFile.isFile() && tempFile.length() > 0) {
                 ManBuffer manBuffer = new ManBuffer(topic, tempFile);

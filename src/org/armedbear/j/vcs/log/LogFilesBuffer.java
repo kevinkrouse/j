@@ -31,6 +31,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.ViewPane;
@@ -118,7 +119,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
             lines.add(StatusLine.of(Kind.TEXT, LogDetailsFormatter.text(badges), BADGES));
         lines.add(StatusLine.of(Kind.FIELD, field("Commit:", c.id()), "commit"));
         lines.add(StatusLine.of(Kind.FIELD, field("Author:", c.author() + " <" + c.email() + ">"), "author"));
-        lines.add(StatusLine.of(Kind.FIELD, field("Date:", DATE.format(Instant.ofEpochSecond(c.time()))), "date"));
+        lines.add(StatusLine.of(Kind.FIELD, field("Date:", date(c)), "date"));
         if (c.isMerge())
             lines.add(StatusLine.of(Kind.FIELD, field("Merge:", String.join(" ", shortIds(c.parents()))), "merge"));
         lines.add(StatusLine.of(Kind.BLANK, "", "blank1"));
@@ -136,6 +137,32 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
             lines.add(StatusLine.of(Kind.MESSAGE, "  No files changed", "none"));
         replace(lines, fileLines.isEmpty() ? null : fileLines.get(0));
         showDiff();
+    }
+
+    // In the log's time style; its age with the date in full.
+    private String date(LogCommit c) {
+        final String style = owner.getTimeStyle();
+        final long millis = c.time() * 1000;
+        final String full = DATE.format(Instant.ofEpochMilli(millis));
+        if (style.equals(TimeStyle.AGE))
+            return full + " (" + TimeStyle.age(c.time(), System.currentTimeMillis() / 1000) + ")";
+        return style.equals(TimeStyle.LONG_ISO)
+                ? full
+                : TimeStyle.format(style, millis, System.currentTimeMillis()).strip();
+    }
+
+    /** The date written again, in the log's time style now. */
+    void restyle() {
+        if (commit == null)
+            return;
+        for (Line l = getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && "date".equals(s.key())) {
+                s.setText(field("Date:", date(commit)));
+                for (Editor ed : Editor.getEditorList())
+                    if (ed.getBuffer() == this)
+                        ed.repaintDisplay();
+                return;
+            }
     }
 
     // "Commit:" padded to the column values start at, as the status buffer's header.

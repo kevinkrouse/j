@@ -24,6 +24,7 @@ import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import javax.swing.JPopupMenu;
+import org.armedbear.j.transients.Transient;
 
 /**
  * Mode is an interface for defining modes.  A mode is a set of rules that
@@ -140,7 +141,7 @@ public interface Mode {
      * modePopup opens, or null for none. Its keys should be the buffer's in
      * editor's edit mode.
      */
-    public default org.armedbear.j.transients.Transient getTransient(Editor editor) {
+    public default Transient getTransient(Editor editor) {
         return null;
     }
 
@@ -591,11 +592,11 @@ public interface Mode {
     }
 
     /**
-     * The filters on the view in editor, each an option of the buffer's
-     * popup with a binding, shown as chips in a bar over the window; null
-     * for none.
+     * The filters on the view in editor, each an option or switch of the
+     * buffer's popup with a binding, shown as chips in a bar over the
+     * window; null for none.
      */
-    public default List<org.armedbear.j.transients.Transient.Option> getFilters(Editor editor) {
+    public default List<? extends Transient.Item> getFilters(Editor editor) {
         return null;
     }
 

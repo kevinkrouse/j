@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +55,7 @@ public class HintTest {
         h = EditorHarness.create();
         final String text = hint(false);
         h.editor().updateHint();
-        final java.util.List<VirtualText> rows = h.editor().getBuffer().getVirtualText().get("hint");
+        final List<VirtualText> rows = h.editor().getBuffer().getVirtualText().get("hint");
         assertEquals(1, rows.size());
         assertEquals(VirtualText.Placement.TOP, rows.get(0).placement());
         assertEquals("Hint:  " + text, VirtualText.text(rows.get(0).rows().get(0)));
@@ -64,6 +65,6 @@ public class HintTest {
     @Test
     public void inVimTheKeysAreTheOnesThatWinOverVim() {
         h = EditorHarness.create().vim();
-        assertEquals("<CR> open · - up · ? more", hint(true));
+        assertEquals("<CR> open · <BS> up · ? more", hint(true));
     }
 }

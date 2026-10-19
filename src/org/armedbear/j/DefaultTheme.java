@@ -103,7 +103,9 @@ public final class DefaultTheme {
         { "MarkdownMode", "doneText", "muted" },
         { "MarkdownMode", "cancelledText", "cancelled" },
         { "MarkdownMode", "htmlTag", "muted" },
-        { "MarkdownMode", "frontMatter", "comment" }, };
+        { "MarkdownMode", "frontMatter", "comment" },
+        { "DirectoryMode", "hidden", "muted" },
+        { "DirectoryMode", "ignored", "muted" }, };
 
     // What every mode has, before a mode or a shared style says otherwise:
     // the editor's own colors, then the syntax most modes color.
@@ -220,6 +222,19 @@ public final class DefaultTheme {
                     return new Color(0, 0, 255);
                 if (thing == "marked")
                     return new Color(153, 0, 0);
+                // As eza colors them: read yellow, write red, execute green.
+                if (thing == "permissionRead")
+                    return new Color(dark ? 0xe3b341 : 0x9a6700);
+                if (thing == "permissionWrite")
+                    return new Color(dark ? 0xff7b72 : 0xcf222e);
+                if (thing == "permissionExecute")
+                    return new Color(dark ? 0x3fb950 : 0x1a7f37);
+                if (thing == "permissionNone")
+                    return new Color(dark ? 0x6e7681 : 0x8c959f);
+                if (thing == "size")
+                    return new Color(dark ? 0x56d364 : 0x116329);
+                if (thing == "date")
+                    return new Color(dark ? 0x79c0ff : 0x0550ae);
             } else if (mode == "HtmlMode") {
                 if (thing == "tag")
                     return new Color(0, 0, 153);
@@ -482,6 +497,9 @@ public final class DefaultTheme {
                     return Font.BOLD;
                 if (thing == "marked")
                     return Font.BOLD;
+                // A name git ignores, shown.
+                if (thing == "ignored")
+                    return Font.ITALIC;
             } else if (mode == "TclMode") {
                 if (thing == "brace")
                     return Font.BOLD;

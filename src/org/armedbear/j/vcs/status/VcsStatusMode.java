@@ -48,8 +48,11 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.ViewPane;
+import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
@@ -156,14 +159,14 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     private static KeyMap visualKeyMap;
 
-    // Vim's V or v then s stages the lines selected.
+    // Vim's V or v then s stages the lines selected, d discards them.
     @Override
     public synchronized KeyMap getVisualKeyMap() {
         if (visualKeyMap == null) {
             final KeyMap km = new KeyMap();
             km.mapKey('s', "vcsStage");
             km.mapKey('u', "vcsUnstage");
-            km.mapKey('x', "vcsDiscard");
+            km.mapKey('d', "vcsDiscard");
             visualKeyMap = km;
         }
         return visualKeyMap;
@@ -183,7 +186,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey('$', "vcsCommandLog");
         km.mapKey('s', "vcsStage");
         km.mapKey('u', "vcsUnstage");
-        km.mapKey('x', "vcsDiscard");
+        // d, as lazygit's: x clears filters in every view that has them.
+        km.mapKey('d', "vcsDiscard");
         km.mapKey('S', "vcsStageAll");
         km.mapKey('U', "vcsUnstageAll");
         km.mapKey('c', "vcsCommitPopup");
@@ -239,7 +243,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                     "Stage",
                     new Command("s", "vcsStage", "stage", true),
                     new Command("u", "vcsUnstage", "unstage", true),
-                    new Command("x", "vcsDiscard", "discard", true),
+                    new Command("d", "vcsDiscard", "discard", true),
                     new Command("S", "vcsStageAll", "stage all", true),
                     new Command("U", "vcsUnstageAll", "unstage all", true)));
             groups.add(Group.of("Commit", new Prefix("c", "commit…", CommitCommands::popup)));
@@ -368,6 +372,10 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             return s.getRepositories();
         if (buffer instanceof StatusDiffBuffer d)
             return d.getOwner().getRepositories();
+        // A log's, from its list or its files or diff.
+        final Buffer view = buffer instanceof ViewPane<?> pane ? pane.getOwner() : buffer;
+        if (view instanceof LogBuffer log)
+            return log.getScope().repositories();
         final File file = buffer.getFile();
         final VcsRepository own = file != null ? Repositories.forFile(file) : null;
         final File root = ProjectRoot.find(buffer);
@@ -573,7 +581,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     // The new side's line of a hunk's first change.
     private static int firstChange(Hunk hunk) {
         int n = hunk.newStart();
-        for (org.armedbear.j.vcs.diff.DiffLine d : hunk.lines()) {
+        for (DiffLine d : hunk.lines()) {
             if (!d.isContext())
                 return Math.max(1, n);
             n++;

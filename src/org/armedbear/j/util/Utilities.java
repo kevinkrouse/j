@@ -705,7 +705,8 @@ public final class Utilities {
             byte[] bytes = new byte[4096];
             int bytesRead;
             try (InputStream in = file.getInputStream()) {
-                bytesRead = in.read(bytes);
+                // An empty file reads -1.
+                bytesRead = Math.max(in.read(bytes), 0);
             }
             boolean isUnicode = false;
             boolean isLittleEndian = false;

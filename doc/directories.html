@@ -43,19 +43,77 @@ listing.
 ? opens a popup of the directory's keys (<a href="commands.html#modePopup">modePopup</a>):
 
 <ul>
-    <li><b>Filters</b>: s steps the sort through name, date and size; l (a in
-    vim edit mode) types a pattern the listing is limited to, as
-    <a href="commands.html#dirLimit">dirLimit</a> does (empty for all); . shows
-    or hides the names that start with a dot.</li>
-    <li><b>Go</b>: open, up, back, forward and home.</li>
-    <li><b>Files</b>: tag, copy, move, delete, a shell command, and rescan.</li>
+    <li><b>Filters</b>, each after -, as the git log's: -s steps the sort
+    through name, date and size (s too); -p types a pattern the listing is
+    limited to, as <a href="commands.html#dirLimit">dirLimit</a> does (empty
+    for all); -. shows or hides the hidden names (. too); x clears them all,
+    and the reverse.</li>
+    <li><b>View</b>, after - too: r reverses the sort, keeping . and .. on top;
+    d lists directories over the files, whatever the sort
+    (<a href="preferences.html#dirSortDirectoriesFirst">dirSortDirectoriesFirst</a>
+    to start with); h writes sizes as <code>ls -h</code> does, 4.0K and 12M
+    (<a href="preferences.html#dirHumanReadableSizes">dirHumanReadableSizes</a>);
+    t steps the time style through locale (<code>Oct 16 09:02</code>), iso
+    (<code>10-16 09:02</code>), long-iso (<code>2026-10-16 09:02</code>) and
+    age, how long ago (<code>5m</code>, <code>3h</code>, <code>4mo</code>), as
+    the git log writes it
+    (<a href="preferences.html#dirTimeStyle">dirTimeStyle</a>).</li>
+    <li><b>Go</b>: open, Backspace up (u too in simple edit mode; in vim
+    edit mode - is the options'), back, forward and home. Shift Enter opens the file or
+    directory at the caret in a new window over the listing, Ctrl Enter in
+    one beside it.</li>
+    <li><b>Files</b>: a opens a new file, written when it is saved (the directories it is in made if need be), A makes a new directory;
+    tag, copy, move, delete, a shell command, and rescan.</li>
 </ul>
 
 Its keys are the listing's own in the edit mode in use, so each works with
 the popup closed too.
+<p>
+<a name="formats">Where the View options work.</a> j lists a directory
+itself, or, with
+<a href="preferences.html#dirUseNativeFormat">dirUseNativeFormat</a> (the
+default on Unix), runs <code>ls</code>. Reverse and directories first are
+j's in either, so they work everywhere, a remote listing too. In j's own
+listing, sizes and time styles are j's as well. With <code>ls</code>,
+human sizes are its <code>-h</code>, which GNU's, the BSDs' (macOS's) and
+busybox's take, and a time style is its <code>--time-style</code>, which
+only GNU's takes: elsewhere, as on macOS, ls writes dates its own way. An
+age is j's in every listing, written over the date ls or a server wrote:
+to the minute with GNU's ls, which j asks for a long-iso date; elsewhere a
+date over six months old has no time, so its age is to the day. A remote
+listing's sizes and other dates are as its server writes them.
+<p>
+The first column is colored by permission, read, write and execute
+(<code>DirectoryMode.color.permissionRead</code>,
+<code>permissionWrite</code>, <code>permissionExecute</code> and
+<code>permissionNone</code> for a -), then the size
+(<code>DirectoryMode.color.size</code>) and the date
+(<code>DirectoryMode.color.date</code>). j's own listing has the column too:
+the POSIX permissions, or on Windows the owner's read, write and execute.
 
 A filter changes the listing at once and leaves the popup open, so several
-can be set; a command closes it. Escape closes it, as does a click outside it.
+can be set; a command closes it.
+<p>
+The filters are also chips in a bar over the listing, each after its key:
+<code>sort by: name</code>, <code>limit to</code> and <code>show hidden</code>.
+A chip is highlighted, with a × to clear it, when it is set. A click on the
+sort chip steps the sort, one on the limit chip types a pattern over it, as l
+does (Up and Down step through the patterns used before), and one on the show
+hidden chip shows or hides the hidden names. x puts them all back as a
+listing starts, as it clears the git log's. The bar, the popup and the keys
+change the same values.
+<p>
+Hidden names are those starting with a dot, those matching
+<a href="preferences.html#filenameCompletionsExcludePattern">filenameCompletionsExcludePattern</a>,
+and, in a repository, those its version control (git, Subversion) ignores. They are left out unless
+<a href="preferences.html#dirShowHidden">dirShowHidden</a> is true or show
+hidden is set; shown, they are muted, and the ignored ones italic too.
+What is in an ignored directory is ignored, as git and Subversion have
+it; but a listing of a directory its repository ignores, which they
+wouldn't list at all, hides nothing as ignored, so a home directory kept in
+a repository that ignores everything else still lists its directories'
+files.
+<p> Escape closes it, as does a click outside it.
 ? opens this help; Ctrl H then a key opens the help for that key.
 <p>
 In vim edit mode the vim motions work here, and the commands below are on
@@ -66,6 +124,7 @@ The following commands are specifically relevant to directory buffers:
 
 <ul>
     <li><a href="commands.html#dir">dir</a></li>
+    <li><a href="commands.html#dirClearFilters">dirClearFilters</a></li>
     <li><a href="commands.html#dirCopyFile">dirCopyFile</a></li>
     <li><a href="commands.html#dirCycleSortBy">dirCycleSortBy</a></li>
     <li><a href="commands.html#dirDeleteFiles">dirDeleteFiles</a></li>
@@ -73,11 +132,19 @@ The following commands are specifically relevant to directory buffers:
     <li><a href="commands.html#dirHomeDir">dirHomeDir</a></li>
     <li><a href="commands.html#dirLimit">dirLimit</a></li>
     <li><a href="commands.html#dirMoveFile">dirMoveFile</a></li>
+    <li><a href="commands.html#dirNewDirectory">dirNewDirectory</a></li>
+    <li><a href="commands.html#dirNewFile">dirNewFile</a></li>
     <li><a href="commands.html#dirOpenFile">dirOpenFile</a></li>
     <li><a href="commands.html#dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a></li>
+    <li><a href="commands.html#dirOpenFileInSplit">dirOpenFileInSplit</a></li>
+    <li><a href="commands.html#dirOpenFileInVsplit">dirOpenFileInVsplit</a></li>
     <li><a href="commands.html#dirRescan">dirRescan</a></li>
     <li><a href="commands.html#dirTagFile">dirTagFile</a></li>
+    <li><a href="commands.html#dirTimeStyle">dirTimeStyle</a></li>
+    <li><a href="commands.html#dirToggleDirectoriesFirst">dirToggleDirectoriesFirst</a></li>
     <li><a href="commands.html#dirToggleHidden">dirToggleHidden</a></li>
+    <li><a href="commands.html#dirToggleHumanSizes">dirToggleHumanSizes</a></li>
+    <li><a href="commands.html#dirToggleReverse">dirToggleReverse</a></li>
     <li><a href="commands.html#dirUnlimit">dirUnlimit</a></li>
     <li><a href="commands.html#dirUpDir">dirUpDir</a></li>
 </ul>

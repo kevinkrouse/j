@@ -280,7 +280,8 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
 
     // The focus may still be on its way when the first list is ready.
     private boolean hasFocus() {
-        return textField.isFocusOwner() || editor.getFrame().getFocusedComponent() == textField;
+        return textField.isFocusOwner()
+                || (editor.getFrame() != null && editor.getFrame().getFocusedComponent() == textField);
     }
 
     /** Whether the user has moved the selection off the first row. */

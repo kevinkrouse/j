@@ -61,6 +61,7 @@ import org.armedbear.j.mode.php.PHPMode;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.mode.xml.XmlMode;
+import org.armedbear.j.transients.TransientCommands;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.git.Git;
@@ -256,7 +257,7 @@ public class CommandTable {
             add("killWordRight", ClipboardCommands::killWordRight);
             add("left", MotionCommands::left);
             add("mode", Editor::mode, (e, s) -> e.mode(s));
-            add("modePopup", org.armedbear.j.transients.TransientCommands::modePopup);
+            add("modePopup", TransientCommands::modePopup);
             add("moveLinesDown", e -> Lines.moveLinesDown());
             add("moveToWindowBottom", e -> CaretCommands.moveToWindowBottom());
             add("moveToWindowMiddle", e -> CaretCommands.moveToWindowMiddle());
@@ -373,6 +374,7 @@ public class CommandTable {
             add("vcsLogRefresh", LogCommands::vcsLogRefresh);
             add("vcsLogFilter", LogCommands::vcsLogFilter, LogCommands::vcsLogFilter);
             add("vcsLogClearFilters", LogCommands::vcsLogClearFilters);
+            add("vcsLogTimeStyle", LogCommands::vcsLogTimeStyle, LogCommands::vcsLogTimeStyle);
             add("vcsLogToggleTags", LogCommands::vcsLogToggleTags);
             add("vcsLogRevision", LogCommands::vcsLogRevision);
             add("vcsLogScrollDiff", LogCommands::vcsLogScrollDiff);
@@ -443,13 +445,25 @@ public class CommandTable {
             add("diffGotoFile", e -> DiffMode.gotoFile());
             add("dir", e -> DirectoryBuffer.dir());
             add("dirBack", e -> DirectoryBuffer.dirBack());
+            add("dirClearFilters", e -> DirectoryBuffer.dirClearFilters());
             add("dirCycleSortBy", e -> DirectoryBuffer.dirCycleSortBy());
             add("dirDoShellCommand", e -> DirectoryBuffer.dirDoShellCommand());
             add("dirForward", e -> DirectoryBuffer.dirForward());
             add("dirLimit", e -> DirectoryBuffer.dirLimit(), (e, s) -> DirectoryBuffer.dirLimit(s));
+            add(
+                "dirNewDirectory",
+                e -> DirectoryBuffer.dirNewDirectory(),
+                (e, s) -> DirectoryBuffer.dirNewDirectory(s));
+            add("dirNewFile", e -> DirectoryBuffer.dirNewFile(), (e, s) -> DirectoryBuffer.dirNewFile(s));
             add("dirOpenFile", e -> DirectoryBuffer.dirOpenFile());
             add("dirOpenFileAndKillDirectory", e -> DirectoryBuffer.dirOpenFileAndKillDirectory());
+            add("dirOpenFileInSplit", e -> DirectoryBuffer.dirOpenFileInSplit());
+            add("dirOpenFileInVsplit", e -> DirectoryBuffer.dirOpenFileInVsplit());
+            add("dirTimeStyle", e -> DirectoryBuffer.dirTimeStyle(), (e, s) -> DirectoryBuffer.dirTimeStyle(s));
+            add("dirToggleDirectoriesFirst", e -> DirectoryBuffer.dirToggleDirectoriesFirst());
             add("dirToggleHidden", e -> DirectoryBuffer.dirToggleHidden());
+            add("dirToggleHumanSizes", e -> DirectoryBuffer.dirToggleHumanSizes());
+            add("dirToggleReverse", e -> DirectoryBuffer.dirToggleReverse());
             add("dirUnlimit", e -> DirectoryBuffer.dirUnlimit());
             add("doShellCommandOnRegion", e -> RegionCommands.doShellCommandOnRegion());
             add("downList", e -> LispMode.downList());

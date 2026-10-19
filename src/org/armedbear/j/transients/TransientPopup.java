@@ -264,6 +264,15 @@ public final class TransientPopup extends JComponent {
             saveDefaults();
             return true;
         }
+        // A key of its own, as a directory's up.
+        if (keyCode == KeyEvent.VK_BACK_SPACE
+                && !ctrl
+                && !otherModifiers
+                && pending.isEmpty()
+                && current.item(Transient.BACKSPACE) != null) {
+            typed(Transient.BACKSPACE);
+            return true;
+        }
         if (ctrl && keyCode == KeyEvent.VK_H) {
             helpNext = true;
             pending = "";
@@ -276,7 +285,12 @@ public final class TransientPopup extends JComponent {
 
     /** A character typed. */
     void typed(char c) {
-        final String key = pending + c;
+        typed(String.valueOf(c));
+    }
+
+    private void typed(String typed) {
+        final String key = pending + typed;
+        final char c = typed.charAt(0);
         final Item item = current.item(key);
         message = null;
         if (item == null && current.isPrefixOfKey(key)) {

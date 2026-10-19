@@ -29,6 +29,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
+import java.time.Duration;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
@@ -53,6 +54,8 @@ import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 
 public final class NewsGroupMessageBuffer extends MessageBuffer {
+    private static final Duration DECODE_TIMEOUT = Duration.ofSeconds(60);
+
     private NewsGroupSummaryBuffer summary;
     private volatile boolean cancelled;
 
@@ -349,22 +352,13 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
 
     private boolean decode(File encoded, String decodeCommand) {
         String cmd = decodeCommand + " " + Utilities.maybeQuoteFile(encoded.getName());
-        try {
-            Process process = new ProcessBuilder("/bin/sh", "-c", cmd)
-                .directory(new java.io.File(Directories.getTempDirectory().canonicalPath()))
-                .start();
-            if (process != null) {
-                process.waitFor();
-                return true;
-            }
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        catch (IOException e) {
-            Log.error(e);
-        }
-        return false;
+        // Its output read and dropped, so a talkative decoder can't block; one that hangs given up.
+        final ProcessRunner.Result result = ProcessRunner.of("/bin/sh", "-c", cmd)
+            .directory(Directories.getTempDirectory())
+            .discardErrors()
+            .timeout(DECODE_TIMEOUT)
+            .run();
+        return result.exitValue() != -1;
     }
 
     private void appendImageLine(File decoded) {

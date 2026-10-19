@@ -90,7 +90,8 @@ public final class DirectoryMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "dirOpenFile");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "dirOpenFile");
         km.mapKey(VK_MOUSE_2, 0, "dirOpenFile");
-        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "dirOpenFileAndKillDirectory");
+        km.mapKey(KeyEvent.VK_ENTER, SHIFT_MASK, "dirOpenFileInSplit");
+        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "dirOpenFileInVsplit");
         km.mapKey(KeyEvent.VK_B, CTRL_MASK | SHIFT_MASK, "dirBrowseFile");
         km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "dirUpDir");
         km.mapKey('u', "dirUpDir");
@@ -103,6 +104,9 @@ public final class DirectoryMode extends AbstractMode implements Mode {
         km.mapKey('g', "dirGetFile");
         km.mapKey('m', "dirMoveFile");
         km.mapKey('t', "dirTagFile");
+        km.mapKey('x', "dirClearFilters");
+        km.mapKey('a', "dirNewFile");
+        km.mapKey('A', "dirNewDirectory");
         km.mapKey('!', "dirDoShellCommand");
         km.mapKey(KeyEvent.VK_HOME, 0, "dirHome");
         km.mapKey('b', "dirBack");
@@ -111,6 +115,7 @@ public final class DirectoryMode extends AbstractMode implements Mode {
         km.mapKey('o', "dirOpenFile");
         km.mapKey('s', "dirCycleSortBy");
         km.mapKey('.', "dirToggleHidden");
+        km.mapKey('-', optionKeys());
         km.mapKey('~', "dirHome");
         km.mapKey('d', "dirDeleteFiles");
         km.mapKey('r', "dirRescan");
@@ -128,45 +133,85 @@ public final class DirectoryMode extends AbstractMode implements Mode {
 
     private static final List<String> SORTS = List.of("name", "date", "size");
 
+    /** The limit option's name, which l picks on the filter bar. */
+    static final String LIMIT = "pattern";
+
+    // Built once for each edit mode: the filter bar asks for it on every refresh.
+    private Transient simple, vim;
+
     // Its keys are the buffer's own, in either edit mode.
     @Override
     public Transient getTransient(Editor editor) {
         final boolean vim = editor != null && editor.getInputHandler() != null;
+        if (vim)
+            return this.vim != null ? this.vim : (this.vim = build(true));
+        return simple != null ? simple : (simple = build(false));
+    }
+
+    private static Transient build(boolean vim) {
         return new Transient("dir",
                 "Directory",
                 "directories.html#popup",
                 List.of(
                     Group.of(
                         "Filters",
-                        new Option("s",
+                        new Option("-s",
                                 "sort",
                                 "sort by",
                                 new Cycle(SORTS),
                                 dir(DirectoryMode::sortBy, DirectoryMode::sortBy)),
-                        new Option(vim ? "a" : "l",
-                                "pattern",
+                        new Option("-p",
+                                LIMIT,
                                 "limit to",
-                                new Field(),
+                                new Field("dirLimit"),
                                 dir(DirectoryBuffer::getLimitPattern, DirectoryBuffer::limit)),
-                        new Switch(".",
+                        new Switch("-.",
                                 "ls -a",
-                                "hidden files",
-                                dir(DirectoryBuffer::getShowHidden, DirectoryBuffer::setShowHidden))),
+                                "show hidden",
+                                dir(DirectoryBuffer::getShowHidden, DirectoryBuffer::setShowHidden)),
+                        Command.of("x", "dirClearFilters", "clear the filters")),
+                    Group.of(
+                        "View",
+                        new Switch("-r",
+                                "-r",
+                                "reverse",
+                                dir(DirectoryBuffer::getReverse, DirectoryBuffer::setReverse)),
+                        new Switch("-d",
+                                "--group-directories-first",
+                                "directories first",
+                                dir(DirectoryBuffer::getDirectoriesFirst, DirectoryBuffer::setDirectoriesFirst)),
+                        new Switch("-h",
+                                "-h",
+                                "human sizes",
+                                dir(DirectoryBuffer::getHumanSizes, DirectoryBuffer::setHumanSizes)),
+                        new Option("-t",
+                                "--time-style",
+                                "time style",
+                                new Cycle(ListingStyle.TIME_STYLES),
+                                dir(DirectoryBuffer::getTimeStyle, DirectoryBuffer::setTimeStyle))),
                     Group.of(
                         "Go",
                         Command.of("o", "dirOpenFile", "open"),
-                        Command.of(vim ? "-" : "u", "dirUpDir", "up"),
+                        Command.of(Transient.BACKSPACE, "dirUpDir", "up"),
                         Command.of(vim ? "u" : "b", "dirBack", "back"),
                         Command.of(vim ? "U" : "f", "dirForward", "forward"),
                         Command.of("~", "dirHome", "home")),
                     Group.of(
                         "Files",
-                        Command.of(vim ? "x" : "t", "dirTagFile", "tag"),
+                        Command.of("a", "dirNewFile", "new file"),
+                        Command.of("A", "dirNewDirectory", "new directory"),
+                        Command.of("t", "dirTagFile", "tag"),
                         Command.of(vim ? "C" : "c", "dirCopyFile", "copy"),
                         Command.of(vim ? "R" : "m", "dirMoveFile", "move"),
                         Command.of(vim ? "D" : "d", "dirDeleteFiles", "delete"),
                         Command.of("!", "dirDoShellCommand", "shell command"),
                         Command.of("r", "dirRescan", "rescan"))));
+    }
+
+    // The popup's filters, as chips over the listing too.
+    @Override
+    public List<Transient.Item> getFilters(Editor editor) {
+        return editor.getBuffer() instanceof DirectoryBuffer ? getTransient(editor).groups().get(0).items() : null;
     }
 
     private static String sortBy(DirectoryBuffer dir) {
@@ -203,13 +248,29 @@ public final class DirectoryMode extends AbstractMode implements Mode {
 
     private static KeyMap modalKeyMap;
 
+    // - then a letter: what the listing shows and how, in either edit
+    // mode, as the log's filters are.
+    private static KeyMap optionKeys() {
+        final KeyMap km = new KeyMap();
+        km.mapKey('s', "dirCycleSortBy");
+        km.mapKey('p', "dirLimit");
+        km.mapKey('.', "dirToggleHidden");
+        km.mapKey('r', "dirToggleReverse");
+        km.mapKey('d', "dirToggleDirectoriesFirst");
+        km.mapKey('h', "dirToggleHumanSizes");
+        km.mapKey('t', "dirTimeStyle");
+        return km;
+    }
+
     // As netrw has them, on keys vim edits with: there is nothing to edit.
     @Override
     public synchronized KeyMap getModalKeyMap() {
         if (modalKeyMap == null) {
             final KeyMap km = new KeyMap();
             km.mapKey(KeyEvent.VK_ENTER, 0, "dirOpenFile"); // First, so the hint shows it, not o.
-            km.mapKey('-', "dirUpDir");
+            km.mapKey(KeyEvent.VK_ENTER, SHIFT_MASK, "dirOpenFileInSplit");
+            km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "dirOpenFileInVsplit");
+            // Backspace, not netrw's -, which is the options' prefix here as in the log.
             km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "dirUpDir");
             km.mapKey('u', "dirBack");
             km.mapKey('U', "dirForward");
@@ -218,16 +279,18 @@ public final class DirectoryMode extends AbstractMode implements Mode {
             km.mapKey(KeyEvent.VK_DELETE, 0, "dirDeleteFiles");
             km.mapKey('R', "dirMoveFile");
             km.mapKey('C', "dirCopyFile");
-            km.mapKey('x', "dirTagFile");
+            km.mapKey('t', "dirTagFile");
+            km.mapKey('x', "dirClearFilters");
+            km.mapKey('a', "dirNewFile");
+            km.mapKey('A', "dirNewDirectory");
             km.mapKey('!', "dirDoShellCommand");
             km.mapKey('s', "dirCycleSortBy");
-            km.mapKey('a', "dirLimit");
-            km.mapKey('A', "dirUnlimit");
             km.mapKey('O', "dirBrowseFile");
             km.mapKey(KeyEvent.VK_R, CTRL_MASK, "dirRescan");
             // The popup's keys.
             km.mapKey('o', "dirOpenFile");
             km.mapKey('.', "dirToggleHidden");
+            km.mapKey('-', optionKeys());
             km.mapKey('r', "dirRescan");
             km.mapKey('?', "modePopup");
             modalKeyMap = km;

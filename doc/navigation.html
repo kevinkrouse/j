@@ -233,9 +233,11 @@ background when it is older than
 <a href="commands.html#rescanProject">rescanProject</a> rescans it now. Files
 you save in j are added as you save them.
 <p>
-The list leaves out what <code>.gitignore</code> files,
-<code>.git/info/exclude</code> and <code>~/.config/git/ignore</code> ignore
-(except that <code>!</code> patterns are not supported), the directories
+The list leaves out what each repository's version control ignores: in git,
+its <code>.gitignore</code> files, <code>.git/info/exclude</code> and
+<code>~/.config/git/ignore</code>; in Subversion, the <code>svn:ignore</code>
+and <code>svn:global-ignores</code> properties and the config's
+<code>global-ignores</code>. It leaves out too the directories
 <code>.git</code>, <code>.hg</code>, <code>.svn</code>,
 <code>node_modules</code>, <code>build</code>, <code>target</code>,
 <code>dist</code>, <code>out</code>, <code>.gradle</code>, <code>.idea</code>,

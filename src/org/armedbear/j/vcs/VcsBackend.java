@@ -11,14 +11,21 @@
 
 package org.armedbear.j.vcs;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.log.CommitChange;
+import org.armedbear.j.vcs.log.LogCommit;
+import org.armedbear.j.vcs.log.LogQuery;
+import org.armedbear.j.vcs.log.LogRef;
+import org.armedbear.j.vcs.status.StatusData;
 
 /**
  * A version control system. Core provides git and svn; an extension declares
@@ -53,9 +60,7 @@ public interface VcsBackend {
      * backend has none. wantsDiff(section id, path) says which files' diffs
      * to read: the ones expanded.
      */
-    default org.armedbear.j.vcs.status.StatusData readStatus(
-            VcsRepository repository,
-            java.util.function.BiPredicate<String, String> wantsDiff) {
+    default StatusData readStatus(VcsRepository repository, BiPredicate<String, String> wantsDiff) {
         return null;
     }
 
@@ -63,10 +68,7 @@ public interface VcsBackend {
      * The diffs of paths, relative to the root: the working tree's, or with
      * staged the next commit's. Off the event thread.
      */
-    default List<org.armedbear.j.vcs.diff.FileDiff> readDiff(
-            VcsRepository repository,
-            boolean staged,
-            List<String> paths) {
+    default List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths) {
         return List.of();
     }
 
@@ -165,11 +167,7 @@ public interface VcsBackend {
      * Commits query takes, newest first with each before its parents, from
      * the skip-th on, at most max; null if this backend has no log.
      */
-    default List<org.armedbear.j.vcs.log.LogCommit> readLog(
-            VcsRepository repository,
-            org.armedbear.j.vcs.log.LogQuery query,
-            int skip,
-            int max) {
+    default List<LogCommit> readLog(VcsRepository repository, LogQuery query, int skip, int max) {
         return null;
     }
 
@@ -179,10 +177,7 @@ public interface VcsBackend {
     }
 
     /** The files a commit changed against parent (null for a root), or null if they can't be read. */
-    default List<org.armedbear.j.vcs.log.CommitChange> readCommitChanges(
-            VcsRepository repository,
-            String id,
-            String parent) {
+    default List<CommitChange> readCommitChanges(VcsRepository repository, String id, String parent) {
         return null;
     }
 
@@ -190,11 +185,7 @@ public interface VcsBackend {
      * One file's diff in a commit against parent (null for a root):
      * {@link FileDiff#EMPTY} for none, null if it can't be read.
      */
-    default FileDiff readChangeDiff(
-            VcsRepository repository,
-            String id,
-            String parent,
-            org.armedbear.j.vcs.log.CommitChange change) {
+    default FileDiff readChangeDiff(VcsRepository repository, String id, String parent, CommitChange change) {
         return null;
     }
 
@@ -209,7 +200,7 @@ public interface VcsBackend {
     }
 
     /** The branches, remotes and tags, HEAD's branch marked; empty if none can be read. */
-    default List<org.armedbear.j.vcs.log.LogRef> readRefs(VcsRepository repository) {
+    default List<LogRef> readRefs(VcsRepository repository) {
         return List.of();
     }
 
@@ -221,6 +212,15 @@ public interface VcsBackend {
     /** What to watch for changes made outside j: the repository's metadata, not its working tree. */
     default List<RepositoryWatcher.Watch> watches(VcsRepository repository) {
         return List.of();
+    }
+
+    /**
+     * What the repository rooted at root ignores; null when the backend has
+     * no rules, so that an enclosing repository's apply, as git's around an
+     * old CVS tree.
+     */
+    default Ignores ignores(Path root) {
+        return null;
     }
 
     /** Whether a file in no tree any backend recognizes belongs to this one. */

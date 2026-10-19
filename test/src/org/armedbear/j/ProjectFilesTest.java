@@ -21,9 +21,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import org.armedbear.j.vcs.Ignores;
+import org.armedbear.j.vcs.git.GitIgnores;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -45,14 +49,21 @@ public class ProjectFilesTest {
         Files.writeString(p, content);
     }
 
-    private List<String> walk(int max, Pattern excludes, Path globalIgnore) {
-        List<String> files =
-                new ArrayList<>(new ProjectFiles.Walker(tmp, max, excludes, globalIgnore, () -> false, null).walk());
+    // Git's rules in any repository, with globalIgnore as its global file.
+    private static Function<Path, Ignores> git(Path globalIgnore) {
+        return dir -> Files.exists(dir.resolve(".git")) ? new GitIgnores(dir, globalIgnore) : null;
+    }
+
+    // tmp as a repository's root, walked.
+    private List<String> walk(int max, Pattern excludes, Path globalIgnore) throws IOException {
+        Files.createDirectories(tmp.resolve(".git"));
+        List<String> files = new ArrayList<>(
+                new ProjectFiles.Walker(tmp, max, excludes, git(globalIgnore), () -> false, null).walk());
         Collections.sort(files);
         return files;
     }
 
-    private List<String> walk() {
+    private List<String> walk() throws IOException {
         return walk(1000, null, null);
     }
 
@@ -83,7 +94,9 @@ public class ProjectFilesTest {
             "sub/docs/a.tmp",
             "x/y/gen/g.java",
             "src/main.c");
-        assertEquals(List.of(".gitignore", "docs/b.md", "src/main.c", "sub/docs/a.tmp", "sub/top.txt"), walk());
+        assertEquals(
+            List.of(".gitignore", "docs/b.md", "keep.log", "src/main.c", "sub/docs/a.tmp", "sub/top.txt"),
+            walk());
     }
 
     @Test
@@ -138,21 +151,9 @@ public class ProjectFilesTest {
     @Test
     public void stopsAtTheCap() throws IOException {
         touch("a", "b", "c", "d");
-        ProjectFiles.Walker w = new ProjectFiles.Walker(tmp, 2, null, null, () -> false, null);
+        ProjectFiles.Walker w = new ProjectFiles.Walker(tmp, 2, null, git(null), () -> false, null);
         assertEquals(2, w.walk().size());
         assertTrue(w.truncated);
-    }
-
-    @Test
-    public void globs() {
-        assertTrue(Pattern.matches(ProjectFiles.Ignore.globToRegex("*.c"), "x.c"));
-        assertFalse(Pattern.matches(ProjectFiles.Ignore.globToRegex("*.c"), "d/x.c"));
-        assertTrue(Pattern.matches(ProjectFiles.Ignore.globToRegex("a/**/b"), "a/b"));
-        assertTrue(Pattern.matches(ProjectFiles.Ignore.globToRegex("a/**/b"), "a/x/y/b"));
-        assertTrue(Pattern.matches(ProjectFiles.Ignore.globToRegex("a/**"), "a/x/y"));
-        assertTrue(Pattern.matches(ProjectFiles.Ignore.globToRegex("f?o[0-9]"), "foo1"));
-        assertFalse(Pattern.matches(ProjectFiles.Ignore.globToRegex("f[!o]o"), "foo"));
-        assertTrue(Pattern.matches(ProjectFiles.Ignore.globToRegex("a+b(c)"), "a+b(c)"));
     }
 
     @Test
@@ -188,7 +189,7 @@ public class ProjectFilesTest {
         pf.rescan();
         ProjectFiles.awaitScanner();
         assertEquals(List.of("a.txt"), pf.files());
-        List<List<String>> seen = new java.util.concurrent.CopyOnWriteArrayList<>();
+        List<List<String>> seen = new CopyOnWriteArrayList<>();
         pf.addListener(p -> seen.add(p.files()));
         touch("b.txt");
         pf.rescan();
@@ -231,9 +232,21 @@ public class ProjectFilesTest {
     public void aFileInARootNamedLikeASkippedDirectoryIsAccepted() throws IOException {
         Path root = Files.createDirectories(tmp.resolve("build"));
         Path f = Files.writeString(root.resolve("a.txt"), "");
-        assertTrue(new ProjectFiles.Walker(root, 1000, null, null, () -> false, null).accepts(f));
+        assertTrue(new ProjectFiles.Walker(root, 1000, null, git(null), () -> false, null).accepts(f));
         Path nested = Files.createDirectories(root.resolve("node_modules"));
         Path g = Files.writeString(nested.resolve("b.js"), "");
-        assertFalse(new ProjectFiles.Walker(root, 1000, null, null, () -> false, null).accepts(g));
+        assertFalse(new ProjectFiles.Walker(root, 1000, null, git(null), () -> false, null).accepts(g));
+    }
+
+    @Test
+    public void aWalkInsideAnIgnoredDirectoryListsWhatIsInIt() throws IOException {
+        Files.createDirectories(tmp.resolve(".git"));
+        write(".gitignore", "out/\n");
+        touch("out/a.class", "out/sub/b.class", "src/c.java");
+        assertEquals(List.of(".gitignore", "src/c.java"), walk());
+        final List<String> inside = new ArrayList<>(
+                new ProjectFiles.Walker(tmp.resolve("out"), 1000, null, git(null), () -> false, null).walk());
+        Collections.sort(inside);
+        assertEquals(List.of("a.class", "sub/b.class"), inside, "git wouldn't list out/: none of its rules apply");
     }
 }

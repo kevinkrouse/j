@@ -56,7 +56,7 @@ directory, which is never a project.
 
 **Project files** (`ProjectFiles`). A per-root, in-memory list of
 root-relative paths, from an NIO walk on one daemon thread. It honours
-`.gitignore` (a subset: names, globs, `dir/`, leading `/`, `**/`; no `!`),
+`.gitignore` (a subset: names, globs, `dir/`, leading `/`, `**/`, `!`; now `vcs.Ignores`, each backend's),
 `.git/info/exclude` and `~/.config/git/ignore`, skips a default list of build
 and tool directories and `filenameCompletionsExcludePattern`, leaves out
 nested linked worktrees (`.git` file naming `.git/worktrees/NAME`) but keeps

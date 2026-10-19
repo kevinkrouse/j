@@ -32,12 +32,14 @@ import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Binding;
 import org.armedbear.j.transients.Transient.Chooser;
 import org.armedbear.j.transients.Transient.Command;
+import org.armedbear.j.transients.Transient.Cycle;
 import org.armedbear.j.transients.Transient.Field;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Option;
 import org.armedbear.j.transients.Transient.Pick;
 import org.armedbear.j.transients.Transient.Switch;
 import org.armedbear.j.transients.TransientArgs;
+import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.vcs.RepositoryColors;
 import org.armedbear.j.vcs.VcsRepository;
 
@@ -82,9 +84,9 @@ final class LogFilters {
                 LogQuery::author,
                 (q, v, r) -> q.withAuthor(v)),
         new Filter("-p", "-- path", "path", new Pick(LogFilters::paths), LogQuery::path, LogFilters::withPath),
-        new Filter("-d", "--since", "since", new Field(), LogQuery::since, (q, v, r) -> q.withSince(v)),
+        new Filter("-s", "--since", "since", new Field(), LogQuery::since, (q, v, r) -> q.withSince(v)),
         new Filter("-g", "--grep", "message", new Field(), LogQuery::grep, (q, v, r) -> q.withGrep(v)),
-        new Filter("-s", "-S", "change", new Field(), LogQuery::pickaxe, (q, v, r) -> q.withPickaxe(v)),
+        new Filter("-c", "-S", "change", new Field(), LogQuery::pickaxe, (q, v, r) -> q.withPickaxe(v)),
         new Filter("-r",
                 "--repository",
                 "repository",
@@ -105,7 +107,7 @@ final class LogFilters {
      * Whether the commits only tags reach are shown: off by default, as
      * they are often a tag's own, as cvs2git makes, each a lane of its own.
      */
-    static final Switch TAGS = new Switch("-t", "--tags", "commits only tags reach", new Binding<>() {
+    static final Switch TAGS = new Switch("-T", "--tags", "commits only tags reach", new Binding<>() {
         @Override
         public Boolean get(Editor editor) {
             final LogBuffer log = LogBuffers.owner(editor.getBuffer());
@@ -119,6 +121,23 @@ final class LogFilters {
                 log.setQuery(log.getQuery().withTags(Boolean.TRUE.equals(on)));
         }
     });
+
+    /** -t: how the dates are written, a view option rather than a filter. */
+    static final Option TIME_STYLE =
+            new Option("-t", "--date", "time style", new Cycle(TimeStyle.ALL), new Binding<>() {
+                @Override
+                public String get(Editor editor) {
+                    final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+                    return log != null ? log.getTimeStyle() : null;
+                }
+
+                @Override
+                public void set(Editor editor, String style) {
+                    final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+                    if (log != null && style != null)
+                        log.setTimeStyle(style);
+                }
+            });
 
     private static final Switch TAGS_ARGUMENT = Switch.of(TAGS.key(), TAGS.name(), TAGS.description());
 
@@ -143,14 +162,11 @@ final class LogFilters {
         return null;
     }
 
-    /** The popup of an open log's filters, with x to clear them all. */
-    static Transient popup(LogScope scope) {
-        return new Transient("vcs.log.filters",
-                "Log filters",
-                "git.html#log-filters",
-                List.of(
-                    new Group("Filter", items(of(scope), TAGS)),
-                    Group.of("Clear", new Command("x", "vcsLogClearFilters", "every filter", true))));
+    /** An open log's filters, in its popup, with x to clear them all. */
+    static Group group(LogScope scope) {
+        final List<Transient.Item> items = items(of(scope), TAGS);
+        items.add(new Command("x", "vcsLogClearFilters", "clear the filters", true));
+        return new Group("Filters", items);
     }
 
     /**

@@ -1215,13 +1215,13 @@ plan with why it is left, before the next phase starts.
      outside under its name, so `base` never runs out; several have a key
      of their own; a column's click is taken once, a double click's second
      press swallowed (`Dispatcher`, `GutterColumn.isClickable`); a jump
-     runs `afterCommand`, so the details follow; `-t` with a branch set
+     runs `afterCommand`, so the details follow; `-T` with a branch set
      is kept and reads nothing again; branch colors come from a map the
      rows fill (`LogBuffer.laneColorOf`). The details' first line is
      badges (`LogDetailsFormatter`, a `VcsStatusFormatter` subclass): the
      repository's in its color, for several, then the refs' as the list's.
    - Tags and long edges: the log reads `--branches --remotes HEAD`, and
-     `--tags` only with `-t` (`LogQuery.tags`, `LogFilters.TAGS`, a
+     `--tags` only with `-T` (`LogQuery.tags`, `LogFilters.TAGS`, a
      switch in both popups, `vcsLogToggleTags` in the list): cvs2git makes
      a commit of its own for each CVS tag, and efx's 226 of them, each far
      above its parent in topological order, kept up to 61 lanes open. A
@@ -1259,7 +1259,68 @@ plan with why it is left, before the next phase starts.
      own popup. A buffer in two windows of the layout before keeps their
      places. A window closed saves its place (`Frame.unsplitInternal`).
      `Editor.windowShowing` is the one lookup of a buffer's window.
-   - Left: dir mode's filter bar, collapsing linear runs, `-r` as a
+   - Dir mode's filter bar: `Mode.getFilters` gives any popup item, and
+     dir mode's are its popup's Filters group, so the chips and the popup
+     share their keys and bindings. The bar draws a `Switch` as a chip
+     that turns over on a click (show hidden), and a `Cycle`'s always
+     with its value, set when it isn't the first (the sort), its × going
+     back to it. `dirLimit` types over the limit's chip
+     (`FilterBar.choose(name)`, a `Field` keeping a history), the dialog left for a window
+     with no bar. A change by key, popup or chip lays out every window's
+     bar on the listing again. `x` clears the filters in every view with a
+     bar, the log's and dir mode's (`dirClearFilters`), so dir mode tags
+     with `t` in vim too; `a` opens a new file, written when saved, and `A` makes a directory (vim's `n` and `N` left to search)
+     (`dirNewFile`, `dirNewDirectory`). A view closing puts back the
+     windows from before without its own buffers, which they hold when it
+     was in a window before it took the frame (`Frame.leaveView(view,
+     closing)`): the fuzz's one intermittent failure. Hidden names are
+     dotfiles, `filenameCompletionsExcludePattern`'s and what git ignores
+     (`HiddenNames`), left out unless `dirShowHidden`; shown, muted, and
+     italic for the ignored. Every ignore check goes through `vcs.Ignores`,
+     the backend's rules for a repository (`VcsBackend.ignores`): git's
+     `GitIgnores` (moved from `ProjectFiles`, with `!` and git's order of
+     precedence) and svn's `SvnIgnores` (`svn:ignore`, `svn:global-ignores`,
+     the config's `global-ignores`); the project walk, find in files and
+     dir mode use it. Neither tells a tracked file from an untracked one.
+     What is in an ignored directory is ignored; a listing or walk that
+     starts in one gets no rules (`Ignores.holding`, `Walker.enter`), as
+     git wouldn't list it. A backend with no rules gives null, so an
+     enclosing repository's apply. svn's are read in the background with
+     `ProcessRunner`; the event thread doesn't wait for them, and the
+     listing is made again when they come (`Ignores.whenRead`). They are
+     kept while being read and read again 10s after, never sooner, so a
+     slow read can't loop; only the top of a pre-1.7 working copy, every
+     directory of which has a .svn, is its root. Reverse
+     and directories first reorder what was read (`rearrange`), and j's own
+     listing restyles without reading; `a` opens a new file as a buffer,
+     as `openFile` does, making the directories it is in, and `A` makes
+     one with `File.mkdirs`, leaving vim's `n`/`N`.
+     Keys aligned across the three views: `-` then a letter sets a
+     filter or a view option in the directory and the log, as magit's
+     arguments (dir mode's up is Backspace, netrw's `-` given up); `x`
+     clears the filters in both, and the status discards with `d`, as
+     lazygit; each view has one popup, `?`, the log's with its filters
+     first (`l`/`a` freed). Shift and Ctrl Enter open the entry at the
+     caret in a split and a vertical split (`dirOpenFileInSplit`,
+     `dirOpenFileInVsplit`; `dirOpenFileAndKillDirectory` unbound).
+     The log's `-t` steps its dates through age, locale, iso and long-iso
+     (`util.TimeStyle`, shared with dir mode's `ListingStyle`), in the rows
+     and the details' Date, in the popup's View group (`vcsLogTimeStyle`).
+     Dir mode's lines are read by their entries, not by the pattern ls's
+     dates match: `DirectoryEntry` keeps where its size, date and name are
+     (`nameColumn`, `sizeColumn`), so the age style, which no date pattern
+     finds, writes over ls's date (`writeAge`, from a long-iso date with
+     GNU's ls, else ls's own, read back by `ListingStyle.parseDate`).
+     Dir mode's View group, after `-`: reverse (`=r`) and directories
+     first (`=d`) are j's, ordering the entries, so they work in every
+     listing; human sizes (`=h`) and the time style (`=t`) are j's in its
+     own format (`ListingStyle`), and `ls -h` and GNU's `--time-style`
+     with ls. The internal format now writes ls's columns, a mode, a size
+     and a date in a time style, so one pattern finds the name in both;
+     the formatter colors each permission, the size and the date.
+     In the log, vim's `a` picks a filter, as it limits a directory, and
+     `vcsStatus` (`<leader>gg`) opens the status of the log's repositories.
+   - Left: collapsing linear runs, `-r` as a
      checklist (a pick of one now), the badges' smaller font, the files
      pane's height fitted to its files, staging from the status's diff, and
      the refs tree in the sidebar (reveal, filter to a ref, narrow by

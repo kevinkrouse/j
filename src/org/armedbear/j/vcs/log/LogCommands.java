@@ -48,6 +48,8 @@ import org.armedbear.j.transients.Transient.Option;
 import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.transients.Transients;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.TimeStyle;
+import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
@@ -369,7 +371,10 @@ public final class LogCommands {
         if (option == null || bar == null) {
             if (name != null && option == null)
                 editor.status("No filter " + name.strip());
-            TransientPopup.open(editor, LogFilters.popup(log.getScope()));
+            // The log's popup, its filters first.
+            TransientPopup.open(
+                list != null ? list : editor,
+                VcsLogMode.getMode().getTransient(list != null ? list : editor));
             return;
         }
         if (!LogFilters.of(log.getScope()).contains(option)) {
@@ -379,7 +384,22 @@ public final class LogCommands {
         bar.choose(option);
     }
 
-    /** -t: the commits only tags reach shown too, or not. */
+    /** -t: the next time style for the dates, or the one named: age, locale, iso or long-iso. */
+    public static void vcsLogTimeStyle(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log != null) {
+            final List<String> styles = TimeStyle.ALL;
+            log.setTimeStyle(styles.get((styles.indexOf(log.getTimeStyle()) + 1) % styles.size()));
+        }
+    }
+
+    public static void vcsLogTimeStyle(Editor editor, String style) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log != null)
+            log.setTimeStyle(style.strip());
+    }
+
+    /** -T: the commits only tags reach shown too, or not. */
     public static void vcsLogToggleTags(Editor editor) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());
         if (log == null)
@@ -473,7 +493,7 @@ public final class LogCommands {
             editor.status("No file here");
             return;
         }
-        if (change.kind() == org.armedbear.j.vcs.FileChange.Kind.DELETED) {
+        if (change.kind() == FileChange.Kind.DELETED) {
             editor.status(change.path() + " is deleted in this commit");
             return;
         }

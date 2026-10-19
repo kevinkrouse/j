@@ -13,6 +13,7 @@ package org.armedbear.j.vcs.git;
 
 import static org.armedbear.j.Constants.*;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.RepositoryWatcher;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.VcsBackend;
@@ -37,6 +39,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
+import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.status.StatusData;
 
 public final class GitBackend implements VcsBackend {
@@ -217,7 +220,7 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public List<org.armedbear.j.vcs.log.LogRef> readRefs(VcsRepository repository) {
+    public List<LogRef> readRefs(VcsRepository repository) {
         return GitLog.allRefs(repository);
     }
 
@@ -244,6 +247,11 @@ public final class GitBackend implements VcsBackend {
     }
 
     // A worktree or submodule has a .git file, not a directory.
+    @Override
+    public Ignores ignores(Path root) {
+        return new GitIgnores(root, GitIgnores.globalIgnoreFile());
+    }
+
     @Override
     public boolean isRoot(File dir) {
         File git = File.getInstance(dir, ".git");

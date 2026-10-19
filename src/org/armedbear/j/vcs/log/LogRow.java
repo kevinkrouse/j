@@ -22,6 +22,7 @@ package org.armedbear.j.vcs.log;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.util.TimeStyle;
 
 /**
  * A commit's row in the log, laid out for a width: the subject, its refs as
@@ -47,9 +48,15 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
         spans = List.copyOf(spans);
     }
 
-    /** The row for width columns, now in seconds since the epoch for the date. */
+    /** The row for width columns, now in seconds since the epoch for the date, as an age. */
     public static LogRow layout(LogCommit commit, int width, long now) {
-        final String date = age(commit.time(), now);
+        return layout(commit, width, now, TimeStyle.AGE);
+    }
+
+    /** The same, its date in a time style. */
+    public static LogRow layout(LogCommit commit, int width, long now, String timeStyle) {
+        // An old date in iso has ls's space after it, to line up with a time: not at the right edge.
+        final String date = TimeStyle.format(timeStyle, commit.time() * 1000, now * 1000).strip();
         final List<LogRef> all = badges(commit.refs());
         for (int step = 0;; step++) {
             final List<LogRef> refs = new ArrayList<>();
@@ -156,19 +163,6 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
 
     /** How long ago, shortest: "now", "5m", "3h", "2d", "6w", "4mo", "2y". */
     static String age(long time, long now) {
-        final long s = Math.max(0, now - time);
-        if (s < 60)
-            return "now";
-        if (s < 3600)
-            return s / 60 + "m";
-        if (s < 86400)
-            return s / 3600 + "h";
-        if (s < 86400 * 14)
-            return s / 86400 + "d";
-        if (s < 86400 * 60)
-            return s / (86400 * 7) + "w";
-        if (s < 86400 * 365)
-            return s / (86400 * 30) + "mo";
-        return s / (86400 * 365) + "y";
+        return TimeStyle.age(time, now);
     }
 }

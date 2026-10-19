@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.web.WebBuffer;
 
 public final class Marker {
@@ -93,7 +94,8 @@ public final class Marker {
     public Editor gotoMarker(Editor editor) {
         if (web)
             return gotoWebMarker(editor);
-        if (buffer == editor.getBuffer() || (file != null && file.equals(editor.getBuffer().getFile()))) {
+        if ((buffer == editor.getBuffer() && !movedOn())
+                || (file != null && file.equals(editor.getBuffer().getFile()))) {
             // Marker is in current buffer.
             editor.beginMotion();
             editor.updateDotLine();
@@ -116,6 +118,18 @@ public final class Marker {
                 buf = buffer_list.findBuffer(file);
             else if (buffer_list.contains(buffer))
                 buf = buffer;
+            // A listing gone on to another directory: back to this one.
+            if (buf == null
+                    && buffer instanceof DirectoryBuffer dir
+                    && buffer_list.contains(dir)
+                    && file.isDirectory()) {
+                editor = editor.show(dir);
+                if (!dir.goTo(file)) {
+                    editor.status("Can't read " + file.canonicalPath());
+                    return editor;
+                }
+                buf = dir;
+            }
             if (buf != null) {
                 editor = editor.show(buf);
                 editor.addUndo(SimpleEdit.MOVE);
@@ -131,7 +145,10 @@ public final class Marker {
                 editor.moveCaretToDotCol();
                 editor.updateDotLine();
             } else if (file != null) {
-                buf = Buffer.createBuffer(file);
+                // A directory as a listing, not as text; a file as a buffer, there or not yet.
+                buf = file.isDirectory() ? Editor.getBuffer(file) : Buffer.createBuffer(file);
+                if (buf == null)
+                    return editor;
                 editor = editor.show(buf);
                 editor.gotoline(lineNumber);
                 editor.getDot().setOffset(offset);
@@ -144,6 +161,11 @@ public final class Marker {
         pos = new Position(editor.getDot());
         buffer = editor.getBuffer();
         return editor;
+    }
+
+    // A listing that has gone on to another directory since.
+    private boolean movedOn() {
+        return buffer instanceof DirectoryBuffer && file != null && !file.equals(buffer.getFile());
     }
 
     // The page again in its WebBuffer, or in a new one if that has gone.
@@ -222,7 +244,8 @@ public final class Marker {
     }
 
     private void selectToMarker(Editor editor) {
-        if (buffer == editor.getBuffer() || (file != null && file.equals(editor.getBuffer().getFile()))) {
+        if ((buffer == editor.getBuffer() && !movedOn())
+                || (file != null && file.equals(editor.getBuffer().getFile()))) {
             // Marker is in current buffer.
             editor.beginMotion();
             editor.setMarkAtDot();

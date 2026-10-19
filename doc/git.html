@@ -188,7 +188,7 @@ whose hooks fail is kept for another try.
 <tr><td>D</td><td>D</td><td><a href="commands.html#vcsStatusDiff">vcsStatusDiff</a></td><td>the diff beside it, or not</td></tr>
 <tr><td>Space, Shift Space</td><td>Space, Shift Space</td><td><a href="commands.html#vcsStatusScrollDiff">vcsStatusScrollDiff</a>, <a href="commands.html#vcsStatusScrollDiffBack">vcsStatusScrollDiffBack</a></td><td>scroll the diff beside it</td></tr>
 <tr><td>g</td><td>r</td><td><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></td><td>read it again</td></tr>
-<tr><td>s u x</td><td>s u x</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
+<tr><td>s u d</td><td>s u d</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
 <tr><td>S U</td><td>S U</td><td><a href="commands.html#vcsStageAll">vcsStageAll</a>, <a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></td><td>stage or unstage everything</td></tr>
 <tr><td>c</td><td>c</td><td><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></td><td>the commit popup</td></tr>
 <tr><td>$</td><td>$</td><td><a href="commands.html#vcsCommandLog">vcsCommandLog</a></td><td>the commands j ran</td></tr>
@@ -270,9 +270,9 @@ files are over the diff.
 <tr><td>f F, Alt Down, Alt Up</td><td><a href="commands.html#vcsLogNextFile">vcsLogNextFile</a>, <a href="commands.html#vcsLogPreviousFile">vcsLogPreviousFile</a></td><td>the next or previous file's diff</td></tr>
 <tr><td>Space, d; Shift Space, Backspace, u</td><td><a href="commands.html#vcsLogScrollDiff">vcsLogScrollDiff</a>, <a href="commands.html#vcsLogScrollDiffBack">vcsLogScrollDiffBack</a></td><td>the diff a page on, or back</td></tr>
 <tr><td>D</td><td><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></td><td>the details at the bottom or the right</td></tr>
-<tr><td>l (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>the popup of the filters</td></tr>
-<tr><td>-b -a -p -d -g -s -r (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>type a filter's value in the field over its chip</td></tr>
-<tr><td>-t (in the list)</td><td><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></td><td>show the commits only tags reach too, or not</td></tr>
+<tr><td>-b -a -p -s -g -c -r (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>type a filter's value in the field over its chip</td></tr>
+<tr><td>-t (in the list)</td><td><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></td><td>step the dates through age, locale, iso and long-iso</td></tr>
+<tr><td>-T (in the list)</td><td><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></td><td>show the commits only tags reach too, or not</td></tr>
 <tr><td>x (in the list)</td><td><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></td><td>clear every filter</td></tr>
 <tr><td>g (r in vim)</td><td><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></td><td>read it again</td></tr>
 <tr><td>q</td><td><a href="commands.html#vcsLogQuit">vcsLogQuit</a></td><td>close it</td></tr>
@@ -293,8 +293,8 @@ and Alt Shift O, or Ctrl W in vim edit mode.
 A bar over the list shows the log's filters, each a chip with its key:
 <b>-b</b> a branch or tag to start from (every one when unset),
 <b>-a</b> an author, <b>-p</b> a path (a file's history follows its
-renames), <b>-d</b> since a date (<code>2 weeks ago</code>,
-<code>2026-01-31</code>), <b>-g</b> text in the message, <b>-s</b> text
+renames), <b>-s</b> since a date (<code>2 weeks ago</code>,
+<code>2026-01-31</code>), <b>-g</b> text in the message, <b>-c</b> text
 a change adds or removes, and, for several repositories, <b>-r</b> the one
 to show alone. With several, a path is from the directory above them all
 (<code>lib/src/</code>), and only its repository is shown; a branch shows
@@ -305,9 +305,10 @@ of its lane's color before it, and a repository one of its color. <b>Enter</b> t
 the one highlighted (one that is the text first, then those that start
 with it), the first unless you move with <b>Up</b> and <b>Down</b>, or the
 text when none is: erase a value and <b>Enter</b> clears
-it, as does the <b>×</b> after a set chip. <b>l</b> opens the popup of the
-filters, where the same keys set them, and <b>x</b> clears every one.
-<b>-t</b> shows the commits only tags reach too: off at first, as a
+it, as does the <b>×</b> after a set chip. <b>?</b> opens the log's popup,
+its filters first, where the same keys set them, and <b>x</b> clears every one,
+as it does in a directory.
+<b>-T</b> shows the commits only tags reach too: off at first, as a
 repository converted from CVS has a commit of its own for each tag, apart
 from its branch, which would each take a lane; a tag on a branch's commit
 shows on it either way. The

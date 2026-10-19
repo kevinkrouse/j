@@ -42,7 +42,6 @@ import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Option;
-import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.vcs.ViewPane;
 import org.armedbear.j.vcs.status.StatusLine;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
@@ -127,15 +126,15 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         return paneModalKeyMap;
     }
 
-    // The filters' keys, in the list alone: in the files and diff vim's l
-    // and - move, and x out of habit would clear every filter.
+    // The filters' keys, in the list alone: in the files and diff vim's
+    // - moves, and x out of habit would clear every filter.
     private static void listKeys(KeyMap km) {
-        km.mapKey('l', "vcsLogFilter");
-        // -b, -a and the rest, as in the popup of the filters.
+        // -b, -a and the rest, as in the popup's Filters.
         final KeyMap filters = new KeyMap();
         for (Option o : LogFilters.ALL)
             filters.mapKey(o.key().charAt(1), "vcsLogFilter " + o.description());
         filters.mapKey(LogFilters.TAGS.key().charAt(1), "vcsLogToggleTags");
+        filters.mapKey(LogFilters.TIME_STYLE.key().charAt(1), "vcsLogTimeStyle");
         km.mapKey('-', filters);
         km.mapKey('x', "vcsLogClearFilters");
     }
@@ -225,15 +224,12 @@ public final class VcsLogMode extends AbstractMode implements Mode {
                 new Command("d", "vcsLogScrollDiff", "scroll down", true),
                 new Command("u", "vcsLogScrollDiffBack", "scroll up", true),
                 new Command("D", "vcsLogToggleDetails", "at the bottom or right", true)));
-        final List<Transient.Item> log = new ArrayList<>();
         // The filters' keys are the list's alone.
         if (editor == null || editor.getBuffer() instanceof LogBuffer) {
-            log.add(
-                new Prefix("l",
-                        "filters",
-                        () -> LogFilters.popup(editor == null ? null : LogCommands.scopeOf(editor))));
-            log.add(Command.of("x", "vcsLogClearFilters", "clear the filters"));
+            groups.add(0, LogFilters.group(editor == null ? null : LogCommands.scopeOf(editor)));
+            groups.add(1, Group.of("View", LogFilters.TIME_STYLE));
         }
+        final List<Transient.Item> log = new ArrayList<>();
         log.add(Command.of(vim ? "r" : "g", "vcsLogRefresh", "refresh"));
         log.add(Command.of("$", "vcsCommandLog", "command log"));
         log.add(Command.of("q", "vcsLogQuit", "close"));

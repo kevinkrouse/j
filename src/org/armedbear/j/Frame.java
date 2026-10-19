@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.awt.AWTEvent;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Cursor;
@@ -137,7 +138,7 @@ public final class Frame extends JFrame
     }
 
     @Override
-    protected void processEvent(java.awt.AWTEvent e) {
+    protected void processEvent(AWTEvent e) {
         if (!(e instanceof KeyEvent))
             super.processEvent(e);
     }
@@ -917,8 +918,19 @@ public final class Frame extends JFrame
      * the one left.
      */
     public final void leaveView(FrameView view) {
+        leaveView(view, List.of());
+    }
+
+    /**
+     * As leaveView, closing: the windows from before put back without
+     * those of the buffers closing, which they may have, as of a log in a
+     * window before it took the frame.
+     */
+    public final void leaveView(FrameView view, Collection<Buffer> closing) {
         saveViews();
-        final WindowLayout.Node before = current(view, view.before());
+        WindowLayout.Node before = current(view, view.before());
+        if (before != null && !closing.isEmpty())
+            before = WindowLayout.keeping(before, b -> !closing.contains(b));
         view.setBefore(null);
         // laidOut, not shownView: a view closing is no longer one.
         if ((before == null || !restoreLayout(before)) && laidOut(view))
