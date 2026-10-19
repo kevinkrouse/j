@@ -126,8 +126,9 @@ final class LogDetailsFormatter extends VcsStatusFormatter {
 
     @Override
     public int getStyle(int format) {
+        // Small, as the refs' badges beside it are.
         if (format >= REPOSITORY_BADGE)
-            return TextStyle.PLAIN;
+            return TextStyle.SMALL;
         if (format >= REF)
             return refs().getStyle(format - REF);
         return super.getStyle(format);

@@ -129,7 +129,9 @@ public final class MotionCommands {
      * screen rather than one; the caret goes to the new top line (CTRL-F) or
      * the new bottom line (CTRL-B) rather than keeping its row; and CTRL-F
      * with the last line already showing puts it at the top. Too much to
-     * change what PageDown does for everyone, so it is an argument.
+     * change what PageDown does for everyone, so it is an argument. Pages are
+     * the display's, measured as drawn, so that a line taller than a row, or
+     * rows of virtual text, never leave the caret off the window.
      *
      * @return false when there is nowhere further to scroll
      */
@@ -140,13 +142,9 @@ public final class MotionCommands {
         final Line top = display.getTopLine();
         if (top == null)
             return false;
-        final int rows = Math.max(1, display.getRows());
-        final int step = Math.max(1, rows - 2);
-        Line newTop = top;
+        final Line bottom = display.getBottomLine();
+        Line newTop;
         if (forward) {
-            Line bottom = top;
-            for (int i = 1; i < rows && bottom.nextVisible() != null; i++)
-                bottom = bottom.nextVisible();
             if (bottom.nextVisible() == null) {
                 // The last line is showing: put it at the top, or do nothing
                 // if it is there already.
@@ -154,19 +152,22 @@ public final class MotionCommands {
                     return false;
                 newTop = bottom;
             } else {
-                for (int i = 0; i < step && newTop.nextVisible() != null; i++)
-                    newTop = newTop.nextVisible();
+                // The old page's last two lines at the top, a line on at least.
+                newTop = bottom.previousVisible();
+                if (newTop == null || !before(top, newTop, display.getRows() + 1))
+                    newTop = top.nextVisible();
             }
         } else {
             if (top.previousVisible() == null)
                 return false;
-            for (int i = 0; i < step && newTop.previousVisible() != null; i++)
-                newTop = newTop.previousVisible();
+            // The old page's first two lines at the bottom, a line back at least.
+            final Line second = top.nextVisible();
+            newTop = display.topFor(second != null && second != bottom ? second : top);
+            if (!before(newTop, top, display.getRows() + 1))
+                newTop = top.previousVisible();
         }
-        Line caret = newTop;
-        if (!forward)
-            for (int i = 1; i < rows && caret.nextVisible() != null; i++)
-                caret = caret.nextVisible();
+        display.setTopLine(newTop);
+        final Line caret = forward ? newTop : display.getBottomLine();
         // The caret keeps its column, as nvim's default 'nostartofline'
         // keeps it -- the column it is at now, not j's goal column, which
         // only j's own up and down set. A selection is left alone, so that
@@ -174,7 +175,6 @@ public final class MotionCommands {
         final int col = editor.getDotCol();
         editor.addUndo(SimpleEdit.MOVE);
         editor.updateDotLine();
-        display.setTopLine(newTop);
         editor.getDot().moveTo(caret, 0);
         editor.getDot().moveToCol(col, editor.getBuffer().getTabWidth());
         if (editor.getDot().getOffset() > caret.length())
@@ -183,6 +183,16 @@ public final class MotionCommands {
         editor.updateDotLine();
         editor.setUpdateFlag(REPAINT);
         return true;
+    }
+
+    // Whether line is before other, at most limit lines shown on: by the
+    // lines themselves, as a new line's number may not be set yet.
+    private static boolean before(Line line, Line other, int limit) {
+        Line l = line.nextVisible();
+        for (int i = 0; l != null && i < limit; i++, l = l.nextVisible())
+            if (l == other)
+                return true;
+        return false;
     }
 
     public static void pageUp(Editor editor) {

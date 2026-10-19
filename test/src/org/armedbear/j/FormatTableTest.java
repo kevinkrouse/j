@@ -65,7 +65,9 @@ public class FormatTableTest {
         );
         assertEquals(TextStyle.PLAIN, TextStyle.parse("plain"));
         assertEquals(-1, TextStyle.parse("loud"));
-        assertEquals(-1, TextStyle.parse("16"));
+        assertEquals(TextStyle.BOLD | TextStyle.SMALL, TextStyle.parse("bold small"));
+        assertEquals("bold small", TextStyle.toString(TextStyle.BOLD | TextStyle.SMALL));
+        assertEquals(-1, TextStyle.parse("32"));
         assertEquals(-1, TextStyle.parse(null));
     }
 

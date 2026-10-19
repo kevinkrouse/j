@@ -67,6 +67,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private static Font boldFont;
     private static Font italicFont;
     private static Font boldItalicFont;
+    // TextStyle.SMALL's: each of those, smaller.
+    private static final Font[] smallFonts = new Font[4];
+    private static final float SMALL_SCALE = 0.85f;
+    // How far above the line's baseline small text's is, to center it, and
+    // its strikethrough above its own.
+    private static int smallRise;
+    private static int smallStrikethroughRise;
 
     private static int charHeight;
     private static int charDescent;
@@ -166,6 +173,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             boldItalicFont = boldFont;
         }
 
+        smallFonts[TextStyle.PLAIN] = plainFont.deriveFont(fontSize * SMALL_SCALE);
+        smallFonts[TextStyle.BOLD] = boldFont.deriveFont(fontSize * SMALL_SCALE);
+        smallFonts[TextStyle.ITALIC] = italicFont.deriveFont(fontSize * SMALL_SCALE);
+        smallFonts[TextStyle.BOLD | TextStyle.ITALIC] = boldItalicFont.deriveFont(fontSize * SMALL_SCALE);
+
         FontMetrics fm = Utilities.getFontMetrics(plainFont);
 
         final int plainAscent = fm.getAscent();
@@ -208,6 +220,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             charLeading += adjustLeading;
 
         charHeight = charAscent + charDescent + charLeading;
+
+        // Small text centered between the line's ascent and descent, as adjusted.
+        final FontMetrics sfm = Utilities.getFontMetrics(smallFonts[TextStyle.PLAIN]);
+        smallRise = Math.max(0, Math.round((charAscent - charDescent - sfm.getAscent() + sfm.getDescent()) / 2f));
+        smallStrikethroughRise = Math.max(
+            1,
+            Math.round(
+                -smallFonts[TextStyle.PLAIN].getLineMetrics("x", sfm.getFontRenderContext()).getStrikethroughOffset()));
 
         antialias = preferences.getBooleanProperty(Property.ANTIALIAS);
         desktopAntialiasingHint = getDesktopAntialiasingHint();
@@ -926,8 +946,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (c == ' ' || c == '\t')
             return;
         g2d.setColor(editor.getFormatter().getBackgroundColor());
-        g2d.setFont(fontForFormat(formatArray[caretCol]));
-        g2d.drawChars(textArray, caretCol, caretSpan(), x, y + charAscent);
+        final int style = editor.getFormatter().getStyle(formatterFormat(formatArray[caretCol]));
+        g2d.setFont(fontFor(style));
+        g2d.drawChars(textArray, caretCol, caretSpan(), x, baseline(y, style));
     }
 
     /**
@@ -946,6 +967,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     /** The font for a TextStyle; underline and strikethrough are drawn. */
     private static Font fontFor(int style) {
+        if ((style & TextStyle.SMALL) != 0)
+            return smallFonts[TextStyle.fontStyle(style)];
         switch (TextStyle.fontStyle(style)) {
             case TextStyle.BOLD:
                 return boldFont;
@@ -956,6 +979,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             default:
                 return plainFont;
         }
+    }
+
+    // The baseline of text in style on the row at y: small text's raised to center it.
+    private static int baseline(int y, int style) {
+        return y + charAscent - ((style & TextStyle.SMALL) != 0 ? smallRise : 0);
+    }
+
+    // How far above its baseline a strikethrough is drawn through text in style.
+    private static int strikethroughRise(int style) {
+        return (style & TextStyle.SMALL) != 0 ? smallStrikethroughRise : strikethroughRise;
     }
 
     private InputHandler.CaretShape caretShape() {
@@ -1069,7 +1102,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             ta[i] = ' ';
             fa[i] = 0;
         }
-        final int limit = Math.min(maxCols, taLength);
+        // Every column, past maxCols too, so that a run that ends on its
+        // column is measured whole; maxCols only bounds what is returned.
+        final int limit = taLength;
         final Formatter formatter = editor.getFormatter();
         final LineSegmentList segmentList = formatter.formatLine(line);
         final int[] revealed = formatter.hidesMarkup() ? revealedItems(formatter, line, segmentList) : null;
@@ -1126,7 +1161,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
         if (rainbowDelimiters)
             colorBrackets(line, begin, limit);
-        return totalChars;
+        return Math.min(totalChars, Math.max(maxCols, 0));
     }
 
     // A format with RAINBOW set is a delimiter formatLine has colored by its
@@ -1504,11 +1539,12 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 final VirtualText.Run run = p.run();
                 g2d.setFont(fontFor(run.style()));
                 g2d.setColor(run.color() != null ? run.color() : dim);
-                g2d.drawString(run.text(), p.x(), y + charAscent);
+                final int base = baseline(y, run.style());
+                g2d.drawString(run.text(), p.x(), base);
                 if ((run.style() & TextStyle.UNDERLINE) != 0)
-                    g2d.drawLine(p.x(), y + charAscent + 1, p.x() + p.width(), y + charAscent + 1);
+                    g2d.drawLine(p.x(), base + 1, p.x() + p.width(), base + 1);
                 if ((run.style() & TextStyle.STRIKETHROUGH) != 0) {
-                    final int strikeY = y + charAscent - strikethroughRise;
+                    final int strikeY = base - strikethroughRise(run.style());
                     g2d.drawLine(p.x(), strikeY, p.x() + p.width(), strikeY);
                 }
             }
@@ -1903,7 +1939,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             int format = formatArray[i];
             int start = i;
             ++i;
-            while (i < length && formatArray[i] == format && i != breakCol)
+            // A run that ends on its column is never broken: its width is the whole run's.
+            final boolean onColumn = formatter.endsOnColumn(formatterFormat(format));
+            while (i < length && formatArray[i] == format && (i != breakCol || onColumn))
                 ++i;
             if ((format & BAR) != 0) {
                 // The full height of the line, so that a quote's bars join
@@ -1917,7 +1955,17 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final int style = formatter.getStyle(formatterFormat(format));
             final Font font = fontFor(style);
             GlyphVector gv = glyphs(font, g2d.getFontRenderContext(), textArray, start, i);
-            final double width = gv.getLogicalBounds().getWidth();
+            final double width = runWidth(
+                formatter,
+                format,
+                gv,
+                g2d.getFontRenderContext(),
+                textArray,
+                formatArray,
+                x - gutterWidth,
+                start,
+                i);
+            final int base = baseline(y, style);
             if ((format & HIDDEN) != 0) {
                 x += width; // The bar in the character's room.
                 continue;
@@ -1925,20 +1973,20 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if ((style & TextStyle.BOLD) != 0) {
                 if (boldFont == plainFont) {
                     if (underlineBold)
-                        g2d.drawLine((int) x, y + charAscent + 1, (int) (x + width), y + charAscent + 1);
+                        g2d.drawLine((int) x, base + 1, (int) (x + width), base + 1);
                     else
-                        g2d.drawGlyphVector(gv, (int) x + 1, y + charAscent);
+                        g2d.drawGlyphVector(gv, (int) x + 1, base);
                 } else if (emulateBold)
-                    g2d.drawGlyphVector(gv, (float) x + 1, y + charAscent);
+                    g2d.drawGlyphVector(gv, (float) x + 1, base);
             }
             if (formatter.getUnderline(formatterFormat(format)) || (format & HOVER) != 0)
-                g2d.drawLine((int) x, y + charAscent + 1, (int) (x + width), y + charAscent + 1);
+                g2d.drawLine((int) x, base + 1, (int) (x + width), base + 1);
             if ((style & TextStyle.STRIKETHROUGH) != 0) {
                 // Through the middle of the lower case letters.
-                final int strikeY = y + charAscent - strikethroughRise;
+                final int strikeY = base - strikethroughRise(style);
                 g2d.drawLine((int) x, strikeY, (int) (x + width), strikeY);
             }
-            g2d.drawGlyphVector(gv, (float) x, y + charAscent);
+            g2d.drawGlyphVector(gv, (float) x, base);
             x += width;
         }
     }
@@ -1950,6 +1998,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         double totalWidth = 0;
         int i = 0;
         Formatter formatter = editor.getFormatter();
+        // Without graphics, as a display not yet shown, the font's own.
+        final FontRenderContext frc =
+                g2d != null ? g2d.getFontRenderContext() : Utilities.getFontMetrics(plainFont).getFontRenderContext();
         while (i < limit) {
             int format = formatArray[i];
             int startCol = i;
@@ -1958,10 +2009,50 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if ((format & (HIDDEN | BAR)) == HIDDEN)
                 continue;
             final Font font = fontFor(formatter.getStyle(formatterFormat(format)));
-            GlyphVector gv = glyphs(font, g2d.getFontRenderContext(), textArray, startCol, i);
-            totalWidth += gv.getLogicalBounds().getWidth();
+            GlyphVector gv = glyphs(font, frc, textArray, startCol, i);
+            totalWidth += runWidth(formatter, format, gv, frc, textArray, formatArray, totalWidth, startCol, i);
         }
         return (int) totalWidth;
+    }
+
+    // The width of a run from start to end, which begins at x: its glyphs',
+    // or for one that ends on its column, its share of the whole run's, which
+    // ends where the text up to it would all plain, a space's at least. The
+    // share is even across its columns, so that no one column takes it all.
+    private double runWidth(
+            Formatter formatter,
+            int format,
+            GlyphVector gv,
+            FontRenderContext frc,
+            char[] textArray,
+            int[] formatArray,
+            double x,
+            int start,
+            int end) {
+        if (!formatter.endsOnColumn(formatterFormat(format)))
+            return gv.getLogicalBounds().getWidth();
+        int runEnd = end;
+        while (runEnd < formatArray.length && formatArray[runEnd] == format)
+            ++runEnd;
+        final double whole = Math.max(plainWidth(frc, textArray, runEnd) - x, spaceWidth);
+        return whole * (end - start) / (runEnd - start);
+    }
+
+    // The last plain width measured, as a line is measured over and over by
+    // the caret and clicks.
+    private String plainText;
+    private FontRenderContext plainFrc;
+    private double plainTextWidth;
+
+    // How wide textArray's first end characters are in the plain font.
+    private double plainWidth(FontRenderContext frc, char[] textArray, int end) {
+        final String text = new String(textArray, 0, end);
+        if (!text.equals(plainText) || !frc.equals(plainFrc)) {
+            plainTextWidth = glyphs(plainFont, frc, textArray, 0, end).getLogicalBounds().getWidth();
+            plainText = text;
+            plainFrc = frc;
+        }
+        return plainTextWidth;
     }
 
     @Override
@@ -2986,9 +3077,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * the bottom of the window, rows of virtual text and all.
      */
     public Line pageAbove() {
-        // lineAbove measures to the text, below the rows over it.
-        final Line line = lineAbove(topLine, getHeight() - rowHeight(topLine) + aboveHeight(topLine));
+        final Line line = topFor(topLine);
         return line == topLine && topLine.previousVisible() != null ? topLine.previousVisible() : line;
+    }
+
+    /** The top line that shows bottom as the last whole line: rows of virtual text and all. */
+    public Line topFor(Line bottom) {
+        // lineAbove measures to the text, below the rows over it.
+        return lineAbove(bottom, getHeight() - rowHeight(bottom) + aboveHeight(bottom));
     }
 
     // The line to put at the top for line's text to start about y down:
@@ -3158,6 +3254,22 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             }
         }
         return line;
+    }
+
+    /**
+     * How far into the text shown of line, in pixels, its column col is
+     * drawn, as scrolled sideways now: for tests.
+     */
+    public synchronized int measure(Line line, int col) {
+        formatLine(line, shift, col - shift);
+        final Graphics2D g2d = (Graphics2D) getGraphics();
+        try {
+            return measureLine(g2d, textArray, col - shift, formatArray);
+        }
+        finally {
+            if (g2d != null)
+                g2d.dispose();
+        }
     }
 
     public synchronized int getColumn(Line line, int x) {

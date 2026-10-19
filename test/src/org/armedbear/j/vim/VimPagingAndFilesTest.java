@@ -19,10 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Line;
 import org.armedbear.j.MotionCommands;
+import org.armedbear.j.TextLine;
+import org.armedbear.j.VirtualText;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -101,6 +104,47 @@ public class VimPagingAndFilesTest {
         h.keys("<C-b>");
         assertEquals(2 * step, top());
         assertEquals(2 * step + rows() - 1, h.lineNumber(), "the caret is on the new bottom line");
+    }
+
+    @Test
+    public void ctrlBReachesTheTopPastRowsOfVirtualText() throws Exception {
+        // As a log's details pane's first line has: a row of virtual text
+        // under it, so fewer lines fit than rows.
+        vim(lines(30), 0, 0);
+        final Line first = h.buffer().getFirstLine();
+        onEdt(
+            () -> h.buffer()
+                    .getVirtualText()
+                    .set("test", List.of(VirtualText.below(first, List.of(List.of(VirtualText.Run.of("under")))))));
+        final int step = rows() - 2;
+        topAt(step);
+        h.cursor(step, 0);
+        for (int i = 0; i < 2; i++) {
+            h.keys("<C-b>");
+            final int top = top();
+            assertEquals(
+                h.editor().getDisplay().getBottomLine().lineNumber(),
+                h.lineNumber(),
+                "on the last line showing");
+            h.editor().updateDisplay();
+            assertEquals(top, top(), "not scrolled back to show the caret");
+        }
+        assertEquals(0, top(), "all the way up");
+        assertTrue(h.lineNumber() < rows() - 1, "a line fewer than rows: the virtual row takes one");
+    }
+
+    @Test
+    public void ctrlFPagesPastALineNotYetNumbered() {
+        vim(lines(200), 0, 0);
+        topAt(0);
+        // A line put in before the buffer is renumbered, as a macro's o<Esc> leaves it.
+        final Line bottom = h.editor().getDisplay().getBottomLine();
+        final Line fresh = new TextLine("fresh");
+        fresh.insertAfter(bottom.previous().previous());
+        assertSame(fresh, h.editor().getDisplay().getBottomLine().previous(), "the new page's top");
+        MotionCommands.pageDown(h.editor(), "vim");
+        assertEquals(-1, fresh.lineNumber(), "still not numbered");
+        assertSame(fresh, h.editor().getDisplay().getTopLine(), "a page on, not a line");
     }
 
     @Test

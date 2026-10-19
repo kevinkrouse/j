@@ -30,9 +30,11 @@ import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.TextStyle;
 
 /**
- * The log's colors: the subject plain, refs as tinted badges, HEAD's
- * bold, and the author and date dimmed. A branch's badge is in its
- * commit's lane's color, when there is a graph.
+ * The log's colors: the subject plain, refs as tinted badges in a smaller
+ * font, HEAD's bold, and the author and date dimmed. A branch's badge is in
+ * its commit's lane's color, when there is a graph. The gap before the
+ * author ends on its column, so that the author and date line up whatever
+ * the badges' widths.
  */
 final class LogFormatter extends Formatter {
     static final int TEXT = 0;
@@ -41,6 +43,7 @@ final class LogFormatter extends Formatter {
     static final int BRANCH = 3;
     static final int REMOTE = 4;
     static final int TAG = 5;
+    static final int GAP = 6;
     // A branch's badge in a lane's color, and HEAD's: these plus the color.
     private static final int LANE = 16;
     private static final int HEAD_LANE = LANE + LogGraph.COLORS;
@@ -63,7 +66,7 @@ final class LogFormatter extends Formatter {
             final int start = Math.min(s.start(), text.length());
             final int end = Math.min(s.end(), text.length());
             if (start > at)
-                addSegment(text, at, start, TEXT);
+                addSegment(text, at, start, s.part() == LogRow.Part.AUTHOR ? GAP : TEXT);
             if (end > start)
                 addSegment(text, start, end, format(s.part(), lane));
             at = Math.max(at, end);
@@ -91,20 +94,37 @@ final class LogFormatter extends Formatter {
 
     @Override
     public Color getColor(int format) {
+        if (format == GAP)
+            return super.getColor(TEXT);
         return isLane(format) ? LogGraphColumn.color((format - LANE) % LogGraph.COLORS) : super.getColor(format);
     }
 
     @Override
     public int getStyle(int format) {
         if (isLane(format))
-            return format >= HEAD_LANE ? TextStyle.BOLD : TextStyle.PLAIN;
-        return format == HEAD ? TextStyle.BOLD : super.getStyle(format);
+            return TextStyle.SMALL | (format >= HEAD_LANE ? TextStyle.BOLD : TextStyle.PLAIN);
+        if (format == HEAD)
+            return TextStyle.SMALL | TextStyle.BOLD;
+        // The gap is laid out apart, but looks as the text does, with no entry of its own.
+        if (format == GAP)
+            return super.getStyle(TEXT);
+        final int style = super.getStyle(format);
+        return isBadge(format) ? style | TextStyle.SMALL : style;
+    }
+
+    @Override
+    public boolean endsOnColumn(int format) {
+        return format == GAP;
+    }
+
+    private static boolean isBadge(int format) {
+        return format == HEAD || format == BRANCH || format == REMOTE || format == TAG || isLane(format);
     }
 
     // A badge: a shade of its text's color behind it.
     @Override
     public Color getRunBackground(int format) {
-        if (format != HEAD && format != BRANCH && format != REMOTE && format != TAG && !isLane(format))
+        if (!isBadge(format))
             return null;
         return DefaultTheme.blend(getBackgroundColor(), getColor(format), 0.18);
     }

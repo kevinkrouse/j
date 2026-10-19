@@ -1347,7 +1347,17 @@ plan with why it is left, before the next phase starts.
      none. The filter bar's open field is laid out as its chip, its × still
      there, which closes the field first. The strip's click is still "only
      this one".
-   - Left: the badges' smaller font, the files
+   - The badges' smaller font: `TextStyle.SMALL` draws a format in the
+     text's fonts at 85%, centered on the line (`Display.baseline`, for
+     every place text is drawn), measured as drawn, so the caret, clicks and
+     chips follow. The details pane's badges are small too. The gap before
+     the author is `LogFormatter.GAP`, styled as the text with no entry of
+     its own, which ends on its column (`Formatter.endsOnColumn`), so the
+     author and date line up as with no badges: the run is as wide as takes
+     its end to where the text up to it would end all plain, spread evenly
+     over its columns and never broken at the caret, and `formatLine` fills
+     the whole line so that a run is always measured whole.
+   - Left: the files
      pane's height fitted to its files, staging from the status's diff, and
      the refs tree in the sidebar (reveal, filter to a ref, narrow by
      typing).

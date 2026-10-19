@@ -34,8 +34,10 @@ public final class TextStyle {
     public static final int ITALIC = Font.ITALIC;
     public static final int UNDERLINE = 4;
     public static final int STRIKETHROUGH = 8;
+    /** In a smaller font, as a log's badges are. */
+    public static final int SMALL = 16;
 
-    private static final int ALL = BOLD | ITALIC | UNDERLINE | STRIKETHROUGH;
+    private static final int ALL = BOLD | ITALIC | UNDERLINE | STRIKETHROUGH | SMALL;
 
     private TextStyle() {}
 
@@ -57,13 +59,16 @@ public final class TextStyle {
             sb.append(" underline");
         if ((style & STRIKETHROUGH) != 0)
             sb.append(" strikethrough");
+        if ((style & SMALL) != 0)
+            sb.append(" small");
         return sb.substring(1);
     }
 
     /**
      * A style from a preference: a number, as themes have always written it,
-     * or words, "bold italic", "underline", "strikethrough", "plain", apart by
-     * spaces, commas or '|'. Returns -1 for null or anything else.
+     * or words, "bold italic", "underline", "strikethrough", "small",
+     * "plain", apart by spaces, commas or '|'. Returns -1 for null or
+     * anything else.
      */
     public static int parse(String value) {
         if (value == null)
@@ -94,6 +99,9 @@ public final class TextStyle {
                 case "strikethrough":
                 case "strike":
                     style |= STRIKETHROUGH;
+                    break;
+                case "small":
+                    style |= SMALL;
                     break;
                 default:
                     return -1;

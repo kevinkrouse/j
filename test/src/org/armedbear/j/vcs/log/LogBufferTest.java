@@ -33,6 +33,7 @@ import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -877,6 +878,59 @@ public class LogBufferTest {
     }
 
     @Test
+    public void theBadgesAreSmallerTheAuthorStillOnItsColumn() throws Exception {
+        twoAuthors();
+        open(100);
+        final LogLine badged = (LogLine) log.getFirstLine();
+        final LogLine plain = (LogLine) badged.next();
+        assertTrue(badged.row().spans().stream().anyMatch(s -> s.part() == LogRow.Part.HEAD), "HEAD's badge");
+        assertTrue(plain.row().spans().stream().noneMatch(s -> BADGES.contains(s.part())), "no badge of any kind");
+        // Measured on both rows: the plain one's text is plain there.
+        final int author = authorStart(badged);
+        final Display display = h.editor().getDisplay();
+        final int[] at = new int[4];
+        onEdt(() -> {
+            at[0] = display.measure(badged, author);
+            at[1] = display.measure(plain, author);
+            at[2] = display.measure(badged, badgeEnd(badged));
+            at[3] = display.measure(plain, badgeEnd(badged));
+        });
+        assertEquals(at[1], at[0], "the author where it would be with no badges");
+        assertTrue(at[1] > 0);
+        assertTrue(at[2] < at[3], "the badges narrower than plain text: " + at[2] + " " + at[3]);
+        // The gap's slack spread over its columns, none much wider than another.
+        final int gap = badgeEnd(badged);
+        final List<Integer> widths = new ArrayList<>();
+        onEdt(() -> {
+            for (int c = gap; c < author; c++)
+                widths.add(display.measure(badged, c + 1) - display.measure(badged, c));
+        });
+        assertTrue(widths.size() > 1, "a gap of several columns");
+        assertTrue(Collections.max(widths) - Collections.min(widths) <= 1, "an even share each: " + widths);
+        final LogFormatter formatter = new LogFormatter(log);
+        assertEquals(formatter.getStyle(LogFormatter.TEXT), formatter.getStyle(LogFormatter.GAP), "looks as the text");
+        assertEquals(formatter.getColor(LogFormatter.TEXT), formatter.getColor(LogFormatter.GAP));
+    }
+
+    private static final Set<LogRow.Part> BADGES =
+            Set.of(LogRow.Part.HEAD, LogRow.Part.BRANCH, LogRow.Part.REMOTE, LogRow.Part.TAG);
+
+    private static int authorStart(LogLine l) {
+        for (LogRow.Span s : l.row().spans())
+            if (s.part() == LogRow.Part.AUTHOR)
+                return s.start();
+        throw new AssertionError("no author");
+    }
+
+    private static int badgeEnd(LogLine l) {
+        int end = 0;
+        for (LogRow.Span s : l.row().spans())
+            if (BADGES.contains(s.part()) || s.part() == LogRow.Part.COUNT)
+                end = s.end();
+        return end;
+    }
+
+    @Test
     public void theGraphIsAColumnBeforeTheTextButNotWhenCommitsAreLeftOut() throws Exception {
         twoAuthors();
         open(100);
@@ -899,10 +953,12 @@ public class LogBufferTest {
         assertEquals(LogGraphColumn.color(first.graph().color()), badgeColor(first, "main"), "its lane's color");
         final LogFormatter formatter = new LogFormatter(log);
         assertEquals(
-            TextStyle.PLAIN,
+            TextStyle.SMALL,
             formatter.getStyle(LogFormatter.format(LogRow.Part.BRANCH, 3)),
             "a branch's, not the table's");
-        assertEquals(TextStyle.BOLD, formatter.getStyle(LogFormatter.format(LogRow.Part.HEAD, 3)));
+        assertEquals(TextStyle.SMALL | TextStyle.BOLD, formatter.getStyle(LogFormatter.format(LogRow.Part.HEAD, 3)));
+        assertEquals(TextStyle.SMALL, formatter.getStyle(LogFormatter.TAG) & TextStyle.SMALL, "a tag's too");
+        assertEquals(0, formatter.getStyle(LogFormatter.DIM) & TextStyle.SMALL, "not the author's");
         onEdt(() -> LogFilters.AUTHOR.binding().set(h.editor(), "Ada"));
         until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
         assertEquals(null, ((LogLine) log.getFirstLine()).graph(), "an author's commits: no graph");
@@ -1001,6 +1057,11 @@ public class LogBufferTest {
                 LogGraphColumn.color(((LogLine) log.getLine(1)).graph().color())),
             colors);
         assertTrue(f.getRunBackground(segments.getSegment(1).getFormat()) != null, "a badge's chip");
+        for (int i = 0; i < segments.size(); i++)
+            if (!segments.getSegment(i).getText().isBlank())
+                assertTrue(
+                    (f.getStyle(segments.getSegment(i).getFormat()) & TextStyle.SMALL) != 0,
+                    "every badge small, the repository's too: " + segments.getSegment(i).getText());
     }
 
     @Test
