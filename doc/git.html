@@ -296,8 +296,8 @@ A bar over the list shows the log's filters, each a chip with its key:
 <b>-a</b> an author, <b>-p</b> a path (a file's history follows its
 renames), <b>-s</b> since a date (<code>2 weeks ago</code>,
 <code>2026-01-31</code>), <b>-g</b> text in the message, <b>-c</b> text
-a change adds or removes, and, for several repositories, <b>-r</b> the one
-to show alone. With several, a path is from the directory above them all
+a change adds or removes, and, for several repositories, <b>-r</b> those
+to show. With several, a path is from the directory above them all
 (<code>lib/src/</code>), and only its repository is shown; a branch shows
 the repositories that have it. A click on a chip, or its key in the log, types
 its value in a field over it, with the branches and tags, the authors, or
@@ -306,7 +306,12 @@ of its lane's color before it, and a repository one of its color. <b>Enter</b> t
 the one highlighted (one that is the text first, then those that start
 with it), the first unless you move with <b>Up</b> and <b>Down</b>, or the
 text when none is: erase a value and <b>Enter</b> clears
-it, as does the <b>×</b> after a set chip. <b>?</b> opens the log's popup,
+it, as does the <b>×</b> after a set chip. The repositories are a checklist:
+<b>Enter</b> or a click checks or unchecks the one highlighted, and the log
+shows those checked a moment after the last, the field open until
+<b>Escape</b>, or <b>Enter</b> with none highlighted, as none is until you
+type or move with <b>Up</b> and <b>Down</b>; none checked, or every one, is
+all of them. <b>?</b> opens the log's popup,
 its filters first, where the same keys set them, and <b>x</b> clears every one,
 as it does in a directory.
 <b>-l</b> folds each run of plain commits away, as IntelliJ's "Collapse

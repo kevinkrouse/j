@@ -129,14 +129,14 @@ public record LogScope(List<VcsRepository> repositories, Path base) {
      * a path that is its root is none.
      */
     LogQuery queryFor(VcsRepository repository, LogQuery query) {
-        if (query.repository() != null && !query.repository().equals(name(repository)))
+        if (!query.repositories().isEmpty() && !query.repositories().contains(name(repository)))
             return null;
         if (query.path() == null || !isSeveral())
-            return query.withRepository(null);
+            return query.withRepositories(List.of());
         if (holder(query.path()) != repository)
             return null;
         final String own = own(repository, query.path());
-        return query.withRepository(null).withPath(own.isEmpty() ? null : own, query.follow());
+        return query.withRepositories(List.of()).withPath(own.isEmpty() ? null : own, query.follow());
     }
 
     /** The file or directory a path in a query names, or null if no repository holds it. */

@@ -454,7 +454,11 @@ public final class TransientPopup extends JComponent {
     private void openField(Option o) {
         closeField();
         fieldOption = o;
-        optionField = new OptionField(o, editor, value(o), this::acceptField, this::escape);
+        optionField = new OptionField(o, editor, value(o), this::acceptField, v -> {
+            setValue(o, v);
+            if (!closed)
+                refresh();
+        }, this::escape);
         field = optionField.field();
         field.addFocusListener(fieldFocus);
         add(field);
@@ -488,6 +492,12 @@ public final class TransientPopup extends JComponent {
             field = null;
         }
         fieldOption = null;
+    }
+
+    /** Checks or unchecks name in the checklist whose field is open, as Enter on it does: for tests. */
+    void toggleField(String name) {
+        if (optionField != null && optionField.checked() != null)
+            optionField.toggle(name);
     }
 
     /** The field an option's value is being typed in, or null. */

@@ -103,7 +103,12 @@ public final class CompletionPopup<T> {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int index = rowAt(e);
-                if (index >= 0 && onClick != null && Keys.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON1)
+                // A double click's second is not another.
+                if (index >= 0
+                        && onClick != null
+                        && e.getClickCount() == 1
+                        && Keys.isUnmodified(e)
+                        && e.getButton() == MouseEvent.BUTTON1)
                     onClick.accept(model.items.get(index));
             }
         });
@@ -166,6 +171,11 @@ public final class CompletionPopup<T> {
             list.ensureIndexIsVisible(index);
         }
         return true;
+    }
+
+    /** Draws the items again, as when how they look has changed. */
+    public void repaint() {
+        list.repaint();
     }
 
     public void hide() {

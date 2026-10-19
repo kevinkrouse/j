@@ -20,6 +20,7 @@
 
 package org.armedbear.j.transients;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
@@ -53,6 +55,10 @@ import org.armedbear.j.transients.Transient.Pick;
  * The field an option's value is typed in, with a {@link Pick}'s candidates
  * listed under it as they match: the popup's, and the filter bar's.
  * Enter accepts the candidate highlighted, or the text when none is; Escape gives it up.
+ * A checklist's ({@link Pick#several}) Enter or click checks or unchecks
+ * the candidate highlighted, its value told a moment after the last, or as
+ * the field closes; none is highlighted until something is typed or Up or
+ * Down moves, and Enter with none closes it.
  */
 final class OptionField {
     // More matches than this aren't listed: a repository's paths can be many.
@@ -69,10 +75,34 @@ final class OptionField {
     private final boolean wasSet;
     // What was typed in it before, for a Field that keeps it.
     private final History history;
+    // A checklist's names checked, and what is told when they change; null for one value.
+    private final List<String> checked;
+    private final Consumer<String> change;
+    // A checklist's value is told this long after its last change, each one reading the log again.
+    static final int CHANGE_DELAY = 300;
+    private final Timer changing;
 
-    OptionField(Option o, Editor editor, String value, Consumer<String> accept, Runnable escape) {
-        field = new JTextField(value == null ? "" : value);
-        wasSet = value != null && !value.isBlank();
+    /**
+     * @param accept takes the value and closes the field
+     * @param change takes a checklist's value as it changes, the field kept
+     */
+    OptionField(
+            Option o,
+            Editor editor,
+            String value,
+            Consumer<String> accept,
+            Consumer<String> change,
+            Runnable escape) {
+        final Pick pick = o.chooser() instanceof Pick p ? p : null;
+        final boolean checklist = pick != null && pick.several();
+        checked = checklist ? Pick.split(value) : null;
+        this.change = change;
+        changing = checklist ? new Timer(CHANGE_DELAY, e -> change.accept(Pick.join(checked))) : null;
+        if (changing != null)
+            changing.setRepeats(false);
+        // A checklist's field narrows its candidates, its value beside them.
+        field = new JTextField(value == null || checklist ? "" : value);
+        wasSet = !checklist && value != null && !value.isBlank();
         history = o.chooser() instanceof Field f && f.history() != null ? new History(f.history()) : null;
         field.setFont(Display.getPlainFont());
         field.setBorder(BorderFactory.createEmptyBorder());
@@ -83,6 +113,16 @@ final class OptionField {
                 if (code == KeyEvent.VK_ENTER) {
                     final String selected =
                             completion != null && completion.isShowing() ? completion.getSelected() : null;
+                    if (checked != null) {
+                        if (selected != null)
+                            toggle(selected);
+                        else {
+                            flush();
+                            accept.accept(Pick.join(checked));
+                        }
+                        e.consume();
+                        return;
+                    }
                     final String text = selected != null ? selected : field.getText();
                     if (history != null && !text.isBlank()) {
                         history.append(text.strip());
@@ -109,11 +149,13 @@ final class OptionField {
                 }
             }
         });
-        if (o.chooser() instanceof Pick pick) {
+        if (pick != null) {
             completion = new CompletionPopup<>(field, 10);
-            completion.setOnClick(accept);
-            if (pick.swatch() != null)
-                completion.setCellRenderer(new SwatchRenderer(s -> pick.swatch().apply(editor, s)));
+            completion.setOnClick(checked != null ? this::toggle : accept);
+            if (pick.swatch() != null || checked != null)
+                completion.setCellRenderer(
+                    new CandidateRenderer(pick.swatch() == null ? null : s -> pick.swatch().apply(editor, s),
+                            checked == null ? null : checked::contains));
             candidates = pick.candidates().apply(editor);
             // Still being read, as a log's names when its popup opens: asked again until they come.
             if (candidates.isEmpty()) {
@@ -145,13 +187,50 @@ final class OptionField {
         }
     }
 
-    // Each candidate after a box of its color, or a space as wide for none.
-    private static final class SwatchRenderer extends DefaultListCellRenderer {
+    // A checklist's candidate checked or unchecked, its names in the
+    // candidates' order: the value told a moment after the last.
+    void toggle(String name) {
+        if (checked == null)
+            return;
+        if (!checked.remove(name))
+            checked.add(name);
+        final List<String> ordered = new ArrayList<>();
+        for (String s : candidates)
+            if (checked.contains(s))
+                ordered.add(s);
+        for (String s : checked)
+            if (!ordered.contains(s))
+                ordered.add(s);
+        checked.clear();
+        checked.addAll(ordered);
+        changing.restart();
+        if (completion != null)
+            completion.repaint();
+    }
+
+    /** Tells a checklist's value now if a change waits to be. */
+    void flush() {
+        if (changing != null && changing.isRunning()) {
+            changing.stop();
+            change.accept(Pick.join(checked));
+        }
+    }
+
+    /** A checklist's names checked, in order; null for one value. */
+    List<String> checked() {
+        return checked == null ? null : List.copyOf(checked);
+    }
+
+    // Each candidate after its check box, for a checklist, and a box of its
+    // color, or a space as wide for none.
+    private static final class CandidateRenderer extends DefaultListCellRenderer {
         private final Map<String, Color> colors = new HashMap<>();
         private final Function<String, Color> swatch;
+        private final Predicate<String> checked;
 
-        SwatchRenderer(Function<String, Color> swatch) {
+        CandidateRenderer(Function<String, Color> swatch, Predicate<String> checked) {
             this.swatch = swatch;
+            this.checked = checked;
         }
 
         @Override
@@ -163,11 +242,19 @@ final class OptionField {
                 boolean focused) {
             super.getListCellRendererComponent(list, value, index, selected, focused);
             final String s = String.valueOf(value);
-            final Color color = colors.computeIfAbsent(s, k -> {
-                final Color c = swatch.apply(k);
-                return c != null ? c : NONE;
-            });
-            setIcon(new Box(color == NONE ? null : color, list.getFontMetrics(list.getFont()).getAscent()));
+            final int size = list.getFontMetrics(list.getFont()).getAscent();
+            final Box box;
+            if (swatch == null)
+                box = null;
+            else {
+                final Color color = colors.computeIfAbsent(s, k -> {
+                    final Color c = swatch.apply(k);
+                    return c != null ? c : NONE;
+                });
+                box = new Box(color == NONE ? null : color, size);
+            }
+            final Check check = checked == null ? null : new Check(checked.test(s), getForeground(), size);
+            setIcon(check == null ? box : box == null ? check : new Pair(check, box));
             setIconTextGap(list.getFontMetrics(list.getFont()).charWidth(' '));
             return this;
         }
@@ -200,6 +287,59 @@ final class OptionField {
         }
     }
 
+    // A check box, ticked or empty, in the text's color.
+    private record Check(boolean on, Color color, int size) implements Icon {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            final Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(color);
+            final int inset = size / 6;
+            final int side = size - 2 * inset;
+            g2d.setStroke(new BasicStroke(Math.max(1f, size / 12f)));
+            g2d.drawRoundRect(x + inset, y + inset, side, side, size / 4, size / 4);
+            if (on) {
+                g2d.setStroke(
+                    new BasicStroke(Math.max(1.5f, size / 7f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                final int l = x + inset, t = y + inset;
+                g2d.drawPolyline(
+                    new int[] { l + side / 5, l + side * 2 / 5, l + side * 4 / 5 },
+                    new int[] { t + side / 2, t + side * 3 / 4, t + side / 4 },
+                    3);
+            }
+            g2d.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return size;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return size;
+        }
+    }
+
+    // Two icons side by side.
+    private record Pair(Icon left, Icon right) implements Icon {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            left.paintIcon(c, g, x, y);
+            right.paintIcon(c, g, x + left.getIconWidth(), y);
+        }
+
+        @Override
+        public int getIconWidth() {
+            return left.getIconWidth() + right.getIconWidth();
+        }
+
+        @Override
+        public int getIconHeight() {
+            return Math.max(left.getIconHeight(), right.getIconHeight());
+        }
+    }
+
     /**
      * Which candidate is highlighted, for Enter to take; -1 for none, when
      * Enter takes the text. The first match is, unless the field is blank
@@ -222,6 +362,7 @@ final class OptionField {
     }
 
     void close() {
+        flush();
         if (waiting != null)
             waiting.stop();
         if (completion != null) {
@@ -233,7 +374,8 @@ final class OptionField {
     private void filter() {
         if (completion == null)
             return;
-        completion.show(matches(candidates, field.getText(), MAX_SHOWN), highlight(field.getText(), wasSet));
+        final int highlight = checked != null ? field.getText().isBlank() ? -1 : 0 : highlight(field.getText(), wasSet);
+        completion.show(matches(candidates, field.getText(), MAX_SHOWN), highlight);
     }
 
     /**

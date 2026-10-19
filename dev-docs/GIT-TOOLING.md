@@ -1337,8 +1337,17 @@ plan with why it is left, before the next phase starts.
      tells the gutter's marker cache, as no edit does. The log keeps the
      default and the runs flipped from it, those of runs gone dropped once
      every commit is read.
-   - Left: `-r` as a
-     checklist (a pick of one now), the badges' smaller font, the files
+   - `-r` is a checklist (`Pick.several`): `OptionField`'s Enter or a
+     click checks or unchecks a candidate, its field kept open, and the
+     value (the names joined by ", ") is set 300 ms after the last, or as
+     the field closes, as each set reads the log again. Nothing is
+     highlighted until typed or moved, so Enter alone closes it; a double
+     click's second is no click (`CompletionPopup`). The query keeps the
+     names in the log's order (`LogQuery.repositories`), every one being
+     none. The filter bar's open field is laid out as its chip, its × still
+     there, which closes the field first. The strip's click is still "only
+     this one".
+   - Left: the badges' smaller font, the files
      pane's height fitted to its files, staging from the status's diff, and
      the refs tree in the sidebar (reveal, filter to a ref, narrow by
      typing).

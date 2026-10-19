@@ -76,7 +76,7 @@ public class LogScopeTest {
         assertEquals(LogQuery.ALL, scope.queryFor(lib, LogQuery.ALL.withPath("lib/", false)), "its root: all of it");
         assertEquals(LogQuery.ALL.withPath("x.txt", false), scope.queryFor(top, LogQuery.ALL.withPath("x.txt", false)));
 
-        final LogQuery onlyApp = LogQuery.ALL.withRepository("app").withAuthor("Ada");
+        final LogQuery onlyApp = LogQuery.ALL.withRepositories(List.of("app")).withAuthor("Ada");
         assertEquals(LogQuery.ALL.withAuthor("Ada"), scope.queryFor(app, onlyApp));
         assertNull(scope.queryFor(lib, onlyApp));
         assertEquals(lib, scope.named("lib"));
@@ -101,8 +101,8 @@ public class LogScopeTest {
         assertEquals("b/common", scope.name(b));
         assertEquals("c", scope.name(c));
         assertEquals(b, scope.named("b/common"));
-        assertEquals(LogQuery.ALL, scope.queryFor(b, LogQuery.ALL.withRepository("b/common")));
-        assertNull(scope.queryFor(a, LogQuery.ALL.withRepository("b/common")));
+        assertEquals(LogQuery.ALL, scope.queryFor(b, LogQuery.ALL.withRepositories(List.of("b/common"))));
+        assertNull(scope.queryFor(a, LogQuery.ALL.withRepositories(List.of("b/common"))));
     }
 
     @Test

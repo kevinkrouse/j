@@ -1016,13 +1016,14 @@ public class LogBufferTest {
     }
 
     @Test
-    public void theRepositoryFilterOrAClickOnTheStripShowsOneAlone() throws Exception {
+    public void theRepositoryChecklistOrAClickOnTheStripShowsOneAlone() throws Exception {
         open(project(), 100);
         final GutterColumn column = log.getGutterColumn();
         assertTrue(column.isClickable(log.getFirstLine(), 1, 1), "the strip: a hand");
         assertFalse(column.isClickable(log.getFirstLine(), column.width() - 1, 1), "the graph");
         // The lists' boxes: a repository's color, a branch's lane's.
         final Transient.Pick repos = (Transient.Pick) LogFilters.REPOSITORY.chooser();
+        assertTrue(repos.several(), "a checklist");
         final boolean dark = DefaultTheme.isDark(h.editor().getFormatter().getBackgroundColor());
         assertEquals(
             RepositoryColors.color(log.getScope().colorIndex(log.getScope().named("b")), dark),
@@ -1035,15 +1036,57 @@ public class LogBufferTest {
         assertNull(branches.swatch().apply(h.editor(), "no-such"));
         onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), "a"));
         until(() -> !log.isLoading() && subjects().equals(List.of("a3", "a1")));
+        onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), "b, a"));
+        until(() -> !log.isLoading() && subjects().size() == 4);
+        assertEquals(List.of(), log.getQuery().repositories(), "every one checked: all");
+        assertNull(LogFilters.REPOSITORY.binding().get(h.editor()));
+        onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), "gone, a"));
+        assertEquals(List.of("a", "gone"), log.getQuery().repositories(), "the log's order, then the rest");
         onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), null));
         until(() -> !log.isLoading() && subjects().size() == 4);
         onEdt(() -> assertTrue(log.getGutterColumn().clicked(h.editor(), log.getFirstLine(), 1, 1)));
         until(() -> !log.isLoading() && subjects().equals(List.of("b4", "b2")));
-        assertEquals("b", log.getQuery().repository());
+        assertEquals(List.of("b"), log.getQuery().repositories());
         onEdt(() -> log.getGutterColumn().clicked(h.editor(), log.getFirstLine(), 1, 1));
         until(() -> !log.isLoading() && subjects().size() == 4);
         assertTrue(LogFilters.of(log.getScope()).contains(LogFilters.REPOSITORY));
         assertFalse(LogFilters.of(LogScope.of(repository)).contains(LogFilters.REPOSITORY), "not for one");
+    }
+
+    @Test
+    public void anOpenFieldKeepsItsChipsPlaceAndItsCrossClosesItThenClears() throws Exception {
+        open(project(), 100);
+        onEdt(() -> h.editor().updateFilterBar());
+        final FilterBar bar = h.editor().getFilterBar();
+        onEdt(() -> assertTrue(bar.choose("--author")));
+        final Rectangle field = bar.getField().getBounds();
+        assertEquals(bar.boundsOf(LogFilters.AUTHOR).x, field.x);
+        assertTrue(bar.boundsOf(LogFilters.PATH).x >= field.x + field.width, "the next chip isn't under the field");
+        onEdt(() -> bar.acceptField(""));
+        onEdt(() -> assertTrue(bar.choose("--repository")));
+        onEdt(() -> {
+            // The value changed as a checklist's does, the field open.
+            LogFilters.AUTHOR.binding().set(h.editor(), "Somebody With A Long Name");
+            LogFilters.REPOSITORY.binding().set(h.editor(), "a");
+            FilterBar.refreshAll(log);
+        });
+        assertNotNull(bar.getField(), "still open");
+        assertEquals(bar.boundsOf(LogFilters.REPOSITORY).x, bar.getField().getX(), "the field moved with its chip");
+        final Rectangle cross = bar.clearBoundsOf(LogFilters.REPOSITORY);
+        assertNotNull(cross, "a set chip's × shows beside its open field");
+        onEdt(
+            () -> bar.dispatchEvent(
+                new MouseEvent(bar,
+                        MouseEvent.MOUSE_PRESSED,
+                        0,
+                        0,
+                        cross.x + 1,
+                        cross.y + 1,
+                        1,
+                        false,
+                        MouseEvent.BUTTON1)));
+        assertNull(bar.getField());
+        assertEquals(List.of(), log.getQuery().repositories(), "cleared, not set again by the field");
     }
 
     @Test

@@ -27,18 +27,25 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import javax.swing.JList;
+import javax.swing.JRootPane;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.DirectoryFilenameFilter;
@@ -54,6 +61,7 @@ import org.armedbear.j.transients.Transient.Field;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Item;
 import org.armedbear.j.transients.Transient.Option;
+import org.armedbear.j.transients.Transient.Pick;
 import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.transients.Transient.Switch;
 import org.junit.jupiter.api.AfterEach;
@@ -448,5 +456,132 @@ public class TransientPopupTest {
         assertEquals(List.of("main", "maintenance"), OptionField.matches(all, " Main ", 2));
         assertEquals(all, OptionField.matches(all, "", 10), "blank: all, in order");
         assertEquals(List.of(), OptionField.matches(all, "zzz", 10));
+    }
+
+    private static final Option REPOS =
+            new Option("=r", "--repository", "repository", Pick.several(e -> List.of("a", "b", "c"), null), null);
+
+    // A checklist's field in a root pane, as a window's, so its list shows.
+    private OptionField checklist(String value, Consumer<String> accept, List<String> changes) {
+        final OptionField f = new OptionField(REPOS, h.editor(), value, accept, changes::add, () -> {});
+        final JRootPane root = new JRootPane();
+        root.setSize(400, 300);
+        root.getContentPane().setLayout(null);
+        root.getContentPane().add(f.field());
+        f.field().setBounds(0, 0, 200, 20);
+        f.start();
+        return f;
+    }
+
+    private static void key(OptionField f, int code) {
+        for (KeyListener l : f.field().getKeyListeners())
+            l.keyPressed(new KeyEvent(f.field(), KeyEvent.KEY_PRESSED, 0, 0, code, KeyEvent.CHAR_UNDEFINED));
+    }
+
+    // A click on the list's row, the clickCount'th of a run.
+    private static void click(OptionField f, int row, int clickCount) {
+        final JList<?> list = listOf(f.field().getRootPane().getLayeredPane());
+        assertNotNull(list, "the candidates are listed");
+        // Its size, as a window's layout would give it.
+        list.setSize(list.getPreferredSize());
+        final Rectangle r = list.getCellBounds(row, row);
+        // Only the click: headless, the list's own press handling throws.
+        list.dispatchEvent(
+            new MouseEvent(list,
+                    MouseEvent.MOUSE_CLICKED,
+                    0,
+                    0,
+                    r.x + 1,
+                    r.y + 1,
+                    clickCount,
+                    false,
+                    MouseEvent.BUTTON1));
+    }
+
+    private static JList<?> listOf(Container c) {
+        for (Component child : c.getComponents()) {
+            if (child instanceof JList<?> list)
+                return list;
+            if (child instanceof Container inner && listOf(inner) != null)
+                return listOf(inner);
+        }
+        return null;
+    }
+
+    @Test
+    public void aChecklistsEnterWithNoneHighlightedClosesItAsItIs() throws Exception {
+        onEdt(() -> {
+            final AtomicReference<String> accepted = new AtomicReference<>();
+            final List<String> changes = new ArrayList<>();
+            final OptionField f = checklist("c, c", accepted::set, changes);
+            assertEquals("", f.field().getText(), "the field narrows the candidates; the value is beside them");
+            assertEquals(List.of("c"), f.checked(), "each once");
+            key(f, KeyEvent.VK_ENTER);
+            assertEquals("c", accepted.get(), "nothing highlighted until typed or moved: Enter closes it");
+            assertEquals(List.of(), changes);
+            f.close();
+        });
+    }
+
+    @Test
+    public void aChecklistsEnterOrClickChecksAndUnchecksTheValueToldAMomentAfter() throws Exception {
+        final List<String> changes = new ArrayList<>();
+        final AtomicReference<OptionField> field = new AtomicReference<>();
+        onEdt(() -> {
+            final OptionField f = checklist("c", s -> fail("closed"), changes);
+            field.set(f);
+            key(f, KeyEvent.VK_DOWN);
+            key(f, KeyEvent.VK_ENTER);
+            assertEquals(List.of("a", "c"), f.checked(), "Down took a; Enter checked it");
+            click(f, 1, 1);
+            click(f, 1, 2);
+            assertEquals(List.of("a", "b", "c"), f.checked(), "a double click's second isn't another");
+            click(f, 2, 1);
+            assertEquals(List.of(), changes, "none told yet");
+        });
+        Thread.sleep(OptionField.CHANGE_DELAY + 300);
+        onEdt(() -> {});
+        assertEquals(List.of("a, b"), changes, "told once, a moment after the last");
+        onEdt(() -> {
+            final OptionField f = field.get();
+            f.toggle("a");
+            f.close();
+            assertEquals(List.of("a, b", "b"), changes, "closing tells what waits");
+        });
+    }
+
+    @Test
+    public void aChecklistInThePopupSetsItsValueTheFieldKeptAndOtherFieldsArentOne() throws Exception {
+        final Transient t =
+                new Transient("test.checklist", "Log", "commands.html", List.of(Group.of("Filter", REPOS, AUTHOR)));
+        popup.close(false);
+        popup = TransientPopup.open(h.editor(), t);
+        popup.typed('=');
+        popup.typed('a');
+        popup.toggleField("x");
+        popup.acceptField("kk");
+        popup.typed('=');
+        popup.typed('r');
+        popup.toggleField("b");
+        popup.toggleField("a");
+        assertNotNull(popup.getField(), "the field stays");
+        escape();
+        assertNull(popup.getField());
+        assertEquals("a, b", Transients.args(h.editor(), "test.checklist").get("--repository"), "told as it closed");
+        assertEquals(List.of("a", "b"), Pick.split(" a, ,b, a "));
+        assertNull(Pick.join(List.of()));
+    }
+
+    @Test
+    public void anOptionWithNoChooserTypesInAPlainField() {
+        final OptionField f =
+                new OptionField(new Option("=z", "--z", "z", null, null), h.editor(), "v", s -> {}, s -> {}, () -> {});
+        assertEquals("v", f.field().getText());
+        assertNull(f.checked());
+        f.close();
+    }
+
+    private static void onEdt(Runnable r) throws Exception {
+        SwingUtilities.invokeAndWait(r);
     }
 }

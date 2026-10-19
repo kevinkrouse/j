@@ -223,7 +223,8 @@ final class LogGraphColumn implements GutterColumn {
             return true;
         }
         final String name = log.getScope().name(log.repositoryOf(l.commit()));
-        LogFilters.REPOSITORY.binding().set(editor, name.equals(log.getQuery().repository()) ? null : name);
+        // Only this one, or all of them again if it was.
+        LogFilters.REPOSITORY.binding().set(editor, log.getQuery().repositories().equals(List.of(name)) ? null : name);
         FilterBar.refreshAll(log);
         return true;
     }

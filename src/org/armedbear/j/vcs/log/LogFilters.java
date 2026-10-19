@@ -90,9 +90,9 @@ final class LogFilters {
         new Filter("-r",
                 "--repository",
                 "repository",
-                new Pick(LogFilters::repositoryNames, LogFilters::repositoryColor),
-                LogQuery::repository,
-                (q, v, r) -> q.withRepository(v)));
+                Pick.several(LogFilters::repositoryNames, LogFilters::repositoryColor),
+                q -> Pick.join(q.repositories()),
+                LogFilters::withRepositories));
 
     /** Bound to the log in the editor. */
     static final List<Option> ALL = FILTERS.stream().map(Filter::option).toList();
@@ -219,6 +219,22 @@ final class LogFilters {
                 q = f.with().apply(q, value, scope);
         }
         return args.isOn(TAGS.name()) ? q.withTags(true) : q;
+    }
+
+    // The repositories checked, in the log's order, those it hasn't after;
+    // every one of the log's is none.
+    private static LogQuery withRepositories(LogQuery q, String value, LogScope scope) {
+        final List<String> given = Pick.split(value);
+        final List<String> names = new ArrayList<>();
+        if (scope != null)
+            for (VcsRepository r : scope.repositories())
+                if (given.contains(scope.name(r)))
+                    names.add(scope.name(r));
+        final boolean all = scope != null && names.size() == scope.repositories().size();
+        for (String name : given)
+            if (!names.contains(name))
+                names.add(name);
+        return q.withRepositories(all ? List.of() : names);
     }
 
     // A file's history follows its renames; a directory's can't.

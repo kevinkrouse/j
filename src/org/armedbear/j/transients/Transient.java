@@ -21,6 +21,7 @@
 package org.armedbear.j.transients;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -131,11 +132,45 @@ public record Transient(String id, String title, String help, List<Group> groups
     /**
      * Typed in a field on the option's row, with the candidates listed under
      * it, each after a box of its color if swatch gives one.
+     *
+     * @param several whether it is a checklist: Enter or a click checks or
+     *     unchecks a candidate and sets the value, the field kept until
+     *     Escape or Enter with none highlighted. Its value is the names
+     *     checked, in the candidates' order, joined by {@link #SEPARATOR};
+     *     none is unset.
      */
-    public record Pick(Function<Editor, List<String>> candidates, BiFunction<Editor, String, Color> swatch)
-            implements Chooser {
+    public record Pick(Function<Editor, List<String>> candidates, BiFunction<Editor, String, Color> swatch,
+            boolean several) implements Chooser {
+        public static final String SEPARATOR = ", ";
+
         public Pick(Function<Editor, List<String>> candidates) {
-            this(candidates, null);
+            this(candidates, null, false);
+        }
+
+        public Pick(Function<Editor, List<String>> candidates, BiFunction<Editor, String, Color> swatch) {
+            this(candidates, swatch, false);
+        }
+
+        /** A checklist of candidates. */
+        public static Pick several(
+                Function<Editor, List<String>> candidates,
+                BiFunction<Editor, String, Color> swatch) {
+            return new Pick(candidates, swatch, true);
+        }
+
+        /** The names in a checklist's value, each once; none for null or blank. */
+        public static List<String> split(String value) {
+            final List<String> out = new ArrayList<>();
+            if (value != null)
+                for (String s : value.split(","))
+                    if (!s.isBlank() && !out.contains(s.strip()))
+                        out.add(s.strip());
+            return out;
+        }
+
+        /** A checklist's value of names; null for none. */
+        public static String join(List<String> names) {
+            return names.isEmpty() ? null : String.join(SEPARATOR, names);
         }
     }
 

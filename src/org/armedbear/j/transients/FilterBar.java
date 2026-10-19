@@ -58,6 +58,8 @@ import org.armedbear.j.util.Utilities;
  */
 public final class FilterBar extends JComponent {
     private static final int PAD = 3;
+    // The least a field over a chip is wide.
+    private static final int FIELD_COLUMNS = 30;
 
     private final Editor editor;
     private List<Chip> chips = List.of();
@@ -118,12 +120,19 @@ public final class FilterBar extends JComponent {
             }
             final int keyX = x;
             x += bfm.stringWidth(item.key()) + cw / 2;
-            final int width = fm.stringWidth(text) + cw;
+            // The chip whose field is open is as wide as it, the field over it.
+            final int width = item == fieldOption
+                    ? Math.max(fm.stringWidth(text) + cw, FIELD_COLUMNS * cw)
+                    : fm.stringWidth(text) + cw;
             final int clearX = set ? x + width + cw / 2 : -1;
             out.add(new Chip(item, keyX, x, width, clearX, text, set));
             x += width + (set ? cw / 2 + fm.stringWidth("×") : 0) + 2 * cw;
         }
         chips = out;
+        if (optionField != null)
+            for (Chip c : out)
+                if (c.item() == fieldOption)
+                    optionField.field().setBounds(c.x(), PAD, c.width(), Display.getCharHeight());
         revalidate();
         repaint();
     }
@@ -156,13 +165,15 @@ public final class FilterBar extends JComponent {
             g2d.setFont(plain.deriveFont(Font.BOLD));
             g2d.setColor(f.getHoverLinkColor());
             g2d.drawString(c.item().key(), c.keyX(), PAD + ascent);
-            if (c.item() == fieldOption)
-                continue;
-            Display.fillChip(g2d, DefaultTheme.blend(bg, text, c.set() ? 0.14 : 0.07), c.x(), PAD, c.width(), ch);
-            g2d.setFont(plain);
-            g2d.setColor(c.set() ? text : DefaultTheme.blend(bg, text, 0.5));
-            g2d.drawString(c.text(), c.x() + cw / 2, PAD + ascent);
+            // The field is drawn over the chip whose field is open.
+            if (c.item() != fieldOption) {
+                Display.fillChip(g2d, DefaultTheme.blend(bg, text, c.set() ? 0.14 : 0.07), c.x(), PAD, c.width(), ch);
+                g2d.setFont(plain);
+                g2d.setColor(c.set() ? text : DefaultTheme.blend(bg, text, 0.5));
+                g2d.drawString(c.text(), c.x() + cw / 2, PAD + ascent);
+            }
             if (c.set()) {
+                g2d.setFont(plain);
                 g2d.setColor(DefaultTheme.blend(bg, text, 0.5));
                 g2d.drawString("×", c.clearX(), PAD + ascent);
             }
@@ -195,9 +206,11 @@ public final class FilterBar extends JComponent {
                 refreshAll(editor.getBuffer());
             }
             case Option o -> {
-                if (clear)
+                if (clear) {
+                    // Its field closed first, as closing would set what it holds.
+                    closeField();
                     set(o, o.chooser() instanceof Cycle cycle ? cycle.values().get(0) : "");
-                else
+                } else
                     choose(o);
             }
             default -> {}
@@ -230,7 +243,8 @@ public final class FilterBar extends JComponent {
         if (chip == null)
             return;
         fieldOption = o;
-        optionField = new OptionField(o, editor, o.binding().get(editor), this::acceptField, this::escape);
+        optionField =
+                new OptionField(o, editor, o.binding().get(editor), this::acceptField, v -> set(o, v), this::escape);
         final JTextField field = optionField.field();
         field.addFocusListener(new FocusAdapter() {
             @Override
@@ -239,10 +253,9 @@ public final class FilterBar extends JComponent {
                     closeField();
             }
         });
-        final int cw = Display.getCharWidth();
-        field.setBounds(chip.x(), PAD, Math.max(chip.width(), 30 * cw), Display.getCharHeight());
         add(field);
-        repaint();
+        // Lays the chips out around the field, and places it.
+        refresh();
         optionField.start();
     }
 
@@ -272,7 +285,7 @@ public final class FilterBar extends JComponent {
         if (f.field().isFocusOwner())
             editor.setFocusToDisplay();
         remove(f.field());
-        repaint();
+        refresh();
     }
 
     // Sets a filter, then every window on the buffer shows it.
