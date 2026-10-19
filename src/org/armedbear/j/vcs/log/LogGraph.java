@@ -86,6 +86,30 @@ final class LogGraph {
             bottom = List.copyOf(bottom);
         }
 
+        /**
+         * Whether the row only goes on down: the commit's lane in from above
+         * and out below at its place, each other lane straight past, none
+         * leaving or coming back. A run of such rows can be hidden, the
+         * graph whole without them.
+         */
+        boolean straight() {
+            if (top.size() != bottom.size())
+                return false;
+            boolean in = false;
+            boolean out = false;
+            for (Edge e : top) {
+                if (e.from() != e.to() || e.arrow() != Arrow.NONE)
+                    return false;
+                in |= e.lane() == lane && e.to() == column;
+            }
+            for (Edge e : bottom) {
+                if (e.from() != e.to() || e.arrow() != Arrow.NONE)
+                    return false;
+                out |= e.lane() == lane && e.from() == column;
+            }
+            return in && out;
+        }
+
         int color() {
             return lane.color;
         }

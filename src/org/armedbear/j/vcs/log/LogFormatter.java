@@ -81,7 +81,7 @@ final class LogFormatter extends Formatter {
             case BRANCH -> lane < 0 ? BRANCH : LANE + lane;
             case REMOTE -> lane < 0 ? REMOTE : LANE + lane;
             case TAG -> TAG;
-            case AUTHOR, DATE -> DIM;
+            case COUNT, AUTHOR, DATE -> DIM;
         };
     }
 

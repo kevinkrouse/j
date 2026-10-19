@@ -262,15 +262,16 @@ files are over the diff.
 
 <table>
 <tr><th>Key</th><th>Command</th><th></th></tr>
-<tr><td>Enter</td><td><a href="commands.html#vcsLogVisit">vcsLogVisit</a></td><td>in the quick log, the full log; on a commit, its files; on a file, its diff; on a diff line, the file at that line</td></tr>
+<tr><td>Enter</td><td><a href="commands.html#vcsLogVisit">vcsLogVisit</a></td><td>in the quick log, the full log; on a run of commits collapsed, its commits; on a commit, its files; on a file, its diff; on a diff line, the file at that line</td></tr>
 <tr><td>o</td><td><a href="commands.html#vcsLogOpenFile">vcsLogOpenFile</a></td><td>the file at the caret in the working tree, at the diff line's line</td></tr>
 <tr><td>O, Shift Enter</td><td><a href="commands.html#vcsLogRevision">vcsLogRevision</a></td><td>the file as the commit has it, read-only</td></tr>
 <tr><td>n p</td><td><a href="commands.html#vcsLogNext">vcsLogNext</a>, <a href="commands.html#vcsLogPrevious">vcsLogPrevious</a></td><td>the next or previous commit, file or hunk</td></tr>
-<tr><td>Tab, Shift Tab</td><td><a href="commands.html#vcsLogToggle">vcsLogToggle</a>, <a href="commands.html#vcsLogToggleAll">vcsLogToggleAll</a></td><td>open or close the diff's hunk, or all of them</td></tr>
+<tr><td>Tab, Shift Tab</td><td><a href="commands.html#vcsLogToggle">vcsLogToggle</a>, <a href="commands.html#vcsLogToggleAll">vcsLogToggleAll</a></td><td>open or close the diff's hunk, or all of them; in the list, the run of commits at the caret</td></tr>
 <tr><td>f F, Alt Down, Alt Up</td><td><a href="commands.html#vcsLogNextFile">vcsLogNextFile</a>, <a href="commands.html#vcsLogPreviousFile">vcsLogPreviousFile</a></td><td>the next or previous file's diff</td></tr>
 <tr><td>Space, d; Shift Space, Backspace, u</td><td><a href="commands.html#vcsLogScrollDiff">vcsLogScrollDiff</a>, <a href="commands.html#vcsLogScrollDiffBack">vcsLogScrollDiffBack</a></td><td>the diff a page on, or back</td></tr>
 <tr><td>D</td><td><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></td><td>the details at the bottom or the right</td></tr>
 <tr><td>-b -a -p -s -g -c -r (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>type a filter's value in the field over its chip</td></tr>
+<tr><td>-l (in the list)</td><td><a href="commands.html#vcsLogCollapseRuns">vcsLogCollapseRuns</a></td><td>collapse each run of plain commits into one row, or show every commit</td></tr>
 <tr><td>-t (in the list)</td><td><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></td><td>step the dates through age, locale, iso and long-iso</td></tr>
 <tr><td>-T (in the list)</td><td><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></td><td>show the commits only tags reach too, or not</td></tr>
 <tr><td>x (in the list)</td><td><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></td><td>clear every filter</td></tr>
@@ -308,6 +309,21 @@ text when none is: erase a value and <b>Enter</b> clears
 it, as does the <b>×</b> after a set chip. <b>?</b> opens the log's popup,
 its filters first, where the same keys set them, and <b>x</b> clears every one,
 as it does in a directory.
+<b>-l</b> folds each run of plain commits away, as IntelliJ's "Collapse
+linear branches": a commit is plain with one parent, one child, no merge and
+no branch or tag, and a run is two or more of them one after another down a
+lane. A run folds under the commit above it, which then shows
+<code>… 12 commits</code> after its subject and badges, its lane dotted
+where the run was. What is left
+is the history's shape: merges, forks and refs. Each run is a fold, folded or
+not, with its marker in the gutter on the commit above: a click on it, the
+fold commands (vim's <b>za</b>, <b>zo</b> and <b>zc</b>, from the commit
+above or any of the run's) and <b>Tab</b> open or close the one at the
+caret; <b>zM</b> and <b>zR</b>, <b>Shift Tab</b>, or <b>-l</b>, fold or show
+them all. A search that finds a commit in a run folded opens it.
+<a href="preferences.html#vcsLogCollapseRuns">vcsLogCollapseRuns</a>
+starts each log collapsed.
+<p>
 <b>-T</b> shows the commits only tags reach too: off at first, as a
 repository converted from CVS has a commit of its own for each tag, apart
 from its branch, which would each take a lane; a tag on a branch's commit

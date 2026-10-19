@@ -498,7 +498,7 @@ lines on one side to its lines on the other.
   the changes in view. Later, as IntelliJ's chevrons, arrows on a band to
   take the change from one side to the other.
 - **Folding unchanged runs.** Runs of unchanged lines longer than twice the
-  context (`vcsDiffContext`, 3) fold on both sides together, "⋯ 120 lines",
+  context (`vcsDiffContext`, 3) fold on both sides together, "… 120 lines",
   as nvim's diff folds and IntelliJ's "collapse unchanged fragments"; Tab on
   a fold opens it on both sides.
 - **Keys.** `]c`/`[c`, Ctrl Alt N/P and `n`/`p` (and F7/Shift F7 outside vim)
@@ -1320,7 +1320,24 @@ plan with why it is left, before the next phase starts.
      the formatter colors each permission, the size and the date.
      In the log, vim's `a` picks a filter, as it limits a directory, and
      `vcsStatus` (`<leader>gg`) opens the status of the log's repositories.
-   - Left: collapsing linear runs, `-r` as a
+   - Collapsing linear runs (`-l`, `vcsLogCollapseRuns`): a run of two or
+     more plain commits (one parent, one child read, no merge, no ref) one
+     after another down a lane is a fold of hidden lines, headed by the
+     commit above (`LogBuffer.Run`). Every commit's line stays in the
+     buffer; folding a run hides its lines, the head's row shows
+     `… N commits` after its subject and badges (`LogRow.Part.COUNT`, which
+     never goes, as the date doesn't) and its
+     lane is dotted below the head and above the commit after (`dottedLane`).
+     Only rows nothing but their lane passes straight through can be in a
+     run (`Row.straight`), so the graph is whole with them hidden. A run's
+     state is its lines' hidden flags: a page joins new lines to it as it
+     is (`findRuns`), and the caret landing in one, as a search's does
+     through `Editor.updateDisplay`, opens it (`syncRuns`). The mode's fold
+     hooks answer the gutter and za/zo/zc/zM/zR; `Buffer.foldsChanged`
+     tells the gutter's marker cache, as no edit does. The log keeps the
+     default and the runs flipped from it, those of runs gone dropped once
+     every commit is read.
+   - Left: `-r` as a
      checklist (a pick of one now), the badges' smaller font, the files
      pane's height fitted to its files, staging from the status's diff, and
      the refs tree in the sidebar (reveal, filter to a ref, narrow by

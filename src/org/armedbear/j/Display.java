@@ -1715,10 +1715,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     // When open folds show their markers: "hover", "always" or "never".
     private String foldMarkers;
     private boolean mouseInGutter;
-    // Mode.isFoldStart's answers, until the buffer changes.
+    // Mode.isFoldStart's answers, until the buffer or its folds change.
     private final Map<Line, Boolean> foldStarts = new IdentityHashMap<>();
     private Buffer foldStartsBuffer;
     private int foldStartsModCount;
+    private int foldStartsFoldVersion;
     private Mode foldStartsMode;
 
     private boolean showsOpenFolds() {
@@ -1730,10 +1731,12 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final Buffer buffer = editor.getBuffer();
         if (buffer != foldStartsBuffer
                 || buffer.getModCount() != foldStartsModCount
+                || buffer.getFoldVersion() != foldStartsFoldVersion
                 || editor.getMode() != foldStartsMode) {
             foldStarts.clear();
             foldStartsBuffer = buffer;
             foldStartsModCount = buffer.getModCount();
+            foldStartsFoldVersion = buffer.getFoldVersion();
             foldStartsMode = editor.getMode();
         }
         return foldStarts.computeIfAbsent(line, l -> editor.getMode().isFoldStart(buffer, l));

@@ -122,6 +122,22 @@ final class LogFilters {
         }
     });
 
+    /** -l: runs of plain commits collapsed, a view option rather than a filter. */
+    static final Switch COLLAPSE = new Switch("-l", "--collapse", "collapse linear runs", new Binding<>() {
+        @Override
+        public Boolean get(Editor editor) {
+            final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+            return log != null && log.getCollapse();
+        }
+
+        @Override
+        public void set(Editor editor, Boolean on) {
+            final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+            if (log != null)
+                log.setCollapse(Boolean.TRUE.equals(on));
+        }
+    });
+
     /** -t: how the dates are written, a view option rather than a filter. */
     static final Option TIME_STYLE =
             new Option("-t", "--date", "time style", new Cycle(TimeStyle.ALL), new Binding<>() {

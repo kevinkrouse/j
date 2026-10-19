@@ -776,6 +776,18 @@ public class Buffer extends SystemBuffer {
         srText = null;
     }
 
+    // Bumped when the mode's folds change with no edit, as a log's runs do as its pages are read.
+    private volatile int foldVersion;
+
+    /** The mode's folds changed, though the text didn't: the gutter's markers are asked for again. */
+    public final void foldsChanged() {
+        ++foldVersion;
+    }
+
+    public final int getFoldVersion() {
+        return foldVersion;
+    }
+
     public final void setModCountWhenLastSaved(int count) {
         autosaveModCount = count;
     }

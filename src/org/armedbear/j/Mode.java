@@ -547,7 +547,8 @@ public interface Mode {
     /**
      * Whether line heads lines that a fold can hide, for the gutter's
      * marker. Asked of visible lines as they are painted, so it should be
-     * cheap; the display keeps the answer until the buffer changes.
+     * cheap; the display keeps the answer until the buffer changes, or
+     * Buffer.foldsChanged says its folds did.
      */
     public default boolean isFoldStart(Buffer buffer, Line line) {
         return FoldCommands.isIndentedBelow(buffer, line);

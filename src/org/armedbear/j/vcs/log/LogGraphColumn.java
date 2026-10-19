@@ -169,9 +169,21 @@ final class LogGraphColumn implements GutterColumn {
             g2d.clip(clip);
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-            g2d.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            edges(g2d, row.top(), x, y, mid, true);
-            edges(g2d, row.bottom(), x, mid, y + height, false);
+            final BasicStroke solid = new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+            g2d.setStroke(solid);
+            // A run's lane dotted where it is folded away: below its head, above the commit after it.
+            final LogGraph.Lane above = log.dottedLane(l, false);
+            final LogGraph.Lane below = log.dottedLane(l, true);
+            final BasicStroke dots = above == null && below == null
+                    ? null
+                    : new BasicStroke(stroke,
+                            BasicStroke.CAP_ROUND,
+                            BasicStroke.JOIN_ROUND,
+                            10,
+                            new float[] { 0, stroke * 2.5f },
+                            0);
+            edges(g2d, row.top(), x, y, mid, true, above, solid, dots);
+            edges(g2d, row.bottom(), x, mid, y + height, false, below, solid, dots);
             node(g2d, row, l.commit(), cx, mid, stroke);
         }
         finally {
@@ -262,12 +274,22 @@ final class LogGraphColumn implements GutterColumn {
     // Each edge from its lane at y0 to its lane at y1: straight, or an S
     // curve; a stub's with its arrow, an arrow at the row's top set in, so
     // it is whole.
-    private static void edges(Graphics2D g, List<LogGraph.Edge> edges, int x, float y0, float y1, boolean top) {
+    private static void edges(
+            Graphics2D g,
+            List<LogGraph.Edge> edges,
+            int x,
+            float y0,
+            float y1,
+            boolean top,
+            LogGraph.Lane dotted,
+            BasicStroke solid,
+            BasicStroke dots) {
         final float a = laneWidth() * 0.3f;
         for (LogGraph.Edge e : edges) {
             final float x0 = center(x, e.from());
             final float x1 = center(x, e.to());
             g.setColor(color(e.color()));
+            g.setStroke(e.lane() == dotted ? dots : solid);
             switch (e.arrow()) {
                 case DOWN -> {
                     g.draw(new Line2D.Float(x1, y0, x1, y1));

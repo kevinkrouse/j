@@ -468,6 +468,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsLogToggle">vcsLogToggle</a></li>
     <li><a href="commands.html#vcsLogToggleAll">vcsLogToggleAll</a></li>
     <li><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></li>
+    <li><a href="commands.html#vcsLogCollapseRuns">vcsLogCollapseRuns</a></li>
     <li><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></li>
     <li><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></li>
     <li><a href="commands.html#vcsLogVisit">vcsLogVisit</a></li>
@@ -6288,7 +6289,7 @@ In the log, scrolls the diff a page back, from any pane.
 
 <a name="vcsLogToggle">vcsLogToggle</a><dl><dd>
 <p>
-In the log's diff, opens or closes the hunk at the caret, as Tab does in the status buffer.
+In the log's diff, opens or closes the hunk at the caret, as Tab does in the status buffer; in the list, opens or closes the run of commits at the caret, as a fold.
 <br><br>
 <b>Default key mapping:</b> Tab in the log
 <br><br>
@@ -6298,7 +6299,7 @@ In the log's diff, opens or closes the hunk at the caret, as Tab does in the sta
 
 <a name="vcsLogToggleAll">vcsLogToggleAll</a><dl><dd>
 <p>
-In the log's diff, closes every hunk, or opens them all when none is open.
+In the log's diff, closes every hunk, or opens them all when none is open; in the list, the same for the runs of commits.
 <br><br>
 <b>Default key mapping:</b> Shift Tab in the log
 <br><br>
@@ -6314,6 +6315,20 @@ the next log opens with them there.
 <b>Default key mapping:</b> D in the log
 <br><br>
 <b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsLogCollapseRuns">vcsLogCollapseRuns</a><dl><dd>
+<p>
+In the log, folds each run of plain commits (one parent, one child, no
+merge, no branch or tag, two or more one after another down a lane) under
+the commit above it, which shows its count after its subject, or shows every commit again,
+as the fold commands' fold all and unfold all do. Each run is a fold: Tab
+and the fold commands open or close the one at the caret.
+<br><br>
+<b>Default key mapping:</b> -l in the log's list
+<br><br>
+<b>See also:</b> <a href="git.html#log-filters">The log's filters</a>
 <br><br>
 </dl><!--<hr>-->
 

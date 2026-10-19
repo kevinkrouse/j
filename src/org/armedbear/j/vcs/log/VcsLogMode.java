@@ -135,6 +135,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
             filters.mapKey(o.key().charAt(1), "vcsLogFilter " + o.description());
         filters.mapKey(LogFilters.TAGS.key().charAt(1), "vcsLogToggleTags");
         filters.mapKey(LogFilters.TIME_STYLE.key().charAt(1), "vcsLogTimeStyle");
+        filters.mapKey(LogFilters.COLLAPSE.key().charAt(1), "vcsLogCollapseRuns");
         km.mapKey('-', filters);
         km.mapKey('x', "vcsLogClearFilters");
     }
@@ -227,7 +228,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         // The filters' keys are the list's alone.
         if (editor == null || editor.getBuffer() instanceof LogBuffer) {
             groups.add(0, LogFilters.group(editor == null ? null : LogCommands.scopeOf(editor)));
-            groups.add(1, Group.of("View", LogFilters.TIME_STYLE));
+            groups.add(1, Group.of("View", LogFilters.TIME_STYLE, LogFilters.COLLAPSE));
         }
         final List<Transient.Item> log = new ArrayList<>();
         log.add(Command.of(vim ? "r" : "g", "vcsLogRefresh", "refresh"));
@@ -247,26 +248,38 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         return buffer instanceof LogDiffBuffer ? StatusLine.hunks(buffer) : null;
     }
 
-    // Folding the diff's hunks.
+    // Folding the diff's hunks, and the list's runs of plain commits.
 
     @Override
     public boolean isFoldStart(Buffer buffer, Line line) {
+        if (buffer instanceof LogBuffer log)
+            return log.isRunHead(line);
         return buffer instanceof LogDiffBuffer && line instanceof StatusLine s && s.kind() == Kind.HUNK;
     }
 
     @Override
     public boolean isFolded(Line line) {
+        if (line instanceof LogLine l)
+            return l.headsFolded();
         return line instanceof StatusLine s && s.kind() == Kind.HUNK && !s.isOpen();
     }
 
     @Override
     public void toggleFoldAt(Editor editor, Line line) {
-        if (editor.getBuffer() instanceof LogDiffBuffer d && line instanceof StatusLine s)
+        if (editor.getBuffer() instanceof LogBuffer log)
+            log.setRun(line, null);
+        else if (editor.getBuffer() instanceof LogDiffBuffer d && line instanceof StatusLine s)
             d.toggle(s);
     }
 
     @Override
     public boolean setFoldAt(Editor editor, Line line, Boolean open) {
+        // In the list, the run line is or is in; none there, nothing to fold.
+        if (editor.getBuffer() instanceof LogBuffer log) {
+            if (!log.setRun(line, open))
+                editor.status("No run of commits here");
+            return true;
+        }
         if (!(editor.getBuffer() instanceof LogDiffBuffer d) || !(line instanceof StatusLine s))
             return false;
         d.setFold(s, open);
@@ -275,6 +288,10 @@ public final class VcsLogMode extends AbstractMode implements Mode {
 
     @Override
     public boolean setAllFolds(Editor editor, boolean open) {
+        if (editor.getBuffer() instanceof LogBuffer log) {
+            log.setCollapse(!open);
+            return true;
+        }
         if (!(editor.getBuffer() instanceof LogDiffBuffer d))
             return false;
         d.setAll(open);

@@ -24,8 +24,10 @@ import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -65,6 +67,19 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     // listed.
     private LogMerge merge;
     private final List<LogCommit> commits = new ArrayList<>();
+    // Every commit's line read, in order: the buffer's, hidden or not.
+    private final List<LogLine> commitLines = new ArrayList<>();
+    // Whether runs of plain commits start folded, and those, by their first
+    // commit, folded or opened since, the other way.
+    private boolean collapse = Editor.preferences().getBooleanProperty(Property.VCS_LOG_COLLAPSE_RUNS);
+    private final Set<String> flipped = new HashSet<>();
+    // The runs, by the line that heads each and by each line in one; and
+    // those whose heads say they are folded.
+    private final Map<LogLine, Run> runHeaded = new HashMap<>();
+    private final Map<LogLine, Run> runHolding = new HashMap<>();
+    private final Set<Run> labeled = new HashSet<>();
+    // The lane dotted above each commit a folded run comes before.
+    private final Map<LogLine, LogGraph.Lane> dottedAbove = new HashMap<>();
     // Until the first rows of a read from the first page, the old rows stay.
     private boolean fresh = true;
     private volatile boolean disposed;
@@ -129,8 +144,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
 
     /** The color of the lane c is in, its row read; -1 for none, as with no graph. */
     int laneColorOf(LogCommit c) {
-        for (Line l = getFirstLine(); l != null; l = l.next())
-            if (l instanceof LogLine ll && ll.commit().isSame(c))
+        for (LogLine ll : commitLines)
+            if (ll.commit().isSame(c))
                 return ll.graph() == null ? -1 : ll.graph().color();
         return -1;
     }
@@ -369,20 +384,43 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
                         branchLanes.putIfAbsent(r.name(), row.color());
         }
         if (first)
+            commitLines.clear();
+        for (Line l : lines)
+            commitLines.add((LogLine) l);
+        show(first, lines);
+        // The runs the new rows make or join, folded as they are or should be.
+        findRuns(first);
+        // Looked for in the first page only: found later, it would take the caret from where it went.
+        select = null;
+        if (first && isFull())
+            showDetails();
+        // A page read and nothing listed: another repository's is wanted first.
+        if (page.isEmpty())
+            loadMore();
+        if (jumping != null && !page.isEmpty())
+            jump(jumping.editor(), jumping.key());
+    }
+
+    // listed after the rows there, or in place of them for a first page,
+    // the caret on the commit selected, or the first, then.
+    private void show(boolean first, List<Line> listed) {
+        if (first)
             empty();
         withWriteLock(() -> {
-            if (first && lines.isEmpty())
+            if (first && listed.isEmpty())
                 appendLine(new TextLine(emptyText()));
-            for (Line l : lines)
+            for (Line l : listed)
                 appendLine(l);
             renumber();
         });
         invalidate();
         Line to = null;
         if (select != null)
-            for (Line l = getFirstLine(); l != null && to == null; l = l.next())
-                if (l instanceof LogLine ll && ll.commit().isSame(select))
+            for (LogLine l : commitLines)
+                if (l.commit().isSame(select)) {
                     to = l;
+                    break;
+                }
         for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() != this)
                 continue;
@@ -398,15 +436,6 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
                 ed.setUpdateFlag(REPAINT);
             ed.updateDisplay();
         }
-        // Looked for in the first page only: found later, it would take the caret from where it went.
-        select = null;
-        if (first && isFull())
-            showDetails();
-        // A page read and nothing listed: another repository's is wanted first.
-        if (page.isEmpty())
-            loadMore();
-        if (jumping != null && !page.isEmpty())
-            jump(jumping.editor(), jumping.key());
     }
 
     // A file's log with no commits has none; filters, as an author, match none.
@@ -457,13 +486,246 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         final long now = System.currentTimeMillis() / 1000;
         for (Line l = getFirstLine(); l != null; l = l.next())
             if (l instanceof LogLine ll)
-                ll.layout(LogRow.layout(ll.commit(), width, now, timeStyle));
+                ll.layout(layout(ll, now));
         invalidate();
         for (Editor ed : Editor.getEditorList())
             if (ed.getBuffer() == this) {
                 ed.setUpdateFlag(REPAINT);
                 ed.updateDisplay();
             }
+    }
+
+    // A commit's row for the width and the time style; a folded run's
+    // head's with its count after the subject and badges.
+    private LogRow layout(LogLine l, long now) {
+        final Run run = runHeaded.get(l);
+        return LogRow
+                .layout(l.commit(), width, now, timeStyle, run != null && labeled.contains(run) ? run.label() : "");
+    }
+
+    // Collapsing runs, as folds.
+
+    /**
+     * A run of two or more plain commits, one after another down one lane,
+     * a fold headed by the commit above: folded, its lines are hidden, the
+     * head shows how many after its subject, and the lane is dotted where
+     * they were, to after.
+     */
+    private record Run(String key, LogLine head, List<LogLine> lines, LogLine after) {
+        boolean folded() {
+            return lines.get(0).isHidden();
+        }
+
+        LogGraph.Lane lane() {
+            return lines.get(0).graph().lane();
+        }
+
+        String label() {
+            return "… " + lines.size() + " commits";
+        }
+    }
+
+    public boolean getCollapse() {
+        return collapse;
+    }
+
+    /** Every run folded, or every commit shown, as zM and zR do. */
+    void setCollapse(boolean on) {
+        collapse = on;
+        flipped.clear();
+        for (Run run : new HashSet<>(runHeaded.values()))
+            fold(run, on);
+        runsChanged();
+    }
+
+    /** Shift Tab: every run folded, or every one opened when none is open. */
+    void toggleAllRuns() {
+        boolean anyOpen = false;
+        for (Run run : runHeaded.values())
+            anyOpen |= !run.folded();
+        setCollapse(anyOpen);
+    }
+
+    /** Whether line heads a run: its fold marker's. */
+    boolean isRunHead(Line line) {
+        return line instanceof LogLine l && runHeaded.containsKey(l);
+    }
+
+    /**
+     * Folds, opens, or with null toggles, the run line heads or is in, as
+     * the fold commands do; false if there is none.
+     */
+    boolean setRun(Line line, Boolean open) {
+        if (!(line instanceof LogLine l))
+            return false;
+        final Run run = runHeaded.containsKey(l) ? runHeaded.get(l) : runHolding.get(l);
+        if (run == null)
+            return false;
+        final boolean folded = open != null ? !open : !run.folded();
+        if (folded != run.folded()) {
+            fold(run, folded);
+            if (folded != collapse)
+                flipped.add(run.key());
+            else
+                flipped.remove(run.key());
+            runsChanged();
+        }
+        return true;
+    }
+
+    // Its lines hidden once, not again as each page finds it folded, or shown.
+    private static void fold(Run run, boolean folded) {
+        for (LogLine l : run.lines())
+            if (!folded)
+                l.show();
+            else if (!l.isHidden())
+                l.hide();
+    }
+
+    private static String key(LogLine l) {
+        return LogGraph.key(l.commit(), l.commit().id());
+    }
+
+    /**
+     * The runs among the commits read, after a page: a run that was there,
+     * as it was, its new lines folded with it; a new one as -l and the runs
+     * flipped say. A plain commit has one parent and one child read, is no
+     * merge, has no ref, and a row nothing but its lane passes through
+     * straight.
+     */
+    private void findRuns(boolean first) {
+        final Map<LogLine, Run> before = first ? Map.of() : new HashMap<>(runHolding);
+        final Map<String, Integer> children = new HashMap<>();
+        for (LogLine l : commitLines)
+            for (String p : l.commit().graphParents())
+                children.merge(LogGraph.key(l.commit(), p), 1, Integer::sum);
+        runHeaded.clear();
+        runHolding.clear();
+        int i = 0;
+        while (i < commitLines.size()) {
+            int j = i;
+            if (i > 0 && plain(commitLines.get(i), children))
+                while (j + 1 < commitLines.size()
+                        && plain(commitLines.get(j + 1), children)
+                        && follows(commitLines.get(j + 1), commitLines.get(j)))
+                    j++;
+            if (j > i) {
+                final Run run = new Run(key(commitLines.get(i)),
+                        commitLines.get(i - 1),
+                        List.copyOf(commitLines.subList(i, j + 1)),
+                        j + 1 < commitLines.size() ? commitLines.get(j + 1) : null);
+                final Run was = before.get(run.lines().get(0));
+                fold(run, was != null ? was.folded() : collapse != flipped.contains(run.key()));
+                runHeaded.put(run.head(), run);
+                for (LogLine l : run.lines())
+                    runHolding.put(l, run);
+            }
+            i = j + 1;
+        }
+        // Flips of runs gone, once every commit is read.
+        if (!merge.hasMore()) {
+            final Set<String> keys = new HashSet<>();
+            for (Run run : runHeaded.values())
+                keys.add(run.key());
+            flipped.retainAll(keys);
+        }
+        runsChanged();
+    }
+
+    /**
+     * After a command: a run whose lines were shown by other means, as when
+     * a search finds a commit in it, is open now; its head says so.
+     */
+    private void syncRuns() {
+        boolean changed = false;
+        for (Run run : runHeaded.values())
+            if (run.folded() != labeled.contains(run)) {
+                if (run.folded() != collapse)
+                    flipped.add(run.key());
+                else
+                    flipped.remove(run.key());
+                changed = true;
+            }
+        if (changed)
+            runsChanged();
+    }
+
+    // The heads' counts and rows, the markers and the lines' numbers again,
+    // as the runs folded have changed, the caret off any line hidden.
+    private void runsChanged() {
+        final Set<Run> was = new HashSet<>(labeled);
+        labeled.clear();
+        dottedAbove.clear();
+        for (Run run : runHeaded.values())
+            if (run.folded()) {
+                labeled.add(run);
+                if (run.after() != null)
+                    dottedAbove.put(run.after(), run.lane());
+            }
+        final long now = System.currentTimeMillis() / 1000;
+        for (Run run : runHeaded.values()) {
+            run.head().setHeadsFolded(labeled.contains(run));
+            if (labeled.contains(run) != was.contains(run))
+                run.head().layout(layout(run.head(), now));
+        }
+        // A head that heads nothing now, as after a refresh: plain again.
+        for (Run run : was)
+            if (!labeled.contains(run) && !runHeaded.containsKey(run.head())) {
+                run.head().setHeadsFolded(false);
+                run.head().layout(layout(run.head(), now));
+            }
+        renumber();
+        foldsChanged();
+        invalidate();
+        // The window as it is, unless its caret was folded away: then on the head, in sight.
+        for (Editor ed : Editor.getEditorList())
+            if (ed.getBuffer() == this) {
+                if (ed.getDot() != null && ed.getDotLine().isHidden()) {
+                    final Line visible = ed.getDotLine().previousVisible();
+                    if (visible != null) {
+                        ed.setDot(visible, 0);
+                        ed.setMark(null);
+                        ed.moveCaretToDotCol();
+                        ed.setUpdateFlag(REFRAME);
+                    }
+                }
+                ed.setUpdateFlag(REPAINT);
+                ed.updateDisplay();
+            }
+    }
+
+    /** The lane dotted below l's commit, or above it, where a run folded was; null if none. */
+    LogGraph.Lane dottedLane(LogLine l, boolean below) {
+        if (below) {
+            final Run run = runHeaded.get(l);
+            return run != null && run.folded() ? run.lane() : null;
+        }
+        return dottedAbove.get(l);
+    }
+
+    private static boolean plain(LogLine l, Map<String, Integer> children) {
+        final LogCommit c = l.commit();
+        return l.graph() != null
+                && c.graphParents().size() == 1
+                && !c.isMerge()
+                && c.refs().isEmpty()
+                && children.getOrDefault(key(l), 0) == 1
+                && l.graph().straight();
+    }
+
+    // Whether l's commit is the first parent of above's, in its lane.
+    private static boolean follows(LogLine l, LogLine above) {
+        return l.graph().lane() == above.graph().lane()
+                && key(l).equals(LogGraph.key(above.commit(), above.commit().graphParents().get(0)));
+    }
+
+    // Whether fewer than AHEAD lines are shown after line: the caret can't go
+    // on far, however many lines a run folded at the end hides.
+    private static boolean nearTheEnd(Line line) {
+        int shown = 0;
+        for (Line l = line.nextVisible(); l != null && shown < AHEAD; l = l.nextVisible())
+            shown++;
+        return shown < AHEAD;
     }
 
     /** The width rows are laid out for. For tests. */
@@ -477,7 +739,9 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     public void afterCommand(Editor editor) {
         if (editor.getDot() == null)
             return;
-        if (editor.getDotLineNumber() >= getLineCount() - AHEAD)
+        // A run shown by the caret's landing in it, as by a search, is open.
+        syncRuns();
+        if (nearTheEnd(editor.getDotLine()))
             loadMore();
         if (isFull() && commitAt(editor) != shown)
             follow.restart();
@@ -489,8 +753,9 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
      */
     void jump(Editor editor, String key) {
         jumping = null;
+        // In a run folded, shown as the caret lands there, as a search's is.
         for (Line l = getFirstLine(); l != null; l = l.next())
-            if (l instanceof LogLine ll && LogGraph.key(ll.commit(), ll.commit().id()).equals(key)) {
+            if (l instanceof LogLine ll && key(ll).equals(key)) {
                 editor.moveDotTo(l, 0);
                 editor.updateDisplay();
                 // As after a command: its details follow, and pages near the end are read.

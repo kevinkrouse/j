@@ -1195,4 +1195,216 @@ public class LogBufferTest {
             texts(log.files).toString());
         assertNotNull(VcsLogMode.getMode().getTransient(h.editor()).item("-t"), "in the popup's View");
     }
+
+    // Each commit shown, with the count after a folded run's head.
+    private List<String> shown() {
+        final List<String> out = new ArrayList<>();
+        for (Line l = log.getFirstLine(); l != null; l = l.next()) {
+            if (l.isHidden())
+                continue;
+            final LogLine ll = (LogLine) l;
+            String text = ll.commit().subject();
+            for (LogRow.Span span : ll.row().spans())
+                if (span.part() == LogRow.Part.COUNT)
+                    text += " " + ll.getText().substring(span.start(), span.end());
+            out.add(text);
+        }
+        return out;
+    }
+
+    private Line lineOf(String subject) {
+        for (Line l = log.getFirstLine(); l != null; l = l.next())
+            if (((LogLine) l).commit().subject().equals(subject))
+                return l;
+        throw new AssertionError(subject);
+    }
+
+    @Test
+    public void dashLFoldsEachRunOfPlainCommitsUnderTheCommitAbove() throws Exception {
+        repo(6);
+        open(100);
+        assertEquals(6, shown().size());
+        onEdt(() -> h.editor().moveDotTo(lineOf("commit 3"), 0));
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        // The tip has its branch, the root no parent: the four between are plain, under the tip.
+        assertEquals(List.of("commit 5 … 4 commits", "commit 0"), shown());
+        assertEquals(
+            "commit 5",
+            LogBuffer.commitAt(h.editor()).subject(),
+            "the caret off the lines hidden, onto the head");
+        assertEquals(6, log.getLineCount(), "every commit still in the buffer");
+        onEdt(() -> LogCommands.vcsLogToggle(h.editor()));
+        assertEquals(6, shown().size(), "Tab on the head opens it");
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        assertEquals(6, shown().size(), "-l again shows every commit");
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        assertEquals(2, shown().size(), "and folds every run again");
+        onEdt(() -> LogCommands.vcsLogToggleAll(h.editor()));
+        assertEquals(6, shown().size(), "Shift Tab opens them all when none is open");
+    }
+
+    @Test
+    public void aRefBreaksARun() throws Exception {
+        git = GitFixture.init(tmp);
+        for (int i = 0; i < 6; i++) {
+            git.write("a.txt", "line " + i + "\n");
+            git.commitAll("commit " + i);
+            if (i == 2)
+                git.git("tag", "v1");
+        }
+        repository = Repositories.forDirectory(git.root);
+        open(100);
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        // commit 2 has the tag; commit 1 alone between it and the root folds nothing.
+        assertEquals(List.of("commit 5 … 2 commits", "commit 2", "commit 1", "commit 0"), shown());
+    }
+
+    @Test
+    public void nothingThatBendsTheGraphIsEverFolded() throws Exception {
+        // A fork, a merge, and a branch whose lane passes enough rows to leave as an arrow.
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "0\n");
+        git.commitAll("root");
+        git.git("checkout", "-q", "-b", "side");
+        git.write("s.txt", "s\n");
+        git.commitAll("side 1");
+        git.write("s.txt", "ss\n");
+        git.commitAll("side 2");
+        git.git("checkout", "-q", "main");
+        for (int i = 0; i < 40; i++) {
+            git.write("a.txt", i + "\n");
+            git.commitAll("main " + i);
+        }
+        git.git("merge", "-q", "--no-ff", "-m", "Merge side", "side");
+        git.write("a.txt", "top\n");
+        git.commitAll("top");
+        repository = Repositories.forDirectory(git.root);
+        open(100);
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        boolean anyHidden = false;
+        for (Line l = log.getFirstLine(); l != null; l = l.next()) {
+            final LogLine ll = (LogLine) l;
+            if (!l.isHidden())
+                continue;
+            anyHidden = true;
+            assertFalse(ll.commit().isMerge(), ll.commit().subject());
+            assertTrue(ll.commit().refs().isEmpty(), ll.commit().subject());
+            assertTrue(ll.graph().straight(), ll.commit().subject() + ": a row the graph bends or ends in");
+        }
+        assertTrue(anyHidden, "the long run on main folds");
+        assertFalse(lineOf("Merge side").isHidden());
+        assertFalse(lineOf("root").isHidden(), "the fork");
+    }
+
+    @Test
+    public void aRunGrowsAsTheNextPagesAreReadTheCaretLeftAlone() throws Exception {
+        repo(8);
+        open(3);
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        assertEquals(List.of("commit 7 … 2 commits"), shown());
+        // The caret as far down as moving goes, onto the last line shown: the end of the
+        // commits read is near, so the next pages are read.
+        for (int n : new int[] { 6, 8 }) {
+            onEdt(() -> {
+                Line last = log.getLastLine();
+                while (last.isHidden())
+                    last = last.previous();
+                h.editor().setDot(last, 0);
+                log.afterCommand(h.editor());
+            });
+            until(() -> log.commits().size() == n && !log.isLoading());
+        }
+        assertEquals(List.of("commit 7 … 6 commits", "commit 0"), shown());
+        for (Line l = log.getFirstLine(); l != null; l = l.next())
+            assertTrue(l.getHidden() <= 1, "hidden once, however many pages found its run folded");
+        onEdt(() -> {
+            h.editor().moveDotTo(lineOf("commit 0"), 3);
+            h.editor().moveCaretToDotCol();
+        });
+        assertEquals(3, h.editor().getDotOffset());
+    }
+
+    @Test
+    public void pagesComeWithTheCaretOnARunFoldedAtTheEnd() throws Exception {
+        repo(12);
+        open(4);
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        // One row shown, the run's head: the end is near, whatever the lines hidden.
+        onEdt(() -> {
+            h.editor().setDot(log.getFirstLine(), 0);
+            log.afterCommand(h.editor());
+        });
+        until(() -> log.commits().size() == 8 && !log.isLoading());
+        onEdt(() -> log.afterCommand(h.editor()));
+        until(() -> log.commits().size() == 12 && !log.isLoading());
+        assertEquals(List.of("commit 11 … 10 commits", "commit 0"), shown());
+    }
+
+    @Test
+    public void theCaretLandingInAFoldedRunOpensIt() throws Exception {
+        repo(6);
+        open(100);
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        assertEquals(2, shown().size());
+        // As a search finding a commit hidden there does.
+        onEdt(() -> {
+            h.editor().moveDotTo(lineOf("commit 2"), 0);
+            h.editor().updateDisplay();
+            log.afterCommand(h.editor());
+        });
+        assertEquals(6, shown().size());
+        assertEquals("commit 5", shown().get(0), "its head's count gone");
+        assertFalse(VcsLogMode.getMode().isFolded(lineOf("commit 5")));
+    }
+
+    @Test
+    public void eachRunIsAFoldTheFoldKeysOpenAndClose() throws Exception {
+        repo(6);
+        open(100);
+        final VcsLogMode mode = VcsLogMode.getMode();
+        final Line head = lineOf("commit 5");
+        final Line inside = lineOf("commit 3");
+        // Every commit shown, its runs open folds: a marker on each one's head, the commit above.
+        assertTrue(mode.isFoldStart(log, head));
+        assertFalse(mode.isFoldStart(log, lineOf("commit 4")));
+        assertFalse(mode.isFolded(head));
+        // zc from inside the run folds it.
+        onEdt(() -> h.editor().moveDotTo(inside, 0));
+        onEdt(() -> assertTrue(mode.setFoldAt(h.editor(), inside, false)));
+        assertEquals(List.of("commit 5 … 4 commits", "commit 0"), shown());
+        assertTrue(mode.isFolded(head), "a closed fold's marker");
+        // za on the head opens it; zM folds every run, zR opens them.
+        onEdt(() -> mode.setFoldAt(h.editor(), head, null));
+        assertEquals(6, shown().size());
+        onEdt(() -> mode.foldAll(h.editor()));
+        assertEquals(2, shown().size());
+        assertTrue(log.getCollapse());
+        onEdt(() -> mode.setAllFolds(h.editor(), true));
+        assertEquals(6, shown().size());
+        onEdt(() -> mode.setFoldAt(h.editor(), lineOf("commit 0"), false));
+        assertEquals(6, shown().size(), "the root heads and is in no run: nothing folds");
+    }
+
+    @Test
+    public void aFoldedRunsCountComesAfterTheSubjectAndBadges() throws Exception {
+        repo(6);
+        open(100);
+        onEdt(() -> LogCommands.vcsLogCollapseRuns(h.editor()));
+        final LogLine head = (LogLine) lineOf("commit 5");
+        final List<LogRow.Part> parts = new ArrayList<>();
+        for (LogRow.Span span : head.row().spans())
+            parts.add(span.part());
+        assertEquals(
+            List.of(LogRow.Part.SUBJECT, LogRow.Part.HEAD, LogRow.Part.COUNT, LogRow.Part.AUTHOR, LogRow.Part.DATE),
+            parts);
+        assertTrue(head.getText().startsWith("commit 5  main  … 4 commits"), head.getText());
+    }
+
+    @Test
+    public void theDashLKeyAndThePopupsViewHaveIt() {
+        final org.armedbear.j.KeyMap dash =
+                (org.armedbear.j.KeyMap) VcsLogMode.getMode().getKeyMap().lookup('-', 0, 0).getCommand();
+        assertEquals("vcsLogCollapseRuns", dash.lookup('l', 0, 0).getCommand());
+        assertNotNull(VcsLogMode.getMode().getTransient(null).item("-l"));
+    }
 }

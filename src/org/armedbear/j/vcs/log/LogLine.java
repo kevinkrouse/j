@@ -27,12 +27,23 @@ public final class LogLine extends TextLine {
     private final LogCommit commit;
     private final LogGraph.Row graph;
     private LogRow row;
+    // Whether it heads a run of commits folded away below it.
+    private boolean headsFolded;
 
     LogLine(LogCommit commit, LogGraph.Row graph, LogRow row) {
         super(row.text());
         this.commit = commit;
         this.graph = graph;
         this.row = row;
+    }
+
+    /** Whether it heads a run of commits folded away below it: its fold marker's. */
+    public boolean headsFolded() {
+        return headsFolded;
+    }
+
+    void setHeadsFolded(boolean b) {
+        headsFolded = b;
     }
 
     /** What its row of the graph draws. */

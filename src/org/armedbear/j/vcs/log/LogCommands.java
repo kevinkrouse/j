@@ -324,6 +324,12 @@ public final class LogCommands {
 
     /** Tab: opens or closes the diff's hunk at the caret, as in the status buffer. */
     public static void vcsLogToggle(Editor editor) {
+        // In the list, the run at the caret opens or closes, as za does.
+        if (editor.getBuffer() instanceof LogBuffer log) {
+            if (editor.getDot() == null || !log.setRun(editor.getDotLine(), null))
+                editor.status("No run of commits here");
+            return;
+        }
         if (editor.getBuffer() instanceof LogDiffBuffer d
                 && editor.getDot() != null
                 && editor.getDotLine() instanceof StatusLine s
@@ -336,6 +342,8 @@ public final class LogCommands {
     public static void vcsLogToggleAll(Editor editor) {
         if (editor.getBuffer() instanceof LogDiffBuffer d)
             d.toggleAll();
+        else if (editor.getBuffer() instanceof LogBuffer log)
+            log.toggleAllRuns();
     }
 
     /** D: the details at the bottom, or at the right. */
@@ -382,6 +390,13 @@ public final class LogCommands {
             return;
         }
         bar.choose(option);
+    }
+
+    /** -l: runs of plain commits collapsed into a row each, or every commit shown. */
+    public static void vcsLogCollapseRuns(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log != null)
+            log.setCollapse(!log.getCollapse());
     }
 
     /** -t: the next time style for the dates, or the one named: age, locale, iso or long-iso. */

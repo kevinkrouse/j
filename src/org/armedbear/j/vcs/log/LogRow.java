@@ -36,9 +36,12 @@ import org.armedbear.j.util.TimeStyle;
  * @param cut whether it shows less than the commit has
  */
 public record LogRow(String text, List<Span> spans, boolean cut) {
-    /** What a part of the row is: the subject, a badge of a ref, the author or the date. */
+    /**
+     * What a part of the row is: the subject, a badge of a ref, the count of
+     * a run folded under it, the author or the date.
+     */
     public enum Part {
-        SUBJECT, HEAD, BRANCH, REMOTE, TAG, AUTHOR, DATE
+        SUBJECT, HEAD, BRANCH, REMOTE, TAG, COUNT, AUTHOR, DATE
     }
 
     /** A part of the row, from start to end (exclusive). */
@@ -55,6 +58,15 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
 
     /** The same, its date in a time style. */
     public static LogRow layout(LogCommit commit, int width, long now, String timeStyle) {
+        return layout(commit, width, now, timeStyle, "");
+    }
+
+    /**
+     * The same, with count after the subject and badges, as a run's folded
+     * under it says ("… 5 commits"), or "" for none: it never goes, as the
+     * date doesn't.
+     */
+    public static LogRow layout(LogCommit commit, int width, long now, String timeStyle, String count) {
         // An old date in iso has ls's space after it, to line up with a time: not at the right edge.
         final String date = TimeStyle.format(timeStyle, commit.time() * 1000, now * 1000).strip();
         final List<LogRef> all = badges(commit.refs());
@@ -64,10 +76,11 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
                 if ((step < 1 || r.kind() != LogRef.Kind.TAG) && (step < 2 || r.kind() != LogRef.Kind.REMOTE))
                     refs.add(r);
             final String author = step < 3 ? commit.author() : initials(commit.author());
-            if (step == 3 || length(commit.subject(), refs, author, date) <= width)
+            if (step == 3 || length(commit.subject(), refs, count, author, date) <= width)
                 return build(
                     commit.subject(),
                     refs,
+                    count,
                     author,
                     date,
                     width,
@@ -93,21 +106,27 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
         return 1 + r.name().length() + 2;
     }
 
-    private static int length(String subject, List<LogRef> refs, String author, String date) {
-        int n = subject.length();
+    private static int length(String subject, List<LogRef> refs, String count, String author, String date) {
+        int n = subject.length() + counted(count);
         for (LogRef r : refs)
             n += badge(r);
         return n + 2 + author.length() + 2 + date.length();
     }
 
+    // A count's room: a space before it.
+    private static int counted(String count) {
+        return count.isEmpty() ? 0 : 1 + count.length();
+    }
+
     private static LogRow build(
             String subject,
             List<LogRef> refs,
+            String count,
             String author,
             String date,
             int width,
             boolean less) {
-        int badges = 0;
+        int badges = counted(count);
         for (LogRef r : refs)
             badges += badge(r);
         final int right = 2 + author.length() + 2 + date.length();
@@ -127,6 +146,11 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
             final int start = sb.length();
             sb.append(' ').append(r.name()).append(' ');
             spans.add(new Span(part(r), start, sb.length()));
+        }
+        if (!count.isEmpty()) {
+            sb.append(' ');
+            spans.add(new Span(Part.COUNT, sb.length(), sb.length() + count.length()));
+            sb.append(count);
         }
         sb.append(" ".repeat(Math.max(2, width - sb.length() - (author.length() + 2 + date.length()))));
         spans.add(new Span(Part.AUTHOR, sb.length(), sb.length() + author.length()));

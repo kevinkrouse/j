@@ -374,6 +374,7 @@ public class CommandTable {
             add("vcsLogRefresh", LogCommands::vcsLogRefresh);
             add("vcsLogFilter", LogCommands::vcsLogFilter, LogCommands::vcsLogFilter);
             add("vcsLogClearFilters", LogCommands::vcsLogClearFilters);
+            add("vcsLogCollapseRuns", LogCommands::vcsLogCollapseRuns);
             add("vcsLogTimeStyle", LogCommands::vcsLogTimeStyle, LogCommands::vcsLogTimeStyle);
             add("vcsLogToggleTags", LogCommands::vcsLogToggleTags);
             add("vcsLogRevision", LogCommands::vcsLogRevision);
