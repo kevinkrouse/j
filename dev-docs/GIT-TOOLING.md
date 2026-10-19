@@ -583,8 +583,8 @@ bottom (IntelliJ)                          right
 └──────────────────┴───────────────────┘   └──────────────────────┴──────────────┘
 ```
 
-On the right, the files are a small window on top (as tall as the list of
-files, up to a third of the height) and the diff fills the rest. That is
+On the right, the files are a small window on top (a third of the
+height) and the diff fills the rest. That is
 close to magit's: `Enter` on a commit there shows a revision buffer in
 another window, its message, a diffstat of the files, then every file's
 diff. Here the files are a window of their own, so the diff shows one
@@ -1357,10 +1357,10 @@ plan with why it is left, before the next phase starts.
      its end to where the text up to it would end all plain, spread evenly
      over its columns and never broken at the caret, and `formatLine` fills
      the whole line so that a run is always measured whole.
-   - Left: the files
-     pane's height fitted to its files, staging from the status's diff, and
-     the refs tree in the sidebar (reveal, filter to a ref, narrow by
-     typing).
+   - The files pane keeps a fixed share of its column: fitting it to each
+     commit's text was tried and dropped.
+   - Left: staging from the status's diff, and the refs tree in the
+     sidebar (reveal, filter to a ref, narrow by typing).
 6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
    rows, tested on its own (a change at the top and the bottom, an empty
    side, a file new or deleted, a change of only blank lines, CR LF); the two
