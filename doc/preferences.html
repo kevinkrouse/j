@@ -2366,8 +2366,8 @@ opens with them where it left them. See <a href="git.html#log">The log</a>.
 <code><a name="vcsLogCollapseRuns">vcsLogCollapseRuns</a></code>
 <dl>
 <dd>
-If true, each log starts with its runs of plain commits collapsed into a
-row each, as -l does.
+If true, each log starts with its runs of plain commits folded under the
+commit above each, as -l does.
 <p>
 <b>Default value:</b> false
 </dl>
@@ -2379,6 +2379,16 @@ Whether a log of several repositories names each row's repository beside its
 colored strip, not only on a hover over it. See <a href="git.html#log">The log</a>.
 <p>
 <b>Default value:</b> false
+</dl>
+
+<code><a name="vcsLogRefsOrder">vcsLogRefsOrder</a></code>
+<dl>
+<dd>
+How the log's refs tree orders the branches and the remotes:
+<code>name</code>, ignoring case, or <code>date</code>, the newest commit
+first. -o switches it in one log.
+<p>
+<b>Default value:</b> name
 </dl>
 
 <code><a name="vcsLogTimeStyle">vcsLogTimeStyle</a></code>

@@ -372,6 +372,7 @@ public class CommandTable {
             add("vcsLogPreviousFile", LogCommands::vcsLogPreviousFile);
             add("vcsLogQuit", LogCommands::vcsLogQuit);
             add("vcsLogRefresh", LogCommands::vcsLogRefresh);
+            add("vcsLogRefsOrder", LogCommands::vcsLogRefsOrder);
             add("vcsLogFilter", LogCommands::vcsLogFilter, LogCommands::vcsLogFilter);
             add("vcsLogClearFilters", LogCommands::vcsLogClearFilters);
             add("vcsLogCollapseRuns", LogCommands::vcsLogCollapseRuns);

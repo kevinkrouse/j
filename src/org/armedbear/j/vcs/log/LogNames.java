@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.VcsRepository;
@@ -50,7 +52,10 @@ final class LogNames {
 
     private final AtomicBoolean reading = new AtomicBoolean();
     private volatile long readAt;
+    private volatile List<LogRefTip> tips = List.of();
     private volatile List<LogRef> refs = List.of();
+    // What runs, on the event thread, when the read running is done.
+    private final List<Runnable> after = new ArrayList<>();
     private volatile List<String> paths = List.of();
     private final Set<String> authors = new LinkedHashSet<>();
 
@@ -68,26 +73,78 @@ final class LogNames {
      * then its log read them once.
      */
     void read(boolean force) {
-        if (!force && System.currentTimeMillis() - readAt < FRESH)
-            return;
-        if (!reading.compareAndSet(false, true))
-            return;
-        Background.start("vcs log names", () -> {
-            try {
-                refs = List.copyOf(repository.backend().readRefs(repository));
-                paths = withDirectories(repository.backend().readPaths(repository));
-                final List<LogCommit> recent = repository.backend().readLog(repository, LogQuery.ALL, 0, AUTHORS_FROM);
-                if (recent != null)
-                    addAuthors(recent);
+        read(force, null);
+    }
+
+    /**
+     * The same, then done on the event thread: when the read started, or
+     * one running, is done, or at once when none needs to be.
+     */
+    void read(boolean force, Runnable done) {
+        synchronized (after) {
+            if (!reading.get() && !force && System.currentTimeMillis() - readAt < FRESH) {
+                if (done != null)
+                    SwingUtilities.invokeLater(done);
+                return;
             }
-            catch (RuntimeException e) {
-                Log.error(e);
+            if (done != null)
+                after.add(done);
+            // Forced while one runs, which may have started before what
+            // forces it: once more after it, done then.
+            if (reading.get()) {
+                again |= force;
+                return;
             }
-            finally {
+            reading.set(true);
+        }
+        Background.start("vcs log names", this::readNow);
+    }
+
+    // Whether to read again once the read running is done.
+    private boolean again;
+
+    private void readNow() {
+        try {
+            // One for-each-ref: the tree's tips, and the filters' refs from them.
+            tips = List.copyOf(repository.backend().readRefTips(repository));
+            final List<LogRef> named = new ArrayList<>();
+            for (LogRefTip t : tips)
+                if (t.ref().kind() != LogRef.Kind.HEAD)
+                    named.add(t.ref());
+            refs = List.copyOf(named);
+            paths = withDirectories(repository.backend().readPaths(repository));
+            final List<LogCommit> recent = repository.backend().readLog(repository, LogQuery.ALL, 0, AUTHORS_FROM);
+            if (recent != null)
+                addAuthors(recent);
+        }
+        catch (RuntimeException e) {
+            Log.error(e);
+        }
+        finally {
+            final boolean more;
+            final List<Runnable> run;
+            synchronized (after) {
                 readAt = System.currentTimeMillis();
-                reading.set(false);
+                more = again;
+                again = false;
+                if (more)
+                    run = List.of();
+                else {
+                    reading.set(false);
+                    run = List.copyOf(after);
+                    after.clear();
+                }
             }
-        });
+            if (more)
+                Background.start("vcs log names", this::readNow);
+            for (Runnable r : run)
+                SwingUtilities.invokeLater(r);
+        }
+    }
+
+    /** HEAD when detached, the branches, remotes and tags, with their commits; empty until read. */
+    List<LogRefTip> tips() {
+        return tips;
     }
 
     /** Whether a read is running. */
@@ -129,6 +186,17 @@ final class LogNames {
     static void read(LogScope scope, boolean force) {
         for (VcsRepository r : scope.repositories())
             of(r).read(force);
+    }
+
+    /** The same, then done on the event thread once each is read, or needed none. */
+    static void read(LogScope scope, boolean force, Runnable done) {
+        final List<VcsRepository> rs = scope.repositories();
+        final AtomicInteger left = new AtomicInteger(rs.size());
+        for (VcsRepository r : rs)
+            of(r).read(force, () -> {
+                if (left.decrementAndGet() == 0)
+                    done.run();
+            });
     }
 
     /** scope's refs: each name once, in its repositories' order. */

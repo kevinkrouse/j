@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
@@ -37,6 +38,7 @@ import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
 import org.armedbear.j.vcs.log.LogRef;
+import org.armedbear.j.vcs.log.LogRefTip;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -243,15 +245,59 @@ public class GitLogTest {
         git.git("tag", "v1");
         git.git("branch", "feature/x");
         assertEquals(
-            List.of(
+            Set.of(
                 new LogRef("feature/x", LogRef.Kind.BRANCH, false),
                 new LogRef("main", LogRef.Kind.BRANCH, true),
                 new LogRef("v1", LogRef.Kind.TAG, false)),
-            GitLog.allRefs(repository));
+            Set.copyOf(GitLog.refTips(repository).stream().map(LogRefTip::ref).toList()));
         assertEquals(List.of("a.txt", "d/b.txt"), GitLog.paths(repository));
-        assertEquals(
-            List.of(new LogRef("origin/main", LogRef.Kind.REMOTE, false)),
-            GitLog.parseRefs(" \trefs/remotes/origin/HEAD\n \trefs/remotes/origin/main\n"));
+    }
+
+    @Test
+    public void readsTheRefTipsWithTheirCommitsAndUpstreams() throws Exception {
+        init();
+        git.write("a.txt", "a\n");
+        git.commitAll("first");
+        git.git("tag", "-a", "-m", "one", "v1");
+        git.git("branch", "feature/x");
+        final String first = id("HEAD");
+        final List<LogRefTip> tips = GitLog.refTips(repository);
+        final LogRefTip main = tips.stream().filter(t -> t.ref().name().equals("main")).findFirst().orElseThrow();
+        assertTrue(main.ref().head(), "checked out");
+        assertEquals(first, main.id());
+        final LogRefTip v1 = tips.stream().filter(t -> t.ref().name().equals("v1")).findFirst().orElseThrow();
+        assertEquals(first, v1.id(), "an annotated tag's commit, not the tag");
+        assertEquals(LogRef.Kind.TAG, v1.ref().kind());
+        // Detached: HEAD first, at its commit.
+        git.git("checkout", "-q", "--detach");
+        final List<LogRefTip> detached = GitLog.refTips(repository);
+        assertEquals(new LogRef("HEAD", LogRef.Kind.HEAD, true), detached.get(0).ref());
+        assertEquals(first, detached.get(0).id());
+        // An upstream's track; a remote's HEAD left out.
+        final List<LogRefTip> parsed = GitLog.parseTips(
+            "*\trefs/heads/main\tc1\t\t200\t[ahead 2, behind 1]\n" + " \trefs/heads/old\tc2\t\t100\t[gone]\n"
+                    + " \trefs/remotes/origin/HEAD\tc1\t\t200\t\n" + " \trefs/remotes/origin/main\tc3\t\t150\t\n");
+        assertEquals(3, parsed.size());
+        assertEquals("↑2 ↓1", parsed.get(0).track());
+        assertEquals(200, parsed.get(0).time());
+        assertEquals("gone", parsed.get(1).track());
+        assertEquals("", parsed.get(2).track());
+        assertEquals(new LogRef("origin/main", LogRef.Kind.REMOTE, false), parsed.get(2).ref());
+        assertTrue(parsed.get(0).primary(), "no remote's HEAD: a local main");
+        // origin's HEAD names the default branch, before another remote's.
+        final List<LogRefTip> named = GitLog.parseTips(
+            " \trefs/heads/main\tc1\t\t200\t\t\n" + " \trefs/heads/trunk\tc2\t\t100\t\t\n"
+                    + " \trefs/heads/dev\tc3\t\t100\t\t\n"
+                    + " \trefs/remotes/fork/HEAD\tc3\t\t100\t\trefs/remotes/fork/dev\n"
+                    + " \trefs/remotes/origin/HEAD\tc2\t\t100\t\trefs/remotes/origin/trunk\n");
+        assertEquals(List.of(false, true, false), named.stream().map(LogRefTip::primary).toList());
+        final List<LogRefTip> master =
+                GitLog.parseTips(" \trefs/heads/master\tc1\t\t200\t\t\n" + " \trefs/heads/x\tc2\t\t100\t\t\n");
+        assertTrue(master.get(0).primary(), "else master");
+        final List<LogRefTip> remoteOnly = GitLog.parseTips(
+            " \trefs/heads/main\tc1\t\t200\t\t\n"
+                    + " \trefs/remotes/origin/HEAD\tc2\t\t100\t\trefs/remotes/origin/develop\n");
+        assertTrue(remoteOnly.get(0).primary(), "the remote's has no local branch: main all the same");
     }
 
     @Test

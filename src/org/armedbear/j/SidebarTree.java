@@ -38,19 +38,22 @@ public class SidebarTree extends JTree {
     }
 
     /**
-     * The keys a tree of tags takes: Enter goes to the selected tag
-     * (Alt+Enter hides the sidebar too), Tab to the buffer list, Escape back
-     * to the text. Any other key is the tree's, not the editor's, until it
-     * is released.
+     * The keys a tree of tags takes, as {@link #sidebarKeyPressed}'s: Enter
+     * goes to the selected tag.
      *
      * @param updatePosition selects the tag the caret is at
      */
-    protected static void tagKeyPressed(
-        Editor editor,
-        KeyEvent e,
-        LocalTag selected,
-        Runnable updatePosition
-    ) {
+    protected static void tagKeyPressed(Editor editor, KeyEvent e, LocalTag selected, Runnable updatePosition) {
+        sidebarKeyPressed(editor, e, selected == null ? null : () -> selected.gotoTag(editor), updatePosition);
+    }
+
+    /**
+     * The keys a tree in the sidebar takes: Enter does enter, if any, and
+     * goes back to the text (Alt+Enter hides the sidebar too), Tab goes to
+     * the buffer list, Escape back to the text. Any other key is the
+     * tree's, not the editor's, until it is released.
+     */
+    protected static void sidebarKeyPressed(Editor editor, KeyEvent e, Runnable enter, Runnable updatePosition) {
         final int modifiers = Keys.keyModifiers(e);
         switch (e.getKeyCode()) {
             // Ignore modifier keystrokes.
@@ -61,8 +64,8 @@ public class SidebarTree extends JTree {
                 return;
             case KeyEvent.VK_ENTER:
                 e.consume();
-                if (selected != null)
-                    selected.gotoTag(editor);
+                if (enter != null)
+                    enter.run();
                 editor.setFocusToDisplay();
                 if (modifiers == Constants.ALT_MASK)
                     WindowCommands.toggleSidebar(editor);
@@ -71,7 +74,7 @@ public class SidebarTree extends JTree {
                 e.consume();
                 if (modifiers == 0) {
                     final Sidebar sidebar = editor.getSidebar();
-                    if (sidebar.getBufferList() != null) {
+                    if (sidebar != null && sidebar.getBufferList() != null) {
                         updatePosition.run();
                         editor.setFocus(sidebar.getBufferList());
                     }
@@ -79,7 +82,8 @@ public class SidebarTree extends JTree {
                 return;
             case KeyEvent.VK_ESCAPE:
                 e.consume();
-                editor.getSidebar().setBuffer();
+                if (editor.getSidebar() != null)
+                    editor.getSidebar().setBuffer();
                 updatePosition.run();
                 editor.setFocusToDisplay();
                 return;

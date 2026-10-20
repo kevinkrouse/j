@@ -36,8 +36,10 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.View;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
@@ -67,6 +69,20 @@ public final class VcsLogMode extends AbstractMode implements Mode {
 
     public static VcsLogMode getMode() {
         return mode;
+    }
+
+    /** The log's refs tree, the same for its list, files and diff. */
+    @Override
+    public NavigationComponent getSidebarComponent(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log == null)
+            return null;
+        final LogRefTree tree = log.refTree(editor.getFrame());
+        // Kept on the window's view, so the sidebar keeps it as the panes change.
+        final View view = editor.getCurrentView();
+        if (view != null)
+            view.setSidebarComponent(tree);
+        return tree;
     }
 
     @Override
@@ -136,6 +152,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         filters.mapKey(LogFilters.TAGS.key().charAt(1), "vcsLogToggleTags");
         filters.mapKey(LogFilters.TIME_STYLE.key().charAt(1), "vcsLogTimeStyle");
         filters.mapKey(LogFilters.COLLAPSE.key().charAt(1), "vcsLogCollapseRuns");
+        filters.mapKey(LogFilters.REFS_ORDER.key().charAt(1), "vcsLogRefsOrder");
         km.mapKey('-', filters);
         km.mapKey('x', "vcsLogClearFilters");
     }
@@ -228,7 +245,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         // The filters' keys are the list's alone.
         if (editor == null || editor.getBuffer() instanceof LogBuffer) {
             groups.add(0, LogFilters.group(editor == null ? null : LogCommands.scopeOf(editor)));
-            groups.add(1, Group.of("View", LogFilters.TIME_STYLE, LogFilters.COLLAPSE));
+            groups.add(1, Group.of("View", LogFilters.TIME_STYLE, LogFilters.COLLAPSE, LogFilters.REFS_ORDER));
         }
         final List<Transient.Item> log = new ArrayList<>();
         log.add(Command.of(vim ? "r" : "g", "vcsLogRefresh", "refresh"));

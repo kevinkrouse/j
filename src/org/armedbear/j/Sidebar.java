@@ -96,6 +96,11 @@ public final class Sidebar extends JComponent {
         topPanel.setLabelText(s);
     }
 
+    /** The lower half's label, as when its component's own text changes. */
+    public final void setBottomLabelText(String s) {
+        bottomPanel.setLabelText(s);
+    }
+
     public static void repaintBufferListInAllFrames() {
         for (int i = 0; i < Editor.getFrameCount(); i++) {
             Frame frame = Editor.getFrame(i);

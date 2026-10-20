@@ -155,6 +155,23 @@ final class LogFilters {
                 }
             });
 
+    /** -o: the refs tree's branches by name or newest first, a view option rather than a filter. */
+    static final Option REFS_ORDER =
+            new Option("-o", "--refs-order", "refs order", new Cycle(LogBuffer.REFS_ORDERS), new Binding<>() {
+                @Override
+                public String get(Editor editor) {
+                    final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+                    return log != null ? log.getRefsOrder() : null;
+                }
+
+                @Override
+                public void set(Editor editor, String order) {
+                    final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+                    if (log != null && order != null)
+                        log.setRefsOrder(order);
+                }
+            });
+
     private static final Switch TAGS_ARGUMENT = Switch.of(TAGS.key(), TAGS.name(), TAGS.description());
 
     /** The same, unbound: arguments kept by the popup they are in. */

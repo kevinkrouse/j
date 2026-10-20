@@ -297,6 +297,39 @@ Alt P) go to the next and previous hunk too, as in a file git tracks. To
 move between the list, the files and the diff, use the window keys: Alt O
 and Alt Shift O, or Ctrl W in vim edit mode.
 
+<h3><a name="log-refs">The refs</a></h3>
+
+<p>
+The sidebar's lower half shows the log's refs, the same from its list, files
+and diff: HEAD when it is detached, the branches, the remotes by remote, and
+the tags, newest first, the newest 25 and then a node for the rest; with
+several repositories, each under its name. The branches are open, the remotes
+and tags closed. A name with a slash is in a folder
+(<code>feature/x</code> in <code>feature</code>). The default branch comes
+first, the one the remote's HEAD names (<code>origin</code>'s first), or else
+<code>main</code> or <code>master</code>, then the branch checked out, each by
+its whole name; then the rest of the branches, and the remotes, by name
+ignoring case, or with <b>-o</b> the newest commit first
+(<a href="preferences.html#vcsLogRefsOrder">vcsLogRefsOrder</a>). The branch
+checked out is bold, and a branch with an upstream has how far ahead and
+behind it is after its name (<code>↑2 ↓1</code>), or <code>gone</code> when its
+upstream was deleted. What is open and selected stays so as the refs are read
+again.
+
+<p>
+A click on a ref puts the log's caret on its commit, reading on to it, and the
+keys are the log's again; a commit the log doesn't list, as one only a tag
+reaches without <b>-T</b>, or one its filters leave out, is said to be so at
+once. <b>Enter</b> or a double click filters the log to the ref, as the branch
+chip does, by its whole name (<code>refs/heads/release</code>) when a tag or
+another ref has the same one, and to its repository when there are several.
+Typing narrows the tree to the refs with the text in their names, and the
+label shows it; <b>Backspace</b> takes a character back, and <b>Escape</b>
+shows them all again, as they were opened. The refs are read when the log
+opens, again with <b>g</b> (<b>r</b> in vim edit mode), and when the tree is
+shown 30 seconds or more after they were last read; the filters' branches
+are the same read.
+
 <h3><a name="log-filters">Filters</a></h3>
 
 <p>

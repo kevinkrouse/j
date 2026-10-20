@@ -1374,8 +1374,35 @@ plan with why it is left, before the next phase starts.
      Vim's hunk keys there (`<leader>hs`, `hu`, `hr`: `vcsStageHunk`,
      `vcsUnstageHunk`, `revertLines`) hand off to `StatusActions.run`
      when `StatusActions.takesHunkCommands`.
-   - Left: the refs tree in the sidebar (reveal, filter to a ref, narrow by
-     typing).
+   - The refs tree in the sidebar (`LogRefTree`, the log's own, which
+     `VcsLogMode.getSidebarComponent` gives each pane and keeps on its
+     view): read with one `for-each-ref` per repository
+     (`VcsBackend.readRefTips`, `LogRefTip`: an annotated tag's commit, its
+     date, `%(upstream:track)`), and HEAD first when detached. Its shape is
+     `build`'s, a pure function: HEAD, Branches, Remotes by remote and Tags,
+     a name's parts before a slash folders, the newest `TAGS` tags and a
+     "more" node, a node per repository for several. A click reveals the
+     ref's commit (`LogBuffer.reveal`, through `jump`); Enter or a double
+     click sets the branch filter; keys typed narrow it, the sidebar's label
+     saying so (`Sidebar.setBottomLabelText`). One tree per frame
+     (`LogBuffer.refTree(frame)`), a component having one parent; the refs
+     are `LogNames`' (`tips`, one `for-each-ref` for the tree and the
+     filters' names, 30 s fresh, one read at a time, callbacks when done).
+     A rebuild keeps what was open and selected by the nodes' names, and a
+     narrowing what was open before it. A click asks the backend first
+     (`logHas`, `git log --format=%H` with the query's selection) and reads
+     no page for a commit the log leaves out, then gives the keys back to
+     the log; Enter filters by the whole ref name when the short one is
+     shared, and to the ref's repository for several. Keys typed with
+     Shift or AltGr narrow; the sidebar's key handling is
+     `SidebarTree.sidebarKeyPressed`, shared with the tag trees.
+     The branches are by name or, with `-o` (`vcsLogRefsOrder`, a view
+     option), newest first; folders have the file tree's icons; the newest
+     25 tags are shown. The default branch (`LogRefTip.primary`: what a
+     remote's HEAD names, `%(symref)`, origin's first, else a local main or
+     master), then the one checked out, are first by their whole names, as
+     GitHub Desktop's default branch and IntelliJ's favorites are.
+   - Left: the review that closes the phase.
 6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
    rows, tested on its own (a change at the top and the bottom, an empty
    side, a file new or deleted, a change of only blank lines, CR LF); the two

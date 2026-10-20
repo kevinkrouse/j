@@ -39,7 +39,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
-import org.armedbear.j.vcs.log.LogRef;
+import org.armedbear.j.vcs.log.LogRefTip;
 import org.armedbear.j.vcs.status.StatusData;
 
 public final class GitBackend implements VcsBackend {
@@ -220,8 +220,13 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public List<LogRef> readRefs(VcsRepository repository) {
-        return GitLog.allRefs(repository);
+    public List<LogRefTip> readRefTips(VcsRepository repository) {
+        return GitLog.refTips(repository);
+    }
+
+    @Override
+    public boolean logHas(VcsRepository repository, LogQuery query, String id) {
+        return GitLog.has(repository, query, id);
     }
 
     @Override

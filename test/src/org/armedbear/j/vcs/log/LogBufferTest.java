@@ -29,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Rectangle;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -590,6 +592,164 @@ public class LogBufferTest {
         git.write("b/c.txt", "c\n");
         git.git("add", "-A");
         git.git("commit", "-q", "--author=Ada Lovelace <ada@example.com>", "-m", "by ada");
+    }
+
+    @Test
+    public void theRefsTreeGoesToARefFiltersToItAndNarrowsAsItIsTyped() throws Exception {
+        repo(6);
+        git.git("branch", "old", "HEAD~4");
+        git.git("tag", "v1", "HEAD~5");
+        open(2);
+        final LogRefTree tree = onEdtGet(() -> log.refTree(null));
+        until(() -> !tree.parts().isEmpty() && !tree.parts().get(0).tips().isEmpty());
+        onEdt(() -> {
+            tree.setSize(200, 400);
+            tree.expandRow(0);
+        });
+        // A click on "old", past the first page: the caret goes to it, reading on.
+        onEdt(() -> click(tree, "old", 1));
+        until(() -> !log.isLoading() && commitAtCaret().equals("commit 1"));
+        // Enter on it: the log filtered to it.
+        onEdt(() -> {
+            select(tree, "old");
+            key(tree, KeyEvent.VK_ENTER);
+        });
+        until(() -> !log.isLoading() && subjects().equals(List.of("commit 1", "commit 0")));
+        assertEquals(List.of("old"), log.getQuery().revisions());
+        // Typing narrows it, a shifted character too; Backspace and Escape widen it again.
+        onEdt(() -> {
+            tree.keyTyped(
+                new KeyEvent(tree, KeyEvent.KEY_TYPED, 0, InputEvent.SHIFT_DOWN_MASK, KeyEvent.VK_UNDEFINED, 'V'));
+            tree.keyTyped(new KeyEvent(tree, KeyEvent.KEY_TYPED, 0, 0, KeyEvent.VK_UNDEFINED, '1'));
+            tree.keyTyped(
+                new KeyEvent(tree, KeyEvent.KEY_TYPED, 0, InputEvent.CTRL_DOWN_MASK, KeyEvent.VK_UNDEFINED, 'x'));
+        });
+        assertEquals("Refs: V1", tree.getLabelText());
+        onEdt(() -> {
+            assertEquals(List.of("Tags", "v1"), rows(tree));
+            assertEquals("v1", tree.getSelectionPath().getLastPathComponent().toString(), "the first match, for Enter");
+        });
+        onEdt(() -> key(tree, KeyEvent.VK_BACK_SPACE));
+        assertEquals("V", tree.filter());
+        onEdt(() -> key(tree, KeyEvent.VK_ESCAPE));
+        assertEquals("", tree.filter());
+        assertEquals("Refs", tree.getLabelText());
+    }
+
+    @Test
+    public void aRefTheLogDoesNotListReadsNothingAndAnAmbiguousNameIsFilteredByItsWholeName() throws Exception {
+        repo(6);
+        // A commit only a tag reaches, and a branch and a tag both "release".
+        git.git("checkout", "-q", "--detach");
+        git.write("a.txt", "tagged\n");
+        git.commitAll("tagged only");
+        git.git("tag", "lone");
+        git.git("checkout", "-q", "main");
+        git.git("branch", "release", "HEAD~2");
+        git.git("tag", "release", "HEAD~4");
+        open(2);
+        final LogRefTree tree = onEdtGet(() -> log.refTree(null));
+        until(() -> !tree.parts().isEmpty() && tree.parts().get(0).tips().size() >= 4);
+        onEdt(() -> tree.setSize(200, 400));
+        final int read = log.commits().size();
+        onEdt(() -> {
+            tree.expandRow(rows(tree).indexOf("Tags"));
+            click(tree, "lone", 1);
+        });
+        Thread.sleep(300);
+        until(() -> !log.isLoading());
+        assertEquals(read, log.commits().size(), "-T is off: not listed, and no page read for it");
+        onEdt(() -> {
+            select(tree, "release");
+            key(tree, KeyEvent.VK_ENTER);
+        });
+        // The branch is at commit 3, the tag at commit 1.
+        until(() -> !log.isLoading() && !subjects().isEmpty() && subjects().get(0).equals("commit 3"));
+        assertEquals(List.of("refs/heads/release"), log.getQuery().revisions(), "the branch, not the tag");
+    }
+
+    @Test
+    public void whatIsOpenStaysOpenWhenTheRefsAreReadAgainAndMoreTagsAreShown() throws Exception {
+        repo(2);
+        for (int i = 0; i < LogRefTree.TAGS + 2; i++)
+            git.git("tag", "t" + i);
+        open(100);
+        final LogRefTree tree = onEdtGet(() -> log.refTree(null));
+        until(() -> !tree.parts().isEmpty() && tree.parts().get(0).tips().size() > LogRefTree.TAGS);
+        onEdt(() -> {
+            tree.setSize(200, 2000);
+            tree.expandRow(rows(tree).indexOf("Tags"));
+            select(tree, "… 2 more");
+            key(tree, KeyEvent.VK_ENTER);
+            assertTrue(rows(tree).contains("t0") && rows(tree).contains("t" + (LogRefTree.TAGS + 1)), "all, open");
+        });
+        git.git("branch", "new");
+        onEdt(() -> log.refresh());
+        until(() -> rows(tree).contains("new"));
+        onEdt(() -> assertTrue(rows(tree).contains("t0"), "Tags still open: " + rows(tree)));
+    }
+
+    @Test
+    public void withSeveralRepositoriesEachIsOpenToItsBranchesItsTagsClosed() throws Exception {
+        final LogScope scope = project();
+        a.git("tag", "a-v1");
+        b.git("branch", "dev");
+        open(scope, 100);
+        final LogRefTree tree = onEdtGet(() -> log.refTree(null));
+        until(() -> tree.parts().size() == 2 && !tree.parts().get(0).tips().isEmpty());
+        // main, each's default and checked out, first.
+        onEdt(() -> assertEquals(List.of("a", "Branches", "main", "Tags", "b", "Branches", "main", "dev"), rows(tree)));
+        // Enter on b's dev: dev, in b alone.
+        onEdt(() -> {
+            select(tree, "dev");
+            key(tree, KeyEvent.VK_ENTER);
+            assertEquals(List.of("dev"), log.getQuery().revisions());
+            assertEquals(List.of("b"), log.getQuery().repositories());
+        });
+        onEdt(() -> log.setQuery(LogQuery.ALL));
+        // -o: by the newest commit first, main first all the same.
+        onEdt(() -> {
+            log.setRefsOrder("date");
+            assertEquals(List.of("a", "Branches", "main", "Tags", "b", "Branches", "main", "dev"), rows(tree));
+        });
+    }
+
+    private <T> T onEdtGet(java.util.function.Supplier<T> s) throws Exception {
+        final List<T> out = new ArrayList<>();
+        onEdt(() -> out.add(s.get()));
+        return out.get(0);
+    }
+
+    private String commitAtCaret() {
+        return h.editor().getDotLine() instanceof LogLine l ? l.commit().subject() : "";
+    }
+
+    private static List<String> rows(LogRefTree tree) {
+        final List<String> out = new ArrayList<>();
+        for (int row = 0; row < tree.getRowCount(); row++)
+            out.add(tree.getPathForRow(row).getLastPathComponent().toString());
+        return out;
+    }
+
+    private static void select(LogRefTree tree, String name) {
+        for (int row = 0; row < tree.getRowCount(); row++)
+            if (tree.getPathForRow(row).getLastPathComponent().toString().equals(name)) {
+                tree.setSelectionRow(row);
+                return;
+            }
+        throw new AssertionError("no " + name + " in " + rows(tree));
+    }
+
+    private static void click(LogRefTree tree, String name, int count) {
+        select(tree, name);
+        final java.awt.Rectangle r = tree.getRowBounds(tree.getSelectionRows()[0]);
+        tree.mouseClicked(
+            new MouseEvent(tree, MouseEvent.MOUSE_CLICKED, 0, 0, r.x + 2, r.y + 2, count, false, MouseEvent.BUTTON1));
+    }
+
+    private static void key(LogRefTree tree, int code) {
+        tree.keyPressed(new KeyEvent(tree, KeyEvent.KEY_PRESSED, 0, 0, code, KeyEvent.CHAR_UNDEFINED));
+        tree.keyReleased(new KeyEvent(tree, KeyEvent.KEY_RELEASED, 0, 0, code, KeyEvent.CHAR_UNDEFINED));
     }
 
     @Test

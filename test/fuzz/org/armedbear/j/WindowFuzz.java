@@ -463,6 +463,7 @@ public final class WindowFuzz {
                 "foldAll",
                 "unfoldAll",
                 "vcsLogTimeStyle",
+                "vcsLogRefsOrder",
                 "vcsLogClearFilters",
                 "vcsLogRefresh",
                 "vcsLogPopup",

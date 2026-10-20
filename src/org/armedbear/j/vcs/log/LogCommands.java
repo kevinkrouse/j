@@ -414,6 +414,15 @@ public final class LogCommands {
             log.setTimeStyle(style.strip());
     }
 
+    /** -o: the refs tree's branches by name, or newest first, the other way now. */
+    public static void vcsLogRefsOrder(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log != null) {
+            final List<String> orders = LogBuffer.REFS_ORDERS;
+            log.setRefsOrder(orders.get((orders.indexOf(log.getRefsOrder()) + 1) % orders.size()));
+        }
+    }
+
     /** -T: the commits only tags reach shown too, or not. */
     public static void vcsLogToggleTags(Editor editor) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());

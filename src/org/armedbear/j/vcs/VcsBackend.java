@@ -24,7 +24,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
-import org.armedbear.j.vcs.log.LogRef;
+import org.armedbear.j.vcs.log.LogRefTip;
 import org.armedbear.j.vcs.status.StatusData;
 
 /**
@@ -199,9 +199,18 @@ public interface VcsBackend {
         return null;
     }
 
-    /** The branches, remotes and tags, HEAD's branch marked; empty if none can be read. */
-    default List<LogRef> readRefs(VcsRepository repository) {
+    /**
+     * HEAD, the branches, remotes and tags, each with its commit and date,
+     * and a local branch's ahead and behind its upstream; empty if none can
+     * be read. A detached HEAD is first, as HEAD.
+     */
+    default List<LogRefTip> readRefTips(VcsRepository repository) {
         return List.of();
+    }
+
+    /** Whether the log query reads lists the commit id; true where it can't be told. */
+    default boolean logHas(VcsRepository repository, LogQuery query, String id) {
+        return true;
     }
 
     /** The paths of the files tracked, from the root, separated by '/'. */

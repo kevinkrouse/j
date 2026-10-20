@@ -22,6 +22,7 @@ package org.armedbear.j.vcs.git;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
 import org.armedbear.j.vcs.log.LogRef;
+import org.armedbear.j.vcs.log.LogRefTip;
 
 /** The log's reads from git. */
 final class GitLog {
@@ -52,6 +54,40 @@ final class GitLog {
             args.add("--parents");
         args.add("--skip=" + skip);
         args.add("--max-count=" + max);
+        final List<String> selection = selection(repository, query);
+        if (selection == null)
+            return List.of();
+        args.addAll(selection);
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        // An empty repository, or a revision gone: nothing to show.
+        if (!r.succeeded())
+            return List.of();
+        final List<LogCommit> commits = new ArrayList<>();
+        for (LogCommit c : parse(r.stdout()))
+            commits.add(c.in(repository));
+        return rewrites ? withOwnParents(repository, commits) : commits;
+    }
+
+    /** Whether the log query reads in repository lists the commit id. */
+    static boolean has(VcsRepository repository, LogQuery query, String id) {
+        final List<String> selection = selection(repository, query);
+        if (selection == null)
+            return false;
+        final List<String> args = new ArrayList<>(List.of("log", "--format=%H"));
+        args.addAll(selection);
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        if (!r.succeeded())
+            return false;
+        for (String line : r.out().split("\n"))
+            if (line.equals(id))
+                return true;
+        return false;
+    }
+
+    // What query selects: its filters, its revisions or every branch, and
+    // its path; null for a revision that would be taken as an option.
+    private static List<String> selection(VcsRepository repository, LogQuery query) {
+        final List<String> args = new ArrayList<>();
         if (query.author() != null)
             args.add("--author=" + query.author());
         if (query.since() != null)
@@ -77,20 +113,13 @@ final class GitLog {
             for (String rev : query.revisions()) {
                 // Never an option.
                 if (rev.startsWith("-"))
-                    return List.of();
+                    return null;
                 args.add(rev);
             }
         args.add("--");
         if (query.path() != null)
             args.add(query.path());
-        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
-        // An empty repository, or a revision gone: nothing to show.
-        if (!r.succeeded())
-            return List.of();
-        final List<LogCommit> commits = new ArrayList<>();
-        for (LogCommit c : parse(r.stdout()))
-            commits.add(c.in(repository));
-        return rewrites ? withOwnParents(repository, commits) : commits;
+        return args;
     }
 
     // commits, read with their parents rewritten, with their own: the
@@ -272,31 +301,108 @@ final class GitLog {
         return r.succeeded() ? r.out().stripTrailing() : null;
     }
 
-    static List<LogRef> allRefs(VcsRepository repository) {
+    // HEAD's mark, the ref, its commit, a tag's commit, its date, its
+    // upstream's track, and what a remote's HEAD points at.
+    private static final String TIPS = "%(HEAD)%09%(refname)%09%(objectname)%09%(*objectname)%09"
+            + "%(creatordate:unix)%09%(upstream:track)%09%(symref)";
+
+    static List<LogRefTip> refTips(VcsRepository repository) {
         final VcsResult r = GitCli.run(
             GitCli.read(
                 repository.root(),
                 "for-each-ref",
-                "--format=%(HEAD)%09%(refname)",
+                "--sort=-creatordate",
+                "--format=" + TIPS,
                 "refs/heads",
                 "refs/remotes",
                 "refs/tags"));
-        return r.succeeded() ? parseRefs(r.out()) : List.of();
+        if (!r.succeeded())
+            return List.of();
+        final List<LogRefTip> tips = parseTips(r.out());
+        // No branch checked out: HEAD detached, at a commit of its own.
+        if (tips.stream().noneMatch(t -> t.ref().head())) {
+            final VcsResult head =
+                    GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "--quiet", "HEAD"));
+            if (head.succeeded() && !head.out().isBlank()) {
+                final List<LogRefTip> out = new ArrayList<>();
+                out.add(new LogRefTip(new LogRef("HEAD", LogRef.Kind.HEAD, true), head.out().strip(), 0, 0, 0, false));
+                out.addAll(tips);
+                return out;
+            }
+        }
+        return tips;
     }
 
-    // "*\trefs/heads/main", " \trefs/tags/v1"; a remote's HEAD, a pointer to one of its branches, left out.
-    static List<LogRef> parseRefs(String out) {
-        final List<LogRef> refs = new ArrayList<>();
+    // Lines of TIPS. A remote's HEAD, a pointer to one of its branches, is
+    // left out, but names the default branch: origin's, else the first's.
+    static List<LogRefTip> parseTips(String out) {
+        final List<LogRefTip> tips = new ArrayList<>();
+        String primary = null;
+        boolean fromOrigin = false;
         for (String line : out.split("\n")) {
-            final int tab = line.indexOf('\t');
-            if (tab < 0 || line.endsWith("/HEAD"))
+            final String[] f = line.split("\t", -1);
+            if (f.length < 6)
                 continue;
-            final boolean head = line.startsWith("*");
-            final String name = line.substring(tab + 1);
-            for (LogRef r : refs(name))
-                refs.add(new LogRef(r.name(), r.kind(), head));
+            if (f[1].startsWith("refs/remotes/") && f[1].endsWith("/HEAD")) {
+                final String remote = f[1].substring("refs/remotes/".length(), f[1].length() - "/HEAD".length());
+                final String to = f.length > 6 ? f[6] : "";
+                final String prefix = "refs/remotes/" + remote + "/";
+                if (to.startsWith(prefix) && (primary == null || !fromOrigin && remote.equals("origin"))) {
+                    primary = to.substring(prefix.length());
+                    fromOrigin = remote.equals("origin");
+                }
+                continue;
+            }
+            final List<LogRef> named = refs(f[1]);
+            if (named.isEmpty())
+                continue;
+            final LogRef name = named.get(0);
+            final LogRef ref = new LogRef(name.name(), name.kind(), f[0].equals("*"));
+            // An annotated tag's commit is the one it points at.
+            final String id = !f[3].isEmpty() ? f[3] : f[2];
+            final String track = f[5];
+            tips.add(
+                new LogRefTip(ref,
+                        id,
+                        number(f[4]),
+                        count(track, "ahead "),
+                        count(track, "behind "),
+                        track.equals("[gone]")));
         }
-        return refs;
+        return withPrimary(tips, primary);
+    }
+
+    // The default branch marked: the one named, if there is a local one,
+    // else a local main, else master.
+    private static List<LogRefTip> withPrimary(List<LogRefTip> tips, String named) {
+        String primary = null;
+        for (String name : Arrays.asList(named, "main", "master"))
+            if (primary == null && name != null && tips.stream().anyMatch(t -> isLocal(t, name)))
+                primary = name;
+        final List<LogRefTip> out = new ArrayList<>(tips.size());
+        for (LogRefTip t : tips)
+            out.add(primary != null && isLocal(t, primary) ? t.asPrimary() : t);
+        return out;
+    }
+
+    private static boolean isLocal(LogRefTip t, String name) {
+        return t.ref().kind() == LogRef.Kind.BRANCH && t.ref().name().equals(name);
+    }
+
+    // n in "[ahead 2, behind 1]" after word; 0 if it isn't there.
+    private static int count(String track, String word) {
+        final int at = track.indexOf(word);
+        if (at < 0)
+            return 0;
+        int end = at + word.length();
+        while (end < track.length() && Character.isDigit(track.charAt(end)))
+            ++end;
+        try {
+            return Integer.parseInt(track.substring(at + word.length(), end));
+        }
+        catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     static List<String> paths(VcsRepository repository) {

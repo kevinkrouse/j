@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -326,7 +327,88 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     /** Reads it again from the first page, the caret staying on its commit, and the refs and paths. */
     void refresh() {
         readAgain();
-        LogNames.read(scope, true);
+        LogNames.read(scope, true, this::refsRead);
+    }
+
+    // Its refs in each frame's sidebar it is in, made when first shown there.
+    private final Map<Frame, LogRefTree> refTrees = new WeakHashMap<>();
+
+    // The refs read again: each tree shows them.
+    private void refsRead() {
+        for (LogRefTree t : refTrees.values())
+            t.update();
+    }
+
+    /** How the refs tree orders the branches: by name, or the newest commit first. */
+    static final List<String> REFS_ORDERS = List.of("name", "date");
+
+    private String refsOrder = REFS_ORDERS.contains(Editor.preferences().getStringProperty(Property.VCS_LOG_REFS_ORDER))
+            ? Editor.preferences().getStringProperty(Property.VCS_LOG_REFS_ORDER)
+            : "name";
+
+    String getRefsOrder() {
+        return refsOrder;
+    }
+
+    void setRefsOrder(String order) {
+        if (!REFS_ORDERS.contains(order) || order.equals(refsOrder))
+            return;
+        refsOrder = order;
+        for (LogRefTree t : refTrees.values())
+            t.reorder();
+    }
+
+    /**
+     * Its refs tree in frame, one for its list, files and diff there: a
+     * component is in one frame at a time. The refs are its names', read
+     * once for every tree.
+     */
+    LogRefTree refTree(Frame frame) {
+        LogRefTree tree = refTrees.get(frame);
+        if (tree == null) {
+            tree = new LogRefTree(this);
+            refTrees.put(frame, tree);
+            tree.update();
+            LogNames.read(scope, false, this::refsRead);
+        }
+        return tree;
+    }
+
+    /**
+     * The caret of the window on it to commit id of repository, reading on
+     * to it, if the log lists it: asked of the backend first, so that a
+     * commit its filters leave out reads nothing.
+     */
+    void reveal(VcsRepository repository, String id) {
+        final Editor ed = Editor.windowShowing(this);
+        if (ed == null)
+            return;
+        final LogQuery q = scope.queryFor(repository, query);
+        if (q == null) {
+            ed.status("Not in the log: its repository is filtered out");
+            return;
+        }
+        Background.start("vcs log reveal", () -> {
+            boolean has;
+            try {
+                has = repository.backend().logHas(repository, q, id);
+            }
+            catch (RuntimeException e) {
+                Log.error(e);
+                has = false;
+            }
+            final boolean listed = has;
+            SwingUtilities.invokeLater(() -> {
+                if (disposed)
+                    return;
+                if (listed)
+                    jump(ed, repository.root() + "\0" + id);
+                else
+                    ed.status(
+                        "Not in the log with its filters"
+                                + (query.tags() ? "" : " (-T shows the commits only tags reach)"));
+            });
+        });
     }
 
     // From the first page again, any page being read dropped.

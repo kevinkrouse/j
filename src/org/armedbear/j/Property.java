@@ -71,6 +71,7 @@ public final class Property implements Comparable<Property> {
     public static final Property VCS_LOG_STACKED_WIDTH = createProperty("vcsLogStackedWidth", 100);
     public static final Property VCS_LOG_COLLAPSE_RUNS = createProperty("vcsLogCollapseRuns", false);
     public static final Property VCS_LOG_TIME_STYLE = createProperty("vcsLogTimeStyle", "age");
+    public static final Property VCS_LOG_REFS_ORDER = createProperty("vcsLogRefsOrder", "name");
     public static final Property VERTICAL_RULE = createProperty("verticalRule", 0);
     public static final Property VERTICAL_SCROLL_INCREMENT = createProperty("verticalScrollIncrement", 5);
     public static final Property WHEEL_SCROLL_DURATION = createProperty("wheelScrollDuration", 60);
