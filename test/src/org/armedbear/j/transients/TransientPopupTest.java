@@ -456,6 +456,12 @@ public class TransientPopupTest {
         assertEquals(List.of("main", "maintenance"), OptionField.matches(all, " Main ", 2));
         assertEquals(all, OptionField.matches(all, "", 10), "blank: all, in order");
         assertEquals(List.of(), OptionField.matches(all, "zzz", 10));
+        // Past as many that start with it as are listed, the one that is it still first.
+        final List<String> many = new ArrayList<>();
+        for (int i = 0; i < 5; i++)
+            many.add("v1." + i);
+        many.add("v1");
+        assertEquals(List.of("v1", "v1.0", "v1.1"), OptionField.matches(many, "v1", 3));
     }
 
     private static final Option REPOS =

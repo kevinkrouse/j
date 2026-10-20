@@ -102,14 +102,15 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
             }
             final String m = message != null ? message : c.subject();
             final List<CommitChange> files = read != null ? read : List.of();
+            final boolean failed = read == null;
             SwingUtilities.invokeLater(() -> {
                 if (at == generation && !owner.isDisposed())
-                    shown(c, m, files);
+                    shown(c, m, files, failed);
             });
         });
     }
 
-    private void shown(LogCommit c, String message, List<CommitChange> files) {
+    private void shown(LogCommit c, String message, List<CommitChange> files, boolean failed) {
         commit = c;
         changes = files;
         shown = null;
@@ -133,7 +134,10 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
         final List<StatusLine> fileLines =
                 StatusRenderer.renderFiles(owner.repositoryOf(c), "files", null, items, (k, kind) -> false);
         lines.addAll(fileLines);
-        if (files.isEmpty())
+        // A failed read is not a commit of no files.
+        if (failed)
+            lines.add(StatusLine.of(Kind.MESSAGE, "  Its files couldn't be read: see vcsCommandLog", "none"));
+        else if (files.isEmpty())
             lines.add(StatusLine.of(Kind.MESSAGE, "  No files changed", "none"));
         replace(lines, fileLines.isEmpty() ? null : fileLines.get(0));
         showDiff();

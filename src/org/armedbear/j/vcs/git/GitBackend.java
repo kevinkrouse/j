@@ -225,6 +225,16 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
+    public List<String> readStarts(VcsRepository repository, LogQuery query) {
+        return GitLog.starts(repository, query);
+    }
+
+    @Override
+    public List<String> readAuthors(VcsRepository repository, int max) {
+        return GitLog.authors(repository, max);
+    }
+
+    @Override
     public boolean logHas(VcsRepository repository, LogQuery query, String id) {
         return GitLog.has(repository, query, id);
     }

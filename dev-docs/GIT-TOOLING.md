@@ -612,8 +612,9 @@ splits with it later.
   row shows it whole. The text of a row is laid out for the window's width
   when the window is resized, as a directory listing's is.
 - **Loading**: `git log --topo-order --format=%H%x00%P%x00%an%x00%ae%x00%at%x00%D%x00%s -z`,
-  streamed. The first 2,000 commits are shown at once and more are read as
-  the caret nears the end. All refs are loaded (`--branches --remotes --tags
+  in pages (`--skip` and `--max-count`, from the commits the first page
+  started from). The first 2,000 commits are shown
+  at once and more are read as the caret nears the end. All refs are loaded (`--branches --remotes --tags
   HEAD`) unless a branch filter is set. Parents come with the commits, so the
   graph needs no second pass.
 - **Graph** (`git/graph`): lane assignment on the commits loaded so far. A
@@ -1402,7 +1403,23 @@ plan with why it is left, before the next phase starts.
      remote's HEAD names, `%(symref)`, origin's first, else a local main or
      master), then the one checked out, are first by their whole names, as
      GitHub Desktop's default branch and IntelliJ's favorites are.
-   - Left: the review that closes the phase.
+   - The review that closes the phase, and its fixes: a jump reading on
+     to a commit gives up when the caret moves or its window shows another
+     buffer (`Jump.stands`); `logHas` asks `rev-list --not` whether the
+     log's starting points reach a commit when no filter narrows it; the
+     `-b` chip takes a branch by its whole name when a tag or remote has its
+     name (`LogFilters.revision`); a failed `git log` says so, not "no
+     commits" (`LogBuffer.failed`), and a failed read of a commit's files
+     isn't "No files changed"; Enter in a long list finds the candidate that
+     is the text past those listed; the authors are read in date order
+     (`readAuthors`), not a walk of the whole history; two tests wait on a
+     signal, not a sleep; a log's later pages start from the commits its
+     first did (`readStarts`, `LogMerge.Source.starts`), so a commit, fetch
+     or rebase between pages repeats or drops none.
+   - Left open from the review: a frame view keeps one layout from before
+     it (`FrameView.before`), so a log shown in two frames puts the first's
+     windows back in the second when it is left there. A layout kept per
+     frame would fix it, for the status's diff too.
 6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
    rows, tested on its own (a change at the top and the bottom, an empty
    side, a file new or deleted, a change of only blank lines, CR LF); the two
@@ -1687,6 +1704,5 @@ Left open:
 - The backend's diffs overlap (`readDiff`, `readCommit`, `readChangeDiff`,
   `readDiffToWorkingTree`): one `readDiff(from, to, paths)` could serve
   them all. `GitStatusReader.recent` is a second log parser.
-- `LogQuery`'s filters are only tested, until the filter bar uses them.
 - `LogRef.Kind.HEAD` is kept: it marks a detached HEAD, which the `head`
   flag alone doesn't tell from a branch checked out.

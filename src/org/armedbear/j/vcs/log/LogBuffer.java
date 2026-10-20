@@ -306,16 +306,37 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
             final LogQuery q = scope.queryFor(r, query);
             Background.start("vcs log", () -> {
                 List<LogCommit> page;
+                boolean threw = false;
+                List<String> starts = source.starts;
                 try {
-                    page = r.backend().readLog(r, q, skip, pageSize);
+                    if (skip == 0 && starts == null)
+                        starts = r.backend().readStarts(r, q);
+                    // Nothing to start from, as in an empty repository: no page.
+                    if (starts != null && starts.isEmpty())
+                        page = List.of();
+                    else
+                        page = r.backend().readLog(r, starts != null ? q.withRevisions(starts) : q, skip, pageSize);
                 }
                 catch (RuntimeException e) {
                     Log.error(e);
-                    page = List.of();
+                    page = null;
+                    threw = true;
                 }
+                final boolean ok = !threw;
                 final List<LogCommit> read = page != null ? page : List.of();
+                final List<String> started = starts;
                 SwingUtilities.invokeLater(() -> {
-                    if (m == merge) {
+                    if (m != merge)
+                        ++dropped;
+                    else {
+                        source.starts = started;
+                        // A failed read ends its repository's pages, and says so.
+                        if (!ok) {
+                            failed = true;
+                            final Editor ed = Editor.windowShowing(this);
+                            if (ed != null)
+                                ed.status("Reading the log failed: see vcsCommandLog");
+                        }
                         m.add(source, read);
                         append(m.take());
                     }
@@ -399,7 +420,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
             }
             final boolean listed = has;
             SwingUtilities.invokeLater(() -> {
-                if (disposed)
+                // Not if its window shows another buffer by now.
+                if (disposed || ed.getBuffer() != this)
                     return;
                 if (listed)
                     jump(ed, repository.root() + "\0" + id);
@@ -420,6 +442,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         merge = newMerge();
         fresh = true;
         jumping = null;
+        failed = false;
         commits.clear();
         graph = new LogGraph();
         loadMore();
@@ -479,8 +502,12 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         // A page read and nothing listed: another repository's is wanted first.
         if (page.isEmpty())
             loadMore();
-        if (jumping != null && !page.isEmpty())
-            jump(jumping.editor(), jumping.key());
+        if (jumping != null && !page.isEmpty()) {
+            if (jumping.stands(this))
+                jump(jumping.editor(), jumping.key());
+            else
+                jumping = null;
+        }
     }
 
     // listed after the rows there, or in place of them for a first page,
@@ -521,7 +548,19 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     }
 
     // A file's log with no commits has none; filters, as an author, match none.
+    // Whether a read of the pages listed failed.
+    private boolean failed;
+
+    // Pages read for a query since changed, and dropped: for tests.
+    private int dropped;
+
+    int dropped() {
+        return dropped;
+    }
+
     private String emptyText() {
+        if (failed)
+            return "Reading the log failed: see vcsCommandLog";
         if (query.withPath(null, false).isFiltered())
             return "No commits match the filters";
         final String none = scope.first().backend().name() + ": no commits";
@@ -821,6 +860,9 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     public void afterCommand(Editor editor) {
         if (editor.getDot() == null)
             return;
+        // A command that moved the caret: a jump still reading on gives up.
+        if (jumping != null && !jumping.stands(this))
+            jumping = null;
         // A run shown by the caret's landing in it, as by a search, is open.
         syncRuns();
         if (nearTheEnd(editor.getDotLine()))
@@ -848,13 +890,19 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
             editor.status("Not in the log");
             return;
         }
-        jumping = new Jump(editor, key);
-        editor.status("Reading on to it…");
+        jumping = new Jump(editor, key, editor.getDotLine());
+        editor.status("Reading on to it… (move the caret to stop)");
         loadMore();
     }
 
-    // A jump to a commit not read yet, made when its page is.
-    private record Jump(Editor editor, String key) {}
+    // A jump to a commit not read yet, made when its page is, unless the
+    // caret has moved from where it was asked or its window shows another
+    // buffer by then.
+    private record Jump(Editor editor, String key, Line from) {
+        boolean stands(LogBuffer log) {
+            return editor.getBuffer() == log && editor.getDot() != null && editor.getDotLine() == from;
+        }
+    }
 
     private Jump jumping;
 

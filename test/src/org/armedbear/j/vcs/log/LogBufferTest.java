@@ -656,8 +656,8 @@ public class LogBufferTest {
             tree.expandRow(rows(tree).indexOf("Tags"));
             click(tree, "lone", 1);
         });
-        Thread.sleep(300);
-        until(() -> !log.isLoading());
+        until(() -> h.status().startsWith("Not in the log"));
+        assertTrue(h.status().contains("-T"), h.status());
         assertEquals(read, log.commits().size(), "-T is off: not listed, and no page read for it");
         onEdt(() -> {
             select(tree, "release");
@@ -775,6 +775,32 @@ public class LogBufferTest {
     }
 
     @Test
+    public void laterPagesStartWhereTheFirstDidThoughACommitIsMadeBetween() throws Exception {
+        repo(5);
+        open(2);
+        assertEquals(List.of("commit 4", "commit 3"), subjects());
+        // A commit after the first page: the pages after it are of the log as it was.
+        git.write("a.txt", "new\n");
+        git.commitAll("commit 5");
+        for (int i = 0; i < 6 && log.commits().size() < 5; i++) {
+            onEdt(() -> log.loadMore());
+            until(() -> !log.isLoading());
+        }
+        assertEquals(List.of("commit 4", "commit 3", "commit 2", "commit 1", "commit 0"), subjects());
+    }
+
+    @Test
+    public void aFailedReadSaysSoNotNoCommits() throws Exception {
+        repo(2);
+        // A repository git can't read: its HEAD gone.
+        Files.delete(git.root.resolve(".git").resolve("HEAD"));
+        open(100);
+        until(() -> !log.isLoading() && log.getFirstLine().getText().contains("failed"));
+        assertTrue(h.status().startsWith("Reading the log failed"), h.status());
+        EditorHarness.forgetLoggedErrors();
+    }
+
+    @Test
     public void aPageReadBeforeTheFilterChangedIsDropped() throws Exception {
         twoAuthors();
         h = EditorHarness.create();
@@ -784,9 +810,8 @@ public class LogBufferTest {
             h.showBuffer(log);
             log.setQuery(LogQuery.ALL.withAuthor("Ada"));
         });
-        until(() -> !log.isLoading() && !log.commits().isEmpty());
-        Thread.sleep(200);
-        until(() -> !log.isLoading());
+        // The first page, of every author, read before the filter, comes and is dropped.
+        until(() -> log.dropped() >= 1 && !log.isLoading() && !log.commits().isEmpty());
         assertEquals(List.of("by ada"), subjects());
     }
 

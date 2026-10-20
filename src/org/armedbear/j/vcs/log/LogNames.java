@@ -113,9 +113,10 @@ final class LogNames {
                     named.add(t.ref());
             refs = List.copyOf(named);
             paths = withDirectories(repository.backend().readPaths(repository));
-            final List<LogCommit> recent = repository.backend().readLog(repository, LogQuery.ALL, 0, AUTHORS_FROM);
-            if (recent != null)
-                addAuthors(recent);
+            final List<String> recent = repository.backend().readAuthors(repository, AUTHORS_FROM);
+            synchronized (this) {
+                authors.addAll(recent);
+            }
         }
         catch (RuntimeException e) {
             Log.error(e);

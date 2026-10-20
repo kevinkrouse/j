@@ -24,8 +24,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
@@ -59,17 +61,81 @@ final class GitLog {
             return List.of();
         args.addAll(selection);
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
-        // An empty repository, or a revision gone: nothing to show.
+        // Failed, as for a revision gone or a lock: not the end of the log.
         if (!r.succeeded())
-            return List.of();
+            throw new IllegalStateException("git log failed in " + repository.root());
         final List<LogCommit> commits = new ArrayList<>();
         for (LogCommit c : parse(r.stdout()))
             commits.add(c.in(repository));
         return rewrites ? withOwnParents(repository, commits) : commits;
     }
 
+    /** What query starts from, as commit ids, each once; null if a revision can't be told. */
+    static List<String> starts(VcsRepository repository, LogQuery query) {
+        final List<String> args = new ArrayList<>(List.of("rev-parse"));
+        if (query.revisions().isEmpty()) {
+            args.addAll(List.of("--branches", "--remotes"));
+            if (query.tags())
+                args.add("--tags");
+            if (hasHead(repository))
+                args.add("HEAD");
+        } else
+            for (String rev : query.revisions()) {
+                if (rev.startsWith("-"))
+                    return null;
+                args.add(rev);
+            }
+        args.add("--");
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        // A revision this repository hasn't: none to start from, as a branch
+        // filter leaves out the repositories without the branch.
+        if (!r.succeeded())
+            return query.revisions().isEmpty() ? null : List.of();
+        final Set<String> ids = new LinkedHashSet<>();
+        for (String line : r.out().split("\n"))
+            if (!line.isBlank() && !line.equals("--"))
+                ids.add(line.strip());
+        return List.copyOf(ids);
+    }
+
+    /**
+     * The authors of the newest max commits of every branch, newest first,
+     * each once: in date order, which needs no walk of the whole history as
+     * the log's topological order does.
+     */
+    static List<String> authors(VcsRepository repository, int max) {
+        final List<String> args =
+                new ArrayList<>(List.of("log", "--max-count=" + max, "--format=%an", "--branches", "--remotes"));
+        if (hasHead(repository))
+            args.add("HEAD");
+        args.add("--");
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        final Set<String> out = new LinkedHashSet<>();
+        if (r.succeeded())
+            for (String line : r.out().split("\n"))
+                if (!line.isBlank())
+                    out.add(line.strip());
+        return List.copyOf(out);
+    }
+
     /** Whether the log query reads in repository lists the commit id. */
     static boolean has(VcsRepository repository, LogQuery query, String id) {
+        // Only where it starts: whether id is reachable from there, which
+        // stops at it, not a walk of all the history.
+        if (query.author() == null
+                && query.since() == null
+                && query.grep() == null
+                && query.pickaxe() == null
+                && query.path() == null) {
+            final List<String> starts = selection(repository, query);
+            if (starts == null)
+                return false;
+            final List<String> args = new ArrayList<>(List.of("rev-list", "--max-count=1", id, "--not"));
+            args.addAll(starts.subList(0, starts.size() - 1));
+            final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+            // Nothing of id's history that they don't reach: they reach id.
+            return r.succeeded() && r.out().isBlank();
+        }
         final List<String> selection = selection(repository, query);
         if (selection == null)
             return false;
@@ -139,7 +205,7 @@ final class GitLog {
                 "--parents",
                 "--stdin"));
         if (!r.succeeded())
-            return List.of();
+            throw new IllegalStateException("git rev-list failed in " + repository.root());
         final Map<String, List<String>> parents = new HashMap<>();
         for (String line : r.out().split("\n")) {
             final List<String> w = words(line.strip(), " ");

@@ -76,7 +76,7 @@ final class LogFilters {
                 "branch",
                 new Pick(LogFilters::refNames, LogFilters::branchColor),
                 q -> q.revisions().isEmpty() ? null : q.revisions().get(0),
-                (q, v, r) -> q.withRevision(v)),
+                LogFilters::withBranch),
         new Filter("-a",
                 "--author",
                 "author",
@@ -252,6 +252,24 @@ final class LogFilters {
             if (!names.contains(name))
                 names.add(name);
         return q.withRepositories(all ? List.of() : names);
+    }
+
+    // From a branch: by its whole name when a tag or a remote has its
+    // name too, as git would take the tag.
+    private static LogQuery withBranch(LogQuery q, String name, LogScope scope) {
+        return q.withRevision(name == null || scope == null ? name : revision(name, scope));
+    }
+
+    /** name as a revision of scope: "refs/heads/name" when another kind of ref is named so too. */
+    static String revision(String name, LogScope scope) {
+        boolean branch = false;
+        boolean other = false;
+        for (LogRef r : LogNames.refs(scope))
+            if (r.name().equals(name)) {
+                branch |= r.kind() == LogRef.Kind.BRANCH;
+                other |= r.kind() != LogRef.Kind.BRANCH;
+            }
+        return branch && other ? "refs/heads/" + name : name;
     }
 
     // A file's history follows its renames; a directory's can't.

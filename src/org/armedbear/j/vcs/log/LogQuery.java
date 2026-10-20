@@ -89,6 +89,11 @@ public record LogQuery(List<String> revisions, String author, String path, Strin
                 : List.of(revision), author, path, since, grep, pickaxe, follow, repositories, tags);
     }
 
+    /** From revisions, or every branch for none. */
+    public LogQuery withRevisions(List<String> revisions) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+    }
+
     public LogQuery withAuthor(String author) {
         return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
     }

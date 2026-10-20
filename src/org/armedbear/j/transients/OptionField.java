@@ -389,14 +389,14 @@ final class OptionField {
         final List<String> starting = new ArrayList<>();
         final List<String> within = new ArrayList<>();
         for (String s : candidates) {
+            // One that is the text is looked for to the end: it comes first.
             if (s.equalsIgnoreCase(t))
                 exact.add(s);
-            else if (s.regionMatches(true, 0, t, 0, t.length())) {
+            else if (exact.size() + starting.size() >= max)
+                continue;
+            else if (s.regionMatches(true, 0, t, 0, t.length()))
                 starting.add(s);
-                // Enough that start with it: the rest can't come before them.
-                if (exact.size() + starting.size() >= max)
-                    break;
-            } else if (within.size() < max && containsIgnoringCase(s, t))
+            else if (within.size() < max && containsIgnoringCase(s, t))
                 within.add(s);
         }
         final List<String> out = new ArrayList<>(exact);

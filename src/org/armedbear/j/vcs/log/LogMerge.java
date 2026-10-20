@@ -39,6 +39,10 @@ final class LogMerge {
         private int skip;
         private boolean more = true;
         private boolean loading;
+        // The commits its first page started from, which its later pages
+        // start from too, so that a commit or fetch between them shifts no
+        // page; null where they can't be told.
+        List<String> starts;
 
         Source(Object key) {
             this.key = key;

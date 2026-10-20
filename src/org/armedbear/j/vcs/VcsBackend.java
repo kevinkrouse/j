@@ -12,6 +12,7 @@
 package org.armedbear.j.vcs;
 
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -206,6 +207,29 @@ public interface VcsBackend {
      */
     default List<LogRefTip> readRefTips(VcsRepository repository) {
         return List.of();
+    }
+
+    /**
+     * The authors of the newest max commits, newest first, each once; by
+     * default from the log, which a backend can read more cheaply.
+     */
+    default List<String> readAuthors(VcsRepository repository, int max) {
+        final List<LogCommit> recent = readLog(repository, LogQuery.ALL, 0, max);
+        final Set<String> out = new LinkedHashSet<>();
+        if (recent != null)
+            for (LogCommit c : recent)
+                out.add(c.author());
+        return List.copyOf(out);
+    }
+
+    /**
+     * The commits the log query reads starts from, as ids: its revisions,
+     * or every branch, remote and HEAD (and tag, with tags); null where
+     * they can't be told. A log reads its later pages from these, so that a
+     * commit or a fetch made meanwhile shifts none.
+     */
+    default List<String> readStarts(VcsRepository repository, LogQuery query) {
+        return null;
     }
 
     /** Whether the log query reads lists the commit id; true where it can't be told. */
