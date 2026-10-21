@@ -794,8 +794,33 @@ public class Buffer extends SystemBuffer {
 
     public final KeyMap getKeyMapForMode() {
         // Should never return null.
-        return mode.getKeyMap(this);
+        return keyMapOver(mode.getKeyMap(this), false);
     }
+
+    /** Its mode's modal key map, vim's normal mode's, with this buffer's keys over it. */
+    public final KeyMap getModalKeyMapForMode() {
+        return keyMapOver(mode.getModalKeyMap(this), true);
+    }
+
+    /**
+     * The key map to use for its mode's map: that map, or a copy with keys
+     * of this buffer's own over it, as a pane of a diff in a file's mode
+     * has its own q and n. The modal map, for vim's normal mode, when modal.
+     */
+    protected KeyMap keyMapOver(KeyMap map, boolean modal) {
+        return map;
+    }
+
+    /**
+     * The lines changes start at, where next and previous change go, as a
+     * diff's; null for the mode's or the change marks'.
+     */
+    public List<Line> getChangeStarts() {
+        return null;
+    }
+
+    /** The window ed on it has scrolled, by any means: a key, the wheel, the scroll bar. */
+    public void scrolled(Editor ed) {}
 
     public final int getFileType() {
         return fileType;

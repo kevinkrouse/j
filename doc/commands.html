@@ -448,6 +448,8 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></li>
     <li><a href="commands.html#vcsCommitPreviousMessage">vcsCommitPreviousMessage</a></li>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
+    <li><a href="commands.html#vcsDiffQuit">vcsDiffQuit</a></li>
+    <li><a href="commands.html#vcsDiffSideBySide">vcsDiffSideBySide</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsLog">vcsLog</a></li>
     <li><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></li>
@@ -6116,6 +6118,24 @@ In a status buffer, opens the last commit's message, to change only its message.
 <b>Default key mapping:</b> c w in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsDiffQuit">vcsDiffQuit</a><dl><dd>
+<p>
+In a side-by-side diff, closes it: both sides go and the windows from before come back.
+<br><br>
+<b>Default key mapping:</b> q in a side-by-side diff
+<br><br>
+<b>See also:</b> <a href="git.html#side-by-side">Side by side</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsDiffSideBySide">vcsDiffSideBySide</a><dl><dd>
+<p>
+Shows the file being edited side by side with what is staged of it: the staged text at the left, the buffer's at the right, saved or not.
+<br><br>
+<b>See also:</b> <a href="git.html#side-by-side">Side by side</a>
 <br><br>
 </dl><!--<hr>-->
 

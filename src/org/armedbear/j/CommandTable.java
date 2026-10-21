@@ -66,6 +66,7 @@ import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.git.Git;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.sidebyside.SideBySideCommands;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.CommitCommands;
 import org.armedbear.j.vcs.status.StatusActions;
@@ -363,6 +364,8 @@ public class CommandTable {
             add("vcsCommitPopup", CommitCommands::vcsCommitPopup);
             add("vcsCommitPreviousMessage", CommitCommands::vcsCommitPreviousMessage);
             add("vcsCommitReword", CommitCommands::vcsCommitReword);
+            add("vcsDiffQuit", SideBySideCommands::vcsDiffQuit);
+            add("vcsDiffSideBySide", SideBySideCommands::vcsDiffSideBySide);
             add("vcsDiscard", e -> StatusActions.run(e, StatusActions.Op.DISCARD));
             add("vcsLogNext", LogCommands::vcsLogNext);
             add("vcsLogNextFile", LogCommands::vcsLogNextFile);

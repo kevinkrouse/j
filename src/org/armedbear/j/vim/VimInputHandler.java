@@ -475,7 +475,7 @@ public final class VimInputHandler implements InputHandler {
     private boolean runModeKey(Editor editor, JEvent event) {
         if (!idleInNormalMode())
             return false;
-        final KeyMap km = editor.getMode().getModalKeyMap(editor.getBuffer());
+        final KeyMap km = editor.getBuffer().getModalKeyMapForMode();
         return km != null && editor.runKeyMap(km, event);
     }
 

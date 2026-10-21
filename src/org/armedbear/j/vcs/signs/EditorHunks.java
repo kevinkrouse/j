@@ -94,7 +94,7 @@ public final class EditorHunks {
         }
 
         /** Whether its lines end in CR LF, as most of them do. */
-        boolean crlf() {
+        public boolean crlf() {
             int cr = 0;
             for (String r : raw)
                 if (r.endsWith("\r"))

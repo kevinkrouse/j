@@ -477,7 +477,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (hints == null || hints.length == 0)
             return null;
         final boolean vim = getInputHandler() != null;
-        final KeyMap modal = vim ? getMode().getModalKeyMap(buffer) : null;
+        final KeyMap modal = vim ? buffer.getModalKeyMapForMode() : null;
         final List<String[]> items = new ArrayList<>();
         for (String[] h : hints) {
             KeyMapping mapping = modal == null ? null : modal.getKeyMapping(h[0]);
@@ -3137,6 +3137,9 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void updateScrollBars() {
         if (buffer == null)
             return; // Avoid NPE.
+        // After any scroll: a buffer may scroll others with it, as a diff's sides.
+        if (display.getTopLine() != null)
+            buffer.scrolled(this);
         if (!displayReady)
             return;
         updateVerticalScrollBar();

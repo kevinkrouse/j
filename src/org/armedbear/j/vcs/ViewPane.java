@@ -20,9 +20,6 @@
 
 package org.armedbear.j.vcs;
 
-import static org.armedbear.j.Constants.*;
-
-import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -79,37 +76,5 @@ public abstract class ViewPane<B extends Buffer> extends ViewBuffer {
         fill(lines);
         for (Editor ed : windows())
             place(ed, dot != null ? dot : getFirstLine(), getFirstLine());
-    }
-
-    /** Puts lines in place of what it had, leaving the windows to be placed. */
-    protected void fill(List<? extends Line> lines) {
-        empty();
-        withWriteLock(() -> {
-            for (Line l : lines)
-                appendLine(l);
-            if (getFirstLine() == null)
-                appendLine("");
-            renumber();
-        });
-        invalidate();
-    }
-
-    /** The windows showing it. */
-    public List<Editor> windows() {
-        final List<Editor> out = new ArrayList<>();
-        for (Editor ed : Editor.getEditorList())
-            if (ed.getBuffer() == this)
-                out.add(ed);
-        return out;
-    }
-
-    /** Puts ed's caret on dot and top at its top. */
-    protected static void place(Editor ed, Line dot, Line top) {
-        ed.setDot(dot, 0);
-        ed.setMark(null);
-        ed.moveCaretToDotCol();
-        ed.setTopLine(top);
-        ed.setUpdateFlag(REFRAME | REPAINT);
-        ed.updateDisplay();
     }
 }

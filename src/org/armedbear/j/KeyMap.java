@@ -42,6 +42,7 @@ public final class KeyMap {
     private static File globalKeyMapFile;
 
     private ArrayList<KeyMapping> mappings = new ArrayList<>();
+    private int changes;
 
     public KeyMap() {}
 
@@ -79,6 +80,38 @@ public final class KeyMap {
 
     public static synchronized final void deleteGlobalKeyMap() {
         globalKeyMap = null;
+    }
+
+    /**
+     * A key map of the same mappings, to change apart: a buffer's keys over
+     * its mode's. Prefix key maps in it are shared, not copied.
+     */
+    public synchronized KeyMap copy() {
+        final KeyMap km = new KeyMap();
+        km.mappings = new ArrayList<>(mappings);
+        return km;
+    }
+
+    /** How many times it has changed: a copy over it is made again when this does. */
+    public synchronized int changes() {
+        return changes;
+    }
+
+    // Each change to the mappings, counted.
+
+    private void append(KeyMapping mapping) {
+        mappings.add(mapping);
+        ++changes;
+    }
+
+    private void put(int i, KeyMapping mapping) {
+        mappings.set(i, mapping);
+        ++changes;
+    }
+
+    private void drop(int i) {
+        mappings.remove(i);
+        ++changes;
     }
 
     public synchronized KeyMapping[] getMappings() {
@@ -478,7 +511,7 @@ public final class KeyMap {
         final int limit = sourceMappings.length;
         for (KeyMapping mapping : sourceMappings) {
             if (command == mapping.getCommand())
-                mappings.add(mapping);
+                append(mapping);
         }
     }
 
@@ -487,12 +520,12 @@ public final class KeyMap {
         for (int i = 0; i < mappings.size(); i++) {
             KeyMapping mapping = mappings.get(i);
             if (keyCode == mapping.getKeyCode() && modifiers == mapping.getModifiers()) {
-                mappings.set(i, new KeyMapping(keyCode, modifiers, command));
+                put(i, new KeyMapping(keyCode, modifiers, command));
                 return;
             }
         }
         // No mapping found.
-        mappings.add(new KeyMapping(keyCode, modifiers, command));
+        append(new KeyMapping(keyCode, modifiers, command));
     }
 
     /** Binds a key to an action that isn't a named command. */
@@ -502,12 +535,12 @@ public final class KeyMap {
         for (int i = 0; i < mappings.size(); i++) {
             KeyMapping mapping = mappings.get(i);
             if (keyCode == mapping.getKeyCode() && modifiers == mapping.getModifiers()) {
-                mappings.set(i, new KeyMapping(keyCode, modifiers, command));
+                put(i, new KeyMapping(keyCode, modifiers, command));
                 return;
             }
         }
         // No mapping found.
-        mappings.add(new KeyMapping(keyCode, modifiers, command));
+        append(new KeyMapping(keyCode, modifiers, command));
     }
 
     public synchronized void mapKey(char keyChar, Object command) {
@@ -515,19 +548,19 @@ public final class KeyMap {
         for (int i = 0; i < mappings.size(); i++) {
             KeyMapping mapping = mappings.get(i);
             if (keyChar == mapping.getKeyChar()) {
-                mappings.set(i, new KeyMapping(keyChar, command));
+                put(i, new KeyMapping(keyChar, command));
                 return;
             }
         }
         // No mapping found.
-        mappings.add(new KeyMapping(keyChar, command));
+        append(new KeyMapping(keyChar, command));
     }
 
     // Only called from synchronized methods.
     private boolean mapKey(String s) {
         KeyMapping mapping = KeyMapping.createKeyMapping(s);
         if (mapping != null) {
-            mappings.add(mapping);
+            append(mapping);
             return true;
         }
         return false;
@@ -547,12 +580,12 @@ public final class KeyMap {
             for (int i = mappings.size(); i-- > 0;) {
                 KeyMapping mapping = mappings.get(i);
                 if (keyChar == mapping.getKeyChar()) {
-                    mappings.set(i, new KeyMapping(keyChar, command));
+                    put(i, new KeyMapping(keyChar, command));
                     return true;
                 }
             }
             // Not found.
-            mappings.add(new KeyMapping(keyChar, command));
+            append(new KeyMapping(keyChar, command));
         } else {
             for (int i = mappings.size(); i-- > 0;) {
                 // This is the keyPressed() case. keyCode and modifiers must
@@ -562,12 +595,12 @@ public final class KeyMap {
                 if (mapping.getKeyChar() == 0
                         && keyCode == mapping.getKeyCode()
                         && modifiers == mapping.getModifiers()) {
-                    mappings.set(i, new KeyMapping(keyCode, modifiers, command));
+                    put(i, new KeyMapping(keyCode, modifiers, command));
                     return true;
                 }
             }
             // Not found.
-            mappings.add(new KeyMapping(keyCode, modifiers, command));
+            append(new KeyMapping(keyCode, modifiers, command));
         }
         return true;
     }
@@ -576,7 +609,7 @@ public final class KeyMap {
         for (int i = 0; i < mappings.size(); i++) {
             KeyMapping mapping = mappings.get(i);
             if (keyChar == mapping.getKeyChar()) {
-                mappings.remove(i);
+                drop(i);
                 return;
             }
         }
@@ -586,7 +619,7 @@ public final class KeyMap {
         for (int i = 0; i < mappings.size(); i++) {
             KeyMapping mapping = mappings.get(i);
             if (keyCode == mapping.getKeyCode() && modifiers == mapping.getModifiers()) {
-                mappings.remove(i);
+                drop(i);
                 return;
             }
         }
@@ -605,7 +638,7 @@ public final class KeyMap {
                 for (int i = mappings.size(); i-- > 0;) {
                     KeyMapping mapping = mappings.get(i);
                     if (keyChar == mapping.getKeyChar()) {
-                        mappings.remove(i);
+                        drop(i);
                         return true;
                     }
                 }
@@ -618,7 +651,7 @@ public final class KeyMap {
                     if (mapping.getKeyChar() == 0
                             && keyCode == mapping.getKeyCode()
                             && modifiers == mapping.getModifiers()) {
-                        mappings.remove(i);
+                        drop(i);
                         return true;
                     }
                 }

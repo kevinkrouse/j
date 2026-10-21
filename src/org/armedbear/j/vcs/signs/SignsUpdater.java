@@ -166,6 +166,11 @@ public final class SignsUpdater {
     }
 
     Charset charset() {
+        return charset(buffer);
+    }
+
+    /** The charset buffer's file is in, or the default encoding's; UTF-8 if neither is known. */
+    public static Charset charset(Buffer buffer) {
         String name = buffer.getFile() != null ? buffer.getFile().getEncoding() : null;
         if (name == null)
             name = Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);

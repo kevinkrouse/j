@@ -1433,6 +1433,29 @@ plan with why it is left, before the next phase starts.
    bottom. It comes after the log, several repositories and all, so the log
    has its third layout; it needs only phase 4's `util/Diff` and virtual
    lines otherwise.
+   - Progress: `DiffAlignment` (`vcs/diff`), tested on its own: rows of
+     the old line and the new or a filler, the changes, a line's row, the
+     fillers after a line, the other side's line at a row. The panes
+     (`vcs/sidebyside`): `SideBySideBuffer`, the new side, is the frame view
+     and `OldSide` its part, each a `ViewBuffer` in the file's mode with a
+     `SideFormatter` over the mode's (`getLineBackground` by the row's
+     kind) and its fillers as virtual rows (above the first line, or below
+     one). `Buffer.keyMapOver` lays a side's `q`, `n` and `p` over a copy
+     of its mode's map (`KeyMap.copy`), the modal one too
+     (`getModalKeyMapForMode`); `Buffer.getChangeStarts` gives `nextChange`
+     the changes; `Buffer.scrolled`, from `Editor.updateScrollBars` after
+     any scroll, scrolls the other side to the same height, the two being
+     as tall row for row, and `afterCommand` takes the other's caret to its
+     row, or to the line over a filler row only when that is in view.
+     `vcsDiffSideBySide` shows a file against the index as the change marks
+     read it (`readBases`, `EditorHunks.Side` in the file's charset, the
+     buffer's lines through `Side.ofBuffer`, compared by `keys`, which mark
+     a last line with no newline), in the buffer's mode, and reuses a diff
+     of the same file; `vcsDiffQuit` closes it. In vim, `n` and `p` are
+     search's and `]c`/`[c` go by change. An empty side's blank line is a
+     filler row; the fillers are laid again when the formatter resets. Left: word diffs, folding unchanged runs, the track, `v`
+     from the status's and the log's diffs, the log's layout for it, `s`
+     and `w`.
 7. **Branches relative to others, and stash.** The parent branch, the
    unmerged, unpulled and unpushed sections, the stash section and popup,
    stashes in the log and the refs tree, the status's outline in the

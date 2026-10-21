@@ -121,6 +121,24 @@ change, when you save a file, and when j's window comes back to the front.
 now, for a change j could not see. Reading it again keeps the caret on the
 file or line it was on.
 
+<h2><a name="side-by-side">Side by side</a></h2>
+
+<p>
+<a href="commands.html#vcsDiffSideBySide">vcsDiffSideBySide</a> shows the file
+being edited side by side with what is staged of it, across the frame: the
+staged text at the left and the buffer's at the right, saved or not, each in
+the file's mode and encoding, and read-only. A file not in the index, new or
+in a conflict, is all added. A changed line is shaded blue on both sides,
+an added one green at the right and a removed one red at the left, and where
+one side has more lines in a change the other has blank rows, so that the
+lines both have stay level. Scrolling either side scrolls the other with it,
+by keys, the wheel or the scroll bar, and the caret moving on one side moves
+the other's to the same row, or to the line above a blank one when that is in
+view. <b>n</b> and <b>p</b> go from change to change (<b>]c</b> and
+<b>[c</b> in vim edit mode, where <b>n</b> and <b>p</b> are search's), and
+<b>q</b> closes it, putting back the windows from before. Showing the same
+file again shows its diff anew in place of the old one.
+
 <h2><a name="staging">Staging and discarding</a></h2>
 
 <p>
