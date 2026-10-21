@@ -264,6 +264,19 @@ public abstract class Formatter {
     }
 
     /**
+     * Spans of line to fill behind its text, offsets in pairs, as a diff's
+     * words that differ in a changed line; or null.
+     */
+    public int[] getSpans(Line line) {
+        return null;
+    }
+
+    /** The color getSpans's spans are filled with. */
+    public Color getSpanColor(Line line) {
+        return null;
+    }
+
+    /**
      * Whether a run of format ends where its last column would with every
      * character as wide as a plain one, as the gap before a column lined up
      * at the right does when text before it is in a {@link TextStyle#SMALL}

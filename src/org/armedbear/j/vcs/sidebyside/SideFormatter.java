@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.sidebyside;
 
 import java.awt.Color;
+import java.util.List;
 import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -29,27 +30,33 @@ import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.vcs.VcsColors;
 import org.armedbear.j.vcs.diff.DiffAlignment;
 import org.armedbear.j.vcs.diff.DiffAlignment.Kind;
+import org.armedbear.j.vcs.status.WordDiff;
 
 /**
  * A side of a side-by-side diff in its file's colors, the file's mode's
  * formatter's, with each line of a change shaded: removed on red at the old
- * side, added on green at the new, changed on blue on both.
+ * side, added on green at the new, changed on blue on both, the words that
+ * differ in a changed pair a stronger blue.
  */
 final class SideFormatter extends Formatter {
     private final Formatter own;
     private final DiffAlignment alignment;
+    // The other side's lines, which a changed line's words are against.
+    private final List<String> other;
     private final boolean old;
     private Color added;
     private Color removed;
     private Color changed;
+    private Color changedWords;
     private Color filler;
     // Run when the colors are made again, as for a new theme: the fillers
     // take the new filler color.
     private Runnable onReset;
 
-    SideFormatter(Formatter own, DiffAlignment alignment, boolean old) {
+    SideFormatter(Formatter own, DiffAlignment alignment, List<String> other, boolean old) {
         this.own = own;
         this.alignment = alignment;
+        this.other = other;
         this.old = old;
     }
 
@@ -89,6 +96,30 @@ final class SideFormatter extends Formatter {
         };
     }
 
+    @Override
+    public int[] getSpans(Line line) {
+        if (kindOf(line) != Kind.CHANGED)
+            return null;
+        final int pair = alignment.otherLine(line.lineNumber(), old);
+        if (pair < 0 || pair >= other.size())
+            return null;
+        final WordDiff.Result r =
+                old ? WordDiff.diff(line.getText(), other.get(pair)) : WordDiff.diff(other.get(pair), line.getText());
+        final List<int[]> words = old ? r.removed() : r.added();
+        final int[] spans = new int[words.size() * 2];
+        for (int i = 0; i < words.size(); i++) {
+            spans[2 * i] = words.get(i)[0];
+            spans[2 * i + 1] = words.get(i)[1];
+        }
+        return spans;
+    }
+
+    @Override
+    public Color getSpanColor(Line line) {
+        shades();
+        return changedWords;
+    }
+
     /** The background of a filler row, where the other side has lines. */
     Color fillerBackground() {
         shades();
@@ -104,6 +135,7 @@ final class SideFormatter extends Formatter {
         added = DefaultTheme.blend(bg, VcsColors.added(dark), amount);
         removed = DefaultTheme.blend(bg, VcsColors.removed(dark), amount);
         changed = DefaultTheme.blend(bg, VcsColors.modified(dark), amount);
+        changedWords = DefaultTheme.blend(bg, VcsColors.modified(dark), dark ? 0.38 : 0.30);
         filler = DefaultTheme.blend(bg, getColor(0), 0.05);
     }
 

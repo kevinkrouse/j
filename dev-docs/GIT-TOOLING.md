@@ -1453,7 +1453,10 @@ plan with why it is left, before the next phase starts.
      a last line with no newline), in the buffer's mode, and reuses a diff
      of the same file; `vcsDiffQuit` closes it. In vim, `n` and `p` are
      search's and `]c`/`[c` go by change. An empty side's blank line is a
-     filler row; the fillers are laid again when the formatter resets. Left: word diffs, folding unchanged runs, the track, `v`
+     filler row; the fillers are laid again when the formatter resets. A
+     changed line's words that differ (`WordDiff.diff`, against its pair)
+     are `Formatter.getSpans`, which `Display` fills behind the text as it
+     does search matches, keeping the mode's colors. Left: folding unchanged runs, the track, `v`
      from the status's and the log's diffs, the log's layout for it, `s`
      and `w`.
 7. **Branches relative to others, and stash.** The parent branch, the

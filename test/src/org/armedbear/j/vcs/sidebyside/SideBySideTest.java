@@ -20,6 +20,7 @@
 
 package org.armedbear.j.vcs.sidebyside;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -316,5 +317,43 @@ public class SideBySideTest {
         map.mapKey('x', "two");
         assertEquals("two", keys.over(map, false).lookup('x', 0, 0).getCommand(), "the copy made again");
         assertEquals("vcsDiffQuit", keys.over(map, false).lookup('q', 0, 0).getCommand());
+    }
+
+    @Test
+    public void aChangedLinesWordsThatDifferAreSpans() throws Exception {
+        onEdt(() -> {
+            diff = SideBySideBuffer.open(
+                null,
+                JavaMode.getMode(),
+                "Words.java",
+                "old",
+                side("int width = 1;\nkeep\n"),
+                "new",
+                side("int height = 1;\nkeep\n"));
+            assertArrayEquals(new int[] { 4, 9 }, diff.getOld().getFormatter().getSpans(diff.getOld().getFirstLine()));
+            assertArrayEquals(new int[] { 4, 10 }, diff.getFormatter().getSpans(diff.getFirstLine()));
+            assertNotNull(diff.getFormatter().getSpanColor(diff.getFirstLine()));
+            assertNull(diff.getFormatter().getSpans(diff.getLine(1)), "an unchanged line has none");
+        });
+    }
+
+    @Test
+    public void eachSideIsParsedBeforeItIsShown() throws Exception {
+        onEdt(() -> {
+            diff = SideBySideBuffer.open(
+                null,
+                JavaMode.getMode(),
+                "Comment.java",
+                "old",
+                side("/*\n * a comment\n */\nclass A {}\n"),
+                "new",
+                side("/*\n * a comment\n */\nclass B {}\n"));
+            // A comment's middle line is formatted as one from the start,
+            // not as code until the idle parse.
+            assertFalse(diff.needsParsing());
+            assertFalse(diff.getOld().needsParsing());
+            assertTrue(diff.getLine(1).flags() != 0, "in the comment");
+            assertTrue(diff.getOld().getLine(1).flags() != 0, "in the comment");
+        });
     }
 }

@@ -35,8 +35,8 @@ public final class OldSide extends ViewPane<SideBySideBuffer> {
         super(mode, owner, title, "");
     }
 
-    void lay(List<String> lines) {
-        changeStarts = SideBySideBuffer.lay(this, lines, owner.getAlignment(), true);
+    void lay(List<String> lines, List<String> other) {
+        changeStarts = SideBySideBuffer.lay(this, lines, other, owner.getAlignment(), true);
     }
 
     @Override

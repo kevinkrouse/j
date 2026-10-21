@@ -1371,6 +1371,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         drawRunBackgrounds(paintLineGraphics, totalChars, 0);
 
         // Under the selection, which paints over them, as vim's does.
+        highlightSpans(line, paintLineGraphics, 0);
         highlightSearchMatches(line, paintLineGraphics, 0);
         final Region selection = selectionRegion();
         if (selection != null) {
@@ -2144,6 +2145,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 drawBackgroundForLine(g2d, backgroundColor, line, y);
                 int totalChars = formatLine(line, shift, maxCols);
                 drawRunBackgrounds(g2d, totalChars, y);
+                highlightSpans(line, g2d, y);
                 highlightSearchMatches(line, g2d, y);
                 if (r != null)
                     handleSelection(r, line, formatArray, g2d, y);
@@ -2314,6 +2316,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             g2d.setColor(editor.getFormatter().getSelectionBackgroundColor());
             g2d.fillRect(x, y, fillWidth, charHeight);
         }
+    }
+
+    // The formatter's spans of the line, as a diff's words that differ.
+    private void highlightSpans(Line line, Graphics2D g2d, int y) {
+        final Formatter formatter = editor.getFormatter();
+        final int[] spans = formatter.getSpans(line);
+        if (spans != null && spans.length > 0)
+            fillSpans(line, spans, formatter.getSpanColor(line), g2d, y);
     }
 
     /**

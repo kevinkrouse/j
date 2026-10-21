@@ -127,8 +127,8 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
         alignment = DiffAlignment.of(oldText.keys(), newText.keys());
         binding = true;
         try {
-            relay(old, () -> old.lay(oldText.lines()));
-            relay(this, () -> changeStarts = lay(this, newText.lines(), alignment, false));
+            relay(old, () -> old.lay(oldText.lines(), newText.lines()));
+            relay(this, () -> changeStarts = lay(this, newText.lines(), oldText.lines(), alignment, false));
         }
         finally {
             binding = false;
@@ -187,10 +187,15 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
 
     /**
      * A side's lines, its formatter over its mode's, and its filler rows;
-     * returns where its changes start. An empty side has a blank line as a
+     * other is the other side's lines. Returns where its changes start. An empty side has a blank line as a
      * buffer must, which is its first filler.
      */
-    static List<Line> lay(ViewBuffer side, List<String> lines, DiffAlignment alignment, boolean isOld) {
+    static List<Line> lay(
+            ViewBuffer side,
+            List<String> lines,
+            List<String> other,
+            DiffAlignment alignment,
+            boolean isOld) {
         final List<Line> ls = new ArrayList<>(lines.size());
         for (String s : lines)
             ls.add(new TextLine(s));
@@ -201,9 +206,13 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
             byNumber.add(l);
         // Over the mode's formatter the side has: one it had over already.
         final Formatter had = side.getFormatter();
-        final SideFormatter f = new SideFormatter(had instanceof SideFormatter s ? s.own() : had, alignment, isOld);
+        final SideFormatter f =
+                new SideFormatter(had instanceof SideFormatter s ? s.own() : had, alignment, other, isOld);
         f.onReset(() -> fillers(side, byNumber, alignment, isOld, f));
         side.setFormatter(f);
+        // Now, not on the idle thread's next pass: till then a comment's lines
+        // would be formatted as code.
+        f.parseBuffer();
         fillers(side, byNumber, alignment, isOld, f);
         return starts(byNumber, alignment, isOld);
     }
