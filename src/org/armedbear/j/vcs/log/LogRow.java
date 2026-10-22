@@ -115,7 +115,7 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
 
     // A count's room: a space before it.
     private static int counted(String count) {
-        return count.isEmpty() ? 0 : 1 + count.length();
+        return count.isEmpty() ? 0 : 1 + count.codePointCount(0, count.length());
     }
 
     private static LogRow build(
@@ -152,7 +152,9 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
             spans.add(new Span(Part.COUNT, sb.length(), sb.length() + count.length()));
             sb.append(count);
         }
-        sb.append(" ".repeat(Math.max(2, width - sb.length() - (author.length() + 2 + date.length()))));
+        // In code points, as the count is measured.
+        final int used = sb.codePointCount(0, sb.length());
+        sb.append(" ".repeat(Math.max(2, width - used - (author.length() + 2 + date.length()))));
         spans.add(new Span(Part.AUTHOR, sb.length(), sb.length() + author.length()));
         sb.append(author).append("  ");
         spans.add(new Span(Part.DATE, sb.length(), sb.length() + date.length()));

@@ -44,6 +44,16 @@ public class TextMotionCommandsTest {
     }
 
     @Test
+    public void selectEobGoesPastAFoldedTail() {
+        on("a\nb\nt0\nt1\nt2", 0, 0);
+        for (int i = 2; i <= 4; i++)
+            h.buffer().getLine(i).hide();
+        h.buffer().renumber();
+        MotionCommands.selectEob(h.editor());
+        assertEquals("4,2", at());
+    }
+
+    @Test
     public void paragraphs() {
         on("a\nb\n\nc\n", 0, 0);
         Paragraphs.forwardParagraph();

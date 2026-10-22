@@ -40,6 +40,39 @@ public class VimMotionEdgeCaseTest {
         return h;
     }
 
+    // ---------------------------------------- gg and G over folds
+
+    // Lines from to to hidden, as a fold has them.
+    private void fold(int from, int to) {
+        for (int i = from; i <= to; i++)
+            h.buffer().getLine(i).hide();
+        h.buffer().renumber();
+    }
+
+    @Test
+    public void dggTakesTheFoldedLinesAtTheTop() {
+        vim("h0\nh1\nh2\nx\ny\nz", 5, 0);
+        fold(0, 2);
+        h.keys("dgg");
+        assertEquals("", h.value());
+    }
+
+    @Test
+    public void dGTakesTheFoldedLinesAtTheEnd() {
+        vim("a\nb\nt0\nt1", 0, 0);
+        fold(2, 3);
+        h.keys("dG");
+        assertEquals("", h.value());
+    }
+
+    @Test
+    public void gWithACountGoesToThatLineNotThatManyShown() {
+        vim("a\nb\nc\nd\ne", 4, 0);
+        fold(1, 2);
+        h.keys("4G");
+        h.assertCursorAt(3, 0);
+    }
+
     // ---------------------------------------- ge and gE
 
     @Test

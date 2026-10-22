@@ -510,7 +510,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
                 return true;
             }
             if (button == MouseEvent.BUTTON1 && modifiers == 0 && display.isFoldMarkerAt(x, pos.getLine())) {
-                mode.toggleFoldAt(editor, pos.getLine());
+                editor.getBuffer().getFolds().toggleFoldAt(editor, pos.getLine());
                 return true;
             }
             Line next = pos.getLine().next();

@@ -34,7 +34,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
-import org.armedbear.j.vcs.VcsColors;
+import org.armedbear.j.ChangeColors;
 
 /**
  * A commit message's mode: a summary line past 50 characters, and any line
@@ -193,9 +193,9 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
         public java.awt.Color getColor(int format) {
             final boolean dark = org.armedbear.j.DefaultTheme.isDark(getBackgroundColor());
             if (format == ADDED)
-                return VcsColors.added(dark);
+                return ChangeColors.added(dark);
             if (format == REMOVED)
-                return VcsColors.removed(dark);
+                return ChangeColors.removed(dark);
             return super.getColor(format);
         }
 

@@ -535,9 +535,10 @@ public final class VimExCommands {
         // line and :0 the first. Only a command with a range refuses one
         // past the end -- :50d is E16. Both checked with nvim.
         final int lines = Math.max(1, editor.getBuffer().getLineCount());
-        final Line line = VimEx.lineAt(editor, Math.max(1, Math.min(number, lines)));
-        if (line == null)
+        final Line at = VimEx.lineAt(editor, Math.max(1, Math.min(number, lines)));
+        if (at == null)
             throw new VimEx.BadCommand("E16: Invalid range");
+        final Line line = editor.getBuffer().jumpTarget(at);
         final Position from = editor.getDot();
         if (from != null)
             state.jumped(editor, from);

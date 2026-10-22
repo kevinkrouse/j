@@ -1,5 +1,5 @@
 /*
- * SideBySideCommandsTest.java
+ * VcsCompareCommandsTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.sidebyside;
+package org.armedbear.j.vcs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,13 +37,14 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
+import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** vcsDiffSideBySide on files of a repository: the buffer against the index. */
-public class SideBySideCommandsTest {
+/** vcsCompare on files of a repository: the buffer against the index. */
+public class VcsCompareCommandsTest {
     @TempDir
     Path tmp;
 
@@ -58,7 +59,7 @@ public class SideBySideCommandsTest {
             for (Buffer b : Editor.getBufferList())
                 all.add(b);
             for (Buffer b : all)
-                if (b instanceof SideBySideBuffer s)
+                if (b instanceof CompareBuffer s)
                     s.close(null);
             if (h != null) {
                 h.showBuffer(h.buffer());
@@ -86,12 +87,12 @@ public class SideBySideCommandsTest {
     }
 
     // The file at path, its buffer in the harness's window, then the diff of it.
-    private SideBySideBuffer diff(String path) throws Exception {
+    private CompareBuffer diff(String path) throws Exception {
         return diff(path, null);
     }
 
     // The same, the file read in encoding, or the default for null.
-    private SideBySideBuffer diff(String path, String encoding) throws Exception {
+    private CompareBuffer diff(String path, String encoding) throws Exception {
         onEdt(() -> {
             h = EditorHarness.create();
             Editor.setCurrentEditor(h.editor());
@@ -102,12 +103,12 @@ public class SideBySideCommandsTest {
                 file.initialize();
             file.load();
             h.showBuffer(file);
-            SideBySideCommands.vcsDiffSideBySide(h.editor());
+            VcsCompareCommands.vcsCompare(h.editor());
         });
-        final SideBySideBuffer[] found = new SideBySideBuffer[1];
+        final CompareBuffer[] found = new CompareBuffer[1];
         until(() -> {
             for (Buffer b : Editor.getBufferList())
-                if (b instanceof SideBySideBuffer s)
+                if (b instanceof CompareBuffer s)
                     found[0] = s;
             return found[0] != null;
         });
@@ -126,7 +127,7 @@ public class SideBySideCommandsTest {
         git = GitFixture.init(tmp);
         git.write("A.java", "class A {\n}\n");
         git.commitAll("first");
-        final SideBySideBuffer d = diff("A.java");
+        final CompareBuffer d = diff("A.java");
         onEdt(() -> {
             assertEquals(List.of(), d.getAlignment().changes(), "no blank line added at the end");
             assertEquals(List.of("class A {", "}"), text(d));
@@ -140,7 +141,7 @@ public class SideBySideCommandsTest {
         git.write("README", "one\ntwo\n");
         git.commitAll("first");
         git.write("README", "one\n2\n");
-        final SideBySideBuffer d = diff("README");
+        final CompareBuffer d = diff("README");
         onEdt(() -> {
             assertNotNull(d.getMode());
             assertEquals(1, d.getAlignment().changes().size());
@@ -155,7 +156,7 @@ public class SideBySideCommandsTest {
         final Path a = git.root.resolve("a.txt");
         Files.write(a, "café\nb\n".getBytes(StandardCharsets.ISO_8859_1));
         git.commitAll("first");
-        final SideBySideBuffer d = diff("a.txt", "ISO-8859-1");
+        final CompareBuffer d = diff("a.txt", "ISO-8859-1");
         onEdt(() -> {
             assertEquals("café", d.getOld().getFirstLine().getText());
             assertTrue(d.getAlignment().changes().isEmpty(), "no line changed by its encoding");
@@ -168,7 +169,7 @@ public class SideBySideCommandsTest {
         git.write("x.txt", "x\n");
         git.commitAll("first");
         git.write("new.txt", "a\nb\n");
-        final SideBySideBuffer d = diff("new.txt");
+        final CompareBuffer d = diff("new.txt");
         onEdt(() -> {
             assertTrue(d.getOld().getFileNameForDisplay().contains("not in the index"));
             assertEquals(1, d.getAlignment().changes().size());

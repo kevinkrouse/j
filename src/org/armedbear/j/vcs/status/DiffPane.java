@@ -28,8 +28,8 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.ViewPane;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.ViewPane;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 

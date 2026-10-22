@@ -1,5 +1,5 @@
 /*
- * VcsColors.java
+ * ChangeColors.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,17 +18,17 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs;
+package org.armedbear.j;
 
 import java.awt.Color;
 
 /**
  * The colors of a change wherever it is shown, for a light background or a
- * dark one: the status buffer, the change marks, a commit's diff and the
- * buffer lists.
+ * dark one: the status buffer, the change marks, a commit's diff, a
+ * comparison and the buffer lists.
  */
-public final class VcsColors {
-    private VcsColors() {}
+public final class ChangeColors {
+    private ChangeColors() {}
 
     public static Color added(boolean dark) {
         return new Color(dark ? 0x7ccf86 : 0x1a7f37);

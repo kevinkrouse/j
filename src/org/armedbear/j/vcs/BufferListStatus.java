@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.DefaultTheme;
+import org.armedbear.j.ChangeColors;
 import org.armedbear.j.File;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
@@ -44,10 +45,10 @@ public final class BufferListStatus {
     public record Badge(String text, Color color) {}
 
     // On the look and feel's light list background.
-    private static final Color CHANGED = VcsColors.modified(false);
-    private static final Color STAGED = VcsColors.added(false);
+    private static final Color CHANGED = ChangeColors.modified(false);
+    private static final Color STAGED = ChangeColors.added(false);
     private static final Color ADDED = STAGED;
-    private static final Color DELETED = VcsColors.removed(false);
+    private static final Color DELETED = ChangeColors.removed(false);
     private static final Color CONFLICT = new Color(0xe03131);
     private static final Color UNTRACKED = new Color(0x888888);
 

@@ -24,7 +24,6 @@ import java.awt.Color;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import org.armedbear.j.vcs.VcsColors;
 
 /**
  * A buffer's change marks as its version control sees them: each line
@@ -56,9 +55,9 @@ public final class Signs {
         if (c != null)
             return c;
         return switch (kind) {
-            case ADDED -> VcsColors.added(dark);
-            case CHANGED -> VcsColors.modified(dark);
-            case DELETED -> VcsColors.removed(dark);
+            case ADDED -> ChangeColors.added(dark);
+            case CHANGED -> ChangeColors.modified(dark);
+            case DELETED -> ChangeColors.removed(dark);
         };
     }
 

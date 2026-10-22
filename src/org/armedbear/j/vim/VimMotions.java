@@ -164,7 +164,9 @@ public final class VimMotions {
      * gg and G.
      *
      * Both take a line number as their count; without one, gg goes to the
-     * first line and G to the last. The caret lands on the first non-blank.
+     * first line and G to the last. The caret lands on the first non-blank,
+     * of the line the buffer's jumpTarget gives, unless an operator's: one
+     * takes in all of a fold.
      */
     private static Position moveToLine(MotionContext ctx, Position from) {
         final Buffer buffer = ctx.editor.getBuffer();
@@ -177,7 +179,9 @@ public final class VimMotions {
             line = buffer.getFirstLine();
         if (line == null)
             return null;
-        return at(line, firstNonBlank(line));
+        // An operator's takes in all of a fold, as vim's does.
+        final Line target = ctx.forOperator ? line : buffer.jumpTarget(line);
+        return at(target, firstNonBlank(target));
     }
 
     /** | -- to a screen column, counting from one. */
@@ -522,23 +526,17 @@ public final class VimMotions {
         return CaretCommands.firstNonBlank(line);
     }
 
+    // Line number, folded away or not, as vim's are; or the last.
     private static Line lineNumbered(Buffer buffer, int number) {
-        Line line = buffer.getFirstLine();
-        for (int i = 1; i < number && line != null; i++) {
-            final Line next = line.nextVisible();
-            if (next == null)
-                return line;
-            line = next;
-        }
-        return line;
+        final Line line = buffer.getLine(number - 1);
+        return line != null ? line : lastLine(buffer);
     }
 
+    // The last line, folded away or not.
     private static Line lastLine(Buffer buffer) {
         Line line = buffer.getFirstLine();
-        if (line == null)
-            return null;
-        while (line.nextVisible() != null)
-            line = line.nextVisible();
+        while (line != null && line.next() != null)
+            line = line.next();
         return line;
     }
 }

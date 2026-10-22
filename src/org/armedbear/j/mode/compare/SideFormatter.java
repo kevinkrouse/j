@@ -18,22 +18,20 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.sidebyside;
+package org.armedbear.j.mode.compare;
 
 import java.awt.Color;
 import java.util.List;
+import org.armedbear.j.ChangeColors;
 import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
-import org.armedbear.j.vcs.VcsColors;
-import org.armedbear.j.vcs.diff.DiffAlignment;
-import org.armedbear.j.vcs.diff.DiffAlignment.Kind;
-import org.armedbear.j.vcs.status.WordDiff;
+import org.armedbear.j.mode.compare.DiffAlignment.Kind;
 
 /**
- * A side of a side-by-side diff in its file's colors, the file's mode's
+ * A side of a comparison in its file's colors, the file's mode's
  * formatter's, with each line of a change shaded: removed on red at the old
  * side, added on green at the new, changed on blue on both, the words that
  * differ in a changed pair a stronger blue.
@@ -49,6 +47,7 @@ final class SideFormatter extends Formatter {
     private Color changed;
     private Color changedWords;
     private Color filler;
+    private Color fold;
     // Run when the colors are made again, as for a new theme: the fillers
     // take the new filler color.
     private Runnable onReset;
@@ -120,6 +119,12 @@ final class SideFormatter extends Formatter {
         return changedWords;
     }
 
+    /** The color of a fold's label, dimmer than the text. */
+    Color foldColor() {
+        shades();
+        return fold;
+    }
+
     /** The background of a filler row, where the other side has lines. */
     Color fillerBackground() {
         shades();
@@ -132,11 +137,12 @@ final class SideFormatter extends Formatter {
         final Color bg = getBackgroundColor();
         final boolean dark = DefaultTheme.isDark(bg);
         final double amount = dark ? 0.16 : 0.12;
-        added = DefaultTheme.blend(bg, VcsColors.added(dark), amount);
-        removed = DefaultTheme.blend(bg, VcsColors.removed(dark), amount);
-        changed = DefaultTheme.blend(bg, VcsColors.modified(dark), amount);
-        changedWords = DefaultTheme.blend(bg, VcsColors.modified(dark), dark ? 0.38 : 0.30);
+        added = DefaultTheme.blend(bg, ChangeColors.added(dark), amount);
+        removed = DefaultTheme.blend(bg, ChangeColors.removed(dark), amount);
+        changed = DefaultTheme.blend(bg, ChangeColors.modified(dark), amount);
+        changedWords = DefaultTheme.blend(bg, ChangeColors.modified(dark), dark ? 0.38 : 0.30);
         filler = DefaultTheme.blend(bg, getColor(0), 0.05);
+        fold = DefaultTheme.blend(bg, getColor(0), 0.55);
     }
 
     // The rest is the file's formatter's.

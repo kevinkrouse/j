@@ -50,9 +50,9 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Signs;
 import org.armedbear.j.UIScale;
+import org.armedbear.j.mode.compare.WordDiff;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.vcs.status.WordDiff;
 
 /**
  * A hunk's removed and added lines in a popup under the caret, the

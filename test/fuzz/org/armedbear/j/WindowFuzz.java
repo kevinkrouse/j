@@ -37,7 +37,6 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.transients.TransientCommands;
 import org.armedbear.j.transients.TransientPopup;
-import org.armedbear.j.vcs.ViewPane;
 import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.status.VcsStatusBuffer;
 import org.armedbear.j.vim.VimInputHandler;

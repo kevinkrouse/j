@@ -1,5 +1,5 @@
 /*
- * SideBySideTest.java
+ * CompareTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.sidebyside;
+package org.armedbear.j.mode.compare;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,21 +37,29 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.FoldCommands;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.MotionCommands;
+import org.armedbear.j.Preferences;
+import org.armedbear.j.Property;
+import org.armedbear.j.VirtualText;
+import org.armedbear.j.WindowLayout;
 import org.armedbear.j.mode.java.JavaMode;
+import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.vcs.signs.EditorHunks.Side;
+import org.armedbear.j.vim.VimRegisters;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-public class SideBySideTest {
+public class CompareTest {
     private static final String OLD = "a\nb\nc\nd\ne\nf\ng\nh\ni\nj\n";
     // b changed, three lines added after it, e and f removed.
     private static final String NEW = "a\nB\nx\ny\nz\nc\nd\ng\nh\ni\nj\n";
 
-    private SideBySideBuffer diff;
+    private CompareBuffer diff;
     private EditorHarness left;
     private EditorHarness right;
 
@@ -77,13 +85,12 @@ public class SideBySideTest {
 
     private void open() throws Exception {
         onEdt(
-            () -> diff =
-                    SideBySideBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", side(OLD), "new", side(NEW)));
+            () -> diff = CompareBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", side(OLD), "new", side(NEW)));
     }
 
-    private static SideBySideBuffer.Text side(String text) {
+    private static CompareBuffer.Text side(String text) {
         final Side s = Side.of(text.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-        return new SideBySideBuffer.Text(s.lines(), s.keys());
+        return new CompareBuffer.Text(s.lines(), s.keys());
     }
 
     // The two sides each in a window, as across a frame: here none, so both
@@ -155,7 +162,7 @@ public class SideBySideTest {
                 diff.getChangeStarts(),
                 "B; then d, before the removed");
             assertEquals(List.of(diff.getOld().getLine(1), diff.getOld().getLine(4)), diff.getOld().getChangeStarts());
-            assertEquals("vcsDiffQuit", diff.getKeyMapForMode().getKeyMapping("vcsDiffQuit").getCommand());
+            assertEquals("compareQuit", diff.getKeyMapForMode().getKeyMapping("compareQuit").getCommand());
             assertTrue(
                 diff.getKeyMapForMode().getMappings().length > JavaMode.getMode().getKeyMap(diff).getMappings().length
                         - 1,
@@ -210,7 +217,7 @@ public class SideBySideTest {
         // frame here, can't be switched off it, so it is only closed.
         onEdt(() -> Editor.setCurrentEditor(right.editor()));
         right.keys("q");
-        onEdt(() -> assertTrue(diff.isClosed(), "q ran vcsDiffQuit"));
+        onEdt(() -> assertTrue(diff.isClosed(), "q ran compareQuit"));
     }
 
     @Test
@@ -237,8 +244,7 @@ public class SideBySideTest {
     @Test
     public void anEmptySideIsAsTallAsTheOther() throws Exception {
         onEdt(() -> {
-            diff = SideBySideBuffer
-                    .open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\nb\nc\n"));
+            diff = CompareBuffer.open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\nb\nc\n"));
             assertEquals(diff.getDisplayHeight(), diff.getOld().getDisplayHeight(), "its blank line a filler");
             assertNotNull(diff.getOld().getFormatter().getLineBackground(diff.getOld().getFirstLine()));
         });
@@ -251,7 +257,7 @@ public class SideBySideTest {
             added.append("new").append(i).append('\n');
         added.append("b\n");
         onEdt(() -> {
-            diff = SideBySideBuffer
+            diff = CompareBuffer
                     .open(null, JavaMode.getMode(), "Long.java", "old", side("a\nb\n"), "new", side(added.toString()));
             left = EditorHarness.create().rows(5);
             right = EditorHarness.create().rows(5);
@@ -273,7 +279,7 @@ public class SideBySideTest {
     @Test
     public void openingItAgainKeepsItsWindowsAtTheirLines() throws Exception {
         windows();
-        final SideBySideBuffer first = diff;
+        final CompareBuffer first = diff;
         onEdt(() -> {
             right.editor().setDot(diff.getLine(6), 0);
             right.editor().moveCaretToDotCol();
@@ -300,7 +306,7 @@ public class SideBySideTest {
             assertTrue(diff.getFormatter() instanceof SideFormatter);
             assertTrue(diff.getOld().getFormatter() instanceof SideFormatter);
         });
-        final SideBySideBuffer first = diff;
+        final CompareBuffer first = diff;
         open();
         onEdt(() -> {
             assertSame(first, diff, "in Java mode again, not a second diff");
@@ -316,13 +322,13 @@ public class SideBySideTest {
         assertEquals("one", keys.over(map, false).lookup('x', 0, 0).getCommand());
         map.mapKey('x', "two");
         assertEquals("two", keys.over(map, false).lookup('x', 0, 0).getCommand(), "the copy made again");
-        assertEquals("vcsDiffQuit", keys.over(map, false).lookup('q', 0, 0).getCommand());
+        assertEquals("compareQuit", keys.over(map, false).lookup('q', 0, 0).getCommand());
     }
 
     @Test
     public void aChangedLinesWordsThatDifferAreSpans() throws Exception {
         onEdt(() -> {
-            diff = SideBySideBuffer.open(
+            diff = CompareBuffer.open(
                 null,
                 JavaMode.getMode(),
                 "Words.java",
@@ -340,7 +346,7 @@ public class SideBySideTest {
     @Test
     public void eachSideIsParsedBeforeItIsShown() throws Exception {
         onEdt(() -> {
-            diff = SideBySideBuffer.open(
+            diff = CompareBuffer.open(
                 null,
                 JavaMode.getMode(),
                 "Comment.java",
@@ -354,6 +360,332 @@ public class SideBySideTest {
             assertFalse(diff.getOld().needsParsing());
             assertTrue(diff.getLine(1).flags() != 0, "in the comment");
             assertTrue(diff.getOld().getLine(1).flags() != 0, "in the comment");
+        });
+    }
+
+    // Twenty lines, l10 changed: an unchanged run before it and one after.
+    private void openLong() throws Exception {
+        final StringBuilder a = new StringBuilder();
+        for (int i = 0; i < 20; i++)
+            a.append('l').append(i).append('\n');
+        final String b = a.toString().replace("l10\n", "changed\n");
+        onEdt(
+            () -> diff = CompareBuffer
+                    .open(null, JavaMode.getMode(), "Long.java", "old", side(a.toString()), "new", side(b)));
+    }
+
+    // Thirty lines, l2 and l25 changed: l6 to l21 folded under l5.
+    private void openTwoChanges() throws Exception {
+        final StringBuilder a = new StringBuilder();
+        for (int i = 0; i < 30; i++)
+            a.append('l').append(i).append('\n');
+        final String b = a.toString().replace("l2\n", "x\n").replace("l25\n", "y\n");
+        onEdt(
+            () -> diff = CompareBuffer
+                    .open(null, JavaMode.getMode(), "Two.java", "old", side(a.toString()), "new", side(b)));
+    }
+
+    @Test
+    public void zaInAMiddleFoldClosesItWithTheCaretWhereZaOpensItAgain() throws Exception {
+        openTwoChanges();
+        onEdt(() -> {
+            right = EditorHarness.create().rows(5);
+            right.showBuffer(diff);
+            right.vim();
+        });
+        inVimPrefs(() -> {
+            onEdt(() -> right.editor().setDot(diff.getLine(5), 0));
+            right.keys("za");
+            onEdt(() -> {
+                assertFalse(diff.getLine(12).isHidden(), "open");
+                right.editor().setDot(diff.getLine(12), 0);
+            });
+            right.keys("za");
+            onEdt(() -> {
+                assertTrue(diff.getLine(12).isHidden(), "closed");
+                assertEquals(5, right.editor().getDotLineNumber(), "on the line its count is on");
+            });
+            right.keys("za");
+            onEdt(() -> assertFalse(diff.getLine(12).isHidden(), "open again"));
+        });
+    }
+
+    @Test
+    public void vimsGWithACountIntoAFoldStopsAtItsCount() throws Exception {
+        inVim(() -> {
+            right.keys("3G");
+            onEdt(() -> assertEquals(7, right.editor().getDotLineNumber(), "the top fold's count is under it"));
+            right.keys("9G");
+            onEdt(() -> assertEquals(8, right.editor().getDotLineNumber()));
+            right.keys("18G");
+            onEdt(() -> assertEquals(13, right.editor().getDotLineNumber(), "the bottom fold's is over it"));
+        });
+    }
+
+    @Test
+    public void vimsColonNIntoAFoldStopsAtItsCount() throws Exception {
+        inVim(() -> {
+            right.exCommand("3");
+            onEdt(() -> {
+                assertEquals(7, right.editor().getDotLineNumber());
+                assertEquals("hhhhhhh.......hhhhhh", hidden(diff), "still closed");
+            });
+        });
+    }
+
+    @Test
+    public void jumpToLineIntoAFoldStopsAtItsCount() throws Exception {
+        openLong();
+        onEdt(() -> {
+            right = EditorHarness.create().rows(5);
+            right.showBuffer(diff);
+            right.editor().jumpToLine(16);
+            right.editor().updateDisplay();
+            assertEquals(13, right.editor().getDotLineNumber());
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff), "still closed");
+        });
+    }
+
+    @Test
+    public void vimsYggTakesInTheFoldedLines() throws Exception {
+        inVim(() -> {
+            onEdt(() -> right.editor().setDot(diff.getLine(10), 0));
+            right.keys("ygg");
+            onEdt(() -> {
+                final String yanked = VimRegisters.getInstance().get('"').text();
+                assertTrue(yanked.startsWith("l0\n"), yanked);
+                assertEquals(11, yanked.split("\n").length);
+            });
+        });
+    }
+
+    @Test
+    public void aFoldOpenStaysOpenWhenTheModeChanges() throws Exception {
+        openLong();
+        onEdt(() -> {
+            diff.getFolds().setFoldAt(null, diff.getLine(7), true);
+            assertFalse(diff.getLine(0).isHidden());
+            diff.modeTo(PlainTextMode.getMode());
+            assertFalse(diff.getLine(0).isHidden(), "still open");
+            assertTrue(diff.getLine(15).isHidden(), "the other still closed");
+        });
+    }
+
+    @Test
+    public void aRenumberingThatChangesNoFoldLeavesTheLabels() throws Exception {
+        openLong();
+        onEdt(() -> {
+            final VirtualText before = diff.getVirtualText().on(diff.getLine(13), VirtualText.Placement.EOL).get(0);
+            diff.renumber();
+            assertSame(before, diff.getVirtualText().on(diff.getLine(13), VirtualText.Placement.EOL).get(0));
+        });
+    }
+
+    private static String hidden(Buffer b) {
+        final StringBuilder sb = new StringBuilder();
+        for (Line l = b.getFirstLine(); l != null; l = l.next())
+            sb.append(l.isHidden() ? 'h' : '.');
+        return sb.toString();
+    }
+
+    private static String label(Buffer b, Line at, VirtualText.Placement placement) {
+        final List<VirtualText> on = b.getVirtualText().on(at, placement);
+        return on.isEmpty() ? null : on.get(0).rows().get(0).get(0).text();
+    }
+
+    @Test
+    public void aFoldsLabelHasTheFoldSymbolPreferencesSymbol() throws Exception {
+        final Preferences prefs = Editor.preferences();
+        final String was = prefs.getStringProperty(Property.FOLD_SYMBOL.key());
+        prefs.setProperty(Property.FOLD_SYMBOL, "\u22ef");
+        try {
+            openLong();
+            onEdt(() -> assertEquals("\u22ef 6 lines", label(diff, diff.getLine(13), VirtualText.Placement.EOL)));
+        }
+        finally {
+            restore(Property.FOLD_SYMBOL, was);
+        }
+    }
+
+    @Test
+    public void unchangedRunsAreFoldedOnBothSidesButForTheContext() throws Exception {
+        openLong();
+        onEdt(() -> {
+            // l0 to l6 and l14 to l19 hidden; three lines kept each side of l10.
+            final String folded = "hhhhhhh.......hhhhhh";
+            assertEquals(folded, hidden(diff));
+            assertEquals(folded, hidden(diff.getOld()));
+            assertEquals(
+                "\u2026 7 lines above",
+                label(diff, diff.getLine(7), VirtualText.Placement.EOL),
+                "at the top, after the line under it");
+            assertEquals("\u2026 6 lines", label(diff, diff.getLine(13), VirtualText.Placement.EOL));
+            assertEquals("\u2026 6 lines", label(diff.getOld(), diff.getOld().getLine(13), VirtualText.Placement.EOL));
+        });
+    }
+
+    @Test
+    public void tabOrZaOpensAndClosesAFoldOnBothSides() throws Exception {
+        openLong();
+        onEdt(() -> {
+            right = EditorHarness.create().rows(5);
+            right.showBuffer(diff);
+            right.editor().setDot(diff.getLine(13), 0);
+            FoldCommands.toggleFold(right.editor());
+            assertEquals("hhhhhhh.............", hidden(diff));
+            assertEquals("hhhhhhh.............", hidden(diff.getOld()), "the old side's too");
+            assertNull(label(diff.getOld(), diff.getOld().getLine(13), VirtualText.Placement.EOL), "its label gone");
+            assertTrue(diff.getFolds().isFoldStart(diff, diff.getLine(13)), "its marker kept, open");
+            assertFalse(diff.getFolds().isFolded(diff.getLine(13)));
+            // zc in it closes it again, on both.
+            right.editor().setDot(diff.getLine(16), 0);
+            FoldCommands.fold(right.editor());
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff.getOld()));
+            assertEquals(13, right.editor().getDotLineNumber(), "the caret on the line over it");
+            // The one at the top, at the line under it.
+            right.editor().setDot(diff.getLine(7), 0);
+            FoldCommands.toggleFold(right.editor());
+            assertEquals("..............hhhhhh", hidden(diff.getOld()));
+        });
+    }
+
+    @Test
+    public void theFilesModesFoldsAreNotTheDiffs() throws Exception {
+        openLong();
+        onEdt(() -> {
+            left = EditorHarness.create().rows(5);
+            left.showBuffer(diff.getOld());
+            left.editor().setDot(diff.getOld().getLine(8), 0);
+            // A fold made as the mode would, on one side: put back.
+            FoldCommands.hideLines(left.editor(), diff.getOld().getLine(8), diff.getOld().getLine(10));
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff.getOld()));
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff));
+            assertFalse(diff.getOld().getFolds().isFoldStart(diff.getOld(), diff.getOld().getLine(8)));
+            // A click past a closed fold's line opens it on both, as unfold does.
+            FoldCommands.unfold(left.editor(), diff.getOld().getLine(15));
+            assertEquals("hhhhhhh.............", hidden(diff));
+            // zR and zM, on both.
+            FoldCommands.unfoldAll(left.editor());
+            assertEquals("....................", hidden(diff));
+            FoldCommands.foldAll(left.editor());
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff));
+        });
+    }
+
+    @Test
+    public void nothingIsFoldedWhereNothingChanged() throws Exception {
+        onEdt(() -> {
+            diff = CompareBuffer.open(
+                null,
+                JavaMode.getMode(),
+                "Same.java",
+                "old",
+                side("a\nb\nc\nd\ne\nf\ng\nh\ni\nj\n"),
+                "new",
+                side("a\nb\nc\nd\ne\nf\ng\nh\ni\nj\n"));
+            assertEquals("..........", hidden(diff));
+        });
+    }
+
+    @Test
+    public void itsWindowsOpenOnLinesShownNotInTheTopFold() throws Exception {
+        openLong();
+        onEdt(() -> {
+            for (WindowLayout.Window w : WindowLayout.windows(diff.layout(null, diff))) {
+                assertEquals(7, w.dotLine(), "under the top fold, which a caret in would open");
+                assertEquals(7, w.topLine());
+            }
+        });
+    }
+
+    @Test
+    public void vimsZcOnTheFirstLineClosesTheTopFoldOnBothSides() throws Exception {
+        inVim(this::zcOnTheFirstLine);
+    }
+
+    @Test
+    public void vimsGgAndGStopAtTheFoldsWithoutOpeningThem() throws Exception {
+        inVim(() -> {
+            right.keys("G");
+            onEdt(() -> assertEquals(13, right.editor().getDotLineNumber()));
+            right.keys("gg");
+            onEdt(() -> {
+                assertEquals(7, right.editor().getDotLineNumber());
+                assertEquals("hhhhhhh.......hhhhhh", hidden(diff));
+            });
+        });
+    }
+
+    @Test
+    public void bobAndEobStopAtTheFoldsWithoutOpeningThem() throws Exception {
+        openLong();
+        onEdt(() -> {
+            right = EditorHarness.create().rows(5);
+            right.showBuffer(diff);
+            final Editor ed = right.editor();
+            MotionCommands.eob(ed);
+            ed.updateDisplay();
+            assertEquals(13, ed.getDotLineNumber());
+            MotionCommands.bob(ed);
+            ed.updateDisplay();
+            assertEquals(7, ed.getDotLineNumber());
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff));
+        });
+    }
+
+    // property as it was set in the prefs, or not.
+    private static void restore(Property property, String was) {
+        if (was == null)
+            Editor.preferences().removeProperty(property.key());
+        else
+            Editor.preferences().setProperty(property.key(), was);
+    }
+
+    private interface Steps {
+        void run() throws Exception;
+    }
+
+    // steps in vim, both sides in windows, the caret under the top fold.
+    private void inVim(Steps steps) throws Exception {
+        openLong();
+        onEdt(() -> {
+            left = EditorHarness.create().rows(5);
+            right = EditorHarness.create().rows(5);
+            left.showBuffer(diff.getOld());
+            right.showBuffer(diff);
+            right.vim();
+            right.editor().setDot(diff.getLine(7), 0);
+        });
+        inVimPrefs(steps);
+    }
+
+    // steps with vim the edit mode.
+    private static void inVimPrefs(Steps steps) throws Exception {
+        final Preferences prefs = Editor.preferences();
+        final String was = prefs.getStringProperty(Property.EDIT_MODE.key());
+        prefs.setProperty(Property.EDIT_MODE, "vim");
+        try {
+            steps.run();
+        }
+        finally {
+            restore(Property.EDIT_MODE, was);
+        }
+    }
+
+    private void zcOnTheFirstLine() throws Exception {
+        right.keys("zo");
+        onEdt(
+            () -> assertEquals(
+                "..............hhhhhh",
+                hidden(diff),
+                "open: " + right.status() + " at " + right.editor().getDotLineNumber()));
+        right.keys("gg");
+        onEdt(() -> assertEquals(0, right.editor().getDotLineNumber()));
+        right.keys("zc");
+        onEdt(() -> {
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff.getOld()));
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff), "the right too");
+            assertEquals(7, right.editor().getDotLineNumber(), "the caret under it");
         });
     }
 }

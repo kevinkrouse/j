@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.diff;
+package org.armedbear.j.mode.compare;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +28,7 @@ import org.armedbear.j.util.Diff.Edit;
 /**
  * Two texts side by side, row by row: each row the old side's line and the
  * new side's, or a filler where a change has fewer lines on one side, so
- * that the lines both have are level. What the side-by-side diff's panes
+ * that the lines both have are level. What a comparison's panes
  * and their scroll lock read.
  */
 public final class DiffAlignment {

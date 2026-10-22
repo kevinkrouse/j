@@ -29,7 +29,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.TextStyle;
 import org.armedbear.j.vcs.RepositoryColors;
-import org.armedbear.j.vcs.VcsColors;
+import org.armedbear.j.ChangeColors;
 
 /**
  * A status buffer's colors: headings bold, a file's letter by what
@@ -164,7 +164,7 @@ public class VcsStatusFormatter extends Formatter {
         final Color own = switch (format) {
             case LETTER_ADDED -> addedHue();
             case LETTER_REMOVED -> removedHue();
-            case LETTER_MODIFIED -> themed("modified", VcsColors.modified(dark));
+            case LETTER_MODIFIED -> themed("modified", ChangeColors.modified(dark));
             default -> null;
         };
         return own != null ? own : super.getColor(format);
@@ -172,11 +172,11 @@ public class VcsStatusFormatter extends Formatter {
 
     // Added and removed lines keep the text's color on a shade of these.
     private Color addedHue() {
-        return themed("added", VcsColors.added(DefaultTheme.isDark(getBackgroundColor())));
+        return themed("added", ChangeColors.added(DefaultTheme.isDark(getBackgroundColor())));
     }
 
     private Color removedHue() {
-        return themed("removed", VcsColors.removed(DefaultTheme.isDark(getBackgroundColor())));
+        return themed("removed", ChangeColors.removed(DefaultTheme.isDark(getBackgroundColor())));
     }
 
     @Override

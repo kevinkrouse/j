@@ -38,7 +38,7 @@ import org.armedbear.j.transients.Transient;
  *
  * @see AbstractMode
  */
-public interface Mode {
+public interface Mode extends Folds {
     /**
      * Returns the unique identifier of this mode.  All identifiers should
      * be defined in <code>Constants</code>.
@@ -535,55 +535,6 @@ public interface Mode {
     public TextLink getLinkAt(Editor editor, Position pos);
 
     /**
-     * The lines that folding at <code>line</code> hides, for a mode that
-     * knows its own structure.
-     *
-     * @return the first and last lines to hide; an empty array if there is
-     *         nothing to fold there; or <code>null</code> to fold by
-     *         indentation.
-     */
-    public Line[] getFoldRange(Editor editor, Line line);
-
-    /**
-     * Whether line heads lines that a fold can hide, for the gutter's
-     * marker. Asked of visible lines as they are painted, so it should be
-     * cheap; the display keeps the answer until the buffer changes, or
-     * Buffer.foldsChanged says its folds did.
-     */
-    public default boolean isFoldStart(Buffer buffer, Line line) {
-        return FoldCommands.isIndentedBelow(buffer, line);
-    }
-
-    /** The first and last lines that folding what line heads hides, or null. */
-    public default Line[] getFoldBelow(Buffer buffer, Line line) {
-        return FoldCommands.indentedBelow(buffer, line);
-    }
-
-    /** Whether what line heads is folded away. */
-    public default boolean isFolded(Line line) {
-        return line.next() != null && line.next().isHidden();
-    }
-
-    /** Folds or unfolds what line heads, as a click on its gutter marker does. */
-    public default void toggleFoldAt(Editor editor, Line line) {
-        FoldCommands.toggleFoldAt(editor, line);
-    }
-
-    /**
-     * For a mode whose folds are its own, not hidden lines: opens, closes,
-     * or with null toggles, the fold line heads or is in, as the fold
-     * commands at the caret do. False if its folds are hidden lines.
-     */
-    public default boolean setFoldAt(Editor editor, Line line, Boolean open) {
-        return false;
-    }
-
-    /** As setFoldAt, for every fold. */
-    public default boolean setAllFolds(Editor editor, boolean open) {
-        return false;
-    }
-
-    /**
      * For a mode with sections of its own, as a status buffer's: the next
      * heading after from, or before it, or from if there is none; null to
      * move as vim's ]] does.
@@ -605,13 +556,6 @@ public interface Mode {
     public default String getHelpTopic() {
         return null;
     }
-
-    /**
-     * Folds everything that can be, leaving an outline: the bodies of the
-     * methods, or of the sections under the headings. A mode with nothing
-     * to fold so says.
-     */
-    public void foldAll(Editor editor);
 
     /**
      * Examines <code>c</code> and returns the equivalent character but

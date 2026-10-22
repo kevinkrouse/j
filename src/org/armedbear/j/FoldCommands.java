@@ -38,7 +38,7 @@ public final class FoldCommands {
     public static void fold(Editor editor) {
         if (editor.getDot() == null)
             return;
-        if (editor.getMode().setFoldAt(editor, editor.getDotLine(), false))
+        if (editor.getBuffer().getFolds().setFoldAt(editor, editor.getDotLine(), false))
             return;
         if (!foldRegionInternal(editor) && !foldExplicit(editor) && !foldByMode(editor))
             foldNearLine(editor, editor.getDotLine());
@@ -48,7 +48,7 @@ public final class FoldCommands {
     public static void toggleFold(Editor editor) {
         if (editor.getDot() == null)
             return;
-        if (editor.getMode().setFoldAt(editor, editor.getDotLine(), null))
+        if (editor.getBuffer().getFolds().setFoldAt(editor, editor.getDotLine(), null))
             return;
         final Line next = editor.getDotLine().next();
         if (next != null && next.isHidden())
@@ -59,12 +59,12 @@ public final class FoldCommands {
 
     /** Unfolds what line heads if it is folded, else folds it, as the mode says. */
     public static void toggleFoldAt(Editor editor, Line line) {
-        final Mode mode = editor.getMode();
-        if (mode.isFolded(line)) {
+        final Folds folds = editor.getBuffer().getFolds();
+        if (folds.isFolded(line)) {
             unfold(editor, line.next());
             return;
         }
-        final Line[] range = mode.getFoldBelow(editor.getBuffer(), line);
+        final Line[] range = folds.getFoldBelow(editor.getBuffer(), line);
         if (range != null)
             hideLines(editor, range[0], range[1].next());
     }
@@ -105,7 +105,7 @@ public final class FoldCommands {
     public static void unfoldHere(Editor editor) {
         if (editor.getDot() == null)
             return;
-        if (editor.getMode().setFoldAt(editor, editor.getDotLine(), true))
+        if (editor.getBuffer().getFolds().setFoldAt(editor, editor.getDotLine(), true))
             return;
         final Line next = editor.getDotLine().next();
         if (next != null && next.isHidden())
@@ -118,12 +118,12 @@ public final class FoldCommands {
     public static void foldAll(Editor editor) {
         if (editor.getDot() == null)
             return;
-        editor.getMode().foldAll(editor);
+        editor.getBuffer().getFolds().foldAll(editor);
     }
 
     // Folds what the mode says folding at the caret does, if it says.
     private static boolean foldByMode(Editor editor) {
-        final Line[] range = editor.getMode().getFoldRange(editor, editor.getDotLine());
+        final Line[] range = editor.getBuffer().getFolds().getFoldRange(editor, editor.getDotLine());
         if (range == null)
             return false;
         if (range.length == 2)
@@ -469,7 +469,7 @@ public final class FoldCommands {
     }
 
     public static void unfoldAll(Editor editor) {
-        if (editor.getMode().setAllFolds(editor, true))
+        if (editor.getBuffer().getFolds().setAllFolds(editor, true))
             return;
         editor.addUndo(SimpleEdit.FOLD);
         for (Line line = editor.getBuffer().getFirstLine(); line != null; line = line.next())

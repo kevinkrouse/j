@@ -192,6 +192,8 @@ public final class Property implements Comparable<Property> {
     public static final Property GIT_BUFFER_LIST_STATUS = createProperty("gitBufferListStatus", "letters");
     // When the gutter shows where an open fold could close: hover, always or never.
     public static final Property FOLD_MARKERS = createProperty("foldMarkers", "hover");
+    // What comes before a closed fold's count, as "… 12 lines".
+    public static final Property FOLD_SYMBOL = createProperty("foldSymbol", "\u2026");
     public static final Property FONT_NAME = createProperty("fontName", "Monospaced");
     // "auto/true/false" See Display.resolveLigatures().
     public static final Property LIGATURES = createProperty("ligatures", "auto");

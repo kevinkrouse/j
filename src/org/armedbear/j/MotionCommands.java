@@ -761,38 +761,46 @@ public final class MotionCommands {
     }
 
     public static void bob(Editor editor) {
-        if (editor.getBuffer().getFirstLine() != null) {
+        final Buffer buffer = editor.getBuffer();
+        if (buffer.getFirstLine() != null) {
             editor.recordJump();
-            editor.moveDotTo(editor.getBuffer().getFirstLine(), 0);
+            editor.moveDotTo(buffer.jumpTarget(buffer.getFirstLine()), 0);
         }
     }
 
     public static void selectBob(Editor editor) {
         if (editor.getDot() == null)
             return;
-        if (editor.getBuffer().getFirstLine() == null)
+        final Buffer buffer = editor.getBuffer();
+        if (buffer.getFirstLine() == null)
             return;
         editor.beginSelectMotion();
-        editor.getDot().moveTo(editor.getBuffer().getFirstLine(), 0);
+        editor.getDot().moveTo(buffer.jumpTarget(buffer.getFirstLine()), 0);
         editor.moveCaretToDotCol();
         editor.setUpdateFlag(REPAINT);
     }
 
     public static void eob(Editor editor) {
         editor.recordJump();
-        editor.moveDotTo(editor.getEob());
+        editor.moveDotTo(end(editor.getBuffer()));
     }
 
     public static void selectEob(Editor editor) {
         if (editor.getBuffer().getFirstLine() == null)
             return;
-        Line line = editor.getBuffer().getFirstLine();
-        while (line.next() != null)
-            line = line.next();
         editor.beginSelectMotion();
-        editor.getDot().moveTo(line, line.length());
+        editor.getDot().moveTo(end(editor.getBuffer()));
         editor.moveCaretToDotCol();
         editor.setUpdateFlag(REPAINT);
+    }
+
+    // The buffer's end, or the end of the line a jump to its last line lands on.
+    private static Position end(Buffer buffer) {
+        final Position end = buffer.getEnd();
+        if (end == null)
+            return null;
+        final Line line = buffer.jumpTarget(end.getLine());
+        return line == end.getLine() ? end : new Position(line, line.length());
     }
 
     public static void top(Editor editor) {

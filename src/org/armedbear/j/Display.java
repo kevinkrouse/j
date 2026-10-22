@@ -1728,7 +1728,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             g.setColor(editor.getFormatter().getColor(0));
             g.setFont(plainFont);
             g.drawChars(new char[] { annotation.getGutterChar() }, 0, 1, x, y + charAscent);
-        } else if (editor.getMode().isFolded(line))
+        } else if (editor.getBuffer().getFolds().isFolded(line))
             drawFoldMarker(g, x, y, true);
         else if (swatch != null)
             drawSwatch(g, swatch, x, y);
@@ -1757,7 +1757,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private Buffer foldStartsBuffer;
     private int foldStartsModCount;
     private int foldStartsFoldVersion;
-    private Mode foldStartsMode;
+    private Folds foldStartsFolds;
 
     private boolean showsOpenFolds() {
         return "always".equals(foldMarkers) || mouseInGutter && !"never".equals(foldMarkers);
@@ -1769,14 +1769,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (buffer != foldStartsBuffer
                 || buffer.getModCount() != foldStartsModCount
                 || buffer.getFoldVersion() != foldStartsFoldVersion
-                || editor.getMode() != foldStartsMode) {
+                || editor.getBuffer().getFolds() != foldStartsFolds) {
             foldStarts.clear();
             foldStartsBuffer = buffer;
             foldStartsModCount = buffer.getModCount();
             foldStartsFoldVersion = buffer.getFoldVersion();
-            foldStartsMode = editor.getMode();
+            foldStartsFolds = editor.getBuffer().getFolds();
         }
-        return foldStarts.computeIfAbsent(line, l -> editor.getMode().isFoldStart(buffer, l));
+        return foldStarts.computeIfAbsent(line, l -> editor.getBuffer().getFolds().isFoldStart(buffer, l));
     }
 
     /** Whether a change mark is drawn beside line at x, to click for its change. */
@@ -1799,7 +1799,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int column = buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS) ? changeMarkWidth : 0;
         if (x < column || x >= column + charWidth)
             return false;
-        if (editor.getMode().isFolded(line))
+        if (editor.getBuffer().getFolds().isFolded(line))
             return true;
         // As painted, so what is clickable is what is drawn.
         final String shown = foldMarkers != null ? foldMarkers : buffer.getStringProperty(Property.FOLD_MARKERS);

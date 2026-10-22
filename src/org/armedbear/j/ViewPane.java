@@ -18,14 +18,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs;
+package org.armedbear.j;
 
 import java.util.List;
-import org.armedbear.j.Buffer;
-import org.armedbear.j.Editor;
-import org.armedbear.j.FrameView;
-import org.armedbear.j.Line;
-import org.armedbear.j.Mode;
 
 /**
  * A view that is part of another buffer, its owner, as the log's files and

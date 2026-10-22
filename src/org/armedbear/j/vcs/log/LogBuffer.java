@@ -33,6 +33,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Folds;
 import org.armedbear.j.Frame;
 import org.armedbear.j.FrameView;
 import org.armedbear.j.GutterColumn;
@@ -41,11 +42,11 @@ import org.armedbear.j.Log;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.TextLine;
+import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.ViewBuffer;
 
 /**
  * A repository's log, or several's together: a row per commit, newest
@@ -642,7 +643,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         }
 
         String label() {
-            return "… " + lines.size() + " commits";
+            return Folds.label(lines.size() + " commits");
         }
     }
 

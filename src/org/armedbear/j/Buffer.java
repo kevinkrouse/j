@@ -2579,6 +2579,24 @@ public class Buffer extends SystemBuffer {
                 ++visibleLineCount;
         }
         needsRenumbering = false;
+        renumbered();
+    }
+
+    /** What its folds are: its mode's, unless it has its own. */
+    public Folds getFolds() {
+        return mode;
+    }
+
+    /** Its lines were numbered again, as after a fold opens or closes. */
+    protected void renumbered() {}
+
+    /**
+     * Where a jump to line, as gg, G and the ends of the buffer, lands: line,
+     * which a fold opens to show; or, in a buffer that keeps its folds
+     * closed, as a comparison, the line its fold's count is on.
+     */
+    public Line jumpTarget(Line line) {
+        return line;
     }
 
     protected void renumberOriginal() {

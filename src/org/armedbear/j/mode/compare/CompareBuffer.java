@@ -1,5 +1,5 @@
 /*
- * SideBySideBuffer.java
+ * CompareBuffer.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.sidebyside;
+package org.armedbear.j.mode.compare;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Folds;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
 import org.armedbear.j.FrameView;
@@ -33,22 +34,22 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.TextLine;
+import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.VirtualText;
 import org.armedbear.j.WindowLayout;
-import org.armedbear.j.vcs.ViewBuffer;
-import org.armedbear.j.vcs.diff.DiffAlignment;
-import org.armedbear.j.vcs.diff.DiffAlignment.Change;
-import org.armedbear.j.vcs.diff.DiffAlignment.Row;
+import org.armedbear.j.mode.compare.DiffAlignment.Change;
+import org.armedbear.j.mode.compare.DiffAlignment.Row;
 
 /**
- * A side-by-side diff: the old text at the left and the new at the right,
+ * A comparison: the old text at the left and the new at the right,
  * each a read-only buffer in the file's mode, its lines of a change shaded
  * and filler rows where the other side has more, so that the lines both
  * have are level. The new side is the view, across the frame as the log
  * is, and the old side its part. Scrolling either scrolls the other to the
  * same row, and the caret moving on one takes the other's to its row.
+ * Its folds are its own, {@link CompareFolds}.
  */
-public final class SideBySideBuffer extends ViewBuffer implements FrameView {
+public final class CompareBuffer extends ViewBuffer implements FrameView {
     /**
      * A side's text: its lines as shown, and as compared, which differ in
      * that a last line with no newline is marked, so that adding one is a
@@ -76,9 +77,10 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
     // While one side moves the other, the other leaves it alone.
     private boolean binding;
     private final SideKeys keys = new SideKeys();
+    private final CompareFolds folds = new CompareFolds(this);
     private final Map<Editor, Seen> seen = new WeakHashMap<>();
 
-    private SideBySideBuffer(Mode mode, String key, String oldTitle, String newTitle) {
+    private CompareBuffer(Mode mode, String key, String oldTitle, String newTitle) {
         super(mode, newTitle, "");
         this.key = key;
         old = new OldSide(mode, this, oldTitle);
@@ -89,7 +91,7 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
      * for key already shows them in place of what it had, in mode. With no
      * frame, as in tests, only made.
      */
-    public static SideBySideBuffer open(
+    public static CompareBuffer open(
             Frame frame,
             Mode mode,
             String key,
@@ -97,12 +99,12 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
             Text oldText,
             String newTitle,
             Text newText) {
-        SideBySideBuffer b = null;
+        CompareBuffer b = null;
         for (Buffer each : Editor.getBufferList())
-            if (each instanceof SideBySideBuffer s && !s.disposed && s.key.equals(key))
+            if (each instanceof CompareBuffer s && !s.disposed && s.key.equals(key))
                 b = s;
         if (b == null)
-            b = new SideBySideBuffer(mode, key, oldTitle, newTitle);
+            b = new CompareBuffer(mode, key, oldTitle, newTitle);
         else {
             b.setTitle(newTitle);
             b.old.setTitle(oldTitle);
@@ -127,8 +129,13 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
         alignment = DiffAlignment.of(oldText.keys(), newText.keys());
         binding = true;
         try {
-            relay(old, () -> old.lay(oldText.lines(), newText.lines()));
-            relay(this, () -> changeStarts = lay(this, newText.lines(), oldText.lines(), alignment, false));
+            final Runnable placeOld = kept(old);
+            final Runnable placeNew = kept(this);
+            old.lay(oldText.lines(), newText.lines());
+            changeStarts = lay(this, newText.lines(), oldText.lines(), alignment, false);
+            folds.reset(alignment);
+            placeOld.run();
+            placeNew.run();
         }
         finally {
             binding = false;
@@ -152,9 +159,9 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
         modeTo(mode);
     }
 
-    // side laid out again by lay, each window showing it put back at the
-    // lines it had, or the last.
-    private static void relay(ViewBuffer side, Runnable lay) {
+    // What puts each window showing side back at the lines it has now,
+    // once side is laid out again: or the last, or the nearest shown.
+    private static Runnable kept(ViewBuffer side) {
         final List<Editor> eds = side.windows();
         final int[] dots = new int[eds.size()];
         final int[] tops = new int[eds.size()];
@@ -164,9 +171,13 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
             dots[i] = ed.getDot() == null ? 0 : ed.getDotLineNumber();
             tops[i] = top == null ? 0 : top.lineNumber();
         }
-        lay.run();
-        for (int i = 0; i < eds.size(); i++)
-            place(eds.get(i), lineAt(side, dots[i]), lineAt(side, tops[i]));
+        return () -> {
+            for (int i = 0; i < eds.size(); i++) {
+                final Line dot = side.jumpTarget(lineAt(side, dots[i]));
+                final Line top = shown(lineAt(side, tops[i]));
+                place(eds.get(i), dot, top.lineNumber() > dot.lineNumber() ? dot : top);
+            }
+        };
     }
 
     private static Line lineAt(ViewBuffer side, int n) {
@@ -174,6 +185,81 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
         for (int i = 0; i < n && l.next() != null; i++)
             l = l.next();
         return l;
+    }
+
+    /** l, or the nearest line not folded away. */
+    static Line shown(Line l) {
+        if (!l.isHidden())
+            return l;
+        final Line next = l.nextVisible();
+        return next != null ? next : l.previousVisible() != null ? l.previousVisible() : l;
+    }
+
+    /** side's lines, by number. */
+    static List<Line> lines(ViewBuffer side) {
+        final List<Line> out = new ArrayList<>();
+        for (Line l = side.getFirstLine(); l != null; l = l.next())
+            out.add(l);
+        return out;
+    }
+
+    // Folds: the diff's own, not the mode's.
+
+    @Override
+    public Folds getFolds() {
+        // None while it is made.
+        return folds != null ? folds.of(false) : super.getFolds();
+    }
+
+    /** The old side's folds. */
+    Folds oldFolds() {
+        return folds.of(true);
+    }
+
+    @Override
+    protected void renumbered() {
+        sideRenumbered(this);
+    }
+
+    @Override
+    public Line jumpTarget(Line line) {
+        // None while it is made.
+        return folds != null ? folds.handle(this, line) : line;
+    }
+
+    /** Where a jump to side's line lands. */
+    Line jumpTarget(ViewBuffer side, Line line) {
+        return folds.handle(side, line);
+    }
+
+    @Override
+    public void restoreView(Editor editor) {
+        super.restoreView(editor);
+        offFolds(editor);
+    }
+
+    /**
+     * ed's caret and top line, as a window takes them when it shows a side,
+     * moved off lines folded away: to be there would open the fold.
+     */
+    static void offFolds(Editor ed) {
+        if (ed.getDot() != null && ed.getDotLine().isHidden()) {
+            ed.setDot(ed.getBuffer().jumpTarget(ed.getDotLine()), 0);
+            ed.setMark(null);
+            ed.moveCaretToDotCol();
+        }
+        final Line top = ed.getDisplay().getTopLine();
+        if (top != null && top.isHidden()) {
+            ed.getDisplay().setTopLine(shown(top));
+            ed.getDisplay().setPixelsAboveTopLine(0);
+        }
+    }
+
+    /** side's lines numbered again, as after a fold opens or closes there by any way. */
+    void sideRenumbered(ViewBuffer side) {
+        // Not while it is made or laid out, which sets both sides' folds.
+        if (folds != null && !binding && !disposed)
+            folds.read(side);
     }
 
     /** The old side. */
@@ -187,8 +273,9 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
 
     /**
      * A side's lines, its formatter over its mode's, and its filler rows;
-     * other is the other side's lines. Returns where its changes start. An empty side has a blank line as a
-     * buffer must, which is its first filler.
+     * other is the other side's lines. Returns where its changes start. An
+     * empty side has a blank line as a buffer must, which is its first
+     * filler.
      */
     static List<Line> lay(
             ViewBuffer side,
@@ -201,20 +288,28 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
             ls.add(new TextLine(s));
         side.setLines(ls);
         // Each line once, by number: the buffer is walked here, not per lookup.
-        final List<Line> byNumber = new ArrayList<>();
-        for (Line l = side.getFirstLine(); l != null; l = l.next())
-            byNumber.add(l);
+        final List<Line> byNumber = lines(side);
         // Over the mode's formatter the side has: one it had over already.
         final Formatter had = side.getFormatter();
         final SideFormatter f =
                 new SideFormatter(had instanceof SideFormatter s ? s.own() : had, alignment, other, isOld);
-        f.onReset(() -> fillers(side, byNumber, alignment, isOld, f));
+        f.onReset(() -> {
+            fillers(side, byNumber, alignment, isOld, f);
+            relabel(side);
+        });
         side.setFormatter(f);
         // Now, not on the idle thread's next pass: till then a comment's lines
         // would be formatted as code.
         f.parseBuffer();
         fillers(side, byNumber, alignment, isOld, f);
         return starts(byNumber, alignment, isOld);
+    }
+
+    // side's fold labels in its colors now: none while it is made.
+    private static void relabel(ViewBuffer side) {
+        final CompareBuffer c = of(side);
+        if (c != null && c.folds != null && !c.binding)
+            c.folds.relabel(side);
     }
 
     private static void fillers(
@@ -272,10 +367,24 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
     @Override
     public WindowLayout.Node layout(Frame frame, Buffer focus) {
         return new WindowLayout.Split(true,
-                List.of(
-                    WindowLayout.Window.showing(old, focus == old),
-                    WindowLayout.Window.showing(this, focus != old)),
+                List.of(window(old, focus == old), window(this, focus != old)),
                 List.of(0.5, 0.5));
+    }
+
+    // side's window as it is or was last, on lines shown: one on a line
+    // folded away would open its fold.
+    private static WindowLayout.Window window(ViewBuffer side, boolean focused) {
+        final WindowLayout.Window w = WindowLayout.Window.showing(side, focused);
+        final Line dot = side.getLine(w.dotLine());
+        final Line top = side.getLine(w.topLine());
+        if ((dot == null || !dot.isHidden()) && (top == null || !top.isHidden()))
+            return w;
+        final int dotLine = dot == null ? w.dotLine() : side.jumpTarget(dot).lineNumber();
+        return new WindowLayout.Window(side,
+                dotLine,
+                dot == null || dot.isHidden() ? 0 : w.dotOffset(),
+                top == null ? w.topLine() : Math.min(shown(top).lineNumber(), dotLine),
+                focused);
     }
 
     @Override
@@ -299,7 +408,7 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
     }
 
     /** Closes it: the windows from before come back, and both sides go. */
-    void close(Frame frame) {
+    public void close(Frame frame) {
         if (disposed)
             return;
         disposed = true;
@@ -442,7 +551,8 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
 
     // Where ed's window is down its buffer, in pixels.
     private static int y(Editor ed) {
-        return ed.getBuffer().getY(ed.getDisplay().getTopLine()) + ed.getDisplay().getPixelsAboveTopLine();
+        // Its top line folded away, until it reframes: the line it will be.
+        return ed.getBuffer().getY(shown(ed.getDisplay().getTopLine())) + ed.getDisplay().getPixelsAboveTopLine();
     }
 
     // b's window in frame; with none, as in tests, b's window in none.
@@ -455,8 +565,8 @@ public final class SideBySideBuffer extends ViewBuffer implements FrameView {
         return null;
     }
 
-    /** The side-by-side diff editor's buffer is a side of, or null. */
-    public static SideBySideBuffer of(Buffer b) {
-        return b instanceof SideBySideBuffer s ? s : b instanceof OldSide o ? o.getOwner() : null;
+    /** The comparison editor's buffer is a side of, or null. */
+    public static CompareBuffer of(Buffer b) {
+        return b instanceof CompareBuffer s ? s : b instanceof OldSide o ? o.getOwner() : null;
     }
 }

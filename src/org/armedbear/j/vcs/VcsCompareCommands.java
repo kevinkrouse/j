@@ -1,5 +1,5 @@
 /*
- * SideBySideCommands.java
+ * VcsCompareCommands.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.sidebyside;
+package org.armedbear.j.vcs;
 
 import static org.armedbear.j.Constants.FILETYPE_BINARY;
 
@@ -31,23 +31,21 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
+import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.vcs.Bases;
-import org.armedbear.j.vcs.Repositories;
-import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.signs.EditorHunks.Side;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 
-/** The commands of the side-by-side diff. */
-public final class SideBySideCommands {
-    private SideBySideCommands() {}
+/** Comparing a file with what is staged of it. */
+public final class VcsCompareCommands {
+    private VcsCompareCommands() {}
 
     /**
      * The file being edited side by side with what is staged of it, as the
      * buffer has it, saved or not: in its encoding and its mode. A file not
      * in the index, new or in a conflict, is all added.
      */
-    public static void vcsDiffSideBySide(Editor editor) {
+    public static void vcsCompare(Editor editor) {
         final Buffer buffer = editor.getBuffer();
         final File file = buffer.getFile();
         if (buffer.getType() != Buffer.TYPE_NORMAL || file == null || buffer.getFileType() == FILETYPE_BINARY) {
@@ -82,27 +80,20 @@ public final class SideBySideCommands {
                 }
                 final Side staged = read.index() == null ? null : Side.of(read.index(), charset);
                 final Side now = Side.ofBuffer(lines, charset, staged != null && staged.crlf());
-                SideBySideBuffer.open(
+                CompareBuffer.open(
                     editor.getFrame(),
                     buffer.getMode(),
                     r.root() + "|" + path,
                     path + (staged == null ? " (not in the index)" : " (staged)"),
-                    staged == null ? new SideBySideBuffer.Text(List.of(), List.of()) : text(staged),
+                    staged == null ? new CompareBuffer.Text(List.of(), List.of()) : text(staged),
                     path + " (buffer)",
                     text(now));
             });
         });
     }
 
-    private static SideBySideBuffer.Text text(Side side) {
-        return new SideBySideBuffer.Text(side.lines(), side.keys());
-    }
-
-    /** q: closes the side-by-side diff, its windows from before back. */
-    public static void vcsDiffQuit(Editor editor) {
-        final SideBySideBuffer b = SideBySideBuffer.of(editor.getBuffer());
-        if (b != null)
-            b.close(editor.getFrame());
+    private static CompareBuffer.Text text(Side side) {
+        return new CompareBuffer.Text(side.lines(), side.keys());
     }
 
     // The buffer's lines, as it has them now.

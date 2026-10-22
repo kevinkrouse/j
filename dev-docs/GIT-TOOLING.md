@@ -425,7 +425,7 @@ Recent commits (10)
 - `revertLines`, `previewChange` and `changePopup` work on j's own marks
   too; in a tracked file they reset, preview and offer the git hunk.
 
-### Side-by-side diff (`vcsDiffSideBySide`)
+### Compare (`vcsCompare`)
 
 Two panes, the old text at the left and the new at the right, scrolled
 together, as nvim's diff mode and IntelliJ's diff viewer have it, with
@@ -443,7 +443,7 @@ lines on one side to its lines on the other.
 
 - **Where it opens.** From the status's and the log's diff panes (`v` there
   toggles unified and side by side), on a file in the status, from a file
-  (`vcsDiffSideBySide`: the buffer against the index, or HEAD), and against a
+  (`vcsCompare`: the buffer against the index, or HEAD), and against a
   revision from the log. It takes the frame's windows the way the log does,
   through `Frame.captureLayout` and `restoreLayout`, and `q` puts them back.
 - **In the log.** Side by side, the diff wants the frame's width: two panes
@@ -1433,10 +1433,11 @@ plan with why it is left, before the next phase starts.
    bottom. It comes after the log, several repositories and all, so the log
    has its third layout; it needs only phase 4's `util/Diff` and virtual
    lines otherwise.
-   - Progress: `DiffAlignment` (`vcs/diff`), tested on its own: rows of
+   - Progress: `DiffAlignment` (`mode/compare`), tested on its own: rows of
      the old line and the new or a filler, the changes, a line's row, the
      fillers after a line, the other side's line at a row. The panes
-     (`vcs/sidebyside`): `SideBySideBuffer`, the new side, is the frame view
+     (`mode/compare`, not tied to vcs, with `WordDiff`; `ViewBuffer` and
+     `ViewPane` are in `org.armedbear.j`): `CompareBuffer`, the new side, is the frame view
      and `OldSide` its part, each a `ViewBuffer` in the file's mode with a
      `SideFormatter` over the mode's (`getLineBackground` by the row's
      kind) and its fillers as virtual rows (above the first line, or below
@@ -1447,16 +1448,31 @@ plan with why it is left, before the next phase starts.
      any scroll, scrolls the other side to the same height, the two being
      as tall row for row, and `afterCommand` takes the other's caret to its
      row, or to the line over a filler row only when that is in view.
-     `vcsDiffSideBySide` shows a file against the index as the change marks
+     `vcsCompare` (`vcs/VcsCompareCommands`) shows a file against the index as the change marks
      read it (`readBases`, `EditorHunks.Side` in the file's charset, the
      buffer's lines through `Side.ofBuffer`, compared by `keys`, which mark
      a last line with no newline), in the buffer's mode, and reuses a diff
-     of the same file; `vcsDiffQuit` closes it. In vim, `n` and `p` are
+     of the same file; `compareQuit` closes it. In vim, `n` and `p` are
      search's and `]c`/`[c` go by change. An empty side's blank line is a
      filler row; the fillers are laid again when the formatter resets. A
      changed line's words that differ (`WordDiff.diff`, against its pair)
      are `Formatter.getSpans`, which `Display` fills behind the text as it
-     does search matches, keeping the mode's colors. Left: folding unchanged runs, the track, `v`
+     does search matches, keeping the mode's colors. The diff's folds are its only ones, as
+     vim's `foldmethod=diff` and IntelliJ's diff editors (which turn the
+     language's folding off) have it: `Folds`, the fold hooks `Mode` had, is
+     what `Buffer.getFolds` gives the fold commands, the gutter and clicks,
+     the mode by default and `CompareFolds` for a side. Each unchanged run but
+     for `CONTEXT` (3) next to a change is a fold pair, hidden lines on both
+     sides, "… N lines" after the line over them, opened and closed on both by
+     the fold commands (Tab is `toggleFold` outside vim), vim's `z` keys,
+     the gutter and a click on the count. `Buffer.renumbered` reads back a
+     fold opened another way, as by a click past its line, and undoes lines
+     hidden outside the folds, and redoes nothing when no fold changed; a
+     side's windows are laid out and restored on lines shown, as a caret in
+     a fold opens it, and `Buffer.jumpTarget` takes `gg`, `G`, `:N`,
+     `jumpToLine` and the ends of the buffer, there, to a closed fold's count
+     line, but not an operator's `gg` or `G`, which takes in the fold. A change of mode
+     keeps the folds that were open. Left: the track, `v`
      from the status's and the log's diffs, the log's layout for it, `s`
      and `w`.
 7. **Branches relative to others, and stash.** The parent branch, the

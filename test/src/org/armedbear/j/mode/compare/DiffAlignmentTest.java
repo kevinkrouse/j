@@ -18,15 +18,15 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.diff;
+package org.armedbear.j.mode.compare;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import org.armedbear.j.vcs.diff.DiffAlignment.Change;
-import org.armedbear.j.vcs.diff.DiffAlignment.Row;
+import org.armedbear.j.mode.compare.DiffAlignment.Change;
+import org.armedbear.j.mode.compare.DiffAlignment.Row;
 import org.armedbear.j.vcs.signs.EditorHunks.Side;
 import org.junit.jupiter.api.Test;
 

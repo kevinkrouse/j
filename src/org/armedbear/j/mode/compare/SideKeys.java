@@ -18,14 +18,15 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs.sidebyside;
+package org.armedbear.j.mode.compare;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.KeyMap;
 
 /**
  * A side's keys over its file's mode's: q closes the diff, and outside vim
- * n and p go from change to change; in vim they are its search's, and ]c
- * and [c go by change. Made again when the mode's map is, or changes;
+ * n and p go from change to change and Tab opens or closes a fold; in vim n and p are
+ * its search's, ]c and [c go by change, and its z keys fold. Made again when the mode's map is, or changes;
  * one for both sides.
  */
 final class SideKeys {
@@ -56,8 +57,9 @@ final class SideKeys {
 
     private static KeyMap with(KeyMap map, boolean modal) {
         final KeyMap km = map != null ? map.copy() : new KeyMap();
-        km.mapKey('q', "vcsDiffQuit");
+        km.mapKey('q', "compareQuit");
         if (!modal) {
+            km.mapKey(KeyEvent.VK_TAB, 0, "toggleFold");
             km.mapKey('n', "nextChange");
             km.mapKey('p', "previousChange");
         }

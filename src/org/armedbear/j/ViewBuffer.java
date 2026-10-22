@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.vcs;
+package org.armedbear.j;
 
 import static org.armedbear.j.Constants.LOAD_COMPLETED;
 import static org.armedbear.j.Constants.REFRAME;
@@ -26,14 +26,10 @@ import static org.armedbear.j.Constants.REPAINT;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.armedbear.j.Buffer;
-import org.armedbear.j.Editor;
-import org.armedbear.j.Line;
-import org.armedbear.j.Mode;
 
 /**
- * A read-only view of a repository, built from what was read of it, as the
- * status buffer and the log's: no file and no undo. Its mode's properties
+ * A read-only view built from what was read, as the status buffer, the
+ * log's and a comparison's sides: no file and no undo. Its mode's properties
  * keep line numbers, change marks and bracket highlights off.
  */
 public abstract class ViewBuffer extends Buffer {

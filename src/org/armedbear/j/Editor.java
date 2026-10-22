@@ -2858,6 +2858,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void jumpToLine(int lineNumber, int offset) {
         Line line = buffer.getLine(lineNumber);
         if (line != null) {
+            line = buffer.jumpTarget(line);
             recordJump();
             if (offset < 0)
                 offset = 0;
