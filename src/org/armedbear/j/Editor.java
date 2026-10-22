@@ -398,6 +398,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     // The location bar, and a prompt's.
     private JPanel north;
+    // The buffer's component at the display's left, or null.
+    private JComponent beside;
 
     // The owner of the hint's virtual text.
     private static final String HINT = "hint";
@@ -767,6 +769,20 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     private VerticalScrollBarListener verticalScrollBarListener;
 
+    // The buffer's own there, or none.
+    private void updateBeside() {
+        final JComponent c = buffer.besideDisplay(this);
+        if (c == beside)
+            return;
+        if (beside != null)
+            remove(beside);
+        beside = c;
+        if (c != null)
+            add(c, BorderLayout.WEST);
+        revalidate();
+        repaint();
+    }
+
     public void addVerticalScrollBar() {
         if (verticalScrollBar == null) {
             verticalScrollBar = new VerticalScrollBar(this);
@@ -893,7 +909,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     // Find or create a view of buf.
-    private View findOrCreateView(Buffer buf) {
+    View findOrCreateView(Buffer buf) {
         View view = views.get(buf);
         if (view == null) {
             view = buf.getLastView();
@@ -2744,6 +2760,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
         updateHint();
         updateFilterBar();
+        updateBeside();
 
         // A frameless editor, as a test's, has none of these.
         if (frame != null) {
@@ -2778,6 +2795,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         // Find or create a view of this buffer.
         findOrCreateView(buffer);
         restoreView();
+        updateBeside();
 
         frame.updateTitle();
         frame.setMenu();
@@ -3135,12 +3153,20 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         }
     }
 
+    // Where the window was when its buffer was last told it scrolled.
+    private Line scrolledTop;
+    private int scrolledPixels;
+
     public void updateScrollBars() {
         if (buffer == null)
             return; // Avoid NPE.
-        // After any scroll: a buffer may scroll others with it, as a diff's sides.
-        if (display.getTopLine() != null)
+        // After a scroll: a buffer may scroll others with it, as a comparison's sides.
+        final Line top = display.getTopLine();
+        if (top != null && (top != scrolledTop || display.getPixelsAboveTopLine() != scrolledPixels)) {
+            scrolledTop = top;
+            scrolledPixels = display.getPixelsAboveTopLine();
             buffer.scrolled(this);
+        }
         if (!displayReady)
             return;
         updateVerticalScrollBar();

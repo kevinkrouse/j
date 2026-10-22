@@ -1472,7 +1472,42 @@ plan with why it is left, before the next phase starts.
      a fold opens it, and `Buffer.jumpTarget` takes `gg`, `G`, `:N`,
      `jumpToLine` and the ends of the buffer, there, to a closed fold's count
      line, but not an operator's `gg` or `G`, which takes in the fold. A change of mode
-     keeps the folds that were open. Left: the track, `v`
+     keeps the folds that were open. The track is `CompareTrack`, the
+     component `Buffer.besideDisplay` gives a window of the new side, at
+     its display's left (`Editor.updateBeside`): `TrackGeometry.bands`, a
+     pure function of the changes and each side's line tops, gives each
+     change in view a band, its edges cubic Béziers, a side with no lines a
+     point under the line before; the tops are walked once per paint as
+     `Buffer.getY` counts them, less each window's scroll. It is repainted
+     on any scroll of either side and on a fold opening or closing. By
+     default the sides are not aligned, as IntelliJ's are not: no filler
+     rows, and the scroll lock maps the place at the middle of one window
+     to the other's middle through `ScrollMap`, piecewise linear over the
+     changes, a change with no lines on one side taking in the line before
+     it (or after it, at the top) so the other side does not jump; both at
+     the top when either is. `compareAlign` keeps the fillers and the
+     row-for-row lock. The place matched slides from the middle to the
+     window's top over its first half window down, and to its bottom over
+     its last, so that the ends are left smoothly; an empty side's blank
+     line spans the other side. The other caret follows only to a line in
+     view, as framing the other window would pull it from where the lock
+     put it; a fold opening or closing moves the windows with the lock
+     held, then scrolls the other side to match once (`resync`). Each
+     side's line positions are `SideGeometry`, one walk kept until the
+     side's first line, fold version or rows version
+     (`VirtualTextLayer.rowsVersion`) changes, which the lock and the
+     track read. A comparison of a file follows it, with the change marks
+     on or off: a `Buffer.Follower` (`VcsCompareCommands.Following`, the
+     comparison's `CompareBuffer.Source`) is told of each edit, undo or
+     reload and of each look at its version control state, and a moment
+     later reads what is staged (`BasesCache`, as the change marks do: kept
+     until the state is looked at again, and not when git could not say)
+     and diffs on a worker thread, then shows it, only the last asked for;
+     not while no window shows it, until one does. A side whose text is the
+     same keeps its lines and their parse, its open folds stay open where
+     they overlap the folds before, the other side scrolls to match it, and
+     each window keeps its caret, selection and scroll. It stops when the
+     comparison closes or the buffer is saved as another file. Left: `v`
      from the status's and the log's diffs, the log's layout for it, `s`
      and `w`.
 7. **Branches relative to others, and stash.** The parent branch, the

@@ -109,6 +109,14 @@ public interface Line {
 
     Line nextVisible();
 
+    /** This line, or, hidden, the next one shown, or else the one before. */
+    default Line shown() {
+        if (!isHidden())
+            return this;
+        final Line next = nextVisible();
+        return next != null ? next : previousVisible() != null ? previousVisible() : this;
+    }
+
     boolean isBefore(Line line);
 
     Line copy();

@@ -527,7 +527,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     // Does NOT assume line is after topLine.
     private int getAbsoluteY(Line line) {
         int y = 0;
-        for (Line l = editor.getBuffer().getFirstLine(); l != null && l != line; l = l.nextVisible())
+        for (Line l = editor.getBuffer().firstVisibleLine(); l != null && l != line; l = l.nextVisible())
             y += rowHeight(l);
         return y;
     }
@@ -1389,6 +1389,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         drawVerticalRule(paintLineGraphics, 0, line.getHeight());
         drawText(paintLineGraphics, textArray, totalChars, formatArray, 0, caretBreakCol(line, totalChars));
         drawEndOfLine(paintLineGraphics, line, totalChars, 0);
+        drawLineRules(paintLineGraphics, line, 0);
         changedLines.remove(line);
 
         g.drawImage(paintLineImage, 0, y, paintLineImageWidth, paintLineImageHeight, null);
@@ -1653,6 +1654,19 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if (shade != null) {
                 g2d.setColor(shade);
                 g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, line.getHeight());
+            }
+        }
+    }
+
+    // The formatter's rules across line's top and bottom, over its text.
+    private void drawLineRules(Graphics2D g2d, Line line, int y) {
+        final Formatter f = editor.getFormatter();
+        final int h = Math.max(1, UIScale.scale(1));
+        for (boolean bottom : new boolean[] { false, true }) {
+            final Color c = f.getLineRule(line, bottom);
+            if (c != null) {
+                g2d.setColor(c);
+                g2d.fillRect(gutterWidth, bottom ? y + line.getHeight() - h : y, getWidth() - gutterWidth, h);
             }
         }
     }
@@ -2163,6 +2177,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 } else
                     drawVerticalRule(g2d, y, line.getHeight());
                 drawEndOfLine(g2d, line, totalChars, y);
+                drawLineRules(g2d, line, y);
                 changedLines.remove(line);
             }
             paintRowsBelow(line, g2d, y + line.getHeight());
@@ -3249,7 +3264,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     // y is absolute offset from start of buffer.
     private Line lineFromAbsoluteY(int y) {
-        Line line = editor.getBuffer().getFirstLine();
+        Line line = editor.getBuffer().firstVisibleLine();
         if (line != null) {
             int total = 0;
             while (true) {

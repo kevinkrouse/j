@@ -271,6 +271,14 @@ public abstract class Formatter {
         return null;
     }
 
+    /**
+     * A rule across line's top, or its bottom with bottom, as where a
+     * comparison's other side has lines this one lacks; or null for none.
+     */
+    public Color getLineRule(Line line, boolean bottom) {
+        return null;
+    }
+
     /** The color getSpans's spans are filled with. */
     public Color getSpanColor(Line line) {
         return null;

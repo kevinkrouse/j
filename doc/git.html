@@ -129,19 +129,27 @@ being edited side by side with what is staged of it, across the frame: the
 staged text at the left and the buffer's at the right, saved or not, each in
 the file's mode and encoding, and read-only. A file not in the index, new or
 in a conflict, is all added. A changed line is shaded blue on both sides,
-the words that differ in it a stronger blue, an added one green at the right and a removed one red at the left, and where
-one side has more lines in a change the other has blank rows, so that the
-lines both have stay level. Runs of unchanged lines are folded on both sides,
+the words that differ in it a stronger blue, an added one green at the right
+and a removed one red at the left. Between the two, each change is a band
+from its lines at the left to its lines at the right, narrowing to a point on
+a side that has none, where a line across that side in the change's color marks
+where its lines would be. Scrolling either side scrolls the other through the
+changes, keeping the lines at the middle of the two together, so that the side
+with more lines in a change scrolls faster across it and the bands bend as it
+does. With <a href="preferences.html#compareAlign">compareAlign</a>, a side
+with fewer lines in a change has blank rows there instead, and the two scroll
+row for row. Runs of unchanged lines are folded on both sides,
 but for the three next to a change, with how many lines are hidden at the end
 of the line over each, or under it for one at the top. These are the diff's
 only folds, not the file's mode's: a click on that count or the gutter's
 marker, <b>Tab</b> on that line, or vim's <b>za</b>, <b>zo</b> and <b>zc</b>
 there or in the fold open or close one on both sides, and <b>zR</b> and
 <b>zM</b> all of them. A jump into a closed fold, as <b>gg</b>, <b>G</b> or
-<b>:</b><i>N</i>, stops at the line with its count. Scrolling either side scrolls the other with it,
-by keys, the wheel or the scroll bar, and the caret moving on one side moves
-the other's to the same row, or to the line above a blank one when that is in
-view. <b>n</b> and <b>p</b> go from change to change (<b>]c</b> and
+<b>:</b><i>N</i>, stops at the line with its count. Either side scrolls the
+other, by keys, the wheel or the scroll bar, and the caret moving on one side
+moves the other's to its line there, or to the line before a change's lines
+the other has none of, when that is in view. A comparison of a file follows
+it: an edit, a reload from disk or staging shows a moment later. <b>n</b> and <b>p</b> go from change to change (<b>]c</b> and
 <b>[c</b> in vim edit mode, where <b>n</b> and <b>p</b> are search's), and
 <b>q</b> closes it, putting back the windows from before. Showing the same
 file again shows its diff anew in place of the old one.

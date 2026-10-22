@@ -34,6 +34,9 @@ public final class View implements Cloneable {
     int lineNumber;
     int offs;
     int topLineNumber;
+    // The mark's, kept by invalidate; -1 for none.
+    int markLineNumber = -1;
+    int markOffs;
     long timestamp;
 
     // An extension's place in a buffer that isn't lines of a file: a mailbox's entries.
@@ -88,6 +91,10 @@ public final class View implements Cloneable {
         return topLineNumber;
     }
 
+    public int getPixelsAboveTopLine() {
+        return pixelsAboveTopLine;
+    }
+
     public Object getTopEntry() {
         return topEntry;
     }
@@ -128,10 +135,15 @@ public final class View implements Cloneable {
         sidebarComponent = c;
     }
 
+    /** Its lines dropped for their numbers, as when the buffer's lines are replaced; resolve has them back. */
     public void invalidate() {
         if (dot != null) {
             lineNumber = dot.lineNumber();
             offs = dot.getOffset();
+        }
+        if (mark != null) {
+            markLineNumber = mark.lineNumber();
+            markOffs = mark.getOffset();
         }
         dot = null;
         mark = null;
@@ -140,9 +152,37 @@ public final class View implements Cloneable {
         if (topLine != null)
             topLineNumber = topLine.lineNumber();
         topLine = null;
-        pixelsAboveTopLine = 0;
         if (!(sidebarComponent instanceof DirectoryTree))
             sidebarComponent = null;
+    }
+
+    /**
+     * The caret, mark and top line invalidated had again from their numbers
+     * in buffer: past its end at its last line, an offset past a line's end
+     * at that end, and a hidden top line at the next one shown, without the
+     * pixels it was scrolled by.
+     */
+    public void resolve(Buffer buffer) {
+        if (dot == null)
+            dot = at(buffer, lineNumber, offs);
+        if (mark == null && markLineNumber >= 0)
+            mark = at(buffer, markLineNumber, markOffs);
+        if (topLine == null) {
+            final Line line = line(buffer, topLineNumber);
+            topLine = line == null ? null : line.shown();
+            if (topLine == null || topLine.lineNumber() != topLineNumber)
+                pixelsAboveTopLine = 0;
+        }
+    }
+
+    private static Line line(Buffer buffer, int n) {
+        final Line line = buffer.getLine(n);
+        return line != null ? line : buffer.getLastLine();
+    }
+
+    private static Position at(Buffer buffer, int n, int offset) {
+        final Line line = line(buffer, n);
+        return line == null ? null : new Position(line, Math.max(0, Math.min(offset, line.length())));
     }
 
     @Override
@@ -160,6 +200,8 @@ public final class View implements Cloneable {
         view.lineNumber = lineNumber;
         view.offs = offs;
         view.topLineNumber = topLineNumber;
+        view.markLineNumber = markLineNumber;
+        view.markOffs = markOffs;
         view.pixelsAboveTopLine = pixelsAboveTopLine;
         return view;
     }

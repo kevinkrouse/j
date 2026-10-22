@@ -24,35 +24,24 @@ import java.awt.event.KeyEvent;
 import org.armedbear.j.KeyMap;
 
 /**
- * A side's keys over its file's mode's: q closes the diff, and outside vim
- * n and p go from change to change and Tab opens or closes a fold; in vim n and p are
- * its search's, ]c and [c go by change, and its z keys fold. Made again when the mode's map is, or changes;
- * one for both sides.
+ * A side's keys over its file's mode's: q closes it, and outside vim n and
+ * p go from change to change and Tab opens or closes a fold; in vim n and p
+ * are its search's, ]c and [c go by change and its z keys fold. Made again
+ * when the mode's map changes; one for both sides.
  */
 final class SideKeys {
-    private KeyMap base;
-    private int baseChanges;
-    private KeyMap made;
-    private KeyMap modalBase;
-    private int modalChanges;
-    private KeyMap modalMade;
+    // A map made over base, as base was at changes; one modal, one not.
+    private record Made(KeyMap base, int changes, KeyMap map) {}
+
+    private final Made[] made = new Made[2];
 
     KeyMap over(KeyMap map, boolean modal) {
         final int changes = map == null ? 0 : map.changes();
-        if (modal) {
-            if (modalMade == null || modalBase != map || modalChanges != changes) {
-                modalBase = map;
-                modalChanges = changes;
-                modalMade = with(map, true);
-            }
-            return modalMade;
-        }
-        if (made == null || base != map || baseChanges != changes) {
-            base = map;
-            baseChanges = changes;
-            made = with(map, false);
-        }
-        return made;
+        final int i = modal ? 1 : 0;
+        final Made m = made[i];
+        if (m == null || m.base() != map || m.changes() != changes)
+            made[i] = new Made(map, changes, with(map, modal));
+        return made[i].map();
     }
 
     private static KeyMap with(KeyMap map, boolean modal) {

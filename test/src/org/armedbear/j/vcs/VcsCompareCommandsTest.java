@@ -22,6 +22,7 @@ package org.armedbear.j.vcs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,6 +38,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
+import org.armedbear.j.Property;
 import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.junit.jupiter.api.AfterEach;
@@ -50,11 +52,18 @@ public class VcsCompareCommandsTest {
 
     private GitFixture git;
     private EditorHarness h;
+    // A window showing the comparison, which follows its file only while shown.
+    private EditorHarness shown;
     private Buffer file;
 
     @AfterEach
     public void tearDown() throws Exception {
         onEdt(() -> {
+            // Not shown when it closes, which would want the window's frame.
+            if (shown != null) {
+                shown.showBuffer(shown.buffer());
+                shown.close();
+            }
             final List<Buffer> all = new ArrayList<>();
             for (Buffer b : Editor.getBufferList())
                 all.add(b);
@@ -65,6 +74,7 @@ public class VcsCompareCommandsTest {
                 h.showBuffer(h.buffer());
                 h.close();
             }
+
             if (file != null)
                 Editor.getBufferList().remove(file);
         });
@@ -123,6 +133,90 @@ public class VcsCompareCommandsTest {
     }
 
     @Test
+    public void anEditAndStagingItAreShownAsTheyHappen() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("A.java", "class A {\n}\n");
+        git.commitAll("first");
+        final CompareBuffer d = diff("A.java");
+        onEdt(() -> {
+            shown = EditorHarness.create();
+            shown.showBuffer(d);
+            Editor.setCurrentEditor(h.editor());
+            h.editor().setDot(file.getFirstLine(), 0);
+            h.editor().moveCaretToDotCol();
+        });
+        h.keys("X");
+        until(() -> text(d).get(0).equals("Xclass A {"));
+        onEdt(() -> assertEquals(List.of("class A {", "}"), text(d.getOld()), "not staged yet"));
+        git.write("A.java", "Xclass A {\n}\n");
+        git.git("add", "A.java");
+        onEdt(() -> file.checkVCS());
+        until(() -> text(d.getOld()).get(0).equals("Xclass A {"));
+        onEdt(() -> assertEquals(List.of(), d.getAlignment().changes()));
+    }
+
+    @Test
+    public void itFollowsTheBufferWithItsChangeMarksOff() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("A.java", "class A {\n}\n");
+        git.commitAll("first");
+        final CompareBuffer d = diff("A.java");
+        onEdt(() -> {
+            shown = EditorHarness.create();
+            shown.showBuffer(d);
+            Editor.setCurrentEditor(h.editor());
+            file.setProperty(Property.VCS_SIGNS, false);
+            VersionControl.attachSigns(file);
+            assertNull(file.getSignsUpdater(), "no change marks");
+            h.editor().setDot(file.getFirstLine(), 0);
+            h.editor().moveCaretToDotCol();
+        });
+        h.keys("X");
+        until(() -> text(d).get(0).equals("Xclass A {"));
+    }
+
+    @Test
+    public void outOfEveryWindowItIsShownOnlyWhenShownAgain() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("A.java", "class A {\n}\n");
+        git.commitAll("first");
+        final CompareBuffer d = diff("A.java");
+        onEdt(() -> {
+            h.editor().setDot(file.getFirstLine(), 0);
+            h.editor().moveCaretToDotCol();
+        });
+        h.keys("X");
+        Thread.sleep(400);
+        onEdt(() -> {
+            assertEquals(List.of("class A {", "}"), text(d), "not while no window shows it");
+            shown = EditorHarness.create();
+            shown.showBufferRestored(d);
+            Editor.setCurrentEditor(h.editor());
+        });
+        until(() -> text(d).get(0).equals("Xclass A {"));
+    }
+
+    @Test
+    public void savedAsAnotherFileItIsNoLongerFollowed() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("A.java", "class A {\n}\n");
+        git.commitAll("first");
+        final CompareBuffer d = diff("A.java");
+        onEdt(() -> {
+            shown = EditorHarness.create();
+            shown.showBuffer(d);
+            Editor.setCurrentEditor(h.editor());
+            file.setFile(File.getInstance(git.root.resolve("B.java").toString()));
+            h.editor().setDot(file.getFirstLine(), 0);
+            h.editor().moveCaretToDotCol();
+        });
+        h.keys("X");
+        // A moment for it to have been shown, had it been.
+        Thread.sleep(400);
+        onEdt(() -> assertEquals(List.of("class A {", "}"), text(d), "A's, as it was"));
+    }
+
+    @Test
     public void anUnchangedFileWithAFinalNewlineHasNoChange() throws Exception {
         git = GitFixture.init(tmp);
         git.write("A.java", "class A {\n}\n");
@@ -165,6 +259,21 @@ public class VcsCompareCommandsTest {
 
     @Test
     public void aFileNotInTheIndexIsAllAdded() throws Exception {
+        final String was = Editor.preferences().getStringProperty(Property.COMPARE_ALIGN.key());
+        Editor.preferences().setProperty(Property.COMPARE_ALIGN, "true");
+        try {
+            aFileNotInTheIndexIsAllAddedAligned();
+        }
+        finally {
+            if (was == null)
+                Editor.preferences().removeProperty(Property.COMPARE_ALIGN.key());
+            else
+                Editor.preferences().setProperty(Property.COMPARE_ALIGN.key(), was);
+        }
+    }
+
+    // Aligned, with a filler row for each line it has at the right.
+    private void aFileNotInTheIndexIsAllAddedAligned() throws Exception {
         git = GitFixture.init(tmp);
         git.write("x.txt", "x\n");
         git.commitAll("first");

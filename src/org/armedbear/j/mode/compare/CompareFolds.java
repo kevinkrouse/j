@@ -38,13 +38,13 @@ import org.armedbear.j.mode.compare.DiffAlignment.Kind;
 import org.armedbear.j.mode.compare.DiffAlignment.Row;
 
 /**
- * A comparison's folds, in place of its file's mode's, as vim's diff
- * mode and IntelliJ's diff viewer have theirs: each run of unchanged lines
- * but for the CONTEXT next to a change, the same lines on both sides, opened
- * and closed on both at once. Each is labeled with how many lines it hides.
+ * A comparison's folds, in place of its file's mode's, as vim's diff mode
+ * and IntelliJ's diff viewer have theirs: each run of unchanged lines but
+ * for the CONTEXT next to a change, the same lines on both sides, opened and
+ * closed on both at once, labeled with how many lines it hides.
  */
 final class CompareFolds {
-    // The unchanged lines kept by a change, as a hunk's context.
+    // The unchanged lines kept next to a change, as a hunk's context.
     static final int CONTEXT = 3;
     // The fewest lines a fold hides: one would only become its label.
     private static final int MIN = 2;
@@ -66,15 +66,15 @@ final class CompareFolds {
             return old ? oldFrom : newFrom;
         }
 
-        // The same fold, as a later layout of the same texts makes it.
-        List<Integer> key() {
-            return List.of(oldFrom, newFrom, count);
-        }
-
-        // The line its marker and label are at: the one over it, or under
+        // The line its marker and count are at: the one over it, or under
         // it at the top.
         int anchor(boolean old) {
             return from(old) > 0 ? from(old) - 1 : from(old) + count;
+        }
+
+        // Whether it hides any line other hides on a side.
+        boolean overlaps(Fold other, boolean old) {
+            return from(old) < other.from(old) + other.count && other.from(old) < from(old) + count;
         }
     }
 
@@ -95,14 +95,15 @@ final class CompareFolds {
     }
 
     /**
-     * alignment's unchanged runs folded, none if nothing changed, but for
-     * those open before that it has too, as after a change of mode.
+     * alignment's unchanged runs folded, none if nothing changed. A fold
+     * open before stays open where it hides lines it hid on a side whose
+     * text is the same, so that an edit or a change of mode leaves it be.
      */
-    void reset(DiffAlignment alignment) {
-        final Set<List<Integer>> open = new HashSet<>();
+    void reset(DiffAlignment alignment, boolean sameOld, boolean sameNew) {
+        final List<Fold> open = new ArrayList<>();
         for (Fold f : folds)
             if (!f.closed)
-                open.add(f.key());
+                open.add(f);
         folds.clear();
         final List<Row> rows = alignment.rows();
         int r = 0;
@@ -118,12 +119,14 @@ final class CompareFolds {
             final int to = end == rows.size() ? end : end - CONTEXT;
             if (to - from >= MIN) {
                 final Fold f = new Fold(rows.get(from).oldLine(), rows.get(from).newLine(), to - from);
-                f.closed = !open.contains(f.key());
+                for (Fold o : open)
+                    if (sameOld && f.overlaps(o, true) || sameNew && f.overlaps(o, false))
+                        f.closed = false;
                 folds.add(f);
             }
             r = end;
         }
-        // Not its windows, still at the lines of the layout before: they are placed after.
+        // Not its windows, still at the lines laid before: they are placed after.
         apply(true, false);
     }
 
@@ -134,14 +137,12 @@ final class CompareFolds {
         final boolean old = side == owner.getOld();
         final Fold f = at(l, old, true);
         final Line anchor = f == null ? null : side.getLine(f.anchor(old));
-        return anchor != null && !anchor.isHidden() ? anchor : CompareBuffer.shown(l);
+        return anchor != null && !anchor.isHidden() ? anchor : l.shown();
     }
 
     /** side's labels again, in its formatter's colors now, as after a change of theme. */
     void relabel(ViewBuffer side) {
         label(side, CompareBuffer.lines(side), side == owner.getOld());
-        for (Editor ed : side.windows())
-            ed.getDisplay().repaint();
     }
 
     /**
@@ -172,68 +173,96 @@ final class CompareFolds {
         apply(true, true);
     }
 
-    // Each side's lines hidden as its closed folds have them, and no
-    // others; then the windows off them, before anything is painted, as
-    // the labels are: a window can't be at a line folded away; then each
-    // closed fold labeled. Unless forced, nothing more if no line changed,
-    // as on each renumbering that opened or closed nothing; with windows
-    // false, the windows left as they are.
+    /**
+     * Each side's lines hidden as its closed folds have them, and no others,
+     * and each closed fold labeled; unless forced, nothing if no line
+     * changed, as on each renumbering. With windows, the windows then moved
+     * off lines folded away, a caret in view kept in view, and the other
+     * side scrolled to match once all are moved.
+     */
     private void apply(boolean force, boolean windows) {
+        final List<ViewBuffer> sides = List.of(owner.getOld(), owner);
+        final List<List<Line>> lines = new ArrayList<>();
+        final List<boolean[]> masks = new ArrayList<>();
+        boolean changed = false;
+        for (ViewBuffer side : sides) {
+            final List<Line> ls = CompareBuffer.lines(side);
+            final boolean[] mask = mask(ls.size(), side == owner.getOld());
+            lines.add(ls);
+            masks.add(mask);
+            changed |= differs(ls, mask);
+        }
+        if (!changed && !force)
+            return;
+        final Set<Editor> inView = new HashSet<>();
+        if (windows)
+            for (ViewBuffer side : sides)
+                for (Editor ed : side.windows())
+                    if (ed.getDot() != null
+                            && !ed.getDotLine().isHidden()
+                            && ed.getDisplay().getLineTop(ed.getDotLine()) >= 0)
+                        inView.add(ed);
         applying = true;
         try {
-            final List<ViewBuffer> sides = List.of(owner.getOld(), owner);
-            final List<List<Line>> lines = new ArrayList<>();
-            boolean changed = false;
-            for (ViewBuffer side : sides) {
-                final List<Line> ls = CompareBuffer.lines(side);
-                lines.add(ls);
-                if (hide(ls, side == owner.getOld())) {
-                    side.renumber();
-                    changed = true;
-                }
-            }
-            if (!changed && !force)
-                return;
-            if (windows)
-                for (ViewBuffer side : sides)
-                    for (Editor ed : side.windows())
-                        CompareBuffer.offFolds(ed);
             for (int i = 0; i < sides.size(); i++) {
                 final ViewBuffer side = sides.get(i);
-                label(side, lines.get(i), side == owner.getOld());
-                side.foldsChanged();
-                if (!windows)
-                    continue;
-                for (Editor ed : side.windows()) {
-                    ed.setUpdateFlag(REFRAME | REPAINT);
-                    if (ed.getDot() != null)
-                        ed.reframe();
-                    ed.getDisplay().repaint();
+                if (differs(lines.get(i), masks.get(i))) {
+                    hide(lines.get(i), masks.get(i));
+                    side.renumber();
                 }
+                // The gutter's markers too, which a new fold may move.
+                side.foldsChanged();
+                label(side, lines.get(i), side == owner.getOld());
             }
+            if (windows)
+                owner.whileBinding(() -> {
+                    for (ViewBuffer side : sides)
+                        for (Editor ed : side.windows())
+                            place(ed, inView.contains(ed));
+                });
         }
         finally {
             applying = false;
         }
+        if (windows)
+            owner.resync();
+        owner.repaintTracks();
     }
 
-    // A side's lines hidden as its closed folds have them; whether any
-    // changed.
-    private boolean hide(List<Line> lines, boolean old) {
-        final boolean[] hide = new boolean[lines.size()];
+    // ed off lines folded away, framed again only if its caret was folded
+    // away or, in view before, is not now: else it stays where it is
+    // scrolled to.
+    private static void place(Editor ed, boolean wasInView) {
+        final boolean moved = CompareBuffer.offFolds(ed);
+        if (moved || wasInView && ed.getDisplay().getLineTop(ed.getDotLine()) < 0) {
+            ed.setUpdateFlag(REFRAME | REPAINT);
+            ed.reframe();
+        }
+        ed.getDisplay().repaint();
+        ed.updateScrollBars();
+    }
+
+    // Which of a side's n lines its closed folds hide.
+    private boolean[] mask(int n, boolean old) {
+        final boolean[] mask = new boolean[n];
         for (Fold f : folds)
             if (f.closed)
-                for (int i = f.from(old); i < f.from(old) + f.count && i < hide.length; i++)
-                    hide[i] = true;
-        boolean changed = false;
-        for (int i = 0; i < hide.length; i++) {
-            final Line l = lines.get(i);
-            if (l.isHidden() != hide[i] || l.getHidden() > 1) {
-                l.setHidden(hide[i] ? 1 : 0);
-                changed = true;
-            }
-        }
-        return changed;
+                for (int i = f.from(old); i < f.from(old) + f.count && i < n; i++)
+                    mask[i] = true;
+        return mask;
+    }
+
+    // Whether lines are hidden other than as mask has them.
+    private static boolean differs(List<Line> lines, boolean[] mask) {
+        for (int i = 0; i < mask.length; i++)
+            if (lines.get(i).isHidden() != mask[i] || lines.get(i).getHidden() > 1)
+                return true;
+        return false;
+    }
+
+    private static void hide(List<Line> lines, boolean[] mask) {
+        for (int i = 0; i < mask.length; i++)
+            lines.get(i).setHidden(mask[i] ? 1 : 0);
     }
 
     // After the line over each closed fold, or under it at the top, as the
@@ -260,9 +289,8 @@ final class CompareFolds {
         return null;
     }
 
-    // A side's folds: the diff's, opened and closed on both sides by the
-    // fold commands, vim's z keys and the gutter's markers. There are no
-    // others to make.
+    // A side's folds: the comparison's, opened and closed on both sides by
+    // the fold commands, vim's z keys and the gutter's markers.
     private final class SideFolds implements Folds {
         private final boolean old;
 

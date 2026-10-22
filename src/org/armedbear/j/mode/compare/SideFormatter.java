@@ -28,13 +28,15 @@ import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
+import org.armedbear.j.mode.compare.DiffAlignment.Change;
 import org.armedbear.j.mode.compare.DiffAlignment.Kind;
 
 /**
  * A side of a comparison in its file's colors, the file's mode's
  * formatter's, with each line of a change shaded: removed on red at the old
  * side, added on green at the new, changed on blue on both, the words that
- * differ in a changed pair a stronger blue.
+ * differ in a changed pair a stronger blue. Unaligned, a rule in the
+ * change's color where the other side has lines this one lacks.
  */
 final class SideFormatter extends Formatter {
     private final Formatter own;
@@ -42,21 +44,32 @@ final class SideFormatter extends Formatter {
     // The other side's lines, which a changed line's words are against.
     private final List<String> other;
     private final boolean old;
+    // Unaligned, the kind of the change whose lines the other side has
+    // before each line, and after the last at the end; else empty.
+    private final Kind[] rules;
     private Color added;
     private Color removed;
     private Color changed;
     private Color changedWords;
     private Color filler;
     private Color fold;
+    private Color addedEdge;
+    private Color removedEdge;
+    private Color changedEdge;
     // Run when the colors are made again, as for a new theme: the fillers
     // take the new filler color.
     private Runnable onReset;
 
-    SideFormatter(Formatter own, DiffAlignment alignment, List<String> other, boolean old) {
+    SideFormatter(Formatter own, DiffAlignment alignment, List<String> other, boolean old, boolean aligned) {
         this.own = own;
         this.alignment = alignment;
         this.other = other;
         this.old = old;
+        final int size = old ? alignment.oldSize() : alignment.newSize();
+        rules = new Kind[aligned ? 0 : size + 1];
+        for (Change c : aligned ? List.<Change>of() : alignment.changes())
+            if ((old ? c.oldCount() : c.newCount()) == 0)
+                rules[old ? c.oldStart() : c.newStart()] = old ? Kind.ADDED : Kind.REMOVED;
     }
 
     /** The mode's formatter it is over. */
@@ -87,12 +100,17 @@ final class SideFormatter extends Formatter {
         // An empty side's blank line is a filler's row.
         if (past(line) && alignment.rows().size() > 0)
             return filler;
-        return switch (kindOf(line)) {
-            case ADDED -> added;
-            case REMOVED -> removed;
-            case CHANGED -> changed;
-            case SAME -> own.getLineBackground(line);
-        };
+        final Kind kind = kindOf(line);
+        return kind == Kind.SAME ? own.getLineBackground(line) : shade(kind);
+    }
+
+    @Override
+    public Color getLineRule(Line line, boolean bottom) {
+        final int n = line.lineNumber();
+        // Over the line before which the other side has lines, or under the
+        // last for lines after it.
+        final int at = !bottom ? n : n == rules.length - 2 ? n + 1 : -1;
+        return n >= 0 && at >= 0 && at < rules.length && rules[at] != null ? edge(rules[at]) : null;
     }
 
     @Override
@@ -125,6 +143,26 @@ final class SideFormatter extends Formatter {
         return fold;
     }
 
+    /** A change's lines' color, of kind, and its band's in the track. */
+    Color shade(Kind kind) {
+        shades();
+        return switch (kind) {
+            case ADDED -> added;
+            case REMOVED -> removed;
+            default -> changed;
+        };
+    }
+
+    /** A band's edge in the track and a rule's color, stronger. */
+    Color edge(Kind kind) {
+        shades();
+        return switch (kind) {
+            case ADDED -> addedEdge;
+            case REMOVED -> removedEdge;
+            default -> changedEdge;
+        };
+    }
+
     /** The background of a filler row, where the other side has lines. */
     Color fillerBackground() {
         shades();
@@ -143,6 +181,10 @@ final class SideFormatter extends Formatter {
         changedWords = DefaultTheme.blend(bg, ChangeColors.modified(dark), dark ? 0.38 : 0.30);
         filler = DefaultTheme.blend(bg, getColor(0), 0.05);
         fold = DefaultTheme.blend(bg, getColor(0), 0.55);
+        final double edge = dark ? 0.55 : 0.45;
+        addedEdge = DefaultTheme.blend(bg, ChangeColors.added(dark), edge);
+        removedEdge = DefaultTheme.blend(bg, ChangeColors.removed(dark), edge);
+        changedEdge = DefaultTheme.blend(bg, ChangeColors.modified(dark), edge);
     }
 
     // The rest is the file's formatter's.

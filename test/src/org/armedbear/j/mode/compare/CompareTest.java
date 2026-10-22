@@ -23,6 +23,7 @@ package org.armedbear.j.mode.compare;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -43,10 +44,12 @@ import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.MotionCommands;
+import org.armedbear.j.Position;
 import org.armedbear.j.Preferences;
 import org.armedbear.j.Property;
 import org.armedbear.j.VirtualText;
 import org.armedbear.j.WindowLayout;
+import org.armedbear.j.mode.compare.DiffAlignment.Kind;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.vcs.signs.EditorHunks.Side;
@@ -63,8 +66,21 @@ public class CompareTest {
     private EditorHarness left;
     private EditorHarness right;
 
+    // What compareAlign was before aligned() set it, if it did.
+    private boolean alignSet;
+    private String alignWas;
+
+    // The comparisons opened after this aligned, with filler rows.
+    private void aligned() {
+        alignWas = Editor.preferences().getStringProperty(Property.COMPARE_ALIGN.key());
+        alignSet = true;
+        Editor.preferences().setProperty(Property.COMPARE_ALIGN, "true");
+    }
+
     @AfterEach
     public void tearDown() throws Exception {
+        if (alignSet)
+            restore(Property.COMPARE_ALIGN, alignWas);
         onEdt(() -> {
             if (left != null) {
                 left.showBuffer(left.buffer());
@@ -109,6 +125,278 @@ public class CompareTest {
         });
     }
 
+    @Test
+    public void theTrackBandsEachChangeFromItsLinesAtTheLeftToItsLinesAtTheRight() throws Exception {
+        aligned();
+        windows();
+        onEdt(() -> {
+            final CompareTrack track = (CompareTrack) diff.besideDisplay(right.editor());
+            assertSame(track, diff.besideDisplay(right.editor()), "one per window");
+            final int ch = Display.getCharHeight();
+            // b changed into B and three lines after it: one row at the left,
+            // four at the right; then e and f removed, under d at the right,
+            // which is three filler rows lower at the left.
+            assertEquals(
+                List.of(
+                    new TrackGeometry.Band(Kind.CHANGED, ch, 2 * ch, ch, 5 * ch),
+                    new TrackGeometry.Band(Kind.REMOVED, 7 * ch, 9 * ch, 7 * ch, 7 * ch)),
+                track.bands(20 * ch));
+            right.editor().getDisplay().setTopLine(diff.getLine(5));
+            left.editor().getDisplay().setTopLine(diff.getOld().getLine(2));
+            assertEquals(2 * ch, track.bands(20 * ch).get(1).leftTop(), "where the windows are scrolled to");
+        });
+    }
+
+    @Test
+    public void unalignedTheSidesHaveNoFillersAndABandsEdgesSlope() throws Exception {
+        windows();
+        onEdt(() -> {
+            assertEquals(0, diff.getOld().getVirtualText().rowsBelow(diff.getOld().getLine(1)), "no fillers");
+            final int ch = Display.getCharHeight();
+            // e and f, old lines 4 and 5, removed under new line 6, d.
+            final TrackGeometry.Band removed =
+                    ((CompareTrack) diff.besideDisplay(right.editor())).bands(20 * ch).get(1);
+            assertEquals(new TrackGeometry.Band(Kind.REMOVED, 4 * ch, 6 * ch, 7 * ch, 7 * ch), removed);
+        });
+    }
+
+    // Sixty lines, twenty added after l29: new lines 30 to 49.
+    private void openInserted() throws Exception {
+        final StringBuilder a = new StringBuilder();
+        final StringBuilder b = new StringBuilder();
+        for (int i = 0; i < 60; i++) {
+            a.append('l').append(i).append('\n');
+            b.append('l').append(i).append('\n');
+            if (i == 29)
+                for (int j = 0; j < 20; j++)
+                    b.append('n').append(j).append('\n');
+        }
+        onEdt(
+            () -> diff = CompareBuffer
+                    .open(null, JavaMode.getMode(), "Ins.java", "old", side(a.toString()), "new", side(b.toString())));
+        onEdt(() -> {
+            diff.getFolds().setAllFolds(null, true);
+            left = EditorHarness.create().rows(10);
+            right = EditorHarness.create().rows(10);
+            left.showBuffer(diff.getOld());
+            right.showBuffer(diff);
+            left.editor().setTopLine(diff.getOld().getFirstLine());
+            right.editor().setTopLine(diff.getFirstLine());
+        });
+    }
+
+    // The place at the middle of ed's window.
+    private static double middle(Editor ed) {
+        return CompareBuffer.geometryOf(ed).placeAt(CompareBuffer.y(ed) + ed.getDisplay().getHeight() / 2);
+    }
+
+    @Test
+    public void unalignedScrollingOneSideTakesTheOthersMiddleThroughTheChanges() throws Exception {
+        openInserted();
+        onEdt(() -> {
+            right.editor().getDisplay().setTopLine(diff.getLine(40));
+            diff.scrolled(right.editor());
+            // New 45, the middle, is in the added run, which old line 29 spans.
+            final double expected = ScrollMap.of(diff.getAlignment().changes(), 60).toOld(middle(right.editor()));
+            assertEquals(29 + 16 / 21.0, expected, 1e-9);
+            assertEquals(expected, middle(left.editor()), 1.0 / Display.getCharHeight());
+            assertEquals(24, left.editor().getDisplay().getTopLine().lineNumber(), "slower: 16 lines behind");
+            right.editor().getDisplay().setTopLine(diff.getFirstLine());
+            diff.scrolled(right.editor());
+            assertEquals(0, CompareBuffer.y(left.editor()), "both at the top");
+        });
+    }
+
+    @Test
+    public void anUpdateKeepsTheCaretTheSelectionAndAnUnchangedSidesLines() throws Exception {
+        windows();
+        onEdt(() -> {
+            final Editor ed = right.editor();
+            ed.setDot(diff.getLine(5), 1);
+            ed.setMark(new Position(diff.getLine(6), 0));
+            final Line oldFirst = diff.getOld().getFirstLine();
+            final CompareBuffer.Text newText = side(NEW.replace("j\n", "J\n"));
+            diff.update(side(OLD), newText, DiffAlignment.of(side(OLD).keys(), newText.keys()));
+            assertEquals(5, ed.getDotLineNumber());
+            assertEquals(1, ed.getDotOffset(), "its column");
+            assertNotNull(ed.getMark(), "the selection");
+            assertEquals(6, ed.getMark().lineNumber());
+            assertSame(oldFirst, diff.getOld().getFirstLine(), "the old side, unchanged, kept as it was");
+            assertEquals("J", diff.getLine(10).getText());
+        });
+    }
+
+    // Sixty lines, twenty added after l1: new lines 2 to 21; both windows
+    // ten rows, at the top.
+    private void openAddedNearTheTop() throws Exception {
+        final StringBuilder a = new StringBuilder();
+        final StringBuilder b = new StringBuilder();
+        for (int i = 0; i < 60; i++) {
+            a.append('l').append(i).append('\n');
+            b.append('l').append(i).append('\n');
+            if (i == 1)
+                for (int j = 0; j < 20; j++)
+                    b.append('n').append(j).append('\n');
+        }
+        onEdt(
+            () -> diff = CompareBuffer
+                    .open(null, JavaMode.getMode(), "Top.java", "old", side(a.toString()), "new", side(b.toString())));
+        onEdt(() -> {
+            diff.getFolds().setAllFolds(null, true);
+            left = EditorHarness.create().rows(10);
+            right = EditorHarness.create().rows(10);
+            left.showBuffer(diff.getOld());
+            right.showBuffer(diff);
+            left.editor().setDot(diff.getOld().getFirstLine(), 0);
+            right.editor().setDot(diff.getFirstLine(), 0);
+            left.editor().setTopLine(diff.getOld().getFirstLine());
+            right.editor().setTopLine(diff.getFirstLine());
+        });
+    }
+
+    @Test
+    public void unalignedLeavingTheTopMovesTheOtherSideALittleNotAWindowsWorth() throws Exception {
+        openAddedNearTheTop();
+        onEdt(() -> {
+            final int ch = Display.getCharHeight();
+            // Two pixels down at the left: a few at the right, not the twenty
+            // lines its middle would be past.
+            left.editor().getDisplay().setPixelsAboveTopLine(2);
+            diff.getOld().scrolled(left.editor());
+            final int moved = CompareBuffer.y(right.editor());
+            assertTrue(moved >= 0 && moved < ch, "two pixels at the left: " + moved + " at the right");
+        });
+    }
+
+    @Test
+    public void unalignedTheOtherCaretDoesNotPullItsWindowAway() throws Exception {
+        openAddedNearTheTop();
+        onEdt(() -> {
+            // The left far down, the right where the lock puts it.
+            left.editor().getDisplay().setTopLine(diff.getOld().getLine(40));
+            diff.getOld().scrolled(left.editor());
+            final Line rightTop = right.editor().getDisplay().getTopLine();
+            left.editor().setDot(diff.getOld().getLine(1), 0);
+            diff.getOld().afterCommand(left.editor());
+            assertSame(rightTop, right.editor().getDisplay().getTopLine(), "not framed back to the top");
+        });
+    }
+
+    @Test
+    public void closingTheBottomFoldFromItsEndLeavesTheTopLineOutOfTheTopFold() throws Exception {
+        // Three hundred lines, l30 changed: folds over l0 to l26 and l34 on.
+        final StringBuilder a = new StringBuilder();
+        for (int i = 0; i < 300; i++)
+            a.append('l').append(i).append('\n');
+        final String b = a.toString().replace("l30\n", "changed\n");
+        onEdt(
+            () -> diff = CompareBuffer
+                    .open(null, JavaMode.getMode(), "Bottom.java", "old", side(a.toString()), "new", side(b)));
+        final boolean ready = Editor.displayReady();
+        Editor.setDisplayReady(true);
+        try {
+            onEdt(() -> {
+                right = EditorHarness.create().rows(10);
+                right.showBuffer(diff);
+                final Editor ed = right.editor();
+                diff.getFolds().setFoldAt(ed, diff.getLine(33), true);
+                ed.setDot(diff.getLine(299), 0);
+                ed.setTopLine(diff.getLine(290));
+                // What is shown now fits the window: the reframe that takes the
+                // caret to the fold scrolls back to the first line shown.
+                diff.getFolds().setFoldAt(ed, diff.getLine(299), false);
+                assertTrue(diff.getLine(299).isHidden(), "closed");
+                assertFalse(ed.getDisplay().getTopLine().isHidden(), "not in the top fold");
+                assertEquals(27, ed.getDisplay().getTopLine().lineNumber());
+            });
+        }
+        finally {
+            Editor.setDisplayReady(ready);
+        }
+    }
+
+    // The twenty lines of openLong, with lines before l0 in the new side.
+    private static CompareBuffer.Text longWith(String before) {
+        final StringBuilder b = new StringBuilder(before);
+        for (int i = 0; i < 20; i++)
+            b.append(i == 10 ? "changed" : "l" + i).append('\n');
+        return side(b.toString());
+    }
+
+    private static CompareBuffer.Text longOld() {
+        final StringBuilder a = new StringBuilder();
+        for (int i = 0; i < 20; i++)
+            a.append('l').append(i).append('\n');
+        return side(a.toString());
+    }
+
+    @Test
+    public void aFoldOpenStaysOpenWhenAnEditAboveItMovesIt() throws Exception {
+        openLong();
+        onEdt(() -> {
+            diff.getFolds().setFoldAt(null, diff.getLine(13), true);
+            assertFalse(diff.getLine(15).isHidden(), "the bottom fold open");
+            final CompareBuffer.Text edited = longWith("x\n");
+            diff.update(longOld(), edited, DiffAlignment.of(longOld().keys(), edited.keys()));
+            // Its lines one further down now.
+            assertFalse(diff.getLine(16).isHidden(), "still open");
+        });
+    }
+
+    @Test
+    public void aSideCutShortFramesItsWindowAgain() throws Exception {
+        windows();
+        final boolean ready = Editor.displayReady();
+        Editor.setDisplayReady(true);
+        try {
+            onEdt(() -> {
+                right.editor().setDot(diff.getLine(9), 0);
+                right.editor().setTopLine(diff.getLine(8));
+                final CompareBuffer.Text cut = side("a\nB\n");
+                diff.update(side(OLD), cut, DiffAlignment.of(side(OLD).keys(), cut.keys()));
+                assertEquals(0, right.editor().getDisplay().getTopLine().lineNumber(), "not left on its last line");
+            });
+        }
+        finally {
+            Editor.setDisplayReady(ready);
+        }
+    }
+
+    @Test
+    public void anEditAboveTheViewLeavesTheUnchangedSideWhereItIs() throws Exception {
+        openInserted();
+        onEdt(() -> {
+            left.editor().getDisplay().setTopLine(diff.getOld().getLine(40));
+            diff.getOld().scrolled(left.editor());
+            final Line leftTop = left.editor().getDisplay().getTopLine();
+            final StringBuilder b = new StringBuilder("x\ny\nz\n");
+            for (int i = 0; i < 60; i++) {
+                b.append('l').append(i).append('\n');
+                if (i == 29)
+                    for (int j = 0; j < 20; j++)
+                        b.append('n').append(j).append('\n');
+            }
+            final StringBuilder a = new StringBuilder();
+            for (int i = 0; i < 60; i++)
+                a.append('l').append(i).append('\n');
+            final CompareBuffer.Text edited = side(b.toString());
+            diff.update(side(a.toString()), edited, DiffAlignment.of(side(a.toString()).keys(), edited.keys()));
+            assertSame(leftTop, left.editor().getDisplay().getTopLine(), "the old side, unchanged, not dragged");
+        });
+    }
+
+    @Test
+    public void theTrackHasNoBandsWithoutTheOldSidesWindow() throws Exception {
+        open();
+        onEdt(() -> {
+            right = EditorHarness.create().rows(5);
+            right.showBuffer(diff);
+            right.editor().setTopLine(diff.getFirstLine());
+            assertEquals(List.of(), ((CompareTrack) diff.besideDisplay(right.editor())).bands(1000));
+            assertNull(diff.getOld().besideDisplay(right.editor()), "only the new side's windows have one");
+        });
+    }
+
     private static List<String> text(Buffer b) {
         final List<String> out = new ArrayList<>();
         for (Line l = b.getFirstLine(); l != null; l = l.next())
@@ -118,6 +406,7 @@ public class CompareTest {
 
     @Test
     public void eachSideIsItsTextInTheFilesModeWithFillersWhereTheOtherHasMore() throws Exception {
+        aligned();
         open();
         onEdt(() -> {
             assertEquals(List.of("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"), text(diff.getOld()));
@@ -173,6 +462,7 @@ public class CompareTest {
 
     @Test
     public void scrollingOneSideScrollsTheOtherToTheSameRow() throws Exception {
+        aligned();
         windows();
         onEdt(() -> {
             final int ch = Display.getCharHeight();
@@ -205,8 +495,23 @@ public class CompareTest {
             // f in view at the left, as the caret's line is: d at the top, at row 6.
             left.editor().setTopLine(diff.getOld().getLine(3));
             left.editor().setDot(diff.getOld().getLine(5), 0);
+            // As the dispatcher does: the display, which reports the scroll, then the command's end.
+            left.editor().updateDisplay();
             diff.getOld().afterCommand(left.editor());
             assertEquals("d", right.editor().getDotLine().getText(), "f, a filler at the right: d");
+        });
+    }
+
+    @Test
+    public void anUpdateThatDoesNotScrollLeavesTheOtherSideWhereItIs() throws Exception {
+        windows();
+        onEdt(() -> {
+            left.editor().setTopLine(diff.getOld().getLine(4));
+            right.editor().updateScrollBars();
+            assertEquals(4, left.editor().getDisplay().getTopLine().lineNumber());
+            right.editor().setTopLine(diff.getLine(1));
+            right.editor().updateScrollBars();
+            assertNotEquals(4, left.editor().getDisplay().getTopLine().lineNumber(), "a scroll moves it");
         });
     }
 
@@ -242,7 +547,41 @@ public class CompareTest {
     }
 
     @Test
+    public void unalignedARuleMarksWhereTheOtherSidesLinesAre() throws Exception {
+        open();
+        onEdt(() -> {
+            final SideFormatter left = (SideFormatter) diff.getOld().getFormatter();
+            final SideFormatter right = (SideFormatter) diff.getFormatter();
+            assertEquals(right.edge(Kind.REMOVED), right.getLineRule(diff.getLine(7), false), "over g: e f");
+            assertNull(right.getLineRule(diff.getLine(6), true), "not under d too");
+            assertNull(left.getLineRule(diff.getOld().getLine(4), false), "e, on its own side: none");
+            assertNull(left.getLineRule(diff.getOld().getLine(2), false), "b to B x y z, both sided: none");
+        });
+    }
+
+    @Test
+    public void unalignedARuleUnderTheLastLineOrOverAnEmptySidesBlankLine() throws Exception {
+        onEdt(() -> {
+            diff = CompareBuffer.open(null, JavaMode.getMode(), "End.java", "old", side("a\n"), "new", side("a\nb\n"));
+            final SideFormatter f = (SideFormatter) diff.getOld().getFormatter();
+            assertEquals(f.edge(Kind.ADDED), f.getLineRule(diff.getOld().getLine(0), true), "under a");
+            assertNull(f.getLineRule(diff.getOld().getLine(0), false));
+            diff.kill();
+            diff = CompareBuffer.open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\n"));
+            assertNotNull(diff.getOld().getFormatter().getLineRule(diff.getOld().getFirstLine(), false));
+        });
+    }
+
+    @Test
+    public void alignedFillersInPlaceOfRules() throws Exception {
+        aligned();
+        open();
+        onEdt(() -> assertNull(diff.getOld().getFormatter().getLineRule(diff.getOld().getLine(2), false)));
+    }
+
+    @Test
     public void anEmptySideIsAsTallAsTheOther() throws Exception {
+        aligned();
         onEdt(() -> {
             diff = CompareBuffer.open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\nb\nc\n"));
             assertEquals(diff.getDisplayHeight(), diff.getOld().getDisplayHeight(), "its blank line a filler");
@@ -252,6 +591,7 @@ public class CompareTest {
 
     @Test
     public void theCaretInALongAddedRunLeavesTheOthersWhereItIsOutOfView() throws Exception {
+        aligned();
         final StringBuilder added = new StringBuilder("a\n");
         for (int i = 0; i < 30; i++)
             added.append("new").append(i).append('\n');

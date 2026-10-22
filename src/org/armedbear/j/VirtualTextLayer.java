@@ -50,6 +50,8 @@ public final class VirtualTextLayer {
     private Line rowLinesFirstLine;
     // Counts changes to which lines have rows.
     private int version;
+    // The buffer is read without its lock, and never while holding this
+    // layer's: Buffer.firstVisibleLine takes neither.
 
     VirtualTextLayer(Buffer buffer) {
         this.buffer = buffer;
@@ -84,6 +86,11 @@ public final class VirtualTextLayer {
             }
         }
         repaint(rowsChanged, changed);
+    }
+
+    /** What changes when any line's rows of virtual text do. */
+    public synchronized int rowsVersion() {
+        return version;
     }
 
     public void clear(String owner) {
@@ -140,7 +147,7 @@ public final class VirtualTextLayer {
 
     /** Whether line has any virtual text. */
     public boolean has(Line line) {
-        final Line first = firstVisible();
+        final Line first = buffer.firstVisibleLine();
         synchronized (this) {
             return byLine.containsKey(line) || (!top.isEmpty() && line == first);
         }
@@ -148,19 +155,12 @@ public final class VirtualTextLayer {
 
     /** Whether line is where TOP's rows go: the first line shown. */
     public boolean isTopLine(Line line) {
-        return line != null && line == firstVisible();
-    }
-
-    // The buffer's first visible line, read without its lock. Nothing here
-    // calls into the buffer while holding this layer's lock.
-    private Line firstVisible() {
-        final Line first = buffer.peekFirstLine();
-        return first != null && first.isHidden() ? first.nextVisible() : first;
+        return line != null && line == buffer.firstVisibleLine();
     }
 
     /** The rows drawn over line: its own, and TOP's over the first line shown. */
     public int rowsAbove(Line line) {
-        final Line first = firstVisible();
+        final Line first = buffer.firstVisibleLine();
         synchronized (this) {
             int rows = rows(byLine.get(line), Placement.ABOVE);
             if (!top.isEmpty() && line == first)
@@ -190,7 +190,7 @@ public final class VirtualTextLayer {
      */
     public int rowsBefore(Line line) {
         final List<Line> lines = rowLines();
-        final Line first = firstVisible();
+        final Line first = buffer.firstVisibleLine();
         synchronized (this) {
             int rows = 0;
             for (Line l : lines)
@@ -205,7 +205,7 @@ public final class VirtualTextLayer {
     /** All the rows of virtual text over and under the visible lines. */
     public int totalRows() {
         final List<Line> lines = rowLines();
-        final boolean shown = firstVisible() != null;
+        final boolean shown = buffer.firstVisibleLine() != null;
         synchronized (this) {
             int rows = shown ? rows(top, Placement.TOP) : 0;
             for (Line l : lines)

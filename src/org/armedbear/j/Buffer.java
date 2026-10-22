@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,6 +43,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import javax.swing.Icon;
+import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CannotRedoException;
 import javax.swing.undo.CannotUndoException;
@@ -1215,6 +1217,7 @@ public class Buffer extends SystemBuffer {
             formatter.parseBuffer();
         }))
             return;
+        textChanged();
         unmodified();
         deleteAutosaveFile();
         resetUndo();
@@ -1994,7 +1997,7 @@ public class Buffer extends SystemBuffer {
         }
         invalidate();
         ChangeList.changed(this);
-        signsChanged();
+        textChanged();
     }
 
     /** A command ran in editor, which shows this buffer: the caret may have moved. */
@@ -2008,11 +2011,34 @@ public class Buffer extends SystemBuffer {
         return null;
     }
 
-    // The text changed: the signs are worked out again.
-    private void signsChanged() {
+    // The text changed: the signs are worked out again, and its followers told.
+    private void textChanged() {
         final SignsUpdater updater = signsUpdater;
         if (updater != null)
             updater.changed();
+        for (Follower f : followers)
+            f.textChanged();
+    }
+
+    /** What follows a buffer, as a comparison of it does. */
+    public interface Follower {
+        /** Its text changed, by an edit, an undo or a reload. */
+        void textChanged();
+
+        /** Its version control state was looked up again: what is staged or committed may have changed. */
+        void vcsChecked();
+    }
+
+    // Its followers, told on whatever thread the change is made on.
+    private final List<Follower> followers = new CopyOnWriteArrayList<>();
+
+    /** f is told of changes to it until it is removed. */
+    public final void addFollower(Follower f) {
+        followers.add(f);
+    }
+
+    public final void removeFollower(Follower f) {
+        followers.remove(f);
     }
 
     public void unmodified() {
@@ -2102,6 +2128,8 @@ public class Buffer extends SystemBuffer {
         view.dot = dot == null ? null : new Position(dot);
         final Position mark = editor.getMark();
         view.mark = mark == null ? null : new Position(mark);
+        view.markLineNumber = mark == null ? -1 : mark.lineNumber();
+        view.markOffs = mark == null ? 0 : mark.getOffset();
         view.selection = editor.getSelection();
         view.setColumnSelection(editor.isColumnSelection());
         view.topLine = editor.getTopLine();
@@ -2256,7 +2284,7 @@ public class Buffer extends SystemBuffer {
             catch (CannotUndoException e) {
                 Editor.currentEditor().status("Nothing to undo");
             }
-            signsChanged(); // Undo sets the text back without modified().
+            textChanged(); // Undo sets the text back without modified().
         }
     }
 
@@ -2274,7 +2302,7 @@ public class Buffer extends SystemBuffer {
             catch (CannotRedoException e) {
                 Editor.currentEditor().status("Nothing to redo");
             }
-            signsChanged();
+            textChanged();
         }
     }
 
@@ -2599,6 +2627,11 @@ public class Buffer extends SystemBuffer {
         return line;
     }
 
+    /** A component for ed's window, at the left of its display, as a comparison's track; or null. */
+    public JComponent besideDisplay(Editor ed) {
+        return null;
+    }
+
     protected void renumberOriginal() {
         folded = false;
         lineCount = 0;
@@ -2826,10 +2859,7 @@ public class Buffer extends SystemBuffer {
         final int rows = layer == null ? 0 : layer.rowsBefore(line);
         if (folded) {
             int y = 0;
-            Line first = getFirstLine();
-            if (first != null && first.isHidden())
-                first = first.nextVisible();
-            for (Line l = first; l != null; l = l.nextVisible()) {
+            for (Line l = firstVisibleLine(); l != null; l = l.nextVisible()) {
                 if (l == line)
                     break;
                 else
@@ -3009,29 +3039,11 @@ public class Buffer extends SystemBuffer {
         final View view = editor.getView(this);
         Debug.assertTrue(view != null);
         if (view != null) {
-            if (view.getDot() == null) {
-                Line line = getLine(view.getDotLineNumber());
-                if (line != null) {
-                    int offset = view.getDotOffset();
-                    if (offset < 0)
-                        offset = 0;
-                    else if (offset > line.length())
-                        offset = line.length();
-                    view.setDot(new Position(line, offset));
-                } else {
-                    line = getFirstLine();
-                    if (line != null)
-                        view.setDot(new Position(line, 0));
-                }
-            }
+            view.resolve(this);
             editor.setDot(view.getDot() == null ? null : new Position(view.getDot()));
             editor.setMark(view.getMark() == null ? null : new Position(view.getMark()));
             editor.setSelection(view.getSelection());
             editor.setColumnSelection(view.isColumnSelection());
-            if (view.getTopLine() == null) {
-                view.topLine = getFirstLine();
-                view.pixelsAboveTopLine = 0;
-            }
             display.setTopLine(view.getTopLine());
             display.setPixelsAboveTopLine(view.pixelsAboveTopLine);
             display.setShift(view.getShift());
@@ -3061,6 +3073,8 @@ public class Buffer extends SystemBuffer {
         vcsChecked = true;
         // What is staged or committed may have changed: the signs too.
         VersionControl.attachSigns(this);
+        for (Follower f : followers)
+            f.vcsChecked();
     }
 
     // Change marks from version control, and what works them out.

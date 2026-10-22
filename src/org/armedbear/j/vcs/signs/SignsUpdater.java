@@ -34,6 +34,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Signs;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Bases;
+import org.armedbear.j.vcs.BasesCache;
 import org.armedbear.j.vcs.VcsRepository;
 
 /**
@@ -45,37 +46,30 @@ public final class SignsUpdater {
     static final int DELAY_MILLIS = 100;
 
     private final Buffer buffer;
-    private final VcsRepository repository;
-    private final String path;
+    private final BasesCache bases;
     private final Timer timer;
-    // The bases read last, until the repository changes; null to read them.
-    private Bases bases;
-    // Bumped when the bases change: a read begun before cannot keep its bases.
-    private long basesGeneration;
     private boolean running;
     private boolean again;
 
     public SignsUpdater(Buffer buffer, VcsRepository repository, String path) {
         this.buffer = buffer;
-        this.repository = repository;
-        this.path = path;
+        bases = new BasesCache(repository, path, null);
         timer = new Timer(DELAY_MILLIS, e -> update());
         timer.setRepeats(false);
     }
 
     public VcsRepository getRepository() {
-        return repository;
+        return bases.getRepository();
     }
 
     /** The path in the repository, '/'-separated. */
     public String getPath() {
-        return path;
+        return bases.getPath();
     }
 
     /** Reads the bases again next time: what is staged or committed changed. */
-    public synchronized void basesChanged() {
-        basesGeneration++;
-        bases = null;
+    public void basesChanged() {
+        bases.invalidate();
     }
 
     /** The buffer's text changed, or its bases: works the signs out again, soon. */
@@ -83,22 +77,10 @@ public final class SignsUpdater {
         SwingUtilities.invokeLater(timer::restart);
     }
 
-    // The bases, read if they are not kept; null if there are none.
+    // The bases, or none where git could not say: read again next time.
     private Bases bases() {
-        final long generation;
-        synchronized (this) {
-            if (bases != null)
-                return bases;
-            generation = basesGeneration;
-        }
-        Bases b = repository.backend().readBases(repository, path);
-        if (b == null)
-            b = new Bases(null, null);
-        synchronized (this) {
-            if (basesGeneration == generation)
-                bases = b;
-        }
-        return b;
+        final Bases b = bases.get();
+        return b != null ? b : new Bases(null, null);
     }
 
     // On the event thread: the buffer's lines now, then the rest in the background.

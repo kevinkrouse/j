@@ -20,10 +20,14 @@
 
 package org.armedbear.j.mode.compare;
 
+import static org.armedbear.j.Constants.REFRAME;
+import static org.armedbear.j.Constants.REPAINT;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import javax.swing.JComponent;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Folds;
@@ -33,7 +37,10 @@ import org.armedbear.j.FrameView;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.Position;
+import org.armedbear.j.Property;
 import org.armedbear.j.TextLine;
+import org.armedbear.j.View;
 import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.VirtualText;
 import org.armedbear.j.WindowLayout;
@@ -41,13 +48,13 @@ import org.armedbear.j.mode.compare.DiffAlignment.Change;
 import org.armedbear.j.mode.compare.DiffAlignment.Row;
 
 /**
- * A comparison: the old text at the left and the new at the right,
- * each a read-only buffer in the file's mode, its lines of a change shaded
- * and filler rows where the other side has more, so that the lines both
- * have are level. The new side is the view, across the frame as the log
- * is, and the old side its part. Scrolling either scrolls the other to the
- * same row, and the caret moving on one takes the other's to its row.
- * Its folds are its own, {@link CompareFolds}.
+ * A comparison: the old text at the left and the new at the right, each a
+ * read-only buffer in the file's mode, its changes shaded. The new side is
+ * the view, across the frame as the log is, and the old side its part.
+ * Scrolling either scrolls the other: row for row with compareAlign, which
+ * keeps the sides level with filler rows, else through the changes
+ * ({@link ScrollMap}). The caret moving on one takes the other's to its
+ * line. Its folds are its own, {@link CompareFolds}.
  */
 public final class CompareBuffer extends ViewBuffer implements FrameView {
     /**
@@ -62,23 +69,36 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         }
     }
 
-    // Where a window was last, for the scroll lock to act only on a move.
-    private record Seen(Line top, int pixels) {}
+    /** Where its texts come from, kept up with while it is open. */
+    public interface Source {
+        /** It is shown again, as after being out of every window. */
+        void shown();
 
-    // What it diffs: a file's key, so that diffing it again shows this one.
+        /** It closed, or another source took over. */
+        void stop();
+    }
+
+    // What it compares: a file's key, so that comparing it again shows this one.
     private final String key;
     private final OldSide old;
     private DiffAlignment alignment = DiffAlignment.of(List.of(), List.of());
+    // Whether the sides are kept level by filler rows; else scrolled
+    // together through map.
+    private boolean aligned;
+    private ScrollMap map = ScrollMap.of(List.of(), 0);
     private Text oldText = new Text(List.of(), List.of());
     private Text newText = new Text(List.of(), List.of());
     private List<Line> changeStarts = List.of();
     private WindowLayout.Node before;
+    private Source source;
     private boolean disposed;
     // While one side moves the other, the other leaves it alone.
     private boolean binding;
     private final SideKeys keys = new SideKeys();
     private final CompareFolds folds = new CompareFolds(this);
-    private final Map<Editor, Seen> seen = new WeakHashMap<>();
+    private final Map<Editor, CompareTrack> tracks = new WeakHashMap<>();
+    private SideGeometry oldGeometry;
+    private SideGeometry newGeometry;
 
     private CompareBuffer(Mode mode, String key, String oldTitle, String newTitle) {
         super(mode, newTitle, "");
@@ -88,8 +108,8 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
 
     /**
      * oldText and newText side by side across frame, in mode; one open
-     * for key already shows them in place of what it had, in mode. With no
-     * frame, as in tests, only made.
+     * for key already shows them in place of what it had. With no frame, as
+     * in tests, only made.
      */
     public static CompareBuffer open(
             Frame frame,
@@ -116,33 +136,73 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
             if (frame != null && (frame.findEditor(b) == null || frame.findEditor(b.old) == null))
                 b.setBefore(null);
         }
-        b.show(oldText, newText);
+        b.show(oldText, newText, DiffAlignment.of(oldText.keys(), newText.keys()), true);
         if (frame != null)
             frame.showView(b, b);
         return b;
     }
 
-    /** Shows the two texts, aligned, their windows kept at their lines. */
-    void show(Text oldText, Text newText) {
+    /**
+     * The two texts again, as after either changed, alignment theirs: nothing
+     * if neither did. A side whose text is the same keeps its lines.
+     */
+    public void update(Text oldText, Text newText, DiffAlignment alignment) {
+        if (disposed || oldText.equals(this.oldText) && newText.equals(this.newText))
+            return;
+        show(oldText, newText, alignment, false);
+    }
+
+    /** s keeps it up to date until it closes, in place of the one before. */
+    public void follow(Source s) {
+        if (source != null && source != s)
+            source.stop();
+        source = s;
+    }
+
+    /** Whether a window shows either side. */
+    public boolean isShown() {
+        return !windows().isEmpty() || !old.windows().isEmpty();
+    }
+
+    /** title for the old side, shown in its windows. */
+    public void setOldTitle(String title) {
+        if (title.equals(old.getTitle()))
+            return;
+        old.setTitle(title);
+        for (Editor ed : old.windows()) {
+            ed.updateLocation();
+            if (ed.getFrame() != null)
+                ed.getFrame().updateTitle();
+        }
+    }
+
+    // The two texts shown, their windows kept where they were. A side whose
+    // text is the same keeps its lines and their parse, unless relay, as
+    // for a new mode; and the other side scrolls to match it.
+    private void show(Text oldText, Text newText, DiffAlignment alignment, boolean relay) {
+        final boolean sameOld = oldText.equals(this.oldText);
+        final boolean sameNew = newText.equals(this.newText);
         this.oldText = oldText;
         this.newText = newText;
-        alignment = DiffAlignment.of(oldText.keys(), newText.keys());
+        this.alignment = alignment;
+        aligned = Editor.preferences().getBooleanProperty(Property.COMPARE_ALIGN);
+        map = ScrollMap.of(alignment.changes(), alignment.oldSize());
         binding = true;
         try {
             final Runnable placeOld = kept(old);
             final Runnable placeNew = kept(this);
-            old.lay(oldText.lines(), newText.lines());
-            changeStarts = lay(this, newText.lines(), oldText.lines(), alignment, false);
-            folds.reset(alignment);
+            old.setChangeStarts(lay(old, oldText.lines(), newText.lines(), true, sameOld && !relay));
+            changeStarts = lay(this, newText.lines(), oldText.lines(), false, sameNew && !relay);
+            folds.reset(alignment, sameOld, sameNew);
             placeOld.run();
             placeNew.run();
         }
         finally {
             binding = false;
         }
-        seen.clear();
-        for (Editor ed : windows())
-            scrollWith(ed, old);
+        final ViewBuffer from = sameOld && !sameNew ? old : this;
+        for (Editor ed : from.windows())
+            scrollWith(ed, from == old ? this : old);
     }
 
     /** Both sides in mode, as changing either's mode does. */
@@ -151,7 +211,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
             return;
         setMode(mode);
         old.setMode(mode);
-        show(oldText, newText);
+        show(oldText, newText, alignment, true);
     }
 
     @Override
@@ -159,40 +219,38 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         modeTo(mode);
     }
 
-    // What puts each window showing side back at the lines it has now,
-    // once side is laid out again: or the last, or the nearest shown.
+    // What puts each window showing side back where it is now, once side is
+    // laid out again, by line number. One whose caret had to move, into a
+    // fold or off the end, is framed again; the rest stay scrolled where
+    // they were.
     private static Runnable kept(ViewBuffer side) {
         final List<Editor> eds = side.windows();
-        final int[] dots = new int[eds.size()];
-        final int[] tops = new int[eds.size()];
-        for (int i = 0; i < eds.size(); i++) {
-            final Editor ed = eds.get(i);
-            final Line top = ed.getDisplay().getTopLine();
-            dots[i] = ed.getDot() == null ? 0 : ed.getDotLineNumber();
-            tops[i] = top == null ? 0 : top.lineNumber();
+        final List<View> views = new ArrayList<>();
+        for (Editor ed : eds) {
+            ed.saveView();
+            final View view = ed.getView(side);
+            view.invalidate();
+            views.add(view);
         }
         return () -> {
             for (int i = 0; i < eds.size(); i++) {
-                final Line dot = side.jumpTarget(lineAt(side, dots[i]));
-                final Line top = shown(lineAt(side, tops[i]));
-                place(eds.get(i), dot, top.lineNumber() > dot.lineNumber() ? dot : top);
+                final Editor ed = eds.get(i);
+                final View view = views.get(i);
+                view.resolve(side);
+                final Line was = view.getDot().getLine();
+                final Line dot = side.jumpTarget(was);
+                final boolean moved = dot != was || was.lineNumber() != view.getDotLineNumber();
+                final Line top = moved && view.getTopLine().lineNumber() > dot.lineNumber() ? dot : view.getTopLine();
+                ed.setDot(dot, dot != was ? 0 : view.getDot().getOffset());
+                ed.moveCaretToDotCol();
+                final Position mark = view.getMark();
+                ed.setMark(moved || mark == null || mark.getLine().isHidden() ? null : mark);
+                ed.setTopLine(top);
+                ed.getDisplay().setPixelsAboveTopLine(top == view.getTopLine() ? view.getPixelsAboveTopLine() : 0);
+                ed.setUpdateFlag(moved ? REFRAME | REPAINT : REPAINT);
+                ed.updateDisplay();
             }
         };
-    }
-
-    private static Line lineAt(ViewBuffer side, int n) {
-        Line l = side.getFirstLine();
-        for (int i = 0; i < n && l.next() != null; i++)
-            l = l.next();
-        return l;
-    }
-
-    /** l, or the nearest line not folded away. */
-    static Line shown(Line l) {
-        if (!l.isHidden())
-            return l;
-        final Line next = l.nextVisible();
-        return next != null ? next : l.previousVisible() != null ? l.previousVisible() : l;
     }
 
     /** side's lines, by number. */
@@ -203,7 +261,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         return out;
     }
 
-    // Folds: the diff's own, not the mode's.
+    // Folds: the comparison's own, not the mode's.
 
     @Override
     public Folds getFolds() {
@@ -221,6 +279,13 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         sideRenumbered(this);
     }
 
+    /** side's lines numbered again, as after a fold opens or closes there by any way. */
+    void sideRenumbered(ViewBuffer side) {
+        // Not while it is made or laid out, which sets both sides' folds.
+        if (folds != null && !binding && !disposed)
+            folds.read(side);
+    }
+
     @Override
     public Line jumpTarget(Line line) {
         // None while it is made.
@@ -235,31 +300,55 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
     @Override
     public void restoreView(Editor editor) {
         super.restoreView(editor);
-        offFolds(editor);
+        sideShown(editor);
+    }
+
+    /** ed shows a side again: off lines folded away, and the source told. */
+    void sideShown(Editor ed) {
+        offFolds(ed);
+        if (source != null)
+            source.shown();
     }
 
     /**
-     * ed's caret and top line, as a window takes them when it shows a side,
-     * moved off lines folded away: to be there would open the fold.
+     * ed's caret and top line moved off lines folded away: to be there would
+     * open the fold. Whether the caret moved.
      */
-    static void offFolds(Editor ed) {
+    static boolean offFolds(Editor ed) {
+        boolean moved = false;
         if (ed.getDot() != null && ed.getDotLine().isHidden()) {
             ed.setDot(ed.getBuffer().jumpTarget(ed.getDotLine()), 0);
             ed.setMark(null);
             ed.moveCaretToDotCol();
+            moved = true;
         }
         final Line top = ed.getDisplay().getTopLine();
         if (top != null && top.isHidden()) {
-            ed.getDisplay().setTopLine(shown(top));
+            ed.getDisplay().setTopLine(top.shown());
             ed.getDisplay().setPixelsAboveTopLine(0);
         }
+        return moved;
     }
 
-    /** side's lines numbered again, as after a fold opens or closes there by any way. */
-    void sideRenumbered(ViewBuffer side) {
-        // Not while it is made or laid out, which sets both sides' folds.
-        if (folds != null && !binding && !disposed)
-            folds.read(side);
+    // The track.
+
+    @Override
+    public JComponent besideDisplay(Editor ed) {
+        pruneTracks();
+        return tracks.computeIfAbsent(ed, e -> new CompareTrack(this, e));
+    }
+
+    // The tracks of windows that show it still: a track holds its window, so
+    // the map's weak keys alone would keep them all.
+    private void pruneTracks() {
+        tracks.keySet().removeIf(e -> e.getBuffer() != this || !Editor.getEditorList().contains(e));
+    }
+
+    /** The tracks painted again, as after either side scrolls or a fold opens or closes. */
+    void repaintTracks() {
+        pruneTracks();
+        for (CompareTrack t : tracks.values())
+            t.repaint();
     }
 
     /** The old side. */
@@ -271,47 +360,48 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         return alignment;
     }
 
-    /**
-     * A side's lines, its formatter over its mode's, and its filler rows;
-     * other is the other side's lines. Returns where its changes start. An
-     * empty side has a blank line as a buffer must, which is its first
-     * filler.
-     */
-    static List<Line> lay(
-            ViewBuffer side,
-            List<String> lines,
-            List<String> other,
-            DiffAlignment alignment,
-            boolean isOld) {
-        final List<Line> ls = new ArrayList<>(lines.size());
-        for (String s : lines)
-            ls.add(new TextLine(s));
-        side.setLines(ls);
-        // Each line once, by number: the buffer is walked here, not per lookup.
+    /** The line positions of the side ed shows. */
+    static SideGeometry geometryOf(Editor ed) {
+        final CompareBuffer c = of(ed.getBuffer());
+        if (ed.getBuffer() == c.old)
+            return c.oldGeometry = SideGeometry.of(c.old, c.oldGeometry);
+        return c.newGeometry = SideGeometry.of(c, c.newGeometry);
+    }
+
+    // A side's lines, its formatter over its mode's, and, aligned, its
+    // filler rows; other is the other side's lines. Returns where its
+    // changes start. With keep, its lines are the ones it has, parsed.
+    private List<Line> lay(ViewBuffer side, List<String> lines, List<String> other, boolean isOld, boolean keep) {
+        if (!keep) {
+            final List<Line> ls = new ArrayList<>(lines.size());
+            for (String s : lines)
+                ls.add(new TextLine(s));
+            side.setLines(ls);
+        }
         final List<Line> byNumber = lines(side);
         // Over the mode's formatter the side has: one it had over already.
         final Formatter had = side.getFormatter();
         final SideFormatter f =
-                new SideFormatter(had instanceof SideFormatter s ? s.own() : had, alignment, other, isOld);
+                new SideFormatter(had instanceof SideFormatter s ? s.own() : had, alignment, other, isOld, aligned);
+        final DiffAlignment a = alignment;
+        final boolean withFillers = aligned;
+        // A new theme: the fillers and fold labels in its colors.
         f.onReset(() -> {
-            fillers(side, byNumber, alignment, isOld, f);
-            relabel(side);
+            fillers(side, byNumber, withFillers ? a : null, isOld, f);
+            if (!binding)
+                folds.relabel(side);
         });
         side.setFormatter(f);
         // Now, not on the idle thread's next pass: till then a comment's lines
         // would be formatted as code.
-        f.parseBuffer();
-        fillers(side, byNumber, alignment, isOld, f);
+        if (!keep)
+            f.parseBuffer();
+        fillers(side, byNumber, aligned ? alignment : null, isOld, f);
         return starts(byNumber, alignment, isOld);
     }
 
-    // side's fold labels in its colors now: none while it is made.
-    private static void relabel(ViewBuffer side) {
-        final CompareBuffer c = of(side);
-        if (c != null && c.folds != null && !c.binding)
-            c.folds.relabel(side);
-    }
-
+    // A side's filler rows as alignment has them, or none for null. An empty
+    // side's blank line is the first of them.
     private static void fillers(
             ViewBuffer side,
             List<Line> byNumber,
@@ -319,10 +409,9 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
             boolean isOld,
             SideFormatter f) {
         final List<VirtualText> fillers = new ArrayList<>();
-        final int size = isOld ? alignment.oldSize() : alignment.newSize();
-        for (int line = -1; line < size; line++) {
+        final int size = alignment == null ? 0 : isOld ? alignment.oldSize() : alignment.newSize();
+        for (int line = -1; alignment != null && line < size; line++) {
             int n = isOld ? alignment.fillersAfterOld(line) : alignment.fillersAfterNew(line);
-            // An empty side's blank line is a row of them: the rest under it.
             final boolean empty = size == 0;
             if (empty)
                 --n;
@@ -383,7 +472,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         return new WindowLayout.Window(side,
                 dotLine,
                 dot == null || dot.isHidden() ? 0 : w.dotOffset(),
-                top == null ? w.topLine() : Math.min(shown(top).lineNumber(), dotLine),
+                top == null ? w.topLine() : Math.min(top.shown().lineNumber(), dotLine),
                 focused);
     }
 
@@ -412,6 +501,10 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         if (disposed)
             return;
         disposed = true;
+        if (source != null)
+            source.stop();
+        source = null;
+        tracks.clear();
         if (frame != null)
             frame.leaveView(this, List.of(this, old));
         for (Buffer b : new Buffer[] { old, this })
@@ -420,7 +513,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
     }
 
     /** Whether it has been closed. */
-    boolean isClosed() {
+    public boolean isClosed() {
         return disposed;
     }
 
@@ -476,38 +569,44 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         caretWith(editor, old, false);
     }
 
-    /**
-     * The other side's window in ed's frame scrolled to the height ed's is
-     * at, if ed's has moved: this runs on each update of it.
-     */
+    /** r run with the scroll lock held, as while a fold change moves the windows. */
+    void whileBinding(Runnable r) {
+        final boolean was = binding;
+        binding = true;
+        try {
+            r.run();
+        }
+        finally {
+            binding = was;
+        }
+    }
+
+    /** The other side's window in ed's frame scrolled to match ed's. */
     void scrollWith(Editor ed, ViewBuffer other) {
         if (disposed)
             return;
-        final Seen now = new Seen(ed.getDisplay().getTopLine(), ed.getDisplay().getPixelsAboveTopLine());
-        if (now.equals(seen.put(ed, now)) || binding || now.top() == null)
+        repaintTracks();
+        if (binding || ed.getDisplay().getTopLine() == null)
             return;
         final Editor partner = windowIn(ed.getFrame(), other);
         if (partner == null || partner.getDisplay().getTopLine() == null)
             return;
-        final int dy = y(ed) - y(partner);
+        final int dy = (aligned ? y(ed) : mapped(ed, partner, other != old)) - y(partner);
         if (dy == 0)
             return;
-        binding = true;
-        try {
+        whileBinding(() -> {
             // Not painted by the scroll, whose blit leaves the rest to its own paint.
             partner.getDisplay().scrollByPixels(dy);
             partner.getDisplay().repaint();
             partner.updateScrollBars();
-        }
-        finally {
-            binding = false;
-        }
+        });
     }
 
     /**
-     * The other side's window to where ed's is, and its caret to the line
-     * at the row of ed's: or, where that row is a filler there, to the line
-     * over it, if that is in view, as a long change's first line may not be.
+     * The other side's caret to the line at the row of ed's caret, or, where
+     * that row is a filler there, to the line over it; only to a line in
+     * view of it where framing its window to show the line would pull it
+     * from where the scroll lock put it.
      */
     void caretWith(Editor ed, ViewBuffer other, boolean fromOld) {
         if (binding || disposed || ed.getDot() == null)
@@ -515,48 +614,78 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         final Editor partner = windowIn(ed.getFrame(), other);
         if (partner == null)
             return;
-        scrollWith(ed, other);
         final int line = ed.getDotLineNumber();
         final int size = fromOld ? alignment.oldSize() : alignment.newSize();
         if (line >= size)
             return;
         final Row row = alignment.rows().get(fromOld ? alignment.rowOfOld(line) : alignment.rowOfNew(line));
         final boolean filler = (fromOld ? row.newLine() : row.oldLine()) < 0;
-        final int target = Math.max(0, alignment.otherLine(line, fromOld));
-        final Line l = other.getLine(target);
+        final Line l = other.getLine(Math.max(0, alignment.otherLine(line, fromOld)));
         if (l == null || partner.getDotLine() == l)
             return;
-        if (filler && !inView(partner, l))
+        if ((filler || !aligned) && !inView(partner, l))
             return;
-        binding = true;
-        try {
+        whileBinding(() -> {
             partner.setDot(l, Math.min(ed.getDotOffset(), l.length()));
             partner.moveCaretToDotCol();
             partner.updateDisplay();
-        }
-        finally {
-            binding = false;
-        }
+        });
     }
 
-    // Whether l's text is in ed's window, by height: its top line may be
-    // scrolled past, into the rows under it.
+    // Whether all of l's text is in ed's window.
     private static boolean inView(Editor ed, Line l) {
-        if (ed.getDisplay().getTopLine() == null)
+        if (ed.getDisplay().getTopLine() == null || l.isHidden())
             return false;
         final int top = y(ed);
-        final int y = l.isHidden() ? -1 : ed.getBuffer().getY(l);
+        final int y = geometryOf(ed).top(l.lineNumber());
         return y >= top && y + l.getHeight() <= top + ed.getDisplay().getHeight();
     }
 
-    // Where ed's window is down its buffer, in pixels.
-    private static int y(Editor ed) {
-        // Its top line folded away, until it reframes: the line it will be.
-        return ed.getBuffer().getY(shown(ed.getDisplay().getTopLine())) + ed.getDisplay().getPixelsAboveTopLine();
+    /**
+     * Where partner's window goes, unaligned: the place at the middle of
+     * ed's, through the changes, at the middle of partner's. The place
+     * slides to the window's top over its first half window down, and to its
+     * bottom over its last, so that both reach the ends together and leave
+     * them smoothly.
+     */
+    private int mapped(Editor ed, Editor partner, boolean fromOld) {
+        final SideGeometry g = geometryOf(ed);
+        final SideGeometry pg = geometryOf(partner);
+        final int y = y(ed);
+        final int height = Math.max(1, ed.getDisplay().getHeight());
+        final int max = Math.max(0, g.height() - height);
+        final int down = Math.max(0, Math.min(height, Math.min(y, height / 2) + Math.max(0, y - (max - height / 2))));
+        final double place = g.placeAt(y + down);
+        final double there = fromOld ? map.toNew(place) : map.toOld(place);
+        final int partnerHeight = partner.getDisplay().getHeight();
+        final int partnerDown = (int) Math.round(down * (double) partnerHeight / height);
+        final int partnerMax = Math.max(0, pg.height() - partnerHeight);
+        return Math.max(0, Math.min(partnerMax, pg.yOf(there) - partnerDown));
+    }
+
+    /**
+     * The other side scrolled to match the window in use again, as after a
+     * fold opens or closes, which can move what is at its middle.
+     */
+    void resync() {
+        if (disposed)
+            return;
+        final Editor current = Editor.currentEditor();
+        final Editor ed = current != null && (current.getBuffer() == this || current.getBuffer() == old)
+                ? current
+                : windowIn(null, this);
+        if (ed != null && ed.getDisplay().getTopLine() != null)
+            scrollWith(ed, ed.getBuffer() == old ? this : old);
+    }
+
+    /** Where ed's window is down its side, in pixels. */
+    static int y(Editor ed) {
+        final Line top = ed.getDisplay().getTopLine();
+        return geometryOf(ed).start(top.lineNumber()) + ed.getDisplay().getPixelsAboveTopLine();
     }
 
     // b's window in frame; with none, as in tests, b's window in none.
-    private static Editor windowIn(Frame frame, ViewBuffer b) {
+    static Editor windowIn(Frame frame, ViewBuffer b) {
         if (frame != null)
             return frame.findEditor(b);
         for (Editor e : b.windows())
@@ -565,7 +694,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         return null;
     }
 
-    /** The comparison editor's buffer is a side of, or null. */
+    /** The comparison buffer b is a side of, or null. */
     public static CompareBuffer of(Buffer b) {
         return b instanceof CompareBuffer s ? s : b instanceof OldSide o ? o.getOwner() : null;
     }

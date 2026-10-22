@@ -92,6 +92,15 @@ public class SystemBuffer {
         firstLine = line;
     }
 
+    /**
+     * The first line not folded away, as a comparison's top fold can have
+     * its first line; read without the lock, as painting does.
+     */
+    public final Line firstVisibleLine() {
+        final Line first = firstLine;
+        return first != null && first.isHidden() ? first.nextVisible() : first;
+    }
+
     public final Position getEnd() {
         Line line = firstLine;
         if (line == null)

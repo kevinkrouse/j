@@ -497,6 +497,13 @@ public final class EditorHarness {
         editor.setBufferDirectly(b);
     }
 
+    /** The same, its view restored as switching to it does. */
+    public void showBufferRestored(Buffer b) {
+        editor.setBufferDirectly(b);
+        editor.findOrCreateView(b);
+        b.restoreView(editor);
+    }
+
     /**
      * Detaches the editor and buffer from j's global lists.
      *

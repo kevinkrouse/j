@@ -88,6 +88,9 @@ public final class Property implements Comparable<Property> {
     public static final Property AUTO_RELOAD_KEY_MAPS = createProperty("autoReloadKeyMaps", false);
     public static final Property AUTO_SELECT_LINE = createProperty("autoSelectLine", true);
     public static final Property BEAUTIFY_HEADERS = createProperty("beautifyHeaders", true);
+    // A comparison's sides kept level by blank rows, scrolled row for row,
+    // as nvim's diff mode; else scrolled together through the changes.
+    public static final Property COMPARE_ALIGN = createProperty("compareAlign", false);
     public static final Property BLINK_CARET = createProperty("blinkCaret", true);
     public static final Property CHECK_ENABLED = createProperty("checkEnabled", false);
     public static final Property CONFIRM_SEND = createProperty("confirmSend", true);

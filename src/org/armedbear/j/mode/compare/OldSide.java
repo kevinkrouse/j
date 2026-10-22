@@ -36,8 +36,8 @@ public final class OldSide extends ViewPane<CompareBuffer> {
         super(mode, owner, title, "");
     }
 
-    void lay(List<String> lines, List<String> other) {
-        changeStarts = CompareBuffer.lay(this, lines, other, owner.getAlignment(), true);
+    void setChangeStarts(List<Line> starts) {
+        changeStarts = starts;
     }
 
     @Override
@@ -60,7 +60,7 @@ public final class OldSide extends ViewPane<CompareBuffer> {
     @Override
     public void restoreView(Editor editor) {
         super.restoreView(editor);
-        CompareBuffer.offFolds(editor);
+        owner.sideShown(editor);
     }
 
     @Override
