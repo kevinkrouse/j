@@ -24,7 +24,10 @@ import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Locale;
@@ -71,7 +74,7 @@ public final class Preferences {
         // Load preferences file into a temporary Properties object so we can
         // see if the user has specified a theme.
         Properties temp = new Properties();
-        try (InputStream in = file.getInputStream()) {
+        try (Reader in = utf8(file)) {
             temp.load(in);
         }
         catch (IOException e) {
@@ -94,6 +97,21 @@ public final class Preferences {
 
         // User preferences from temporary Properties object override theme.
         properties.putAll(temp);
+    }
+
+    // Read as UTF-8, not as Properties.load(InputStream)'s ISO-8859-1; a
+    // file that is not UTF-8, as one saved before, as ISO-8859-1 still.
+    private static Reader utf8(File file) throws IOException {
+        final byte[] bytes;
+        try (InputStream in = file.getInputStream()) {
+            bytes = in.readAllBytes();
+        }
+        try {
+            return new StringReader(StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString());
+        }
+        catch (CharacterCodingException e) {
+            return new StringReader(new String(bytes, StandardCharsets.ISO_8859_1));
+        }
     }
 
     // Returns new Properties with keys converted to lower case.
@@ -130,7 +148,7 @@ public final class Preferences {
         Properties properties = new Properties();
         File file = getThemeFile(themeName, themePath);
         if (file != null && file.isFile()) {
-            try (InputStream in = file.getInputStream()) {
+            try (Reader in = utf8(file)) {
                 properties.load(in);
             }
             catch (IOException e) {
@@ -181,9 +199,7 @@ public final class Preferences {
     // Whether the first line that is not blank or a comment sets a color,
     // style or link, for all modes or for one.
     private static boolean startsWithThemeSetting(File file) {
-        try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)
-        )) {
+        try (BufferedReader reader = new BufferedReader(utf8(file))) {
             String s;
             while ((s = reader.readLine()) != null) {
                 s = s.trim().toLowerCase(Locale.ROOT);
