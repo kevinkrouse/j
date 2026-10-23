@@ -82,6 +82,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#detabRegion">detabRegion</a></li>
     <li><a href="commands.html#diff">diff</a></li>
     <li><a href="commands.html#diffGotoFile">diffGotoFile</a></li>
+    <li><a href="commands.html#diffPatch">diffPatch</a></li>
     <li><a href="commands.html#dir">dir</a></li>
     <li><a href="commands.html#dirBack">dirBack</a></li>
     <li><a href="commands.html#dirBrowseFile">dirBrowseFile</a></li>
@@ -449,7 +450,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></li>
     <li><a href="commands.html#vcsCommitPreviousMessage">vcsCommitPreviousMessage</a></li>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
-    <li><a href="commands.html#vcsCompare">vcsCompare</a></li>
+    <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsLog">vcsLog</a></li>
     <li><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></li>
@@ -1189,13 +1190,44 @@ Displays information about the command mapped to a particular key or key combina
 
 <a name="diff">diff</a><dl><dd>
 <p>
-Runs diff with the supplied arguments and presents the output in a diff output
-buffer.
+Compares the current buffer with a file, side by side, as
+<a href="#vcsDiff">vcsDiff</a> compares it with what is staged: the
+file at the left, the buffer's text at the right, saved or not, followed as it
+is edited. The file is read again when it changes on disk, as seen when j's
+window is activated or the comparison shown again. A relative name is taken
+from the buffer's directory.
+<p>
+With no argument, the buffer is compared with its file's
+<a href="preferences.html#patchMode">patchMode</a> backup if it has one;
+otherwise j asks for a file.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="#diffPatch">diffPatch</a>, <a href="#vcsDiff">vcsDiff</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="diffGotoFile">diffGotoFile</a><dl><dd>
+<p>
+Jumps to the location in the source buffer corresponding to the current line
+in the diff output buffer.
+<p>
+<b>Default key mapping:</b> Enter, Ctrl Shift G, Double Mouse-1, or Mouse-2 in
+Diff mode
+<p>
+<b>See also:</b> <a href="#changes">changes</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="diffPatch">diffPatch</a><dl><dd>
+<p>
+A legacy command: runs diff with the supplied arguments and presents the
+output in a diff output buffer.
 <p>
 When constructing the command line, you can use "%" as a dynamic alias for the
 file associated with the current buffer. For example:
 <pre>
-        diff -ub % ~/backup
+        diffPatch -ub % ~/backup
 </pre>
 If you don't explicitly specify any command line switches (e.g. "-ub", "-c",
 "--normal"), j will run "diff -u".
@@ -1209,19 +1241,7 @@ in your path, which is more likely to be the case on Unix than on Windows.
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="#changes">changes</a>
-<br><br>
-</dl><!--<hr>-->
-
-<a name="diffGotoFile">diffGotoFile</a><dl><dd>
-<p>
-Jumps to the location in the source buffer corresponding to the current line
-in the diff output buffer.
-<p>
-<b>Default key mapping:</b> Enter, Ctrl Shift G, Double Mouse-1, or Mouse-2 in
-Diff mode
-<p>
-<b>See also:</b> <a href="#changes">changes</a>
+<b>See also:</b> <a href="#diff">diff</a>, <a href="#changes">changes</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -6131,11 +6151,11 @@ In a status buffer, opens the last commit's message, to change only its message.
 <br><br>
 </dl><!--<hr>-->
 
-<a name="vcsCompare">vcsCompare</a><dl><dd>
+<a name="vcsDiff">vcsDiff</a><dl><dd>
 <p>
 Compares the file being edited with what is staged of it, side by side: the staged text at the left, the buffer's at the right, saved or not.
 <br><br>
-<b>See also:</b> <a href="git.html#compare">Compare</a>
+<b>See also:</b> <a href="git.html#compare">Compare</a>, <a href="#diff">diff</a>
 <br><br>
 </dl><!--<hr>-->
 

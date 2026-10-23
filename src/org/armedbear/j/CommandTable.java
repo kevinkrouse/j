@@ -65,7 +65,7 @@ import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.transients.TransientCommands;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
-import org.armedbear.j.vcs.VcsCompareCommands;
+import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.git.Git;
 import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.signs.HunkCommands;
@@ -366,7 +366,7 @@ public class CommandTable {
             add("vcsCommitPopup", CommitCommands::vcsCommitPopup);
             add("vcsCommitPreviousMessage", CommitCommands::vcsCommitPreviousMessage);
             add("vcsCommitReword", CommitCommands::vcsCommitReword);
-            add("vcsCompare", VcsCompareCommands::vcsCompare);
+            add("vcsDiff", VcsDiffCommands::vcsDiff);
             add("vcsDiscard", e -> StatusActions.run(e, StatusActions.Op.DISCARD));
             add("vcsLogNext", LogCommands::vcsLogNext);
             add("vcsLogNextFile", LogCommands::vcsLogNextFile);
@@ -447,7 +447,8 @@ public class CommandTable {
             add("describeBindings", e -> Help.describeBindings());
             add("describeKey", e -> DescribeKeyDialog.describeKey());
             add("detabRegion", e -> RegionCommands.detabRegion());
-            add("diff", e -> DiffMode.diff(), (e, s) -> DiffMode.diff(s));
+            add("diff", e -> CompareCommands.diff(e, null), CompareCommands::diff);
+            add("diffPatch", e -> DiffMode.diff(), (e, s) -> DiffMode.diff(s));
             add("diffGotoFile", e -> DiffMode.gotoFile());
             add("dir", e -> DirectoryBuffer.dir());
             add("dirBack", e -> DirectoryBuffer.dirBack());

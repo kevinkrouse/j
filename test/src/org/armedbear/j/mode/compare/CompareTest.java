@@ -52,7 +52,6 @@ import org.armedbear.j.WindowLayout;
 import org.armedbear.j.mode.compare.DiffAlignment.Kind;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.armedbear.j.vcs.signs.EditorHunks.Side;
 import org.armedbear.j.vim.VimRegisters;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -104,9 +103,8 @@ public class CompareTest {
             () -> diff = CompareBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", side(OLD), "new", side(NEW)));
     }
 
-    private static CompareBuffer.Text side(String text) {
-        final Side s = Side.of(text.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-        return new CompareBuffer.Text(s.lines(), s.keys());
+    private static Side side(String text) {
+        return Side.of(text.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
     }
 
     // The two sides each in a window, as across a frame: here none, so both
@@ -215,7 +213,7 @@ public class CompareTest {
             ed.setDot(diff.getLine(5), 1);
             ed.setMark(new Position(diff.getLine(6), 0));
             final Line oldFirst = diff.getOld().getFirstLine();
-            final CompareBuffer.Text newText = side(NEW.replace("j\n", "J\n"));
+            final Side newText = side(NEW.replace("j\n", "J\n"));
             diff.update(side(OLD), newText, DiffAlignment.of(side(OLD).keys(), newText.keys()));
             assertEquals(5, ed.getDotLineNumber());
             assertEquals(1, ed.getDotOffset(), "its column");
@@ -316,14 +314,14 @@ public class CompareTest {
     }
 
     // The twenty lines of openLong, with lines before l0 in the new side.
-    private static CompareBuffer.Text longWith(String before) {
+    private static Side longWith(String before) {
         final StringBuilder b = new StringBuilder(before);
         for (int i = 0; i < 20; i++)
             b.append(i == 10 ? "changed" : "l" + i).append('\n');
         return side(b.toString());
     }
 
-    private static CompareBuffer.Text longOld() {
+    private static Side longOld() {
         final StringBuilder a = new StringBuilder();
         for (int i = 0; i < 20; i++)
             a.append('l').append(i).append('\n');
@@ -336,7 +334,7 @@ public class CompareTest {
         onEdt(() -> {
             diff.getFolds().setFoldAt(null, diff.getLine(13), true);
             assertFalse(diff.getLine(15).isHidden(), "the bottom fold open");
-            final CompareBuffer.Text edited = longWith("x\n");
+            final Side edited = longWith("x\n");
             diff.update(longOld(), edited, DiffAlignment.of(longOld().keys(), edited.keys()));
             // Its lines one further down now.
             assertFalse(diff.getLine(16).isHidden(), "still open");
@@ -352,7 +350,7 @@ public class CompareTest {
             onEdt(() -> {
                 right.editor().setDot(diff.getLine(9), 0);
                 right.editor().setTopLine(diff.getLine(8));
-                final CompareBuffer.Text cut = side("a\nB\n");
+                final Side cut = side("a\nB\n");
                 diff.update(side(OLD), cut, DiffAlignment.of(side(OLD).keys(), cut.keys()));
                 assertEquals(0, right.editor().getDisplay().getTopLine().lineNumber(), "not left on its last line");
             });
@@ -379,7 +377,7 @@ public class CompareTest {
             final StringBuilder a = new StringBuilder();
             for (int i = 0; i < 60; i++)
                 a.append('l').append(i).append('\n');
-            final CompareBuffer.Text edited = side(b.toString());
+            final Side edited = side(b.toString());
             diff.update(side(a.toString()), edited, DiffAlignment.of(side(a.toString()).keys(), edited.keys()));
             assertSame(leftTop, left.editor().getDisplay().getTopLine(), "the old side, unchanged, not dragged");
         });

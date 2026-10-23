@@ -21,7 +21,6 @@
 package org.armedbear.j.vcs.signs;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
@@ -30,8 +29,8 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
-import org.armedbear.j.Property;
 import org.armedbear.j.Signs;
+import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.BasesCache;
@@ -116,10 +115,10 @@ public final class SignsUpdater {
             try {
                 final Bases b = bases();
                 if (b.index() != null) {
-                    final Charset cs = charset();
-                    final EditorHunks.Side now = EditorHunks.Side.ofBuffer(texts, cs, false);
-                    final EditorHunks.Side index = EditorHunks.Side.of(b.index(), cs);
-                    final EditorHunks.Side head = b.head() == null ? null : EditorHunks.Side.of(b.head(), cs);
+                    final Charset cs = buffer.getCharset();
+                    final Side now = Side.ofBuffer(texts, cs, false);
+                    final Side index = Side.of(b.index(), cs);
+                    final Side head = b.head() == null ? null : Side.of(b.head(), cs);
                     signs = SignsMath.compute(lines, now.keys(), index.keys(), head == null ? null : head.keys());
                 }
             }
@@ -145,22 +144,5 @@ public final class SignsUpdater {
         for (Editor ed : Editor.getEditorList())
             if (ed.getBuffer() == buffer)
                 ed.repaintDisplay();
-    }
-
-    Charset charset() {
-        return charset(buffer);
-    }
-
-    /** The charset buffer's file is in, or the default encoding's; UTF-8 if neither is known. */
-    public static Charset charset(Buffer buffer) {
-        String name = buffer.getFile() != null ? buffer.getFile().getEncoding() : null;
-        if (name == null)
-            name = Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
-        try {
-            return Charset.forName(name);
-        }
-        catch (RuntimeException e) {
-            return StandardCharsets.UTF_8;
-        }
     }
 }

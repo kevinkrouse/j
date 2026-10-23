@@ -29,12 +29,13 @@ import java.util.List;
 import org.armedbear.j.Line;
 import org.armedbear.j.Signs;
 import org.armedbear.j.TextLine;
+import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Diff;
 import org.junit.jupiter.api.Test;
 
 public class SignsMathTest {
     private static List<String> split(String s) {
-        return EditorHunks.Side.of(s.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8).lines();
+        return Side.of(s.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8).lines();
     }
 
     // Each line's sign as one letter: . none, A added, C changed, D deleted

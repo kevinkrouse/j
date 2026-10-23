@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.SoftReference;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -2018,6 +2019,16 @@ public class Buffer extends SystemBuffer {
             updater.changed();
         for (Follower f : followers)
             f.textChanged();
+    }
+
+    /** The charset it is saved in, as its file has it or as it was read; UTF-8 if that is unknown. */
+    public Charset getCharset() {
+        try {
+            return Charset.forName(getSaveEncoding());
+        }
+        catch (RuntimeException e) {
+            return StandardCharsets.UTF_8;
+        }
     }
 
     /** What follows a buffer, as a comparison of it does. */

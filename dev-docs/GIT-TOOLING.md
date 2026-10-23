@@ -425,7 +425,7 @@ Recent commits (10)
 - `revertLines`, `previewChange` and `changePopup` work on j's own marks
   too; in a tracked file they reset, preview and offer the git hunk.
 
-### Compare (`vcsCompare`)
+### Compare (`vcsDiff`)
 
 Two panes, the old text at the left and the new at the right, scrolled
 together, as nvim's diff mode and IntelliJ's diff viewer have it, with
@@ -443,7 +443,7 @@ lines on one side to its lines on the other.
 
 - **Where it opens.** From the status's and the log's diff panes (`v` there
   toggles unified and side by side), on a file in the status, from a file
-  (`vcsCompare`: the buffer against the index, or HEAD), and against a
+  (`vcsDiff`: the buffer against the index, or HEAD), and against a
   revision from the log. It takes the frame's windows the way the log does,
   through `Frame.captureLayout` and `restoreLayout`, and `q` puts them back.
 - **In the log.** Side by side, the diff wants the frame's width: two panes
@@ -1448,8 +1448,8 @@ plan with why it is left, before the next phase starts.
      any scroll, scrolls the other side to the same height, the two being
      as tall row for row, and `afterCommand` takes the other's caret to its
      row, or to the line over a filler row only when that is in view.
-     `vcsCompare` (`vcs/VcsCompareCommands`) shows a file against the index as the change marks
-     read it (`readBases`, `EditorHunks.Side` in the file's charset, the
+     `vcsDiff` (`vcs/VcsDiffCommands`) shows a file against the index as the change marks
+     read it (`readBases`, `Side` in the file's charset, the
      buffer's lines through `Side.ofBuffer`, compared by `keys`, which mark
      a last line with no newline), in the buffer's mode, and reuses a diff
      of the same file; `compareQuit` closes it. In vim, `n` and `p` are
@@ -1497,12 +1497,14 @@ plan with why it is left, before the next phase starts.
      side's first line, fold version or rows version
      (`VirtualTextLayer.rowsVersion`) changes, which the lock and the
      track read. A comparison of a file follows it, with the change marks
-     on or off: a `Buffer.Follower` (`VcsCompareCommands.Following`, the
+     on or off: a `Buffer.Follower` (`mode/compare/Following`, the
      comparison's `CompareBuffer.Source`) is told of each edit, undo or
      reload and of each look at its version control state, and a moment
-     later reads what is staged (`BasesCache`, as the change marks do: kept
-     until the state is looked at again, and not when git could not say)
-     and diffs on a worker thread, then shows it, only the last asked for;
+     later reads its `Following.Base` (for `vcsDiff`, what is staged:
+     `BasesCache`, as the change marks do, kept until the state is looked
+     at again, and not when git could not say; for `diff FILE`, the file,
+     kept until its time or size changes, which the frame's activation and
+     the comparison's showing check) and diffs on a worker thread, then shows it, only the last asked for;
      not while no window shows it, until one does. A side whose text is the
      same keeps its lines and their parse, its open folds stay open where
      they overlap the folds before, the other side scrolls to match it, and

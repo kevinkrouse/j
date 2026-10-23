@@ -1657,9 +1657,10 @@ Suffix to be used for the filename of the first backup of a local file.
 For example, if the value of this property is ".orig", the first backup of the
 file foo.bar will be made to the file foo.bar.orig in the same directory.
 <p>
-The <a href="commands.html#diff">diff</a> command, when invoked with no
-arguments, diffs the file associated with the current buffer against its
-patchMode backup file (if it exists).
+Invoked with no arguments, the <a href="commands.html#diff">diff</a> command
+compares the current buffer, saved or not, with its file's patchMode backup
+file, and the <a href="commands.html#diffPatch">diffPatch</a> command compares
+the file itself with it (if it exists).
 <p>
 <b>Default value:</b> None
 </dl>

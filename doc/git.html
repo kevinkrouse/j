@@ -124,7 +124,7 @@ file or line it was on.
 <h2><a name="compare">Compare</a></h2>
 
 <p>
-<a href="commands.html#vcsCompare">vcsCompare</a> shows the file
+<a href="commands.html#vcsDiff">vcsDiff</a> shows the file
 being edited side by side with what is staged of it, across the frame: the
 staged text at the left and the buffer's at the right, saved or not, each in
 the file's mode and encoding, and read-only. A file not in the index, new or
@@ -153,6 +153,12 @@ it: an edit, a reload from disk or staging shows a moment later. <b>n</b> and <b
 <b>[c</b> in vim edit mode, where <b>n</b> and <b>p</b> are search's), and
 <b>q</b> closes it, putting back the windows from before. Showing the same
 file again shows its diff anew in place of the old one.
+
+<p>
+<a href="commands.html#diff">diff</a> <i>FILE</i> compares the buffer with
+any file the same way, FILE at the left; with no file, with its
+<a href="preferences.html#patchMode">patchMode</a> backup, or else a file it
+asks for.
 
 <h2><a name="staging">Staging and discarding</a></h2>
 

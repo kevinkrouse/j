@@ -57,18 +57,6 @@ import org.armedbear.j.mode.compare.DiffAlignment.Row;
  * line. Its folds are its own, {@link CompareFolds}.
  */
 public final class CompareBuffer extends ViewBuffer implements FrameView {
-    /**
-     * A side's text: its lines as shown, and as compared, which differ in
-     * that a last line with no newline is marked, so that adding one is a
-     * change.
-     */
-    public record Text(List<String> lines, List<String> keys) {
-        public Text {
-            lines = List.copyOf(lines);
-            keys = List.copyOf(keys);
-        }
-    }
-
     /** Where its texts come from, kept up with while it is open. */
     public interface Source {
         /** It is shown again, as after being out of every window. */
@@ -86,8 +74,8 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
     // together through map.
     private boolean aligned;
     private ScrollMap map = ScrollMap.of(List.of(), 0);
-    private Text oldText = new Text(List.of(), List.of());
-    private Text newText = new Text(List.of(), List.of());
+    private Side oldText = Side.NONE;
+    private Side newText = Side.NONE;
     private List<Line> changeStarts = List.of();
     private WindowLayout.Node before;
     private Source source;
@@ -116,9 +104,9 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
             Mode mode,
             String key,
             String oldTitle,
-            Text oldText,
+            Side oldText,
             String newTitle,
-            Text newText) {
+            Side newText) {
         CompareBuffer b = null;
         for (Buffer each : Editor.getBufferList())
             if (each instanceof CompareBuffer s && !s.disposed && s.key.equals(key))
@@ -146,7 +134,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
      * The two texts again, as after either changed, alignment theirs: nothing
      * if neither did. A side whose text is the same keeps its lines.
      */
-    public void update(Text oldText, Text newText, DiffAlignment alignment) {
+    public void update(Side oldText, Side newText, DiffAlignment alignment) {
         if (disposed || oldText.equals(this.oldText) && newText.equals(this.newText))
             return;
         show(oldText, newText, alignment, false);
@@ -179,7 +167,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
     // The two texts shown, their windows kept where they were. A side whose
     // text is the same keeps its lines and their parse, unless relay, as
     // for a new mode; and the other side scrolls to match it.
-    private void show(Text oldText, Text newText, DiffAlignment alignment, boolean relay) {
+    private void show(Side oldText, Side newText, DiffAlignment alignment, boolean relay) {
         final boolean sameOld = oldText.equals(this.oldText);
         final boolean sameNew = newText.equals(this.newText);
         this.oldText = oldText;

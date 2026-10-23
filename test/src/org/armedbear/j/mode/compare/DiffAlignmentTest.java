@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.mode.compare.DiffAlignment.Change;
 import org.armedbear.j.mode.compare.DiffAlignment.Row;
-import org.armedbear.j.vcs.signs.EditorHunks.Side;
 import org.junit.jupiter.api.Test;
 
 public class DiffAlignmentTest {

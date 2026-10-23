@@ -33,6 +33,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 import org.armedbear.j.Region;
+import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Diff.Edit;
 import org.armedbear.j.vcs.Bases;
@@ -99,17 +100,17 @@ public final class HunkCommands {
     }
 
     // The bases as they are now, and the buffer's side against the index.
-    private record Sides(EditorHunks.Side head, EditorHunks.Side index, EditorHunks.Side now) {}
+    private record Sides(Side head, Side index, Side now) {}
 
     private static Sides sides(SignsUpdater u, Snapshot s) {
         final VcsRepository r = u.getRepository();
         final Bases bases = r.backend().readBases(r, u.getPath());
         if (bases == null || bases.index() == null)
             return null;
-        final Charset cs = u.charset();
-        final EditorHunks.Side index = EditorHunks.Side.of(bases.index(), cs);
-        final EditorHunks.Side head = bases.head() == null ? null : EditorHunks.Side.of(bases.head(), cs);
-        final EditorHunks.Side now = EditorHunks.Side.ofBuffer(s.lines(), cs, index.crlf());
+        final Charset cs = s.buffer().getCharset();
+        final Side index = Side.of(bases.index(), cs);
+        final Side head = bases.head() == null ? null : Side.of(bases.head(), cs);
+        final Side now = Side.ofBuffer(s.lines(), cs, index.crlf());
         return new Sides(head, index, now);
     }
 
@@ -268,7 +269,7 @@ public final class HunkCommands {
      * buffer's lines counting as git counts them. A change that reaches the
      * end takes the index's last newline, or its lack, too.
      */
-    static void reset(Editor editor, Edit e, EditorHunks.Side index, int gitLength) {
+    static void reset(Editor editor, Edit e, Side index, int gitLength) {
         final Buffer buffer = editor.getBuffer();
         final Line last = buffer.getLastLine();
         final Position end = new Position(last, last.length());
@@ -331,8 +332,7 @@ public final class HunkCommands {
             }
         }
         // New to the index: all of it staged, against nothing.
-        final EditorHunks.Side head =
-                sides.head() != null ? sides.head() : new EditorHunks.Side(List.of(), List.of(), false);
+        final Side head = sides.head() != null ? sides.head() : Side.NONE;
         final int[] map = SignsMath.indexToBuffer(sides.index().lines().size(), unstaged);
         for (Edit e : EditorHunks.edits(head, sides.index())) {
             if (covers(onBuffer(e, map), line, line)) {
@@ -348,7 +348,7 @@ public final class HunkCommands {
         return false;
     }
 
-    private static List<String> slice(EditorHunks.Side side, int start, int count) {
+    private static List<String> slice(Side side, int start, int count) {
         return side.lines().subList(start, start + count);
     }
 

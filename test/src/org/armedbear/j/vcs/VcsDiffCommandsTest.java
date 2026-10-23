@@ -1,5 +1,5 @@
 /*
- * VcsCompareCommandsTest.java
+ * VcsDiffCommandsTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -45,8 +45,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** vcsCompare on files of a repository: the buffer against the index. */
-public class VcsCompareCommandsTest {
+/** vcsDiff on files of a repository: the buffer against the index. */
+public class VcsDiffCommandsTest {
     @TempDir
     Path tmp;
 
@@ -113,7 +113,7 @@ public class VcsCompareCommandsTest {
                 file.initialize();
             file.load();
             h.showBuffer(file);
-            VcsCompareCommands.vcsCompare(h.editor());
+            VcsDiffCommands.vcsDiff(h.editor());
         });
         final CompareBuffer[] found = new CompareBuffer[1];
         until(() -> {
