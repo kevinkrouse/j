@@ -85,6 +85,19 @@ public class WindowLayoutTest {
     }
 
     @Test
+    public void showingPutsABufferInTheFocusedWindowOnly() {
+        final Editor a = editor(ten("a"));
+        final Editor b = editor(ten("b"));
+        final Editor c = editor(ten("c"));
+        final WindowLayout.Node was = threeWindows(a, b, c).capture(c);
+        final Editor x = editor(ten("x"));
+        assertEquals("row(a0@0,0:50 column(b0@0,0:50 x0@0,0*:50):50)", shape(WindowLayout.showing(was, x.getBuffer())));
+        // None focused: the first.
+        final WindowLayout.Node none = threeWindows(editor(ten("a")), editor(ten("b")), editor(ten("c"))).capture(null);
+        assertEquals("row(x0@0,0:50 column(b0@0,0:50 c0@0,0:50):50)", shape(WindowLayout.showing(none, x.getBuffer())));
+    }
+
+    @Test
     public void restoresTheSameShapeWithOtherEditors() {
         final Editor a = editor(ten("a"));
         final Editor b = editor(ten("b"));

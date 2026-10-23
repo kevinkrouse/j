@@ -79,6 +79,11 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
         return badges;
     }
 
+    /** The change whose diff it last asked for, or null. */
+    CommitChange shownChange() {
+        return shown;
+    }
+
     /** The files the commit shown changed. For tests. */
     List<CommitChange> changes() {
         return changes;
@@ -177,7 +182,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
     private static List<String> shortIds(List<String> ids) {
         final List<String> out = new ArrayList<>();
         for (String id : ids)
-            out.add(id.length() > 10 ? id.substring(0, 10) : id);
+            out.add(LogCommit.shortId(id));
         return out;
     }
 
@@ -220,7 +225,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
             follow.restart();
     }
 
-    /** Shows the diff of the file at the caret, or of the first file. */
+    /** Shows the diff of the file at the caret, or of the first file, unified or side by side. */
     void showDiff() {
         if (getOwner().diff == null || commit == null)
             return;
@@ -230,6 +235,9 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
         if (ch == shown && ch != null)
             return;
         shown = ch;
-        getOwner().diff.show(commit, ch);
+        if (getOwner().sides != null)
+            getOwner().compareChange(commit, ch);
+        else
+            getOwner().diff.show(commit, ch, () -> {});
     }
 }

@@ -444,7 +444,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         else if (frame != null && !b.isDiffShown(frame))
             frame.showView(b, editor.getBuffer());
         else {
-            b.closeDiff(frame);
+            b.closeDiffToStatus(frame);
             toStatus(frame, b);
         }
     }
@@ -589,9 +589,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
      * commit, shown as a diff.
      */
     public static void vcsStatusVisit(Editor editor) {
-        final CompareBuffer c = CompareBuffer.of(editor.getBuffer());
-        if (c != null) {
-            visitCompared(editor, c);
+        if (CompareBuffer.of(editor.getBuffer()) != null) {
+            visitCompared(editor);
             return;
         }
         final StatusLine line = dotLine(editor);
@@ -610,18 +609,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     // Side by side: the file at the new side's line at the caret's row.
-    private static void visitCompared(Editor editor, CompareBuffer c) {
+    private static void visitCompared(Editor editor) {
         final VcsStatusBuffer b = owner(editor);
-        final StatusDiffBuffer d = b == null ? null : b.getDiff();
-        if (d == null || d.item() == null) {
-            editor.status("Nothing to visit here");
-            return;
-        }
-        if (!b.comparesDiffFile()) {
-            editor.status("Not read yet");
-            return;
-        }
-        visit(editor, d.repository(), d.item(), c.newLine(editor.getBuffer(), editor.getDotLineNumber()) + 1);
+        final int n = b == null ? -1 : b.comparedLineAt(editor);
+        if (n >= 0)
+            visit(editor, b.getDiff().repository(), b.getDiff().item(), n);
     }
 
     // The working tree's file at the line, from 1, of its diff: a staged

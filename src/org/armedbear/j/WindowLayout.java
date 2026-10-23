@@ -118,6 +118,22 @@ public final class WindowLayout {
                 windows(child, out);
     }
 
+    /**
+     * The layout with its focused window, or else its first, showing buffer
+     * where its last window left it, focused as that window was.
+     */
+    public static Node showing(Node root, Buffer buffer) {
+        final List<Window> all = windows(root);
+        Window target = all.get(0);
+        for (Window w : all)
+            if (w.focused()) {
+                target = w;
+                break;
+            }
+        final Window was = target;
+        return map(root, w -> w == was ? Window.of(buffer, was.focused()) : w);
+    }
+
     /** The layout with each window replaced by what f makes of it. */
     static Node map(Node node, java.util.function.UnaryOperator<Window> f) {
         if (node instanceof Window w)

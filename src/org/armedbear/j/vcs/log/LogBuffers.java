@@ -26,13 +26,11 @@ import org.armedbear.j.Buffer;
 final class LogBuffers {
     private LogBuffers() {}
 
-    /** The log a buffer of it belongs to: the list itself, or its files or diff; else null. */
+    /** The log a buffer of it belongs to: the list itself, or a part of its view; else null. */
     static LogBuffer owner(Buffer buffer) {
-        return switch (buffer) {
-            case LogBuffer l -> l;
-            case LogFilesBuffer f -> f.getOwner();
-            case LogDiffBuffer d -> d.getOwner();
-            case null, default -> null;
-        };
+        for (Buffer b = buffer; b != null; b = b.isPrimary() ? null : b.getPrimary())
+            if (b instanceof LogBuffer l)
+                return l;
+        return null;
     }
 }

@@ -70,8 +70,9 @@ public final class EditorHarness {
     /**
      * Points j's directories at the scratch home, again for each editor: a
      * test of Directories points them elsewhere. Its registers start empty.
+     * Before an editor, it gives a test the session's properties.
      */
-    private static synchronized void useScratchHome() {
+    public static synchronized void useScratchHome() {
         try {
             if (scratchHome == null) {
                 scratchHome = Files.createTempDirectory("j-harness-home");

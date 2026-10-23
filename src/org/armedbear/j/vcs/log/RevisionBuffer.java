@@ -32,7 +32,7 @@ final class RevisionBuffer extends Buffer {
         readOnly = true;
         final String name = path.substring(path.lastIndexOf('/') + 1);
         setModeFromFilename(name);
-        title = name + " @ " + (id.length() > 7 ? id.substring(0, 7) : id);
+        title = name + " @ " + LogCommit.shortId(id);
         setText(text);
         setInitialized(true);
     }

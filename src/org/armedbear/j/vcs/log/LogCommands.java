@@ -42,6 +42,7 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.WindowLayout.Split;
 import org.armedbear.j.WindowLayout.Window;
+import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.transients.FilterBar;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Option;
@@ -158,6 +159,7 @@ public final class LogCommands {
         if (log.files == null) {
             log.files = new LogFilesBuffer(log);
             log.diff = new LogDiffBuffer(log);
+            log.openSides();
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         }
         log.forgetShown();
@@ -191,6 +193,17 @@ public final class LogCommands {
     // The list, then the files over or beside the diff, as the details go;
     // focus's window focused.
     static WindowLayout.Node layout(Frame frame, LogBuffer log, Buffer focus) {
+        if (log.sides != null) {
+            // Side by side: the list and the files over the two sides, across the frame.
+            final CompareBuffer c = log.sides.comparison();
+            final boolean inSides = CompareBuffer.of(focus) == c;
+            final Split top = new Split(true,
+                    List.of(
+                        Window.showing(log, focus != log.files && !inSides),
+                        Window.showing(log.files, focus == log.files)),
+                    List.of(0.55, 0.45));
+            return new Split(false, List.of(top, c.panes(focus)), List.of(0.4, 0.6));
+        }
         final Window list = Window.showing(log, focus != log.files && focus != log.diff);
         final Window files = Window.showing(log.files, focus == log.files);
         final Window diff = Window.showing(log.diff, focus == log.diff);
@@ -227,6 +240,10 @@ public final class LogCommands {
      */
     public static void vcsLogVisit(Editor editor) {
         final Buffer b = editor.getBuffer();
+        if (CompareBuffer.of(b) != null) {
+            visitCompared(editor);
+            return;
+        }
         if (b instanceof LogBuffer log) {
             if (!log.isFull())
                 showFull(editor, log);
@@ -234,7 +251,8 @@ public final class LogCommands {
                 focus(log.files);
         } else if (b instanceof LogFilesBuffer f) {
             f.showDiff();
-            focus(f.getOwner().diff);
+            final LogBuffer log = f.getOwner();
+            focus(log.sides != null ? log.sides.comparison() : log.diff);
         } else if (b instanceof LogDiffBuffer d)
             visitLine(editor, d);
     }
@@ -290,7 +308,8 @@ public final class LogCommands {
 
     private static void scrollDiff(Editor editor, boolean forward) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        final Editor ed = log == null ? null : Editor.windowShowing(log.diff);
+        final Editor ed =
+                log == null ? null : Editor.windowShowing(log.sides != null ? log.sides.comparison() : log.diff);
         if (ed == null)
             return;
         if (forward)
@@ -352,12 +371,23 @@ public final class LogCommands {
         final Frame frame = editor.getFrame();
         if (log == null || !log.isFull())
             return;
+        if (log.sides != null) {
+            editor.status("Side by side, the diff is across the bottom");
+            return;
+        }
         log.right = !Boolean.TRUE.equals(log.right);
         final SessionProperties session = Editor.getSessionProperties();
         if (session != null)
             session.setStringProperty(DETAILS_KEY, log.right ? "right" : "bottom");
         if (frame != null)
             frame.layOutView(log, editor.getBuffer());
+    }
+
+    /** =: the diff unified, or side by side across the bottom. */
+    public static void vcsLogDiffView(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log != null)
+            log.diffView(editor.getFrame(), editor.getBuffer());
     }
 
     /** l: the popup of the log's filters. */
@@ -462,6 +492,14 @@ public final class LogCommands {
             visit(editor, f.getOwner(), f.commit(), f.changeAt(editor), 0);
         else
             editor.status("No file here");
+    }
+
+    // Side by side: the file at the new side's line at the caret's row.
+    private static void visitCompared(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        final int n = log == null ? -1 : log.comparedLineAt(editor);
+        if (n >= 0)
+            visit(editor, log, log.files.commit(), log.files.shownChange(), n);
     }
 
     // The diff line's file in the working tree, at the line the diff line is now.

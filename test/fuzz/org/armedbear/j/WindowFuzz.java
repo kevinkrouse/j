@@ -234,10 +234,19 @@ public final class WindowFuzz {
 
     // The log ed shows, its list or one of its panes; null for none.
     private static LogBuffer log(Editor ed) {
-        final Buffer b = ed.getBuffer();
-        if (b instanceof LogBuffer l)
-            return l;
-        return b.getPrimary() instanceof LogBuffer l ? l : null;
+        return top(ed.getBuffer()) instanceof LogBuffer l ? l : null;
+    }
+
+    // The status b is, or is a part of, as its diff or a side of its comparison; or null.
+    private static VcsStatusBuffer status(Buffer b) {
+        return top(b) instanceof VcsStatusBuffer s ? s : null;
+    }
+
+    // The buffer b is a part of, through a part's part, or b.
+    private static Buffer top(Buffer b) {
+        while (b != null && b.getPrimary() != null && b.getPrimary() != b)
+            b = b.getPrimary();
+        return b;
     }
 
     // A file of proj or of the project of two, for the logs and statuses to start from.
@@ -455,6 +464,7 @@ public final class WindowFuzz {
                 "vcsLogToggle",
                 "vcsLogToggleAll",
                 "vcsLogToggleDetails",
+                "vcsLogDiffView",
                 "vcsLogToggleTags",
                 "vcsLogCollapseRuns",
                 "vcsLogCollapseRuns",
@@ -497,16 +507,21 @@ public final class WindowFuzz {
         }),
         new Op("statusDiff", ed -> {
             // The diff beside, opened, or closed as q in it does, back to the status.
-            final Buffer owner = ed.getBuffer().getPrimary() instanceof VcsStatusBuffer s ? s : ed.getBuffer();
-            if (!(owner instanceof VcsStatusBuffer s))
+            final VcsStatusBuffer s = status(ed.getBuffer());
+            if (s == null)
                 return;
             if (s.getFrameView() != null)
                 closing(s, () -> command(ed, "vcsStatusDiff", null), s);
             else
                 command(ed, "vcsStatusDiff", null);
         }),
+        new Op("statusDiffView", ed -> {
+            // =: the diff beside opened, or unified or side by side.
+            if (status(ed.getBuffer()) != null)
+                command(ed, "vcsStatusDiffView", null);
+        }),
         new Op("statusDiffKey", ed -> {
-            if (!(ed.getBuffer().getPrimary() instanceof VcsStatusBuffer))
+            if (status(ed.getBuffer()) == null || ed.getBuffer() instanceof VcsStatusBuffer)
                 return;
             final String[] commands = {
                 "vcsStatusVisit",
@@ -919,9 +934,7 @@ public final class WindowFuzz {
             final List<?>[] focused = new List<?>[1];
             onEdt(() -> {
                 final Buffer b = current().getBuffer();
-                focused[0] = log(current()) != null ? logOps
-                        : b instanceof VcsStatusBuffer || b.getPrimary() instanceof VcsStatusBuffer ? diffOps
-                        : null;
+                focused[0] = log(current()) != null ? logOps : status(b) != null ? diffOps : null;
             }, "focused");
             final Op op = focused[0] != null && rnd.nextInt(3) == 0
                     ? (Op) focused[0].get(rnd.nextInt(focused[0].size()))

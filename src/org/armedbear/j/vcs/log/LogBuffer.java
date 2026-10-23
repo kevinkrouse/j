@@ -22,6 +22,9 @@ package org.armedbear.j.vcs.log;
 
 import static org.armedbear.j.Constants.*;
 
+import java.awt.event.KeyEvent;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.CompletableFuture;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -39,14 +43,21 @@ import org.armedbear.j.FrameView;
 import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
+import org.armedbear.j.SessionProperties;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.WindowLayout;
+import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.DiffAlignment;
+import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.TimeStyle;
+import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.status.SideBySide;
 
 /**
  * A repository's log, or several's together: a row per commit, newest
@@ -103,6 +114,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     Boolean right;
     LogFilesBuffer files;
     LogDiffBuffer diff;
+    // The diff's side-by-side form while it shows side by side.
+    SideBySide sides;
     private LogCommit shown;
     private final Timer follow;
 
@@ -204,7 +217,9 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
 
     @Override
     public List<Buffer> getChildren() {
-        return files == null ? List.of() : List.of(files, diff);
+        if (files == null)
+            return List.of();
+        return sides != null ? List.of(files, sides.comparison(), sides.comparison().getOld()) : List.of(files, diff);
     }
 
     @Override
@@ -232,14 +247,21 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         disposed = true;
         follow.stop();
         if (frame != null) {
-            if (isFull())
-                frame.leaveView(this, getChildren().isEmpty() ? List.of(this) : List.of(this, files, diff));
-            else {
+            if (isFull()) {
+                final List<Buffer> parts = new ArrayList<>(List.of(this));
+                parts.addAll(getChildren());
+                if (diff != null && !parts.contains(diff))
+                    parts.add(diff);
+                frame.leaveView(this, parts);
+            } else {
                 final Editor ed = Editor.windowShowing(this);
                 if (ed != null && frame.hasSplit())
                     frame.closeEditor(ed);
             }
         }
+        if (sides != null)
+            sides.close();
+        sides = null;
         for (Buffer b : new Buffer[] { diff, files, this })
             if (b != null && Editor.getBufferList().contains(b))
                 b.kill();
@@ -933,5 +955,162 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     /** Forgets the details shown, as when they are rebuilt. */
     void forgetShown() {
         shown = null;
+    }
+
+    // Side by side.
+
+    // Whether the diff is side by side, as last chosen, kept in the session.
+    private static final String SIDE_BY_SIDE_KEY = "vcsLog.sideBySide";
+
+    /** Whether a log's diff shows side by side to begin with: as = last left one. */
+    static boolean sideBySideAtFirst() {
+        final SessionProperties session = Editor.getSessionProperties();
+        return session != null && session.getBooleanProperty(SIDE_BY_SIDE_KEY, false);
+    }
+
+    /** The side-by-side form, made as the diff is, if = last left the diff side by side. */
+    void openSides() {
+        if (sideBySideAtFirst() && sides == null && diff != null)
+            sides = newSides();
+    }
+
+    /**
+     * =: the diff switched between unified and side by side across frame,
+     * the list and the files above the two sides, kept for the next log.
+     * The window focused stays where it was, or the diff in its new form,
+     * at the same line of the file.
+     */
+    void diffView(Frame frame, Buffer focus) {
+        if (!isFull() || disposed)
+            return;
+        // Not laid out, as with a window closed by hand: laid out again as it is.
+        if (frame != null && frame.shownView() != this) {
+            frame.showView(this, focus);
+            return;
+        }
+        final SessionProperties session = Editor.getSessionProperties();
+        if (session != null)
+            session.setBooleanProperty(SIDE_BY_SIDE_KEY, sides == null);
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
+        if (sides == null) {
+            sides = newSides();
+            sides.replace(frame, this, focus, diff, diffFile());
+            compareChange(files.commit(), files.shownChange());
+            return;
+        }
+        final SideBySide was = sides;
+        sides = null;
+        // Not read while side by side: read now, then placed.
+        diff.show(files.commit(), files.shownChange(), was.restore(frame, this, focus, diff, comparedFile()));
+    }
+
+    // The side-by-side form, part of this, its keys the diff's.
+    private SideBySide newSides() {
+        return new SideBySide(this, km -> {
+            km.mapKey('=', "vcsLogDiffView");
+            km.mapKey('q', "vcsLogQuit");
+            km.mapKey(KeyEvent.VK_ENTER, 0, "vcsLogVisit");
+            km.mapKey(' ', "vcsLogScrollDiff");
+            km.mapKey(KeyEvent.VK_SPACE, SHIFT_MASK, "vcsLogScrollDiffBack");
+            km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "vcsLogScrollDiffBack");
+            km.mapKey(KeyEvent.VK_DOWN, ALT_MASK, "vcsLogNextFile");
+            km.mapKey(KeyEvent.VK_UP, ALT_MASK, "vcsLogPreviousFile");
+        });
+    }
+
+    // The key of the file the unified diff shows, or null.
+    private String diffFile() {
+        return diff == null ? null : fileKey(diff.commit(), diff.change());
+    }
+
+    // The key of the file the files pane asked for, or null.
+    private String comparedFile() {
+        return files == null ? null : fileKey(files.commit(), files.shownChange());
+    }
+
+    private String fileKey(LogCommit c, CommitChange ch) {
+        return c == null || ch == null ? null : repositoryOf(c).root() + "|" + c.id() + "|" + ch.path();
+    }
+
+    /** Side by side, the new side's line, from 1, at editor's caret to visit; -1, saying why, for none. */
+    int comparedLineAt(Editor editor) {
+        return sides == null ? -1 : sides.lineAt(editor, comparedFile());
+    }
+
+    /** Whether the comparison shows the file the files pane asked for, read. For tests. */
+    boolean compares() {
+        return sides != null && sides.shows(comparedFile());
+    }
+
+    /**
+     * Side by side, the comparison shows c's change to ch's file, as its
+     * first parent had the file and as c has it; nothing for null.
+     */
+    void compareChange(LogCommit c, CommitChange ch) {
+        if (sides == null)
+            return;
+        final SideBySide ss = sides;
+        final String file = fileKey(c, ch);
+        if (file != null && ss.isAsked(file))
+            return;
+        final int asked = ss.ask(file);
+        if (file == null) {
+            ss.show(asked, SideBySide.plainText(), "", Side.NONE, "No file", Side.NONE, null);
+            return;
+        }
+        final VcsRepository r = repositoryOf(c);
+        final String parent = c.firstParent();
+        final String oldPath = ch.origPath() != null ? ch.origPath() : ch.path();
+        final boolean hasOld = parent != null && ch.kind() != FileChange.Kind.ADDED;
+        final boolean hasNew = ch.kind() != FileChange.Kind.DELETED;
+        final Mode mode = SideBySide.modeFor(Path.of(ch.path()).getFileName().toString());
+        final Charset charset = SideBySide.charset();
+        Background.start("vcs log compare", () -> {
+            String oldTitle = oldPath + " @ " + (parent == null ? "none" : LogCommit.shortId(parent));
+            String newTitle = ch.path() + " @ " + LogCommit.shortId(c.id());
+            Side oldSide = Side.NONE;
+            Side newSide = Side.NONE;
+            boolean read = true;
+            try {
+                // The two read at once; null for a side that has none, or a failed read.
+                final CompletableFuture<byte[]> before = CompletableFuture.supplyAsync(
+                    () -> hasOld ? r.backend().readFileAt(r, parent, oldPath) : null,
+                    task -> Background.start("vcs log compare old", task));
+                final byte[] after = hasNew ? r.backend().readFileAt(r, c.id(), ch.path()) : null;
+                final byte[] old = before.join();
+                if (hasOld && old == null) {
+                    oldTitle += " (not read)";
+                    read = false;
+                }
+                if (hasNew && after == null) {
+                    newTitle += " (not read)";
+                    read = false;
+                }
+                if (old != null && Side.isBinary(old) || after != null && Side.isBinary(after)) {
+                    oldTitle += " (binary)";
+                    newTitle += " (binary)";
+                } else {
+                    oldSide = old == null ? Side.NONE : Side.ofFile(old, charset);
+                    newSide = after == null ? Side.NONE : Side.ofFile(after, charset);
+                }
+            }
+            catch (RuntimeException e) {
+                Log.error(e);
+                oldTitle += " (not read)";
+                read = false;
+            }
+            final DiffAlignment alignment = DiffAlignment.of(oldSide.keys(), newSide.keys());
+            final String ot = oldTitle;
+            final Side os = oldSide;
+            final String nt = newTitle;
+            final Side ns = newSide;
+            final boolean failed = !read;
+            SwingUtilities.invokeLater(() -> {
+                // A failed read is read again when asked for again.
+                if (failed && ss.isCurrent(asked))
+                    ss.forget();
+                ss.show(asked, mode, ot, os, nt, ns, alignment);
+            });
+        });
     }
 }

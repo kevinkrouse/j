@@ -6189,6 +6189,16 @@ In the log, clears every filter, a file's log's path too, and reads the log agai
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsLogDiffView">vcsLogDiffView</a><dl><dd>
+<p>
+In the full log, switches the diff between unified and side by side, across the bottom of the frame under the list and the files, keeping the line; the next log opens with it as left.
+<br><br>
+<b>Default key mapping:</b> = in the log, its files and diff, and the diff's sides
+<br><br>
+<b>See also:</b> <a href="git.html#log">The log</a>, <a href="#vcsLogToggleDetails">vcsLogToggleDetails</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsLogFile">vcsLogFile</a><dl><dd>
 <p>
 Shows the log of the current file, through its renames, taking the whole frame.
@@ -6362,7 +6372,7 @@ In the log's diff, closes every hunk, or opens them all when none is open; in th
 <a name="vcsLogToggleDetails">vcsLogToggleDetails</a><dl><dd>
 <p>
 In the log, moves the commit's details to the bottom, or to the right;
-the next log opens with them there.
+the next log opens with them there. With the diff side by side, it does nothing.
 <br><br>
 <b>Default key mapping:</b> D in the log
 <br><br>

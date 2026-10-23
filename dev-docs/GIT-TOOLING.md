@@ -467,8 +467,9 @@ lines on one side to its lines on the other.
   Side by side has only this layout, as stacking the two sides would undo
   them, so `D` does nothing there. Whether the diff is side by side is
   remembered in the session, as `D`'s choice is. The panes follow the file at
-  the caret in the files pane as the unified diff does, and Space, `d` and
-  `u` scroll both from any pane.
+  the caret in the files pane as the unified diff does, and Space and Shift
+  Space scroll both from any pane. In the sides, `d`, `u`, `f` and `F` keep
+  their usual meaning.
 - **The panes are buffers.** Each side is a read-only buffer of that side's
   text in the file's mode, so it has the file's colors, search, motions and
   folds. The right side of a working-tree diff can later be the file's own
@@ -1521,8 +1522,16 @@ plan with why it is left, before the next phase starts.
      staged against HEAD, else the file's open buffer, through
      `Following`, or the file, against what is staged. The focus stays in
      the status or the diff, and the diff at the file's line
-     (`CompareBuffer.place`, `DiffPane.placeAt`). Left: `=` from the log's
-     diff, the log's layout for it, `s` and `w`.
+     (`CompareBuffer.place`, `DiffPane.placeAt`). The log has the same
+     through `SideBySide` (`vcs/status`), which both share: the comparison,
+     the file it was asked for and shows, and where it goes. `=` there
+     (`vcsLogDiffView`) lays the list and the files over the two sides
+     across the frame, `D` doing nothing, and is kept in the session
+     (`vcsLog.sideBySide`); the files pane asks for the commit's file
+     (`LogBuffer.compareChange`, `readFileAt` at the first parent and at
+     the commit, read at once) in place of the unified diff, which is read
+     again on `=` back. Left:
+     `s` and `w`.
 7. **Branches relative to others, and stash.** The parent branch, the
    unmerged, unpulled and unpushed sections, the stash section and popup,
    stashes in the log and the refs tree, the status's outline in the

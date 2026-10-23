@@ -58,6 +58,7 @@ import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
 import org.armedbear.j.TextStyle;
+import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.transients.FilterBar;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.TransientArgs;
@@ -74,6 +75,7 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.armedbear.j.vcs.status.VcsStatusBuffer;
 import org.armedbear.j.vcs.status.VcsStatusMode;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -85,6 +87,19 @@ public class LogBufferTest {
     private VcsRepository repository;
     private EditorHarness h;
     private LogBuffer log;
+    // = is kept in the session, for the next log: each test starts unified,
+    // and the session is left as it was.
+    private static final String SIDE_BY_SIDE = "vcsLog.sideBySide";
+    private String sideBySideWas;
+
+    @BeforeEach
+    public void setUp() throws Exception {
+        onEdt(() -> {
+            EditorHarness.useScratchHome();
+            sideBySideWas = Editor.getSessionProperties().getStringProperty(SIDE_BY_SIDE, null);
+            Editor.getSessionProperties().setBooleanProperty(SIDE_BY_SIDE, false);
+        });
+    }
 
     @AfterEach
     public void tearDown() throws Exception {
@@ -94,6 +109,9 @@ public class LogBufferTest {
         if (repository != null)
             until(() -> !LogNames.of(repository).isReading());
         onEdt(() -> {
+            Editor.getSessionProperties().setStringProperty(SIDE_BY_SIDE, sideBySideWas);
+            if (log != null && log.sides != null)
+                log.sides.close();
             for (Buffer b : new Buffer[] { log == null ? null : log.diff, log == null ? null : log.files, log })
                 if (b != null)
                     Editor.getBufferList().remove(b);
@@ -238,6 +256,123 @@ public class LogBufferTest {
         final List<String> diff = texts(log.diff);
         assertTrue(diff.contains("  -two"), diff.toString());
         assertTrue(diff.contains("  +TWO"), diff.toString());
+    }
+
+    // a.txt changed and c.txt added in the second commit, shown in full.
+    private void twoCommitsInFull() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "one\ntwo\n");
+        git.commitAll("first");
+        git.write("a.txt", "one\nTWO\n");
+        git.write("c.txt", "c\n");
+        git.commitAll("second");
+        repository = Repositories.forDirectory(git.root);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        // Side by side, the unified diff isn't read.
+        until(() -> log.files.shownChange() != null && (log.sides != null || log.diff.change() != null));
+    }
+
+    @Test
+    public void sideBySideTheDiffIsTheCommitsChangeToTheFile() throws Exception {
+        twoCommitsInFull();
+        onEdt(() -> log.diffView(null, log));
+        final CompareBuffer c = log.sides.comparison();
+        assertEquals(List.of(log.files, c, c.getOld()), log.getChildren());
+        until(() -> texts(c).contains("TWO"));
+        final String parent = git.git("rev-parse", "--short=7", "HEAD~1").strip();
+        final String head = git.git("rev-parse", "--short=7", "HEAD").strip();
+        onEdt(() -> {
+            assertEquals(List.of("one", "two"), texts(c.getOld()));
+            assertEquals("a.txt @ " + parent, c.getOld().getTitle());
+            assertEquals("a.txt @ " + head, c.getTitle());
+            assertTrue(log.compares());
+            // An added file: nothing before it.
+            log.compareChange(log.files.commit(), new CommitChange("c.txt", null, FileChange.Kind.ADDED));
+        });
+        until(() -> texts(c).equals(List.of("c")));
+        onEdt(() -> {
+            assertEquals(List.of(""), texts(c.getOld()));
+            // Unified again: the comparison closes.
+            log.diffView(null, c);
+            assertNull(log.sides);
+            assertTrue(c.isClosed());
+            assertEquals(List.of(log.files, log.diff), log.getChildren());
+        });
+    }
+
+    @Test
+    public void sideBySideBeforeTheDiffIsReadComparesTheFileAskedFor() throws Exception {
+        twoCommitsInFull();
+        onEdt(() -> {
+            h.showBuffer(log.files);
+            for (Line l = log.files.getFirstLine(); l != null; l = l.next())
+                if (l instanceof StatusLine sl && sl.file() != null && sl.file().path().equals("c.txt"))
+                    h.editor().moveDotTo(l, 0);
+            log.files.showDiff();
+            // The unified diff still shows a.txt, its read of c.txt not in.
+            log.diffView(null, log.files);
+        });
+        until(() -> texts(log.sides.comparison()).equals(List.of("c")));
+        onEdt(() -> assertTrue(log.compares()));
+        // Unified again, it reads the file side by side showed.
+        onEdt(() -> log.diffView(null, log.files));
+        until(() -> log.diff.change() != null && log.diff.change().path().equals("c.txt"));
+    }
+
+    @Test
+    public void sideBySideAFileInAFolderHasItsModeAndAFailedReadSaysSo() throws Exception {
+        twoCommitsInFull();
+        onEdt(() -> {
+            log.diffView(null, log);
+            // Not in either commit, as git show fails.
+            log.compareChange(log.files.commit(), new CommitChange("sub/Makefile", null, FileChange.Kind.MODIFIED));
+        });
+        final CompareBuffer c = log.sides.comparison();
+        until(() -> c.getTitle().startsWith("sub/Makefile"));
+        onEdt(() -> {
+            assertEquals(Editor.getModeList().getModeForFileName("Makefile"), c.getMode());
+            assertTrue(c.getOld().getTitle().endsWith("(not read)"), c.getOld().getTitle());
+            assertTrue(c.getTitle().endsWith("(not read)"), c.getTitle());
+        });
+    }
+
+    @Test
+    public void sideBySideDLeavesTheLayoutAndTheKeysAreTheLogs() throws Exception {
+        twoCommitsInFull();
+        onEdt(() -> {
+            log.diffView(null, log);
+            final Boolean right = log.right;
+            LogCommands.vcsLogToggleDetails(h.editor());
+            assertEquals(right, log.right, "one layout side by side");
+            final CompareBuffer c = log.sides.comparison();
+            assertEquals(log, LogBuffers.owner(c));
+            assertEquals(log, LogBuffers.owner(c.getOld()));
+            assertEquals("vcsLogDiffView", c.getKeyMapForMode().lookup('=', 0, 0).getCommand());
+            assertEquals("vcsLogQuit", c.getOld().getModalKeyMapForMode().lookup('q', 0, 0).getCommand());
+            assertEquals("vcsLogScrollDiff", c.getKeyMapForMode().lookup(' ', 0, 0).getCommand());
+            assertNull(c.getKeyMapForMode().lookup('d', 0, 0));
+            assertEquals("vcsLogDiffView", log.getKeyMapForMode().lookup('=', 0, 0).getCommand());
+        });
+    }
+
+    @Test
+    public void aLogShowsItsDiffAsTheLastLeftIt() throws Exception {
+        onEdt(() -> Editor.getSessionProperties().setBooleanProperty(SIDE_BY_SIDE, true));
+        twoCommitsInFull();
+        assertNotNull(log.sides, "side by side, as = left the last");
+        until(() -> texts(log.sides.comparison()).contains("TWO"));
+    }
+
+    @Test
+    public void closingTheLogClosesItsComparison() throws Exception {
+        twoCommitsInFull();
+        onEdt(() -> log.diffView(null, log));
+        final CompareBuffer c = log.sides.comparison();
+        onEdt(() -> log.close(null));
+        assertTrue(c.isClosed());
+        assertFalse(Editor.getBufferList().contains(c));
+        assertFalse(Editor.getBufferList().contains(c.getOld()));
     }
 
     @Test

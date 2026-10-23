@@ -323,6 +323,18 @@ are until then. At the bottom, in a frame narrower than
 <a href="preferences.html#vcsLogStackedWidth">vcsLogStackedWidth</a>, the
 files are over the diff.
 
+<p>
+<b>=</b> shows the diff side by side, the file as the commit's first parent
+had it at the left and as the commit has it at the right, across the
+bottom of the frame under the list and the files; <b>=</b> again shows it
+unified, and the next log opens with it as you left it. Side by side has
+that one layout, so <b>D</b> does nothing there. The window you are in
+stays where it is, or the diff in its new form at the same line. The
+sides follow the file at the caret in the files as the unified diff does;
+in them, <b>Enter</b> visits the file at the line, Alt Down and Alt Up
+go to the next or previous file, Space and Shift Space scroll, and
+<b>q</b> closes the log.
+
 <table>
 <tr><th>Key</th><th>Command</th><th></th></tr>
 <tr><td>Enter</td><td><a href="commands.html#vcsLogVisit">vcsLogVisit</a></td><td>in the quick log, the full log; on a commit, its files; on a file, its diff; on a diff line, the file at that line</td></tr>
@@ -333,6 +345,7 @@ files are over the diff.
 <tr><td>f F, Alt Down, Alt Up</td><td><a href="commands.html#vcsLogNextFile">vcsLogNextFile</a>, <a href="commands.html#vcsLogPreviousFile">vcsLogPreviousFile</a></td><td>the next or previous file's diff</td></tr>
 <tr><td>Space, d; Shift Space, Backspace, u</td><td><a href="commands.html#vcsLogScrollDiff">vcsLogScrollDiff</a>, <a href="commands.html#vcsLogScrollDiffBack">vcsLogScrollDiffBack</a></td><td>the diff a page on, or back</td></tr>
 <tr><td>D</td><td><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></td><td>the details at the bottom or the right</td></tr>
+<tr><td>=</td><td><a href="commands.html#vcsLogDiffView">vcsLogDiffView</a></td><td>the diff side by side across the bottom, or unified</td></tr>
 <tr><td>-b -a -p -s -g -c -r (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>type a filter's value in the field over its chip</td></tr>
 <tr><td>-l (in the list)</td><td><a href="commands.html#vcsLogCollapseRuns">vcsLogCollapseRuns</a></td><td>collapse each run of plain commits into one row, or show every commit</td></tr>
 <tr><td>-t (in the list)</td><td><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></td><td>step the dates through age, locale, iso and long-iso</td></tr>

@@ -180,6 +180,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         km.mapKey('o', "vcsLogOpenFile");
         km.mapKey('O', "vcsLogRevision");
         km.mapKey('D', "vcsLogToggleDetails");
+        km.mapKey('=', "vcsLogDiffView");
         km.mapKey(vim ? 'r' : 'g', "vcsLogRefresh");
         km.mapKey('$', "vcsCommandLog");
         km.mapKey('q', "vcsLogQuit");
@@ -194,6 +195,14 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         { "vcsLogQuit", "quit" },
         { "modePopup", "more" }, };
 
+    // Side by side, D does nothing: = goes back.
+    private static final String[][] LIST_SIDE_BY_SIDE_HINTS = {
+        { "vcsLogVisit", "files" },
+        { "vcsLogFilter", "filter" },
+        { "vcsLogDiffView", "unified" },
+        { "vcsLogQuit", "quit" },
+        { "modePopup", "more" }, };
+
     private static final String[][] FILES_HINTS = {
         { "vcsLogVisit", "diff" },
         { "vcsLogOpenFile", "open" },
@@ -204,6 +213,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         { "vcsLogVisit", "open at this line" },
         { "vcsLogRevision", "as of the commit" },
         { "vcsLogToggle", "fold" },
+        { "vcsLogDiffView", "side by side" },
         { "modePopup", "more" }, };
 
     @Override
@@ -211,7 +221,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         if (!buffer.getBooleanProperty(Property.VCS_HINTS))
             return null;
         return switch (buffer) {
-            case LogBuffer l -> LIST_HINTS;
+            case LogBuffer l -> l.sides != null ? LIST_SIDE_BY_SIDE_HINTS : LIST_HINTS;
             case LogFilesBuffer f -> FILES_HINTS;
             case LogDiffBuffer d -> DIFF_HINTS;
             default -> null;
@@ -241,7 +251,8 @@ public final class VcsLogMode extends AbstractMode implements Mode {
                 "Diff",
                 new Command("d", "vcsLogScrollDiff", "scroll down", true),
                 new Command("u", "vcsLogScrollDiffBack", "scroll up", true),
-                new Command("D", "vcsLogToggleDetails", "at the bottom or right", true)));
+                new Command("D", "vcsLogToggleDetails", "at the bottom or right", true),
+                new Command("=", "vcsLogDiffView", "unified or side by side", true)));
         // The filters' keys are the list's alone.
         if (editor == null || editor.getBuffer() instanceof LogBuffer) {
             groups.add(0, LogFilters.group(editor == null ? null : LogCommands.scopeOf(editor)));

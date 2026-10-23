@@ -45,13 +45,17 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
         return change;
     }
 
-    /** Reads the file's diff in the commit in the background, then shows it; null shows nothing. */
-    void show(LogCommit c, CommitChange ch) {
+    /**
+     * Reads the file's diff in the commit in the background, then shows it,
+     * then runs then; null shows nothing.
+     */
+    void show(LogCommit c, CommitChange ch, Runnable then) {
         final int at = ++generation;
         if (ch == null) {
             commit = c;
             change = null;
             clear("");
+            then.run();
             return;
         }
         final VcsRepository r = getOwner().repositoryOf(c);
@@ -73,6 +77,7 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
                 final FileItem f = LogFilesBuffer.item(ch);
                 // Keyed by the commit, so another commit's diff of the file starts afresh.
                 show(r, "diff|" + c.id(), null, new FileItem(f.change(), f.letter(), true, d), null);
+                then.run();
             });
         });
     }
