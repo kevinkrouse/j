@@ -21,19 +21,28 @@
 package org.armedbear.j.mode.compare;
 
 import java.awt.event.KeyEvent;
+import java.util.function.Consumer;
 import org.armedbear.j.KeyMap;
 
 /**
  * A side's keys over its file's mode's: q closes it, and outside vim n and
  * p go from change to change and Tab opens or closes a fold; in vim n and p
- * are its search's, ]c and [c go by change and its z keys fold. Made again
- * when the mode's map changes; one for both sides.
+ * are its search's, ]c and [c go by change and its z keys fold; then the
+ * keys of the view it is part of, if any. Made again when the mode's map
+ * changes; one for both sides.
  */
 final class SideKeys {
     // A map made over base, as base was at changes; one modal, one not.
     private record Made(KeyMap base, int changes, KeyMap map) {}
 
     private final Made[] made = new Made[2];
+    private Consumer<KeyMap> extra = km -> {};
+
+    /** extra maps its keys over the rest from now on. */
+    void setExtra(Consumer<KeyMap> extra) {
+        this.extra = extra;
+        made[0] = made[1] = null;
+    }
 
     KeyMap over(KeyMap map, boolean modal) {
         final int changes = map == null ? 0 : map.changes();
@@ -44,7 +53,7 @@ final class SideKeys {
         return made[i].map();
     }
 
-    private static KeyMap with(KeyMap map, boolean modal) {
+    private KeyMap with(KeyMap map, boolean modal) {
         final KeyMap km = map != null ? map.copy() : new KeyMap();
         km.mapKey('q', "compareQuit");
         if (!modal) {
@@ -52,6 +61,7 @@ final class SideKeys {
             km.mapKey('n', "nextChange");
             km.mapKey('p', "previousChange");
         }
+        extra.accept(km);
         return km;
     }
 }

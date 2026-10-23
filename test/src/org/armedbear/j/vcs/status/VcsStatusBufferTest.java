@@ -37,6 +37,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
+import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.Hunk;
@@ -52,6 +53,11 @@ public class VcsStatusBufferTest {
 
     private GitFixture git;
     private EditorHarness h;
+    // A window on the comparison or on a file, closed after.
+    private EditorHarness other;
+    // More windows, closed after.
+    private final List<EditorHarness> windows = new ArrayList<>();
+    private Buffer file;
     private VcsStatusBuffer status;
 
     @AfterEach
@@ -63,6 +69,20 @@ public class VcsStatusBufferTest {
             if (Editor.getBufferList().contains(status))
                 Editor.getBufferList().remove(status);
         }
+        for (EditorHarness w : windows)
+            SwingUtilities.invokeAndWait(() -> {
+                w.showBuffer(w.buffer());
+                w.close();
+            });
+        if (other != null) {
+            final EditorHarness o = other;
+            SwingUtilities.invokeAndWait(() -> {
+                o.showBuffer(o.buffer());
+                o.close();
+            });
+        }
+        if (file != null)
+            Editor.getBufferList().remove(file);
         if (h != null) {
             h.showBuffer(h.buffer());
             h.close();
@@ -568,6 +588,288 @@ public class VcsStatusBufferTest {
         onEdt(status::kill);
         assertFalse(Editor.getBufferList().contains(diff));
         assertFalse(Editor.getBufferList().contains(status));
+    }
+
+    // Side by side.
+
+    private static List<String> lines(Buffer b) {
+        final List<String> list = new ArrayList<>();
+        for (Line l = b.getFirstLine(); l != null; l = l.next())
+            list.add(l.getText());
+        return list;
+    }
+
+    @Test
+    public void sideBySideTheComparisonIsAPartOfTheStatusAndFollowsItsCaret() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        assertNotNull(c);
+        assertEquals(List.of(c, c.getOld()), status.getChildren());
+        assertSame(status, c.getFrameView());
+        assertSame(status, c.getOld().getFrameView());
+        assertFalse(c.isPrimary());
+        // Not staged, and in no buffer: what is staged against the file.
+        caretOn(line("  M  a.txt"));
+        until(() -> lines(c).contains("three blind cats"));
+        onEdt(() -> {
+            assertTrue(lines(c.getOld()).contains("three blind mice"));
+            assertEquals("a.txt (staged)", c.getOld().getTitle());
+            assertEquals("a.txt", c.getTitle());
+        });
+        // Staged: HEAD against what is staged.
+        caretOn(line("  M  b.txt"));
+        until(() -> lines(c).contains("b changed"));
+        onEdt(() -> {
+            assertEquals(List.of("b"), lines(c.getOld()));
+            assertEquals("b.txt (HEAD)", c.getOld().getTitle());
+            assertEquals("b.txt (staged)", c.getTitle());
+        });
+        // Unified again: the comparison closes, the diff is the part.
+        onEdt(() -> status.diffView(null, c));
+        assertNull(status.getCompare());
+        assertTrue(c.isClosed());
+        assertFalse(Editor.getBufferList().contains(c.getOld()));
+        assertEquals(List.of(status.getDiff()), status.getChildren());
+    }
+
+    @Test
+    public void sideBySideAFilesOpenBufferIsFollowed() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            file = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+            if (!file.initialized())
+                file.initialize();
+            file.load();
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  M  a.txt"));
+        until(() -> "a.txt (buffer)".equals(c.getTitle()));
+        onEdt(() -> {
+            assertTrue(lines(c).contains("three blind cats"));
+            // Shown, as the comparison follows its buffer only then.
+            other = EditorHarness.create();
+            other.showBuffer(c);
+            file.withWriteLock(() -> {
+                file.getFirstLine().setText("ONE");
+                file.modified();
+            });
+        });
+        until(() -> lines(c).get(0).equals("ONE"));
+    }
+
+    @Test
+    public void sideBySideAKilledSideClosesTheDiffAsDDoes() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        final StatusDiffBuffer diff = status.getDiff();
+        onEdt(() -> c.getOld().kill());
+        assertNull(status.getDiff());
+        assertNull(status.getCompare());
+        assertTrue(c.isClosed());
+        assertFalse(Editor.getBufferList().contains(c));
+        assertFalse(Editor.getBufferList().contains(diff));
+        assertTrue(Editor.getBufferList().contains(status));
+        // D again: side by side still.
+        onEdt(() -> status.openDiff(null));
+        assertNotNull(status.getCompare());
+    }
+
+    @Test
+    public void equalsAndQInTheComparisonAreTheStatuses() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+            other = EditorHarness.create();
+            other.showBuffer(status.getCompare().getOld());
+        });
+        final CompareBuffer c = status.getCompare();
+        onEdt(() -> {
+            assertEquals("vcsStatusDiffView", c.getOld().getKeyMapForMode().lookup('=', 0, 0).getCommand());
+            assertEquals("vcsStatusDiffView", c.getModalKeyMapForMode().lookup('=', 0, 0).getCommand());
+            assertEquals("vcsStatusDiff", c.getKeyMapForMode().lookup('q', 0, 0).getCommand());
+            assertEquals("vcsStatusDiff", c.getModalKeyMapForMode().lookup('q', 0, 0).getCommand());
+            assertNull(status.getKeyMapForMode().lookup('D', 0, 0), "= opens the diff");
+            assertEquals(
+                "vcsStatusVisit",
+                c.getOld().getKeyMapForMode().lookup('\0', java.awt.event.KeyEvent.VK_ENTER, 0).getCommand());
+            assertEquals("vcsStatusDiffView", status.getDiff().getModalKeyMapForMode().lookup('=', 0, 0).getCommand());
+            assertEquals("vcsStatusDiffView", status.getModalKeyMapForMode().lookup('=', 0, 0).getCommand());
+            assertEquals("vcsStatusDiffView", status.getKeyMapForMode().lookup('=', 0, 0).getCommand());
+            assertSame(status, VcsStatusMode.owner(other.editor()));
+        });
+    }
+
+    @Test
+    public void equalsFromTheStatusOpensTheDiffAsItWasLastShown() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.diffView(null, status));
+        assertNotNull(status.getDiff());
+        assertNull(status.getCompare(), "unified at first");
+        onEdt(() -> {
+            status.diffView(null, status);
+            assertNotNull(status.getCompare());
+            status.closeDiff(null);
+            status.diffView(null, status);
+            assertNotNull(status.getCompare(), "side by side, as last shown");
+        });
+    }
+
+    // The diff line at the caret of the diff's window.
+    private String diffCaret() {
+        return other.editor().getDotLine().getText();
+    }
+
+    @Test
+    public void sideBySideStartsAtTheLineTheUnifiedDiffIsOn() throws Exception {
+        repository();
+        git.write("a.txt", TEN.replace("one", "uno").replace("mice", "cats"));
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(line("  M  a.txt"));
+        until(() -> paneText().contains("  +three blind cats"));
+        final EditorHarness[] sides = new EditorHarness[2];
+        onEdt(() -> {
+            other = EditorHarness.create();
+            other.showBuffer(status.getDiff());
+            for (Line l = status.getDiff().getFirstLine(); l != null; l = l.next())
+                if (l.getText().equals("  -three blind mice"))
+                    other.editor().setDot(l, 0);
+            status.diffView(null, status.getDiff());
+            // Shown before the comparison is read, as the layout would.
+            final CompareBuffer c = status.getCompare();
+            sides[0] = EditorHarness.create();
+            sides[0].showBuffer(c.getOld());
+            sides[1] = EditorHarness.create();
+            sides[1].showBuffer(c);
+            windows.addAll(List.of(sides));
+        });
+        final CompareBuffer c = status.getCompare();
+        until(() -> lines(c).contains("three blind cats"));
+        onEdt(() -> {
+            assertEquals(
+                "three blind mice",
+                sides[0].editor().getDotLine().getText(),
+                "a removed line, on the old side");
+            assertEquals("three blind cats", sides[1].editor().getDotLine().getText());
+        });
+    }
+
+    @Test
+    public void theUnifiedDiffGoesToTheLineASideIsOn() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(line("  M  a.txt"));
+        until(() -> paneText().contains("  +three blind cats"));
+        onEdt(() -> {
+            other = EditorHarness.create();
+            other.showBuffer(status.getDiff());
+            // Line 3 of the old file, then of the new.
+            status.getDiff().placeAt(true, 3);
+            assertEquals("  -three blind mice", diffCaret());
+            status.getDiff().placeAt(false, 3);
+            assertEquals("  +three blind cats", diffCaret());
+            // Out of every hunk: the nearest line there is.
+            status.getDiff().placeAt(false, 10);
+            assertEquals("   six", diffCaret());
+        });
+    }
+
+    @Test
+    public void reopenedSideBySideShowsTheFileAgain() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            file = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+            if (!file.initialized())
+                file.initialize();
+            file.load();
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        caretOn(line("  M  a.txt"));
+        until(() -> "a.txt (buffer)".equals(status.getCompare().getTitle()));
+        onEdt(() -> {
+            status.closeDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        assertNotNull(c);
+        caretOn(line("  M  a.txt"));
+        until(() -> lines(c).contains("three blind cats"));
+        onEdt(() -> assertTrue(status.comparesDiffFile()));
+    }
+
+    @Test
+    public void compareQuitInTheStatusesComparisonClosesTheDiff() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        onEdt(() -> {
+            other = EditorHarness.create();
+            other.showBuffer(c);
+            org.armedbear.j.mode.compare.CompareCommands.compareQuit(other.editor());
+        });
+        assertTrue(c.isClosed());
+        assertFalse(Editor.getBufferList().contains(c));
+        assertFalse(Editor.getBufferList().contains(c.getOld()));
+        assertNull(status.getDiff(), "closed as q closes it");
+    }
+
+    @Test
+    public void aBinaryFileIsNotComparedAsText() throws Exception {
+        git = GitFixture.init(tmp);
+        java.nio.file.Files.write(git.root.resolve("x.bin"), new byte[] { 'a', 0, 'b', '\n' });
+        git.commitAll("first");
+        java.nio.file.Files.write(git.root.resolve("x.bin"), new byte[] { 'a', 0, 'c', '\n' });
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  M  x.bin"));
+        until(() -> c.getTitle().equals("x.bin (binary)"));
+        onEdt(() -> {
+            assertEquals(List.of(""), lines(c));
+            assertEquals("x.bin (binary)", c.getOld().getTitle());
+        });
+    }
+
+    @Test
+    public void placingTheUnifiedDiffDropsItsSelection() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(line("  M  a.txt"));
+        until(() -> paneText().contains("  +three blind cats"));
+        onEdt(() -> {
+            other = EditorHarness.create();
+            other.showBuffer(status.getDiff());
+            other.editor().setMark(new org.armedbear.j.Position(status.getDiff().getFirstLine(), 0));
+            status.getDiff().placeAt(false, 3);
+            assertNull(other.editor().getMark());
+        });
     }
 
     private static VcsRepository fake(String root) {

@@ -87,7 +87,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
     /** Reads a commit's message and files in the background, then shows them, and the first file's diff. */
     void show(LogCommit c) {
         final int at = ++generation;
-        final VcsRepository r = owner.repositoryOf(c);
+        final VcsRepository r = getOwner().repositoryOf(c);
         Background.start("vcs log files", () -> {
             String message;
             List<CommitChange> read;
@@ -104,7 +104,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
             final List<CommitChange> files = read != null ? read : List.of();
             final boolean failed = read == null;
             SwingUtilities.invokeLater(() -> {
-                if (at == generation && !owner.isDisposed())
+                if (at == generation && !getOwner().isDisposed())
                     shown(c, m, files, failed);
             });
         });
@@ -115,7 +115,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
         changes = files;
         shown = null;
         final List<StatusLine> lines = new ArrayList<>();
-        badges = LogDetailsFormatter.badges(owner, c);
+        badges = LogDetailsFormatter.badges(getOwner(), c);
         if (!badges.isEmpty())
             lines.add(StatusLine.of(Kind.TEXT, LogDetailsFormatter.text(badges), BADGES));
         lines.add(StatusLine.of(Kind.FIELD, field("Commit:", c.id()), "commit"));
@@ -132,7 +132,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
         for (CommitChange ch : files)
             items.add(item(ch));
         final List<StatusLine> fileLines =
-                StatusRenderer.renderFiles(owner.repositoryOf(c), "files", null, items, (k, kind) -> false);
+                StatusRenderer.renderFiles(getOwner().repositoryOf(c), "files", null, items, (k, kind) -> false);
         lines.addAll(fileLines);
         // A failed read is not a commit of no files.
         if (failed)
@@ -145,7 +145,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
 
     // In the log's time style; its age with the date in full.
     private String date(LogCommit c) {
-        final String style = owner.getTimeStyle();
+        final String style = getOwner().getTimeStyle();
         final long millis = c.time() * 1000;
         final String full = DATE.format(Instant.ofEpochMilli(millis));
         if (style.equals(TimeStyle.AGE))
@@ -222,7 +222,7 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
 
     /** Shows the diff of the file at the caret, or of the first file. */
     void showDiff() {
-        if (owner.diff == null || commit == null)
+        if (getOwner().diff == null || commit == null)
             return;
         CommitChange ch = changeAt(Editor.windowShowing(this));
         if (ch == null && !changes.isEmpty())
@@ -230,6 +230,6 @@ final class LogFilesBuffer extends ViewPane<LogBuffer> {
         if (ch == shown && ch != null)
             return;
         shown = ch;
-        owner.diff.show(commit, ch);
+        getOwner().diff.show(commit, ch);
     }
 }

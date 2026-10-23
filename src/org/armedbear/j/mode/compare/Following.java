@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -110,28 +111,35 @@ public final class Following implements Buffer.Follower, CompareBuffer.Source {
      */
     public static void open(Editor editor, String key, String title, Base base) {
         final Buffer buffer = editor.getBuffer();
+        open(buffer, base, (read, side) -> {
+            // Not if the window has moved on to something else meanwhile.
+            if (!Editor.getEditorList().contains(editor) || editor.getBuffer() != buffer)
+                return null;
+            if (read == null) {
+                editor.status(base.unreadable());
+                return null;
+            }
+            return CompareBuffer.open(editor.getFrame(), buffer.getMode(), key, read.title(), read.side(), title, side);
+        });
+    }
+
+    /**
+     * buffer against base, read in the background: show has the base as
+     * read, null if it couldn't be, and the buffer's side, and gives the
+     * comparison it shows them in, followed from then on, or null for none.
+     */
+    public static void open(Buffer buffer, Base base, BiFunction<Read, Side, CompareBuffer> show) {
         final Charset charset = buffer.getCharset();
         final List<String> lines = lines(buffer);
         final int modCount = buffer.getModCount();
         Background.start("compare", () -> {
             final Read read = base.read(charset);
             SwingUtilities.invokeLater(() -> {
-                // Not if the window has moved on to something else meanwhile.
-                if (!Editor.getEditorList().contains(editor) || editor.getBuffer() != buffer)
+                final Side side = read == null ? null : Side.ofBuffer(lines, charset, read.side().crlf());
+                final CompareBuffer c = show.apply(read, side);
+                if (c == null || read == null)
                     return;
-                if (read == null) {
-                    editor.status(base.unreadable());
-                    return;
-                }
-                final CompareBuffer c = CompareBuffer.open(
-                    editor.getFrame(),
-                    buffer.getMode(),
-                    key,
-                    read.title(),
-                    read.side(),
-                    title,
-                    Side.ofBuffer(lines, charset, read.side().crlf()));
-                final Following f = new Following(c, buffer, base, editor.getFrame());
+                final Following f = new Following(c, buffer, base, c.shownIn());
                 c.follow(f);
                 buffer.addFollower(f);
                 // Edited while the base was read.

@@ -20,10 +20,15 @@
 
 package org.armedbear.j.mode.compare;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import org.armedbear.j.EncodingDetector;
+import org.armedbear.j.File;
 
 /**
  * A side of a comparison: a text's lines as shown, and as a patch writes
@@ -53,6 +58,51 @@ public record Side(List<String> lines, List<String> raw, boolean noNewline) {
             lines.add(s);
         }
         return new Side(lines, raw, noNewline);
+    }
+
+    /** file's text, as ofFile has it. */
+    public static Side read(File file, Charset charset) throws IOException {
+        try (InputStream in = file.getInputStream()) {
+            return ofFile(in.readAllBytes(), charset);
+        }
+    }
+
+    /**
+     * Whether bytes are not text, as git judges: a NUL in the first 8000,
+     * but for UTF-16 with a byte order mark.
+     */
+    public static boolean isBinary(byte[] bytes) {
+        if (bytes.length >= 2
+                && (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff
+                        || bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe))
+            return false;
+        for (int i = 0; i < Math.min(bytes.length, 8000); i++)
+            if (bytes[i] == 0)
+                return true;
+        return false;
+    }
+
+    /**
+     * A file's text, as j reads it: past a byte order mark; UTF-16 if that
+     * says so; else UTF-8 if its bytes are, else in charset, unless that is
+     * UTF-8 and they are not.
+     */
+    public static Side ofFile(byte[] bytes, Charset charset) {
+        final int n = bytes.length;
+        if (n >= 2
+                && (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff
+                        || bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
+            final String text = new String(bytes, StandardCharsets.UTF_16);
+            return Side.of(text.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        }
+        final boolean bom = n >= 3 && bytes[0] == (byte) 0xef && bytes[1] == (byte) 0xbb && bytes[2] == (byte) 0xbf;
+        final byte[] text = bom ? Arrays.copyOfRange(bytes, 3, n) : bytes;
+        final String found = EncodingDetector.classify(text, 0, text.length, false);
+        if (EncodingDetector.UTF_8.equals(found) || bom)
+            return Side.of(text, StandardCharsets.UTF_8);
+        if (found != null && charset.equals(StandardCharsets.UTF_8))
+            return Side.of(text, Charset.forName(found));
+        return Side.of(text, charset);
     }
 
     /**

@@ -22,45 +22,21 @@ package org.armedbear.j;
 
 import java.util.List;
 
-/**
- * A view that is part of another buffer, its owner, as the log's files and
- * diff are the log's: listed under it, shown in its frame view, skipped
- * going through the buffers.
- */
+/** A view that is always a part of another buffer, its owner. */
 public abstract class ViewPane<B extends Buffer> extends ViewBuffer {
-    protected final B owner;
     // Each read's number, so that only the last one asked for is shown.
     protected int generation;
 
     protected ViewPane(Mode mode, B owner, String title, String placeholder) {
         super(mode, title, placeholder);
-        this.owner = owner;
+        setOwner(owner);
     }
 
+    // Only ever given a B.
+    @SuppressWarnings("unchecked")
+    @Override
     public B getOwner() {
-        return owner;
-    }
-
-    @Override
-    public boolean isPrimary() {
-        return false;
-    }
-
-    @Override
-    public Buffer getPrimary() {
-        return owner;
-    }
-
-    @Override
-    public FrameView getFrameView() {
-        return owner.getFrameView();
-    }
-
-    // Killed on its own, its owner may close it, with more.
-    @Override
-    public synchronized void kill() {
-        if (!(owner instanceof FrameView v) || !v.partKilled(this))
-            super.kill();
+        return (B) super.getOwner();
     }
 
     /**

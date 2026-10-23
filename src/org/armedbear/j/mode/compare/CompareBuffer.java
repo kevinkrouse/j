@@ -22,11 +22,13 @@ package org.armedbear.j.mode.compare;
 
 import static org.armedbear.j.Constants.REFRAME;
 import static org.armedbear.j.Constants.REPAINT;
+import static org.armedbear.j.Constants.SIDEBAR_BUFFER_LIST_CHANGED;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 import javax.swing.JComponent;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -39,6 +41,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.Sidebar;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.View;
 import org.armedbear.j.ViewBuffer;
@@ -96,8 +99,8 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
 
     /**
      * oldText and newText side by side across frame, in mode; one open
-     * for key already shows them in place of what it had. With no frame, as
-     * in tests, only made.
+     * for key already shows them in place of what it had, and none is for a
+     * null key. With no frame, as in tests, only made.
      */
     public static CompareBuffer open(
             Frame frame,
@@ -109,22 +112,18 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
             Side newText) {
         CompareBuffer b = null;
         for (Buffer each : Editor.getBufferList())
-            if (each instanceof CompareBuffer s && !s.disposed && s.key.equals(key))
+            if (each instanceof CompareBuffer s && !s.disposed && key != null && key.equals(s.key))
                 b = s;
-        if (b == null)
+        final DiffAlignment alignment = DiffAlignment.of(oldText.keys(), newText.keys());
+        if (b == null) {
             b = new CompareBuffer(mode, key, oldTitle, newTitle);
-        else {
-            b.setTitle(newTitle);
-            b.old.setTitle(oldTitle);
-            if (b.getMode() != mode) {
-                b.setMode(mode);
-                b.old.setMode(mode);
-            }
+            b.show(oldText, newText, alignment, true);
+        } else {
             // Not across the frame now: the windows to come back to are these.
             if (frame != null && (frame.findEditor(b) == null || frame.findEditor(b.old) == null))
                 b.setBefore(null);
+            b.set(mode, oldTitle, oldText, newTitle, newText, alignment);
         }
-        b.show(oldText, newText, DiffAlignment.of(oldText.keys(), newText.keys()), true);
         if (frame != null)
             frame.showView(b, b);
         return b;
@@ -140,7 +139,50 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         show(oldText, newText, alignment, false);
     }
 
-    /** s keeps it up to date until it closes, in place of the one before. */
+    /**
+     * It is a part of owner, whose view lays it out with its own windows,
+     * keys mapping that view's keys over its sides'.
+     */
+    public void embed(Buffer owner, Consumer<KeyMap> keys) {
+        setOwner(owner);
+        this.keys.setExtra(keys);
+    }
+
+    /**
+     * The caret on side's line, by number, or on its first change, or first
+     * line, for a negative one; the other side's caret and scroll to match.
+     */
+    public void place(ViewBuffer side, int line) {
+        final List<Line> starts = side == old ? old.getChangeStarts() : changeStarts;
+        final Line l = line >= 0 ? side.getLine(Math.min(line, side.getLastLine().lineNumber()))
+                : starts.isEmpty() ? side.getFirstLine()
+                : starts.get(0);
+        final Line dot = jumpTarget(side, l);
+        final ViewBuffer other = side == old ? this : old;
+        for (Editor ed : side.windows()) {
+            ed.setDot(dot, 0);
+            ed.moveCaretToDotCol();
+            ed.setMark(null);
+            ed.setTopLine(side.getFirstLine().shown());
+            ed.getDisplay().setPixelsAboveTopLine(0);
+            ed.setUpdateFlag(REFRAME | REPAINT);
+            ed.updateDisplay();
+            scrollWith(ed, other);
+            caretWith(ed, other, side == old);
+        }
+    }
+
+    /**
+     * The new side's line, by number, at the row of side's line, or the one
+     * before it there: the line itself on the new side.
+     */
+    public int newLine(Buffer side, int line) {
+        if (side != old)
+            return line;
+        return line < alignment.oldSize() ? Math.max(0, alignment.otherLine(line, true)) : 0;
+    }
+
+    /** s keeps it up to date until it closes, in place of the one before; null for none. */
     public void follow(Source s) {
         if (source != null && source != s)
             source.stop();
@@ -152,16 +194,40 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         return !windows().isEmpty() || !old.windows().isEmpty();
     }
 
+    /**
+     * oldText and newText, titled so, in mode, alignment theirs, in place of
+     * what it shows: only the titles change if neither text did and the mode
+     * is the same.
+     */
+    public void set(Mode mode, String oldTitle, Side oldText, String newTitle, Side newText, DiffAlignment alignment) {
+        if (disposed)
+            return;
+        retitle(old, oldTitle);
+        retitle(this, newTitle);
+        if (getMode() != mode) {
+            setMode(mode);
+            old.setMode(mode);
+            show(oldText, newText, alignment, true);
+        } else
+            update(oldText, newText, alignment);
+    }
+
     /** title for the old side, shown in its windows. */
     public void setOldTitle(String title) {
-        if (title.equals(old.getTitle()))
+        retitle(old, title);
+    }
+
+    // side's title, shown in its windows, the frame's title and the sidebar.
+    private static void retitle(ViewBuffer side, String title) {
+        if (title.equals(side.getTitle()))
             return;
-        old.setTitle(title);
-        for (Editor ed : old.windows()) {
+        side.setTitle(title);
+        for (Editor ed : side.windows()) {
             ed.updateLocation();
             if (ed.getFrame() != null)
                 ed.getFrame().updateTitle();
         }
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
     }
 
     // The two texts shown, their windows kept where they were. A side whose
@@ -443,8 +509,13 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
 
     @Override
     public WindowLayout.Node layout(Frame frame, Buffer focus) {
+        return panes(focus == old ? old : this);
+    }
+
+    /** Its two sides' windows, side by side, the one of focus focused, if either is. */
+    public WindowLayout.Node panes(Buffer focus) {
         return new WindowLayout.Split(true,
-                List.of(window(old, focus == old), window(this, focus != old)),
+                List.of(window(old, focus == old), window(this, focus == this)),
                 List.of(0.5, 0.5));
     }
 
@@ -476,7 +547,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
 
     @Override
     public FrameView getFrameView() {
-        return this;
+        return getOwner() != null ? super.getFrameView() : this;
     }
 
     @Override
@@ -493,8 +564,10 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
             source.stop();
         source = null;
         tracks.clear();
-        if (frame != null)
+        if (frame != null && getOwner() == null)
             frame.leaveView(this, List.of(this, old));
+        // A part of no view now, so that killing it is not the owner's.
+        setOwner(null);
         for (Buffer b : new Buffer[] { old, this })
             if (Editor.getBufferList().contains(b))
                 b.kill();
@@ -514,16 +587,17 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         return true;
     }
 
+    // Killed on its own, it closes, or its owner closes it.
     @Override
     public synchronized void kill() {
-        if (!disposed)
-            close(shownIn());
-        else
+        if (disposed)
             super.kill();
+        else if (!closedByOwner())
+            close(shownIn());
     }
 
-    // The frame a side is shown in, or null.
-    private Frame shownIn() {
+    /** The frame a side is shown in, or null. */
+    Frame shownIn() {
         for (ViewBuffer side : List.of(this, old))
             for (Editor ed : side.windows())
                 if (ed.getFrame() != null)

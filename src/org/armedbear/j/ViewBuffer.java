@@ -30,9 +30,15 @@ import java.util.List;
 /**
  * A read-only view built from what was read, as the status buffer, the
  * log's and a comparison's sides: no file and no undo. Its mode's properties
- * keep line numbers, change marks and bracket highlights off.
+ * keep line numbers, change marks and bracket highlights off. It may be a
+ * part of another buffer, its owner, as the log's files and diff are the
+ * log's: listed under it, shown in its frame view, skipped going through
+ * the buffers, and closed by it, with more, when killed on its own.
  */
 public abstract class ViewBuffer extends Buffer {
+    // The buffer it is a part of, or null.
+    private Buffer owner;
+
     /** A view in mode, called title, showing placeholder until its lines are read. */
     protected ViewBuffer(Mode mode, String title, String placeholder) {
         supportsUndo = false;
@@ -47,6 +53,42 @@ public abstract class ViewBuffer extends Buffer {
         });
         setInitialized(true);
         setLoaded(true);
+    }
+
+    /** The buffer it is a part of, or null for none. */
+    public Buffer getOwner() {
+        return owner;
+    }
+
+    /** Makes it a part of owner from now on, or of none for null. */
+    protected void setOwner(Buffer owner) {
+        this.owner = owner;
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return owner == null;
+    }
+
+    @Override
+    public Buffer getPrimary() {
+        return owner;
+    }
+
+    @Override
+    public FrameView getFrameView() {
+        return owner != null ? owner.getFrameView() : super.getFrameView();
+    }
+
+    /** Whether its owner closes it, killed on its own, as a part of its view. */
+    protected final boolean closedByOwner() {
+        return owner instanceof FrameView v && v.partKilled(this);
+    }
+
+    @Override
+    public synchronized void kill() {
+        if (!closedByOwner())
+            super.kill();
     }
 
     @Override

@@ -6480,11 +6480,21 @@ In a status buffer, opens everything to a depth, 1 to 4, given as an argument: 1
 
 <a name="vcsStatusDiff">vcsStatusDiff</a><dl><dd>
 <p>
-In a status buffer, shows the diff of the file at the caret at the right, following the caret, or closes it.
+In a status buffer, shows the diff of the file at the caret beside it, following the caret, or closes it and goes back to the status.
 <br><br>
-<b>Default key mapping:</b> D in status buffers; D and q in the diff beside
+<b>Default key mapping:</b> q in the diff beside a status buffer and in its sides
 <br><br>
 <b>See also:</b> <a href="git.html#status-diff">The diff beside it</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusDiffView">vcsStatusDiffView</a><dl><dd>
+<p>
+In a status buffer, switches the diff beside it between unified, at the right, and side by side, under the status, keeping the line; with the diff closed, opens it as it was last shown.
+<br><br>
+<b>Default key mapping:</b> = in status buffers, the diff beside and its sides
+<br><br>
+<b>See also:</b> <a href="git.html#status-diff">The diff beside it</a>, <a href="#vcsStatusDiff">vcsStatusDiff</a>, <a href="#vcsDiff">vcsDiff</a>
 <br><br>
 </dl><!--<hr>-->
 

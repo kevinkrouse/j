@@ -26,14 +26,10 @@ import static org.armedbear.j.Constants.FILETYPE_JPEG;
 import static org.armedbear.j.Constants.FILETYPE_ZIP;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Objects;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EncodingDetector;
 import org.armedbear.j.File;
 import org.armedbear.j.FileCommands;
 import org.armedbear.j.OpenFileDialog;
@@ -112,8 +108,8 @@ public final class CompareCommands {
             this.charset = charset;
             if (!file.isFile())
                 return read = new Following.Read(Side.NONE, file.canonicalPath() + " (not there)");
-            try (InputStream in = file.getInputStream()) {
-                return read = new Following.Read(side(in.readAllBytes(), charset), file.canonicalPath());
+            try {
+                return read = new Following.Read(Side.read(file, charset), file.canonicalPath());
             }
             catch (IOException e) {
                 return read = null;
@@ -137,33 +133,13 @@ public final class CompareCommands {
         }
     }
 
-    /**
-     * A file's text, as j reads it: past a byte order mark; UTF-16 if that
-     * says so; else UTF-8 if its bytes are, else in charset, the buffer's,
-     * unless that is UTF-8 and they are not.
-     */
-    static Side side(byte[] bytes, Charset charset) {
-        final int n = bytes.length;
-        if (n >= 2
-                && (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff
-                        || bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
-            final String text = new String(bytes, StandardCharsets.UTF_16);
-            return Side.of(text.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-        }
-        final boolean bom = n >= 3 && bytes[0] == (byte) 0xef && bytes[1] == (byte) 0xbb && bytes[2] == (byte) 0xbf;
-        final byte[] text = bom ? Arrays.copyOfRange(bytes, 3, n) : bytes;
-        final String found = EncodingDetector.classify(text, 0, text.length, false);
-        if (EncodingDetector.UTF_8.equals(found) || bom)
-            return Side.of(text, StandardCharsets.UTF_8);
-        if (found != null && charset.equals(StandardCharsets.UTF_8))
-            return Side.of(text, Charset.forName(found));
-        return Side.of(text, charset);
-    }
-
     /** q: closes the comparison, its windows from before back. */
     public static void compareQuit(Editor editor) {
         final CompareBuffer b = CompareBuffer.of(editor.getBuffer());
-        if (b != null)
+        // A part of another view, as the status's, is closed as that view closes it.
+        if (b != null && b.getOwner() != null)
+            b.kill();
+        else if (b != null)
             b.close(editor.getFrame());
     }
 }

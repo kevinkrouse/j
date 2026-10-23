@@ -58,6 +58,16 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         return item;
     }
 
+    /** The repository of the file shown, or null. */
+    VcsRepository repository() {
+        return repository;
+    }
+
+    /** The status's section the file shown is in, or null. */
+    String section() {
+        return section;
+    }
+
     /** The key of the file shown, as its line's in the status: under key, its path; null for none. */
     protected String fileKey() {
         return key == null || item == null ? null : key + "|" + item.path();
@@ -184,6 +194,30 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         final String hunk = hunkOf(line);
         if (hunk != null)
             setExpanded(hunk, open != null ? open : !expanded.getOrDefault(hunk, true));
+    }
+
+    /**
+     * The caret on the diff line of the old file's line, by number, if old,
+     * else of the new file's, or on the nearest there is.
+     */
+    public void placeAt(boolean old, int line) {
+        StatusLine best = null;
+        int distance = Integer.MAX_VALUE;
+        for (Line l = getFirstLine(); l != null; l = l.next()) {
+            if (!(l instanceof StatusLine s) || s.diffLine() == null)
+                continue;
+            if (old ? !s.diffLine().isOld() : !s.diffLine().isNew())
+                continue;
+            final int d = Math.abs((old ? s.oldLine() : s.newLine()) - line);
+            if (d < distance) {
+                best = s;
+                distance = d;
+            }
+        }
+        if (best == null)
+            return;
+        for (Editor ed : windows())
+            place(ed, best, ed.getTopLine() != null ? ed.getTopLine() : getFirstLine());
     }
 
     /** Opens or closes every hunk. */

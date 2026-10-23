@@ -202,7 +202,7 @@ public class CompareCommandsTest {
     }
 
     private static List<String> lines(byte[] bytes, Charset charset) {
-        return CompareCommands.side(bytes, charset).lines();
+        return Side.ofFile(bytes, charset).lines();
     }
 
     @Test

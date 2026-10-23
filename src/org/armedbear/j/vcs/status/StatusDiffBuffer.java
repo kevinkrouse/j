@@ -67,6 +67,7 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
         final int upTo = upTo();
         clear(NONE);
         caughtUp = Math.max(caughtUp, upTo);
+        getOwner().diffShown(null, null, null, Follow.MOVED);
     }
 
     /**
@@ -101,6 +102,7 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
             ++generation;
             show(r, key(line), line.section(), f, at);
             caughtUp = Math.max(caughtUp, upTo);
+            getOwner().diffShown(r, line.section(), f, why);
             return;
         }
         if (why == Follow.REDRAWN)
@@ -118,8 +120,10 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
             final FileDiff d = diffs.isEmpty() ? FileDiff.EMPTY : diffs.get(0);
             SwingUtilities.invokeLater(() -> {
                 if (read == generation && Editor.getBufferList().contains(this)) {
-                    show(r, key(line), line.section(), new FileItem(f.change(), f.letter(), f.staged(), d), at);
+                    final FileItem withDiff = new FileItem(f.change(), f.letter(), f.staged(), d);
+                    show(r, key(line), line.section(), withDiff, at);
                     caughtUp = Math.max(caughtUp, upTo);
+                    getOwner().diffShown(r, line.section(), withDiff, why);
                 }
             });
         });

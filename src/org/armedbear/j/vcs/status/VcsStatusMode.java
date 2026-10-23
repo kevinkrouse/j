@@ -40,6 +40,7 @@ import org.armedbear.j.MotionCommands;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
 import org.armedbear.j.ViewPane;
+import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
@@ -152,9 +153,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey('?', "modePopup");
     }
 
-    // D, and the diff beside scrolled from either side.
+    // =, and the diff beside scrolled from either side.
     private static void scrollKeys(KeyMap km) {
-        km.mapKey('D', "vcsStatusDiff");
+        km.mapKey('=', "vcsStatusDiffView");
         km.mapKey(' ', "vcsStatusScrollDiff");
         km.mapKey(KeyEvent.VK_SPACE, SHIFT_MASK, "vcsStatusScrollDiffBack");
         km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "vcsStatusScrollDiffBack");
@@ -210,6 +211,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     private static final String[][] DIFF_HINTS = {
         { "vcsStatusVisit", "open at this line" },
         { "vcsStatusToggle", "fold" },
+        { "vcsStatusDiffView", "side by side" },
         { "vcsStatusDiff", "close" },
         { "modePopup", "more" }, };
 
@@ -220,6 +222,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         { "vcsDiscard", "discard" },
         { "vcsStatusVisit", "open at this line" },
         { "vcsStatusToggle", "fold" },
+        { "vcsStatusDiffView", "side by side" },
         { "vcsStatusDiff", "close" },
         { "modePopup", "more" }, };
 
@@ -250,7 +253,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 "Go",
                 new Command("n", "vcsStatusNext", "next", true),
                 new Command("p", "vcsStatusPrevious", "previous", true)));
-        groups.add(Group.of("Diff", Command.of("D", "vcsStatusDiff", "beside, or not")));
+        groups.add(Group.of("Diff", Command.of("=", "vcsStatusDiffView", "beside: unified or side by side")));
         // Staging, and so committing what is staged, is for a backend that has an index.
         if (editor == null || stages(editor.getBuffer())) {
             groups.add(
@@ -294,6 +297,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 "Diff",
                 Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
                 Command.of("$", "vcsCommandLog", "command log"),
+                Command.of("=", "vcsStatusDiffView", "side by side"),
                 Command.of("q", "vcsStatusDiff", "close")));
         return new Transient("vcs.status.diff", "Diff", "git.html#status-diff", groups);
     }
@@ -414,14 +418,21 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return editor.getBuffer() instanceof VcsStatusBuffer b ? b : null;
     }
 
-    // The status of editor's buffer: the buffer itself, or the status whose diff it is.
+    // The status of editor's buffer: the buffer itself, or the status whose
+    // diff it is, unified or side by side.
     static VcsStatusBuffer owner(Editor editor) {
-        return editor.getBuffer() instanceof StatusDiffBuffer d ? d.getOwner() : statusBuffer(editor);
+        final Buffer b = editor.getBuffer();
+        if (b instanceof StatusDiffBuffer d)
+            return d.getOwner();
+        if (CompareBuffer.of(b) != null && b.getFrameView() instanceof VcsStatusBuffer s)
+            return s;
+        return statusBuffer(editor);
     }
 
     /**
-     * D: the diff of the file at the caret beside the status, or not; open
-     * but not laid out, as with its window closed by hand, laid out again.
+     * q in the diff: the diff of the file at the caret beside the status, or
+     * not, back to the status; open but not laid out, as with its window
+     * closed by hand, laid out again.
      */
     public static void vcsStatusDiff(Editor editor) {
         final VcsStatusBuffer b = owner(editor);
@@ -432,8 +443,30 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             b.openDiff(frame);
         else if (frame != null && !b.isDiffShown(frame))
             frame.showView(b, editor.getBuffer());
-        else
+        else {
             b.closeDiff(frame);
+            toStatus(frame, b);
+        }
+    }
+
+    // The status focused in frame, in the current window if none shows it.
+    private static void toStatus(Frame frame, VcsStatusBuffer b) {
+        if (frame == null || !Editor.getBufferList().contains(b))
+            return;
+        final Editor ed = frame.findEditor(b);
+        if (ed == null) {
+            Editor.currentEditor().switchToBuffer(b);
+            return;
+        }
+        Editor.setCurrentEditor(ed);
+        ed.setFocusToDisplay();
+    }
+
+    /** =: the diff beside opened as last shown, or switched between unified and side by side. */
+    public static void vcsStatusDiffView(Editor editor) {
+        final VcsStatusBuffer b = owner(editor);
+        if (b != null)
+            b.diffView(editor.getFrame(), editor.getBuffer());
     }
 
     /** Space: the diff beside a page on, from the status or the diff. */
@@ -448,7 +481,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     private static void scrollDiff(Editor editor, boolean forward) {
         final VcsStatusBuffer b = owner(editor);
         final StatusDiffBuffer d = b == null ? null : b.getDiff();
-        final List<Editor> windows = d == null ? List.of() : d.windows();
+        final CompareBuffer c = b == null ? null : b.getCompare();
+        final List<Editor> windows = c != null ? c.windows() : d == null ? List.of() : d.windows();
         // None: Space and Backspace move as they would.
         if (windows.isEmpty()) {
             if (forward)
@@ -555,6 +589,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
      * commit, shown as a diff.
      */
     public static void vcsStatusVisit(Editor editor) {
+        final CompareBuffer c = CompareBuffer.of(editor.getBuffer());
+        if (c != null) {
+            visitCompared(editor, c);
+            return;
+        }
         final StatusLine line = dotLine(editor);
         if (line == null)
             return;
@@ -567,13 +606,32 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             editor.status("Nothing to visit here");
             return;
         }
-        final VcsRepository repository = line.repository();
+        visit(editor, line.repository(), file, lineNumber(line));
+    }
+
+    // Side by side: the file at the new side's line at the caret's row.
+    private static void visitCompared(Editor editor, CompareBuffer c) {
+        final VcsStatusBuffer b = owner(editor);
+        final StatusDiffBuffer d = b == null ? null : b.getDiff();
+        if (d == null || d.item() == null) {
+            editor.status("Nothing to visit here");
+            return;
+        }
+        if (!b.comparesDiffFile()) {
+            editor.status("Not read yet");
+            return;
+        }
+        visit(editor, d.repository(), d.item(), c.newLine(editor.getBuffer(), editor.getDotLineNumber()) + 1);
+    }
+
+    // The working tree's file at the line, from 1, of its diff: a staged
+    // diff's line through what is not staged since.
+    private static void visit(Editor editor, VcsRepository repository, FileItem file, int lineNumber) {
         final File f = File.getInstance(repository.root().resolve(file.path()).toString());
         if (f == null || !f.isFile()) {
             editor.status(file.path() + " is not in the working tree");
             return;
         }
-        final int lineNumber = lineNumber(line);
         if (!file.staged() || lineNumber <= 0) {
             visit(editor, f, lineNumber);
             return;
@@ -602,7 +660,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     // The new side's line of a hunk's first change.
-    private static int firstChange(Hunk hunk) {
+    static int firstChange(Hunk hunk) {
         int n = hunk.newStart();
         for (DiffLine d : hunk.lines()) {
             if (!d.isContext())

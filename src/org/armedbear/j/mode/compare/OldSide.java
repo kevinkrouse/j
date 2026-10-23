@@ -42,35 +42,35 @@ public final class OldSide extends ViewPane<CompareBuffer> {
 
     @Override
     protected KeyMap keyMapOver(KeyMap map, boolean modal) {
-        return owner.keys().over(map, modal);
+        return getOwner().keys().over(map, modal);
     }
 
     @Override
     protected void renumbered() {
         // Not while it is made, before it has its owner.
-        if (owner != null)
-            owner.sideRenumbered(this);
+        if (getOwner() != null)
+            getOwner().sideRenumbered(this);
     }
 
     @Override
     public Line jumpTarget(Line line) {
-        return owner != null ? owner.jumpTarget(this, line) : line;
+        return getOwner() != null ? getOwner().jumpTarget(this, line) : line;
     }
 
     @Override
     public void restoreView(Editor editor) {
         super.restoreView(editor);
-        owner.sideShown(editor);
+        getOwner().sideShown(editor);
     }
 
     @Override
     public Folds getFolds() {
-        return owner != null ? owner.oldFolds() : super.getFolds();
+        return getOwner() != null ? getOwner().oldFolds() : super.getFolds();
     }
 
     @Override
     public void changeMode(Mode mode) {
-        owner.modeTo(mode);
+        getOwner().modeTo(mode);
     }
 
     @Override
@@ -80,11 +80,11 @@ public final class OldSide extends ViewPane<CompareBuffer> {
 
     @Override
     public void scrolled(Editor ed) {
-        owner.scrollWith(ed, owner);
+        getOwner().scrollWith(ed, getOwner());
     }
 
     @Override
     public void afterCommand(Editor editor) {
-        owner.caretWith(editor, owner, true);
+        getOwner().caretWith(editor, getOwner(), true);
     }
 }

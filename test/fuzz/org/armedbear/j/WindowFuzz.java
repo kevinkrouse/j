@@ -496,12 +496,12 @@ public final class WindowFuzz {
                 closing(l, () -> command(ed, "vcsLogQuit", null));
         }),
         new Op("statusDiff", ed -> {
-            // D: the diff beside, opened, or closed as q in it does.
+            // The diff beside, opened, or closed as q in it does, back to the status.
             final Buffer owner = ed.getBuffer().getPrimary() instanceof VcsStatusBuffer s ? s : ed.getBuffer();
             if (!(owner instanceof VcsStatusBuffer s))
                 return;
             if (s.getFrameView() != null)
-                closing(s, () -> command(ed, "vcsStatusDiff", null));
+                closing(s, () -> command(ed, "vcsStatusDiff", null), s);
             else
                 command(ed, "vcsStatusDiff", null);
         }),
@@ -631,6 +631,14 @@ public final class WindowFuzz {
      * back the windows it kept, those of them still open, or leave one.
      */
     private static void closing(Buffer view, Runnable close) {
+        closing(view, close, null);
+    }
+
+    /**
+     * As closing, back to back: one of the windows kept shows it, if none
+     * does, as the status after its diff closes.
+     */
+    private static void closing(Buffer view, Runnable close, Buffer back) {
         final boolean shown = frame().shownView() == view;
         final WindowLayout.Node before = shown ? ((FrameView) view).before() : null;
         final String was = layout();
@@ -648,10 +656,30 @@ public final class WindowFuzz {
         for (int i = 0; i < Editor.getEditorCount(); i++)
             if (!frame().isPanel(Editor.getEditor(i)))
                 got.add(kind(Editor.getEditor(i).getBuffer()));
-        if (kept != null ? !got.equals(want) : got.size() != 1)
+        if (kept != null ? !got.equals(want) && !backIn(kept, back) : got.size() != 1)
             errors.add(
                 "closing " + kind(view) + " left " + got + ", not " + (kept != null ? want : "one window")
                         + "; it kept " + before + " from " + was);
+    }
+
+    // Whether the windows are those kept but for one showing back, as none of them did.
+    private static boolean backIn(WindowLayout.Node kept, Buffer back) {
+        final List<Buffer> want = new ArrayList<>();
+        for (WindowLayout.Window w : WindowLayout.windows(kept))
+            want.add(w.buffer());
+        final List<Buffer> got = new ArrayList<>();
+        for (int i = 0; i < Editor.getEditorCount(); i++)
+            if (!frame().isPanel(Editor.getEditor(i)))
+                got.add(Editor.getEditor(i).getBuffer());
+        if (back == null || want.contains(back) || got.size() != want.size())
+            return false;
+        for (int i = 0; i < got.size(); i++) {
+            final List<Buffer> w = new ArrayList<>(want);
+            w.set(i, back);
+            if (got.equals(w))
+                return true;
+        }
+        return false;
     }
 
     // ----------------------------------------------------------- invariants

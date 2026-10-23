@@ -395,6 +395,7 @@ public class CommandTable {
             add("vcsStatusCycle", VcsStatusMode::vcsStatusCycle);
             add("vcsStatusDepth", e -> VcsStatusMode.vcsStatusDepth(e, "2"), VcsStatusMode::vcsStatusDepth);
             add("vcsStatusDiff", VcsStatusMode::vcsStatusDiff);
+            add("vcsStatusDiffView", VcsStatusMode::vcsStatusDiffView);
             add("vcsStatusNext", VcsStatusMode::vcsStatusNext);
             add("vcsStatusNextSection", VcsStatusMode::vcsStatusNextSection);
             add("vcsStatusPrevious", VcsStatusMode::vcsStatusPrevious);

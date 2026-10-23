@@ -53,7 +53,12 @@ public final class VcsDiffCommands {
             return;
         }
         final String path = r.relativePath(file);
-        Following.open(editor, r.root() + "|" + path, path + " (buffer)", new Staged(new BasesCache(r, path, null)));
+        Following.open(editor, r.root() + "|" + path, path + " (buffer)", staged(r, path));
+    }
+
+    /** What is staged of path in r, as a buffer of it is compared with. */
+    public static Following.Base staged(VcsRepository r, String path) {
+        return new Staged(new BasesCache(r, path, null));
     }
 
     // What is staged of a file, read again once the repository changes.

@@ -441,7 +441,7 @@ lines on one side to its lines on the other.
                             │ ╱ 64   void paint() {              out from a line
 ```
 
-- **Where it opens.** From the status's and the log's diff panes (`v` there
+- **Where it opens.** From the status's and the log's diff panes (`=` there
   toggles unified and side by side), on a file in the status, from a file
   (`vcsDiff`: the buffer against the index, or HEAD), and against a
   revision from the log. It takes the frame's windows the way the log does,
@@ -463,7 +463,7 @@ lines on one side to its lines on the other.
   └────────────┴──┴────────────────────────────┘
   ```
 
-  `v` in the log's diff switches to it, and back to the layout `D` chose.
+  `=` in the log's diff switches to it, and back to the layout `D` chose.
   Side by side has only this layout, as stacking the two sides would undo
   them, so `D` does nothing there. Whether the diff is side by side is
   remembered in the session, as `D`'s choice is. The panes follow the file at
@@ -503,7 +503,7 @@ lines on one side to its lines on the other.
   a fold opens it on both sides.
 - **Keys.** `]c`/`[c`, Ctrl Alt N/P and `n`/`p` (and F7/Shift F7 outside vim)
   go by change on either side (`Mode.getChangeStarts`); Space and Shift
-  Space page both; `v` back to unified; `s` scroll lock; `w` whitespace
+  Space page both; `=` back to unified; `s` scroll lock; `w` whitespace
   ignored or not; Enter visits the file at the line.
 - **Shared.** The panes, alignment and track take any two texts, so svn's
   BASE, a stash or two commits work the same, and the merge view later is
@@ -1509,9 +1509,20 @@ plan with why it is left, before the next phase starts.
      same keeps its lines and their parse, its open folds stay open where
      they overlap the folds before, the other side scrolls to match it, and
      each window keeps its caret, selection and scroll. It stops when the
-     comparison closes or the buffer is saved as another file. Left: `v`
-     from the status's and the log's diffs, the log's layout for it, `s`
-     and `w`.
+     comparison closes or the buffer is saved as another file. `diff
+     FILE` compares the buffer with another file the same way. In the
+     status, `=` (`vcsStatusDiffView`) switches the diff beside between
+     unified and side by side under the status, or opens it as last shown:
+     side by side is a `CompareBuffer` part of the status's view
+     (`CompareBuffer.embed`: the status its `ViewBuffer` owner, as a
+     pane's, and `=`, `D`, `q` and Enter over its sides' keys), the status laid
+     out above its two panes. The unified diff stays, unshown, as what
+     follows the caret, and the status shows the file it shows: what is
+     staged against HEAD, else the file's open buffer, through
+     `Following`, or the file, against what is staged. The focus stays in
+     the status or the diff, and the diff at the file's line
+     (`CompareBuffer.place`, `DiffPane.placeAt`). Left: `=` from the log's
+     diff, the log's layout for it, `s` and `w`.
 7. **Branches relative to others, and stash.** The parent branch, the
    unmerged, unpulled and unpushed sections, the stash section and popup,
    stashes in the log and the refs tree, the status's outline in the

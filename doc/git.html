@@ -92,7 +92,7 @@ the changes made since it was staged.
 <h3><a name="status-diff">The diff beside it</a></h3>
 
 <p>
-<b>D</b> shows the diff of the file at the caret in a window at the right,
+<b>=</b> shows the diff of the file at the caret in a window at the right,
 the status keeping the left of the frame. It follows the caret when the
 caret rests: a file's whole diff, the unstaged or staged one as its section
 says, or, on a hunk, scrolled to that hunk. A file can stay closed in the
@@ -102,11 +102,26 @@ opens or closes a hunk, <b>n</b> and <b>p</b> go from hunk to hunk,
 <b>s</b>, <b>u</b> and <b>d</b> stage, unstage or discard the hunk at the
 caret or the lines selected, or the whole file on its heading, the first
 line, as in the status (see <a href="#staging">Staging and discarding</a>),
-and <b>D</b> or <b>q</b> closes it. Until it is read again after one, the
+and <b>q</b> closes it, back to the status. Until it is read again after one, the
 next waits. With the vim keys, the hunk commands of a file being edited do
 the same there: <code>&lt;leader&gt;hs</code> stages,
 <code>&lt;leader&gt;hu</code> unstages and <code>&lt;leader&gt;hr</code>
-discards. With it open, the status and its diff are
+discards.
+
+<p>
+<b>=</b> switches the diff between unified, at the right, and side by side
+under the status, as <a href="commands.html#vcsDiff">vcsDiff</a> shows a
+file: what is staged against HEAD for a staged file; otherwise, the file's
+buffer if it is open, followed as it is edited, or else the file, against
+what is staged. The window you are in stays the status, or the diff in its
+new form, at the same line of the file. In the status, with the diff
+closed, <b>=</b> opens it as it was last shown. Side by side, it follows
+the caret as the unified diff does, from each file's first change; in its
+two sides, <b>Enter</b> visits the file at the line, and <b>q</b> closes it,
+back to the status.
+
+<p>
+With it open, the status and its diff are
 switched to and away from as one, as the log is: going to another buffer
 puts back the windows from before, and coming back to either lays them out
 again. <a href="preferences.html#vcsStatusDiff">vcsStatusDiff</a> opens a new

@@ -22,6 +22,10 @@ package org.armedbear.j.vcs.status;
 
 import static org.armedbear.j.Constants.*;
 
+import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,10 +40,12 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.FrameView;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
@@ -47,8 +53,15 @@ import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.WindowLayout.Split;
 import org.armedbear.j.WindowLayout.Window;
+import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.DiffAlignment;
+import org.armedbear.j.mode.compare.Following;
+import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
@@ -60,7 +73,8 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
  * files and commits, each file's diff shown inline when expanded. It is
  * read again in the background whenever its repositories change, and a
  * refresh keeps the caret on the thing it was on. With the diff beside it,
- * it is a frame view, the diff following its caret.
+ * it is a frame view, the diff following its caret: unified at the right,
+ * or side by side under it.
  */
 public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
     // How long the caret rests on a file before the diff beside follows it.
@@ -92,6 +106,20 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
     private final Timer follow = new Timer(FOLLOW_DELAY, e -> followCaret());
     // The windows before the diff beside took the frame; null when it isn't shown.
     private WindowLayout.Node before;
+    // Whether the diff is side by side, and then the comparison showing it,
+    // which shows the file the diff beside has; each showing's number, so
+    // that only the last is shown; and the file it shows.
+    private boolean sideBySide;
+    private CompareBuffer compare;
+    private int compared;
+    private String comparedFile;
+    // The file the comparison shows now, as it is read in and shown.
+    private String shownFile;
+    // Where the comparison goes when it shows placeFile; a negative line
+    // its first change.
+    private String placeFile;
+    private boolean placeOnOld;
+    private int placeLine = -1;
 
     private VcsStatusBuffer(List<VcsRepository> repositories) {
         super(VcsStatusMode.getMode(), title(repositories), "Reading…");
@@ -442,6 +470,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         diff = new StatusDiffBuffer(this);
         followed = null;
         pending = null;
+        if (sideBySide)
+            compare = newCompare();
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         if (frame != null)
             frame.showView(this, this);
@@ -458,16 +488,30 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         if (diff == null)
             return;
         final StatusDiffBuffer d = diff;
+        final CompareBuffer c = compare;
         follow.stop();
+        final List<Buffer> parts = new ArrayList<>(List.of(d));
+        if (c != null)
+            parts.addAll(List.of(c, c.getOld()));
+        if (closing)
+            parts.add(this);
         if (frame != null)
-            frame.leaveView(this, closing ? List.of(this, d) : List.of(d));
+            frame.leaveView(this, parts);
         diff = null;
+        compare = null;
+        comparedFile = null;
+        shownFile = null;
+        placeFile = null;
         before = null;
         // With no windows from before, the diff's own shows the status.
-        for (Editor ed : d.windows())
-            ed.activate(this);
+        for (Buffer part : parts)
+            if (part instanceof ViewBuffer v && part != this)
+                for (Editor ed : v.windows())
+                    ed.activate(this);
         if (Editor.getBufferList().contains(d))
             d.kill();
+        if (c != null)
+            c.close(null);
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
     }
 
@@ -531,6 +575,276 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         return null;
     }
 
+    // Side by side.
+
+    /** The comparison showing the diff side by side, or null. */
+    CompareBuffer getCompare() {
+        return compare;
+    }
+
+    /**
+     * =: the diff beside opened as it was last shown, or else switched
+     * between unified and side by side across frame. The window focused
+     * stays the status, or the diff in its new form, at the same line of the
+     * file: a removed line's on the old side, the rest on the new.
+     */
+    void diffView(Frame frame, Buffer focus) {
+        if (diff == null) {
+            openDiff(frame);
+            return;
+        }
+        // Open but not laid out, as with its window closed by hand: laid out again as it is.
+        final boolean shown = isDiffShown(frame);
+        if (!shown && frame != null) {
+            frame.showView(this, focus);
+            return;
+        }
+        final boolean inDiff = focus == diff || compare != null && CompareBuffer.of(focus) == compare;
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
+        if (compare == null) {
+            placeFrom(Editor.windowShowing(diff));
+            sideBySide = true;
+            compare = newCompare();
+            comparedFile = null;
+            shownFile = null;
+            if (shown)
+                frame.layOutView(this, !inDiff ? focus : placeOnOld ? compare.getOld() : compare);
+            diffShown(diff.repository(), diff.section(), diff.item(), StatusDiffBuffer.Follow.MOVED);
+            return;
+        }
+        final CompareBuffer was = compare;
+        // Read before the layout, which may give its window to another buffer.
+        final Editor from = Editor.windowShowing(CompareBuffer.of(focus) == was ? focus : was);
+        final boolean onOld = from != null && from.getBuffer() == was.getOld();
+        // Not while it shows another file than the unified diff, still being read.
+        final int line = from != null && from.getDot() != null && comparesDiffFile() ? from.getDotLineNumber() : -1;
+        sideBySide = false;
+        compare = null;
+        comparedFile = null;
+        shownFile = null;
+        if (shown)
+            frame.layOutView(this, inDiff ? diff : focus);
+        if (line >= 0)
+            diff.placeAt(onOld, line + 1);
+        was.close(null);
+    }
+
+    // Where the comparison is to go once it shows the file the unified
+    // diff has: the side and line, by number, of what ed's caret is on.
+    private void placeFrom(Editor ed) {
+        placeFile = null;
+        placeOnOld = false;
+        placeLine = -1;
+        if (ed == null || ed.getDot() == null || !(ed.getDotLine() instanceof StatusLine at) || at.hunk() == null)
+            return;
+        if (at.diffLine() != null) {
+            placeOnOld = at.diffLine().isRemoved();
+            placeLine = (placeOnOld ? at.oldLine() : at.newLine()) - 1;
+        } else
+            placeLine = VcsStatusMode.firstChange(at.hunk()) - 1;
+        placeFile = diffFile();
+    }
+
+    // The key of the file the unified diff shows, or null.
+    private String diffFile() {
+        return diff == null || diff.item() == null ? null : fileKey(diff.repository(), diff.section(), diff.item());
+    }
+
+    private static String fileKey(VcsRepository r, String section, FileItem item) {
+        return r.root() + "|" + section + "|" + item.path();
+    }
+
+    /** Whether the comparison shows the file the unified diff does, read. */
+    boolean comparesDiffFile() {
+        return compare != null && shownFile != null && shownFile.equals(diffFile());
+    }
+
+    // A comparison, empty until the diff beside shows a file, part of this.
+    private CompareBuffer newCompare() {
+        final CompareBuffer c = CompareBuffer.open(null, plainText(), null, "", Side.NONE, "", Side.NONE);
+        c.embed(this, km -> {
+            km.mapKey('=', "vcsStatusDiffView");
+            km.mapKey('q', "vcsStatusDiff");
+            km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
+        });
+        return c;
+    }
+
+    private static Mode plainText() {
+        return Editor.getModeList().getMode(PLAIN_TEXT_MODE);
+    }
+
+    /**
+     * The diff beside shows item, of r's section, for why, or nothing for
+     * null: side by side, the comparison shows it too. What is staged is
+     * against HEAD; else, the file's buffer if it is open, followed as
+     * vcsDiff follows it, or else the file, against what is staged.
+     */
+    void diffShown(VcsRepository r, String section, FileItem item, StatusDiffBuffer.Follow why) {
+        if (compare == null)
+            return;
+        final String file = item == null ? null : fileKey(r, section, item);
+        final boolean moved = file == null || !file.equals(comparedFile);
+        // Read again only for a new file or when the status is; a buffer's
+        // comparison follows the buffer itself.
+        if (!moved && why == StatusDiffBuffer.Follow.REDRAWN)
+            return;
+        comparedFile = file;
+        final int asked = ++compared;
+        final CompareBuffer c = compare;
+        if (item == null) {
+            c.follow(null);
+            show(c, plainText(), "", Side.NONE, "No file at the caret", Side.NONE, null, true);
+            return;
+        }
+        final String path = item.path();
+        final File f = File.getInstance(r.root().resolve(path).toString());
+        final boolean staged = "staged".equals(section);
+        // A file in a conflict has no one text staged to follow.
+        final Buffer buffer = staged || "unmerged".equals(section) ? null : Editor.getBufferList().findBuffer(f);
+        if (buffer != null
+                && buffer.isLoaded()
+                && buffer.getType() == Buffer.TYPE_NORMAL
+                && buffer.getFileType() != FILETYPE_BINARY) {
+            if (!moved)
+                return;
+            Following.open(buffer, VcsDiffCommands.staged(r, path), (read, side) -> {
+                if (asked != compared || compare != c)
+                    return null;
+                if (read == null) {
+                    // Not read, as while another git holds the index's lock:
+                    // read again when the status next is.
+                    comparedFile = null;
+                    c.follow(null);
+                    show(
+                        c,
+                        buffer.getMode(),
+                        path + " (not read)",
+                        Side.NONE,
+                        path + " (buffer)",
+                        Side.NONE,
+                        null,
+                        true);
+                    return null;
+                }
+                show(c, buffer.getMode(), read.title(), read.side(), path + " (buffer)", side, null, true);
+                return c;
+            });
+            return;
+        }
+        final Mode mode = modeFor(f);
+        final Charset charset = defaultCharset();
+        final boolean conflicted = "unmerged".equals(section);
+        Background.start("vcs status compare", () -> {
+            String oldTitle;
+            Side oldSide = Side.NONE;
+            String newTitle;
+            Side newSide = Side.NONE;
+            try {
+                final Bases bases = r.backend().readBases(r, path);
+                final byte[] head = bases == null ? null : bases.head();
+                final byte[] index = bases == null ? null : bases.index();
+                final byte[] base = staged ? head : index;
+                oldTitle = path + baseNote(bases != null, base != null, staged, conflicted);
+                newTitle = staged ? path + " (staged)" : path;
+                final boolean binary = staged
+                        ? head != null && Side.isBinary(head) || index != null && Side.isBinary(index)
+                        : base != null && Side.isBinary(base) || isBinary(f);
+                if (binary) {
+                    oldTitle = path + " (binary)";
+                    newTitle = path + " (binary)";
+                } else {
+                    oldSide = base == null ? Side.NONE : Side.ofFile(base, charset);
+                    newSide = staged ? index == null ? Side.NONE : Side.ofFile(index, charset) : read(f, charset);
+                }
+            }
+            catch (RuntimeException e) {
+                Log.error(e);
+                oldTitle = path + " (not read)";
+                newTitle = path;
+            }
+            final DiffAlignment alignment = DiffAlignment.of(oldSide.keys(), newSide.keys());
+            final String ot = oldTitle;
+            final Side os = oldSide;
+            final String nt = newTitle;
+            final Side ns = newSide;
+            SwingUtilities.invokeLater(() -> {
+                if (asked != compared || compare != c)
+                    return;
+                c.follow(null);
+                show(c, mode, ot, os, nt, ns, alignment, moved);
+            });
+        });
+    }
+
+    // c shows the two sides, alignment theirs, or worked out if null; of
+    // another file, at the place asked for it, else from its first change.
+    private void show(
+            CompareBuffer c,
+            Mode mode,
+            String oldTitle,
+            Side oldSide,
+            String newTitle,
+            Side newSide,
+            DiffAlignment alignment,
+            boolean moved) {
+        c.set(
+            mode,
+            oldTitle,
+            oldSide,
+            newTitle,
+            newSide,
+            alignment != null ? alignment : DiffAlignment.of(oldSide.keys(), newSide.keys()));
+        shownFile = comparedFile;
+        if (!moved)
+            return;
+        final boolean asked = comparedFile != null && comparedFile.equals(placeFile);
+        c.place(asked && placeOnOld ? c.getOld() : c, asked ? placeLine : -1);
+        placeFile = null;
+    }
+
+    // What the old side is, or why it has nothing.
+    private static String baseNote(boolean read, boolean there, boolean staged, boolean conflicted) {
+        if (!read)
+            return conflicted ? " (in a conflict)" : " (not read)";
+        if (!there)
+            return staged ? " (not in HEAD)" : " (not in the index)";
+        return staged ? " (HEAD)" : " (staged)";
+    }
+
+    // Whether the file is not text, as diff FILE judges.
+    private static boolean isBinary(File file) {
+        final int type = Utilities.getFileType(file);
+        return type == FILETYPE_BINARY || type == FILETYPE_ZIP || type == FILETYPE_GZIP || type == FILETYPE_JPEG;
+    }
+
+    // The file's text, or none if it is not there or can't be read.
+    private static Side read(File file, Charset charset) {
+        if (!file.isFile())
+            return Side.NONE;
+        try {
+            return Side.read(file, charset);
+        }
+        catch (IOException e) {
+            Log.debug(e.toString());
+            return Side.NONE;
+        }
+    }
+
+    private static Mode modeFor(File file) {
+        final Mode mode = Editor.getModeList().getModeForFileName(file.getName());
+        return mode != null ? mode : plainText();
+    }
+
+    private static Charset defaultCharset() {
+        try {
+            return Charset.forName(Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING));
+        }
+        catch (RuntimeException e) {
+            return StandardCharsets.UTF_8;
+        }
+    }
+
     /** Whether the diff beside is open and laid out across the frame. */
     boolean isDiffShown(Frame frame) {
         return diff != null && frame != null && frame.shownView() == this;
@@ -543,12 +857,17 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
 
     @Override
     public List<Buffer> getChildren() {
-        return diff == null ? List.of() : List.of(diff);
+        return diff == null ? List.of() : compare != null ? List.of(compare, compare.getOld()) : List.of(diff);
     }
 
-    // The status at the left, the diff at the right.
+    // The status at the left, the diff at the right; side by side, the
+    // status at the top, the comparison under it.
     @Override
     public WindowLayout.Node layout(Frame frame, Buffer focus) {
+        if (compare != null)
+            return new Split(false,
+                    List.of(Window.showing(this, CompareBuffer.of(focus) != compare), compare.panes(focus)),
+                    List.of(0.5, 0.5));
         return new Split(true,
                 List.of(Window.showing(this, focus != diff), Window.showing(diff, focus == diff)),
                 List.of(0.45, 0.55));
@@ -567,7 +886,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
     // The diff killed on its own closes as D does.
     @Override
     public boolean partKilled(Buffer part) {
-        if (part != diff)
+        if (part != diff && part != compare)
             return false;
         final Editor current = Editor.currentEditor();
         closeDiff(current != null ? current.getFrame() : null);

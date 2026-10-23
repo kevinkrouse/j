@@ -54,7 +54,7 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
             clear("");
             return;
         }
-        final VcsRepository r = owner.repositoryOf(c);
+        final VcsRepository r = getOwner().repositoryOf(c);
         Background.start("vcs log diff", () -> {
             FileDiff read;
             try {
@@ -66,7 +66,7 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
             }
             final FileDiff d = read;
             SwingUtilities.invokeLater(() -> {
-                if (at != generation || owner.isDisposed())
+                if (at != generation || getOwner().isDisposed())
                     return;
                 commit = c;
                 change = ch;
