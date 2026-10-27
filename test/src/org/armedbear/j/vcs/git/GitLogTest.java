@@ -22,7 +22,9 @@ package org.armedbear.j.vcs.git;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -223,6 +225,25 @@ public class GitLogTest {
         final List<CommitChange> root = GitLog.changes(repository, id("HEAD"), null);
         assertEquals(List.of(new CommitChange("a.txt", null, Kind.ADDED)), root);
         assertEquals(1, GitLog.diff(repository, id("HEAD"), null, root.get(0), Whitespace.NONE).hunks().size());
+    }
+
+    @Test
+    public void aCommitsDiffsIgnoreTheWhitespaceAsked() throws Exception {
+        init();
+        git.write("a.txt", "x\ny\n");
+        git.commitAll("first");
+        git.write("a.txt", "x\ny  \n");
+        git.commitAll("spaces");
+        final CommitChange a = new CommitChange("a.txt", null, Kind.MODIFIED);
+        assertEquals(1, GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.NONE).hunks().size());
+        assertSame(FileDiff.ONLY_WHITESPACE, GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.TRAILING));
+        assertSame(FileDiff.ONLY_WHITESPACE, GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.ALL));
+        final String shown = new String(repository.backend().readCommit(repository, id("HEAD"), Whitespace.NONE),
+                StandardCharsets.UTF_8);
+        assertTrue(shown.contains("+y  "), shown);
+        final String ignoring = new String(repository.backend().readCommit(repository, id("HEAD"), Whitespace.AMOUNT),
+                StandardCharsets.UTF_8);
+        assertFalse(ignoring.contains("+y"), ignoring);
     }
 
     @Test

@@ -44,6 +44,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.FoldCommands;
+import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
@@ -134,8 +135,7 @@ public class CompareTest {
     }
 
     private void open() throws Exception {
-        onEdt(
-            () -> diff = CompareBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", side(OLD), "new", side(NEW)));
+        onEdt(() -> diff = open(null, JavaMode.getMode(), "Demo.java", "old", side(OLD), "new", side(NEW)));
     }
 
     private static Side side(String text) {
@@ -156,6 +156,26 @@ public class CompareTest {
             left.editor().setTopLine(diff.getOld().getFirstLine());
             right.editor().setTopLine(diff.getFirstLine());
         });
+    }
+
+    // As a comparison is opened: its two texts aligned first, as Following does in the background.
+    private static CompareBuffer open(
+            Frame frame,
+            Mode mode,
+            String key,
+            String oldTitle,
+            Side oldText,
+            String newTitle,
+            Side newText) {
+        return CompareBuffer.open(
+            frame,
+            mode,
+            key,
+            oldTitle,
+            oldText,
+            newTitle,
+            newText,
+            DiffAlignment.of(oldText, newText, DiffWhitespace.ignored()));
     }
 
     @Test
@@ -205,8 +225,8 @@ public class CompareTest {
                     b.append('n').append(j).append('\n');
         }
         onEdt(
-            () -> diff = CompareBuffer
-                    .open(null, JavaMode.getMode(), "Ins.java", "old", side(a.toString()), "new", side(b.toString())));
+            () -> diff =
+                    open(null, JavaMode.getMode(), "Ins.java", "old", side(a.toString()), "new", side(b.toString())));
         onEdt(() -> {
             diff.getFolds().setAllFolds(null, true);
             left = EditorHarness.create().rows(10);
@@ -272,8 +292,8 @@ public class CompareTest {
                     b.append('n').append(j).append('\n');
         }
         onEdt(
-            () -> diff = CompareBuffer
-                    .open(null, JavaMode.getMode(), "Top.java", "old", side(a.toString()), "new", side(b.toString())));
+            () -> diff =
+                    open(null, JavaMode.getMode(), "Top.java", "old", side(a.toString()), "new", side(b.toString())));
         onEdt(() -> {
             diff.getFolds().setAllFolds(null, true);
             left = EditorHarness.create().rows(10);
@@ -322,9 +342,7 @@ public class CompareTest {
         for (int i = 0; i < 300; i++)
             a.append('l').append(i).append('\n');
         final String b = a.toString().replace("l30\n", "changed\n");
-        onEdt(
-            () -> diff = CompareBuffer
-                    .open(null, JavaMode.getMode(), "Bottom.java", "old", side(a.toString()), "new", side(b)));
+        onEdt(() -> diff = open(null, JavaMode.getMode(), "Bottom.java", "old", side(a.toString()), "new", side(b)));
         final boolean ready = Editor.displayReady();
         Editor.setDisplayReady(true);
         try {
@@ -560,7 +578,7 @@ public class CompareTest {
         final Side before = side("a b\nc\nd\n");
         final Side after = side("a  b\nc\nD\n");
         onEdt(() -> {
-            diff = CompareBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", before, "new", after);
+            diff = open(null, JavaMode.getMode(), "Demo.java", "old", before, "new", after);
             right = EditorHarness.create().rows(5);
             right.showBuffer(diff);
             assertEquals(2, diff.getAlignment().changes().size());
@@ -609,7 +627,7 @@ public class CompareTest {
         final Side before = side("a b\nc\n");
         onEdt(() -> {
             CompareBuffer.realigner = queued::add;
-            diff = CompareBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", before, "new", side("a  b\nc\n"));
+            diff = open(null, JavaMode.getMode(), "Demo.java", "old", before, "new", side("a  b\nc\n"));
             right = EditorHarness.create().rows(5);
             right.showBuffer(diff);
             DiffWhitespace.toggle();
@@ -794,12 +812,12 @@ public class CompareTest {
     @Test
     public void unalignedARuleUnderTheLastLineOrOverAnEmptySidesBlankLine() throws Exception {
         onEdt(() -> {
-            diff = CompareBuffer.open(null, JavaMode.getMode(), "End.java", "old", side("a\n"), "new", side("a\nb\n"));
+            diff = open(null, JavaMode.getMode(), "End.java", "old", side("a\n"), "new", side("a\nb\n"));
             final SideFormatter f = (SideFormatter) diff.getOld().getFormatter();
             assertEquals(f.edge(Kind.ADDED), f.getLineRule(diff.getOld().getLine(0), true), "under a");
             assertNull(f.getLineRule(diff.getOld().getLine(0), false));
             diff.kill();
-            diff = CompareBuffer.open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\n"));
+            diff = open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\n"));
             assertNotNull(diff.getOld().getFormatter().getLineRule(diff.getOld().getFirstLine(), false));
         });
     }
@@ -815,7 +833,7 @@ public class CompareTest {
     public void anEmptySideIsAsTallAsTheOther() throws Exception {
         aligned();
         onEdt(() -> {
-            diff = CompareBuffer.open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\nb\nc\n"));
+            diff = open(null, JavaMode.getMode(), "New.java", "old", side(""), "new", side("a\nb\nc\n"));
             assertEquals(diff.getDisplayHeight(), diff.getOld().getDisplayHeight(), "its blank line a filler");
             assertNotNull(diff.getOld().getFormatter().getLineBackground(diff.getOld().getFirstLine()));
         });
@@ -829,8 +847,7 @@ public class CompareTest {
             added.append("new").append(i).append('\n');
         added.append("b\n");
         onEdt(() -> {
-            diff = CompareBuffer
-                    .open(null, JavaMode.getMode(), "Long.java", "old", side("a\nb\n"), "new", side(added.toString()));
+            diff = open(null, JavaMode.getMode(), "Long.java", "old", side("a\nb\n"), "new", side(added.toString()));
             left = EditorHarness.create().rows(5);
             right = EditorHarness.create().rows(5);
             left.showBuffer(diff.getOld());
@@ -900,7 +917,7 @@ public class CompareTest {
     @Test
     public void aChangedLinesWordsThatDifferAreSpans() throws Exception {
         onEdt(() -> {
-            diff = CompareBuffer.open(
+            diff = open(
                 null,
                 JavaMode.getMode(),
                 "Words.java",
@@ -918,7 +935,7 @@ public class CompareTest {
     @Test
     public void eachSideIsParsedBeforeItIsShown() throws Exception {
         onEdt(() -> {
-            diff = CompareBuffer.open(
+            diff = open(
                 null,
                 JavaMode.getMode(),
                 "Comment.java",
@@ -941,9 +958,7 @@ public class CompareTest {
         for (int i = 0; i < 20; i++)
             a.append('l').append(i).append('\n');
         final String b = a.toString().replace("l10\n", "changed\n");
-        onEdt(
-            () -> diff = CompareBuffer
-                    .open(null, JavaMode.getMode(), "Long.java", "old", side(a.toString()), "new", side(b)));
+        onEdt(() -> diff = open(null, JavaMode.getMode(), "Long.java", "old", side(a.toString()), "new", side(b)));
     }
 
     // Thirty lines, l2 and l25 changed: l6 to l21 folded under l5.
@@ -952,9 +967,7 @@ public class CompareTest {
         for (int i = 0; i < 30; i++)
             a.append('l').append(i).append('\n');
         final String b = a.toString().replace("l2\n", "x\n").replace("l25\n", "y\n");
-        onEdt(
-            () -> diff = CompareBuffer
-                    .open(null, JavaMode.getMode(), "Two.java", "old", side(a.toString()), "new", side(b)));
+        onEdt(() -> diff = open(null, JavaMode.getMode(), "Two.java", "old", side(a.toString()), "new", side(b)));
     }
 
     @Test
@@ -1147,7 +1160,7 @@ public class CompareTest {
     @Test
     public void nothingIsFoldedWhereNothingChanged() throws Exception {
         onEdt(() -> {
-            diff = CompareBuffer.open(
+            diff = open(
                 null,
                 JavaMode.getMode(),
                 "Same.java",

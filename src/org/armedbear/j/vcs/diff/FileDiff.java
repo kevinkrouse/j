@@ -38,6 +38,10 @@ public record FileDiff(List<String> header, String oldPath, String newPath, bool
     /** A diff with no hunks: no change to the file's content. */
     public static final FileDiff EMPTY = new FileDiff(List.of(), null, null, false, false, false, false, List.of());
 
+    /** Read ignoring whitespace, a diff with no hunks: told apart from EMPTY by identity. */
+    public static final FileDiff ONLY_WHITESPACE =
+            new FileDiff(List.of(), null, null, false, false, false, false, List.of());
+
     public FileDiff {
         header = List.copyOf(header);
         hunks = List.copyOf(hunks);

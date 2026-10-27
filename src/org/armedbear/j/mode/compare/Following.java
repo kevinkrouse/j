@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.BiFunction;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -44,7 +43,7 @@ import org.armedbear.j.util.Whitespace;
  * seen when the frame is activated or the comparison shown. Not while no
  * window shows it; not at all once it closes or the base no longer applies.
  */
-public final class Following implements Buffer.Follower, CompareBuffer.Source {
+public final class Following implements Buffer.Follower {
     /** What a buffer is compared with, as what is staged of its file or another file. */
     public interface Base {
         /** Its text in charset and its title now, or null if it can't be read; off the event thread. */
@@ -112,7 +111,7 @@ public final class Following implements Buffer.Follower, CompareBuffer.Source {
      */
     public static void open(Editor editor, String key, String title, Base base) {
         final Buffer buffer = editor.getBuffer();
-        open(buffer, base, (read, side) -> {
+        open(buffer, base, (read, side, alignment) -> {
             // Not if the window has moved on to something else meanwhile.
             if (!Editor.getEditorList().contains(editor) || editor.getBuffer() != buffer)
                 return null;
@@ -120,24 +119,34 @@ public final class Following implements Buffer.Follower, CompareBuffer.Source {
                 editor.status(base.unreadable());
                 return null;
             }
-            return CompareBuffer.open(editor.getFrame(), buffer.getMode(), key, read.title(), read.side(), title, side);
+            return CompareBuffer
+                    .open(editor.getFrame(), buffer.getMode(), key, read.title(), read.side(), title, side, alignment);
         });
     }
 
-    /**
-     * buffer against base, read in the background: show has the base as
-     * read, null if it couldn't be, and the buffer's side, and gives the
-     * comparison it shows them in, followed from then on, or null for none.
-     */
-    public static void open(Buffer buffer, Base base, BiFunction<Read, Side, CompareBuffer> show) {
+    /** What shows a comparison of a buffer as Following.open reads it. */
+    @FunctionalInterface
+    public interface Show {
+        /**
+         * The base as read, null if it couldn't be, the buffer's side and
+         * the two aligned, shown: the comparison they are in, followed from
+         * then on, or null for none.
+         */
+        CompareBuffer show(Read read, Side side, DiffAlignment alignment);
+    }
+
+    /** buffer against base, read and aligned in the background, then shown by show. */
+    public static void open(Buffer buffer, Base base, Show show) {
         final Charset charset = buffer.getCharset();
         final List<String> lines = lines(buffer);
         final int modCount = buffer.getModCount();
+        final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("compare", () -> {
             final Read read = base.read(charset);
+            final Side side = read == null ? null : Side.ofBuffer(lines, charset, read.side().crlf());
+            final DiffAlignment alignment = read == null ? null : DiffAlignment.of(read.side(), side, ignored);
             SwingUtilities.invokeLater(() -> {
-                final Side side = read == null ? null : Side.ofBuffer(lines, charset, read.side().crlf());
-                final CompareBuffer c = show.apply(read, side);
+                final CompareBuffer c = show.show(read, side, alignment);
                 if (c == null || read == null)
                     return;
                 final Following f = new Following(c, buffer, base, c.shownIn());
@@ -161,7 +170,7 @@ public final class Following implements Buffer.Follower, CompareBuffer.Source {
         SwingUtilities.invokeLater(timer::restart);
     }
 
-    @Override
+    /** Its comparison is shown again, as after being out of every window. */
     public void shown() {
         if (pending || base.changed()) {
             pending = false;
@@ -169,7 +178,7 @@ public final class Following implements Buffer.Follower, CompareBuffer.Source {
         }
     }
 
-    @Override
+    /** Its comparison closed, or another took over following. */
     public void stop() {
         stopped = true;
         timer.stop();

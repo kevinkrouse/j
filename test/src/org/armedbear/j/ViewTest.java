@@ -12,6 +12,7 @@
 package org.armedbear.j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -36,8 +37,12 @@ public class ViewTest {
     }
 
     // A view of twenty lines, its caret at 12:3, its mark at 10:1 and its
-    // top line 8, scrolled by 5 pixels, invalidated.
+    // top line 8, scrolled by 5 pixels, invalidated keeping its mark.
     private View invalidated() {
+        return invalidated(true);
+    }
+
+    private View invalidated(boolean keepMark) {
         h = EditorHarness.create(lines(20));
         final Editor ed = h.editor();
         final Buffer b = h.buffer();
@@ -47,7 +52,10 @@ public class ViewTest {
         ed.getDisplay().setPixelsAboveTopLine(5);
         ed.saveView();
         final View view = ed.getView(b);
-        view.invalidate();
+        if (keepMark)
+            view.invalidateKeepingMark();
+        else
+            view.invalidate();
         return view;
     }
 
@@ -61,6 +69,23 @@ public class ViewTest {
         assertEquals(1, view.getMark().getOffset());
         assertEquals(8, view.getTopLine().lineNumber());
         assertEquals(5, view.getPixelsAboveTopLine());
+    }
+
+    @Test
+    public void invalidatedAsWhenItsLinesAreReplacedAViewLosesItsMark() {
+        final View view = invalidated(false);
+        view.resolve(h.buffer());
+        assertEquals(12, view.getDot().lineNumber());
+        assertNull(view.getMark(), "what it selected may be gone");
+    }
+
+    @Test
+    public void aMarkKeptStaysThroughAnotherInvalidate() {
+        // As the buffer's own invalidate after a comparison's.
+        final View view = invalidated(true);
+        view.invalidate();
+        view.resolve(h.buffer());
+        assertEquals(10, view.getMark().lineNumber());
     }
 
     @Test

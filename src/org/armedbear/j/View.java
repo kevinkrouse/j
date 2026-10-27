@@ -34,7 +34,7 @@ public final class View implements Cloneable {
     int lineNumber;
     int offs;
     int topLineNumber;
-    // The mark's, kept by invalidate; -1 for none.
+    // The mark's, kept by invalidateKeepingMark; -1 for none.
     int markLineNumber = -1;
     int markOffs;
     long timestamp;
@@ -135,14 +135,28 @@ public final class View implements Cloneable {
         sidebarComponent = c;
     }
 
-    /** Its lines dropped for their numbers, as when the buffer's lines are replaced; resolve has them back. */
+    /**
+     * Its lines dropped for their numbers, as when the buffer's lines are
+     * replaced; resolve has them back. The mark goes: what it selected may
+     * not be there now.
+     */
     public void invalidate() {
+        invalidate(false);
+    }
+
+    /** The same, keeping the mark, for lines laid out again as they were. */
+    public void invalidateKeepingMark() {
+        invalidate(true);
+    }
+
+    private void invalidate(boolean keepMark) {
         if (dot != null) {
             lineNumber = dot.lineNumber();
             offs = dot.getOffset();
         }
+        // One kept already, as before the lines are replaced, stays.
         if (mark != null) {
-            markLineNumber = mark.lineNumber();
+            markLineNumber = keepMark ? mark.lineNumber() : -1;
             markOffs = mark.getOffset();
         }
         dot = null;
@@ -167,6 +181,7 @@ public final class View implements Cloneable {
             dot = at(buffer, lineNumber, offs);
         if (mark == null && markLineNumber >= 0)
             mark = at(buffer, markLineNumber, markOffs);
+        markLineNumber = -1;
         if (topLine == null) {
             final Line line = line(buffer, topLineNumber);
             topLine = line == null ? null : line.shown();

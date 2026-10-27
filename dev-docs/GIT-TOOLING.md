@@ -1009,7 +1009,7 @@ plan with why it is left, before the next phase starts.
      preference.
    - `Mode.sectionFrom` gives vim's `]]`/`[[` a mode's headings;
      `Mode.getHelpTopic` makes F1 open the mode's page.
-   - Refresh is `r` in vim edit mode, since `g` starts `gg`.
+   - Refresh is `Ctrl R` in both edit modes (`r` is kept for rebase).
    - Ctrl Alt G opens the status directly, not as a prefix yet;
      `<leader>gg` comes from rows of the vim key map with `<leader>`, bound
      with the vimrc's mapleader before the vimrc's own maps.
@@ -1073,9 +1073,9 @@ plan with why it is left, before the next phase starts.
      `<leader>hs`/`hr`/`hp`/`hu`.
    - Left for phase 10: outlined marks for other changelists, and moving a
      hunk to one from the popup.
-5. **In progress. Log.** `WindowLayout` capture and restore, the full-frame log and the
+5. **Done. Log.** `WindowLayout` capture and restore, the full-frame log and the
    quick log, the list buffer with streaming load, rows that fit the width,
-   details at the bottom or the right, to-file and at-revision, the filter
+   details at the right, to-file and at-revision, the filter
    bar and the filter popup, then the graph
    (lanes, then painting), then several repositories (the merge by commit
    time, paging per repository, the strip and names, the repository
@@ -1420,7 +1420,7 @@ plan with why it is left, before the next phase starts.
      it (`FrameView.before`), so a log shown in two frames puts the first's
      windows back in the second when it is left there. A layout kept per
      frame would fix it, for the status's diff too.
-6. **Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
+6. **Done. Side-by-side diff.** `DiffAlignment` from `util/Diff` with filler
    rows, tested on its own (a change at the top and the bottom, an empty
    side, a file new or deleted, a change of only blank lines, CR LF); the two
    panes as buffers with filler virtual lines; the scroll and caret lock,
@@ -1441,10 +1441,10 @@ plan with why it is left, before the next phase starts.
      and `OldSide` its part, each a `ViewBuffer` in the file's mode with a
      `SideFormatter` over the mode's (`getLineBackground` by the row's
      kind) and its fillers as virtual rows (above the first line, or below
-     one). `Buffer.keyMapOver` lays a side's `q`, `n` and `p` over a copy
-     of its mode's map (`KeyMap.copy`), the modal one too
-     (`getModalKeyMapForMode`); `Buffer.getChangeStarts` gives `nextChange`
-     the changes; `Buffer.scrolled`, from `Editor.updateScrollBars` after
+     one). A side's `getKeyMapForMode` lays its `q`, `n` and `p` over a
+     copy of its mode's map (`KeyMap.copy`), the modal one too
+     (`getModalKeyMapForMode`); `Buffer.getChangeStarts`, the mode's by
+     default, gives `nextChange` the changes; `Buffer.scrolled`, from `Editor.updateScrollBars` after
      any scroll, scrolls the other side to the same height, the two being
      as tall row for row, and `afterCommand` takes the other's caret to its
      row, or to the line over a filler row only when that is in view.
@@ -1497,8 +1497,8 @@ plan with why it is left, before the next phase starts.
      side's first line, fold version or rows version
      (`VirtualTextLayer.rowsVersion`) changes, which the lock and the
      track read. A comparison of a file follows it, with the change marks
-     on or off: a `Buffer.Follower` (`mode/compare/Following`, the
-     comparison's `CompareBuffer.Source`) is told of each edit, undo or
+     on or off: a `Buffer.Follower` (`mode/compare/Following`, which the
+     comparison follows) is told of each edit, undo or
      reload and of each look at its version control state, and a moment
      later reads its `Following.Base` (for `vcsDiff`, what is staged:
      `BasesCache`, as the change marks do, kept until the state is looked
@@ -1515,7 +1515,7 @@ plan with why it is left, before the next phase starts.
      unified and side by side under the status, or opens it as last shown:
      side by side is a `CompareBuffer` part of the status's view
      (`CompareBuffer.embed`: the status its `ViewBuffer` owner, as a
-     pane's, and `=`, `D`, `q` and Enter over its sides' keys), the status laid
+     pane's, and `=`, `q` and Enter over its sides' keys), the status laid
      out above its two panes. The unified diff stays, unshown, as what
      follows the caret, and the status shows the file it shows: what is
      staged against HEAD, else the file's open buffer, through
@@ -1554,13 +1554,14 @@ plan with why it is left, before the next phase starts.
      frame too, `PerFrame`) and its buttons enabled, pressed in and shown as they say once
      a command or a change is done (`ToolBarButton.enabledWhen`,
      `selectedWhen`, `visibleWhen`; `Frame.updateToolbar`); Stage, Unstage
-     and Discard are worked out again only once the caret, the selection
-     or the lines shown change (`StatusActions.ableAsChanged`). A button's
+     and Discard are worked out once for each update
+     (`ToolBar.perUpdate`). A button's
      or a menu item's command runs in the window its view says
      (`FrameView.windowFor`, `run`): a diff's in the diff, unified or a
-     side (`CompareCommands.windowFor`); the view's own `vcs` commands in
-     its own window from a side, and in the status those the diff beside
-     has no keys for, as Stage All; any other, as Copy, where it is
+     side (`CompareCommands.windowFor`); from a side, the view's own `vcs`
+     commands it has no key for in the view's window (`=` and `q` stay in
+     the side, `CompareCommands.sideRuns`), and in the status those the
+     diff beside has no keys for, as Stage All; any other, as Copy, where it is
      chosen. A menu shows the keys of the window it is opened in.
      Whitespace is a split button, its arrow dropping down the kinds
      (`ToolBar.addSplitButton`). The VCS menu, registered after Mode
@@ -1798,7 +1799,7 @@ Removed: code nothing called (`VcsRunner.runAsync` and its pool, `CommandLog`'s 
 - Hunk numbers renumber the buffer first: after a split they were stale.
 
 
-### Phase 5 review, so far
+### Phase 5 review
 
 Fixed:
 
@@ -1843,3 +1844,37 @@ Left open:
   them all. `GitStatusReader.recent` is a second log parser.
 - `LogRef.Kind.HEAD` is kept: it marks a detached HEAD, which the `head`
   flag alone doesn't tell from a branch checked out.
+
+### Phase 6 review
+
+Fixed:
+
+- What is staged is read past its byte order mark, and UTF-16 split on its
+  own newlines (`Side.of`), so a file with a mark compares, and its change
+  marks show, as unchanged; each line's raw bytes stay as a patch has them.
+- A change only to whitespace, while it is ignored, says so
+  (`FileDiff.ONLY_WHITESPACE`) in the status, the diff beside and the log,
+  not that the diff failed.
+- A file deleted from the working tree is compared from the disk, not
+  from its buffer still open.
+- From a side, a view's command the side has a key for (`=`, `q`) runs in
+  the side (`CompareCommands.sideRuns`), keeping the focus there.
+- The toolbar no longer caches what Stage, Unstage and Discard can do
+  across updates, which kept a killed status alive; it is worked out once
+  per update.
+- A stored view's selection goes when the buffer's lines are laid out
+  again (`View.invalidate`); a comparison, laying a side out as it was,
+  keeps it (`invalidateKeepingMark`).
+- A comparison's first alignment is worked out in the background with its
+  read (`Following.Show`), not on the event thread.
+- `CompareBuffer.Source` went: `Following` is the one. A side's keys and
+  change starts are the buffer's own methods, the mode's by default
+  (`getKeyMapForMode`, `getChangeStarts`), not hooks beside the mode's.
+- The window fuzz checks where a toolbar or menu command runs, from every
+  window of a view, as unit tests have no frame.
+
+Left open:
+
+- The VCS menu is registered (`AbstractMode.registerMenu`) by core itself.
+- The popup shows Enter, Tab and Ctrl R as `<cr>`, `<Tab>` and `<C-r>` in
+  both edit modes, as it does `<BS>`.

@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
-import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
@@ -260,52 +259,6 @@ public final class StatusActions {
             if (refusal(editor, buffer, op, targets) == null)
                 out.add(op);
         return out;
-    }
-
-    /**
-     * able of at's editor, worked out again only once what it depends on
-     * has changed: the caret, the selection, the lines shown, a write, or
-     * what whitespace is ignored.
-     */
-    public static Supplier<Set<Op>> ableAsChanged(Supplier<Editor> at) {
-        return new Supplier<>() {
-            private Asked asked;
-            private Set<Op> able;
-
-            @Override
-            public Set<Op> get() {
-                final Editor editor = at.get();
-                final Asked now = Asked.of(editor);
-                if (!now.equals(asked)) {
-                    able = able(editor);
-                    asked = now;
-                }
-                return able;
-            }
-        };
-    }
-
-    // What able reads of editor; lines are new each time they are laid out again.
-    private record Asked(Editor editor, Buffer buffer, Line first, Line dot, int dotOffset, Line mark, int markOffset,
-            boolean visual, boolean writing, boolean stale, Whitespace ignored, Whitespace read) {
-        static Asked of(Editor editor) {
-            if (editor == null || editor.getDot() == null)
-                return new Asked(editor, null, null, null, 0, null, 0, false, false, false, null, null);
-            final VcsStatusBuffer status = VcsStatusMode.owner(editor);
-            final Position mark = editor.getMark();
-            return new Asked(editor,
-                    editor.getBuffer(),
-                    editor.getBuffer().getFirstLine(),
-                    editor.getDotLine(),
-                    editor.getDotOffset(),
-                    mark == null ? null : mark.getLine(),
-                    mark == null ? 0 : mark.getOffset(),
-                    editor.getInputHandler() instanceof VimInputHandler vim && vim.getState().getMode().isVisual(),
-                    status != null && status.isWriting(),
-                    editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale(),
-                    DiffWhitespace.ignored(),
-                    status == null ? null : status.readIgnoring());
-        }
     }
 
     // Why op can't be done to targets in editor, or null.

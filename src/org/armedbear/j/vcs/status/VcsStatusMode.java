@@ -275,7 +275,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final Supplier<VcsStatusBuffer> status = () -> at.get() == null ? null : owner(at.get());
         final BooleanSupplier diffShown = () -> status.get() != null && status.get().isDiffShown(frame);
         final BooleanSupplier sides = () -> status.get() != null && status.get().getCompare() != null;
-        final Supplier<Set<Op>> able = StatusActions.ableAsChanged(at);
+        final Supplier<Set<Op>> able = tb.perUpdate(() -> StatusActions.able(at.get()));
         tb.addButton("New", ICON_NEW, "newBuffer");
         tb.addButton("Open", ICON_OPEN, "openFile");
         tb.addButton("Close", ICON_CLOSE, "killBuffer");

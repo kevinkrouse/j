@@ -774,6 +774,7 @@ public final class WindowFuzz {
                     bad.add(kind(b) + " lost its " + child);
         }
         checkPopup(frame, bad);
+        checkRouting(frame, bad);
         final Editor panel = frame.getPanelEditor();
         if (panel != null) {
             for (int i = 0; i < Editor.getEditorCount(); i++) {
@@ -784,6 +785,50 @@ public final class WindowFuzz {
         }
         for (String b : bad)
             errors.add(after + ": " + b);
+    }
+
+    private static int routedSteps;
+
+    // A command from the toolbar or a menu runs where the current window's
+    // view says: Copy where it is chosen; from a side, the view's layout
+    // toggle in the side, which has = for it, and a command it has no key
+    // for in the view's window; from the diff beside, Stage All in the
+    // status; from the view's own window, a change step in its diff.
+    private static void checkRouting(Frame frame, List<String> bad) {
+        final Editor cur = current();
+        final Buffer b = cur.getBuffer();
+        if (FrameView.target(cur, "copyRegion") != cur)
+            bad.add("Copy from " + kind(b) + " runs in another window");
+        final VcsStatusBuffer s = status(b);
+        final Buffer view = s != null ? s : log(cur);
+        final Editor viewWindow = view == null ? null : frame.findEditor(view);
+        if (viewWindow == null || b.getFrameView() == null)
+            return;
+        routedSteps++;
+        if (CompareBuffer.of(b) != null) {
+            final String toggle = s != null ? "vcsStatusDiffView" : "vcsLogDiffView";
+            if (FrameView.target(cur, toggle) != cur)
+                bad.add(toggle + " from a side runs in another window");
+            final String own = s != null ? "vcsStageAll" : "vcsLogClearFilters";
+            if (FrameView.target(cur, own) != viewWindow)
+                bad.add(own + " from a side runs outside " + kind(view));
+        }
+        if (s != null && isA(b, "StatusDiffBuffer") && FrameView.target(cur, "vcsStageAll") != viewWindow)
+            bad.add("vcsStageAll from the diff beside runs outside the status");
+        if (b == view) {
+            Editor diff = null;
+            for (Buffer child : view.getChildren())
+                if (!isA(child, "LogFilesBuffer") && frame.findEditor(child) != null)
+                    diff = frame.findEditor(child);
+            final Editor to = FrameView.target(cur, "nextChange");
+            if (diff != null && (to == cur || !view.getChildren().contains(to.getBuffer())))
+                bad.add("Next Change from " + kind(view) + " runs in " + kind(to.getBuffer()) + ", not its diff");
+        }
+    }
+
+    // Whether b is of the class named, one this package can't see.
+    private static boolean isA(Buffer b, String simpleName) {
+        return b.getClass().getSimpleName().equals(simpleName);
     }
 
     // At most one popup, in the popup layer over a live window; none left
@@ -974,8 +1019,8 @@ public final class WindowFuzz {
         report(
             "seed " + seed + " " + (errors.isEmpty() ? "OK" : "FAILED") + "; " + steps + " steps, up to " + maxWindows
                     + " windows, the panel on " + panelSteps + " steps, a message window on " + boundSteps
-                    + ", a popup on " + popupSteps + ", a frame view on " + logSteps + ", " + quitsChecked
-                    + " of its closes checked, " + layouts.size() + " layouts");
+                    + ", a popup on " + popupSteps + ", a frame view on " + logSteps + " (routing checked on "
+                    + routedSteps + "), " + quitsChecked + " of its closes checked, " + layouts.size() + " layouts");
         System.exit(errors.isEmpty() ? 0 : 1);
     }
 }

@@ -37,6 +37,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.FileCommands;
 import org.armedbear.j.Frame;
+import org.armedbear.j.KeyMap;
 import org.armedbear.j.Menu;
 import org.armedbear.j.OpenFileDialog;
 import org.armedbear.j.Property;
@@ -238,19 +239,39 @@ public final class CompareCommands {
     /**
      * Where a diff's command from the toolbar or Mode menu of a view with a
      * diff runs, from from: by change, in the diff, unified or a side, from
-     * in it, else in comparison's new side or else unified's window; the
+     * in it, else in comparison's new side, its old one if that alone is
+     * shown, or else unified's window; the
      * scroll lock in the comparison; whitespace, every diff's, in from;
      * null for another command.
      */
     public static Editor windowFor(Editor from, String command, Buffer unified, CompareBuffer comparison) {
         final boolean inSide = CompareBuffer.of(from.getBuffer()) != null;
-        if (command.equals("nextChange") || command.equals("previousChange"))
-            return inSide || from.getBuffer() == unified
-                    ? from
-                    : windowOf(from, comparison != null ? comparison : unified);
+        if (command.equals("nextChange") || command.equals("previousChange")) {
+            if (inSide || from.getBuffer() == unified)
+                return from;
+            // Either side shown, or else the unified diff.
+            if (comparison != null && !shownIn(from, comparison))
+                return windowOf(from, comparison.getOld());
+            return windowOf(from, comparison != null ? comparison : unified);
+        }
         if (command.equals("compareScrollLock"))
             return inSide ? from : windowOf(from, comparison);
         return command.equals("diffIgnoreWhitespace") ? from : null;
+    }
+
+    /**
+     * Whether from, a side of a comparison that is part of a view, runs a
+     * command of the view's itself: it has a key for it, as = and q.
+     */
+    public static boolean sideRuns(Buffer from, String command) {
+        final KeyMap modal = from.getModalKeyMapForMode();
+        return from.getKeyMapForMode().getKeyMapping(command) != null
+                || modal != null && modal.getKeyMapping(command) != null;
+    }
+
+    // Whether b has a window in from's frame.
+    private static boolean shownIn(Editor from, Buffer b) {
+        return from.getFrame() != null && from.getFrame().findEditor(b) != null;
     }
 
     // b's window in from's frame, or from.

@@ -64,6 +64,7 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Bases;
+import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
@@ -744,15 +745,19 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
         final String path = item.path();
         final File f = File.getInstance(r.root().resolve(path).toString());
         final boolean staged = "staged".equals(section);
-        // A file in a conflict has no one text staged to follow.
-        final Buffer buffer = staged || "unmerged".equals(section) ? null : Editor.getBufferList().findBuffer(f);
+        // A file in a conflict has no one text staged to follow, and one
+        // deleted from the working tree is not its buffer's text.
+        final Buffer buffer = staged
+                || "unmerged".equals(section)
+                || item.change().unstaged() == FileChange.Kind.DELETED
+                || !f.isFile() ? null : Editor.getBufferList().findBuffer(f);
         if (buffer != null
                 && buffer.isLoaded()
                 && buffer.getType() == Buffer.TYPE_NORMAL
                 && buffer.getFileType() != FILETYPE_BINARY) {
             if (!moved)
                 return;
-            Following.open(buffer, VcsDiffCommands.staged(r, path), (read, side) -> {
+            Following.open(buffer, VcsDiffCommands.staged(r, path), (read, side, alignment) -> {
                 if (!ss.isCurrent(asked))
                     return null;
                 if (read == null) {
@@ -770,7 +775,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
                         null);
                     return null;
                 }
-                ss.show(asked, buffer.getMode(), read.title(), read.side(), path + " (buffer)", side, null);
+                ss.show(asked, buffer.getMode(), read.title(), read.side(), path + " (buffer)", side, alignment);
                 return c;
             });
             return;
@@ -901,8 +906,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
     /**
      * Where a command from the toolbar or a menu runs, from from: a diff's
      * in the diff; committing, and what the diff beside has no keys for,
-     * in the status; from a side of the comparison, a vcs command in the
-     * status; the rest, as the editor's own, in from.
+     * in the status; from a side of the comparison, a vcs command it has
+     * no key for in the status; the rest, as the editor's own, in from.
      */
     @Override
     public Editor windowFor(Editor from, String command) {
@@ -917,7 +922,9 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
     static boolean runsInStatus(String command, Buffer from) {
         if (!command.startsWith("vcs"))
             return false;
-        return command.startsWith("vcsCommit") || STATUS_ONLY.contains(command) || CompareBuffer.of(from) != null;
+        return command.startsWith("vcsCommit")
+                || STATUS_ONLY.contains(command)
+                || CompareBuffer.of(from) != null && !CompareCommands.sideRuns(from, command);
     }
 
     // The diff killed on its own closes as D does.

@@ -258,6 +258,24 @@ public class VcsDiffCommandsTest {
     }
 
     @Test
+    public void aByteOrderMarkIsNoChange() throws Exception {
+        git = GitFixture.init(tmp);
+        final byte[] body = "one\ntwo\n".getBytes(StandardCharsets.UTF_8);
+        final byte[] all = new byte[3 + body.length];
+        all[0] = (byte) 0xef;
+        all[1] = (byte) 0xbb;
+        all[2] = (byte) 0xbf;
+        System.arraycopy(body, 0, all, 3, body.length);
+        Files.write(git.root.resolve("a.txt"), all);
+        git.commitAll("first");
+        final CompareBuffer d = diff("a.txt");
+        onEdt(() -> {
+            assertEquals(List.of("one", "two"), text(d.getOld()));
+            assertEquals(List.of(), d.getAlignment().changes());
+        });
+    }
+
+    @Test
     public void aFileNotInTheIndexIsAllAdded() throws Exception {
         final String was = Editor.preferences().getStringProperty(Property.COMPARE_ALIGN.key());
         Editor.preferences().setProperty(Property.COMPARE_ALIGN, "true");

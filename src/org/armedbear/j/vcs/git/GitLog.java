@@ -340,9 +340,11 @@ final class GitLog {
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
         if (!r.succeeded())
             return null;
-        // None, as for a mode change: no change to its content.
+        // None, as for a mode change: no change to its content, or none but whitespace ignored.
         final List<FileDiff> diffs = DiffParser.parse(r.stdout());
-        return diffs.isEmpty() ? FileDiff.EMPTY : diffs.get(0);
+        if (!diffs.isEmpty())
+            return diffs.get(0);
+        return ignored != Whitespace.NONE ? FileDiff.ONLY_WHITESPACE : FileDiff.EMPTY;
     }
 
     static FileDiff toWorkingTree(VcsRepository repository, String id, String path) {

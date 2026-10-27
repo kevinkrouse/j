@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JPopupMenu;
@@ -153,8 +154,26 @@ public class ToolBar extends JToolBar implements ActionListener {
         return button;
     }
 
+    // How many times its buttons have been updated.
+    private int updates;
+
+    /** s's value, worked out once each time the buttons are updated: for several buttons' states. */
+    public <T> Supplier<T> perUpdate(Supplier<T> s) {
+        final Object[] at = { -1, null };
+        return () -> {
+            if (!at[0].equals(updates)) {
+                at[1] = s.get();
+                at[0] = updates;
+            }
+            @SuppressWarnings("unchecked")
+            final T t = (T) at[1];
+            return t;
+        };
+    }
+
     /** Its buttons enabled and pressed as they say, as after a command. */
     public void update() {
+        ++updates;
         for (Component c : getComponents())
             if (c instanceof ToolBarButton b)
                 b.update();

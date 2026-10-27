@@ -12,6 +12,7 @@
 package org.armedbear.j.mode.compare;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -193,6 +194,34 @@ public class CompareCommandsTest {
             shown.showBufferRestored(d);
         });
         until(() -> text(d.getOld()).equals(List.of("changed")));
+    }
+
+    @Test
+    public void killedItsBufferItStopsFollowingAndKeepsWhatItShows() throws Exception {
+        final Path a = tmp.resolve("A.txt");
+        Files.writeString(a, "a\n");
+        edit("a\nb\n");
+        onEdt(() -> CompareCommands.diff(h.editor(), "A.txt"));
+        final CompareBuffer d = opened();
+        onEdt(() -> {
+            shown = EditorHarness.create();
+            shown.showBuffer(d);
+            h.showBuffer(h.buffer());
+            file.kill();
+            file = null;
+        });
+        Files.writeString(a, "changed\n");
+        Files.setLastModifiedTime(a, FileTime.fromMillis(Files.getLastModifiedTime(a).toMillis() + 5000));
+        onEdt(() -> {
+            shown.showBuffer(shown.buffer());
+            shown.showBufferRestored(d);
+        });
+        Thread.sleep(300);
+        onEdt(() -> {
+            assertFalse(d.isClosed());
+            assertEquals(List.of("a"), text(d.getOld()), "not read again");
+            assertEquals(List.of("a", "b"), text(d));
+        });
     }
 
     @Test

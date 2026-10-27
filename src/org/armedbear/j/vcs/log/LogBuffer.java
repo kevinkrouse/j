@@ -270,8 +270,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
 
     /**
      * Where a command from the toolbar or a menu runs, from from: a diff's
-     * in the diff; from a side of the comparison, a vcs command in the
-     * list; the rest, as the editor's own, in from.
+     * in the diff; from a side of the comparison, a vcs command it has no
+     * key for in the list; the rest, as the editor's own, in from.
      */
     @Override
     public Editor windowFor(Editor from, String command) {
@@ -279,7 +279,11 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         if (diffs != null)
             return diffs;
         final Editor list = from.getFrame() != null ? from.getFrame().findEditor(this) : null;
-        return list != null && command.startsWith("vcs") && CompareBuffer.of(from.getBuffer()) != null ? list : from;
+        final Buffer b = from.getBuffer();
+        return list != null
+                && command.startsWith("vcs")
+                && CompareBuffer.of(b) != null
+                && !CompareCommands.sideRuns(b, command) ? list : from;
     }
 
     // A pane killed on its own closes the log, as q does.

@@ -69,15 +69,6 @@ import org.armedbear.j.util.Whitespace;
  * {@link CompareFolds}.
  */
 public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWhitespace.Listener {
-    /** Where its texts come from, kept up with while it is open. */
-    public interface Source {
-        /** It is shown again, as after being out of every window. */
-        void shown();
-
-        /** It closed, or another source took over. */
-        void stop();
-    }
-
     // What it compares: a file's key, so that comparing it again shows this one.
     private final String key;
     private final OldSide old;
@@ -90,7 +81,8 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     private Side newText = Side.NONE;
     private List<Line> changeStarts = List.of();
     private WindowLayout.Node before;
-    private Source source;
+    // Where its texts come from, kept up with while it is open.
+    private Following source;
     private boolean disposed;
     // While one side moves the other, the other leaves it alone.
     private boolean binding;
@@ -107,9 +99,10 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     }
 
     /**
-     * oldText and newText side by side across frame, in mode; one open
-     * for key already shows them in place of what it had, and none is for a
-     * null key. With no frame, as in tests, only made.
+     * oldText and newText side by side across frame, in mode, as alignment
+     * has them; one open for key already shows them in place of what it
+     * had, and none is for a null key. With no frame, as in tests, only
+     * made.
      */
     public static CompareBuffer open(
             Frame frame,
@@ -118,12 +111,12 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
             String oldTitle,
             Side oldText,
             String newTitle,
-            Side newText) {
+            Side newText,
+            DiffAlignment alignment) {
         CompareBuffer b = null;
         for (CompareBuffer each : openComparisons())
             if (key != null && key.equals(each.key))
                 b = each;
-        final DiffAlignment alignment = DiffAlignment.of(oldText, newText, DiffWhitespace.ignored());
         if (b == null) {
             b = new CompareBuffer(mode, key, oldTitle, newTitle);
             b.show(oldText, newText, alignment, true);
@@ -192,7 +185,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     }
 
     /** s keeps it up to date until it closes, in place of the one before; null for none. */
-    public void follow(Source s) {
+    public void follow(Following s) {
         if (source != null && source != s)
             source.stop();
         source = s;
@@ -372,7 +365,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
         for (Editor ed : eds) {
             ed.saveView();
             final View view = ed.getView(side);
-            view.invalidate();
+            view.invalidateKeepingMark();
             views.add(view);
         }
         return () -> {
@@ -714,8 +707,13 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     // Keys, change starts and the lock, for this side.
 
     @Override
-    protected KeyMap keyMapOver(KeyMap map, boolean modal) {
-        return keys.over(map, modal);
+    public KeyMap getKeyMapForMode() {
+        return keys.over(super.getKeyMapForMode(), false);
+    }
+
+    @Override
+    public KeyMap getModalKeyMapForMode() {
+        return keys.over(super.getModalKeyMapForMode(), true);
     }
 
     @Override

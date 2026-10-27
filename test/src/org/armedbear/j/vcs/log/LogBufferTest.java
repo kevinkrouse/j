@@ -303,6 +303,36 @@ public class LogBufferTest {
     }
 
     @Test
+    public void sideBySideARenamedFileIsComparedWithItsOldNameAndADeletedOneWithNothing() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "one\ntwo\nthree\n");
+        git.write("b.txt", "b\n");
+        git.commitAll("first");
+        git.git("mv", "a.txt", "renamed.txt");
+        git.write("renamed.txt", "one\ntwo\nTHREE\n");
+        git.git("rm", "-q", "b.txt");
+        git.commitAll("second");
+        repository = Repositories.forDirectory(git.root);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        until(() -> log.files.shownChange() != null && log.diff.change() != null);
+        final String parent = git.git("rev-parse", "--short=7", "HEAD~1").strip();
+        onEdt(() -> {
+            log.diffView(null, log);
+            log.compareChange(log.files.commit(), new CommitChange("renamed.txt", "a.txt", FileChange.Kind.RENAMED));
+        });
+        final CompareBuffer c = log.sides.comparison();
+        until(() -> texts(c).contains("THREE"));
+        onEdt(() -> {
+            assertEquals(List.of("one", "two", "three"), texts(c.getOld()));
+            assertEquals("a.txt @ " + parent, c.getOld().getTitle());
+            log.compareChange(log.files.commit(), new CommitChange("b.txt", null, FileChange.Kind.DELETED));
+        });
+        until(() -> texts(c.getOld()).equals(List.of("b")));
+        onEdt(() -> assertEquals(List.of(""), texts(c), "nothing after it"));
+    }
+
+    @Test
     public void sideBySideBeforeTheDiffIsReadComparesTheFileAskedFor() throws Exception {
         twoCommitsInFull();
         onEdt(() -> {

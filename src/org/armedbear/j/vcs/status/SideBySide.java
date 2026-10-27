@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.PLAIN_TEXT_MODE;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.function.Consumer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -56,7 +57,8 @@ public final class SideBySide {
 
     /** Empty until a file is shown, a part of owner, keys mapped over its sides'. */
     public SideBySide(Buffer owner, Consumer<KeyMap> keys) {
-        comparison = CompareBuffer.open(null, plainText(), null, "", Side.NONE, "", Side.NONE);
+        comparison = CompareBuffer
+                .open(null, plainText(), null, "", Side.NONE, "", Side.NONE, DiffAlignment.of(List.of(), List.of()));
         comparison.embed(owner, keys);
     }
 

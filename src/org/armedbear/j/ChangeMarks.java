@@ -60,8 +60,7 @@ public final class ChangeMarks {
         // Line numbers are stale after a split until renumbered.
         if (buffer.needsRenumbering())
             buffer.renumber();
-        final List<Line> given = buffer.getChangeStarts();
-        final List<Line> own = given != null ? given : editor.getMode().getChangeStarts(buffer);
+        final List<Line> own = buffer.getChangeStarts();
         if (own != null)
             return own;
         final Signs signs = buffer.getSigns();

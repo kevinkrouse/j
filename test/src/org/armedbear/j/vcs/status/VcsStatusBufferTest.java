@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,10 +43,13 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
+import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.TransientKeys;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.Hunk;
@@ -239,6 +243,23 @@ public class VcsStatusBufferTest {
                             assertEquals(c.command(), m.getCommand(), (vim ? "vim: " : "") + c.key());
                         }
             }
+        });
+    }
+
+    @Test
+    public void aSelectionIsNotBroughtBackOntoOtherLinesAfterARender() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            h.editor().setDot(line("  M  a.txt"), 0);
+            h.editor().setMark(new Position(line("  M  b.txt"), 0));
+            other = EditorHarness.create();
+            // As switching to another buffer does.
+            h.editor().saveView();
+            h.showBuffer(other.buffer());
+            status.render();
+            h.showBufferRestored(status);
+            assertNull(h.editor().getMark(), "a selection of lines laid out again");
         });
     }
 
@@ -700,6 +721,8 @@ public class VcsStatusBufferTest {
             assertTrue(VcsStatusBuffer.runsInStatus("vcsStage", side));
             assertFalse(VcsStatusBuffer.runsInStatus("copyRegion", side), "Edit > Copy copies from the side");
             assertFalse(VcsStatusBuffer.runsInStatus("find", side));
+            assertFalse(VcsStatusBuffer.runsInStatus("vcsStatusDiffView", side), "= is the side's own");
+            assertFalse(VcsStatusBuffer.runsInStatus("vcsStatusDiff", side), "q too");
         }
         onEdt(() -> status.diffView(null, status));
         final StatusDiffBuffer d = status.getDiff();
@@ -775,6 +798,53 @@ public class VcsStatusBufferTest {
             });
         });
         until(() -> lines(c).get(0).equals("ONE"));
+    }
+
+    @Test
+    public void sideBySideAFileDeletedOnDiskIsNotItsOpenBuffer() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            file = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+            if (!file.initialized())
+                file.initialize();
+            file.load();
+        });
+        Files.delete(git.root.resolve("a.txt"));
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
+        until(() -> text().contains("  D  a.txt"));
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  D  a.txt"));
+        until(() -> "a.txt".equals(c.getTitle()));
+        onEdt(() -> {
+            assertEquals(List.of(""), lines(c), "nothing on disk");
+            assertFalse(c.getAlignment().changes().isEmpty(), "every line deleted");
+        });
+    }
+
+    @Test
+    public void aChangeOnlyToWhitespaceSaysSoWhileItIsIgnored() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "x\ny\n");
+        git.commitAll("first");
+        git.write("a.txt", "x\ny \n");
+        onEdt(() -> DiffWhitespace.choose(Whitespace.ALL));
+        try {
+            open();
+            onEdt(() -> status.setDepth(4));
+            until(() -> text().contains("  Only whitespace changed, which is ignored"));
+            assertFalse(text().stream().anyMatch(t -> t.contains("No diff")));
+        }
+        finally {
+            onEdt(DiffWhitespace::forget);
+        }
     }
 
     @Test

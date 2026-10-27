@@ -120,7 +120,9 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
                 Log.error(e);
                 diffs = List.of();
             }
-            final FileDiff d = diffs.isEmpty() ? FileDiff.EMPTY : diffs.get(0);
+            final FileDiff d = !diffs.isEmpty() ? diffs.get(0)
+                    : ignored != Whitespace.NONE ? FileDiff.ONLY_WHITESPACE
+                    : FileDiff.EMPTY;
             SwingUtilities.invokeLater(() -> {
                 if (read == generation && Editor.getBufferList().contains(this)) {
                     final FileItem withDiff = new FileItem(f.change(), f.letter(), f.staged(), d);

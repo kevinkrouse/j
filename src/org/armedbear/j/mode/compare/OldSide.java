@@ -40,9 +40,15 @@ public final class OldSide extends ViewPane<CompareBuffer> {
         changeStarts = starts;
     }
 
+    // Its own keys over its mode's, as q and n.
     @Override
-    protected KeyMap keyMapOver(KeyMap map, boolean modal) {
-        return getOwner().keys().over(map, modal);
+    public KeyMap getKeyMapForMode() {
+        return getOwner().keys().over(super.getKeyMapForMode(), false);
+    }
+
+    @Override
+    public KeyMap getModalKeyMapForMode() {
+        return getOwner().keys().over(super.getModalKeyMapForMode(), true);
     }
 
     @Override

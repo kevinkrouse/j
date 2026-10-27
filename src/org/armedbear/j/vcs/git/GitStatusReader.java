@@ -151,9 +151,18 @@ final class GitStatusReader {
         }
         final Map<String, FileDiff> diffs = new HashMap<>();
         // In batches, as a command line has a limit (32k characters on Windows).
-        for (int i = 0; i < paths.size(); i += BATCH)
-            for (FileDiff d : diff(repository, staged, paths.subList(i, Math.min(paths.size(), i + BATCH)), ignored))
+        for (int i = 0; i < paths.size(); i += BATCH) {
+            final List<String> batch = paths.subList(i, Math.min(paths.size(), i + BATCH));
+            final List<FileDiff> read = read(repository, staged, batch, ignored);
+            if (read == null)
+                continue;
+            for (FileDiff d : read)
                 diffs.put(d.path(), d);
+            // What git left out, ignoring whitespace, changed only in that.
+            if (ignored != Whitespace.NONE)
+                for (String p : batch)
+                    diffs.putIfAbsent(p, FileDiff.ONLY_WHITESPACE);
+        }
         final List<Item> items = new ArrayList<>();
         for (FileChange c : changes) {
             final Kind kind = staged ? c.staged() : c.unstaged();
@@ -164,13 +173,23 @@ final class GitStatusReader {
 
     /** The working tree's diff against the index, or with staged the index's against HEAD, of paths. */
     static List<FileDiff> diff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
+        final List<FileDiff> read = read(repository, staged, paths, ignored);
+        return read != null ? read : List.of();
+    }
+
+    // As diff, or null if git fails.
+    private static List<FileDiff> read(
+            VcsRepository repository,
+            boolean staged,
+            List<String> paths,
+            Whitespace ignored) {
         final List<String> args = new ArrayList<>(List.of("--literal-pathspecs", "diff"));
         if (staged)
             args.add("--cached");
         GitCli.ignoring(ignored, args).addAll(List.of("--no-ext-diff", "--no-color", "-M", "--"));
         args.addAll(paths);
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
-        return r.succeeded() ? DiffParser.parse(r.stdout()) : List.of();
+        return r.succeeded() ? DiffParser.parse(r.stdout()) : null;
     }
 
     private static List<Item> recent(VcsRepository repository, GitSnapshot git) {

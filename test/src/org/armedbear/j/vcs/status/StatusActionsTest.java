@@ -23,7 +23,6 @@ package org.armedbear.j.vcs.status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
@@ -205,24 +203,6 @@ public class StatusActionsTest {
             assertFalse(StatusActions.can(h.editor(), Op.DISCARD));
             h.editor().setDot(status.getFirstLine(), 0);
             assertFalse(StatusActions.can(h.editor(), Op.STAGE), "the header");
-        });
-    }
-
-    @Test
-    public void whatIsAbleIsWorkedOutAgainAsTheCaretMovesOrTheLinesAreLaidOutAgain() throws Exception {
-        repository();
-        open();
-        final Supplier<Set<Op>> able = StatusActions.ableAsChanged(() -> h.editor());
-        onEdt(() -> {
-            h.editor().setDot(line("  M  a.txt"), 0);
-            final Set<Op> onA = able.get();
-            assertSame(onA, able.get(), "not again while nothing changed");
-            assertEquals(Set.of(Op.STAGE, Op.DISCARD), onA);
-            h.editor().setDot(line("  M  b.txt"), 0);
-            assertEquals(Set.of(Op.UNSTAGE, Op.DISCARD), able.get());
-            final Set<Op> onB = able.get();
-            status.render();
-            assertNotSame(onB, able.get(), "laid out again");
         });
     }
 

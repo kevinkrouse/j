@@ -38,26 +38,60 @@ public record Side(List<String> lines, List<String> raw, boolean noNewline) {
     /** No text, as of a file that is not there. */
     public static final Side NONE = new Side(List.of(), List.of(), false);
 
+    /**
+     * bytes as they are, in charset: each line's raw bytes kept, as a
+     * patch must have them, and its text past a byte order mark. UTF-16,
+     * by its mark or charset, is split on its own newlines.
+     */
     public static Side of(byte[] bytes, Charset charset) {
+        final Boolean bigEndian = utf16(bytes, charset);
+        final int unit = bigEndian == null ? 1 : 2;
         final List<String> raw = new ArrayList<>();
         int start = 0;
         while (start < bytes.length) {
             int end = start;
-            while (end < bytes.length && bytes[end] != '\n')
-                end++;
+            while (end < bytes.length && !newline(bytes, end, bigEndian))
+                end += unit;
+            end = Math.min(end, bytes.length);
             raw.add(new String(bytes, start, end - start, StandardCharsets.ISO_8859_1));
-            start = end + 1;
+            start = end + unit;
         }
-        final boolean noNewline = bytes.length > 0 && bytes[bytes.length - 1] != '\n';
+        final boolean noNewline = bytes.length >= unit && !newline(bytes, bytes.length - unit, bigEndian);
+        final Charset decoding =
+                bigEndian == null ? charset : bigEndian ? StandardCharsets.UTF_16BE : StandardCharsets.UTF_16LE;
         final List<String> lines = new ArrayList<>();
         for (String r : raw) {
-            final byte[] b = r.getBytes(StandardCharsets.ISO_8859_1);
-            String s = new String(b, charset);
+            String s = new String(r.getBytes(StandardCharsets.ISO_8859_1), decoding);
+            if (lines.isEmpty() && s.startsWith("\uFEFF"))
+                s = s.substring(1);
             if (s.endsWith("\r"))
                 s = s.substring(0, s.length() - 1);
             lines.add(s);
         }
         return new Side(lines, raw, noNewline);
+    }
+
+    // Whether bytes are UTF-16, big-endian or not, by their byte order mark
+    // or else charset; null if they are not.
+    private static Boolean utf16(byte[] bytes, Charset charset) {
+        if (bytes.length >= 2 && bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
+            return true;
+        if (bytes.length >= 2 && bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)
+            return false;
+        if (charset.equals(StandardCharsets.UTF_16LE))
+            return false;
+        if (charset.equals(StandardCharsets.UTF_16) || charset.equals(StandardCharsets.UTF_16BE))
+            return true;
+        return null;
+    }
+
+    // Whether a newline starts at i, a byte, or a UTF-16 unit.
+    private static boolean newline(byte[] bytes, int i, Boolean bigEndian) {
+        if (bigEndian == null)
+            return bytes[i] == '\n';
+        if (i + 1 >= bytes.length)
+            return false;
+        return bigEndian ? bytes[i] == 0 && bytes[i + 1] == '\n' : bytes[i] == '\n' && bytes[i + 1] == 0;
     }
 
     /** file's text, as ofFile has it. */
