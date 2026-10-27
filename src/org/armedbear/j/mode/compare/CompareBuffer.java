@@ -411,18 +411,6 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     }
 
     @Override
-    protected void renumbered() {
-        sideRenumbered(this);
-    }
-
-    /** side's lines numbered again, as after a fold opens or closes there by any way. */
-    void sideRenumbered(ViewBuffer side) {
-        // Not while it is made or laid out, which sets both sides' folds.
-        if (folds != null && !binding && !disposed)
-            folds.read(side);
-    }
-
-    @Override
     public Line jumpTarget(Line line) {
         // None while it is made.
         return folds != null ? folds.handle(this, line) : line;

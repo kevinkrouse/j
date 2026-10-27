@@ -28,6 +28,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.compare.Following;
 import org.armedbear.j.mode.compare.Side;
+import org.armedbear.j.vcs.signs.SignsUpdater;
 
 /** Comparing a file with what is staged of it. */
 public final class VcsDiffCommands {
@@ -53,16 +54,23 @@ public final class VcsDiffCommands {
             return;
         }
         final String path = r.relativePath(file);
-        Following.open(editor, r.root() + "|" + path, path + " (buffer)", staged(r, path));
+        Following.open(editor, r.root() + "|" + path, path + " (buffer)", staged(buffer, r, path));
     }
 
-    /** What is staged of path in r, as a buffer of it is compared with. */
-    public static Following.Base staged(VcsRepository r, String path) {
-        return new Staged(new BasesCache(r, path, null));
+    /**
+     * What is staged of path in r, as buffer, a buffer of it, is compared
+     * with: read through its change marks' bases if it has them, so once.
+     */
+    public static Following.Base staged(Buffer buffer, VcsRepository r, String path) {
+        final SignsUpdater u = buffer.getSignsUpdater();
+        if (u != null && u.getRepository() == r && u.getPath().equals(path))
+            return new Staged(u.getBases(), buffer);
+        return new Staged(new BasesCache(r, path, null), buffer);
     }
 
-    // What is staged of a file, read again once the repository changes.
-    private record Staged(BasesCache bases) implements Following.Base {
+    // What is staged of a file, read again once the repository changes:
+    // by the buffer's change marks while they read these bases, else itself.
+    private record Staged(BasesCache bases, Buffer buffer) implements Following.Base {
         @Override
         public Following.Read read(Charset charset) {
             final Bases read = bases.get();
@@ -89,7 +97,9 @@ public final class VcsDiffCommands {
 
         @Override
         public void vcsChecked() {
-            bases.invalidate();
+            final SignsUpdater u = buffer.getSignsUpdater();
+            if (u == null || u.getBases() != bases)
+                bases.invalidate();
         }
     }
 }

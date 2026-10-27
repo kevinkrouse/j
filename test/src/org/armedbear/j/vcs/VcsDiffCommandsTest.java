@@ -40,7 +40,9 @@ import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.Following;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -153,6 +155,37 @@ public class VcsDiffCommandsTest {
         onEdt(() -> file.checkVCS());
         until(() -> text(d.getOld()).get(0).equals("Xclass A {"));
         onEdt(() -> assertEquals(List.of(), d.getAlignment().changes()));
+    }
+
+    @Test
+    public void whatIsStagedIsReadOnceForItAndItsChangeMarks() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("A.java", "class A {\n}\n");
+        git.commitAll("first");
+        onEdt(() -> {
+            h = EditorHarness.create();
+            file = Editor.getBuffer(File.getInstance(git.root.resolve("A.java").toString()));
+            if (!file.initialized())
+                file.initialize();
+            file.load();
+            file.checkVCS();
+        });
+        final SignsUpdater u = file.getSignsUpdater();
+        assertNotNull(u, "change marks");
+        assertNotNull(u.getBases().get(), "read by the marks");
+        final int before = lsFiles();
+        final VcsRepository r = Repositories.forDirectory(git.root);
+        final Following.Read read = VcsDiffCommands.staged(file, r, "A.java").read(StandardCharsets.UTF_8);
+        assertEquals(List.of("class A {", "}"), read.side().lines());
+        assertEquals(before, lsFiles(), "not read again");
+    }
+
+    private static int lsFiles() {
+        int n = 0;
+        for (CommandLog.Entry e : CommandLog.entries())
+            if (e.commandLine().contains("ls-files"))
+                ++n;
+        return n;
     }
 
     @Test

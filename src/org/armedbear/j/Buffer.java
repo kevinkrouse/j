@@ -2003,11 +2003,8 @@ public class Buffer extends SystemBuffer {
         return null;
     }
 
-    // The text changed: the signs are worked out again, and its followers told.
+    // The text changed: its followers told, the change marks among them.
     private void textChanged() {
-        final SignsUpdater updater = signsUpdater;
-        if (updater != null)
-            updater.changed();
         for (Follower f : followers)
             f.textChanged();
     }
@@ -2022,7 +2019,7 @@ public class Buffer extends SystemBuffer {
         }
     }
 
-    /** What follows a buffer, as a comparison of it does. */
+    /** What follows a buffer, as its change marks and a comparison of it do. */
     public interface Follower {
         /** Its text changed, by an edit, an undo or a reload. */
         void textChanged();
@@ -2609,16 +2606,12 @@ public class Buffer extends SystemBuffer {
                 ++visibleLineCount;
         }
         needsRenumbering = false;
-        renumbered();
     }
 
     /** What its folds are: its mode's, unless it has its own. */
     public Folds getFolds() {
         return mode;
     }
-
-    /** Its lines were numbered again, as after a fold opens or closes. */
-    protected void renumbered() {}
 
     /**
      * Where a jump to line, as gg, G and the ends of the buffer, lands: line,
@@ -3073,7 +3066,7 @@ public class Buffer extends SystemBuffer {
     public final void checkVCS() {
         vcsEntry = VersionControl.getEntry(this);
         vcsChecked = true;
-        // What is staged or committed may have changed: the signs too.
+        // Change marks for its file, or none; then each follower told, the marks among them.
         VersionControl.attachSigns(this);
         for (Follower f : followers)
             f.vcsChecked();
@@ -3097,11 +3090,15 @@ public class Buffer extends SystemBuffer {
         return signsUpdater;
     }
 
-    /** What works the signs out; null for j's own marks. */
+    /** What works the signs out, following it; null for j's own marks. */
     public final void setSignsUpdater(SignsUpdater updater) {
+        if (signsUpdater != null)
+            removeFollower(signsUpdater);
         signsUpdater = updater;
         if (updater == null)
             signs = null;
+        else
+            addFollower(updater);
     }
 
     /**

@@ -757,7 +757,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
                 && buffer.getFileType() != FILETYPE_BINARY) {
             if (!moved)
                 return;
-            Following.open(buffer, VcsDiffCommands.staged(r, path), (read, side, alignment) -> {
+            Following.open(buffer, VcsDiffCommands.staged(buffer, r, path), (read, side, alignment) -> {
                 if (!ss.isCurrent(asked))
                     return null;
                 if (read == null) {

@@ -1051,7 +1051,8 @@ plan with why it is left, before the next phase starts.
      first (histogram diff's idea, not all of it), and one replacement past
      1024 differences.
    - The core has `Signs` (each line's mark, and where hunks start); a
-     buffer tells its `SignsUpdater` of each edit, and the change-mark column
+     buffer tells its `SignsUpdater`, one of its `Buffer.Follower`s, of
+     each edit and each look at its version control state, and the change-mark column
      draws a buffer's signs in place of j's marks when it has them. It is
      that one column, not yet general column providers: blame's column
      (phase 8) makes them.
@@ -1465,10 +1466,11 @@ plan with why it is left, before the next phase starts.
      for `CONTEXT` (3) next to a change is a fold pair, hidden lines on both
      sides, "… N lines" after the line over them, opened and closed on both by
      the fold commands (Tab is `toggleFold` outside vim), vim's `z` keys,
-     the gutter and a click on the count. `Buffer.renumbered` reads back a
-     fold opened another way, as by a click past its line, and undoes lines
-     hidden outside the folds, and redoes nothing when no fold changed; a
-     side's windows are laid out and restored on lines shown, as a caret in
+     the gutter and a click on the count. Core's own ways of hiding and
+     showing lines (a click past a line, the caret entering a fold, the
+     unfold, fold region and fold methods commands) ask the buffer's folds
+     first (`Folds.setFoldAt`), and leave a buffer whose folds are its own
+     alone, so a side's lines are hidden only by its folds; a side's windows are laid out and restored on lines shown, as a caret in
      a fold opens it, and `Buffer.jumpTarget` takes `gg`, `G`, `:N`,
      `jumpToLine` and the ends of the buffer, there, to a closed fold's count
      line, but not an operator's `gg` or `G`, which takes in the fold. A change of mode
@@ -1493,7 +1495,9 @@ plan with why it is left, before the next phase starts.
      view, as framing the other window would pull it from where the lock
      put it; a fold opening or closing moves the windows with the lock
      held, then scrolls the other side to match once (`resync`). Each
-     side's line positions are `SideGeometry`, one walk kept until the
+     side's line positions are `SideGeometry`, one walk with the rows
+     `VirtualTextLayer.rowsAbove` and `rowsBelow` give, as `getY` counts
+     them, kept until the
      side's first line, fold version or rows version
      (`VirtualTextLayer.rowsVersion`) changes, which the lock and the
      track read. A comparison of a file follows it, with the change marks
@@ -1505,6 +1509,9 @@ plan with why it is left, before the next phase starts.
      at again, and not when git could not say; for `diff FILE`, the file,
      kept until its time or size changes, which the frame's activation and
      the comparison's showing check) and diffs on a worker thread, then shows it, only the last asked for;
+     the first time too, read and aligned in the background
+     (`Following.Show`); a file with change marks shares their
+     `BasesCache`, so what is staged is read once for both;
      not while no window shows it, until one does. A side whose text is the
      same keeps its lines and their parse, its open folds stay open where
      they overlap the folds before, the other side scrolls to match it, and
@@ -1867,6 +1874,14 @@ Fixed:
   keeps it (`invalidateKeepingMark`).
 - A comparison's first alignment is worked out in the background with its
   read (`Following.Show`), not on the event thread.
+- The change marks' `SignsUpdater` is a `Buffer.Follower`, told as a
+  comparison is, not called beside the followers; a comparison of a file
+  with change marks reads what is staged through their `BasesCache`.
+- Core's hiding and showing of lines asks the buffer's folds first, so
+  `Buffer.renumbered` and `CompareFolds.read`, which read back folds core
+  had opened behind them, went.
+- `SideGeometry` takes each line's rows from `VirtualTextLayer`, as
+  `Buffer.getY` does, not from its own copy of where TOP's rows go.
 - `CompareBuffer.Source` went: `Following` is the one. A side's keys and
   change starts are the buffer's own methods, the mode's by default
   (`getKeyMapForMode`, `getChangeStarts`), not hooks beside the mode's.

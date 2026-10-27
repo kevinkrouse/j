@@ -1154,6 +1154,9 @@ public class CompareTest {
             assertEquals("....................", hidden(diff));
             FoldCommands.foldAll(left.editor());
             assertEquals("hhhhhhh.......hhhhhh", hidden(diff));
+            // Java's methods folded, as the mode would: not the diff's.
+            FoldCommands.foldMethods(left.editor());
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff.getOld()));
         });
     }
 

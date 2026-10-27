@@ -82,8 +82,6 @@ final class CompareFolds {
     private final List<Fold> folds = new ArrayList<>();
     private final Folds oldFolds = new SideFolds(true);
     private final Folds newFolds = new SideFolds(false);
-    // While it hides and shows lines itself.
-    private boolean applying;
 
     CompareFolds(CompareBuffer owner) {
         this.owner = owner;
@@ -127,7 +125,7 @@ final class CompareFolds {
             r = end;
         }
         // Not its windows, still at the lines laid before: they are placed after.
-        apply(true, false);
+        apply(false);
     }
 
     /** Where a jump to side's line l lands: l, or, l folded away, the line its fold's count is on. */
@@ -145,55 +143,26 @@ final class CompareFolds {
         label(side, CompareBuffer.lines(side), side == owner.getOld());
     }
 
-    /**
-     * side's lines hidden or shown some other way, as by a click past a
-     * line: each fold as side has it now, on both sides. A fold partly
-     * hidden there, and lines hidden outside the folds, are put back.
-     */
-    void read(ViewBuffer side) {
-        if (applying)
-            return;
-        final boolean old = side == owner.getOld();
-        final List<Line> lines = CompareBuffer.lines(side);
-        for (Fold f : folds) {
-            int hidden = 0;
-            for (int i = f.from(old); i < f.from(old) + f.count && i < lines.size(); i++)
-                if (lines.get(i).isHidden())
-                    ++hidden;
-            if (hidden == f.count)
-                f.closed = true;
-            else if (hidden == 0)
-                f.closed = false;
-        }
-        apply(false, true);
-    }
-
     private void set(Fold f, boolean closed) {
         f.closed = closed;
-        apply(true, true);
+        apply(true);
     }
 
     /**
      * Each side's lines hidden as its closed folds have them, and no others,
-     * and each closed fold labeled; unless forced, nothing if no line
-     * changed, as on each renumbering. With windows, the windows then moved
+     * and each closed fold labeled. With windows, the windows then moved
      * off lines folded away, a caret in view kept in view, and the other
      * side scrolled to match once all are moved.
      */
-    private void apply(boolean force, boolean windows) {
+    private void apply(boolean windows) {
         final List<ViewBuffer> sides = List.of(owner.getOld(), owner);
         final List<List<Line>> lines = new ArrayList<>();
         final List<boolean[]> masks = new ArrayList<>();
-        boolean changed = false;
         for (ViewBuffer side : sides) {
             final List<Line> ls = CompareBuffer.lines(side);
-            final boolean[] mask = mask(ls.size(), side == owner.getOld());
             lines.add(ls);
-            masks.add(mask);
-            changed |= differs(ls, mask);
+            masks.add(mask(ls.size(), side == owner.getOld()));
         }
-        if (!changed && !force)
-            return;
         final Set<Editor> inView = new HashSet<>();
         if (windows)
             for (ViewBuffer side : sides)
@@ -202,28 +171,22 @@ final class CompareFolds {
                             && !ed.getDotLine().isHidden()
                             && ed.getDisplay().getLineTop(ed.getDotLine()) >= 0)
                         inView.add(ed);
-        applying = true;
-        try {
-            for (int i = 0; i < sides.size(); i++) {
-                final ViewBuffer side = sides.get(i);
-                if (differs(lines.get(i), masks.get(i))) {
-                    hide(lines.get(i), masks.get(i));
-                    side.renumber();
-                }
-                // The gutter's markers too, which a new fold may move.
-                side.foldsChanged();
-                label(side, lines.get(i), side == owner.getOld());
+        for (int i = 0; i < sides.size(); i++) {
+            final ViewBuffer side = sides.get(i);
+            if (differs(lines.get(i), masks.get(i))) {
+                hide(lines.get(i), masks.get(i));
+                side.renumber();
             }
-            if (windows)
-                owner.whileBinding(() -> {
-                    for (ViewBuffer side : sides)
-                        for (Editor ed : side.windows())
-                            place(ed, inView.contains(ed));
-                });
+            // The gutter's markers too, which a new fold may move.
+            side.foldsChanged();
+            label(side, lines.get(i), side == owner.getOld());
         }
-        finally {
-            applying = false;
-        }
+        if (windows)
+            owner.whileBinding(() -> {
+                for (ViewBuffer side : sides)
+                    for (Editor ed : side.windows())
+                        place(ed, inView.contains(ed));
+            });
         if (windows)
             owner.resync();
         owner.repaintTracks();
@@ -335,7 +298,7 @@ final class CompareFolds {
         public boolean setAllFolds(Editor editor, boolean open) {
             for (Fold f : folds)
                 f.closed = !open;
-            apply(true, true);
+            apply(true);
             return true;
         }
 

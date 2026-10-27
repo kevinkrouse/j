@@ -108,13 +108,11 @@ public abstract class VersionControl {
             return;
         }
         final String path = repository.relativePath(file);
-        // The same file in the same repository: only what it is against changed.
-        // Saved as another, it is another file's signs.
-        if (u != null && u.getRepository() == repository && u.getPath().equals(path)) {
-            u.basesChanged();
-            u.changed();
+        // The same file in the same repository: only what it is against
+        // changed, which it is told as a follower. Saved as another, it is
+        // another file's signs.
+        if (u != null && u.getRepository() == repository && u.getPath().equals(path))
             return;
-        }
         final SignsUpdater updater = new SignsUpdater(buffer, repository, path);
         buffer.setSignsUpdater(updater);
         updater.changed();

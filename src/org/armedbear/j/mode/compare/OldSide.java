@@ -52,13 +52,6 @@ public final class OldSide extends ViewPane<CompareBuffer> {
     }
 
     @Override
-    protected void renumbered() {
-        // Not while it is made, before it has its owner.
-        if (getOwner() != null)
-            getOwner().sideRenumbered(this);
-    }
-
-    @Override
     public Line jumpTarget(Line line) {
         return getOwner() != null ? getOwner().jumpTarget(this, line) : line;
     }

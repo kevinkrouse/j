@@ -24,8 +24,6 @@ import java.util.List;
 import org.armedbear.j.Display;
 import org.armedbear.j.Line;
 import org.armedbear.j.ViewBuffer;
-import org.armedbear.j.VirtualText;
-import org.armedbear.j.VirtualText.Placement;
 import org.armedbear.j.VirtualTextLayer;
 
 /**
@@ -81,8 +79,7 @@ final class SideGeometry {
         final int[] top = new int[n];
         final boolean[] shown = new boolean[n];
         final VirtualTextLayer layer = side.getVirtualText();
-        // TOP's rows go over the first line shown.
-        int topRows = rows(layer.on(null, Placement.TOP));
+        boolean first = true;
         int y = 0;
         for (int i = 0; i < n; i++) {
             final Line l = lines.get(i);
@@ -91,19 +88,12 @@ final class SideGeometry {
             if (l.isHidden())
                 continue;
             shown[i] = true;
-            y += (rows(layer.on(l, Placement.ABOVE)) + topRows) * key.ch();
-            topRows = 0;
+            y += layer.rowsAbove(l, first) * key.ch();
+            first = false;
             top[i] = y;
-            y += key.ch() + rows(layer.on(l, Placement.BELOW)) * key.ch();
+            y += key.ch() + layer.rowsBelow(l) * key.ch();
         }
         return new SideGeometry(key, key.ch(), start, top, shown, y);
-    }
-
-    private static int rows(List<VirtualText> list) {
-        int rows = 0;
-        for (VirtualText v : list)
-            rows += v.height();
-        return rows;
     }
 
     /** The height of all of it. */

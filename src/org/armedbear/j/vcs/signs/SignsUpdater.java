@@ -41,7 +41,7 @@ import org.armedbear.j.vcs.VcsRepository;
  * stops changing, or when its repository does, the bases read in the
  * background and kept until the repository changes.
  */
-public final class SignsUpdater {
+public final class SignsUpdater implements Buffer.Follower {
     static final int DELAY_MILLIS = 100;
 
     private final Buffer buffer;
@@ -66,14 +66,26 @@ public final class SignsUpdater {
         return bases.getPath();
     }
 
-    /** Reads the bases again next time: what is staged or committed changed. */
-    public void basesChanged() {
-        bases.invalidate();
+    /** The bases it reads, which a comparison of the same file shares. */
+    public BasesCache getBases() {
+        return bases;
     }
 
-    /** The buffer's text changed, or its bases: works the signs out again, soon. */
+    /** Works the signs out again, soon. */
     public void changed() {
         SwingUtilities.invokeLater(timer::restart);
+    }
+
+    @Override
+    public void textChanged() {
+        changed();
+    }
+
+    // What is staged or committed may have changed: the bases read again.
+    @Override
+    public void vcsChecked() {
+        bases.invalidate();
+        changed();
     }
 
     // The bases, or none where git could not say: read again next time.

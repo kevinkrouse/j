@@ -160,13 +160,12 @@ public final class VirtualTextLayer {
 
     /** The rows drawn over line: its own, and TOP's over the first line shown. */
     public int rowsAbove(Line line) {
-        final Line first = buffer.firstVisibleLine();
-        synchronized (this) {
-            int rows = rows(byLine.get(line), Placement.ABOVE);
-            if (!top.isEmpty() && line == first)
-                rows += rows(top, Placement.TOP);
-            return rows;
-        }
+        return rowsAbove(line, line == buffer.firstVisibleLine());
+    }
+
+    /** The same, for a walk of the lines that knows whether line is the first shown. */
+    public synchronized int rowsAbove(Line line, boolean firstShown) {
+        return rows(byLine.get(line), Placement.ABOVE) + (firstShown ? rows(top, Placement.TOP) : 0);
     }
 
     /** The rows drawn under line. */

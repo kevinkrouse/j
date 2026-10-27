@@ -138,6 +138,8 @@ public final class FoldCommands {
      * not take, as one fold that undo puts back: an outline of a buffer.
      */
     public static void showOnly(Editor editor, Line begin, java.util.function.Predicate<Line> shown) {
+        if (ownFolds(editor))
+            return;
         editor.addUndo(SimpleEdit.FOLD);
         for (Line line = editor.getBuffer().getFirstLine(); line != null; line = line.next())
             line.show();
@@ -153,6 +155,9 @@ public final class FoldCommands {
      * end is null, as one fold that undo puts back.
      */
     public static void hideLines(Editor editor, Line begin, Line end) {
+        // Folds of the buffer's own, as a log's runs: the one begin is in.
+        if (editor.getBuffer().getFolds().setFoldAt(editor, begin, false))
+            return;
         editor.addUndo(SimpleEdit.FOLD);
         hide(editor, begin, end);
     }
@@ -240,6 +245,8 @@ public final class FoldCommands {
         while (line != null && line.isBlank())
             line = line.previous();
         if (line == null)
+            return;
+        if (editor.getBuffer().getFolds().setFoldAt(editor, line, false))
             return;
         editor.setWaitCursor();
         Line next = line.next();
@@ -363,6 +370,12 @@ public final class FoldCommands {
         return false;
     }
 
+    // Whether the buffer's folds are its own, not its mode's, as a
+    // comparison's unchanged runs: not lines hidden by structure.
+    private static boolean ownFolds(Editor editor) {
+        return editor.getBuffer().getFolds() != editor.getBuffer().getMode();
+    }
+
     // BUG! This method does more than its name suggests...
     public static void unhideDotInAllFrames(Buffer buffer) {
         for (int i = 0; i < Editor.getEditorCount(); i++) {
@@ -403,6 +416,8 @@ public final class FoldCommands {
             return;
         if (!begin.isHidden())
             return;
+        if (editor.getBuffer().getFolds().setFoldAt(editor, begin, true))
+            return;
         Line end = begin;
         while (true) {
             Line line = end.next();
@@ -430,6 +445,9 @@ public final class FoldCommands {
             return;
         if (!line.isHidden())
             return;
+        // Folds of the buffer's own: opened as they say, not by showing lines.
+        if (editor.getBuffer().getFolds().setFoldAt(editor, line, true))
+            return;
         Line begin = line;
         while (begin.previous() != null && begin.previous().isHidden())
             begin = begin.previous();
@@ -451,6 +469,8 @@ public final class FoldCommands {
         if (target == null)
             return;
         if (!target.isHidden())
+            return;
+        if (editor.getBuffer().getFolds().setFoldAt(editor, target, true))
             return;
         Line begin = target;
         while (begin.previous() != null && begin.previous().isHidden())
@@ -483,6 +503,8 @@ public final class FoldCommands {
     }
 
     public static void foldMethods(Editor editor) {
+        if (ownFolds(editor))
+            return;
         Mode mode = editor.getMode();
         if (mode instanceof JavaMode || mode instanceof PerlMode) {
             editor.setWaitCursor();
@@ -510,6 +532,8 @@ public final class FoldCommands {
     }
 
     private static void foldOrUnfoldMethod(Editor editor, Line line, boolean fold) {
+        if (ownFolds(editor))
+            return;
         Mode mode = editor.getMode();
         while (line != null) {
             String s = line.trim();
