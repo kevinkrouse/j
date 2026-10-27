@@ -223,6 +223,37 @@ public class TransientPopupTest {
     }
 
     @Test
+    public void enterTabAndCtrlWithALetterAreKeysWhenItemsHaveThem() throws Exception {
+        popup.close(false);
+        popup = TransientPopup.open(
+            h.editor(),
+            new Transient("test.named",
+                    "Named",
+                    "commands.html",
+                    List.of(
+                        Group.of(
+                            "Go",
+                            new Command(Transient.TAB, "eob", "end", true),
+                            new Command(Transient.ctrl('r'), "bob", "start", true),
+                            Command.of(Transient.ENTER, "eob", "end")))));
+        assertTrue(popup.text().toString().contains("<C-r> start"), popup.text().toString());
+        popup.pressed(KeyEvent.VK_T, true, false);
+        assertFalse(popup.isClosed(), "no Ctrl T here");
+        assertTrue(popup.pressed(KeyEvent.VK_TAB, false, false));
+        flush();
+        assertEquals(2, h.editor().getDotLineNumber(), "Tab: the last line");
+        assertTrue(popup.pressed(KeyEvent.VK_R, true, false));
+        flush();
+        assertEquals(0, h.editor().getDotLineNumber(), "Ctrl R: the first");
+        assertFalse(popup.pressed(KeyEvent.VK_TAB, false, true), "Shift Tab is no key here");
+        assertFalse(popup.isClosed());
+        assertTrue(popup.pressed(KeyEvent.VK_ENTER, false, false));
+        assertTrue(popup.isClosed());
+        flush();
+        assertEquals(2, h.editor().getDotLineNumber(), "Enter: the last line, closing");
+    }
+
+    @Test
     public void aCommandMarkedToStayLeavesItOpen() throws Exception {
         h.cursor(2, 0);
         popup.typed('t');

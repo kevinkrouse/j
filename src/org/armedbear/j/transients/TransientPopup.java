@@ -264,15 +264,6 @@ public final class TransientPopup extends JComponent {
             saveDefaults();
             return true;
         }
-        // A key of its own, as a directory's up.
-        if (keyCode == KeyEvent.VK_BACK_SPACE
-                && !ctrl
-                && !otherModifiers
-                && pending.isEmpty()
-                && current.item(Transient.BACKSPACE) != null) {
-            typed(Transient.BACKSPACE);
-            return true;
-        }
         if (ctrl && keyCode == KeyEvent.VK_H) {
             helpNext = true;
             pending = "";
@@ -280,7 +271,27 @@ public final class TransientPopup extends JComponent {
             refresh();
             return true;
         }
+        // A key of its own, as a directory's Backspace up or the status's Ctrl R.
+        final String named = otherModifiers ? null : named(keyCode, ctrl);
+        if (named != null && pending.isEmpty() && current.item(named) != null) {
+            typed(named);
+            return true;
+        }
         return ctrl;
+    }
+
+    // The item's key keyCode is, or null.
+    private static String named(int keyCode, boolean ctrl) {
+        if (ctrl)
+            return keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z
+                    ? Transient.ctrl((char) ('a' + keyCode - KeyEvent.VK_A))
+                    : null;
+        return switch (keyCode) {
+            case KeyEvent.VK_BACK_SPACE -> Transient.BACKSPACE;
+            case KeyEvent.VK_ENTER -> Transient.ENTER;
+            case KeyEvent.VK_TAB -> Transient.TAB;
+            default -> null;
+        };
     }
 
     /** A character typed. */

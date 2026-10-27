@@ -49,7 +49,7 @@ public record Transient(String id, String title, String help, List<Group> groups
                     throw new IllegalArgumentException(id + ": key " + item.key() + " is used twice");
         for (String key : keys)
             for (String other : keys)
-                if (!key.equals(other) && other.startsWith(key))
+                if (!key.equals(other) && !isNamed(other) && other.startsWith(key))
                     throw new IllegalArgumentException(id + ": key " + key + " is the start of " + other);
     }
 
@@ -181,8 +181,21 @@ public record Transient(String id, String title, String help, List<Group> groups
         void set(Editor editor, T value);
     }
 
-    /** An item's key that is Backspace, not a character typed. */
+    // An item's keys that are pressed, not characters typed.
+
     public static final String BACKSPACE = "<BS>";
+    public static final String ENTER = "<cr>";
+    public static final String TAB = "<Tab>";
+
+    /** Ctrl with letter, as {@code <C-r>}. */
+    public static String ctrl(char letter) {
+        return "<C-" + letter + ">";
+    }
+
+    /** Whether key is pressed, as Backspace and Ctrl R are, not typed. */
+    public static boolean isNamed(String key) {
+        return key.length() > 2 && key.startsWith("<") && key.endsWith(">");
+    }
 
     /** The item whose key is key, or null. */
     public Item item(String key) {
@@ -197,7 +210,7 @@ public record Transient(String id, String title, String help, List<Group> groups
     public boolean isPrefixOfKey(String key) {
         for (Group g : groups)
             for (Item item : g.items())
-                if (item.key().length() > key.length() && item.key().startsWith(key) && !item.key().equals(BACKSPACE))
+                if (item.key().length() > key.length() && item.key().startsWith(key) && !isNamed(item.key()))
                     return true;
         return false;
     }
