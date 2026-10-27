@@ -29,6 +29,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
+import java.awt.geom.RoundRectangle2D;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ import org.w3c.dom.Node;
  * features such as straight lines and arcs.
  *
  * <p>This is not a general SVG implementation and is not meant to become one.
- * j's icons are drawn in house to a deliberately small subset -- three
+ * j's icons are drawn in house to a deliberately small subset -- four
  * elements, straight lines and elliptical arcs -- so that they can be painted
  * at any size, in any color, without a rendering library. Everything the icon
  * set uses is listed in {@code doc/icons.html}; anything else throws rather
@@ -248,6 +249,18 @@ public final class SvgIcon {
                 double cy = number(attrs.get("cy"));
                 double r = number(attrs.get("r"));
                 shape = new Ellipse2D.Double(cx - r, cy - r, r * 2, r * 2);
+            } else if (tag.equals("rect")) {
+                // rx or ry alone sets both, as SVG has it.
+                final String rxs = attrs.get("rx");
+                final String rys = attrs.get("ry");
+                final double rx = number(rxs != null ? rxs : rys);
+                final double ry = number(rys != null ? rys : rxs);
+                shape = new RoundRectangle2D.Double(number(attrs.get("x")),
+                        number(attrs.get("y")),
+                        number(attrs.get("width")),
+                        number(attrs.get("height")),
+                        rx * 2,
+                        ry * 2);
             } else if (tag.equals("g")) {
                 walk(e, attrs, current);
                 continue;

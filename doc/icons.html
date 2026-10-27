@@ -54,6 +54,10 @@ presentation attribute on it is inherited by everything inside.
 <code>&lt;circle&gt;</code>
 &mdash; <code>cx</code>, <code>cy</code>, <code>r</code>.
 <p>
+<code>&lt;rect&gt;</code>
+&mdash; <code>x</code>, <code>y</code>, <code>width</code>, <code>height</code>,
+and <code>rx</code>, <code>ry</code> to round its corners.
+<p>
 <code>&lt;g&gt;</code>
 &mdash; a group. Passes its attributes down; draws nothing itself.
 </dl>
@@ -78,7 +82,9 @@ presentation attribute on it is inherited by everything inside.
 <code>color</code> &mdash; on the root, the value <code>currentColor</code>
 resolves to
 <p>
-<code>d</code>, <code>cx</code>, <code>cy</code>, <code>r</code>
+<code>d</code>, <code>cx</code>, <code>cy</code>, <code>r</code>, <code>x</code>,
+<code>y</code>, <code>width</code>, <code>height</code>, <code>rx</code>,
+<code>ry</code>
 </dl>
 
 <h2>Path commands</h2>
@@ -113,14 +119,14 @@ begins a new one.
 Anything not listed above, including: the curve commands
 (<code>C</code>, <code>S</code>, <code>Q</code>, <code>T</code>);
 <code>transform</code>; <code>opacity</code>;
-gradients and patterns; <code>&lt;text&gt;</code>; <code>&lt;rect&gt;</code>,
+gradients and patterns; <code>&lt;text&gt;</code>;
 <code>&lt;line&gt;</code>, <code>&lt;polygon&gt;</code> and the other shape
 elements; <code>&lt;use&gt;</code> and <code>&lt;defs&gt;</code>; clip paths,
 masks and filters; embedded images; CSS, whether in a <code>style</code>
 attribute or a <code>&lt;style&gt;</code> element.
 
 <p>
-A curve or a rectangle is easy enough to express with the commands that are
+A curve is easy enough to express with the commands that are
 supported, and doing so keeps every icon drawable by the same few hundred lines.
 
 <h2>Color</h2>

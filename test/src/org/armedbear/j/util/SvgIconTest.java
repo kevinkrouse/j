@@ -20,6 +20,7 @@
 
 package org.armedbear.j.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -27,8 +28,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -121,6 +124,27 @@ public class SvgIconTest {
             }
         }
         return false;
+    }
+
+    @Test
+    public void aRectIsFilledWhereItIsAndNowhereElse() throws Exception {
+        final String svg = "<svg viewBox=\"0 0 16 16\"><rect x=\"4\" y=\"4\" width=\"8\" height=\"8\" rx=\"2\""
+                + " fill=\"#000\"/></svg>";
+        final SvgIcon icon = new SvgIcon("rect", new ByteArrayInputStream(svg.getBytes(StandardCharsets.UTF_8)), null);
+        final BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        final Graphics2D g2d = image.createGraphics();
+        try {
+            icon.paint(g2d, 16);
+        }
+        finally {
+            g2d.dispose();
+        }
+        assertEquals(0xFF, image.getRGB(8, 8) >>> 24);
+        assertEquals(0, image.getRGB(2, 8) >>> 24);
+        assertEquals(0, image.getRGB(13, 8) >>> 24);
+        // The rounded corner, not all filled.
+        assertTrue(image.getRGB(4, 4) >>> 24 < 0xFF);
+        assertEquals(0xFF, image.getRGB(4, 8) >>> 24);
     }
 
     @Test
