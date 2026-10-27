@@ -23,6 +23,9 @@ package org.armedbear.j;
 import static org.armedbear.j.ToolBarIcon.*;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -30,6 +33,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
 import javax.swing.BorderFactory;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JToolBar;
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
@@ -106,6 +111,55 @@ public class ToolBar extends JToolBar implements ActionListener {
         return button;
     }
 
+    /** One of a split button's menu's check boxes: on while selected is true. */
+    public record Choice(String text, String command, BooleanSupplier selected) {}
+
+    /**
+     * A button and, beside it, an arrow that drops down choices; the
+     * button pressed while selected is true.
+     */
+    public ToolBarButton addSplitButton(
+            String text,
+            ToolBarIcon icon,
+            String command,
+            BooleanSupplier selected,
+            List<Choice> choices) {
+        final ToolBarButton button = addButton(text, icon, command).selectedWhen(selected);
+        final JPopupMenu menu = new JPopupMenu();
+        final ToolBarButton arrow = new ToolBarButton(frame, null, e -> {
+            menu.removeAll();
+            for (Choice c : choices) {
+                final JCheckBoxMenuItem item = new JCheckBoxMenuItem(c.text(), c.selected().getAsBoolean());
+                item.addActionListener(ie -> {
+                    menu.setVisible(false);
+                    actionPerformed(new ActionEvent(button, ActionEvent.ACTION_PERFORMED, c.command()));
+                });
+                menu.add(item);
+            }
+            final ToolBarButton source = (ToolBarButton) e.getSource();
+            menu.show(source, 0, source.getHeight());
+        });
+        arrow.setToolTipText(text + " Options");
+        if (style != STYLE_TEXT_ONLY) {
+            arrow.setIconFromFile(ICON_DROP_DOWN.getFile());
+            final int width = iconSize() * 3 / 5;
+            arrow.setMargin(new Insets(0, 0, 0, 0));
+            arrow.setPreferredSize(new Dimension(width, button.getPreferredSize().height));
+            arrow.setMaximumSize(arrow.getPreferredSize());
+        } else
+            arrow.setText("\u25be");
+        arrow.setRolloverEnabled(isRolloverEnabled());
+        add(arrow);
+        return button;
+    }
+
+    /** Its buttons enabled and pressed as they say, as after a command. */
+    public void update() {
+        for (Component c : getComponents())
+            if (c instanceof ToolBarButton b)
+                b.update();
+    }
+
     /** A button an extension adds to the standard toolbars, shown while shown() is true. */
     public record Button(String text, ToolBarIcon icon, String command, BooleanSupplier shown) {}
 
@@ -121,10 +175,8 @@ public class ToolBar extends JToolBar implements ActionListener {
     }
 
     public void addExtensionButtons() {
-        for (Button button : extensionButtons) {
-            if (button.shown().getAsBoolean())
-                addButton(button.text(), button.icon(), button.command());
-        }
+        for (Button button : extensionButtons)
+            addButton(button.text(), button.icon(), button.command()).visibleWhen(button.shown());
     }
 
     public static boolean isToolBarEnabled() {
@@ -152,7 +204,7 @@ public class ToolBar extends JToolBar implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         final Editor editor = frame.getCurrentEditor();
         editor.setFocusToDisplay();
-        editor.getDispatcher().actionPerformed(e);
+        FrameView.run(editor, e);
     }
 
     public static ToolBar createToolBar(Frame frame, File file) {

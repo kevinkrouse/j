@@ -164,6 +164,7 @@ public class CommandTable {
             add("closeParen", ElectricCommands::closeParen);
             add("commentRegion", IndentCommands::commentRegion);
             add("compareQuit", CompareCommands::compareQuit);
+            add("compareScrollLock", CompareCommands::compareScrollLock);
             add("copyAppend", ClipboardCommands::copyAppend);
             add("copyPath", ClipboardCommands::copyPath);
             add("copyRegion", ClipboardCommands::copyRegion);
@@ -388,7 +389,6 @@ public class CommandTable {
             add("vcsLogScrollDiffBack", LogCommands::vcsLogScrollDiffBack);
             add("vcsLogToggle", LogCommands::vcsLogToggle);
             add("vcsLogToggleAll", LogCommands::vcsLogToggleAll);
-            add("vcsLogToggleDetails", LogCommands::vcsLogToggleDetails);
             add("vcsLogVisit", LogCommands::vcsLogVisit);
             add("vcsStage", e -> StatusActions.run(e, StatusActions.Op.STAGE));
             add("vcsStageAll", e -> StatusActions.all(e, true));
@@ -452,6 +452,10 @@ public class CommandTable {
             add("diff", e -> CompareCommands.diff(e, null), CompareCommands::diff);
             add("diffPatch", e -> DiffMode.diff(), (e, s) -> DiffMode.diff(s));
             add("diffGotoFile", e -> DiffMode.gotoFile());
+            add(
+                "diffIgnoreWhitespace",
+                e -> CompareCommands.diffIgnoreWhitespace(e, null),
+                CompareCommands::diffIgnoreWhitespace);
             add("dir", e -> DirectoryBuffer.dir());
             add("dirBack", e -> DirectoryBuffer.dirBack());
             add("dirClearFilters", e -> DirectoryBuffer.dirClearFilters());

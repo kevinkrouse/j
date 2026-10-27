@@ -22,14 +22,23 @@ package org.armedbear.j;
 
 public enum ToolBarIcon {
     ICON_BACK("left"),
+    ICON_CHANGE_NEXT("change-next"),
+    ICON_CHANGE_PREVIOUS("change-previous"),
     ICON_CLOSE("close"),
+    ICON_COMMIT("commit"),
     ICON_COPY("copy"),
     ICON_CUT("cut"),
     ICON_DELETE("delete"),
+    ICON_DIFF("diff"),
     ICON_DIRECTORY("directory-list"),
+    ICON_DOWN("down"),
+    ICON_DROP_DOWN("expanded"),
     ICON_EXIT("application-exit"),
+    ICON_FILTER("filter"),
+    ICON_FILTER_CLEAR("filter-clear"),
     ICON_FIND("search"),
     ICON_FORWARD("right"),
+    ICON_HISTORY("history"),
     ICON_HOME("home"),
     ICON_MAIL_ATTACH("attach"),
     ICON_MAIL_COMPOSE("mail-message-new"),
@@ -41,17 +50,22 @@ public enum ToolBarIcon {
     ICON_MAIL_REPLY_ALL("mail-reply-all"),
     ICON_MAIL_SEND("mail-send"),
     //ICON_MAIL_SEND_RECEIVE("mail-send-receive"),
+    ICON_MINUS("minus"),
     ICON_NEW("document-new"),
     ICON_OPEN("document-open"),
     ICON_PASTE("paste"),
+    ICON_PLUS("plus"),
     ICON_PROJECT("project"),
     ICON_REDO("redo"),
     ICON_REFRESH("refresh"),
     ICON_REPLACE("search-and-replace"),
     ICON_SAVE("document-save"),
+    ICON_SCROLL_LOCK("scroll-lock"),
+    ICON_SIDE_BY_SIDE("side-by-side"),
     ICON_STOP("stop"),
     ICON_UNDO("undo"),
-    ICON_UP("up");
+    ICON_UP("up"),
+    ICON_WHITESPACE("whitespace");
 
     private String _filename;
 

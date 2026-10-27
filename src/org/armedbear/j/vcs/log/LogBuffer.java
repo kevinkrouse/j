@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -44,6 +43,7 @@ import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Mode;
+import org.armedbear.j.PerFrame;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
 import org.armedbear.j.Sidebar;
@@ -51,10 +51,13 @@ import org.armedbear.j.TextLine;
 import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.CompareCommands;
 import org.armedbear.j.mode.compare.DiffAlignment;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.TimeStyle;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.status.SideBySide;
@@ -65,7 +68,7 @@ import org.armedbear.j.vcs.status.SideBySide;
  * log, the commit at the caret has its files and the diff of one shown
  * beside it, a moment after the caret stops on it.
  */
-public final class LogBuffer extends ViewBuffer implements FrameView {
+public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhitespace.Listener {
     private static final int PAGE = 2000;
     // How near the end the caret comes before the next page is read.
     private static final int AHEAD = 200;
@@ -110,8 +113,6 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     // The windows before the log took the frame, put back when it is left
     // or closes; null when it isn't shown.
     private WindowLayout.Node before;
-    // Where the details are: at the right, or at the bottom; null until first shown.
-    Boolean right;
     LogFilesBuffer files;
     LogDiffBuffer diff;
     // The diff's side-by-side form while it shows side by side.
@@ -224,7 +225,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
 
     @Override
     public WindowLayout.Node layout(Frame frame, Buffer focus) {
-        return LogCommands.layout(frame, this, focus);
+        return LogCommands.layout(this, focus);
     }
 
     @Override
@@ -267,6 +268,20 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
                 b.kill();
     }
 
+    /**
+     * Where a command from the toolbar or a menu runs, from from: a diff's
+     * in the diff; from a side of the comparison, a vcs command in the
+     * list; the rest, as the editor's own, in from.
+     */
+    @Override
+    public Editor windowFor(Editor from, String command) {
+        final Editor diffs = CompareCommands.windowFor(from, command, diff, sides != null ? sides.comparison() : null);
+        if (diffs != null)
+            return diffs;
+        final Editor list = from.getFrame() != null ? from.getFrame().findEditor(this) : null;
+        return list != null && command.startsWith("vcs") && CompareBuffer.of(from.getBuffer()) != null ? list : from;
+    }
+
     // A pane killed on its own closes the log, as q does.
     @Override
     public boolean partKilled(Buffer part) {
@@ -290,6 +305,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
     public void dispose() {
         disposed = true;
         follow.stop();
+        refTrees.forget();
         super.dispose();
     }
 
@@ -374,12 +390,18 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         LogNames.read(scope, true, this::refsRead);
     }
 
-    // Its refs in each frame's sidebar it is in, made when first shown there.
-    private final Map<Frame, LogRefTree> refTrees = new WeakHashMap<>();
+    // Its refs in each frame's sidebar it is in, one for its list, files and
+    // diff there; the refs are its names', read once for every tree.
+    private final PerFrame<LogRefTree> refTrees = new PerFrame<>(frame -> {
+        final LogRefTree tree = new LogRefTree(this);
+        tree.update();
+        LogNames.read(getScope(), false, this::refsRead);
+        return tree;
+    });
 
     // The refs read again: each tree shows them.
     private void refsRead() {
-        for (LogRefTree t : refTrees.values())
+        for (LogRefTree t : refTrees.all())
             t.update();
     }
 
@@ -398,24 +420,13 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         if (!REFS_ORDERS.contains(order) || order.equals(refsOrder))
             return;
         refsOrder = order;
-        for (LogRefTree t : refTrees.values())
+        for (LogRefTree t : refTrees.all())
             t.reorder();
     }
 
-    /**
-     * Its refs tree in frame, one for its list, files and diff there: a
-     * component is in one frame at a time. The refs are its names', read
-     * once for every tree.
-     */
+    /** Its refs tree in frame's sidebar, or with null its own. */
     LogRefTree refTree(Frame frame) {
-        LogRefTree tree = refTrees.get(frame);
-        if (tree == null) {
-            tree = new LogRefTree(this);
-            refTrees.put(frame, tree);
-            tree.update();
-            LogNames.read(scope, false, this::refsRead);
-        }
-        return tree;
+        return refTrees.in(frame);
     }
 
     /**
@@ -952,6 +963,13 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         files.show(c);
     }
 
+    // Its unified diff read again, of the file the files pane shows.
+    @Override
+    public void diffWhitespaceChanged() {
+        if (!disposed && sides == null && diff != null && files != null && files.shownChange() != null)
+            diff.show(files.commit(), files.shownChange(), () -> {});
+    }
+
     /** Forgets the details shown, as when they are rebuilt. */
     void forgetShown() {
         shown = null;
@@ -1065,6 +1083,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
         final boolean hasNew = ch.kind() != FileChange.Kind.DELETED;
         final Mode mode = SideBySide.modeFor(Path.of(ch.path()).getFileName().toString());
         final Charset charset = SideBySide.charset();
+        final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("vcs log compare", () -> {
             String oldTitle = oldPath + " @ " + (parent == null ? "none" : LogCommit.shortId(parent));
             String newTitle = ch.path() + " @ " + LogCommit.shortId(c.id());
@@ -1099,7 +1118,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView {
                 oldTitle += " (not read)";
                 read = false;
             }
-            final DiffAlignment alignment = DiffAlignment.of(oldSide.keys(), newSide.keys());
+            final DiffAlignment alignment = DiffAlignment.of(oldSide, newSide, ignored);
             final String ot = oldTitle;
             final Side os = oldSide;
             final String nt = newTitle;

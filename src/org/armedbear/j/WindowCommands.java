@@ -232,7 +232,8 @@ public final class WindowCommands {
         switchWindow(editor, ed);
     }
 
-    private static void switchWindow(Editor editor, Editor ed) {
+    /** From editor's window to ed's, if not null: its menu, toolbar and sidebar with it. */
+    public static void switchWindow(Editor editor, Editor ed) {
         if (ed != null) {
             editor.saveView();
             Editor.setCurrentEditor(ed);

@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
@@ -322,12 +323,16 @@ final class GitLog {
         return changes;
     }
 
-    static FileDiff diff(VcsRepository repository, String id, String parent, CommitChange change) {
+    static FileDiff diff(VcsRepository repository, String id, String parent, CommitChange change, Whitespace ignored) {
         final List<String> args = new ArrayList<>(List.of("--literal-pathspecs"));
         if (parent != null)
-            args.addAll(List.of("diff", "--no-ext-diff", "--no-color", "-M", parent, id));
+            args.add("diff");
         else
-            args.addAll(List.of("show", "--root", "--format=", "--no-ext-diff", "--no-color", "-M", id));
+            args.addAll(List.of("show", "--root", "--format="));
+        GitCli.ignoring(ignored, args).addAll(List.of("--no-ext-diff", "--no-color", "-M"));
+        if (parent != null)
+            args.add(parent);
+        args.add(id);
         args.add("--");
         if (change.origPath() != null)
             args.add(change.origPath());

@@ -36,6 +36,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
 import org.armedbear.j.Log;
 import org.armedbear.j.MotionCommands;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
@@ -88,13 +89,29 @@ public final class CommitCommands {
             (editor, buffer) -> editor.activateInOtherWindow(buffer);
 
     public static void vcsCommitPopup(Editor editor) {
-        if (!(editor.getBuffer() instanceof VcsStatusBuffer))
+        final Editor at = statusWindow(editor);
+        if (at == null)
             return;
-        if (!VcsStatusMode.stages(editor.getBuffer())) {
-            editor.status("Nothing here stages to commit");
+        if (!VcsStatusMode.stages(at.getBuffer())) {
+            at.status("Nothing here stages to commit");
             return;
         }
-        TransientPopup.open(editor, popup());
+        TransientPopup.open(at, popup());
+    }
+
+    // The window to commit from: editor's on a status; from the status's
+    // diff or comparison, the status's; from another buffer, its
+    // repository's status, opened. Made current; null for none.
+    private static Editor statusWindow(Editor editor) {
+        if (editor.getBuffer() instanceof VcsStatusBuffer)
+            return editor;
+        final VcsStatusBuffer owner = VcsStatusMode.owner(editor);
+        final Editor at = owner != null ? Editor.windowShowing(owner) : VcsStatusMode.openStatus(editor);
+        if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer))
+            return null;
+        if (at != editor && at.getFrame() != null && editor.getFrame() == at.getFrame())
+            WindowCommands.switchWindow(editor, at);
+        return at;
     }
 
     // The popup's switches, as options.

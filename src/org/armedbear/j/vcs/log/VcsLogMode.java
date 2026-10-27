@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.log;
 
 import static org.armedbear.j.Constants.*;
+import static org.armedbear.j.ToolBarIcon.*;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -29,18 +30,24 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
+import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 import org.armedbear.j.ViewPane;
+import org.armedbear.j.mode.compare.CompareCommands;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
@@ -51,8 +58,7 @@ import org.armedbear.j.vcs.status.VcsStatusFormatter;
 
 /**
  * The log's mode, for its list and its details' files and diff. Nothing in
- * them is edited, so the same letters work in both edit modes, but for
- * what vim keeps for moving: refresh is r there.
+ * them is edited, so the same keys work in both edit modes.
  */
 public final class VcsLogMode extends AbstractMode implements Mode {
     private static final VcsLogMode mode = new VcsLogMode();
@@ -102,7 +108,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
     // The list's keys; the files and diff have all but its filters'.
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
-        common(km, false);
+        common(km);
         listKeys(km);
     }
 
@@ -114,7 +120,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
     public synchronized KeyMap getModalKeyMap() {
         if (modalKeyMap == null) {
             modalKeyMap = new KeyMap();
-            common(modalKeyMap, true);
+            common(modalKeyMap);
             listKeys(modalKeyMap);
         }
         return modalKeyMap;
@@ -126,7 +132,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
             return getKeyMap();
         if (paneKeyMap == null) {
             paneKeyMap = new KeyMap();
-            common(paneKeyMap, false);
+            common(paneKeyMap);
         }
         return paneKeyMap;
     }
@@ -137,7 +143,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
             return getModalKeyMap();
         if (paneModalKeyMap == null) {
             paneModalKeyMap = new KeyMap();
-            common(paneModalKeyMap, true);
+            common(paneModalKeyMap);
         }
         return paneModalKeyMap;
     }
@@ -160,7 +166,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
     // As the status buffer's where they mean the same: Enter visits, Tab
     // opens or closes a hunk, n and p go to the next thing; the diff
     // scrolls from any pane as magit's revision buffer does from its log.
-    private static void common(KeyMap km, boolean vim) {
+    private static void common(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsLogVisit");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsLogVisit");
         km.mapKey(KeyEvent.VK_ENTER, SHIFT_MASK, "vcsLogRevision");
@@ -179,9 +185,8 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         km.mapKey('u', "vcsLogScrollDiffBack");
         km.mapKey('o', "vcsLogOpenFile");
         km.mapKey('O', "vcsLogRevision");
-        km.mapKey('D', "vcsLogToggleDetails");
         km.mapKey('=', "vcsLogDiffView");
-        km.mapKey(vim ? 'r' : 'g', "vcsLogRefresh");
+        km.mapKey(KeyEvent.VK_R, CTRL_MASK, "vcsLogRefresh");
         km.mapKey('$', "vcsCommandLog");
         km.mapKey('q', "vcsLogQuit");
         km.mapKey('?', "modePopup");
@@ -191,11 +196,10 @@ public final class VcsLogMode extends AbstractMode implements Mode {
     private static final String[][] LIST_HINTS = {
         { "vcsLogVisit", "files" },
         { "vcsLogFilter", "filter" },
-        { "vcsLogToggleDetails", "layout" },
+        { "vcsLogDiffView", "side by side" },
         { "vcsLogQuit", "quit" },
         { "modePopup", "more" }, };
 
-    // Side by side, D does nothing: = goes back.
     private static final String[][] LIST_SIDE_BY_SIDE_HINTS = {
         { "vcsLogVisit", "files" },
         { "vcsLogFilter", "filter" },
@@ -228,9 +232,78 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         };
     }
 
+    // The toolbar and the Mode menu, of each of the log's panes; side by
+    // side, the comparison's too.
+
+    @Override
+    protected ToolBar getDefaultToolBar(Frame frame) {
+        final ToolBar tb = new ToolBar(frame);
+        final Supplier<LogBuffer> log = () -> {
+            final Editor ed = frame.getCurrentEditor();
+            return ed == null ? null : LogBuffers.owner(ed.getBuffer());
+        };
+        final BooleanSupplier full = () -> log.get() != null && log.get().isFull();
+        final BooleanSupplier sides = () -> log.get() != null && log.get().sides != null;
+        tb.addButton("New", ICON_NEW, "newBuffer");
+        tb.addButton("Open", ICON_OPEN, "openFile");
+        tb.addButton("Close", ICON_CLOSE, "vcsLogQuit");
+        tb.addSeparator();
+        tb.addButton("Refresh", ICON_REFRESH, "vcsLogRefresh");
+        tb.addSeparator();
+        tb.addButton("Side by Side", ICON_SIDE_BY_SIDE, "vcsLogDiffView").enabledWhen(full).selectedWhen(sides);
+        tb.addSeparator();
+        tb.addButton("Previous", ICON_UP, "vcsLogPrevious");
+        tb.addButton("Next", ICON_DOWN, "vcsLogNext");
+        CompareCommands.addChangeButtons(tb, full);
+        tb.addSeparator();
+        CompareCommands.addButtons(tb, sides);
+        tb.addSeparator();
+        tb.addButton("Filter", ICON_FILTER, "vcsLogFilter");
+        tb.addButton("Clear Filters", ICON_FILTER_CLEAR, "vcsLogClearFilters");
+        tb.addExtensionButtons();
+        tb.addSeparator();
+        tb.addButton("Exit", ICON_EXIT, "quit");
+        return tb;
+    }
+
+    // The items run where the log says (LogBuffer.windowFor), with the keys
+    // of the window the menu is opened in.
+    @Override
+    public void populateModeMenu(Editor editor, Menu menu) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        final boolean full = log != null && log.isFull();
+        final boolean sides = log != null && log.sides != null;
+        menu.add(editor, "Next", 'N', "vcsLogNext");
+        menu.add(editor, "Previous", 'P', "vcsLogPrevious");
+        menu.add(editor, "Next File", 'X', "vcsLogNextFile", full);
+        menu.add(editor, "Previous File", 'R', "vcsLogPreviousFile", full);
+        menu.addSeparator();
+        menu.add(editor, "Open File", 'O', "vcsLogOpenFile");
+        menu.add(editor, "File at the Commit", 'A', "vcsLogRevision");
+        menu.addSeparator();
+        menu.addCheckBox(editor, "Side by Side", 'B', "vcsLogDiffView", sides).setEnabled(full);
+        if (full) {
+            menu.addSeparator();
+            CompareCommands.addChangeItems(editor, menu);
+        }
+        if (sides) {
+            menu.addSeparator();
+            CompareCommands.addItems(editor, menu);
+        } else
+            CompareCommands.addWhitespaceItems(editor, menu);
+        menu.addSeparator();
+        menu.add(editor, "Filter...", 'F', "vcsLogFilter");
+        menu.add(editor, "Clear Filters", 'C', "vcsLogClearFilters");
+        menu.add(editor, "Tags", 'G', "vcsLogToggleTags");
+        menu.add(editor, "Time Style", 'Y', "vcsLogTimeStyle");
+        menu.addSeparator();
+        menu.add(editor, "Refresh", 'H', "vcsLogRefresh");
+        menu.add(editor, "Command Log", 'L', "vcsCommandLog");
+        menu.add(editor, "Close", 'Q', "vcsLogQuit");
+    }
+
     @Override
     public Transient getTransient(Editor editor) {
-        final boolean vim = editor != null && editor.getInputHandler() != null;
         final List<Group> groups = new ArrayList<>();
         // The list has no file under the caret.
         if (editor != null && !(editor.getBuffer() instanceof LogBuffer))
@@ -251,7 +324,6 @@ public final class VcsLogMode extends AbstractMode implements Mode {
                 "Diff",
                 new Command("d", "vcsLogScrollDiff", "scroll down", true),
                 new Command("u", "vcsLogScrollDiffBack", "scroll up", true),
-                new Command("D", "vcsLogToggleDetails", "at the bottom or right", true),
                 new Command("=", "vcsLogDiffView", "unified or side by side", true)));
         // The filters' keys are the list's alone.
         if (editor == null || editor.getBuffer() instanceof LogBuffer) {
@@ -259,7 +331,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
             groups.add(1, Group.of("View", LogFilters.TIME_STYLE, LogFilters.COLLAPSE, LogFilters.REFS_ORDER));
         }
         final List<Transient.Item> log = new ArrayList<>();
-        log.add(Command.of(vim ? "r" : "g", "vcsLogRefresh", "refresh"));
+        log.add(new Command(Transient.ctrl('r'), "vcsLogRefresh", "refresh", true));
         log.add(Command.of("$", "vcsCommandLog", "command log"));
         log.add(Command.of("q", "vcsLogQuit", "close"));
         groups.add(new Group("Log", log));

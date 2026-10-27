@@ -48,10 +48,7 @@ public final class MenuItem extends JMenuItem {
 
     @Override
     public Dimension getPreferredSize() {
-        Dimension d = super.getPreferredSize();
-        if (acceleratorText != null)
-            d.width += getFontMetrics(acceleratorFont).stringWidth(acceleratorText) + 30;
-        return d;
+        return withAccelerator(this, super.getPreferredSize(), acceleratorText);
     }
 
     // We paint our own menu items so the accelerator text will be consistent
@@ -60,20 +57,32 @@ public final class MenuItem extends JMenuItem {
     public void paint(Graphics g) {
         Display.setRenderingHints(g);
         super.paint(g);
+        paintAccelerator(this, g, acceleratorText);
+    }
+
+    /** d widened for item's accelerator text, if it has one. */
+    static Dimension withAccelerator(JMenuItem item, Dimension d, String acceleratorText) {
+        if (acceleratorText != null)
+            d.width += item.getFontMetrics(acceleratorFont).stringWidth(acceleratorText) + 30;
+        return d;
+    }
+
+    /** item's accelerator text at its right, if it has one. */
+    static void paintAccelerator(JMenuItem item, Graphics g, String acceleratorText) {
         if (acceleratorText != null) {
             g.setFont(acceleratorFont);
             Color c;
-            if (isEnabled())
-                c = getModel().isArmed() ? acceleratorSelectionForeground : acceleratorForeground;
+            if (item.isEnabled())
+                c = item.getModel().isArmed() ? acceleratorSelectionForeground : acceleratorForeground;
             else
                 c = disabledForeground;
             g.setColor(c);
             FontMetrics fm = g.getFontMetrics();
-            Insets insets = getInsets();
+            Insets insets = item.getInsets();
             g.drawString(
                 acceleratorText,
-                getWidth() - (fm.stringWidth(acceleratorText) + insets.right + insets.left),
-                getFont().getSize() + (insets.top - 1)
+                item.getWidth() - (fm.stringWidth(acceleratorText) + insets.right + insets.left),
+                item.getFont().getSize() + (insets.top - 1)
             );
         }
     }

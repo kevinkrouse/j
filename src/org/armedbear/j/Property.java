@@ -67,8 +67,6 @@ public final class Property implements Comparable<Property> {
     public static final Property STATUS_BAR_DISPLAY_CONTEXT = createProperty("StatusBar.displayContext", 1);
     public static final Property TAB_WIDTH = createProperty("tabWidth", 8);
     public static final Property TEXT_FIELD_FONT_SIZE = createProperty("textFieldFontSize", 0);
-    // Below this many columns, the log's details at the bottom stack its files over its diff.
-    public static final Property VCS_LOG_STACKED_WIDTH = createProperty("vcsLogStackedWidth", 100);
     public static final Property VCS_LOG_COLLAPSE_RUNS = createProperty("vcsLogCollapseRuns", false);
     public static final Property VCS_LOG_TIME_STYLE = createProperty("vcsLogTimeStyle", "age");
     public static final Property VCS_LOG_REFS_ORDER = createProperty("vcsLogRefsOrder", "name");
@@ -91,6 +89,8 @@ public final class Property implements Comparable<Property> {
     // A comparison's sides kept level by blank rows, scrolled row for row,
     // as nvim's diff mode; else scrolled together through the changes.
     public static final Property COMPARE_ALIGN = createProperty("compareAlign", false);
+    // What diffs ignore of whitespace to begin with: none, trailing, amount or all.
+    public static final Property DIFF_IGNORE_WHITESPACE = createProperty("diffIgnoreWhitespace", "none");
     public static final Property BLINK_CARET = createProperty("blinkCaret", true);
     public static final Property CHECK_ENABLED = createProperty("checkEnabled", false);
     public static final Property CONFIRM_SEND = createProperty("confirmSend", true);
@@ -215,8 +215,6 @@ public final class Property implements Comparable<Property> {
     // A fractional value is allowed, so this is stored as a string. Unset or
     // 0 means detect it from the display; see UIScale.
     public static final Property UI_SCALE = createProperty("uiScale", "0");
-    // Where the log shows a commit's details: bottom, right, or auto (right in a wide frame).
-    public static final Property VCS_LOG_DETAILS = createProperty("vcsLogDetails", "auto");
     // Whether a status buffer opens with the diff beside it: off or right.
     public static final Property VCS_STATUS_DIFF = createProperty("vcsStatusDiff", "off");
     public static final Property TEXT_FIELD_FONT_NAME = createProperty("textFieldFontName", "Monospaced");

@@ -19,6 +19,8 @@
  */
 package org.armedbear.j;
 
+import java.awt.event.ActionEvent;
+
 /**
  * A buffer shown across the whole frame with buffers of its own, as the
  * log with its files and diff: switched to and away from as one, as
@@ -44,5 +46,47 @@ public interface FrameView {
      */
     default boolean partKilled(Buffer part) {
         return false;
+    }
+
+    /** The toolbar of a frame showing it, whichever of its buffers is current: its own buffer's mode's. */
+    default ToolBar getToolBar(Frame frame) {
+        return this instanceof Buffer b ? b.getMode().getToolBar(frame) : null;
+    }
+
+    /** The Mode menu's items, whichever of its buffers is current: its own buffer's mode's. */
+    default void populateModeMenu(Editor editor, Menu menu) {
+        if (this instanceof Buffer b)
+            b.getMode().populateModeMenu(editor, menu);
+    }
+
+    /** The toolbar a frame shows with buffer current: its view's, or its mode's. */
+    static ToolBar toolBarFor(Buffer buffer, Frame frame) {
+        final FrameView view = buffer.getFrameView();
+        return view != null ? view.getToolBar(frame) : buffer.getMode().getToolBar(frame);
+    }
+
+    /**
+     * The window in from's frame where command, from the toolbar or a menu,
+     * runs, from from, one of its buffers' windows: from itself. A command
+     * not the view's own, as Copy, runs in from.
+     */
+    default Editor windowFor(Editor from, String command) {
+        return from;
+    }
+
+    /** Where command from the toolbar or a menu runs, from from: as its view says, or in from. */
+    static Editor target(Editor from, String command) {
+        final FrameView view = from == null ? null : from.getBuffer().getFrameView();
+        final Editor to = view != null ? view.windowFor(from, command) : from;
+        return to != null ? to : from;
+    }
+
+    /** e's command, from the toolbar or a menu, run where its view says, from from, that window made current. */
+    static void run(Editor from, ActionEvent e) {
+        final String command = e.getActionCommand() == null ? "" : e.getActionCommand().split(" ", 2)[0];
+        final Editor to = target(from, command);
+        if (to != from)
+            WindowCommands.switchWindow(from, to);
+        to.getDispatcher().actionPerformed(e);
     }
 }

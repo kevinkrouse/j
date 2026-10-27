@@ -67,15 +67,16 @@ public class VcsRunnerTest {
 
     @Test
     public void reportsAProgramThatWillNotStart() {
-        VcsResult r = VcsRunner.run(new VcsCommand(tmp, List.of("no-such-program-j-vcs"), Map.of(), null, false, null));
+        VcsResult r = VcsRunner
+                .run(new VcsCommand(tmp, List.of("no-such-program-j-vcs"), List.of(), Map.of(), null, false, null));
         assertEquals(-1, r.exitCode());
         assertFalse(r.stderr().isEmpty());
     }
 
     @Test
     public void stopsAProgramThatRunsTooLong() {
-        VcsResult r = VcsRunner
-                .run(new VcsCommand(tmp, List.of("sleep", "10"), Map.of(), null, false, Duration.ofMillis(200)));
+        VcsResult r = VcsRunner.run(
+            new VcsCommand(tmp, List.of("sleep", "10"), List.of(), Map.of(), null, false, Duration.ofMillis(200)));
         assertEquals(-1, r.exitCode());
         assertTrue(r.stderr().contains("timed out"), r.stderr());
         assertTrue(r.millis() < 5000);
@@ -87,16 +88,25 @@ public class VcsRunnerTest {
         GitCli.run(GitCli.read(f.root, "status", "--porcelain=v2"));
         List<CommandLog.Entry> entries = CommandLog.entries();
         CommandLog.Entry last = entries.get(entries.size() - 1);
-        assertTrue(last.commandLine().startsWith("git --no-pager -c color.ui=false"), last.commandLine());
-        assertTrue(last.commandLine().endsWith("status --porcelain=v2"), last.commandLine());
+        // Without the options every git command runs with, said once above it.
+        assertEquals("git status --porcelain=v2", last.commandLine());
+        assertTrue(last.options().startsWith("-c color.ui=false"), last.options());
+        final String text = CommandLog.format(List.of(last, last));
+        assertTrue(text.startsWith("[git runs with -c color.ui=false"), text);
+        assertEquals(1, text.split("runs with", -1).length - 1, text);
         assertEquals(f.root.toString(), last.directory());
         assertFalse(last.failed());
     }
 
     @Test
     public void quotesArgumentsAsAShellWould() {
-        VcsCommand c =
-                new VcsCommand(tmp, List.of("git", "commit", "-m", "it's done", "a b", ""), Map.of(), null, true, null);
+        VcsCommand c = new VcsCommand(tmp,
+                List.of("git", "commit", "-m", "it's done", "a b", ""),
+                List.of(),
+                Map.of(),
+                null,
+                true,
+                null);
         assertEquals("git commit -m 'it'\\''s done' 'a b' ''", c.commandLine());
     }
 

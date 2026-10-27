@@ -26,8 +26,9 @@ import org.armedbear.j.KeyMap;
 
 /**
  * A side's keys over its file's mode's: q closes it, and outside vim n and
- * p go from change to change and Tab opens or closes a fold; in vim n and p
- * are its search's, ]c and [c go by change and its z keys fold; then the
+ * p go from change to change, Tab opens or closes a fold, s is the scroll
+ * lock and w ignores whitespace; in vim n and p are its search's, ]c and [c
+ * go by change and its z keys fold, and w is a word; then the
  * keys of the view it is part of, if any. Made again when the mode's map
  * changes; one for both sides.
  */
@@ -60,6 +61,8 @@ final class SideKeys {
             km.mapKey(KeyEvent.VK_TAB, 0, "toggleFold");
             km.mapKey('n', "nextChange");
             km.mapKey('p', "previousChange");
+            km.mapKey('s', "compareScrollLock");
+            km.mapKey('w', "diffIgnoreWhitespace");
         }
         extra.accept(km);
         return km;

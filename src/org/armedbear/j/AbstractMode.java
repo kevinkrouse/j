@@ -26,6 +26,8 @@ import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -145,6 +147,8 @@ public abstract class AbstractMode implements Mode {
         menuBar.add(new Menu("Search", 'S'));
         menuBar.add(new Menu("Go", 'G'));
         menuBar.add(new Menu("Mode", 'M'));
+        for (AddedMenu m : addedMenus)
+            menuBar.add(new Menu(m.text(), m.mnemonic()));
         menuBar.add(new Menu("Lisp", 'L'));
         menuBar.add(new Menu("Help", 'H'));
         return menuBar;
@@ -164,13 +168,35 @@ public abstract class AbstractMode implements Mode {
         else if (text == "Go")
             populateGoMenu(editor, menu);
         else if (text == "Mode") {
-            populateModeMenu(editor, menu);
+            // A part of a view, its view's; else its buffer's mode's.
+            final FrameView view = editor.getBuffer().getFrameView();
+            if (view != null)
+                view.populateModeMenu(editor, menu);
+            else
+                editor.getMode().populateModeMenu(editor, menu);
             if (menu.getMenuComponentCount() == 0)
                 menu.add(new JMenuItem("This menu isn't here yet!")).setEnabled(false);
         } else if (text == "Lisp")
             populateLispMenu(editor, menu);
         else if (text == "Help")
             populateHelpMenu(editor, menu);
+        else
+            for (AddedMenu m : addedMenus)
+                if (m.text().equals(text))
+                    m.populate().accept(editor, menu);
+    }
+
+    /** A menu after Mode in every menu bar, filled by populate as it opens, as the VCS menu. */
+    public record AddedMenu(String text, char mnemonic, BiConsumer<Editor, Menu> populate) {}
+
+    private static final List<AddedMenu> addedMenus = new CopyOnWriteArrayList<>();
+
+    /** Adds menu unless one with its text is registered. */
+    public static synchronized void registerMenu(AddedMenu menu) {
+        for (AddedMenu m : addedMenus)
+            if (m.text().equals(menu.text()))
+                return;
+        addedMenus.add(menu);
     }
 
     private static void populateFileMenu(Editor editor, Menu menu) {
@@ -435,7 +461,8 @@ public abstract class AbstractMode implements Mode {
         ToolBar tb = getCustomToolBar(frame);
         if (tb != null)
             return tb;
-        return getDefaultToolBar(frame);
+        // Made once in each frame; its buttons say what they can do as it is shown.
+        return frame.keep(this, this::getDefaultToolBar);
     }
 
     protected ToolBar getCustomToolBar(Frame frame) {

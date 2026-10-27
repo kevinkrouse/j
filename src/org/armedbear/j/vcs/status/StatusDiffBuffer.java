@@ -24,7 +24,9 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Log;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
@@ -108,10 +110,11 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
         if (why == Follow.REDRAWN)
             return;
         final int read = ++generation;
+        final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("vcs status diff", () -> {
             List<FileDiff> diffs;
             try {
-                diffs = r.backend().readDiff(r, f.staged(), List.of(f.path()));
+                diffs = r.backend().readDiff(r, f.staged(), List.of(f.path()), ignored);
             }
             catch (RuntimeException e) {
                 Log.error(e);

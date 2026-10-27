@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiPredicate;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Snapshot;
@@ -56,7 +57,7 @@ final class GitStatusReader {
 
     private GitStatusReader() {}
 
-    static StatusData read(VcsRepository repository, BiPredicate<String, String> wantsDiff) {
+    static StatusData read(VcsRepository repository, BiPredicate<String, String> wantsDiff, Whitespace ignored) {
         final Snapshot snapshot = repository.snapshotNow();
         if (snapshot.error() != null)
             return StatusData.failed(snapshot.error());
@@ -88,9 +89,10 @@ final class GitStatusReader {
         if (!untracked.isEmpty())
             sections.add(new Section("untracked", "Untracked files", untracked));
         if (!unstaged.isEmpty())
-            sections.add(new Section("unstaged", "Unstaged changes", files(repository, unstaged, false, wantsDiff)));
+            sections.add(
+                new Section("unstaged", "Unstaged changes", files(repository, unstaged, false, wantsDiff, ignored)));
         if (!staged.isEmpty())
-            sections.add(new Section("staged", "Staged changes", files(repository, staged, true, wantsDiff)));
+            sections.add(new Section("staged", "Staged changes", files(repository, staged, true, wantsDiff, ignored)));
         final List<Item> recent = recent(repository, git);
         if (!recent.isEmpty())
             sections.add(new Section("recent", "Recent commits", recent));
@@ -136,7 +138,8 @@ final class GitStatusReader {
             VcsRepository repository,
             List<FileChange> changes,
             boolean staged,
-            BiPredicate<String, String> wantsDiff) {
+            BiPredicate<String, String> wantsDiff,
+            Whitespace ignored) {
         final String section = staged ? "staged" : "unstaged";
         final List<String> paths = new ArrayList<>();
         for (FileChange c : changes) {
@@ -149,7 +152,7 @@ final class GitStatusReader {
         final Map<String, FileDiff> diffs = new HashMap<>();
         // In batches, as a command line has a limit (32k characters on Windows).
         for (int i = 0; i < paths.size(); i += BATCH)
-            for (FileDiff d : diff(repository, staged, paths.subList(i, Math.min(paths.size(), i + BATCH))))
+            for (FileDiff d : diff(repository, staged, paths.subList(i, Math.min(paths.size(), i + BATCH)), ignored))
                 diffs.put(d.path(), d);
         final List<Item> items = new ArrayList<>();
         for (FileChange c : changes) {
@@ -160,11 +163,11 @@ final class GitStatusReader {
     }
 
     /** The working tree's diff against the index, or with staged the index's against HEAD, of paths. */
-    static List<FileDiff> diff(VcsRepository repository, boolean staged, List<String> paths) {
+    static List<FileDiff> diff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
         final List<String> args = new ArrayList<>(List.of("--literal-pathspecs", "diff"));
         if (staged)
             args.add("--cached");
-        args.addAll(List.of("--no-ext-diff", "--no-color", "-M", "--"));
+        GitCli.ignoring(ignored, args).addAll(List.of("--no-ext-diff", "--no-color", "-M", "--"));
         args.addAll(paths);
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
         return r.succeeded() ? DiffParser.parse(r.stdout()) : List.of();

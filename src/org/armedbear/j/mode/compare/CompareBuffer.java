@@ -28,8 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import javax.swing.JComponent;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Folds;
@@ -38,17 +40,22 @@ import org.armedbear.j.Frame;
 import org.armedbear.j.FrameView;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
+import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.SessionProperties;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.TextLine;
+import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.VirtualText;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.mode.compare.DiffAlignment.Change;
 import org.armedbear.j.mode.compare.DiffAlignment.Row;
+import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Whitespace;
 
 /**
  * A comparison: the old text at the left and the new at the right, each a
@@ -57,9 +64,11 @@ import org.armedbear.j.mode.compare.DiffAlignment.Row;
  * Scrolling either scrolls the other: row for row with compareAlign, which
  * keeps the sides level with filler rows, else through the changes
  * ({@link ScrollMap}). The caret moving on one takes the other's to its
- * line. Its folds are its own, {@link CompareFolds}.
+ * line, but with the scroll lock off, kept in the session. Its alignment
+ * ignores the {@link Whitespace} diffs ignore. Its folds are its own,
+ * {@link CompareFolds}.
  */
-public final class CompareBuffer extends ViewBuffer implements FrameView {
+public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWhitespace.Listener {
     /** Where its texts come from, kept up with while it is open. */
     public interface Source {
         /** It is shown again, as after being out of every window. */
@@ -111,10 +120,10 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
             String newTitle,
             Side newText) {
         CompareBuffer b = null;
-        for (Buffer each : Editor.getBufferList())
-            if (each instanceof CompareBuffer s && !s.disposed && key != null && key.equals(s.key))
-                b = s;
-        final DiffAlignment alignment = DiffAlignment.of(oldText.keys(), newText.keys());
+        for (CompareBuffer each : openComparisons())
+            if (key != null && key.equals(each.key))
+                b = each;
+        final DiffAlignment alignment = DiffAlignment.of(oldText, newText, DiffWhitespace.ignored());
         if (b == null) {
             b = new CompareBuffer(mode, key, oldTitle, newTitle);
             b.show(oldText, newText, alignment, true);
@@ -240,23 +249,103 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         this.newText = newText;
         this.alignment = alignment;
         aligned = Editor.preferences().getBooleanProperty(Property.COMPARE_ALIGN);
-        map = ScrollMap.of(alignment.changes(), alignment.oldSize());
+        map = ScrollMap.of(this.alignment.changes(), this.alignment.oldSize());
         binding = true;
         try {
             final Runnable placeOld = kept(old);
             final Runnable placeNew = kept(this);
             old.setChangeStarts(lay(old, oldText.lines(), newText.lines(), true, sameOld && !relay));
             changeStarts = lay(this, newText.lines(), oldText.lines(), false, sameNew && !relay);
-            folds.reset(alignment, sameOld, sameNew);
+            folds.reset(this.alignment, sameOld, sameNew);
             placeOld.run();
             placeNew.run();
         }
         finally {
             binding = false;
         }
-        final ViewBuffer from = sameOld && !sameNew ? old : this;
-        for (Editor ed : from.windows())
-            scrollWith(ed, from == old ? this : old);
+        // Unlocked, each side stays where it is scrolled to.
+        if (relay || scrollLocked()) {
+            final ViewBuffer from = sameOld && !sameNew ? old : this;
+            for (Editor ed : from.windows())
+                scrollWith(ed, from == old ? this : old);
+        }
+        // Worked out before the whitespace ignored changed: again, as it is now.
+        if (isShown())
+            realign();
+    }
+
+    // The scroll lock, kept in the session.
+    private static final String SCROLL_LOCK_KEY = "compare.scrollLock";
+    // What whitespace an alignment is being worked out again ignoring, or null.
+    private Whitespace realigning;
+    // Where alignments are worked out again; tests' at once.
+    static Executor realigner = r -> Background.start("compare realign", r);
+
+    /** Whether the sides scroll together and their carets follow each other, as compareScrollLock last left them. */
+    public static boolean scrollLocked() {
+        final SessionProperties session = Editor.getSessionProperties();
+        return session == null || session.getBooleanProperty(SCROLL_LOCK_KEY, true);
+    }
+
+    /** The scroll lock off, or on again, each comparison's other side matching the one in use. */
+    static boolean toggleScrollLock() {
+        final SessionProperties session = Editor.getSessionProperties();
+        if (session == null)
+            return true;
+        final boolean locked = !scrollLocked();
+        session.setBooleanProperty(SCROLL_LOCK_KEY, locked);
+        if (locked)
+            for (CompareBuffer c : openComparisons())
+                c.resync();
+        return locked;
+    }
+
+    // Shown, aligned again; else once shown again.
+    @Override
+    public void diffWhitespaceChanged() {
+        if (isShown())
+            realign();
+    }
+
+    // Aligned again in the background, if the whitespace ignored has changed
+    // and that is not being worked out already.
+    private void realign() {
+        final Whitespace ignored = DiffWhitespace.ignored();
+        if (disposed || alignment.ignored() == ignored || realigning == ignored)
+            return;
+        realigning = ignored;
+        final Side o = oldText;
+        final Side n = newText;
+        realigner.execute(() -> {
+            DiffAlignment a = null;
+            try {
+                a = DiffAlignment.of(o, n, ignored);
+            }
+            finally {
+                final DiffAlignment done = a;
+                SwingUtilities.invokeLater(() -> {
+                    if (realigning == ignored)
+                        realigning = null;
+                    if (done == null || disposed)
+                        return;
+                    // Either text or the whitespace ignored changed since: again, as they are now.
+                    if (o != oldText || n != newText || DiffWhitespace.ignored() != ignored) {
+                        if (isShown())
+                            realign();
+                    } else if (alignment.ignored() != ignored)
+                        show(o, n, done, false);
+                });
+            }
+        });
+    }
+
+    // The comparisons not closed.
+    private static List<CompareBuffer> openComparisons() {
+        final List<CompareBuffer> out = new ArrayList<>();
+        for (Buffer b : Editor.getBufferList())
+            if (b instanceof CompareBuffer c && !c.disposed)
+                out.add(c);
+        return out;
     }
 
     /** Both sides in mode, as changing either's mode does. */
@@ -357,9 +446,10 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         sideShown(editor);
     }
 
-    /** ed shows a side again: off lines folded away, and the source told. */
+    /** ed shows a side again: off lines folded away, aligned as now, and the source told. */
     void sideShown(Editor ed) {
         offFolds(ed);
+        realign();
         if (source != null)
             source.shown();
     }
@@ -609,6 +699,18 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
         return keys;
     }
 
+    // Its own toolbar and Mode menu, not its file's mode's, when it is the frame's view.
+
+    @Override
+    public ToolBar getToolBar(Frame frame) {
+        return CompareCommands.toolBar(frame);
+    }
+
+    @Override
+    public void populateModeMenu(Editor editor, Menu menu) {
+        CompareCommands.populateModeMenu(editor, menu);
+    }
+
     // Keys, change starts and the lock, for this side.
 
     @Override
@@ -623,12 +725,26 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
 
     @Override
     public void scrolled(Editor ed) {
-        scrollWith(ed, old);
+        scrolledBy(ed, old);
     }
 
     @Override
     public void afterCommand(Editor editor) {
-        caretWith(editor, old, false);
+        caretMovedBy(editor, old, false);
+    }
+
+    /** ed's side scrolled: the other with it, with the scroll lock on. */
+    void scrolledBy(Editor ed, ViewBuffer other) {
+        if (scrollLocked())
+            scrollWith(ed, other);
+        else if (!disposed)
+            repaintTracks();
+    }
+
+    /** ed's caret moved: the other side's with it, with the scroll lock on. */
+    void caretMovedBy(Editor ed, ViewBuffer other, boolean fromOld) {
+        if (scrollLocked())
+            caretWith(ed, other, fromOld);
     }
 
     /** r run with the scroll lock held, as while a fold change moves the windows. */
@@ -726,16 +842,18 @@ public final class CompareBuffer extends ViewBuffer implements FrameView {
     }
 
     /**
-     * The other side scrolled to match the window in use again, as after a
-     * fold opens or closes, which can move what is at its middle.
+     * With the scroll lock on, the other side scrolled to match the window
+     * in use again, as after a fold opens or closes, which can move what is
+     * at its middle; with neither side's window in use, the new side's.
      */
     void resync() {
-        if (disposed)
+        if (disposed || !scrollLocked())
             return;
         final Editor current = Editor.currentEditor();
-        final Editor ed = current != null && (current.getBuffer() == this || current.getBuffer() == old)
-                ? current
-                : windowIn(null, this);
+        final List<Editor> shown = windows();
+        final Editor ed = current != null && (current.getBuffer() == this || current.getBuffer() == old) ? current
+                : shown.isEmpty() ? null
+                : shown.get(0);
         if (ed != null && ed.getDisplay().getTopLine() != null)
             scrollWith(ed, ed.getBuffer() == old ? this : old);
     }

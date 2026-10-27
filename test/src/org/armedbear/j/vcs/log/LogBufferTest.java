@@ -62,6 +62,7 @@ import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.transients.FilterBar;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.TransientArgs;
+import org.armedbear.j.transients.TransientKeys;
 import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.transients.Transients;
 import org.armedbear.j.util.TimeStyle;
@@ -338,13 +339,10 @@ public class LogBufferTest {
     }
 
     @Test
-    public void sideBySideDLeavesTheLayoutAndTheKeysAreTheLogs() throws Exception {
+    public void sideBySideTheKeysAreTheLogs() throws Exception {
         twoCommitsInFull();
         onEdt(() -> {
             log.diffView(null, log);
-            final Boolean right = log.right;
-            LogCommands.vcsLogToggleDetails(h.editor());
-            assertEquals(right, log.right, "one layout side by side");
             final CompareBuffer c = log.sides.comparison();
             assertEquals(log, LogBuffers.owner(c));
             assertEquals(log, LogBuffers.owner(c.getOld()));
@@ -618,8 +616,7 @@ public class LogBufferTest {
                     for (Transient.Group g : VcsLogMode.getMode().getTransient(e.editor()).groups())
                         for (Transient.Item item : g.items())
                             if (item instanceof Transient.Command c) {
-                                assertEquals(1, c.key().length(), c.key());
-                                final KeyMapping m = km.lookup(c.key().charAt(0), 0, 0);
+                                final KeyMapping m = TransientKeys.lookup(km, c.key());
                                 assertNotNull(m, (vim ? "vim: " : "") + c.key() + " is no key in the log");
                                 assertEquals(c.command(), m.getCommand(), (vim ? "vim: " : "") + c.key());
                             }
@@ -633,28 +630,6 @@ public class LogBufferTest {
 
     private static List<String> groups(EditorHarness e) {
         return VcsLogMode.getMode().getTransient(e.editor()).groups().stream().map(Transient.Group::label).toList();
-    }
-
-    @Test
-    public void dIsRememberedForTheNextLog() throws Exception {
-        repo(1);
-        open(100);
-        final SessionProperties session = Editor.getSessionProperties();
-        final String key = "vcsLog.details";
-        final String was = session.getStringProperty(key, null);
-        try {
-            onEdt(() -> {
-                LogCommands.showFull(h.editor(), log);
-                log.right = false;
-                LogCommands.vcsLogToggleDetails(h.editor());
-            });
-            assertTrue(LogCommands.detailsAtRight(null), "D to the right, for the next log");
-            onEdt(() -> LogCommands.vcsLogToggleDetails(h.editor()));
-            assertFalse(LogCommands.detailsAtRight(null));
-        }
-        finally {
-            session.setStringProperty(key, was);
-        }
     }
 
     @Test

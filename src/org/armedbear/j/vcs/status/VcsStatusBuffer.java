@@ -45,19 +45,24 @@ import org.armedbear.j.FrameView;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Mode;
+import org.armedbear.j.PerFrame;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.ViewBuffer;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.WindowLayout.Split;
 import org.armedbear.j.WindowLayout.Window;
 import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.CompareCommands;
 import org.armedbear.j.mode.compare.DiffAlignment;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.compare.Following;
 import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsDiffCommands;
@@ -75,7 +80,7 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
  * it is a frame view, the diff following its caret: unified at the right,
  * or side by side under it.
  */
-public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
+public final class VcsStatusBuffer extends ViewBuffer implements FrameView, DiffWhitespace.Listener {
     // How long the caret rests on a file before the diff beside follows it.
     private static final int FOLLOW_DELAY = 100;
 
@@ -154,10 +159,17 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         follow.stop();
         for (VcsRepository r : repositories)
             r.removeListener(listener);
+        trees.forget();
         super.dispose();
     }
 
     // Reading.
+
+    // Its diffs read again, ignoring the whitespace diffs ignore now.
+    @Override
+    public void diffWhitespaceChanged() {
+        refresh();
+    }
 
     /** Reads its repositories again in the background, then shows them. */
     public void refresh() {
@@ -177,6 +189,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         try {
             while (true) {
                 final long startedAt = clock.incrementAndGet();
+                final Whitespace ignored = DiffWhitespace.ignored();
                 final Map<VcsRepository, StatusData> read = new LinkedHashMap<>();
                 final Set<String> diffs = ConcurrentHashMap.newKeySet();
                 for (VcsRepository r : repositories) {
@@ -189,7 +202,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
                                 return false;
                             diffs.add(key);
                             return true;
-                        });
+                        }, ignored);
                     }
                     catch (RuntimeException e) {
                         Log.error(e);
@@ -197,7 +210,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
                     }
                     read.put(r, d != null ? d : StatusData.failed(r.backend().name() + " has no status"));
                 }
-                SwingUtilities.invokeLater(() -> show(read, diffs, startedAt));
+                SwingUtilities.invokeLater(() -> show(read, diffs, startedAt, ignored));
                 synchronized (this) {
                     if (!readAgain || disposed) {
                         reading = false;
@@ -216,13 +229,16 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         }
     }
 
-    private void show(Map<VcsRepository, StatusData> read, Set<String> diffs, long startedAt) {
+    private void show(Map<VcsRepository, StatusData> read, Set<String> diffs, long startedAt, Whitespace ignored) {
         if (disposed)
             return;
+        readIgnoring = ignored;
         // A file the status has closed may have changed with nothing it shows.
         followAgain(StatusDiffBuffer.Follow.REFRESHED);
-        if (startedAt > wroteAt)
+        if (startedAt > wroteAt && writing) {
             writing = false;
+            updateToolbars();
+        }
         // A refresh comes with each save and each return to j's window: most
         // find nothing new, and leave the lines, and the selection, as they are.
         if (getFirstLine() instanceof StatusLine
@@ -232,6 +248,20 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         data.putAll(read);
         diffsRead.addAll(diffs);
         render();
+    }
+
+    // The whitespace its diffs were last read ignoring.
+    private Whitespace readIgnoring = Whitespace.NONE;
+
+    /** The whitespace the diffs it shows were read ignoring. */
+    Whitespace readIgnoring() {
+        return readIgnoring;
+    }
+
+    // Each frame's toolbar showing it, as what its buttons can do changes.
+    private void updateToolbars() {
+        for (int i = 0; i < Editor.getFrameCount(); i++)
+            Editor.getFrame(i).updateToolbar();
     }
 
     /** Whether a write is running, or its refresh not shown yet. */
@@ -265,7 +295,49 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         wroteAt = clock.incrementAndGet();
     }
 
-    /** What was last read of a repository, or null. For tests. */
+    // Its sections and files in each frame's sidebar it is in.
+    private final PerFrame<StatusTree> trees = new PerFrame<>(frame -> {
+        final StatusTree t = new StatusTree(this, frame);
+        t.update();
+        return t;
+    });
+
+    /** Its tree in frame's sidebar, or with null its own. */
+    StatusTree tree(Frame frame) {
+        return trees.in(frame);
+    }
+
+    /**
+     * The caret of the window on it in frame, the current one, to the line
+     * keyed key, or to its section's heading for null, the section opened
+     * if it was closed, and the diff beside following; the window, or null
+     * if none there shows it. With no frame, as in tests, any window's.
+     */
+    Editor reveal(Frame frame, String section, String key) {
+        final Editor ed = frame != null ? frame.findEditor(this) : Editor.windowShowing(this);
+        if (ed == null)
+            return null;
+        if (key != null && !isExpanded(section, Kind.SECTION)) {
+            expanded.put(section, true);
+            render();
+        }
+        final String wanted = key != null ? key : section;
+        for (Line l = getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.key().equals(wanted)) {
+                ed.moveDotTo(l, 0);
+                ed.setUpdateFlag(REFRAME);
+                ed.updateDisplay();
+                break;
+            }
+        afterCommand(ed);
+        if (frame != null) {
+            WindowCommands.switchWindow(frame.getCurrentEditor(), ed);
+            frame.updateToolbar();
+        }
+        return ed;
+    }
+
+    /** What was last read of a repository, or null. */
     StatusData getData(VcsRepository repository) {
         return data.get(repository);
     }
@@ -352,6 +424,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         if (parts.isEmpty())
             return;
         final List<StatusLine> lines = StatusRenderer.render(parts, this::isExpanded, diffsRead::contains);
+        for (StatusTree t : trees.all())
+            t.update();
         followAgain(StatusDiffBuffer.Follow.REDRAWN);
 
         final List<String> oldKeys = new ArrayList<>();
@@ -391,6 +465,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
             ed.setUpdateFlag(REFRAME | REPAINT);
             ed.updateDisplay();
         }
+        updateToolbars();
     }
 
     private static Place place(Editor ed) {
@@ -648,6 +723,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
      * vcsDiff follows it, or else the file, against what is staged.
      */
     void diffShown(VcsRepository r, String section, FileItem item, StatusDiffBuffer.Follow why) {
+        // Read again after a write: its buttons can stage again.
+        updateToolbars();
         if (sides == null)
             return;
         final String file = item == null ? null : fileKey(r, section, item);
@@ -701,6 +778,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
         final Mode mode = SideBySide.modeFor(f.getName());
         final Charset charset = SideBySide.charset();
         final boolean conflicted = "unmerged".equals(section);
+        final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("vcs status compare", () -> {
             String oldTitle;
             Side oldSide = Side.NONE;
@@ -729,7 +807,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
                 oldTitle = path + " (not read)";
                 newTitle = path;
             }
-            final DiffAlignment alignment = DiffAlignment.of(oldSide.keys(), newSide.keys());
+            final DiffAlignment alignment = DiffAlignment.of(oldSide, newSide, ignored);
             final String ot = oldTitle;
             final Side os = oldSide;
             final String nt = newTitle;
@@ -809,6 +887,37 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView {
     @Override
     public void setBefore(WindowLayout.Node before) {
         this.before = before;
+    }
+
+    // The status's commands the diff beside has no keys for, run in the status.
+    private static final Set<String> STATUS_ONLY = Set.of(
+        "vcsStageAll",
+        "vcsUnstageAll",
+        "vcsStatusDepth",
+        "vcsStatusNextSection",
+        "vcsStatusPreviousSection",
+        "vcsLogPopup");
+
+    /**
+     * Where a command from the toolbar or a menu runs, from from: a diff's
+     * in the diff; committing, and what the diff beside has no keys for,
+     * in the status; from a side of the comparison, a vcs command in the
+     * status; the rest, as the editor's own, in from.
+     */
+    @Override
+    public Editor windowFor(Editor from, String command) {
+        final Editor diffs = CompareCommands.windowFor(from, command, diff, getCompare());
+        if (diffs != null)
+            return diffs;
+        final Editor status = from.getFrame() != null ? from.getFrame().findEditor(this) : null;
+        return status != null && runsInStatus(command, from.getBuffer()) ? status : from;
+    }
+
+    // Whether command, from a window on from, one of its buffers, runs in the status.
+    static boolean runsInStatus(String command, Buffer from) {
+        if (!command.startsWith("vcs"))
+            return false;
+        return command.startsWith("vcsCommit") || STATUS_ONLY.contains(command) || CompareBuffer.of(from) != null;
     }
 
     // The diff killed on its own closes as D does.

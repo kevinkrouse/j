@@ -23,19 +23,26 @@ package org.armedbear.j.vcs.status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
+import org.armedbear.j.mode.compare.DiffWhitespace;
+import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.transients.Transients;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.git.GitFixture;
@@ -176,6 +183,73 @@ public class StatusActionsTest {
     private void openFile(String fileLine, String waitFor) throws Exception {
         onEdt(() -> status.toggle(line(fileLine)));
         until(() -> text().contains(waitFor));
+    }
+
+    @Test
+    public void eachIsAbleAsWhatTheCaretIsOnTakesIt() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            h.editor().setDot(line("  M  a.txt"), 0);
+            assertTrue(StatusActions.can(h.editor(), Op.STAGE));
+            assertFalse(StatusActions.can(h.editor(), Op.UNSTAGE));
+            assertTrue(StatusActions.can(h.editor(), Op.DISCARD));
+            h.editor().setDot(line("  M  b.txt"), 0);
+            assertFalse(StatusActions.can(h.editor(), Op.STAGE), "staged");
+            assertTrue(StatusActions.can(h.editor(), Op.UNSTAGE));
+            h.editor().setDot(line("  ?  c.txt"), 0);
+            assertTrue(StatusActions.can(h.editor(), Op.STAGE));
+            assertFalse(StatusActions.can(h.editor(), Op.UNSTAGE));
+            h.editor().setDot(after(line("  M  b.txt"), "Recent commits"), 0);
+            assertFalse(StatusActions.can(h.editor(), Op.STAGE));
+            assertFalse(StatusActions.can(h.editor(), Op.DISCARD));
+            h.editor().setDot(status.getFirstLine(), 0);
+            assertFalse(StatusActions.can(h.editor(), Op.STAGE), "the header");
+        });
+    }
+
+    @Test
+    public void whatIsAbleIsWorkedOutAgainAsTheCaretMovesOrTheLinesAreLaidOutAgain() throws Exception {
+        repository();
+        open();
+        final Supplier<Set<Op>> able = StatusActions.ableAsChanged(() -> h.editor());
+        onEdt(() -> {
+            h.editor().setDot(line("  M  a.txt"), 0);
+            final Set<Op> onA = able.get();
+            assertSame(onA, able.get(), "not again while nothing changed");
+            assertEquals(Set.of(Op.STAGE, Op.DISCARD), onA);
+            h.editor().setDot(line("  M  b.txt"), 0);
+            assertEquals(Set.of(Op.UNSTAGE, Op.DISCARD), able.get());
+            final Set<Op> onB = able.get();
+            status.render();
+            assertNotSame(onB, able.get(), "laid out again");
+        });
+    }
+
+    @Test
+    public void whileWhitespaceIsIgnoredAFileIsStagedWholeAndAHunkNot() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 50\n", "line  50\n"));
+        open();
+        openFile("  M  a.txt", "  -line 3");
+        onEdt(() -> assertTrue(text().contains("  +line  50"), "compared, a change in amount shows"));
+        try {
+            onEdt(() -> DiffWhitespace.choose(Whitespace.AMOUNT));
+            until(() -> !text().contains("  +line  50"));
+            onEdt(() -> {
+                h.editor().setDot(after(line("  M  a.txt"), "  @@ -1,6"), 0);
+                assertFalse(StatusActions.can(h.editor(), Op.STAGE));
+                StatusActions.run(h.editor(), Op.STAGE);
+                assertEquals("Not a hunk while whitespace is ignored: a file is staged whole", h.status());
+                StatusActions.run(h.editor(), Op.DISCARD);
+                assertEquals("Not a hunk while whitespace is ignored: a file is discarded whole", h.status());
+                h.editor().setDot(line("  M  a.txt"), 0);
+                assertTrue(StatusActions.can(h.editor(), Op.STAGE));
+            });
+        }
+        finally {
+            onEdt(DiffWhitespace::forget);
+        }
     }
 
     @Test
@@ -689,7 +763,10 @@ public class StatusActionsTest {
             }
 
             @Override
-            public StatusData readStatus(VcsRepository r, java.util.function.BiPredicate<String, String> wants) {
+            public StatusData readStatus(
+                    VcsRepository r,
+                    java.util.function.BiPredicate<String, String> wants,
+                    Whitespace ignored) {
                 return new StatusData(List.of(new StatusData.Field("Head", "main")), null, List.of(), null);
             }
 
@@ -879,6 +956,53 @@ public class StatusActionsTest {
             if (l.getText().startsWith(prefix))
                 return (StatusLine) l;
         return null;
+    }
+
+    @Test
+    public void commitFromTheDiffBesideOpensThePopupOnTheStatus() throws Exception {
+        repository();
+        open();
+        final EditorHarness s = EditorHarness.create();
+        try {
+            paneOn("  M  a.txt", "  @@ -1,6");
+            onEdt(() -> s.showBuffer(status));
+            onEdt(() -> {
+                CommitCommands.vcsCommitPopup(h.editor());
+                final TransientPopup popup = TransientPopup.getOpen();
+                assertNotNull(popup);
+                assertSame(s.editor(), popup.getEditor());
+                popup.close(false);
+            });
+        }
+        finally {
+            onEdt(() -> {
+                s.showBuffer(s.buffer());
+                s.close();
+            });
+        }
+    }
+
+    @Test
+    public void discardingAStagedFileWhileWhitespaceIsIgnoredTakesAllOfIt() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 50\n", "line  50\n"));
+        git.git("add", "a.txt");
+        open();
+        try {
+            onEdt(() -> DiffWhitespace.choose(Whitespace.ALL));
+            until(() -> text().contains("Staged changes (2)"));
+            final StatusLine staged = line("Staged changes (2)");
+            onEdt(() -> {
+                h.editor().setDot(after(staged, "  M  a.txt"), 0);
+                StatusActions.run(h.editor(), Op.DISCARD);
+            });
+            until(() -> text().contains("Staged changes (1)"));
+            assertEquals(SIXTY, git.index("a.txt"), "its change to whitespace too");
+            assertEquals(SIXTY, git.read("a.txt"));
+        }
+        finally {
+            onEdt(DiffWhitespace::forget);
+        }
     }
 
     @Test

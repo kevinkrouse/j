@@ -21,6 +21,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
@@ -59,17 +60,18 @@ public interface VcsBackend {
     /**
      * Reads what the status buffer shows, off the event thread; null if this
      * backend has none. wantsDiff(section id, path) says which files' diffs
-     * to read: the ones expanded.
+     * to read: the ones expanded, ignoring ignored's whitespace.
      */
-    default StatusData readStatus(VcsRepository repository, BiPredicate<String, String> wantsDiff) {
+    default StatusData readStatus(VcsRepository repository, BiPredicate<String, String> wantsDiff, Whitespace ignored) {
         return null;
     }
 
     /**
      * The diffs of paths, relative to the root: the working tree's, or with
-     * staged the next commit's. Off the event thread.
+     * staged the next commit's, ignoring ignored's whitespace: none for a
+     * patch to apply. Off the event thread.
      */
-    default List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths) {
+    default List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
         return List.of();
     }
 
@@ -157,8 +159,11 @@ public interface VcsBackend {
         return null;
     }
 
-    /** A commit's message and diff, as patch text; null if it can't be read. Off the event thread. */
-    default byte[] readCommit(VcsRepository repository, String id) {
+    /**
+     * A commit's message and diff, ignoring ignored's whitespace, as patch
+     * text; null if it can't be read. Off the event thread.
+     */
+    default byte[] readCommit(VcsRepository repository, String id, Whitespace ignored) {
         return null;
     }
 
@@ -183,10 +188,16 @@ public interface VcsBackend {
     }
 
     /**
-     * One file's diff in a commit against parent (null for a root):
-     * {@link FileDiff#EMPTY} for none, null if it can't be read.
+     * One file's diff in a commit against parent (null for a root),
+     * ignoring ignored's whitespace: {@link FileDiff#EMPTY} for none, null
+     * if it can't be read.
      */
-    default FileDiff readChangeDiff(VcsRepository repository, String id, String parent, CommitChange change) {
+    default FileDiff readChangeDiff(
+            VcsRepository repository,
+            String id,
+            String parent,
+            CommitChange change,
+            Whitespace ignored) {
         return null;
     }
 

@@ -24,16 +24,25 @@ import static org.armedbear.j.Constants.FILETYPE_BINARY;
 import static org.armedbear.j.Constants.FILETYPE_GZIP;
 import static org.armedbear.j.Constants.FILETYPE_JPEG;
 import static org.armedbear.j.Constants.FILETYPE_ZIP;
+import static org.armedbear.j.ToolBarIcon.*;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.FileCommands;
+import org.armedbear.j.Frame;
+import org.armedbear.j.Menu;
 import org.armedbear.j.OpenFileDialog;
+import org.armedbear.j.Property;
+import org.armedbear.j.ToolBar;
 import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Whitespace;
 
 /** The commands of a comparison. */
 public final class CompareCommands {
@@ -131,6 +140,162 @@ public final class CompareCommands {
         public String unreadable() {
             return "Couldn't read " + file.canonicalPath();
         }
+    }
+
+    /** s: the sides scroll together, and their carets follow each other, or not. */
+    public static void compareScrollLock(Editor editor) {
+        editor.status(CompareBuffer.toggleScrollLock() ? "Scroll lock on" : "Scroll lock off");
+    }
+
+    /**
+     * {@code diffIgnoreWhitespace [none|trailing|amount|all]}, w: whitespace
+     * ignored in diffs, or compared; with a kind, that ignored, or compared
+     * if that is what is ignored.
+     */
+    public static void diffIgnoreWhitespace(Editor editor, String arg) {
+        if (arg == null || arg.isBlank())
+            DiffWhitespace.toggle();
+        else {
+            final Whitespace kind = Whitespace.named(arg);
+            if (kind == null) {
+                editor.status("Not none, trailing, amount or all: " + arg.strip());
+                return;
+            }
+            DiffWhitespace.choose(kind);
+        }
+        editor.status(switch (DiffWhitespace.ignored()) {
+            case NONE -> "Comparing whitespace";
+            case TRAILING -> "Ignoring whitespace at line ends";
+            case AMOUNT -> "Ignoring changes in the amount of whitespace";
+            case ALL -> "Ignoring all whitespace";
+        });
+    }
+
+    // What chooses k, from Ignore Whitespace's menus.
+    private static String command(Whitespace k) {
+        return "diffIgnoreWhitespace " + k.preferenceValue();
+    }
+
+    // How Ignore Whitespace's menus name k.
+    private static String label(Whitespace k) {
+        return switch (k) {
+            case TRAILING -> "At Line Ends";
+            case AMOUNT -> "Changes in Amount";
+            default -> "All";
+        };
+    }
+
+    /** A comparison's own toolbar: closing it, by change, the scroll lock and whitespace. */
+    static ToolBar toolBar(Frame frame) {
+        return frame.keep(CompareCommands.class, f -> {
+            final ToolBar tb = new ToolBar(f);
+            tb.addButton("New", ICON_NEW, "newBuffer");
+            tb.addButton("Open", ICON_OPEN, "openFile");
+            tb.addButton("Close", ICON_CLOSE, "compareQuit");
+            tb.addSeparator();
+            addChangeButtons(tb, () -> true);
+            tb.addSeparator();
+            addButtons(tb, () -> true);
+            tb.addExtensionButtons();
+            tb.addSeparator();
+            tb.addButton("Exit", ICON_EXIT, "quit");
+            return tb;
+        });
+    }
+
+    /** From change to change, enabled while shown is true: a diff's buttons, unified or side by side. */
+    public static void addChangeButtons(ToolBar tb, BooleanSupplier shown) {
+        tb.addButton("Previous Change", ICON_CHANGE_PREVIOUS, "previousChange").enabledWhen(shown);
+        tb.addButton("Next Change", ICON_CHANGE_NEXT, "nextChange").enabledWhen(shown);
+    }
+
+    /**
+     * The scroll lock, enabled while shown is true; then whitespace: a
+     * comparison's buttons, for a view one is part of too.
+     */
+    public static void addButtons(ToolBar tb, BooleanSupplier shown) {
+        tb.addButton("Scroll Lock", ICON_SCROLL_LOCK, "compareScrollLock")
+                .enabledWhen(shown)
+                .selectedWhen(CompareBuffer::scrollLocked);
+        addWhitespaceButton(tb);
+    }
+
+    /** Whitespace ignored, or not, and which, as a diff's button. */
+    public static void addWhitespaceButton(ToolBar tb) {
+        final List<ToolBar.Choice> choices = new ArrayList<>();
+        for (Whitespace k : KINDS)
+            choices.add(new ToolBar.Choice(label(k), command(k), () -> DiffWhitespace.ignored() == k));
+        tb.addSplitButton(
+            "Ignore Whitespace",
+            ICON_WHITESPACE,
+            "diffIgnoreWhitespace",
+            DiffWhitespace::isIgnoring,
+            choices);
+    }
+
+    private static final List<Whitespace> KINDS = List.of(Whitespace.TRAILING, Whitespace.AMOUNT, Whitespace.ALL);
+
+    /**
+     * Where a diff's command from the toolbar or Mode menu of a view with a
+     * diff runs, from from: by change, in the diff, unified or a side, from
+     * in it, else in comparison's new side or else unified's window; the
+     * scroll lock in the comparison; whitespace, every diff's, in from;
+     * null for another command.
+     */
+    public static Editor windowFor(Editor from, String command, Buffer unified, CompareBuffer comparison) {
+        final boolean inSide = CompareBuffer.of(from.getBuffer()) != null;
+        if (command.equals("nextChange") || command.equals("previousChange"))
+            return inSide || from.getBuffer() == unified
+                    ? from
+                    : windowOf(from, comparison != null ? comparison : unified);
+        if (command.equals("compareScrollLock"))
+            return inSide ? from : windowOf(from, comparison);
+        return command.equals("diffIgnoreWhitespace") ? from : null;
+    }
+
+    // b's window in from's frame, or from.
+    private static Editor windowOf(Editor from, Buffer b) {
+        final Editor e = b == null || from.getFrame() == null ? null : from.getFrame().findEditor(b);
+        return e != null ? e : from;
+    }
+
+    /** A comparison's own Mode menu: its items, and closing it. */
+    static void populateModeMenu(Editor editor, Menu menu) {
+        addChangeItems(editor, menu);
+        menu.addSeparator();
+        addItems(editor, menu);
+        menu.addSeparator();
+        menu.add(editor, "Close", 'C', "compareQuit");
+    }
+
+    /** From change to change: a diff's items, unified or side by side. */
+    public static void addChangeItems(Editor editor, Menu menu) {
+        menu.add(editor, "Next Change", 'T', "nextChange");
+        menu.add(editor, "Previous Change", 'V', "previousChange");
+    }
+
+    /**
+     * The scroll lock and whitespace, checked as they are: the Mode menu's
+     * items, for a view a comparison is part of too.
+     */
+    public static void addItems(Editor editor, Menu menu) {
+        menu.addCheckBox(editor, "Scroll Lock", 'K', "compareScrollLock", CompareBuffer.scrollLocked());
+        addWhitespaceItems(editor, menu);
+    }
+
+    /** What whitespace is ignored, checked if it is: a diff's items, in a menu of their own. */
+    public static void addWhitespaceItems(Editor editor, Menu menu) {
+        final Menu kinds = new Menu("Ignore Whitespace");
+        if (Editor.preferences().getBooleanProperty(Property.USE_MENU_MNEMONICS))
+            kinds.setMnemonic('I');
+        for (Whitespace k : KINDS)
+            kinds.addCheckBox(
+                editor,
+                label(k),
+                k == Whitespace.TRAILING ? 'E' : k == Whitespace.AMOUNT ? 'A' : 'L',
+                command(k),
+                DiffWhitespace.ignored() == k);
+        menu.add(kinds);
     }
 
     /** q: closes the comparison, its windows from before back. */

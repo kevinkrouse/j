@@ -23,7 +23,9 @@ has changed, what is staged, and the recent commits, with each file's diff
 inline. j runs the <code>git</code> on your path for it, version 2.16 or
 later. To see the commands it runs, use
 <a href="commands.html#vcsCommandLog">vcsCommandLog</a> (<b>$</b> in the status
-buffer).
+buffer). The VCS menu, after the Mode menu, opens the status, the log, the
+current file's diff with what is staged, and the commit popup, from any
+buffer in a repository, and the command log.
 
 <h2><a name="status">The status buffer</a></h2>
 
@@ -60,7 +62,23 @@ is in progress, and how many conflicts it has.
 <p>
 A dimmed row over the first line shows the main keys, in the notation of the
 edit mode you are in; <a href="preferences.html#vcsHints">vcsHints</a> turns
-it off. <b>?</b> opens a popup of the rest, and F1 this page.
+it off. <b>?</b> opens a popup of the rest, in Show, Go, Changes and
+Commands, and F1 this page. The toolbar
+and the Mode menu have the main commands too: staging, committing, the diff
+beside and the log, and, side by side, the comparison's. Stage, Unstage and
+Discard are enabled when they would do something to what the caret is on,
+and Show Diff and Side by Side are pressed in while shown. With the diff
+open, Previous Change and Next Change go from change to change in it,
+unified or side by side, from the status too. In a side of the comparison,
+the status's buttons and items act in the status.
+
+<p>
+With the sidebar shown, its lower half has the status's sections and their
+files: the untracked, unstaged and staged files closed to begin with, and
+the recent commits a section alone. What the caret is on in the status is
+selected there, or the section around it while that is closed. A click goes
+to the section or file in the status, opening a closed section, and the
+diff beside follows; a double click or <b>Enter</b> on a file visits it.
 
 <h3>Showing and hiding</h3>
 
@@ -83,8 +101,8 @@ enough in common.
 
 <p>
 <b>n</b> and <b>p</b> go to the next and previous thing that opens, or commit;
-Alt N and Alt P, and <b>]]</b> and <b>[[</b> in vim edit mode, to the next and
-previous section. <b>Enter</b>, or a double click, visits the thing at the
+<b>N</b> and <b>P</b>, or Alt N and Alt P, and <b>]]</b> and <b>[[</b> in vim
+edit mode, to the next and previous section. <b>Enter</b>, or a double click, visits the thing at the
 caret: a file, at the line of the hunk or diff line the caret is on, or a
 commit, shown with its diff. A staged line is visited where it is now, after
 the changes made since it was staged.
@@ -92,14 +110,14 @@ the changes made since it was staged.
 <h3><a name="status-diff">The diff beside it</a></h3>
 
 <p>
-<b>=</b> shows the diff of the file at the caret in a window at the right,
-the status keeping the left of the frame. It follows the caret when the
+<b>D</b> shows the diff of the file at the caret in a window at the right,
+the status keeping the left of the frame, and hides it again. It follows the caret when the
 caret rests: a file's whole diff, the unstaged or staged one as its section
 says, or, on a hunk, scrolled to that hunk. A file can stay closed in the
 status. <b>Space</b> and <b>Shift Space</b> (or <b>Backspace</b>) scroll it
 from either side. In it, <b>Enter</b> visits the file at the line, <b>Tab</b>
 opens or closes a hunk, <b>n</b> and <b>p</b> go from hunk to hunk,
-<b>s</b>, <b>u</b> and <b>d</b> stage, unstage or discard the hunk at the
+<b>s</b>, <b>u</b> and <b>x</b> stage, unstage or discard the hunk at the
 caret or the lines selected, or the whole file on its heading, the first
 line, as in the status (see <a href="#staging">Staging and discarding</a>),
 and <b>q</b> closes it, back to the status. Until it is read again after one, the
@@ -132,8 +150,7 @@ status buffer with it.
 <p>
 The buffer is read again when the repository's index, HEAD or branches
 change, when you save a file, and when j's window comes back to the front.
-<b>g</b> (<b>r</b> in vim edit mode, where gg goes to the top) reads it again
-now, for a change j could not see. Reading it again keeps the caret on the
+<b>Ctrl R</b> reads it again now, for a change j could not see. Reading it again keeps the caret on the
 file or line it was on.
 
 <h2><a name="compare">Compare</a></h2>
@@ -166,8 +183,15 @@ moves the other's to its line there, or to the line before a change's lines
 the other has none of, when that is in view. A comparison of a file follows
 it: an edit, a reload from disk or staging shows a moment later. <b>n</b> and <b>p</b> go from change to change (<b>]c</b> and
 <b>[c</b> in vim edit mode, where <b>n</b> and <b>p</b> are search's), and
-<b>q</b> closes it, putting back the windows from before. Showing the same
-file again shows its diff anew in place of the old one.
+<b>q</b> closes it, putting back the windows from before. Outside vim edit
+mode, <b>s</b> unlocks the two sides, so each scrolls on its own, or locks
+them again, for every comparison and the session, and <b>w</b> ignores
+whitespace or compares it again (see <a href="#whitespace">Ignoring
+whitespace</a>). In vim edit mode they have no key: the toolbar's Scroll Lock
+and Ignore Whitespace buttons, pressed in while on, and the Mode menu's
+items do the same, and the toolbar's Previous Change and Next Change go
+from change to change. Showing the same file again shows its diff anew in
+place of the old one.
 
 <p>
 <a href="commands.html#diff">diff</a> <i>FILE</i> compares the buffer with
@@ -175,10 +199,29 @@ any file the same way, FILE at the left; with no file, with its
 <a href="preferences.html#patchMode">patchMode</a> backup, or else a file it
 asks for.
 
+<h3><a name="whitespace">Ignoring whitespace</a></h3>
+
+<p>
+<a href="commands.html#diffIgnoreWhitespace">diffIgnoreWhitespace</a> makes
+diffs ignore whitespace, or compare it again: the status's, inline and
+beside, the log's, and every comparison, side by side. What it ignores is
+one of git diff's: whitespace at line ends
+(<code>--ignore-space-at-eol</code>), changes in how much there is
+(<code>-b</code>), or all of it (<code>-w</code>); each also ignores a
+missing newline at the end. The toolbar's Ignore Whitespace button turns it
+on and off, pressed in while on, and the arrow beside it chooses what is
+ignored; the Mode menu's Ignore Whitespace has the same choices, and
+<b>w</b> in a comparison, outside vim edit mode, turns it on and off. It
+holds until j exits, starting from
+<a href="preferences.html#diffIgnoreWhitespace">diffIgnoreWhitespace</a>.
+While whitespace is ignored, a hunk's lines are git's with it ignored, which
+can't be applied: whole files are staged, unstaged and discarded, and a hunk
+or lines are not.
+
 <h2><a name="staging">Staging and discarding</a></h2>
 
 <p>
-<b>s</b> stages the thing at the caret, <b>u</b> unstages it, and <b>d</b>
+<b>s</b> stages the thing at the caret, <b>u</b> unstages it, and <b>x</b>
 discards it: a section heading's files, a file, or the hunk the caret is in.
 They do the same in the diff beside the status: to its file on its
 heading, or the hunk the caret is in.
@@ -197,6 +240,8 @@ and the status bar says so. A file no commit has, untracked, added or noted
 with <code>git add -N</code>, goes whole: to the desktop's trash, or deleted
 where there is none. A staged rename is unstaged (<b>u</b>) before it is
 discarded. <b>s</b> on a conflicted file marks it resolved, after asking.
+While whitespace is ignored, only whole files are (see
+<a href="#whitespace">Ignoring whitespace</a>).
 
 <p>
 While one change is being made, and until the buffer shows it, another waits:
@@ -236,7 +281,8 @@ edit mode, in normal mode) gives the message up, asking first. In vim edit mode
 first, and <b>ZQ</b> and <b>:q!</b> without asking. Ctrl P steps back through
 the messages committed or given up before, and Ctrl N forward again to the one
 being written. A message can't be closed while it is being committed, and one
-whose hooks fail is kept for another try.
+whose hooks fail is kept for another try. The toolbar and the Mode menu have
+Commit and Cancel.
 
 <h3>Keys</h3>
 
@@ -246,12 +292,13 @@ whose hooks fail is kept for another try.
 <tr><td>Shift Tab</td><td>Shift Tab</td><td><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></td><td>the next depth</td></tr>
 <tr><td>1 2 3 4</td><td>1 2 3 4</td><td><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></td><td>a depth</td></tr>
 <tr><td>n p</td><td>n p</td><td><a href="commands.html#vcsStatusNext">vcsStatusNext</a>, <a href="commands.html#vcsStatusPrevious">vcsStatusPrevious</a></td><td>the next or previous thing</td></tr>
-<tr><td>Alt N, Alt P</td><td>]] [[</td><td><a href="commands.html#vcsStatusNextSection">vcsStatusNextSection</a>, <a href="commands.html#vcsStatusPreviousSection">vcsStatusPreviousSection</a></td><td>the next or previous section</td></tr>
+<tr><td>N P, Alt N, Alt P</td><td>]] [[, Alt N, Alt P</td><td><a href="commands.html#vcsStatusNextSection">vcsStatusNextSection</a>, <a href="commands.html#vcsStatusPreviousSection">vcsStatusPreviousSection</a></td><td>the next or previous section</td></tr>
 <tr><td>Enter</td><td>Enter</td><td><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></td><td>visit</td></tr>
 <tr><td>D</td><td>D</td><td><a href="commands.html#vcsStatusDiff">vcsStatusDiff</a></td><td>the diff beside it, or not</td></tr>
+<tr><td>=</td><td>=</td><td><a href="commands.html#vcsStatusDiffView">vcsStatusDiffView</a></td><td>the diff unified or side by side</td></tr>
 <tr><td>Space, Shift Space</td><td>Space, Shift Space</td><td><a href="commands.html#vcsStatusScrollDiff">vcsStatusScrollDiff</a>, <a href="commands.html#vcsStatusScrollDiffBack">vcsStatusScrollDiffBack</a></td><td>scroll the diff beside it</td></tr>
-<tr><td>g</td><td>r</td><td><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></td><td>read it again</td></tr>
-<tr><td>s u d</td><td>s u d</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
+<tr><td>Ctrl R</td><td>Ctrl R</td><td><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></td><td>read it again</td></tr>
+<tr><td>s u x</td><td>s u x</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
 <tr><td>S U</td><td>S U</td><td><a href="commands.html#vcsStageAll">vcsStageAll</a>, <a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></td><td>stage or unstage everything</td></tr>
 <tr><td>c</td><td>c</td><td><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></td><td>the commit popup</td></tr>
 <tr><td>$</td><td>$</td><td><a href="commands.html#vcsCommandLog">vcsCommandLog</a></td><td>the commands j ran</td></tr>
@@ -270,7 +317,10 @@ were, each with its buffer, caret and scroll.
 buffer, <code>&lt;leader&gt;gl</code> in vim edit mode) opens the list alone
 in a window under the current one; <b>Enter</b> on a commit there grows it
 into the full log. <a href="commands.html#vcsLogFile">vcsLogFile</a> shows the
-current file's commits, through its renames.
+current file's commits, through its renames. The toolbar and the Mode menu
+have its commands too: from commit to commit, and from change to change in
+the diff, unified or side by side; the filters, and,
+side by side, the comparison's.
 
 <p>
 The full log is switched to and away from as one, as a tab of its own: going
@@ -312,23 +362,16 @@ initials, and then the subject; a hover over a row that is cut shows it
 whole. More commits are read as the caret nears the end.
 
 <p>
-Beside the list, at the right in a wide frame and at the bottom in a tall
-one, are the commit at the caret's details: its id, author, date and message
-and the files it changed, and the diff of a file, against the commit's first
-parent. They follow the caret a moment after it stops, and the focus stays
-in the list. <b>D</b> moves them to the bottom or the right, and the next log
-opens with them there;
-<a href="preferences.html#vcsLogDetails">vcsLogDetails</a> says where they
-are until then. At the bottom, in a frame narrower than
-<a href="preferences.html#vcsLogStackedWidth">vcsLogStackedWidth</a>, the
-files are over the diff.
+At the right of the list are the commit at the caret's details: its id,
+author, date and message and the files it changed, and under them the
+diff of a file, against the commit's first parent. They follow the caret a
+moment after it stops, and the focus stays in the list.
 
 <p>
 <b>=</b> shows the diff side by side, the file as the commit's first parent
 had it at the left and as the commit has it at the right, across the
 bottom of the frame under the list and the files; <b>=</b> again shows it
-unified, and the next log opens with it as you left it. Side by side has
-that one layout, so <b>D</b> does nothing there. The window you are in
+unified, and the next log opens with it as you left it. The window you are in
 stays where it is, or the diff in its new form at the same line. The
 sides follow the file at the caret in the files as the unified diff does;
 in them, <b>Enter</b> visits the file at the line, Alt Down and Alt Up
@@ -344,14 +387,13 @@ go to the next or previous file, Space and Shift Space scroll, and
 <tr><td>Tab, Shift Tab</td><td><a href="commands.html#vcsLogToggle">vcsLogToggle</a>, <a href="commands.html#vcsLogToggleAll">vcsLogToggleAll</a></td><td>open or close the diff's hunk, or all of them; in the list, the run of commits at the caret</td></tr>
 <tr><td>f F, Alt Down, Alt Up</td><td><a href="commands.html#vcsLogNextFile">vcsLogNextFile</a>, <a href="commands.html#vcsLogPreviousFile">vcsLogPreviousFile</a></td><td>the next or previous file's diff</td></tr>
 <tr><td>Space, d; Shift Space, Backspace, u</td><td><a href="commands.html#vcsLogScrollDiff">vcsLogScrollDiff</a>, <a href="commands.html#vcsLogScrollDiffBack">vcsLogScrollDiffBack</a></td><td>the diff a page on, or back</td></tr>
-<tr><td>D</td><td><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></td><td>the details at the bottom or the right</td></tr>
 <tr><td>=</td><td><a href="commands.html#vcsLogDiffView">vcsLogDiffView</a></td><td>the diff side by side across the bottom, or unified</td></tr>
 <tr><td>-b -a -p -s -g -c -r (in the list)</td><td><a href="commands.html#vcsLogFilter">vcsLogFilter</a></td><td>type a filter's value in the field over its chip</td></tr>
 <tr><td>-l (in the list)</td><td><a href="commands.html#vcsLogCollapseRuns">vcsLogCollapseRuns</a></td><td>collapse each run of plain commits into one row, or show every commit</td></tr>
 <tr><td>-t (in the list)</td><td><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></td><td>step the dates through age, locale, iso and long-iso</td></tr>
 <tr><td>-T (in the list)</td><td><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></td><td>show the commits only tags reach too, or not</td></tr>
 <tr><td>x (in the list)</td><td><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></td><td>clear every filter</td></tr>
-<tr><td>g (r in vim)</td><td><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></td><td>read it again</td></tr>
+<tr><td>Ctrl R</td><td><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></td><td>read it again</td></tr>
 <tr><td>q</td><td><a href="commands.html#vcsLogQuit">vcsLogQuit</a></td><td>close it</td></tr>
 <tr><td>?</td><td><a href="commands.html#modePopup">modePopup</a></td><td>the popup</td></tr>
 </table>
@@ -394,7 +436,7 @@ another ref has the same one, and to its repository when there are several.
 Typing narrows the tree to the refs with the text in their names, and the
 label shows it; <b>Backspace</b> takes a character back, and <b>Escape</b>
 shows them all again, as they were opened. The refs are read when the log
-opens, again with <b>g</b> (<b>r</b> in vim edit mode), and when the tree is
+opens, again with <b>Ctrl R</b>, and when the tree is
 shown 30 seconds or more after they were last read; the filters' branches
 are the same read.
 

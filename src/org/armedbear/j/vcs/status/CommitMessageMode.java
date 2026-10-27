@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.status;
 
 import static org.armedbear.j.Constants.*;
+import static org.armedbear.j.ToolBarIcon.*;
 
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
@@ -29,12 +30,15 @@ import org.armedbear.j.CommentRing;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
+import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 import org.armedbear.j.ChangeColors;
+import org.armedbear.j.ToolBar;
 
 /**
  * A commit message's mode: a summary line past 50 characters, and any line
@@ -130,6 +134,35 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
     @Override
     public Formatter getFormatter(Buffer buffer) {
         return new MessageFormatter(buffer);
+    }
+
+    // The toolbar and the Mode menu: an edit's, and committing or not.
+
+    @Override
+    protected ToolBar getDefaultToolBar(Frame frame) {
+        final ToolBar tb = new ToolBar(frame);
+        tb.addButton("Undo", ICON_UNDO, "undo");
+        tb.addButton("Redo", ICON_REDO, "redo");
+        tb.addSeparator();
+        tb.addButton("Cut", ICON_CUT, "killRegion");
+        tb.addButton("Copy", ICON_COPY, "copyRegion");
+        tb.addButton("Paste", ICON_PASTE, "paste");
+        tb.addSeparator();
+        tb.addButton("Commit", ICON_COMMIT, "vcsCommitFinish");
+        tb.addButton("Cancel", ICON_CLOSE, "vcsCommitCancel");
+        tb.addExtensionButtons();
+        tb.addSeparator();
+        tb.addButton("Exit", ICON_EXIT, "quit");
+        return tb;
+    }
+
+    @Override
+    public void populateModeMenu(Editor editor, Menu menu) {
+        menu.add(editor, "Commit", 'C', "vcsCommitFinish");
+        menu.add(editor, "Cancel", 'A', "vcsCommitCancel");
+        menu.addSeparator();
+        menu.add(editor, "Previous Message", 'P', "vcsCommitPreviousMessage");
+        menu.add(editor, "Next Message", 'N', "vcsCommitNextMessage");
     }
 
     private static final class MessageFormatter extends Formatter {

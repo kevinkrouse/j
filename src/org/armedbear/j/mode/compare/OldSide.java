@@ -80,11 +80,11 @@ public final class OldSide extends ViewPane<CompareBuffer> {
 
     @Override
     public void scrolled(Editor ed) {
-        getOwner().scrollWith(ed, getOwner());
+        getOwner().scrolledBy(ed, getOwner());
     }
 
     @Override
     public void afterCommand(Editor editor) {
-        getOwner().caretWith(editor, getOwner(), true);
+        getOwner().caretMovedBy(editor, getOwner(), true);
     }
 }

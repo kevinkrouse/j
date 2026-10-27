@@ -28,11 +28,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
@@ -41,7 +44,9 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 import org.armedbear.j.Region;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.FileChange;
@@ -198,27 +203,11 @@ public final class StatusActions {
         final VcsStatusBuffer buffer = VcsStatusMode.owner(editor);
         if (buffer == null || editor.getDot() == null)
             return;
-        // The diff beside shows what was there before the last write until it is read again.
-        if (editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale()) {
-            editor.status("Wait: the diff is being read again");
-            return;
-        }
-        // What the buffer shows is out of date until the last write's refresh.
-        if (buffer.isWriting()) {
-            editor.status("Wait: the last change is still being made");
-            return;
-        }
         final List<Target> targets = targets(buffer, editor);
-        if (targets.isEmpty()) {
-            editor.status("Nothing to " + verb(op) + " here");
+        final String why = refusal(editor, buffer, op, targets);
+        if (why != null) {
+            editor.status(why);
             return;
-        }
-        for (Target t : targets) {
-            final String why = refuse(op, t);
-            if (why != null) {
-                editor.status(why);
-                return;
-            }
         }
         if (op == Op.DISCARD && !confirm.test(editor, discardQuestion(targets)))
             return;
@@ -251,6 +240,103 @@ public final class StatusActions {
             }
             finish(editor, buffer, failed);
         });
+    }
+
+    /** Whether op would do something to what the caret or selection is on, as its menu item is enabled. */
+    public static boolean can(Editor editor, Op op) {
+        return able(editor).contains(op);
+    }
+
+    /** What would do something to what the caret or selection is on, the targets worked out once. */
+    public static Set<Op> able(Editor editor) {
+        final Set<Op> out = EnumSet.noneOf(Op.class);
+        final VcsStatusBuffer buffer = editor == null ? null : VcsStatusMode.owner(editor);
+        if (buffer == null || editor.getDot() == null)
+            return out;
+        if (!(editor.getBuffer() instanceof VcsStatusBuffer || editor.getBuffer() instanceof StatusDiffBuffer))
+            return out;
+        final List<Target> targets = targets(buffer, editor);
+        for (Op op : Op.values())
+            if (refusal(editor, buffer, op, targets) == null)
+                out.add(op);
+        return out;
+    }
+
+    /**
+     * able of at's editor, worked out again only once what it depends on
+     * has changed: the caret, the selection, the lines shown, a write, or
+     * what whitespace is ignored.
+     */
+    public static Supplier<Set<Op>> ableAsChanged(Supplier<Editor> at) {
+        return new Supplier<>() {
+            private Asked asked;
+            private Set<Op> able;
+
+            @Override
+            public Set<Op> get() {
+                final Editor editor = at.get();
+                final Asked now = Asked.of(editor);
+                if (!now.equals(asked)) {
+                    able = able(editor);
+                    asked = now;
+                }
+                return able;
+            }
+        };
+    }
+
+    // What able reads of editor; lines are new each time they are laid out again.
+    private record Asked(Editor editor, Buffer buffer, Line first, Line dot, int dotOffset, Line mark, int markOffset,
+            boolean visual, boolean writing, boolean stale, Whitespace ignored, Whitespace read) {
+        static Asked of(Editor editor) {
+            if (editor == null || editor.getDot() == null)
+                return new Asked(editor, null, null, null, 0, null, 0, false, false, false, null, null);
+            final VcsStatusBuffer status = VcsStatusMode.owner(editor);
+            final Position mark = editor.getMark();
+            return new Asked(editor,
+                    editor.getBuffer(),
+                    editor.getBuffer().getFirstLine(),
+                    editor.getDotLine(),
+                    editor.getDotOffset(),
+                    mark == null ? null : mark.getLine(),
+                    mark == null ? 0 : mark.getOffset(),
+                    editor.getInputHandler() instanceof VimInputHandler vim && vim.getState().getMode().isVisual(),
+                    status != null && status.isWriting(),
+                    editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale(),
+                    DiffWhitespace.ignored(),
+                    status == null ? null : status.readIgnoring());
+        }
+    }
+
+    // Why op can't be done to targets in editor, or null.
+    private static String refusal(Editor editor, VcsStatusBuffer buffer, Op op, List<Target> targets) {
+        // The diff beside shows what was there before the last write until it is read again.
+        if (editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale())
+            return "Wait: the diff is being read again";
+        // What the buffer shows is out of date until the last write's refresh.
+        if (buffer.isWriting())
+            return "Wait: the last change is still being made";
+        if (targets.isEmpty())
+            return "Nothing to " + verb(op) + " here";
+        for (Target t : targets) {
+            final String why = refuse(op, t);
+            if (why != null)
+                return why;
+        }
+        if (hunksIgnoreWhitespace(buffer, targets))
+            return "Not a hunk while whitespace is ignored: a file is " + switch (op) {
+                case STAGE -> "staged";
+                case UNSTAGE -> "unstaged";
+                case DISCARD -> "discarded";
+            } + " whole";
+        return null;
+    }
+
+    // Whether targets take a hunk or lines of one, while the diffs shown,
+    // or those to come, ignore whitespace: a patch of them can't apply.
+    private static boolean hunksIgnoreWhitespace(VcsStatusBuffer buffer, List<Target> targets) {
+        return (DiffWhitespace.ignored() != Whitespace.NONE || buffer.readIgnoring() != Whitespace.NONE)
+                && targets.stream().anyMatch(t -> t instanceof Part);
     }
 
     /** Stages every change to a tracked file, or with unstage takes everything staged out. */
@@ -362,7 +448,7 @@ public final class StatusActions {
         final FileChange c = p.file().change();
         final List<String> paths =
                 c.origPath() != null && p.file().staged() ? List.of(c.origPath(), c.path()) : List.of(c.path());
-        for (FileDiff d : r.backend().readDiff(r, p.file().staged(), paths))
+        for (FileDiff d : r.backend().readDiff(r, p.file().staged(), paths, Whitespace.NONE))
             if (d.hunks().contains(p.hunk()))
                 return true;
         return false;
@@ -474,11 +560,10 @@ public final class StatusActions {
     private static String stagedSteps(VcsRepository r, FileItem f, List<Step> steps) {
         if (f.change().origPath() != null)
             return "Unstage the rename of " + f.path() + " (u) before discarding it";
-        FileDiff diff = f.diff();
-        if (diff == null) {
-            final List<FileDiff> read = r.backend().readDiff(r, true, List.of(f.path()));
-            diff = read.isEmpty() ? null : read.get(0);
-        }
+        // Read again with no whitespace ignored, as the one shown may: its
+        // hunks would leave changes to whitespace.
+        final List<FileDiff> read = r.backend().readDiff(r, true, List.of(f.path()), Whitespace.NONE);
+        final FileDiff diff = read.isEmpty() ? null : read.get(0);
         if (diff == null || diff.hunks().isEmpty())
             return "Can't discard " + f.path() + ": it has no change to its content";
         final List<Hunk> hunks = new ArrayList<>(diff.hunks());

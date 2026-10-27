@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javax.swing.JLayeredPane;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.transients.TransientCommands;
@@ -463,7 +464,6 @@ public final class WindowFuzz {
                 "vcsLogScrollDiffBack",
                 "vcsLogToggle",
                 "vcsLogToggleAll",
-                "vcsLogToggleDetails",
                 "vcsLogDiffView",
                 "vcsLogToggleTags",
                 "vcsLogCollapseRuns",
@@ -519,6 +519,11 @@ public final class WindowFuzz {
             // =: the diff beside opened, or unified or side by side.
             if (status(ed.getBuffer()) != null)
                 command(ed, "vcsStatusDiffView", null);
+        }),
+        new Op("compareToggle", ed -> {
+            // s or w in a side: the scroll lock, or whitespace ignored, in every comparison.
+            if (CompareBuffer.of(ed.getBuffer()) != null)
+                command(ed, rnd.nextBoolean() ? "compareScrollLock" : "diffIgnoreWhitespace", null);
         }),
         new Op("statusDiffKey", ed -> {
             if (status(ed.getBuffer()) == null || ed.getBuffer() instanceof VcsStatusBuffer)

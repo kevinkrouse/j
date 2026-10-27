@@ -35,6 +35,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
 import org.armedbear.j.Line;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Whitespace;
 
 /**
  * A comparison of a buffer, as it has it, saved or not, with a base at the
@@ -193,6 +194,7 @@ public final class Following implements Buffer.Follower, CompareBuffer.Source {
         final int asked = ++generation;
         final Charset charset = buffer.getCharset();
         final List<String> lines = lines(buffer);
+        final Whitespace ignored = DiffWhitespace.ignored();
         worker.execute(() -> {
             final Read read = base.read(charset);
             // Not read, as while another git holds the index's lock: left
@@ -200,7 +202,7 @@ public final class Following implements Buffer.Follower, CompareBuffer.Source {
             if (read == null)
                 return;
             final Side newSide = Side.ofBuffer(lines, charset, read.side().crlf());
-            final DiffAlignment alignment = DiffAlignment.of(read.side().keys(), newSide.keys());
+            final DiffAlignment alignment = DiffAlignment.of(read.side(), newSide, ignored);
             SwingUtilities.invokeLater(() -> {
                 // A later one is coming, or none is wanted.
                 if (stopped || asked != generation)

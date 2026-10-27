@@ -20,19 +20,25 @@
 
 package org.armedbear.j;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.function.BooleanSupplier;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.UIManager;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public final class ToolBarButton extends JButton implements ActionListener, MouseListener {
     private Frame frame;
+    private BooleanSupplier visibleWhen;
+    private BooleanSupplier enabledWhen;
+    private BooleanSupplier selectedWhen;
 
     public ToolBarButton(Frame frame, String actionCommand, ActionListener listener) {
         super();
@@ -65,9 +71,56 @@ public final class ToolBarButton extends JButton implements ActionListener, Mous
             setIcon(icon);
     }
 
+    /** It is shown while shown is true, from now on. */
+    public ToolBarButton visibleWhen(BooleanSupplier shown) {
+        visibleWhen = shown;
+        update();
+        return this;
+    }
+
+    /** It is enabled while enabled is true, from now on. */
+    public ToolBarButton enabledWhen(BooleanSupplier enabled) {
+        enabledWhen = enabled;
+        update();
+        return this;
+    }
+
+    /** It is pressed while selected is true, as a toggle is on. */
+    public ToolBarButton selectedWhen(BooleanSupplier selected) {
+        selectedWhen = selected;
+        update();
+        return this;
+    }
+
+    /** Shown, enabled and pressed as it says. */
+    void update() {
+        if (visibleWhen != null)
+            setVisible(visibleWhen.getAsBoolean());
+        if (enabledWhen != null)
+            setEnabled(enabledWhen.getAsBoolean());
+        if (selectedWhen != null) {
+            // Not pressed in while it can't be pressed.
+            final boolean selected = isEnabled() && selectedWhen.getAsBoolean();
+            setSelected(selected);
+            // Its look's fill would cover paintComponent's.
+            setContentAreaFilled(!selected);
+        }
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        // Pressed in while selected: Metal's buttons don't show it.
+        if (isSelected()) {
+            final Color c = UIManager.getColor("ToggleButton.select");
+            g.setColor(c != null ? c : getBackground().darker());
+            g.fillRect(0, 0, getWidth(), getHeight());
+        }
+        super.paintComponent(g);
+    }
+
     @Override
     protected void paintBorder(Graphics g) {
-        if (!isRolloverEnabled() || model.isRollover())
+        if (!isRolloverEnabled() || model.isRollover() || isSelected())
             super.paintBorder(g);
     }
 

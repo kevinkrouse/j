@@ -470,7 +470,6 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsLogScrollDiffBack">vcsLogScrollDiffBack</a></li>
     <li><a href="commands.html#vcsLogToggle">vcsLogToggle</a></li>
     <li><a href="commands.html#vcsLogToggleAll">vcsLogToggleAll</a></li>
-    <li><a href="commands.html#vcsLogToggleDetails">vcsLogToggleDetails</a></li>
     <li><a href="commands.html#vcsLogCollapseRuns">vcsLogCollapseRuns</a></li>
     <li><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></li>
     <li><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></li>
@@ -854,6 +853,19 @@ In a comparison, closes it: both sides go and the windows from before come back.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="compareScrollLock">compareScrollLock</a><dl><dd>
+<p>
+In a comparison, unlocks its two sides, so that each scrolls and moves its
+caret on its own; again, locks them, the other side scrolled to match the
+one you are in. It holds for every comparison, for the session.
+<br><br>
+<b>Default key mapping:</b> s in a comparison, outside vim edit mode; the
+toolbar's lock button and the Mode menu's Scroll Lock
+<br><br>
+<b>See also:</b> <a href="git.html#compare">Compare</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="compile">compile</a><dl><dd>
 <p>
 Compiles the source file in the current buffer. You will be prompted for the
@@ -1216,6 +1228,24 @@ in the diff output buffer.
 Diff mode
 <p>
 <b>See also:</b> <a href="#changes">changes</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="diffIgnoreWhitespace">diffIgnoreWhitespace</a><dl><dd>
+<p>
+Ignores whitespace in diffs, unified and side by side, or compares it
+again: in the status and its diff beside, the log, and every comparison.
+With no argument, it ignores what it last did, or what
+<a href="preferences.html#diffIgnoreWhitespace">diffIgnoreWhitespace</a>
+names, or else all of it; with <code>trailing</code>, <code>amount</code> or
+<code>all</code>, that, or whitespace is compared again if that is what is
+ignored; with <code>none</code>, it is compared. It holds until j exits.
+<br><br>
+<b>Default key mapping:</b> w in a comparison, outside vim edit mode; the
+toolbar's Ignore Whitespace button, with its menu, and the Mode menu's
+Ignore Whitespace
+<br><br>
+<b>See also:</b> <a href="git.html#whitespace">Ignoring whitespace</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -6042,8 +6072,9 @@ Converts all upper case characters in the selected region to lower case.
 <p>
 Shows the version control commands j has run for its own use, newest last:
 the time, how long each took, and the command line, under the directory it ran
-in. A command that failed shows its exit code and its error output. j keeps the
-last 500.
+in. The options every git command runs with, as <code>-c color.ui=false</code>,
+are left out of each line and listed once above. A command that failed shows
+its exit code and its error output. j keeps the last 500.
 <br><br>
 <b>Default key mapping:</b> $ in status buffers
 <br><br>
@@ -6123,9 +6154,11 @@ In a commit message, steps forward through the messages committed or given up be
 
 <a name="vcsCommitPopup">vcsCommitPopup</a><dl><dd>
 <p>
-In a status buffer, opens the commit popup: its switches, and commit, amend, extend and reword.
+In a status buffer, opens the commit popup: its switches, and commit, amend,
+extend and reword. From a buffer that is not part of the status, opens its
+repository's status first.
 <br><br>
-<b>Default key mapping:</b> c in status buffers
+<b>Default key mapping:</b> c in status buffers; the VCS menu's Commit
 <br><br>
 <b>See also:</b> <a href="git.html#committing">Committing</a>
 <br><br>
@@ -6163,7 +6196,7 @@ Compares the file being edited with what is staged of it, side by side: the stag
 <p>
 In a status buffer or the diff beside it, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash.
 <br><br>
-<b>Default key mapping:</b> d in status buffers
+<b>Default key mapping:</b> x in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
 <br><br>
@@ -6195,7 +6228,7 @@ In the full log, switches the diff between unified and side by side, across the 
 <br><br>
 <b>Default key mapping:</b> = in the log, its files and diff, and the diff's sides
 <br><br>
-<b>See also:</b> <a href="git.html#log">The log</a>, <a href="#vcsLogToggleDetails">vcsLogToggleDetails</a>
+<b>See also:</b> <a href="git.html#log">The log</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -6303,7 +6336,7 @@ Closes the log: the windows from before it come back, or the quick log's window 
 <p>
 Reads the log again, the caret staying on its commit.
 <br><br>
-<b>Default key mapping:</b> g in the log; r in vim edit mode
+<b>Default key mapping:</b> Ctrl R in the log
 <br><br>
 <b>See also:</b> <a href="git.html#log">The log</a>
 <br><br>
@@ -6369,16 +6402,6 @@ In the log's diff, closes every hunk, or opens them all when none is open; in th
 <br><br>
 </dl><!--<hr>-->
 
-<a name="vcsLogToggleDetails">vcsLogToggleDetails</a><dl><dd>
-<p>
-In the log, moves the commit's details to the bottom, or to the right;
-the next log opens with them there. With the diff side by side, it does nothing.
-<br><br>
-<b>Default key mapping:</b> D in the log
-<br><br>
-<b>See also:</b> <a href="git.html#log">The log</a>
-<br><br>
-</dl><!--<hr>-->
 
 <a name="vcsLogCollapseRuns">vcsLogCollapseRuns</a><dl><dd>
 <p>
@@ -6492,7 +6515,7 @@ In a status buffer, opens everything to a depth, 1 to 4, given as an argument: 1
 <p>
 In a status buffer, shows the diff of the file at the caret beside it, following the caret, or closes it and goes back to the status.
 <br><br>
-<b>Default key mapping:</b> q in the diff beside a status buffer and in its sides
+<b>Default key mapping:</b> D in status buffers; q in the diff beside one and in its sides
 <br><br>
 <b>See also:</b> <a href="git.html#status-diff">The diff beside it</a>
 <br><br>
@@ -6522,7 +6545,7 @@ In a status buffer, goes to the next section, file, hunk or commit.
 <p>
 In a status buffer, goes to the next section.
 <br><br>
-<b>Default key mapping:</b> Alt N in status buffers; ]] in vim edit mode
+<b>Default key mapping:</b> N, Alt N in status buffers; ]] in vim edit mode
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>
@@ -6542,7 +6565,7 @@ In a status buffer, goes to the previous section, file, hunk or commit.
 <p>
 In a status buffer, goes to the previous section.
 <br><br>
-<b>Default key mapping:</b> Alt P in status buffers; [[ in vim edit mode
+<b>Default key mapping:</b> P, Alt P in status buffers; [[ in vim edit mode
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>
@@ -6552,7 +6575,7 @@ In a status buffer, goes to the previous section.
 <p>
 Reads a status buffer's repositories again, for a change j could not see.
 <br><br>
-<b>Default key mapping:</b> g in status buffers; r in vim edit mode
+<b>Default key mapping:</b> Ctrl R in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>

@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
@@ -190,10 +191,10 @@ public class GitLogTest {
                 new CommitChange("new file.txt", null, Kind.ADDED)),
             changes);
         assertEquals('R', changes.get(1).kind().letter());
-        final FileDiff renamed = GitLog.diff(repository, id("HEAD"), id("HEAD~"), changes.get(1));
+        final FileDiff renamed = GitLog.diff(repository, id("HEAD"), id("HEAD~"), changes.get(1), Whitespace.NONE);
         assertTrue(renamed.isRename(), "the rename, not a delete and an add");
         assertEquals(1, renamed.hunks().size());
-        final FileDiff rootDiff = GitLog.diff(repository, id("HEAD~"), null, root.get(1));
+        final FileDiff rootDiff = GitLog.diff(repository, id("HEAD~"), null, root.get(1), Whitespace.NONE);
         assertTrue(rootDiff.isNew());
     }
 
@@ -221,7 +222,7 @@ public class GitLogTest {
         git.commitAll("first");
         final List<CommitChange> root = GitLog.changes(repository, id("HEAD"), null);
         assertEquals(List.of(new CommitChange("a.txt", null, Kind.ADDED)), root);
-        assertEquals(1, GitLog.diff(repository, id("HEAD"), null, root.get(0)).hunks().size());
+        assertEquals(1, GitLog.diff(repository, id("HEAD"), null, root.get(0), Whitespace.NONE).hunks().size());
     }
 
     @Test
@@ -232,8 +233,8 @@ public class GitLogTest {
         git.git("update-index", "--chmod=+x", "a.sh");
         git.git("commit", "-q", "-m", "mode");
         final CommitChange a = new CommitChange("a.sh", null, Kind.MODIFIED);
-        assertTrue(GitLog.diff(repository, id("HEAD"), id("HEAD~"), a).hunks().isEmpty());
-        assertNull(GitLog.diff(repository, "0".repeat(40), id("HEAD~"), a));
+        assertTrue(GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.NONE).hunks().isEmpty());
+        assertNull(GitLog.diff(repository, "0".repeat(40), id("HEAD~"), a, Whitespace.NONE));
     }
 
     @Test

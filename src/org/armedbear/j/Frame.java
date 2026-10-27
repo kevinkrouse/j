@@ -46,6 +46,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -433,7 +434,7 @@ public final class Frame extends JFrame
     public void setToolbar() {
         if (showToolbar && ToolBar.isToolBarEnabled()) {
             // We want a toolbar.
-            ToolBar tb = currentEditor.getMode().getToolBar(this);
+            ToolBar tb = FrameView.toolBarFor(currentEditor.getBuffer(), this);
             if (tb != toolbar) {
                 if (toolbar != null) {
                     getContentPane().remove(toolbar);
@@ -445,6 +446,7 @@ public final class Frame extends JFrame
                 }
                 getContentPane().validate();
             }
+            updateToolbar();
         } else {
             // We don't want a toolbar.
             if (toolbar != null) {
@@ -464,7 +466,7 @@ public final class Frame extends JFrame
             }
         } else {
             if (showToolbar && ToolBar.isToolBarEnabled()) {
-                ToolBar tb = currentEditor.getMode().getToolBar(this);
+                ToolBar tb = FrameView.toolBarFor(currentEditor.getBuffer(), this);
                 if (tb != null) {
                     getContentPane().add(toolbar = tb, "North");
                     toolbar.repaint();
@@ -476,13 +478,53 @@ public final class Frame extends JFrame
         Editor.getSessionProperties().setShowToolbar(this, showToolbar);
     }
 
-    private ToolBar defaultToolBar;
+    // What is kept for it by key, as its toolbars, going with it: a
+    // toolbar until its display is reset, the rest until forgotten.
+    private final Map<Object, Object> kept = new HashMap<>();
+
+    /** What it keeps for key, made by make the first time. */
+    @SuppressWarnings("unchecked")
+    public <T> T keep(Object key, Function<Frame, T> make) {
+        // Not computeIfAbsent: make may keep something too, as a mode's
+        // toolbar the frame's default one.
+        Object t = kept.get(key);
+        if (t == null) {
+            t = make.apply(this);
+            kept.put(key, t);
+        }
+        return (T) t;
+    }
+
+    /** What it keeps for key, or null. */
+    Object kept(Object key) {
+        return kept.get(key);
+    }
+
+    /** What it keeps for key forgotten. */
+    void forget(Object key) {
+        kept.remove(key);
+    }
+
+    // Whether its toolbar's buttons are to be updated.
+    private boolean toolbarUpdating;
+
+    /**
+     * Its toolbar's buttons enabled and pressed as they say, once whatever
+     * changed what they can do, as a command, is done.
+     */
+    public void updateToolbar() {
+        if (toolbarUpdating)
+            return;
+        toolbarUpdating = true;
+        SwingUtilities.invokeLater(() -> {
+            toolbarUpdating = false;
+            if (toolbar != null)
+                toolbar.update();
+        });
+    }
 
     public ToolBar getDefaultToolBar() {
-        if (defaultToolBar == null)
-            defaultToolBar = new DefaultToolBar(this);
-
-        return defaultToolBar;
+        return keep(DefaultToolBar.class, DefaultToolBar::new);
     }
 
     public void addToolbar(ToolBar tb) {
@@ -490,6 +532,7 @@ public final class Frame extends JFrame
         if (tb != null) {
             toolbar = tb;
             getContentPane().add(toolbar, "North");
+            toolbar.update();
             toolbar.repaint();
         }
         // Make sure toolbar doesn't steal focus.
@@ -504,7 +547,7 @@ public final class Frame extends JFrame
     public void maybeAddToolbar() {
         if (toolbar != null)
             return;
-        ToolBar tb = currentEditor.getMode().getToolBar(this);
+        ToolBar tb = FrameView.toolBarFor(currentEditor.getBuffer(), this);
         if (tb != null)
             addToolbar(tb);
     }
@@ -1459,7 +1502,8 @@ public final class Frame extends JFrame
             getContentPane().remove(toolbar);
             toolbar = null;
         }
-        defaultToolBar = null;
+        // Made again, as for a new look and feel.
+        kept.values().removeIf(v -> v instanceof ToolBar);
         for (Editor editor : editors) {
             if (editor != null) {
                 editor.removeLocationBar();
@@ -1472,7 +1516,7 @@ public final class Frame extends JFrame
         setJMenuBar(mode.createMenuBar(this));
         final SessionProperties sessionProperties = Editor.getSessionProperties();
         if (sessionProperties.getShowToolbar(this) && ToolBar.isToolBarEnabled()) {
-            ToolBar tb = mode.getToolBar(this);
+            ToolBar tb = FrameView.toolBarFor(currentEditor.getBuffer(), this);
             if (tb != null)
                 addToolbar(tb);
         }

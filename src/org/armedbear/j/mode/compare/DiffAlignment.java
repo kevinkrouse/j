@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.util.Diff;
 import org.armedbear.j.util.Diff.Edit;
+import org.armedbear.j.util.Whitespace;
 
 /**
  * Two texts side by side, row by row: each row the old side's line and the
@@ -52,9 +53,11 @@ public final class DiffAlignment {
     // Each line's row, by side.
     private final int[] oldRow;
     private final int[] newRow;
+    private final Whitespace ignored;
 
-    private DiffAlignment(List<Row> rows, List<Change> changes, int oldSize, int newSize) {
+    private DiffAlignment(List<Row> rows, List<Change> changes, int oldSize, int newSize, Whitespace ignored) {
         this.rows = List.copyOf(rows);
+        this.ignored = ignored;
         this.changes = List.copyOf(changes);
         oldRow = new int[oldSize];
         newRow = new int[newSize];
@@ -72,8 +75,33 @@ public final class DiffAlignment {
         return of(Diff.diff(oldLines, newLines), oldLines.size(), newLines.size());
     }
 
+    /** Two sides aligned by their keys, or by their lines with ignored's whitespace ignored. */
+    public static DiffAlignment of(Side oldSide, Side newSide, Whitespace ignored) {
+        if (ignored == Whitespace.NONE)
+            return of(oldSide.keys(), newSide.keys());
+        final List<String> o = keys(oldSide.lines(), ignored);
+        final List<String> n = keys(newSide.lines(), ignored);
+        return of(Diff.diff(o, n), o.size(), n.size(), ignored);
+    }
+
+    private static List<String> keys(List<String> lines, Whitespace ignored) {
+        final List<String> out = new ArrayList<>(lines.size());
+        for (String l : lines)
+            out.add(ignored.key(l));
+        return out;
+    }
+
+    /** The whitespace it ignores. */
+    public Whitespace ignored() {
+        return ignored;
+    }
+
     /** Sides of oldSize and newSize lines aligned by edits, which are in order. */
     public static DiffAlignment of(List<Edit> edits, int oldSize, int newSize) {
+        return of(edits, oldSize, newSize, Whitespace.NONE);
+    }
+
+    private static DiffAlignment of(List<Edit> edits, int oldSize, int newSize, Whitespace ignored) {
         final List<Row> rows = new ArrayList<>();
         final List<Change> changes = new ArrayList<>();
         int o = 0;
@@ -95,7 +123,7 @@ public final class DiffAlignment {
         }
         while (o < oldSize && n < newSize)
             rows.add(new Row(o++, n++, Kind.SAME));
-        return new DiffAlignment(rows, changes, oldSize, newSize);
+        return new DiffAlignment(rows, changes, oldSize, newSize, ignored);
     }
 
     /** How many lines the old side has. */

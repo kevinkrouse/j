@@ -21,11 +21,15 @@
 package org.armedbear.j.vcs.status;
 
 import static org.armedbear.j.Constants.*;
+import static org.armedbear.j.ToolBarIcon.*;
 
 import java.awt.event.KeyEvent;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
@@ -33,20 +37,28 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
+import org.armedbear.j.FrameView;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
+import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.MotionCommands;
+import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
+import org.armedbear.j.ToolBar;
+import org.armedbear.j.View;
 import org.armedbear.j.ViewPane;
 import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.CompareCommands;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
@@ -55,13 +67,14 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.status.StatusActions.Op;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
 /**
- * The status buffer's mode. Nothing in it is edited, so the same letters
- * work in both edit modes, but for what vim keeps for moving: refresh is r
- * there, as gg must still go to the top.
+ * The status buffer's mode. Nothing in it is edited, so the same keys
+ * work in both edit modes, but for the next and previous section: N and P,
+ * and ]] and [[ in vim.
  */
 public final class VcsStatusMode extends AbstractMode implements Mode {
     private static final VcsStatusMode mode = new VcsStatusMode();
@@ -85,6 +98,20 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return new VcsStatusFormatter(buffer);
     }
 
+    /** The status's sections and files, the same for the status and its diff. */
+    @Override
+    public NavigationComponent getSidebarComponent(Editor editor) {
+        final VcsStatusBuffer b = owner(editor);
+        if (b == null || editor.getFrame() == null)
+            return null;
+        final StatusTree tree = b.tree(editor.getFrame());
+        // Kept on the window's view, so the sidebar keeps it as the panes change.
+        final View view = editor.getCurrentView();
+        if (view != null)
+            view.setSidebarComponent(tree);
+        return tree;
+    }
+
     @Override
     public String getHelpTopic() {
         return "git.html#status";
@@ -93,7 +120,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         common(km);
-        km.mapKey('g', "vcsStatusRefresh");
+        // The next and previous section, as ]] and [[ are in vim.
+        km.mapKey('N', "vcsStatusNextSection");
+        km.mapKey('P', "vcsStatusPreviousSection");
     }
 
     private static KeyMap modalKeyMap;
@@ -103,7 +132,6 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         if (modalKeyMap == null) {
             final KeyMap km = new KeyMap();
             common(km);
-            km.mapKey('r', "vcsStatusRefresh");
             modalKeyMap = km;
         }
         return modalKeyMap;
@@ -119,7 +147,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             return getKeyMap();
         if (paneKeyMap == null) {
             paneKeyMap = new KeyMap();
-            paneKeys(paneKeyMap, false);
+            paneKeys(paneKeyMap);
         }
         return paneKeyMap;
     }
@@ -130,13 +158,13 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             return getModalKeyMap();
         if (paneModalKeyMap == null) {
             paneModalKeyMap = new KeyMap();
-            paneKeys(paneModalKeyMap, true);
+            paneKeys(paneModalKeyMap);
         }
         return paneModalKeyMap;
     }
 
     // As the status's where they mean the same, and as the log's diff's.
-    private static void paneKeys(KeyMap km, boolean vim) {
+    private static void paneKeys(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisit");
         km.mapKey(KeyEvent.VK_TAB, 0, "vcsStatusToggle");
@@ -145,9 +173,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey('p', "vcsStatusPrevious");
         km.mapKey('s', "vcsStage");
         km.mapKey('u', "vcsUnstage");
-        km.mapKey('d', "vcsDiscard");
+        km.mapKey('x', "vcsDiscard");
         scrollKeys(km);
-        km.mapKey(vim ? 'r' : 'g', "vcsStatusRefresh");
+        km.mapKey(KeyEvent.VK_R, CTRL_MASK, "vcsStatusRefresh");
         km.mapKey('$', "vcsCommandLog");
         km.mapKey('q', "vcsStatusDiff");
         km.mapKey('?', "modePopup");
@@ -163,14 +191,14 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     private static KeyMap visualKeyMap;
 
-    // Vim's V or v then s stages the lines selected, d discards them.
+    // Vim's V or v then s stages the lines selected, x discards them.
     @Override
     public synchronized KeyMap getVisualKeyMap() {
         if (visualKeyMap == null) {
             final KeyMap km = new KeyMap();
             km.mapKey('s', "vcsStage");
             km.mapKey('u', "vcsUnstage");
-            km.mapKey('d', "vcsDiscard");
+            km.mapKey('x', "vcsDiscard");
             visualKeyMap = km;
         }
         return visualKeyMap;
@@ -190,12 +218,13 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey('$', "vcsCommandLog");
         km.mapKey('s', "vcsStage");
         km.mapKey('u', "vcsUnstage");
-        // d, as lazygit's: x clears filters in every view that has them.
-        km.mapKey('d', "vcsDiscard");
+        km.mapKey('x', "vcsDiscard");
         km.mapKey('S', "vcsStageAll");
         km.mapKey('U', "vcsUnstageAll");
+        km.mapKey(KeyEvent.VK_R, CTRL_MASK, "vcsStatusRefresh");
         km.mapKey('c', "vcsCommitPopup");
         km.mapKey('l', "vcsLogPopup");
+        km.mapKey('D', "vcsStatusDiff");
         km.mapKey('q', "killBuffer");
         km.mapKey('?', "modePopup");
         scrollKeys(km);
@@ -235,11 +264,96 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return HINTS;
     }
 
+    // The toolbar and the Mode menu, of the status and its diff; side by
+    // side, the comparison's too.
+
+    @Override
+    protected ToolBar getDefaultToolBar(Frame frame) {
+        final ToolBar tb = new ToolBar(frame);
+        // Where staging runs: in the status or its diff, not a side of the comparison.
+        final Supplier<Editor> at = () -> FrameView.target(frame.getCurrentEditor(), "vcsStage");
+        final Supplier<VcsStatusBuffer> status = () -> at.get() == null ? null : owner(at.get());
+        final BooleanSupplier diffShown = () -> status.get() != null && status.get().isDiffShown(frame);
+        final BooleanSupplier sides = () -> status.get() != null && status.get().getCompare() != null;
+        final Supplier<Set<Op>> able = StatusActions.ableAsChanged(at);
+        tb.addButton("New", ICON_NEW, "newBuffer");
+        tb.addButton("Open", ICON_OPEN, "openFile");
+        tb.addButton("Close", ICON_CLOSE, "killBuffer");
+        tb.addSeparator();
+        tb.addButton("Refresh", ICON_REFRESH, "vcsStatusRefresh");
+        tb.addSeparator();
+        tb.addButton("Stage", ICON_PLUS, "vcsStage").enabledWhen(() -> able.get().contains(Op.STAGE));
+        tb.addButton("Unstage", ICON_MINUS, "vcsUnstage").enabledWhen(() -> able.get().contains(Op.UNSTAGE));
+        tb.addButton("Discard", ICON_DELETE, "vcsDiscard").enabledWhen(() -> able.get().contains(Op.DISCARD));
+        tb.addSeparator();
+        tb.addButton("Commit", ICON_COMMIT, "vcsCommitPopup").enabledWhen(() -> stages(status.get()));
+        tb.addButton("Log", ICON_HISTORY, "vcsLogPopup");
+        tb.addSeparator();
+        tb.addButton("Show Diff", ICON_DIFF, "vcsStatusDiff").selectedWhen(diffShown);
+        tb.addButton("Side by Side", ICON_SIDE_BY_SIDE, "vcsStatusDiffView").selectedWhen(sides);
+        tb.addSeparator();
+        CompareCommands.addChangeButtons(tb, diffShown);
+        tb.addSeparator();
+        CompareCommands.addButtons(tb, sides);
+        tb.addExtensionButtons();
+        tb.addSeparator();
+        tb.addButton("Exit", ICON_EXIT, "quit");
+        return tb;
+    }
+
+    // The items run where the status says (VcsStatusBuffer.windowFor), with
+    // the keys of the window the menu is opened in.
+    @Override
+    public void populateModeMenu(Editor editor, Menu menu) {
+        final Editor at = FrameView.target(editor, "vcsStage");
+        final VcsStatusBuffer b = owner(at);
+        final boolean stages = stages(b);
+        final boolean diffShown = b != null && b.isDiffShown(at.getFrame());
+        final boolean sides = b != null && b.getCompare() != null;
+        final Set<Op> able = StatusActions.able(at);
+        menu.add(editor, "Stage", 'S', "vcsStage", able.contains(Op.STAGE));
+        menu.add(editor, "Unstage", 'U', "vcsUnstage", able.contains(Op.UNSTAGE));
+        menu.add(editor, "Discard", 'D', "vcsDiscard", able.contains(Op.DISCARD));
+        menu.add(editor, "Stage All", 'A', "vcsStageAll", stages);
+        menu.add(editor, "Unstage All", 'L', "vcsUnstageAll", stages);
+        menu.addSeparator();
+        menu.add(editor, "Commit", 'C', "vcsCommit", stages);
+        menu.add(editor, "Amend", 'M', "vcsCommitAmend", stages);
+        menu.add(editor, "Extend", 'E', "vcsCommitExtend", stages);
+        menu.add(editor, "Reword", 'W', "vcsCommitReword", stages);
+        menu.addSeparator();
+        menu.addCheckBox(editor, "Show Diff", 'F', "vcsStatusDiff", diffShown);
+        menu.addCheckBox(editor, "Side by Side", 'B', "vcsStatusDiffView", sides);
+        if (diffShown) {
+            menu.addSeparator();
+            CompareCommands.addChangeItems(editor, menu);
+        }
+        if (sides) {
+            menu.addSeparator();
+            CompareCommands.addItems(editor, menu);
+        } else
+            CompareCommands.addWhitespaceItems(editor, menu);
+        menu.addSeparator();
+        menu.add(editor, "Next", 'N', "vcsStatusNext");
+        menu.add(editor, "Previous", 'P', "vcsStatusPrevious");
+        menu.add(editor, "Next Section", 'X', "vcsStatusNextSection");
+        menu.add(editor, "Previous Section", 'R', "vcsStatusPreviousSection");
+        menu.add(editor, "Show Sections", '1', "vcsStatusDepth 1");
+        menu.add(editor, "Show Files", '2', "vcsStatusDepth 2");
+        menu.add(editor, "Show Hunks", '3', "vcsStatusDepth 3");
+        menu.add(editor, "Show Diffs", '4', "vcsStatusDepth 4");
+        menu.addSeparator();
+        menu.add(editor, "Log...", 'G', "vcsLogPopup");
+        menu.add(editor, "Command Log", 'O', "vcsCommandLog");
+        menu.add(editor, "Refresh", 'H', "vcsStatusRefresh");
+    }
+
     @Override
     public Transient getTransient(Editor editor) {
         final boolean vim = editor != null && editor.getInputHandler() != null;
         if (editor != null && editor.getBuffer() instanceof StatusDiffBuffer d)
-            return diffTransient(vim, stages(d.getOwner()));
+            return diffTransient(stages(d.getOwner()));
+        final boolean stages = editor == null || stages(editor.getBuffer());
         final List<Group> groups = new ArrayList<>();
         groups.add(
             Group.of(
@@ -247,37 +361,42 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 new Command("1", "vcsStatusDepth 1", "sections", true),
                 new Command("2", "vcsStatusDepth 2", "files", true),
                 new Command("3", "vcsStatusDepth 3", "hunks", true),
-                new Command("4", "vcsStatusDepth 4", "diffs", true)));
+                new Command("4", "vcsStatusDepth 4", "diffs", true),
+                new Command(Transient.TAB, "vcsStatusToggle", "toggle", true)));
         groups.add(
             Group.of(
                 "Go",
+                Command.of(Transient.ENTER, "vcsStatusVisit", "go to file"),
                 new Command("n", "vcsStatusNext", "next", true),
-                new Command("p", "vcsStatusPrevious", "previous", true)));
-        groups.add(Group.of("Diff", Command.of("=", "vcsStatusDiffView", "beside: unified or side by side")));
+                new Command("p", "vcsStatusPrevious", "previous", true),
+                new Command(vim ? "]]" : "N", "vcsStatusNextSection", "next section", true),
+                new Command(vim ? "[[" : "P", "vcsStatusPreviousSection", "previous section", true)));
         // Staging, and so committing what is staged, is for a backend that has an index.
-        if (editor == null || stages(editor.getBuffer())) {
-            groups.add(
-                Group.of(
-                    "Stage",
+        final List<Transient.Item> changes = new ArrayList<>();
+        if (stages)
+            changes.addAll(
+                List.of(
                     new Command("s", "vcsStage", "stage", true),
                     new Command("u", "vcsUnstage", "unstage", true),
-                    new Command("d", "vcsDiscard", "discard", true),
                     new Command("S", "vcsStageAll", "stage all", true),
-                    new Command("U", "vcsUnstageAll", "unstage all", true)));
-            groups.add(Group.of("Commit", new Prefix("c", "commit…", CommitCommands::popup)));
-        }
-        groups.add(Group.of("Log", new Prefix("l", "log…", () -> LogCommands.openingPopup(editor))));
-        groups.add(
-            Group.of(
-                "Repository",
-                Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
-                Command.of("$", "vcsCommandLog", "command log"),
-                Command.of("q", "killBuffer", "close")));
+                    new Command("U", "vcsUnstageAll", "unstage all", true),
+                    new Command("x", "vcsDiscard", "discard", true)));
+        changes.add(new Command(Transient.ctrl('r'), "vcsStatusRefresh", "refresh", true));
+        groups.add(new Group("Changes", changes));
+        final List<Transient.Item> commands = new ArrayList<>();
+        commands.add(new Prefix("l", "log…", () -> LogCommands.openingPopup(editor)));
+        commands.add(Command.of("D", "vcsStatusDiff", "diff"));
+        if (stages)
+            commands.add(new Prefix("c", "commit…", CommitCommands::popup));
+        commands.add(Command.of("$", "vcsCommandLog", "command log"));
+        commands.add(Command.of("=", "vcsStatusDiffView", "diff layout"));
+        commands.add(Command.of("q", "killBuffer", "close"));
+        groups.add(new Group("Commands", commands));
         return new Transient("vcs.status", "Status", "git.html#status", groups);
     }
 
     // The diff beside's: what its keys do there.
-    private static Transient diffTransient(boolean vim, boolean stages) {
+    private static Transient diffTransient(boolean stages) {
         final List<Group> groups = new ArrayList<>();
         groups.add(
             Group.of(
@@ -285,17 +404,18 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 new Command("n", "vcsStatusNext", "next hunk", true),
                 new Command("p", "vcsStatusPrevious", "previous hunk", true)));
         // The hunk at the caret, or the lines selected.
+        final List<Transient.Item> changes = new ArrayList<>();
         if (stages)
-            groups.add(
-                Group.of(
-                    "Stage",
+            changes.addAll(
+                List.of(
                     new Command("s", "vcsStage", "stage", true),
                     new Command("u", "vcsUnstage", "unstage", true),
-                    new Command("d", "vcsDiscard", "discard", true)));
+                    new Command("x", "vcsDiscard", "discard", true)));
+        changes.add(new Command(Transient.ctrl('r'), "vcsStatusRefresh", "refresh", true));
+        groups.add(new Group("Changes", changes));
         groups.add(
             Group.of(
                 "Diff",
-                Command.of(vim ? "r" : "g", "vcsStatusRefresh", "refresh"),
                 Command.of("$", "vcsCommandLog", "command log"),
                 Command.of("=", "vcsStatusDiffView", "side by side"),
                 Command.of("q", "vcsStatusDiff", "close")));
@@ -380,21 +500,57 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
 
     /** Opens the status of the current buffer's repository, or of the project's repositories. */
     public static void vcsStatus(Editor editor) {
+        openStatus(editor);
+    }
+
+    /** vcsStatus: the window it shows the status in, or null if there is none. */
+    static Editor openStatus(Editor editor) {
         final List<VcsRepository> repositories = repositoriesFor(editor.getBuffer());
         if (repositories.isEmpty()) {
             editor.status("Not in a repository");
-            return;
+            return null;
         }
         final boolean opening = VcsStatusBuffer.find(repositories) == null;
         final VcsStatusBuffer buffer = VcsStatusBuffer.of(repositories);
-        editor.show(buffer);
+        final Editor shown = editor.show(buffer);
         if (opening && "right".equals(Editor.preferences().getStringProperty(Property.VCS_STATUS_DIFF)))
             buffer.openDiff(editor.getFrame());
+        return shown;
+    }
+
+    /**
+     * The VCS menu: the status, the log, the file's diff and committing, of
+     * editor's buffer's repository, as each applies to it.
+     */
+    public static void populateVcsMenu(Editor editor, Menu menu) {
+        final Buffer buffer = editor.getBuffer();
+        final List<VcsRepository> repositories = repositoriesFor(buffer);
+        final boolean inRepository = !repositories.isEmpty();
+        final File file = buffer.getFile();
+        final boolean tracked = buffer.getType() == Buffer.TYPE_NORMAL
+                && file != null
+                && !file.isRemote()
+                && Repositories.forFile(file) != null;
+        menu.add(editor, "Status", 'S', "vcsStatus", inRepository);
+        menu.add(editor, "Log", 'L', "vcsLog", inRepository);
+        menu.add(editor, "Diff with What Is Staged", 'D', "vcsDiff", tracked);
+        menu.add(
+            editor,
+            "Commit...",
+            'C',
+            "vcsCommitPopup",
+            inRepository
+                    && repositories.stream().allMatch(r -> r.backend().capabilities().contains(Capability.STAGING)));
+        menu.addSeparator();
+        menu.add(editor, "Command Log", 'O', "vcsCommandLog");
     }
 
     // The project's, if it has more than one and the buffer is in one of
     // them; else the buffer's own.
     public static List<VcsRepository> repositoriesFor(Buffer buffer) {
+        // A part of a view, as a side of the status's comparison: the view's.
+        if (buffer.getFrameView() instanceof Buffer view && view != buffer)
+            return repositoriesFor(view);
         if (buffer instanceof VcsStatusBuffer s)
             return s.getRepositories();
         if (buffer instanceof StatusDiffBuffer d)
@@ -629,7 +785,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             return;
         }
         Background.start("vcs visit", () -> {
-            final List<FileDiff> unstaged = repository.backend().readDiff(repository, false, List.of(file.path()));
+            final List<FileDiff> unstaged =
+                    repository.backend().readDiff(repository, false, List.of(file.path()), Whitespace.NONE);
             final int mapped = unstaged.isEmpty() ? lineNumber : throughHunks(unstaged.get(0).hunks(), lineNumber);
             SwingUtilities.invokeLater(() -> visit(editor, f, mapped));
         });
@@ -700,8 +857,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     private static void showCommit(Editor editor, StatusLine line) {
         final VcsRepository repository = line.repository();
         final String hash = line.commit().hash();
+        final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("vcs show", () -> {
-            final byte[] text = repository.backend().readCommit(repository, hash);
+            final byte[] text = repository.backend().readCommit(repository, hash, ignored);
             SwingUtilities.invokeLater(() -> {
                 if (text == null) {
                     editor.status("Can't show " + hash);

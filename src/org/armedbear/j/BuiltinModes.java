@@ -55,6 +55,11 @@ import org.armedbear.j.vcs.status.VcsStatusMode;
 
 /** The modes core provides. */
 final class BuiltinModes implements ModeProvider {
+    BuiltinModes() {
+        // Its own menu, for the vcs modes and any buffer in a repository.
+        AbstractMode.registerMenu(new AbstractMode.AddedMenu("VCS", 'C', VcsStatusMode::populateVcsMenu));
+    }
+
     @Override
     public List<ModeDescriptor> modes() {
         return List.of(

@@ -34,6 +34,7 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.compare.DiffAlignment;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.compare.Side;
 
 /**
@@ -126,7 +127,7 @@ public final class SideBySide {
             oldSide,
             newTitle,
             newSide,
-            alignment != null ? alignment : DiffAlignment.of(oldSide.keys(), newSide.keys()));
+            alignment != null ? alignment : DiffAlignment.of(oldSide, newSide, DiffWhitespace.ignored()));
         final boolean moved = file == null || !file.equals(shown);
         shown = file;
         if (!moved)

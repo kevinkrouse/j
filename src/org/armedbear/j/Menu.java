@@ -47,20 +47,11 @@ public final class Menu extends JMenu {
         String command,
         boolean enabled
     ) {
-        Object[] values = editor.getKeyMapping(command);
-        Debug.assertTrue(values != null);
-        Debug.assertTrue(values.length == 2);
-        KeyMapping mapping = (KeyMapping) values[0];
-        String keyText = mapping != null ? mapping.getKeyText() : "";
-        if (keyText.length() == 3) {
-            if (keyText.charAt(0) == '\'' && keyText.charAt(2) == '\'')
-                keyText = keyText.substring(1, 2).toUpperCase(Locale.ROOT); // 'a' => A
-        }
-        MenuItem menuItem = new MenuItem(label, keyText);
+        MenuItem menuItem = new MenuItem(label, keyText(editor, command));
         if (mnemonic != '\0')
             menuItem.setMnemonic(mnemonic);
         menuItem.setActionCommand(command);
-        menuItem.addActionListener(editor.getDispatcher());
+        menuItem.addActionListener(e -> FrameView.run(editor, e));
         if (!enabled)
             menuItem.setEnabled(false);
         add(menuItem);
@@ -74,5 +65,30 @@ public final class Menu extends JMenu {
         String command
     ) {
         return add(editor, label, mnemonic, command, true);
+    }
+
+    /** An item on or off, as selected, that runs command. */
+    public CheckBoxMenuItem addCheckBox(Editor editor, String label, char mnemonic, String command, boolean selected) {
+        final CheckBoxMenuItem item = new CheckBoxMenuItem(label, keyText(editor, command), selected);
+        if (mnemonic != '\0')
+            item.setMnemonic(mnemonic);
+        item.setActionCommand(command);
+        item.addActionListener(e -> FrameView.run(editor, e));
+        add(item);
+        return item;
+    }
+
+    // The key command is mapped to in editor, as the menu shows it.
+    private static String keyText(Editor editor, String command) {
+        Object[] values = editor.getKeyMapping(command);
+        Debug.assertTrue(values != null);
+        Debug.assertTrue(values.length == 2);
+        KeyMapping mapping = (KeyMapping) values[0];
+        String keyText = mapping != null ? mapping.getKeyText() : "";
+        if (keyText.length() == 3) {
+            if (keyText.charAt(0) == '\'' && keyText.charAt(2) == '\'')
+                keyText = keyText.substring(1, 2).toUpperCase(Locale.ROOT); // 'a' => A
+        }
+        return keyText;
     }
 }

@@ -171,8 +171,10 @@ ran. Nothing else runs them.
 - **`VcsRunner`**: `run(repo, argv, stdin)` returns a future of `VcsResult`
   (exit code, stdout as bytes, stderr, ms). Reads run in parallel on a small
   pool, and writes are serialized per repository. Git's backend sets
-  `GIT_OPTIONAL_LOCKS=0` for reads, `LC_ALL=C`, `GIT_TERMINAL_PROMPT=0` and
-  `--no-pager`, and turns `color.ui` and `core.quotepath` off with `-c`.
+  `GIT_OPTIONAL_LOCKS=0` for reads, `LC_ALL=C` and `GIT_TERMINAL_PROMPT=0`,
+  and turns `color.ui` and `core.quotepath` off with `-c`. Its output is a
+  pipe, so git pages nothing. The command log leaves these `-c` options out
+  of each line and lists them once above.
 - **Parsing**: machine formats only: `status --porcelain=v2 -z --branch
   --show-stash`, `log -z --format=<fields separated by %x00>`, `diff
   --no-ext-diff --no-color -z`, `blame --porcelain` (incremental), `stash list
@@ -202,7 +204,7 @@ ran. Nothing else runs them.
   `packed-refs`, `MERGE_HEAD`), debounced 150 ms, plus j's own saves and the
   end of each write. Svn's `wc.db` is watched the same way. The working tree
   is not watched, since that is too many directories. Instead, saves, focus
-  coming back to the frame, and `g` (refresh) cover it, as magit and
+  coming back to the frame, and `Ctrl R` (refresh) cover it, as magit and
   IntelliJ (on frame activation) do.
 - **Diff model** (`vcs/diff`): `FileDiff` (old and new path, mode, binary,
   status) holds `Hunk` (old and new start and count, lines with
@@ -349,10 +351,12 @@ Recent commits (10)
   untracked file is moved to the trash with `Desktop.moveToTrash`, or deleted
   where there is none), `S`/`U` stage or unstage all, `Enter` visits the file
   at the line (a staged hunk maps through the unstaged diff), `c` opens the
-  commit popup, `z` the stash popup, `l` the log, and `g` refreshes. `d`
-  opens the diff of the thing in its own buffer. `?` opens the popup of all
-  of these.
-- **The diff beside it** (`D`, as the log's details; `vcsStatusDiff=off|right`
+  commit popup, `z` the stash popup, `l` the log, `D` the diff beside it,
+  `=` its layout, `$` the command log, and `Ctrl R` refreshes (`r` is kept
+  for rebase). `N`/`P` (`]]`/`[[` in vim) go from section to section. `?`
+  opens the popup of all of these, in Show, Go, Changes and Commands.
+- **The diff beside it** (`D`, Show Diff, until `D` opens a diff popup as
+  Neogit's does; `vcsStatusDiff=off|right`
   for how it opens): the status keeps the left of the frame and the diff of
   the file at the caret fills a window at the right, as lazygit's main panel
   and IntelliJ's commit window's preview have it. It follows the caret 100
@@ -569,28 +573,25 @@ list alone in a split under the current window, with no details. `Enter`
 commit selected. `q` in the full log then goes back to the layout from
 before the quick log, not to the quick log.
 
-**Details at the bottom or the right** (`vcsLogDetails=bottom|right`,
-toggled with `D`):
+**Details at the right**, the one layout of the unified diff:
 
 ```
-bottom (IntelliJ)                          right
-┌ branch: master ▾  author ▾  path ▾  …┐   ┌ branch: master ▾  …  ┬──────────────┐
-│ ▌ ●─┐ icons: draw at the …  kk  2h   │   │ ▌ ●─┐ icons: draw …  │ M Display.java│
-│ ▌ │ ● build: bb run-way…    kk  1d   │   │ ▌ │ ● build: bb ru…  │ A Icons.java  │
-│ ▌ ●─┘ Merge pull reque…     kk  3d   │   │ ▌ ●─┘ Merge pull r…  ├──────────────┤
-├──────────────────┬───────────────────┤   │ ▌ ● │ web: webShowI… │ @@ -81,6 +81 │
-│ M Display.java   │ @@ -81,6 +81,9 @@ │   │ ▌ │ │ xml: splitAt…  │ -  private … │
-│ A Icons.java     │ -  private int …  │   │ ▌ ●─┘ vim: list ex…  │ +  private … │
-└──────────────────┴───────────────────┘   └──────────────────────┴──────────────┘
+┌ branch: master ▾  …  ┬──────────────┐
+│ ▌ ●─┐ icons: draw …  │ M Display.java│
+│ ▌ │ ● build: bb ru…  │ A Icons.java  │
+│ ▌ ●─┘ Merge pull r…  ├──────────────┤
+│ ▌ ● │ web: webShowI… │ @@ -81,6 +81 │
+│ ▌ │ │ xml: splitAt…  │ -  private … │
+│ ▌ ●─┘ vim: list ex…  │ +  private … │
+└──────────────────────┴──────────────┘
 ```
 
-On the right, the files are a small window on top (a third of the
-height) and the diff fills the rest. That is
-close to magit's: `Enter` on a commit there shows a revision buffer in
-another window, its message, a diffstat of the files, then every file's
-diff. Here the files are a window of their own, so the diff shows one
-file and the files stay in view while it scrolls. `vcsLogDetails=right` is
-the default when the frame is wider than it is tall by more than 1.5 times.
+The files are a small window on top (a third of the height) and the diff
+fills the rest. That is close to magit's: `Enter` on a commit there shows
+a revision buffer in another window, its message, a diffstat of the files,
+then every file's diff. Here the files are a window of their own, so the
+diff shows one file and the files stay in view while it scrolls. `=`
+switches to the diff side by side across the bottom.
 
 **Window layout snapshots.** Nothing saves a layout today: sessions keep
 buffers but not splits. `WindowLayout.capture(frame)` records the split
@@ -744,7 +745,7 @@ splits with it later.
   - **One tree per log.** The list, files and diff share it, so the
     lower half doesn't change as the focus moves between the panes.
 - **The selected commit**: a tree of its files (status letter, icon, path)
-  and the diff of the selected file, laid out as `vcsLogDetails` says.
+  over the diff of the selected file, at the right of the list.
   The focus stays in the list, as in magit and IntelliJ: `Up`/`Down` (or
   `j`/`k`, `n`/`p`) move through the commits, and the files and the diff
   follow, 100 ms after the caret stops so that holding a key does not run
@@ -754,9 +755,7 @@ splits with it later.
   files → diff → list, and in the files the same holds: moving there updates
   the diff, and the focus stays. `Enter` in the files focuses the diff.
   The diff is a `DiffMode` buffer, and folding a hunk works as in the
-  status buffer. At the bottom, in a window narrower
-  than `vcsLogStackedWidth` (100 columns), the files stack above the diff,
-  as they always do on the right.
+  status buffer.
 - **To the file**: `Enter` (or a double click) on a diff line opens the
   working-tree file at that line. The line is mapped through `git diff
   <commit> -- <file>`, adding up the hunks above it, as IntelliJ's "show in
@@ -1300,8 +1299,8 @@ plan with why it is left, before the next phase starts.
      Keys aligned across the three views: `-` then a letter sets a
      filter or a view option in the directory and the log, as magit's
      arguments (dir mode's up is Backspace, netrw's `-` given up); `x`
-     clears the filters in both, and the status discards with `d`, as
-     lazygit; each view has one popup, `?`, the log's with its filters
+     clears the filters in both, and the status discards with `x`, as
+     magit and Neogit; each view has one popup, `?`, the log's with its filters
      first (`l`/`a` freed). Shift and Ctrl Enter open the entry at the
      caret in a split and a vertical split (`dirOpenFileInSplit`,
      `dirOpenFileInVsplit`; `dirOpenFileAndKillDirectory` unbound).
@@ -1530,12 +1529,51 @@ plan with why it is left, before the next phase starts.
      (`vcsLog.sideBySide`); the files pane asks for the commit's file
      (`LogBuffer.compareChange`, `readFileAt` at the first parent and at
      the commit, read at once) in place of the unified diff, which is read
-     again on `=` back. Left:
-     `s` and `w`.
+     again on `=` back. `s` (`compareScrollLock`) unlocks the sides, the
+     scroll and the carets, and locks them again matched to the side in
+     use; `w` (`diffIgnoreWhitespace [trailing|amount|all]`) ignores
+     whitespace, or not, in every diff: `util.Whitespace`, git's
+     `--ignore-space-at-eol`, `-b` or `-w` (`GitCli.ignoring`), on or off
+     and which until j exits (`DiffWhitespace`), from the
+     `diffIgnoreWhitespace` preference, each open buffer that shows diffs
+     told (`DiffWhitespace.Listener`). Git's diffs shown take it, passed
+     to the backend's reads (the status's and the log's, read again on a
+     change, and a recent commit's), and never a patch's; a comparison
+     aligns its sides on their lines as git would
+     (`DiffAlignment.of(Side, Side, Whitespace)`), in the background, one
+     not shown once it is, and one worked out before the change again
+     once it is shown. A hunk or lines are not staged while whitespace is
+     ignored. In vim, where `w` is a motion, they have no key; the
+     toolbar and the Mode menu have them. The status, the log, a
+     comparison and a commit message each have a toolbar and a Mode menu
+     of their commands: a view's for each of its parts
+     (`FrameView.getToolBar`, `populateModeMenu`, its mode's by default),
+     so that a comparison's sides, in the file's mode, have the
+     comparison's, or the view's they are part of. A mode's toolbar is
+     made once per frame (`Frame.keep`; the sidebar's trees are one per
+     frame too, `PerFrame`) and its buttons enabled, pressed in and shown as they say once
+     a command or a change is done (`ToolBarButton.enabledWhen`,
+     `selectedWhen`, `visibleWhen`; `Frame.updateToolbar`); Stage, Unstage
+     and Discard are worked out again only once the caret, the selection
+     or the lines shown change (`StatusActions.ableAsChanged`). A button's
+     or a menu item's command runs in the window its view says
+     (`FrameView.windowFor`, `run`): a diff's in the diff, unified or a
+     side (`CompareCommands.windowFor`); the view's own `vcs` commands in
+     its own window from a side, and in the status those the diff beside
+     has no keys for, as Stage All; any other, as Copy, where it is
+     chosen. A menu shows the keys of the window it is opened in.
+     Whitespace is a split button, its arrow dropping down the kinds
+     (`ToolBar.addSplitButton`). The VCS menu, registered after Mode
+     (`AbstractMode.registerMenu`, from `BuiltinModes`), opens the status,
+     the log, `vcsDiff` and the commit popup; a project's repositories are
+     listed once until `Repositories.invalidateAll`. The sidebar shows the status's
+     sections and files, what the caret is on selected (`StatusTree`).
+     The command log leaves out the `-c` options git always runs with,
+     listing them once (`VcsCommand.options`).
 7. **Branches relative to others, and stash.** The parent branch, the
    unmerged, unpulled and unpushed sections, the stash section and popup,
-   stashes in the log and the refs tree, the status's outline in the
-   sidebar (sections and files by directory), and actions on the refs
+   stashes in the log and the refs tree, the status's files in the
+   sidebar by directory, and actions on the refs
    tree's branches.
 8. **Blame.** Streaming blame, aging, hovers, to the log, blame at the
    parent, the current line's blame, and the authors of each method.

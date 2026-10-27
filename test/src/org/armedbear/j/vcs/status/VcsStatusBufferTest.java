@@ -27,17 +27,25 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Component;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.File;
+import org.armedbear.j.KeyMap;
+import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
+import org.armedbear.j.Menu;
+import org.armedbear.j.Property;
 import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.transients.Transient;
+import org.armedbear.j.transients.TransientKeys;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.Hunk;
@@ -153,6 +161,85 @@ public class VcsStatusBufferTest {
 
     private String head() {
         return git.git("log", "-1", "--format=%h").strip();
+    }
+
+    @Test
+    public void itsTreeHasItsSectionsAndFilesAndAClickGoesToOne() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            final StatusTree tree = status.tree(null);
+            final List<String> rows = new ArrayList<>();
+            for (int i = 0; i < tree.getRowCount(); i++)
+                rows.add(tree.getPathForRow(i).getLastPathComponent() + (tree.isExpanded(i) ? " +" : ""));
+            assertEquals(
+                List.of("Untracked files (1)", "Unstaged changes (1)", "Staged changes (1)", "Recent commits (1)"),
+                rows,
+                "the files' sections closed, the commits alone");
+            final String unstaged = git.root + "|unstaged";
+            status.setExpanded(line("Unstaged changes (1)"), false);
+            assertSame(h.editor(), status.reveal(null, unstaged, unstaged + "|a.txt"));
+            assertEquals("  M  a.txt", h.editor().getDotLine().getText(), "its section opened again");
+            tree.updatePosition();
+            assertEquals(
+                "Unstaged changes (1)",
+                String.valueOf(tree.getSelectionPath().getLastPathComponent()),
+                "the caret's file in a closed section: the section selected");
+            tree.expandRow(1);
+            tree.updatePosition();
+            assertEquals("M  a.txt", String.valueOf(tree.getSelectionPath().getLastPathComponent()));
+            status.reveal(null, git.root + "|staged", null);
+            tree.updatePosition();
+            assertEquals("Staged changes (1)", String.valueOf(tree.getSelectionPath().getLastPathComponent()));
+            assertEquals("Staged changes (1)", h.editor().getDotLine().getText());
+        });
+    }
+
+    @Test
+    public void theVcsMenuIsTheRepositorysAndTheFilesAsTheyApply() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            final Menu menu = new Menu("VCS");
+            VcsStatusMode.populateVcsMenu(h.editor(), menu);
+            final List<String> items = new ArrayList<>();
+            for (Component c : menu.getMenuComponents())
+                if (c instanceof JMenuItem item)
+                    items.add(item.getText() + (item.isEnabled() ? "" : " (off)"));
+            assertEquals(
+                List.of("Status", "Log", "Diff with What Is Staged (off)", "Commit...", "Command Log"),
+                items,
+                "the status is no file to diff");
+        });
+    }
+
+    @Test
+    public void thePopupsKeysAreTheStatussOwn() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            for (boolean vim : new boolean[] { false, true }) {
+                if (vim) {
+                    h.vim();
+                    h.editor().getBuffer().setProperty(Property.EDIT_MODE, "vim");
+                }
+                final Transient t = VcsStatusMode.getMode().getTransient(h.editor());
+                assertEquals(
+                    List.of("Show", "Go", "Changes", "Commands"),
+                    t.groups().stream().map(Transient.Group::label).toList());
+                final Buffer b = h.editor().getBuffer();
+                final KeyMap km =
+                        vim ? VcsStatusMode.getMode().getModalKeyMap(b) : VcsStatusMode.getMode().getKeyMap(b);
+                for (Transient.Group g : t.groups())
+                    for (Transient.Item item : g.items())
+                        // ]] and [[ are vim's own, going by sectionFrom.
+                        if (item instanceof Transient.Command c && !(vim && c.key().length() == 2)) {
+                            final KeyMapping m = TransientKeys.lookup(km, c.key());
+                            assertNotNull(m, (vim ? "vim: " : "") + c.key() + " is no key in the status");
+                            assertEquals(c.command(), m.getCommand(), (vim ? "vim: " : "") + c.key());
+                        }
+            }
+        });
     }
 
     @Test
@@ -600,6 +687,31 @@ public class VcsStatusBufferTest {
     }
 
     @Test
+    public void fromItsPartsTheStatussOwnCommandsRunInTheStatusAndTheRestWhereChosen() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        assertNotNull(c);
+        for (Buffer side : List.of(c, c.getOld())) {
+            assertTrue(VcsStatusBuffer.runsInStatus("vcsStage", side));
+            assertFalse(VcsStatusBuffer.runsInStatus("copyRegion", side), "Edit > Copy copies from the side");
+            assertFalse(VcsStatusBuffer.runsInStatus("find", side));
+        }
+        onEdt(() -> status.diffView(null, status));
+        final StatusDiffBuffer d = status.getDiff();
+        assertNotNull(d);
+        assertFalse(VcsStatusBuffer.runsInStatus("vcsStage", d), "the hunk at the diff's caret");
+        assertTrue(VcsStatusBuffer.runsInStatus("vcsStageAll", d));
+        assertTrue(VcsStatusBuffer.runsInStatus("vcsStatusDepth", d));
+        assertTrue(VcsStatusBuffer.runsInStatus("vcsCommitAmend", d));
+        assertFalse(VcsStatusBuffer.runsInStatus("copyRegion", d));
+    }
+
+    @Test
     public void sideBySideTheComparisonIsAPartOfTheStatusAndFollowsItsCaret() throws Exception {
         repository();
         open();
@@ -703,7 +815,7 @@ public class VcsStatusBufferTest {
             assertEquals("vcsStatusDiffView", c.getModalKeyMapForMode().lookup('=', 0, 0).getCommand());
             assertEquals("vcsStatusDiff", c.getKeyMapForMode().lookup('q', 0, 0).getCommand());
             assertEquals("vcsStatusDiff", c.getModalKeyMapForMode().lookup('q', 0, 0).getCommand());
-            assertNull(status.getKeyMapForMode().lookup('D', 0, 0), "= opens the diff");
+            assertEquals("vcsStatusDiff", status.getKeyMapForMode().lookup('D', 0, 0).getCommand());
             assertEquals(
                 "vcsStatusVisit",
                 c.getOld().getKeyMapForMode().lookup('\0', java.awt.event.KeyEvent.VK_ENTER, 0).getCommand());

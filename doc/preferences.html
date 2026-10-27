@@ -733,6 +733,21 @@ file, as in a session, wins over all of it.
 <b>Default value:</b> true
 </dl>
 
+<code><a name="diffIgnoreWhitespace">diffIgnoreWhitespace</a></code>
+<dl>
+<dd>
+What whitespace diffs ignore to begin with, unified and side by side, as
+git diff's options do: <code>none</code>; <code>trailing</code>, at line
+ends (<code>--ignore-space-at-eol</code>); <code>amount</code>, changes in
+how much there is (<code>-b</code>); or <code>all</code> (<code>-w</code>).
+<a href="commands.html#diffIgnoreWhitespace">diffIgnoreWhitespace</a>
+(<b>w</b> in a comparison, or the toolbar's Ignore Whitespace button) turns
+ignoring off or on again, and its menu chooses what, until j exits. See
+<a href="git.html#whitespace">Ignoring whitespace</a>.
+<p>
+<b>Default value:</b> none
+</dl>
+
 <code><a name="dialogFontName">dialogFontName</a></code>
 <dl>
 <dd>
@@ -2375,17 +2390,6 @@ Whether git's buffers show a dimmed row of their main keys over the first line.
 <b>Default value:</b> true
 </dl>
 
-<code><a name="vcsLogDetails">vcsLogDetails</a></code>
-<dl>
-<dd>
-Where the log shows a commit's details: <code>bottom</code>, <code>right</code>,
-or <code>auto</code>, at the right when the frame is more than one and a half
-times as wide as it is tall. Once <b>D</b> has moved them, the log
-opens with them where it left them. See <a href="git.html#log">The log</a>.
-<p>
-<b>Default value:</b> auto
-</dl>
-
 <code><a name="vcsLogCollapseRuns">vcsLogCollapseRuns</a></code>
 <dl>
 <dd>
@@ -2423,15 +2427,6 @@ How the log writes its dates: <code>age</code> (<code>3h</code>,
 <a href="#dirTimeStyle">dirTimeStyle</a>. -t steps it in one log.
 <p>
 <b>Default value:</b> age
-</dl>
-
-<code><a name="vcsLogStackedWidth">vcsLogStackedWidth</a></code>
-<dl>
-<dd>
-Below this many columns, the log's details at the bottom put the files over
-the diff, not beside it.
-<p>
-<b>Default value:</b> 100
 </dl>
 
 <code><a name="vcsSigns">vcsSigns</a></code>

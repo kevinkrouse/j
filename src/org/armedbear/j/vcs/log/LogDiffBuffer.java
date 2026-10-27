@@ -22,7 +22,9 @@ package org.armedbear.j.vcs.log;
 
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Log;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.status.DiffPane;
@@ -59,10 +61,11 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
             return;
         }
         final VcsRepository r = getOwner().repositoryOf(c);
+        final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("vcs log diff", () -> {
             FileDiff read;
             try {
-                read = r.backend().readChangeDiff(r, c.id(), c.firstParent(), ch);
+                read = r.backend().readChangeDiff(r, c.id(), c.firstParent(), ch, ignored);
             }
             catch (RuntimeException e) {
                 Log.error(e);

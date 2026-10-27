@@ -29,9 +29,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -42,18 +47,24 @@ import org.armedbear.j.FoldCommands;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
+import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Position;
 import org.armedbear.j.Preferences;
 import org.armedbear.j.Property;
+import org.armedbear.j.SessionProperties;
+import org.armedbear.j.ToolBar;
+import org.armedbear.j.ToolBarButton;
 import org.armedbear.j.VirtualText;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.mode.compare.DiffAlignment.Kind;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.text.PlainTextMode;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vim.VimRegisters;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class CompareTest {
@@ -76,11 +87,35 @@ public class CompareTest {
         Editor.preferences().setProperty(Property.COMPARE_ALIGN, "true");
     }
 
+    // s is kept in the session, and w until j exits: each test starts
+    // locked and comparing whitespace, as diffIgnoreWhitespace's default
+    // has it, and the session is left as it was.
+    private static final String SCROLL_LOCK = "compare.scrollLock";
+    private String scrollLockWas;
+    private Executor realignerWas;
+
+    @BeforeEach
+    public void setUp() throws Exception {
+        onEdt(() -> {
+            EditorHarness.useScratchHome();
+            final SessionProperties session = Editor.getSessionProperties();
+            scrollLockWas = session.getStringProperty(SCROLL_LOCK, null);
+            session.setBooleanProperty(SCROLL_LOCK, true);
+            DiffWhitespace.forget();
+            // Aligned again at once, shown on the event thread's next turn.
+            realignerWas = CompareBuffer.realigner;
+            CompareBuffer.realigner = Runnable::run;
+        });
+    }
+
     @AfterEach
     public void tearDown() throws Exception {
         if (alignSet)
             restore(Property.COMPARE_ALIGN, alignWas);
         onEdt(() -> {
+            Editor.getSessionProperties().setStringProperty(SCROLL_LOCK, scrollLockWas);
+            CompareBuffer.realigner = realignerWas;
+            DiffWhitespace.forget();
             if (left != null) {
                 left.showBuffer(left.buffer());
                 left.close();
@@ -455,6 +490,8 @@ public class CompareTest {
                         - 1,
                 "the file's mode's keys still, and these");
             assertNotNull(diff.getKeyMapForMode().getKeyMapping("nextChange"));
+            assertEquals("compareScrollLock", diff.getKeyMapForMode().lookup('s', 0, 0).getCommand());
+            assertEquals("diffIgnoreWhitespace", diff.getOld().getKeyMapForMode().lookup('w', 0, 0).getCommand());
         });
     }
 
@@ -478,6 +515,203 @@ public class CompareTest {
                         + left.editor().getDisplay().getPixelsAboveTopLine(),
                 "level again");
         });
+    }
+
+    @Test
+    public void sUnlocksTheScrollAndTheCaretsAndLockedAgainTheyMatch() throws Exception {
+        aligned();
+        windows();
+        onEdt(() -> {
+            final int ch = Display.getCharHeight();
+            CompareCommands.compareScrollLock(right.editor());
+            assertEquals("Scroll lock off", right.status());
+            left.editor().getDisplay().scrollByPixels(6 * ch);
+            left.editor().updateScrollBars();
+            assertEquals("d", left.editor().getDisplay().getTopLine().getText());
+            assertEquals("a", right.editor().getDisplay().getTopLine().getText(), "the other left alone");
+            right.editor().setDot(diff.getLine(1), 0);
+            diff.afterCommand(right.editor());
+            assertEquals("a", left.editor().getDotLine().getText(), "its caret too");
+            CompareCommands.compareScrollLock(right.editor());
+            assertEquals("Scroll lock on", right.status());
+            assertEquals(
+                diff.getY(right.editor().getDisplay().getTopLine())
+                        + right.editor().getDisplay().getPixelsAboveTopLine(),
+                diff.getOld().getY(left.editor().getDisplay().getTopLine())
+                        + left.editor().getDisplay().getPixelsAboveTopLine(),
+                "level again");
+        });
+    }
+
+    @Test
+    public void eachKindOfWhitespaceIsIgnoredAsGitIgnoresIt() {
+        assertEquals(" a  b", Whitespace.TRAILING.key(" a  b \t"));
+        assertEquals(" a b", Whitespace.AMOUNT.key(" a \t b  "));
+        assertEquals("ab", Whitespace.ALL.key(" a \t b  "));
+        assertEquals(" a ", Whitespace.NONE.key(" a "));
+        final Side newline = side("a\nb\n");
+        final Side none = side("a\nb");
+        assertEquals(1, DiffAlignment.of(newline, none, Whitespace.NONE).changes().size());
+        assertEquals(0, DiffAlignment.of(newline, none, Whitespace.TRAILING).changes().size(), "nor a last newline");
+    }
+
+    @Test
+    public void wIgnoresWhitespaceInEachComparisonShownAndAHiddenOneOnceShown() throws Exception {
+        final Side before = side("a b\nc\nd\n");
+        final Side after = side("a  b\nc\nD\n");
+        onEdt(() -> {
+            diff = CompareBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", before, "new", after);
+            right = EditorHarness.create().rows(5);
+            right.showBuffer(diff);
+            assertEquals(2, diff.getAlignment().changes().size());
+            DiffWhitespace.toggle();
+        });
+        // Aligned again off the event thread, then shown on it.
+        onEdt(() -> {
+            assertEquals(Whitespace.ALL, diff.getAlignment().ignored());
+            assertEquals(1, diff.getAlignment().changes().size(), "a b and a  b the same");
+            assertEquals(Kind.SAME, diff.getAlignment().rows().get(0).kind());
+            DiffWhitespace.choose(Whitespace.TRAILING);
+        });
+        onEdt(() -> {
+            assertEquals(2, diff.getAlignment().changes().size(), "only at line ends");
+            DiffWhitespace.choose(Whitespace.AMOUNT);
+        });
+        onEdt(() -> {
+            assertEquals(1, diff.getAlignment().changes().size());
+            // Worked out with whitespace, as in the background before w.
+            final Side again = side("a   b\nc\nD\n");
+            diff.update(before, again, DiffAlignment.of(before.keys(), again.keys()));
+        });
+        onEdt(() -> {
+            assertEquals(Whitespace.AMOUNT, diff.getAlignment().ignored(), "worked out again as w has it");
+            assertEquals(1, diff.getAlignment().changes().size());
+            assertEquals(List.of(diff.getLine(2)), diff.getChangeStarts());
+            DiffWhitespace.choose(Whitespace.AMOUNT);
+            assertFalse(DiffWhitespace.isIgnoring(), "the kind ignored chosen again: compared");
+        });
+        onEdt(() -> {
+            assertEquals(2, diff.getAlignment().changes().size());
+            // Hidden, it is aligned once shown again.
+            right.showBuffer(right.buffer());
+            DiffWhitespace.toggle();
+        });
+        onEdt(() -> {
+            assertEquals(Whitespace.NONE, diff.getAlignment().ignored(), "not while hidden");
+            diff.sideShown(right.editor());
+        });
+        onEdt(() -> assertEquals(Whitespace.AMOUNT, diff.getAlignment().ignored(), "the kind last chosen"));
+    }
+
+    @Test
+    public void anUpdateWhileARealignIsUnderWayIsAlignedAgainAfterIt() throws Exception {
+        final List<Runnable> queued = new ArrayList<>();
+        final Side before = side("a b\nc\n");
+        onEdt(() -> {
+            CompareBuffer.realigner = queued::add;
+            diff = CompareBuffer.open(null, JavaMode.getMode(), "Demo.java", "old", before, "new", side("a  b\nc\n"));
+            right = EditorHarness.create().rows(5);
+            right.showBuffer(diff);
+            DiffWhitespace.toggle();
+            assertEquals(1, queued.size());
+            // Read before the toggle, comparing whitespace.
+            final Side again = side("a  b\nC\n");
+            diff.update(before, again, DiffAlignment.of(before, again, Whitespace.NONE));
+            assertEquals(1, queued.size(), "not twice for the same whitespace");
+            queued.remove(0).run();
+        });
+        onEdt(() -> {
+            assertEquals(Whitespace.NONE, diff.getAlignment().ignored(), "for the texts before: not shown");
+            assertEquals(1, queued.size(), "worked out again for the texts now");
+            queued.remove(0).run();
+        });
+        onEdt(() -> assertEquals(Whitespace.ALL, diff.getAlignment().ignored()));
+    }
+
+    @Test
+    public void unlockedAnUpdateLeavesTheOtherSideWhereItIs() throws Exception {
+        aligned();
+        windows();
+        onEdt(() -> {
+            final int ch = Display.getCharHeight();
+            CompareCommands.compareScrollLock(right.editor());
+            left.editor().getDisplay().scrollByPixels(6 * ch);
+            left.editor().updateScrollBars();
+            final String top = right.editor().getDisplay().getTopLine().getText();
+            final Side more = side(NEW + "more\n");
+            diff.update(side(OLD), more, DiffAlignment.of(side(OLD), more, Whitespace.NONE));
+            assertEquals(top, right.editor().getDisplay().getTopLine().getText(), "not scrolled to match");
+            assertEquals("d", left.editor().getDisplay().getTopLine().getText());
+        });
+    }
+
+    @Test
+    public void itsButtonsArePressedAndEnabledAsTheyAre() throws Exception {
+        windows();
+        onEdt(() -> {
+            final boolean[] shown = { true };
+            final ToolBar tb = new ToolBar(null);
+            CompareCommands.addButtons(tb, () -> shown[0]);
+            tb.update();
+            final ToolBarButton lock = button(tb, "compareScrollLock");
+            final ToolBarButton whitespace = button(tb, "diffIgnoreWhitespace");
+            assertTrue(lock.isSelected() && lock.isEnabled());
+            assertFalse(whitespace.isSelected());
+            CompareCommands.compareScrollLock(right.editor());
+            CompareCommands.diffIgnoreWhitespace(right.editor(), "all");
+            assertEquals("Ignoring all whitespace", right.status());
+            shown[0] = false;
+            tb.update();
+            assertFalse(lock.isSelected(), "unlocked");
+            assertFalse(lock.isEnabled(), "no comparison shown");
+            assertTrue(whitespace.isSelected() && whitespace.isEnabled(), "for a unified diff too");
+            CompareCommands.diffIgnoreWhitespace(right.editor(), "most");
+            assertEquals("Not none, trailing, amount or all: most", right.status());
+        });
+    }
+
+    private static ToolBarButton button(ToolBar tb, String command) {
+        for (Component c : tb.getComponents())
+            if (c instanceof ToolBarButton b && command.equals(b.getActionCommand()))
+                return b;
+        throw new AssertionError("no button for " + command);
+    }
+
+    @Test
+    public void itsModeMenuIsItsOwnOrItsOwnersAndChecksTheToggles() throws Exception {
+        windows();
+        onEdt(() -> {
+            final Menu menu = new Menu("Mode");
+            left.editor().getMode().populateMenu(left.editor(), menu);
+            assertEquals(
+                List.of("Next Change", "Previous Change", "Scroll Lock", "Ignore Whitespace", "Close"),
+                labels(menu));
+            DiffWhitespace.toggle();
+            final Menu again = new Menu("Mode");
+            right.editor().getMode().populateMenu(right.editor(), again);
+            assertTrue(((JCheckBoxMenuItem) again.getMenuComponent(3)).isSelected(), "Scroll Lock on");
+            final JMenu kinds = (JMenu) again.getMenuComponent(4);
+            assertEquals(
+                List.of(false, false, true),
+                List.of(kinds.getItem(0).isSelected(), kinds.getItem(1).isSelected(), kinds.getItem(2).isSelected()),
+                "all ignored, as w left it");
+            // A part of something that is no view has its file's mode's.
+            diff.embed(left.buffer(), km -> {});
+            final Menu owners = new Menu("Mode");
+            left.editor().getMode().populateMenu(left.editor(), owners);
+            final Menu modes = new Menu("Mode");
+            JavaMode.getMode().populateModeMenu(left.editor(), modes);
+            assertEquals(labels(modes), labels(owners));
+        });
+    }
+
+    // A menu's items' labels, its separators left out.
+    private static List<String> labels(Menu menu) {
+        final List<String> out = new ArrayList<>();
+        for (Component c : menu.getMenuComponents())
+            if (c instanceof JMenuItem item)
+                out.add(item.getText());
+        return out;
     }
 
     @Test

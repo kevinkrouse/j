@@ -1228,11 +1228,15 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     /**
      * A command ran: the caret popup closes, unless a key sequence is only
-     * begun, and the buffer hears of it.
+     * begun, the buffer hears of it, and the toolbar shows what is enabled
+     * now.
      */
     void commandRan() {
         if (buffer != null)
             buffer.afterCommand(this);
+        final Editor current = currentEditor();
+        if (current != null && current.getFrame() != null)
+            current.getFrame().updateToolbar();
         if (isKeySequencePending())
             return;
         if (caretPopupReplaced)

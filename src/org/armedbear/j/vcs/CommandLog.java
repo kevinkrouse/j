@@ -39,11 +39,12 @@ public final class CommandLog {
     static final int OUTPUT_LIMIT = 16 * 1024;
 
     /**
-     * One command: when it finished, what ran where, what it read (a patch,
-     * say; null if nothing) and what it said.
+     * One command: when it finished, what ran where, without the options
+     * its program always runs with, what it read (a patch, say; null if
+     * nothing) and what it said.
      */
-    public record Entry(Instant time, String directory, String commandLine, int exitCode, long millis, String input,
-            String output, String stderr) {
+    public record Entry(Instant time, String directory, String program, String commandLine, String options,
+            int exitCode, long millis, String input, String output, String stderr) {
         public boolean failed() {
             return exitCode != 0;
         }
@@ -57,7 +58,9 @@ public final class CommandLog {
         byte[] in = result.command().stdin();
         Entry entry = new Entry(Instant.now(),
                 result.command().directory().toString(),
-                result.command().commandLine(),
+                result.command().program(),
+                result.command().shortCommandLine(),
+                VcsCommand.line(result.command().options()),
                 result.exitCode(),
                 result.millis(),
                 in == null ? null : text(in),
@@ -92,12 +95,18 @@ public final class CommandLog {
 
     /**
      * The log as text: a line per command, newest last, with the error output
-     * of each that failed under it, and what it read.
+     * of each that failed under it, and what it read; above the first with
+     * options its program always runs with, a line saying what they are.
      */
-    static String format(List<Entry> list) {
+    public static String format(List<Entry> list) {
         StringBuilder sb = new StringBuilder();
         String lastDirectory = null;
+        String lastOptions = "";
         for (Entry e : list) {
+            if (!e.options().isEmpty() && !e.options().equals(lastOptions)) {
+                sb.append("[").append(e.program()).append(" runs with ").append(e.options()).append("]\n");
+                lastOptions = e.options();
+            }
             if (!e.directory().equals(lastDirectory)) {
                 sb.append(e.directory()).append('\n');
                 lastDirectory = e.directory();

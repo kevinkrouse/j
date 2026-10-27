@@ -22,6 +22,7 @@ package org.armedbear.j.vcs;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,23 +30,44 @@ import java.util.Map;
  * A version control program to run: its arguments, the directory it runs in,
  * what it adds to the environment, and what it reads on standard input.
  * A write changes the repository, and writes to one repository run one at a
- * time.
+ * time. options are the arguments every command of the program runs with,
+ * which argv has after the program's name.
  */
-public record VcsCommand(Path directory, List<String> argv, Map<String, String> environment, byte[] stdin,
-        boolean write, Duration timeout) {
+public record VcsCommand(Path directory, List<String> argv, List<String> options, Map<String, String> environment,
+        byte[] stdin, boolean write, Duration timeout) {
     public static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(2);
 
     public VcsCommand {
         argv = List.copyOf(argv);
+        options = List.copyOf(options);
+        if (argv.size() <= options.size() || !argv.subList(1, 1 + options.size()).equals(options))
+            throw new IllegalArgumentException("not after the program's name: " + options);
         environment = Map.copyOf(environment);
         if (timeout == null)
             timeout = DEFAULT_TIMEOUT;
     }
 
+    /** The program's name. */
+    public String program() {
+        return argv.get(0);
+    }
+
     /** The arguments as a shell would show them, quoted where needed. */
     public String commandLine() {
+        return line(argv);
+    }
+
+    /** The program's name and the arguments after its options, as commandLine shows them. */
+    public String shortCommandLine() {
+        final List<String> args = new ArrayList<>(argv.subList(1 + options.size(), argv.size()));
+        args.add(0, program());
+        return line(args);
+    }
+
+    /** args as commandLine shows them. */
+    static String line(List<String> args) {
         StringBuilder sb = new StringBuilder();
-        for (String arg : argv) {
+        for (String arg : args) {
             if (sb.length() > 0)
                 sb.append(' ');
             if (!arg.isEmpty() && arg.chars().allMatch(c -> c > ' ' && "'\"\\$`!*?&;|<>()[]{}#~".indexOf(c) < 0))

@@ -29,15 +29,12 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ChangeMarks;
-import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.Line;
 import org.armedbear.j.MotionCommands;
 import org.armedbear.j.ProjectRoot;
-import org.armedbear.j.Property;
-import org.armedbear.j.SessionProperties;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.WindowLayout.Split;
@@ -163,36 +160,14 @@ public final class LogCommands {
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         }
         log.forgetShown();
-        if (frame != null) {
-            if (log.right == null)
-                log.right = detailsAtRight(frame);
+        if (frame != null)
             frame.showView(log, log);
-        }
         log.showDetails();
     }
 
-    // Where D last put the details, kept in the session.
-    private static final String DETAILS_KEY = "vcsLog.details";
-
-    static boolean detailsAtRight(Frame frame) {
-        final SessionProperties session = Editor.getSessionProperties();
-        String where = session != null ? session.getStringProperty(DETAILS_KEY, null) : null;
-        if (where == null)
-            where = Editor.preferences().getStringProperty(Property.VCS_LOG_DETAILS);
-        if ("right".equals(where))
-            return true;
-        if ("bottom".equals(where))
-            return false;
-        if (frame == null)
-            return false;
-        final int w = frame.getEditorPane().getWidth();
-        final int h = frame.getEditorPane().getHeight();
-        return h > 0 && w > 1.5 * h;
-    }
-
-    // The list, then the files over or beside the diff, as the details go;
+    // The list at the left, and at the right the files over the diff;
     // focus's window focused.
-    static WindowLayout.Node layout(Frame frame, LogBuffer log, Buffer focus) {
+    static WindowLayout.Node layout(LogBuffer log, Buffer focus) {
         if (log.sides != null) {
             // Side by side: the list and the files over the two sides, across the frame.
             final CompareBuffer c = log.sides.comparison();
@@ -207,19 +182,9 @@ public final class LogCommands {
         final Window list = Window.showing(log, focus != log.files && focus != log.diff);
         final Window files = Window.showing(log.files, focus == log.files);
         final Window diff = Window.showing(log.diff, focus == log.diff);
-        final Split details;
-        final Split shape;
-        if (log.right) {
-            // The files on top, a third of the height at most.
-            details = new Split(false, List.of(files, diff), List.of(1 / 3.0, 2 / 3.0));
-            shape = new Split(true, List.of(list, details), List.of(0.5, 0.5));
-        } else {
-            final int columns = frame.getEditorPane().getWidth() / Math.max(1, Display.getCharWidth());
-            final boolean stacked = columns < Editor.preferences().getIntegerProperty(Property.VCS_LOG_STACKED_WIDTH);
-            details = new Split(!stacked, List.of(files, diff), List.of(0.3, 0.7));
-            shape = new Split(false, List.of(list, details), List.of(0.55, 0.45));
-        }
-        return shape;
+        // The files on top, a third of the height at most.
+        final Split details = new Split(false, List.of(files, diff), List.of(1 / 3.0, 2 / 3.0));
+        return new Split(true, List.of(list, details), List.of(0.5, 0.5));
     }
 
     // Closing.
@@ -363,24 +328,6 @@ public final class LogCommands {
             d.toggleAll();
         else if (editor.getBuffer() instanceof LogBuffer log)
             log.toggleAllRuns();
-    }
-
-    /** D: the details at the bottom, or at the right. */
-    public static void vcsLogToggleDetails(Editor editor) {
-        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        final Frame frame = editor.getFrame();
-        if (log == null || !log.isFull())
-            return;
-        if (log.sides != null) {
-            editor.status("Side by side, the diff is across the bottom");
-            return;
-        }
-        log.right = !Boolean.TRUE.equals(log.right);
-        final SessionProperties session = Editor.getSessionProperties();
-        if (session != null)
-            session.setStringProperty(DETAILS_KEY, log.right ? "right" : "bottom");
-        if (frame != null)
-            frame.layOutView(log, editor.getBuffer());
     }
 
     /** =: the diff unified, or side by side across the bottom. */

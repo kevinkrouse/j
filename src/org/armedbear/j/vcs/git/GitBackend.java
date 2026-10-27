@@ -24,6 +24,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.CommitOption;
@@ -100,15 +101,15 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public StatusData readStatus(VcsRepository repository, BiPredicate<String, String> wantsDiff) {
+    public StatusData readStatus(VcsRepository repository, BiPredicate<String, String> wantsDiff, Whitespace ignored) {
         if (!Git.haveGit())
             return StatusData.failed("git is not on the PATH");
-        return GitStatusReader.read(repository, wantsDiff);
+        return GitStatusReader.read(repository, wantsDiff, ignored);
     }
 
     @Override
-    public List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths) {
-        return GitStatusReader.diff(repository, staged, paths);
+    public List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
+        return GitStatusReader.diff(repository, staged, paths, ignored);
     }
 
     @Override
@@ -183,9 +184,10 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public byte[] readCommit(VcsRepository repository, String id) {
-        final VcsResult r = GitCli
-                .run(GitCli.read(repository.root(), "show", "--no-ext-diff", "--no-color", "--format=fuller", id));
+    public byte[] readCommit(VcsRepository repository, String id, Whitespace ignored) {
+        final List<String> args = GitCli.ignoring(ignored, new ArrayList<>(List.of("show")));
+        args.addAll(List.of("--no-ext-diff", "--no-color", "--format=fuller", id));
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
         return r.succeeded() ? r.stdout() : null;
     }
 
@@ -205,8 +207,13 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public FileDiff readChangeDiff(VcsRepository repository, String id, String parent, CommitChange change) {
-        return GitLog.diff(repository, id, parent, change);
+    public FileDiff readChangeDiff(
+            VcsRepository repository,
+            String id,
+            String parent,
+            CommitChange change,
+            Whitespace ignored) {
+        return GitLog.diff(repository, id, parent, change, ignored);
     }
 
     @Override

@@ -26,19 +26,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.VcsCommand;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.VcsRunner;
 
 /**
- * Git command lines, as the tools run them: no pager, no colors, paths
+ * Git command lines, as the tools run them: no colors, paths
  * unquoted and with git's default a/ and b/ prefixes, messages in English,
  * and never a prompt for a password.
  */
 public final class GitCli {
-    static final List<String> PREFIX = List.of(
-        "git",
-        "--no-pager",
+    // What every git command runs with. Not --no-pager: git pages only to a
+    // terminal, and its output here is a pipe.
+    static final List<String> OPTIONS = List.of(
         // color.ui does not override a color.diff or color.status the user set.
         "-c",
         "color.ui=false",
@@ -72,17 +73,17 @@ public final class GitCli {
 
     /** A command that only reads, run in dir. */
     public static VcsCommand read(Path dir, String... args) {
-        return new VcsCommand(dir, argv(args), env(READ_ENV), null, false, null);
+        return new VcsCommand(dir, argv(args), OPTIONS, env(READ_ENV), null, false, null);
     }
 
     /** A command that only reads, run in dir, reading stdin. */
     public static VcsCommand read(Path dir, byte[] stdin, String... args) {
-        return new VcsCommand(dir, argv(args), env(READ_ENV), stdin, false, null);
+        return new VcsCommand(dir, argv(args), OPTIONS, env(READ_ENV), stdin, false, null);
     }
 
     /** A command that changes the repository at root, reading stdin if not null. */
     public static VcsCommand write(Path root, byte[] stdin, String... args) {
-        return new VcsCommand(root, argv(args), env(WRITE_ENV), stdin, true, null);
+        return new VcsCommand(root, argv(args), OPTIONS, env(WRITE_ENV), stdin, true, null);
     }
 
     /** As write, with a timeout of its own and more environment, as a commit's hooks want. */
@@ -94,7 +95,20 @@ public final class GitCli {
             String... args) {
         Map<String, String> env = new HashMap<>(env(WRITE_ENV));
         env.putAll(environment);
-        return new VcsCommand(root, argv(args), env, stdin, true, timeout);
+        return new VcsCommand(root, argv(args), OPTIONS, env, stdin, true, timeout);
+    }
+
+    /** args with git diff's option to ignore ignored's whitespace, if any. */
+    static List<String> ignoring(Whitespace ignored, List<String> args) {
+        final String option = switch (ignored) {
+            case NONE -> null;
+            case TRAILING -> "--ignore-space-at-eol";
+            case AMOUNT -> "--ignore-space-change";
+            case ALL -> "--ignore-all-space";
+        };
+        if (option != null)
+            args.add(option);
+        return args;
     }
 
     public static VcsResult run(VcsCommand command) {
@@ -153,7 +167,8 @@ public final class GitCli {
     }
 
     private static List<String> argv(String... args) {
-        List<String> argv = new ArrayList<>(PREFIX);
+        List<String> argv = new ArrayList<>(List.of("git"));
+        argv.addAll(OPTIONS);
         argv.addAll(List.of(args));
         return argv;
     }
