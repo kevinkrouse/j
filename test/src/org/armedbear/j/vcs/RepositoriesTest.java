@@ -109,6 +109,18 @@ public class RepositoriesTest {
     }
 
     @Test
+    public void aProjectIsListedOnceUntilInvalidated() throws IOException {
+        dir("later/.j-project");
+        dir("later/a/.git");
+        final File root = file(dir("later"));
+        assertEquals(1, Repositories.forProject(root).size());
+        dir("later/b/.git");
+        assertEquals(1, Repositories.forProject(root).size(), "as listed");
+        Repositories.invalidateAll();
+        assertEquals(2, Repositories.forProject(root).size());
+    }
+
+    @Test
     public void withoutAMarkerOnlyTheRootsOwn() throws IOException {
         dir("solo/.git");
         dir("solo/vendored/.git");

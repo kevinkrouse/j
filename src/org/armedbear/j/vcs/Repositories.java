@@ -39,6 +39,8 @@ public final class Repositories {
     private static final Map<Path, VcsRepository> repositories = new ConcurrentHashMap<>();
     // Directory -> the root of the repository holding it, if any.
     private static final Map<Path, Optional<Path>> roots = new HashMap<>();
+    // Project root -> its repositories, as forProject lists them.
+    private static final Map<Path, List<VcsRepository>> projects = new HashMap<>();
 
     private Repositories() {}
 
@@ -101,13 +103,27 @@ public final class Repositories {
     /**
      * The project's repositories, sorted by path: the project root's own,
      * and, under a .j-project directory, each of its immediate subdirectories
-     * that is a repository root.
+     * that is a repository root. Listed once until invalidateAll.
      */
     public static List<VcsRepository> forProject(File projectRoot) {
-        List<VcsRepository> list = new ArrayList<>();
         if (projectRoot == null || !projectRoot.isLocal())
-            return list;
+            return new ArrayList<>();
         Path root = Path.of(projectRoot.canonicalPath());
+        List<VcsRepository> listed;
+        synchronized (roots) {
+            listed = projects.get(root);
+        }
+        if (listed == null) {
+            listed = List.copyOf(list(root));
+            synchronized (roots) {
+                projects.put(root, listed);
+            }
+        }
+        return new ArrayList<>(listed);
+    }
+
+    private static List<VcsRepository> list(Path root) {
+        List<VcsRepository> list = new ArrayList<>();
         VcsRepository own = forDirectory(root);
         if (own != null)
             list.add(own);
@@ -143,11 +159,13 @@ public final class Repositories {
 
     /**
      * Marks every snapshot stale and forgets which directories are in which
-     * repository; a repository with listeners is read again in the background.
+     * repository, and the projects' repositories; a repository with
+     * listeners is read again in the background.
      */
     public static void invalidateAll() {
         synchronized (roots) {
             roots.clear();
+            projects.clear();
         }
         for (VcsRepository repository : repositories.values()) {
             repository.invalidate();
