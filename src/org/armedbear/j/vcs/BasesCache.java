@@ -20,6 +20,7 @@
 
 package org.armedbear.j.vcs;
 
+import java.util.concurrent.CompletableFuture;
 import org.armedbear.j.Log;
 
 /**
@@ -32,6 +33,10 @@ public final class BasesCache {
     private Bases bases;
     // Bumped when the bases change: a read begun before cannot keep its bases.
     private long generation;
+    // The read under way and the generation it is for, which another asking
+    // for that generation waits on rather than reading too.
+    private CompletableFuture<Bases> reading;
+    private long readingFor = -1;
 
     public BasesCache(VcsRepository repository, String path, Bases bases) {
         this.repository = repository;
@@ -54,26 +59,44 @@ public final class BasesCache {
         bases = null;
     }
 
-    /** The bases, read if they are not kept; null if git could not say, kept not. Off the event thread. */
+    /**
+     * The bases, read if they are not kept, once for all who ask meanwhile;
+     * null if git could not say, kept not. Off the event thread.
+     */
     public Bases get() {
         final long asked;
+        final CompletableFuture<Bases> mine;
+        final CompletableFuture<Bases> theirs;
         synchronized (this) {
             if (bases != null)
                 return bases;
             asked = generation;
+            theirs = reading != null && readingFor == asked ? reading : null;
+            if (theirs == null) {
+                reading = new CompletableFuture<>();
+                readingFor = asked;
+            }
+            mine = theirs == null ? reading : null;
         }
-        final Bases read;
+        if (theirs != null)
+            return theirs.join();
+        Bases read = null;
         try {
             read = repository.backend().readBases(repository, path);
         }
         catch (RuntimeException e) {
             Log.error(e);
-            return null;
         }
-        synchronized (this) {
-            if (read != null && generation == asked)
-                bases = read;
+        finally {
+            synchronized (this) {
+                if (read != null && generation == asked)
+                    bases = read;
+                if (reading == mine)
+                    reading = null;
+            }
+            mine.complete(read);
         }
         return read;
     }
+
 }

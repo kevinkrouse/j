@@ -162,8 +162,11 @@ public final class FoldCommands {
         hide(editor, begin, end);
     }
 
-    // Hides the lines from begin up to end and keeps the caret in sight.
+    // Hides the lines from begin up to end and keeps the caret in sight;
+    // nothing in a buffer whose folds are its own, which hide its lines.
     private static void hide(Editor editor, Line begin, Line end) {
+        if (ownFolds(editor))
+            return;
         for (Line line = begin; line != end; line = line.next())
             line.hide();
         editor.getBuffer().renumber();
@@ -186,6 +189,8 @@ public final class FoldCommands {
         if (editor.getMark().getOffset() > 0)
             return false;
         Region r = new Region(editor.getBuffer(), editor.getMark(), editor.getDot());
+        if (editor.getBuffer().getFolds().setFoldAt(editor, r.getBegin().getLine().next(), false))
+            return true;
         editor.addUndo(SimpleEdit.FOLD);
         editor.setMark(null);
         hide(editor, r.getBegin().getLine().next(), r.getEnd().getLine());

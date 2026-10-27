@@ -191,6 +191,11 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
         source = s;
     }
 
+    /** Whether it follows a buffer, as follow has it. */
+    public boolean isFollowing() {
+        return source != null;
+    }
+
     /** Whether a window shows either side. */
     public boolean isShown() {
         return !windows().isEmpty() || !old.windows().isEmpty();

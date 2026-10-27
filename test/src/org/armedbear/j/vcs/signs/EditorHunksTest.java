@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -235,6 +237,51 @@ public class EditorHunksTest {
             HunkCommands.vcsStageHunk(h.editor());
         });
         until(() -> "one\r\nTWO\r\nthree\r\n".equals(git.index("a.txt")));
+    }
+
+    @Test
+    public void aFilesByteOrderMarkStaysInTheIndex() throws Exception {
+        // UTF-8's mark, as the fixture writes ISO-8859-1.
+        open("\u00ef\u00bb\u00bfone\ntwo\n");
+        until(() -> describe().equals("..."));
+        change(0, "ONE");
+        until(() -> sign(0) != null);
+        onEdt(() -> {
+            h.editor().setDot(line(0), 0);
+            HunkCommands.vcsStageHunk(h.editor());
+        });
+        // The index's bytes, as ISO-8859-1.
+        until(() -> "\u00ef\u00bb\u00bfONE\ntwo\n".equals(git.index("a.txt")));
+    }
+
+    @Test
+    public void aHunkOfAUtf16FileIsNotStaged() throws Exception {
+        final byte[] text = "one\ntwo\n".getBytes(StandardCharsets.UTF_16LE);
+        final byte[] bytes = new byte[text.length + 2];
+        bytes[0] = (byte) 0xff;
+        bytes[1] = (byte) 0xfe;
+        System.arraycopy(text, 0, bytes, 2, text.length);
+        git = GitFixture.init(tmp);
+        Files.write(git.root.resolve("a.txt"), bytes);
+        git.commitAll("first");
+        h = EditorHarness.create();
+        Editor.setCurrentEditor(h.editor());
+        onEdt(() -> {
+            buffer = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+            if (!buffer.initialized())
+                buffer.initialize();
+            buffer.load();
+            h.showBuffer(buffer);
+        });
+        until(() -> buffer.getSigns() != null);
+        change(1, "TWO");
+        until(() -> sign(1) != null);
+        onEdt(() -> {
+            h.editor().setDot(line(1), 0);
+            HunkCommands.vcsStageHunk(h.editor());
+        });
+        until(() -> String.valueOf(h.status()).contains("UTF-16"));
+        assertEquals(new String(bytes, StandardCharsets.ISO_8859_1), git.index("a.txt"), "the index as it was");
     }
 
     @Test

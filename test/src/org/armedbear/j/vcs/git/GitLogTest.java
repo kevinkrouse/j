@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -236,8 +235,9 @@ public class GitLogTest {
         git.commitAll("spaces");
         final CommitChange a = new CommitChange("a.txt", null, Kind.MODIFIED);
         assertEquals(1, GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.NONE).hunks().size());
-        assertSame(FileDiff.ONLY_WHITESPACE, GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.TRAILING));
-        assertSame(FileDiff.ONLY_WHITESPACE, GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.ALL));
+        assertTrue(GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.TRAILING).onlyWhitespace());
+        assertTrue(GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.ALL).onlyWhitespace());
+        assertFalse(GitLog.diff(repository, id("HEAD"), id("HEAD~"), a, Whitespace.NONE).onlyWhitespace());
         final String shown = new String(repository.backend().readCommit(repository, id("HEAD"), Whitespace.NONE),
                 StandardCharsets.UTF_8);
         assertTrue(shown.contains("+y  "), shown);

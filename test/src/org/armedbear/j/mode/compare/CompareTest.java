@@ -1157,6 +1157,12 @@ public class CompareTest {
             // Java's methods folded, as the mode would: not the diff's.
             FoldCommands.foldMethods(left.editor());
             assertEquals("hhhhhhh.......hhhhhh", hidden(diff.getOld()));
+            // A region folded: the diff's fold there, not the lines.
+            left.editor().setDot(diff.getOld().getLine(8), 0);
+            left.editor().setMark(new Position(diff.getOld().getLine(11), 0));
+            FoldCommands.foldRegion(left.editor());
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff.getOld()));
+            assertEquals("hhhhhhh.......hhhhhh", hidden(diff));
         });
     }
 

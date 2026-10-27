@@ -40,7 +40,9 @@ import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.compare.CompareBuffer;
+import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.compare.Following;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.junit.jupiter.api.AfterEach;
@@ -186,6 +188,43 @@ public class VcsDiffCommandsTest {
             if (e.commandLine().contains("ls-files"))
                 ++n;
         return n;
+    }
+
+    @Test
+    public void whitespaceIgnoredWhileItIsReadIsIgnoredOnceShown() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "a\nb\n");
+        git.commitAll("first");
+        git.write("a.txt", "a\nb  \n");
+        try {
+            onEdt(() -> {
+                h = EditorHarness.create();
+                Editor.setCurrentEditor(h.editor());
+                file = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+                if (!file.initialized())
+                    file.initialize();
+                file.load();
+                h.showBuffer(file);
+                VcsDiffCommands.vcsDiff(h.editor());
+                // Before the read is in: aligned as it asked, compared.
+                DiffWhitespace.choose(Whitespace.ALL);
+            });
+            final CompareBuffer[] found = new CompareBuffer[1];
+            until(() -> {
+                for (Buffer b : Editor.getBufferList())
+                    if (b instanceof CompareBuffer c)
+                        found[0] = c;
+                return found[0] != null;
+            });
+            onEdt(() -> {
+                shown = EditorHarness.create();
+                shown.showBufferRestored(found[0]);
+            });
+            until(() -> found[0].getAlignment().changes().isEmpty());
+        }
+        finally {
+            onEdt(DiffWhitespace::forget);
+        }
     }
 
     @Test

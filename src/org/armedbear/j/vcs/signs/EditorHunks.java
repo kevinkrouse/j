@@ -94,7 +94,7 @@ public final class EditorHunks {
             "diff --git " + Patch.quote("a/" + raw) + " " + Patch.quote("b/" + raw),
             "--- " + Patch.quote("a/" + raw),
             "+++ " + Patch.quote("b/" + raw));
-        return new FileDiff(header, raw, raw, false, false, false, false, List.of(hunk));
+        return new FileDiff(header, raw, raw, false, false, false, false, List.of(hunk), false);
     }
 
     /**

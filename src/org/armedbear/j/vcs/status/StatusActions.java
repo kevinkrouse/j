@@ -401,9 +401,11 @@ public final class StatusActions {
         final FileChange c = p.file().change();
         final List<String> paths =
                 c.origPath() != null && p.file().staged() ? List.of(c.origPath(), c.path()) : List.of(c.path());
-        for (FileDiff d : r.backend().readDiff(r, p.file().staged(), paths, Whitespace.NONE))
-            if (d.hunks().contains(p.hunk()))
-                return true;
+        final List<FileDiff> read = r.backend().readDiff(r, p.file().staged(), paths, Whitespace.NONE);
+        if (read != null)
+            for (FileDiff d : read)
+                if (d.hunks().contains(p.hunk()))
+                    return true;
         return false;
     }
 
@@ -516,6 +518,8 @@ public final class StatusActions {
         // Read again with no whitespace ignored, as the one shown may: its
         // hunks would leave changes to whitespace.
         final List<FileDiff> read = r.backend().readDiff(r, true, List.of(f.path()), Whitespace.NONE);
+        if (read == null)
+            return "Couldn't read the diff of " + f.path() + ": see vcsCommandLog";
         final FileDiff diff = read.isEmpty() ? null : read.get(0);
         if (diff == null || diff.hunks().isEmpty())
             return "Can't discard " + f.path() + ": it has no change to its content";

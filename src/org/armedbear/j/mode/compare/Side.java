@@ -71,6 +71,33 @@ public record Side(List<String> lines, List<String> raw, boolean noNewline) {
         return new Side(lines, raw, noNewline);
     }
 
+    /**
+     * Whether bytes are UTF-16, by their byte order mark or else charset:
+     * text whose raw lines are not git's, which splits on a byte.
+     */
+    public static boolean isUtf16(byte[] bytes, Charset charset) {
+        return utf16(bytes, charset) != null;
+    }
+
+    // UTF-8's byte order mark, as a raw line has it.
+    private static final String UTF8_MARK = "\u00ef\u00bb\u00bf";
+
+    /**
+     * This side, its first raw line starting with other's UTF-8 byte order
+     * mark if other's does and its own does not, as a buffer's text, read
+     * past the mark, is written back to its file.
+     */
+    public Side withMarkOf(Side other) {
+        if (raw.isEmpty()
+                || other.raw.isEmpty()
+                || !other.raw.get(0).startsWith(UTF8_MARK)
+                || raw.get(0).startsWith(UTF8_MARK))
+            return this;
+        final List<String> marked = new ArrayList<>(raw);
+        marked.set(0, UTF8_MARK + raw.get(0));
+        return new Side(lines, marked, noNewline);
+    }
+
     // Whether bytes are UTF-16, big-endian or not, by their byte order mark
     // or else charset; null if they are not.
     private static Boolean utf16(byte[] bytes, Charset charset) {

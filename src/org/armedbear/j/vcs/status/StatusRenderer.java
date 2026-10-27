@@ -179,7 +179,7 @@ public final class StatusRenderer {
         }
         final String none = diff.isBinary() ? "Binary file"
                 : !diff.hunks().isEmpty() ? null
-                : diff == FileDiff.ONLY_WHITESPACE ? "Only whitespace changed, which is ignored"
+                : diff.onlyWhitespace() ? "Only whitespace changed, which is ignored"
                 : diff.isRename() ? "Renamed, with no change to its content"
                 : "No change to its content";
         if (none != null) {

@@ -69,10 +69,10 @@ public interface VcsBackend {
     /**
      * The diffs of paths, relative to the root: the working tree's, or with
      * staged the next commit's, ignoring ignored's whitespace: none for a
-     * patch to apply. Off the event thread.
+     * patch to apply; null if they can't be read. Off the event thread.
      */
     default List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
-        return List.of();
+        return null;
     }
 
     // Writes, run off the event thread at the repository's root. Each

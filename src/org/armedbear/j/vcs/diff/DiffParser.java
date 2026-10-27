@@ -81,7 +81,7 @@ public final class DiffParser {
         // Its body's lines start with two columns of markers, never "diff ".
         while (i < lines.length && !lines[i].startsWith("diff ") && !lines[i].startsWith("Index: "))
             i++;
-        return new FileDiff(header, path, path, false, false, false, true, List.of());
+        return new FileDiff(header, path, path, false, false, false, true, List.of(), false);
     }
 
     private boolean startsFile(int at) {
@@ -171,7 +171,7 @@ public final class DiffParser {
             if (hunk != null)
                 hunks.add(hunk);
         }
-        return new FileDiff(h.lines, h.oldPath, h.newPath, h.isNew, h.isDeleted, h.binary, false, hunks);
+        return new FileDiff(h.lines, h.oldPath, h.newPath, h.isNew, h.isDeleted, h.binary, false, hunks, false);
     }
 
     private Hunk hunk() {

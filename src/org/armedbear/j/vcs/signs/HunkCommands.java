@@ -99,8 +99,11 @@ public final class HunkCommands {
         return new Snapshot(buffer, lines, buffer.getModCount(), editor.getDotLineNumber(), first, last);
     }
 
-    // The bases as they are now, and the buffer's side against the index.
-    private record Sides(Side head, Side index, Side now) {}
+    // The bases as they are now, and the buffer's side against the index;
+    // whether a patch of them applies: not of UTF-16, whose lines are not git's.
+    private record Sides(Side head, Side index, Side now, boolean patchable) {}
+
+    private static final String UTF16 = "Not a hunk of a UTF-16 file: stage or unstage it whole";
 
     private static Sides sides(SignsUpdater u, Snapshot s) {
         final VcsRepository r = u.getRepository();
@@ -110,8 +113,9 @@ public final class HunkCommands {
         final Charset cs = s.buffer().getCharset();
         final Side index = Side.of(bases.index(), cs);
         final Side head = bases.head() == null ? null : Side.of(bases.head(), cs);
-        final Side now = Side.ofBuffer(s.lines(), cs, index.crlf());
-        return new Sides(head, index, now);
+        // Written back with the mark its file has, as a patch must have it.
+        final Side now = Side.ofBuffer(s.lines(), cs, index.crlf()).withMarkOf(index);
+        return new Sides(head, index, now, !Side.isUtf16(bases.index(), cs));
     }
 
     /**
@@ -132,6 +136,8 @@ public final class HunkCommands {
             final Sides sides = sides(u, s);
             if (sides == null)
                 return "Not in the index";
+            if (!sides.patchable())
+                return UTF16;
             final List<Edit> edits = EditorHunks.edits(sides.index(), sides.now());
             final List<Edit> taken = taken(edits, s);
             if (taken.isEmpty())
@@ -169,6 +175,8 @@ public final class HunkCommands {
             final Sides sides = sides(u, s);
             if (sides == null)
                 return "Not in the index";
+            if (!sides.patchable())
+                return UTF16;
             final VcsRepository r = u.getRepository();
             if (sides.head() == null)
                 // New to the index: the whole file comes out.

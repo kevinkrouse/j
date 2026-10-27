@@ -694,6 +694,28 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
         return sides == null ? -1 : sides.lineAt(editor, diffFile());
     }
 
+    /**
+     * The open buffer a comparison of item follows as it is edited, or
+     * null: not for what is staged or in a conflict, which have no one text
+     * staged to follow, nor for a file deleted from the working tree, which
+     * is not its buffer's text. The disk looked at only for an open buffer.
+     */
+    private static Buffer followed(VcsRepository r, String section, FileItem item) {
+        if ("staged".equals(section)
+                || "unmerged".equals(section)
+                || item.change().unstaged() == FileChange.Kind.DELETED)
+            return null;
+        final File f = File.getInstance(r.root().resolve(item.path()).toString());
+        final Buffer b = Editor.getBufferList().findBuffer(f);
+        if (b == null
+                || !b.isLoaded()
+                || b.getType() != Buffer.TYPE_NORMAL
+                || b.getFileType() == FILETYPE_BINARY
+                || !f.isFile())
+            return null;
+        return b;
+    }
+
     // The key of the file the unified diff shows, or null.
     private String diffFile() {
         return diff == null || diff.item() == null ? null : fileKey(diff.repository(), diff.section(), diff.item());
@@ -730,9 +752,11 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
             return;
         final String file = item == null ? null : fileKey(r, section, item);
         final boolean moved = file == null || !sides.isAsked(file);
-        // Read again only for a new file or when the status is; a buffer's
-        // comparison follows the buffer itself.
-        if (!moved && why == StatusDiffBuffer.Follow.REDRAWN)
+        final Buffer buffer = item == null ? null : followed(r, section, item);
+        // Read again only for a new file, or when the status is and what
+        // the comparison follows has changed, as when a file is deleted; a
+        // buffer's comparison follows the buffer itself.
+        if (!moved && why == StatusDiffBuffer.Follow.REDRAWN && (buffer != null) == sides.comparison().isFollowing())
             return;
         final SideBySide ss = sides;
         final int asked = ss.ask(file);
@@ -745,17 +769,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
         final String path = item.path();
         final File f = File.getInstance(r.root().resolve(path).toString());
         final boolean staged = "staged".equals(section);
-        // A file in a conflict has no one text staged to follow, and one
-        // deleted from the working tree is not its buffer's text.
-        final Buffer buffer = staged
-                || "unmerged".equals(section)
-                || item.change().unstaged() == FileChange.Kind.DELETED
-                || !f.isFile() ? null : Editor.getBufferList().findBuffer(f);
-        if (buffer != null
-                && buffer.isLoaded()
-                && buffer.getType() == Buffer.TYPE_NORMAL
-                && buffer.getFileType() != FILETYPE_BINARY) {
-            if (!moved)
+        if (buffer != null) {
+            if (!moved && c.isFollowing())
                 return;
             Following.open(buffer, VcsDiffCommands.staged(buffer, r, path), (read, side, alignment) -> {
                 if (!ss.isCurrent(asked))

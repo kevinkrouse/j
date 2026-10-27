@@ -118,9 +118,11 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
             }
             catch (RuntimeException e) {
                 Log.error(e);
-                diffs = List.of();
+                diffs = null;
             }
-            final FileDiff d = !diffs.isEmpty() ? diffs.get(0)
+            // Not read: none kept, so that it says so and is read again.
+            final FileDiff d = diffs == null ? null
+                    : !diffs.isEmpty() ? diffs.get(0)
                     : ignored != Whitespace.NONE ? FileDiff.ONLY_WHITESPACE
                     : FileDiff.EMPTY;
             SwingUtilities.invokeLater(() -> {

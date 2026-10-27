@@ -1860,8 +1860,9 @@ Fixed:
   own newlines (`Side.of`), so a file with a mark compares, and its change
   marks show, as unchanged; each line's raw bytes stay as a patch has them.
 - A change only to whitespace, while it is ignored, says so
-  (`FileDiff.ONLY_WHITESPACE`) in the status, the diff beside and the log,
-  not that the diff failed.
+  (`FileDiff.onlyWhitespace`) in the status, the diff beside and the log,
+  not that the diff failed; `readDiff` gives null when git fails, so a
+  failure is not taken for it.
 - A file deleted from the working tree is compared from the disk, not
   from its buffer still open.
 - From a side, a view's command the side has a key for (`=`, `q`) runs in
@@ -1887,6 +1888,20 @@ Fixed:
   (`getKeyMapForMode`, `getChangeStarts`), not hooks beside the mode's.
 - The window fuzz checks where a toolbar or menu command runs, from every
   window of a view, as unit tests have no frame.
+
+A second review, of those fixes:
+
+- A hunk of a UTF-16 file is not staged or unstaged, as its lines are not
+  git's, which splits on a byte; the file is, whole.
+- A hunk at a UTF-8 file's first line keeps the file's byte order mark in
+  the index (`Side.withMarkOf`).
+- What the comparison follows is worked out before a redraw's early
+  return, so a file deleted while its buffer is followed is compared from
+  the disk; the disk is looked at only for a file with an open buffer.
+- `foldRegion`, and any other way of hiding lines, leaves a buffer whose
+  folds are its own to them (`FoldCommands.hide`).
+- `BasesCache.get` waits for a read already under way, so the change
+  marks and a comparison read what is staged once.
 
 Left open:
 

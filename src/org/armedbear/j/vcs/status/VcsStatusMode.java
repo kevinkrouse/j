@@ -787,7 +787,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         Background.start("vcs visit", () -> {
             final List<FileDiff> unstaged =
                     repository.backend().readDiff(repository, false, List.of(file.path()), Whitespace.NONE);
-            final int mapped = unstaged.isEmpty() ? lineNumber : throughHunks(unstaged.get(0).hunks(), lineNumber);
+            final int mapped = unstaged == null || unstaged.isEmpty()
+                    ? lineNumber
+                    : throughHunks(unstaged.get(0).hunks(), lineNumber);
             SwingUtilities.invokeLater(() -> visit(editor, f, mapped));
         });
     }

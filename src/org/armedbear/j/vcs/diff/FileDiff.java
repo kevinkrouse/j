@@ -32,15 +32,17 @@ import java.util.List;
  * @param newPath  the new path, or null if the file is deleted
  * @param isCombined a merge's combined diff ("diff --cc"), whose body is not
  *                 read: it has no hunks
+ * @param onlyWhitespace read ignoring whitespace, none but in whitespace
  */
 public record FileDiff(List<String> header, String oldPath, String newPath, boolean isNew, boolean isDeleted,
-        boolean isBinary, boolean isCombined, List<Hunk> hunks) {
+        boolean isBinary, boolean isCombined, List<Hunk> hunks, boolean onlyWhitespace) {
     /** A diff with no hunks: no change to the file's content. */
-    public static final FileDiff EMPTY = new FileDiff(List.of(), null, null, false, false, false, false, List.of());
+    public static final FileDiff EMPTY =
+            new FileDiff(List.of(), null, null, false, false, false, false, List.of(), false);
 
-    /** Read ignoring whitespace, a diff with no hunks: told apart from EMPTY by identity. */
+    /** Read ignoring whitespace, a diff with no hunks: no change but to whitespace. */
     public static final FileDiff ONLY_WHITESPACE =
-            new FileDiff(List.of(), null, null, false, false, false, false, List.of());
+            new FileDiff(List.of(), null, null, false, false, false, false, List.of(), true);
 
     public FileDiff {
         header = List.copyOf(header);

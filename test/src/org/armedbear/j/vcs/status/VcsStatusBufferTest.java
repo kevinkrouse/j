@@ -830,6 +830,34 @@ public class VcsStatusBufferTest {
     }
 
     @Test
+    public void sideBySideAFileDeletedWhileItsBufferIsFollowedIsComparedFromTheDisk() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            file = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+            if (!file.initialized())
+                file.initialize();
+            file.load();
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  M  a.txt"));
+        until(() -> "a.txt (buffer)".equals(c.getTitle()));
+        Files.delete(git.root.resolve("a.txt"));
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
+        until(() -> text().contains("  D  a.txt"));
+        until(() -> "a.txt".equals(c.getTitle()));
+        onEdt(() -> {
+            assertFalse(c.isFollowing());
+            assertEquals(List.of(""), lines(c));
+        });
+    }
+
+    @Test
     public void aChangeOnlyToWhitespaceSaysSoWhileItIsIgnored() throws Exception {
         git = GitFixture.init(tmp);
         git.write("a.txt", "x\ny\n");

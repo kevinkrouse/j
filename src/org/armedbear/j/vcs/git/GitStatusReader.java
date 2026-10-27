@@ -153,7 +153,7 @@ final class GitStatusReader {
         // In batches, as a command line has a limit (32k characters on Windows).
         for (int i = 0; i < paths.size(); i += BATCH) {
             final List<String> batch = paths.subList(i, Math.min(paths.size(), i + BATCH));
-            final List<FileDiff> read = read(repository, staged, batch, ignored);
+            final List<FileDiff> read = diff(repository, staged, batch, ignored);
             if (read == null)
                 continue;
             for (FileDiff d : read)
@@ -171,18 +171,11 @@ final class GitStatusReader {
         return items;
     }
 
-    /** The working tree's diff against the index, or with staged the index's against HEAD, of paths. */
+    /**
+     * The working tree's diff against the index, or with staged the index's
+     * against HEAD, of paths; null if git fails.
+     */
     static List<FileDiff> diff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
-        final List<FileDiff> read = read(repository, staged, paths, ignored);
-        return read != null ? read : List.of();
-    }
-
-    // As diff, or null if git fails.
-    private static List<FileDiff> read(
-            VcsRepository repository,
-            boolean staged,
-            List<String> paths,
-            Whitespace ignored) {
         final List<String> args = new ArrayList<>(List.of("--literal-pathspecs", "diff"));
         if (staged)
             args.add("--cached");
