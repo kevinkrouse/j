@@ -1578,11 +1578,117 @@ plan with why it is left, before the next phase starts.
      sections and files, what the caret is on selected (`StatusTree`).
      The command log leaves out the `-c` options git always runs with,
      listing them once (`VcsCommand.options`).
-7. **Branches relative to others, and stash.** The parent branch, the
+7. **Next. Branches relative to others, and stash.** The parent branch, the
    unmerged, unpulled and unpushed sections, the stash section and popup,
    stashes in the log and the refs tree, the status's files in the
    sidebar by directory, and actions on the refs
-   tree's branches.
+   tree's branches. Draft plan, in the order it lands:
+   - **a. The branch's others, read.** `GitSnapshot` gains the push target
+     and the parent, read with the snapshot (one `git for-each-ref
+     --format='%(upstream:short)%00%(push:short)%00%(upstream:track)'
+     refs/heads/<branch>` and one `git config --get-regexp` for the
+     records of [Parent branch](#parent-branch), in its order). The
+     parent's source is kept with it (`upstream`, `gh-merge-base`,
+     `git-town`, `machete`, `vscode`, `reflog`, `default`). A detached
+     HEAD, an unborn branch and a gone upstream have none. Shared: the
+     snapshot's `Relation(name, source, ahead, behind)` for the upstream,
+     the push target and the parent, so svn can leave them empty. Tests
+     against repositories set up each way, one per row of the list.
+   - **b. The header.** `Head:`, `Upstream: origin/x ↑2 ↓1` (or `gone`),
+     `Push: origin/x ↑1` when it differs from the upstream, and `Parent:
+     origin/main (upstream)` with the source in parentheses, as the
+     design has it. A line whose branch another line already names is
+     left out.
+   - **c. The commit sections.** "Unpulled from <upstream>" (`HEAD..@{u}`),
+     "Unpushed to <upstream>" (`@{u}..HEAD`), "Unpushed to <push>" when
+     the push target differs (`@{push}..HEAD`), "Unmerged from <parent>"
+     (`HEAD..<parent>`) and "Not in <parent>" (`<parent>..HEAD`), in
+     magit's order after Stashes and before Recent commits. Each is a
+     `CommitItem` list as Recent commits is, read with one `git log
+     --format` per section, the newest 10, with a last line "… N more"
+     whose Enter opens the full log on that range
+     (`LogQuery.withRevisions(List.of("HEAD..origin/main"))`). A section
+     with no commits is left out, and one with the same range as one
+     before it is left out, so the parent and the upstream never show
+     twice. "Not in <parent>" is what a pull request against the parent
+     would hold, pushed or not; Recent commits shows only when it is empty
+     or absent (on the parent itself, or just after branching), as magit
+     shows unpushed commits or else recent ones. Enter on a commit shows it as Recent commits' do; `D` and `=`
+     show its diff beside, in the log's commit form. Collapsed to begin
+     with, as Untracked, Unstaged and Staged are; the sidebar's tree has
+     them too. Counts are as of the last fetch, which `f` makes now (below).
+   - **c2. Fetch, `f`.** A popup after Neogit's and magit's: switches
+     `-p` prune and `-t` tags; "Fetch from" `p` the push remote, `u` the
+     upstream's remote, `a` all remotes, `e` elsewhere (a remote asked for
+     with a fuzzy list of `git remote`); "Fetch" `o` another branch (a
+     remote's branch asked for). A line whose remote isn't set says so
+     dimmed, as Neogit shows an unset push remote, and can't be run. The
+     fetch runs in the background, with the status bar saying it is
+     fetching and then what it fetched or why it failed; the refs it moves
+     refresh the status and the refs tree through the repository's
+     watcher. It runs with `GIT_TERMINAL_PROMPT=0`, so a remote that wants
+     a password j can't give fails at once with git's message (a credential
+     helper or an ssh agent works); asking for one is Later. It times out
+     after two minutes and can't be cancelled before then; the command
+     log shows it running. Writes go
+     through `VcsBackend.fetch(repository, remote, refspec, options)`.
+     Pushing and pulling stay Later, with their popups beside this one.
+   - **d. Setting the parent.** `gitSetParent [BRANCH]` writes
+     `branch.<name>.gh-merge-base` (a branch asked for with the refs'
+     fuzzy list when none is given), and `gitSetParent -` removes it. The
+     `Parent:` line's Enter runs it. No other key writes it.
+   - **e. Stash.** A `Stashes (2)` section after Staged, each
+     `stash@{0}: On main: message` an item that opens to its files and
+     their diffs as a staged file's do (`git stash show -p --include-untracked`
+     where git has it, 2.32). Enter shows it in the log's details, its
+     index and untracked parents labeled. On a stash, `x` drops it after
+     asking, naming the stash, as `x` discards elsewhere. The stash popup, `z`: save `z`,
+     keeping the index `i`, with untracked `u`, of the staged alone `s`
+     (git 2.35's `--staged`), apply `a`, pop `p`, drop `k` (confirmed),
+     each acting on the stash at the caret, else `stash@{0}`, with a
+     `-m` message option. A pop or apply that conflicts leaves the stash,
+     says so, and the status shows the conflicts (phase 9 resolves them).
+     Writes go through `VcsBackend` (`stash`, `stashApply`, `stashDrop`),
+     git's in `GitWrites`, and `Capability.STASH` gates the section and
+     the popup. Undo-like safety: a dropped stash's hash goes in the
+     command log and the status bar, so `git stash apply <hash>` can bring
+     it back.
+   - **f. Stashes in the log and the refs tree.** The refs tree's last
+     node lists the stashes; a click goes to the stash's commit, which the
+     log shows when the `-z` filter (`vcsLogToggleStashes`, off by
+     default) adds `refs/stash` and its reflog (`git log --walk-reflogs`
+     is not a graph, so each stash is read as `stash@{n}` and drawn as a
+     tip off its base, labeled `stash@{n}`).
+   - **g. The sidebar by directory.** The status's `StatusTree` groups each
+     section's files under their directories, collapsed to the first
+     directory with more than one child (`src/org/armedbear/j` as one
+     node), with the commit sections' commits as leaves. Its selection
+     still follows the caret.
+   - **h. Actions on the refs tree's branches.** A popup on a ref (`Enter`
+     stays the filter, so the popup is the right button and `b` in the
+     tree, and `b` in the status and log for the branch at the caret, or
+     HEAD's): switch to it (`s`; a remote branch makes a local tracking
+     one, as `git switch` does), create a branch from it (`c`, asking for
+     the name and starting from the ref named, so the reflog records the
+     parent), rename (`r`) and delete (`k`, confirmed; `-D` only after a
+     second confirm naming the commits that would be lost), set it as the
+     current branch's parent (`p`), and merge it into the current branch
+     (`m`, `--no-ff` an option). Rebase is Later. A switch with changes in
+     the way says what git said and changes nothing.
+   - **Docs and keys.** `doc/git.html` gains the parent, the commit
+     sections, fetch, stash and the branch popup; the status popup gains
+     `f`, `z` and `b` under Commands. Help anchors for each.
+   - **Tests.** Fetch against a second repository as the remote (prune,
+     tags, a remote not set, a failure); the parent's sources in their
+     order; each section's range and its leaving out, Recent commits only
+     without "Not in <parent>"; a gone upstream; a detached HEAD; an
+     unborn branch; stash save, apply, pop with a conflict, drop, and show,
+     with git versions that lack `--staged` and `--include-untracked`;
+     the refs tree's actions against a real repository, a delete refused
+     for unmerged commits included.
+   - **Decided:** `f` fetches from a popup; `x` on a stash drops it after
+     asking; `b` is the branch popup; "Not in <parent>" shows, collapsed,
+     in place of Recent commits when it has any.
 8. **Blame.** Streaming blame, aging, hovers, to the log, blame at the
    parent, the current line's blame, and the authors of each method.
 9. **Conflicts.** Markers, inline actions, navigation, marking resolved,
