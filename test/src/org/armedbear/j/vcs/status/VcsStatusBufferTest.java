@@ -394,6 +394,73 @@ public class VcsStatusBufferTest {
         assertFalse(text().stream().anyMatch(s -> s.startsWith("Recent commits")));
     }
 
+    // The header's first lines, up to the blank one.
+    private List<String> header() {
+        final List<String> text = text();
+        final int blank = text.indexOf("");
+        assertTrue(blank > 0, text.toString());
+        return text.subList(0, blank);
+    }
+
+    // A clone of a repository with one commit, on x made from origin/main.
+    private void cloned() throws Exception {
+        final GitFixture origin = GitFixture.init(Files.createDirectory(tmp.resolve("origin")));
+        origin.commitAll("one");
+        git = GitFixture.init(Files.createDirectory(tmp.resolve("work")));
+        git.git("remote", "add", "origin", origin.root.toString());
+        git.git("fetch", "-q", "origin");
+        git.git("switch", "-q", "-c", "x", "origin/main");
+    }
+
+    @Test
+    public void anUpstreamThatIsTheParentIsTheParentLine() throws Exception {
+        cloned();
+        git.git("config", "push.default", "current");
+        git.commitAll("two");
+        open();
+        assertEquals(
+            List.of(
+                "Head:     x  " + head() + " two",
+                "Upstream: origin/main  ↑1 ↓0",
+                "Push:     origin/x  gone",
+                "Parent:   origin/main  (upstream)"),
+            header());
+    }
+
+    @Test
+    public void aRecordedParentShowsItsSourceThoughTheUpstreamNamesIt() throws Exception {
+        cloned();
+        git.git("config", "branch.x.gh-merge-base", "origin/main");
+        open();
+        assertEquals(
+            List.of(
+                "Head:     x  " + head() + " one",
+                "Upstream: origin/main  ↑0 ↓0",
+                "Parent:   origin/main  (gh-merge-base)"),
+            header());
+    }
+
+    @Test
+    public void theParentOfABranchPushedToItsUpstream() throws Exception {
+        cloned();
+        git.git("push", "-q", "-u", "origin", "x");
+        git.commitAll("two");
+        open();
+        assertEquals(
+            List.of("Head:     x  " + head() + " two", "Upstream: origin/x  ↑1 ↓0", "Parent:   origin/main  (reflog)"),
+            header());
+    }
+
+    @Test
+    public void aGoneUpstreamSaysSo() throws Exception {
+        cloned();
+        git.git("push", "-q", "-u", "origin", "x");
+        git.git("push", "-q", "origin", "--delete", "x");
+        git.git("fetch", "-q", "-p");
+        open();
+        assertEquals("Upstream: origin/x  gone", header().get(1));
+    }
+
     @Test
     public void aConflictIsUnmergedAndTheMergeIsInProgress() throws Exception {
         git = GitFixture.init(tmp);

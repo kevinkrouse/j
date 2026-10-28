@@ -116,9 +116,20 @@ final class GitStatusReader {
         header.add(new Field("Head", head));
         final Relation up = git.upstream();
         if (up != null)
-            header.add(
-                new Field("Upstream", up.name() + (up.gone() ? "  gone" : "  ↑" + up.ahead() + " ↓" + up.behind())));
+            header.add(new Field("Upstream", up.name() + (up.gone() ? "  gone" : counts(up))));
+        // Where it pushes, when not to its upstream.
+        final Relation push = git.push();
+        if (push != null && (up == null || !push.name().equals(up.name())))
+            header.add(new Field("Push", push.name() + (push.gone() ? "  gone" : counts(push))));
+        // Always, with where it was found, though another line names it.
+        final Relation parent = git.parent();
+        if (parent != null)
+            header.add(new Field("Parent", parent.name() + "  (" + parent.source() + ")"));
         return header;
+    }
+
+    private static String counts(Relation r) {
+        return "  ↑" + r.ahead() + " ↓" + r.behind();
     }
 
     private static String inProgress(GitSnapshot git, int conflicts) {

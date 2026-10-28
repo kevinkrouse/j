@@ -1606,8 +1606,10 @@ plan with why it is left, before the next phase starts.
    - **b. The header.** `Head:`, `Upstream: origin/x ↑2 ↓1` (or `gone`),
      `Push: origin/x ↑1` when it differs from the upstream, and `Parent:
      origin/main (upstream)` with the source in parentheses, as the
-     design has it. A line whose branch another line already names is
-     left out. A parent's name is a local branch before a remote one, so
+     design has it. `Push:` is left out when it is the upstream; a gone
+     push target says `gone` too, pushed and deleted or never pushed.
+     `Parent:` always shows, though another line names its branch, so
+     its source is seen and step d's Enter has a line. A parent's name is a local branch before a remote one, so
      a `gh-merge-base` of `main` is counted against the local `main`,
      which may be behind the `origin/main` that `gh pr create` compares
      with; the source in parentheses says which record it came from.
