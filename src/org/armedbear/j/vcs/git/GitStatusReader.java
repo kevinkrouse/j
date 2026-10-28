@@ -30,6 +30,7 @@ import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Snapshot;
+import org.armedbear.j.vcs.Snapshot.Relation;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.diff.DiffParser;
@@ -113,8 +114,10 @@ final class GitStatusReader {
                 head += "  " + subject;
         }
         header.add(new Field("Head", head));
-        if (git.upstream() != null)
-            header.add(new Field("Upstream", git.upstream() + "  ↑" + git.ahead() + " ↓" + git.behind()));
+        final Relation up = git.upstream();
+        if (up != null)
+            header.add(
+                new Field("Upstream", up.name() + (up.gone() ? "  gone" : "  ↑" + up.ahead() + " ↓" + up.behind())));
         return header;
     }
 

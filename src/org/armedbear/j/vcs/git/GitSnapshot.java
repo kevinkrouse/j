@@ -33,34 +33,32 @@ public final class GitSnapshot extends Snapshot {
 
     private final String head;
     private final String branch;
-    private final String upstream;
-    private final int ahead;
-    private final int behind;
     private final int stashes;
     private final Operation operation;
 
     /**
      * @param head     HEAD's commit, or null before the first commit
      * @param branch   the branch checked out, or null if HEAD is detached
-     * @param upstream the branch's upstream, or null
      */
     public GitSnapshot(
             List<FileChange> changes,
             String head,
             String branch,
-            String upstream,
-            int ahead,
-            int behind,
+            Relation upstream,
+            Relation push,
+            Relation parent,
             int stashes,
             Operation operation) {
-        super(changes);
+        super(changes, upstream, push, parent);
         this.head = head;
         this.branch = branch;
-        this.upstream = upstream;
-        this.ahead = ahead;
-        this.behind = behind;
         this.stashes = stashes;
         this.operation = operation;
+    }
+
+    /** This snapshot with its push target and parent. */
+    GitSnapshot with(Relation push, Relation parent) {
+        return new GitSnapshot(changes(), head, branch, upstream(), push, parent, stashes, operation);
     }
 
     public String head() {
@@ -73,18 +71,6 @@ public final class GitSnapshot extends Snapshot {
 
     public boolean isDetached() {
         return branch == null;
-    }
-
-    public String upstream() {
-        return upstream;
-    }
-
-    public int ahead() {
-        return ahead;
-    }
-
-    public int behind() {
-        return behind;
     }
 
     /** How many stashes there are, or -1 if this git does not say. */

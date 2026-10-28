@@ -29,9 +29,25 @@ import java.util.Map;
  * system has besides changed files: git's branch and stash, say.
  */
 public class Snapshot {
+    /**
+     * Another branch the one checked out is compared with, and how far
+     * apart they are: commits only on this one (ahead) and only on the
+     * other (behind), both -1 if the other is gone or not yet pushed.
+     *
+     * @param source where it was found, for a parent; null otherwise
+     */
+    public record Relation(String name, String source, int ahead, int behind) {
+        public boolean gone() {
+            return ahead < 0;
+        }
+    }
+
     private final List<FileChange> changes;
     private final Map<String, FileChange> byPath = new HashMap<>();
     private final String error;
+    private final Relation upstream;
+    private final Relation push;
+    private final Relation parent;
 
     public Snapshot(List<FileChange> changes) {
         this(changes, null);
@@ -39,8 +55,20 @@ public class Snapshot {
 
     /** error says why the snapshot is empty, or is null. */
     public Snapshot(List<FileChange> changes, String error) {
+        this(changes, error, null, null, null);
+    }
+
+    /** The upstream, push target and parent may each be null. */
+    protected Snapshot(List<FileChange> changes, Relation upstream, Relation push, Relation parent) {
+        this(changes, null, upstream, push, parent);
+    }
+
+    private Snapshot(List<FileChange> changes, String error, Relation upstream, Relation push, Relation parent) {
         this.changes = List.copyOf(changes);
         this.error = error;
+        this.upstream = upstream;
+        this.push = push;
+        this.parent = parent;
         for (FileChange change : this.changes)
             byPath.put(change.path(), change);
     }
@@ -61,5 +89,20 @@ public class Snapshot {
     /** Why the system could not be read, or null if it was. */
     public String error() {
         return error;
+    }
+
+    /** The branch this one pulls from, or null. */
+    public Relation upstream() {
+        return upstream;
+    }
+
+    /** Where this branch pushes to, which may be its upstream; or null. */
+    public Relation push() {
+        return push;
+    }
+
+    /** The branch this one is to be merged into, or null. */
+    public Relation parent() {
+        return parent;
     }
 }

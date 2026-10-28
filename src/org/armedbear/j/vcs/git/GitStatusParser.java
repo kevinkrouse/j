@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.FileChange.Kind;
+import org.armedbear.j.vcs.Snapshot.Relation;
 
 /**
  * Reads `git status --porcelain=v2 -z --branch --show-stash`: "# " headers,
@@ -40,8 +41,8 @@ final class GitStatusParser {
         String head = null;
         String branch = null;
         String upstream = null;
-        int ahead = 0;
-        int behind = 0;
+        int ahead = -1;
+        int behind = -1;
         int stashes = stashHeader ? 0 : -1;
         List<String> records = split(output);
         for (int i = 0; i < records.size(); i++) {
@@ -83,7 +84,9 @@ final class GitStatusParser {
                 changes.add(new FileChange(r.substring(2), null, null, Kind.IGNORED, "!!"));
             }
         }
-        return new GitSnapshot(changes, head, branch, upstream, ahead, behind, stashes, operation);
+        // No "branch.ab" when the upstream is gone.
+        final Relation up = upstream == null ? null : new Relation(upstream, null, ahead, behind);
+        return new GitSnapshot(changes, head, branch, up, null, null, stashes, operation);
     }
 
     // v2 writes '.' for an unchanged side; the short format, which the

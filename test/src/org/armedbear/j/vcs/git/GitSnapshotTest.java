@@ -35,6 +35,7 @@ import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.Snapshot;
+import org.armedbear.j.vcs.Snapshot.Relation;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VersionControl;
 import org.junit.jupiter.api.AfterEach;
@@ -61,11 +62,15 @@ public class GitSnapshotTest {
                     + "# branch.ab +2 -3\0# stash 4\0");
         assertEquals("abc123", s.head());
         assertEquals("main", s.branch());
-        assertEquals("origin/main", s.upstream());
-        assertEquals(2, s.ahead());
-        assertEquals(3, s.behind());
+        assertEquals(new Relation("origin/main", null, 2, 3), s.upstream());
         assertEquals(4, s.stashes());
         assertTrue(s.changes().isEmpty());
+    }
+
+    @Test
+    public void anUpstreamWithNoCountsIsGone() {
+        assertTrue(parse("# branch.head x\0# branch.upstream origin/x\0").upstream().gone());
+        assertNull(parse("# branch.head x\0").upstream());
     }
 
     @Test

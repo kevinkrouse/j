@@ -284,8 +284,11 @@ first of these that exists:
    `.git/machete`.
 4. `branch.<name>.vscode-merge-base`.
 5. The reflog, as VS Code reads it: the branch's `branch: Created from X`,
-   or, when that says `HEAD`, the last `checkout: moving from X to <name>`
-   in HEAD's reflog. j makes its own branches with the start point named
+   or, when that says `HEAD`, the first (oldest) `checkout: moving from X
+   to <name>` in HEAD's reflog, which is the branch's making; a later one
+   names wherever the branch was last switched to from. A branch deleted
+   and made again under the same name gets the first one's source, as a
+   reflog can't tell them apart; any record above overrides it. j makes its own branches with the start point named
    (`git switch -c new master`, not `git switch -c new`), so their reflog
    says `Created from master`. Reflogs expire (90 days by default) and are
    local, so this covers recent branches made here.
@@ -1594,11 +1597,20 @@ plan with why it is left, before the next phase starts.
      snapshot's `Relation(name, source, ahead, behind)` for the upstream,
      the push target and the parent, so svn can leave them empty. Tests
      against repositories set up each way, one per row of the list.
+     Built as `GitRelations`: a record naming a branch there isn't is
+     passed over; the reflog is read only when the list reaches it, and
+     a name it or `origin/HEAD` gives is listed then; a parent that is
+     neither the upstream nor the push target is counted with `git
+     rev-list --left-right --count`. A push target not pushed yet is
+     gone, as a gone upstream is (counts of -1).
    - **b. The header.** `Head:`, `Upstream: origin/x ↑2 ↓1` (or `gone`),
      `Push: origin/x ↑1` when it differs from the upstream, and `Parent:
      origin/main (upstream)` with the source in parentheses, as the
      design has it. A line whose branch another line already names is
-     left out.
+     left out. A parent's name is a local branch before a remote one, so
+     a `gh-merge-base` of `main` is counted against the local `main`,
+     which may be behind the `origin/main` that `gh pr create` compares
+     with; the source in parentheses says which record it came from.
    - **c. The commit sections.** "Unpulled from <upstream>" (`HEAD..@{u}`),
      "Unpushed to <upstream>" (`@{u}..HEAD`), "Unpushed to <push>" when
      the push target differs (`@{push}..HEAD`), "Unmerged from <parent>"

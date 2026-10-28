@@ -94,10 +94,11 @@ public final class GitBackend implements VcsBackend {
                 "--ignored=matching"));
         if (!r.succeeded())
             return Snapshot.failed(r.stderr().strip());
-        return GitStatusParser.parse(
+        final GitSnapshot s = GitStatusParser.parse(
             r.stdout(),
             dirs == null ? GitSnapshot.Operation.NONE : dirs.operation(),
             GitCli.versionAtLeast(STASH_HEADER));
+        return GitRelations.read(repository.root(), dirs, s);
     }
 
     @Override
