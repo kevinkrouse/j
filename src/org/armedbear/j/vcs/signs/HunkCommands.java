@@ -175,14 +175,14 @@ public final class HunkCommands {
             final Sides sides = sides(u, s);
             if (sides == null)
                 return "Not in the index";
-            if (!sides.patchable())
-                return UTF16;
             final VcsRepository r = u.getRepository();
             if (sides.head() == null)
                 // New to the index: the whole file comes out.
                 return failure(
                     u,
                     r.backend().unstage(r, List.of(new FileChange(u.getPath(), null, Kind.ADDED, null, "A "))));
+            if (!sides.patchable())
+                return UTF16;
             final List<Edit> unstaged = EditorHunks.edits(sides.index(), sides.now());
             final int[] map = SignsMath.indexToBuffer(sides.index().lines().size(), unstaged);
             final List<Edit> staged = EditorHunks.edits(sides.head(), sides.index());

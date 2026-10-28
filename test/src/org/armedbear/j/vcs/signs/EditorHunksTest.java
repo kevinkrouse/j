@@ -285,6 +285,35 @@ public class EditorHunksTest {
     }
 
     @Test
+    public void aUtf16FileNewToTheIndexUnstagesWhole() throws Exception {
+        final byte[] text = "one\ntwo\n".getBytes(StandardCharsets.UTF_16LE);
+        final byte[] bytes = new byte[text.length + 2];
+        bytes[0] = (byte) 0xff;
+        bytes[1] = (byte) 0xfe;
+        System.arraycopy(text, 0, bytes, 2, text.length);
+        git = GitFixture.init(tmp);
+        git.write("seed.txt", "seed\n");
+        git.commitAll("first");
+        Files.write(git.root.resolve("a.txt"), bytes);
+        git.git("add", "a.txt");
+        h = EditorHarness.create();
+        Editor.setCurrentEditor(h.editor());
+        onEdt(() -> {
+            buffer = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+            if (!buffer.initialized())
+                buffer.initialize();
+            buffer.load();
+            h.showBuffer(buffer);
+        });
+        until(() -> buffer.getSigns() != null && sign(0) != null);
+        onEdt(() -> {
+            h.editor().setDot(line(0), 0);
+            HunkCommands.vcsUnstageHunk(h.editor());
+        });
+        until(() -> git.index("a.txt") == null);
+    }
+
+    @Test
     public void theLastLineOfAFileWithNoNewlineStages() throws Exception {
         open("one\ntwo");
         change(1, "TWO");

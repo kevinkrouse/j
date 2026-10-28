@@ -189,8 +189,10 @@ public final class FoldCommands {
         if (editor.getMark().getOffset() > 0)
             return false;
         Region r = new Region(editor.getBuffer(), editor.getMark(), editor.getDot());
-        if (editor.getBuffer().getFolds().setFoldAt(editor, r.getBegin().getLine().next(), false))
+        if (editor.getBuffer().getFolds().setFoldAt(editor, r.getBegin().getLine().next(), false)) {
+            editor.setMark(null);
             return true;
+        }
         editor.addUndo(SimpleEdit.FOLD);
         editor.setMark(null);
         hide(editor, r.getBegin().getLine().next(), r.getEnd().getLine());
