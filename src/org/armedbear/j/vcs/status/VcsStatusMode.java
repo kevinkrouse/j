@@ -228,6 +228,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_R, CTRL_MASK, "vcsStatusRefresh");
         km.mapKey('c', "vcsCommitPopup");
         km.mapKey('f', "vcsFetchPopup");
+        km.mapKey('b', "vcsBranchPopup");
+        km.mapKey('m', "vcsMergePopup");
         km.mapKey('l', "vcsLogPopup");
         km.mapKey('D', "vcsStatusDiff");
         km.mapKey('q', "killBuffer");
@@ -393,6 +395,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         commands.add(Command.of("D", "vcsStatusDiff", "diff"));
         if (stages)
             commands.add(new Prefix("c", "commit…", CommitCommands::popup));
+        commands.add(Command.of("b", "vcsBranchPopup", "branch…"));
+        commands.add(Command.of("m", "vcsMergePopup", "merge…"));
         commands.add(Command.of("f", "vcsFetchPopup", "fetch…"));
         commands.add(Command.of(vim ? "Z" : "z", "vcsStashPopup", "stash…"));
         commands.add(Command.of("$", "vcsCommandLog", "command log"));

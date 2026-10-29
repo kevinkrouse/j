@@ -86,6 +86,41 @@ final class GitLog {
         return out;
     }
 
+    /** The branches the reflog says were checked out, the latest first, each once; none if git fails. */
+    static List<String> recentBranches(VcsRepository repository) {
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "reflog", "show", "--format=%gs", "-n", "1000"));
+        final Set<String> names = new LinkedHashSet<>();
+        if (r.succeeded())
+            for (String line : r.out().split("\n"))
+                if (line.startsWith(MOVING) && line.indexOf(" to ", MOVING.length()) >= 0)
+                    names.add(line.substring(line.indexOf(" to ", MOVING.length()) + 4));
+        return List.copyOf(names);
+    }
+
+    private static final String MOVING = "checkout: moving from ";
+
+    /**
+     * The commits on branch and no other branch, tag or remote's branch,
+     * newest first, as "abc1234 subject"; null if git fails. Not HEAD nor a
+     * stash: what keeps them only while it is there.
+     */
+    static List<String> onlyOn(VcsRepository repository, String branch) {
+        final VcsResult r = GitCli.run(
+            GitCli.read(
+                repository.root(),
+                "log",
+                "--no-color",
+                "--format=%h %s",
+                "refs/heads/" + branch,
+                "--not",
+                "--exclude=" + branch,
+                "--branches",
+                "--tags",
+                "--remotes",
+                "--"));
+        return r.succeeded() ? r.out().lines().toList() : null;
+    }
+
     /**
      * The stashes, newest first, each a commit badged with its name whose
      * graph's parent is the commit it was made on: the index's and the

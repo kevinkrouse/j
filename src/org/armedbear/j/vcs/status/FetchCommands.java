@@ -209,7 +209,7 @@ public final class FetchCommands {
             if (result == null)
                 editor.status(r.backend().name() + " can't fetch");
             else if (!result.succeeded()) {
-                final String why = result.stderr().strip().lines().reduce((x, y) -> y).orElse("");
+                final String why = result.lastError();
                 editor.status("Fetching from " + from + " failed: " + why);
                 if (editor.getFrame() != null)
                     CommandLog.vcsCommandLog();

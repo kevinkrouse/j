@@ -29,11 +29,13 @@ import java.util.Set;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
+import org.armedbear.j.vcs.log.LogRef;
 
-/** Git's writes for the status buffer: staging, discarding, committing and stashing. */
+/** Git's writes for the status buffer: staging, discarding, committing, stashing and branching. */
 final class GitWrites {
     // A commit's hooks may lint or test for a while.
     private static final Duration COMMIT_TIMEOUT = Duration.ofMinutes(30);
@@ -121,6 +123,41 @@ final class GitWrites {
     static VcsResult stashDrop(VcsRepository repository, String name, String id) {
         final VcsResult moved = moved(repository, name, id);
         return moved != null ? moved : run(repository, args("stash", "drop", name));
+    }
+
+    static VcsResult switchTo(VcsRepository repository, LogRef ref) {
+        return switch (ref.kind()) {
+            case BRANCH -> run(repository, args("switch", "--no-guess", ref.name()));
+            case REMOTE -> run(repository, args("switch", "--track", "refs/remotes/" + ref.name()));
+            case TAG -> run(repository, args("switch", "--detach", "refs/tags/" + ref.name()));
+            case HEAD, STASH -> run(repository, args("switch", "--detach", ref.name()));
+        };
+    }
+
+    static VcsResult createBranch(VcsRepository repository, String name, String from, boolean checkout) {
+        return run(repository, checkout ? args("switch", "-c", name, from) : args("branch", name, from));
+    }
+
+    static VcsResult renameBranch(VcsRepository repository, String branch, String name) {
+        return run(repository, args("branch", "-m", branch, name));
+    }
+
+    static VcsResult deleteBranch(VcsRepository repository, String branch, boolean force) {
+        return run(repository, args("branch", force ? "-D" : "-d", branch));
+    }
+
+    static VcsResult merge(VcsRepository repository, String ref, Set<MergeOption> options) {
+        final List<String> args = args("merge", "--no-edit");
+        if (options.contains(MergeOption.FF_ONLY))
+            args.add("--ff-only");
+        if (options.contains(MergeOption.NO_FF))
+            args.add("--no-ff");
+        args.add(ref);
+        return run(repository, args);
+    }
+
+    static VcsResult mergeAbort(VcsRepository repository) {
+        return run(repository, args("merge", "--abort"));
     }
 
     // A failure if name is no longer the stash id, as after a stash made

@@ -31,6 +31,7 @@ import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Ignores;
+import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.RepositoryWatcher;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.StashOption;
@@ -42,6 +43,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
+import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.log.LogRefTip;
 import org.armedbear.j.vcs.status.StatusData;
 
@@ -195,6 +197,51 @@ public final class GitBackend implements VcsBackend {
     @Override
     public VcsResult stashDrop(VcsRepository repository, String name, String id) {
         return GitWrites.stashDrop(repository, name, id);
+    }
+
+    @Override
+    public VcsResult switchTo(VcsRepository repository, LogRef ref) {
+        return GitWrites.switchTo(repository, ref);
+    }
+
+    @Override
+    public VcsResult createBranch(VcsRepository repository, String name, String from, boolean checkout) {
+        return GitWrites.createBranch(repository, name, from, checkout);
+    }
+
+    @Override
+    public VcsResult renameBranch(VcsRepository repository, String branch, String name) {
+        return GitWrites.renameBranch(repository, branch, name);
+    }
+
+    @Override
+    public VcsResult deleteBranch(VcsRepository repository, String branch, boolean force) {
+        return GitWrites.deleteBranch(repository, branch, force);
+    }
+
+    @Override
+    public List<String> readOnlyOn(VcsRepository repository, String branch) {
+        return GitLog.onlyOn(repository, branch);
+    }
+
+    @Override
+    public VcsResult merge(VcsRepository repository, String ref, Set<MergeOption> options) {
+        return GitWrites.merge(repository, ref, options);
+    }
+
+    @Override
+    public VcsResult mergeAbort(VcsRepository repository) {
+        return GitWrites.mergeAbort(repository);
+    }
+
+    @Override
+    public boolean isMerging(VcsRepository repository) {
+        return repository.snapshotNow() instanceof GitSnapshot g && g.operation() == GitSnapshot.Operation.MERGE;
+    }
+
+    @Override
+    public List<String> readRecentBranches(VcsRepository repository) {
+        return GitLog.recentBranches(repository);
     }
 
     @Override

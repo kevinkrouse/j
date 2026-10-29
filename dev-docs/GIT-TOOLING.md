@@ -1584,8 +1584,9 @@ plan with why it is left, before the next phase starts.
 7. **Next. Branches relative to others, and stash.** The parent branch, the
    unmerged, unpulled and unpushed sections, the stash section and popup,
    stashes in the log and the refs tree, the status's files in the
-   sidebar by directory, and actions on the refs
-   tree's branches. Draft plan, in the order it lands:
+   sidebar by directory, actions on the refs
+   tree's branches, and branching in every repository at once. Draft
+   plan, in the order it lands:
    - **a. The branch's others, read.** `GitSnapshot` gains the push target
      and the parent, read with the snapshot (one `git for-each-ref
      --format='%(upstream:short)%00%(push:short)%00%(upstream:track)'
@@ -1733,6 +1734,49 @@ plan with why it is left, before the next phase starts.
      current branch's parent (`p`), and merge it into the current branch
      (`m`, `--no-ff` an option). Rebase is Later. A switch with changes in
      the way says what git said and changes nothing.
+     Built as Neogit's branch popup instead, at the user's asking, after
+     a branch made from `main` left `main` unreachable from `b` (both on
+     one commit, the popup acting on the one checked out): `BranchCommands`,
+     whose commands each ask from a list (`Finders.choose`), the ref at the
+     caret first and the branch checked out left out where it can't be the
+     answer. Checkout `b` branch/revision, `l` local branch (a remote's
+     without a local one tracked), `r` recent branch (the reflog's
+     "checkout: moving from"), `c` new branch; Create `n`; Do `m` rename,
+     `D` delete, and `p` parent, ours. Not Neogit's spin-off, spin-out,
+     worktrees, configure, reset, pull request, nor `-r`. The commands take
+     the ref at the caret and the repository's root as their argument
+     (`vcsBranchCheckout main /repo`, `-` for none), which the popup's
+     lines carry, so nothing is kept between the popup and the command
+     (`Transient.Command.name` is the name without it, for help). The ref
+     at the caret is a branch on its commit other than the one checked
+     out, else a remote's or tag, that branch, or the commit. In the tree
+     the popup is the right button and the menu key or Shift F10, not `b`,
+     which typing there takes to narrow it. Merge moved to its own popup,
+     `m`, as Neogit's: `-f` `--ff-only`, `-n` `--no-ff`, `m` merge; during
+     a merge, `m` commit and `a` abort (`MergeCommands`). A delete reads
+     the commits on no other branch, tag or remote's branch first (`git
+     log x --not --exclude=x --branches --tags --remotes`; not `--all`,
+     whose HEAD or stash would hide them): none, it asks once and deletes
+     with `-D`, nothing being lost; some, it asks again naming them. After
+     each write the repository's open logs are read again
+     (`LogBuffer.refreshAll`); the stash commands' background write is
+     shared (`StatusWrites`).
+   - **i. Branching in every repository.** As IntelliJ's "Execute branch
+     operations on all roots": with several repositories in the status or
+     log, the branch popup gains `-a`, all repositories, absent with one.
+     With it on, the lists offer the names any repository has, each with
+     how many have it (`main (3)`, `feature (1 of 3)`); checkout (`b`,
+     `l`) acts by name in each repository that has the branch, saying
+     which don't; create (`c`, `n`) asks one start point, a name each
+     has, else HEAD where it hasn't, and makes the branch in each; rename
+     and delete act in each that has it, the delete's second question
+     asked once, the commits lost listed by repository. Each repository's
+     result is said; one that fails, as a checkout with changes in the
+     way, leaves the others done, as IntelliJ does, with no rollback.
+     The writes run one repository at a time in the background, the
+     status bar counting them. Not `r` (each repository's reflog differs)
+     nor `p`. Tests: three repositories, one without the branch, one with
+     changes in the way.
    - **Docs and keys.** `doc/git.html` gains the parent, the commit
      sections, fetch, stash and the branch popup; the status popup gains
      `f`, `z` and `b` under Commands. Help anchors for each.

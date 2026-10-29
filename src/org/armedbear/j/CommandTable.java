@@ -69,8 +69,10 @@ import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.git.Git;
 import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.signs.HunkCommands;
+import org.armedbear.j.vcs.status.BranchCommands;
 import org.armedbear.j.vcs.status.CommitCommands;
 import org.armedbear.j.vcs.status.FetchCommands;
+import org.armedbear.j.vcs.status.MergeCommands;
 import org.armedbear.j.vcs.status.ParentCommands;
 import org.armedbear.j.vcs.status.StashCommands;
 import org.armedbear.j.vcs.status.StatusActions;
@@ -364,6 +366,27 @@ public class CommandTable {
             add("vcsCommit", CommitCommands::vcsCommit);
             add("vcsCommitAmend", CommitCommands::vcsCommitAmend);
             add("vcsCommitAbort", CommitCommands::vcsCommitAbort);
+            add("vcsBranchCheckout", e -> BranchCommands.vcsBranchCheckout(e, null), BranchCommands::vcsBranchCheckout);
+            add(
+                "vcsBranchCheckoutLocal",
+                e -> BranchCommands.vcsBranchCheckoutLocal(e, null),
+                BranchCommands::vcsBranchCheckoutLocal);
+            add(
+                "vcsBranchCheckoutNew",
+                e -> BranchCommands.vcsBranchCheckoutNew(e, null),
+                BranchCommands::vcsBranchCheckoutNew);
+            add(
+                "vcsBranchCheckoutRecent",
+                e -> BranchCommands.vcsBranchCheckoutRecent(e, null),
+                BranchCommands::vcsBranchCheckoutRecent);
+            add("vcsBranchCreate", e -> BranchCommands.vcsBranchCreate(e, null), BranchCommands::vcsBranchCreate);
+            add("vcsBranchDelete", e -> BranchCommands.vcsBranchDelete(e, null), BranchCommands::vcsBranchDelete);
+            add("vcsBranchPopup", e -> BranchCommands.vcsBranchPopup(e, null), BranchCommands::vcsBranchPopup);
+            add("vcsBranchRename", e -> BranchCommands.vcsBranchRename(e, null), BranchCommands::vcsBranchRename);
+            add(
+                "vcsBranchSetParent",
+                e -> BranchCommands.vcsBranchSetParent(e, null),
+                BranchCommands::vcsBranchSetParent);
             add("vcsCommitCancel", CommitCommands::vcsCommitCancel);
             add("vcsCommitExtend", CommitCommands::vcsCommitExtend);
             add("vcsCommitFinish", CommitCommands::vcsCommitFinish);
@@ -401,6 +424,10 @@ public class CommandTable {
             add("vcsLogToggle", LogCommands::vcsLogToggle);
             add("vcsLogToggleAll", LogCommands::vcsLogToggleAll);
             add("vcsLogVisit", LogCommands::vcsLogVisit);
+            add("vcsMerge", e -> MergeCommands.vcsMerge(e, null), MergeCommands::vcsMerge);
+            add("vcsMergeAbort", e -> MergeCommands.vcsMergeAbort(e, null), MergeCommands::vcsMergeAbort);
+            add("vcsMergeCommit", e -> MergeCommands.vcsMergeCommit(e, null), MergeCommands::vcsMergeCommit);
+            add("vcsMergePopup", e -> MergeCommands.vcsMergePopup(e, null), MergeCommands::vcsMergePopup);
             add("vcsStage", e -> StatusActions.run(e, StatusActions.Op.STAGE));
             add("vcsStageAll", e -> StatusActions.all(e, true));
             add("vcsStageHunk", HunkCommands::vcsStageHunk);

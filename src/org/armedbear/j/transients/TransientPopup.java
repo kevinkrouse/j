@@ -389,7 +389,7 @@ public final class TransientPopup extends JComponent {
 
     // Item's help, or with null the popup's.
     private void help(Item item) {
-        final String topic = item instanceof Command c && c.command() != null ? c.command() : current.help();
+        final String topic = item instanceof Command c && c.command() != null ? c.name() : current.help();
         close(false);
         Help.help(topic);
     }
@@ -776,8 +776,8 @@ public final class TransientPopup extends JComponent {
         return switch (c.item()) {
             case Command cmd when cmd.command() == null -> cmd.description();
             case Command cmd -> {
-                final String summary = CommandTable.getSummary(cmd.command());
-                yield summary == null ? cmd.command() : cmd.command() + ": " + summary;
+                final String summary = CommandTable.getSummary(cmd.name());
+                yield summary == null ? cmd.name() : cmd.name() + ": " + summary;
             }
             case Switch s -> s.name().isEmpty() ? s.description() : s.name();
             case Option o -> o.name();

@@ -335,6 +335,49 @@ asks for a password: a remote that wants one fails at once, unless a
 credential helper or an ssh agent gives it. It gives up after two minutes. The
 commits sections' counts are as of the last fetch.
 
+<h2><a name="branches">Branches</a></h2>
+
+<p>
+<b>b</b> opens the branch popup, after Neogit's. Each of its commands asks
+for the branch, or where a new one starts, from a list, the branch checked
+out left out where it can't be the answer. The ref at the caret comes first:
+in the status or the log's list, a branch on the commit at the caret other
+than the one checked out, else a remote's branch or a tag there, else that
+branch, else the commit itself; in the log's refs tree, the ref the right
+button or the menu key (Shift F10) is on. So after <b>c</b> makes a branch
+from <code>main</code>, <b>b b</b> on that commit offers <code>main</code>
+first.
+
+<ul>
+    <li><b>b</b> checks out a branch, tag or the commit at the caret: a remote's branch as a new local branch tracking it, or the local branch of its name if there is one; a tag or a commit detached;</li>
+    <li><b>l</b> checks out a local branch, or a remote's branch that has no local one of its name, as a new local one tracking it;</li>
+    <li><b>r</b> checks out a branch checked out before, the latest first, as the reflog has them;</li>
+    <li><b>c</b> creates a branch where it is asked to start, asking for its name, a remote's branch offering its own, and checks it out;</li>
+    <li><b>n</b> creates one without checking it out;</li>
+    <li><b>m</b> renames a local branch, asking for the new name;</li>
+    <li><b>D</b> deletes a local branch, after asking; if it has commits no other branch, tag or remote's branch has, asking again, naming them;</li>
+    <li><b>p</b> makes a branch the parent of the one checked out, as <a href="commands.html#gitSetParent">gitSetParent</a> does.</li>
+</ul>
+
+<p>
+Each runs in the background, the status bar saying what git said or why it
+failed, the command log opening with git's message: a checkout with changes
+in the way changes nothing. A deleted branch's commit is in the status bar,
+so <code>git branch &lt;name&gt; &lt;hash&gt;</code> brings it back. After
+each, the open logs of the repository are read again.
+
+<h2><a name="merging">Merging</a></h2>
+
+<p>
+<b>m</b> opens the merge popup, after Neogit's. Its switches are <b>-f</b>,
+a fast-forward only, failing otherwise, and <b>-n</b>, a merge commit even
+when a fast-forward would do; not both. <b>m</b> merges a branch, tag or commit, asked
+for from a list as the branch popup's are, into what is checked out, with
+git's message. A merge that conflicts leaves the conflicts in the Unmerged
+section; then the popup has <b>m</b>, to commit the merge once they are
+resolved and staged, and <b>a</b>, to give it up after asking, putting back
+what was there before it.
+
 <h2><a name="stashing">Stashing</a></h2>
 
 <p>
@@ -388,6 +431,8 @@ log, so <code>git stash apply &lt;hash&gt;</code> brings it back.
 <tr><td>s u x</td><td>s u x</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
 <tr><td>S U</td><td>S U</td><td><a href="commands.html#vcsStageAll">vcsStageAll</a>, <a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></td><td>stage or unstage everything</td></tr>
 <tr><td>c</td><td>c</td><td><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></td><td>the commit popup</td></tr>
+<tr><td>b</td><td>b</td><td><a href="commands.html#vcsBranchPopup">vcsBranchPopup</a></td><td>the branch popup</td></tr>
+<tr><td>m</td><td>m</td><td><a href="commands.html#vcsMergePopup">vcsMergePopup</a></td><td>the merge popup</td></tr>
 <tr><td>f</td><td>f</td><td><a href="commands.html#vcsFetchPopup">vcsFetchPopup</a></td><td>the fetch popup</td></tr>
 <tr><td>z</td><td>Z</td><td><a href="commands.html#vcsStashPopup">vcsStashPopup</a></td><td>the stash popup</td></tr>
 <tr><td>$</td><td>$</td><td><a href="commands.html#vcsCommandLog">vcsCommandLog</a></td><td>the commands j ran</td></tr>
@@ -483,6 +528,8 @@ go to the next or previous file, Space and Shift Space scroll, and
 <tr><td>-T (in the list)</td><td><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></td><td>show the commits only tags reach too, or not</td></tr>
 <tr><td>-z (in the list)</td><td><a href="commands.html#vcsLogToggleStashes">vcsLogToggleStashes</a></td><td>show the stashes too, or not</td></tr>
 <tr><td>x (in the list)</td><td><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></td><td>clear every filter</td></tr>
+<tr><td>b (in the list)</td><td><a href="commands.html#vcsBranchPopup">vcsBranchPopup</a></td><td>the branch popup, the commit's branch first in its lists</td></tr>
+<tr><td>m (in the list)</td><td><a href="commands.html#vcsMergePopup">vcsMergePopup</a></td><td>the merge popup</td></tr>
 <tr><td>Ctrl R</td><td><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></td><td>read it again</td></tr>
 <tr><td>q</td><td><a href="commands.html#vcsLogQuit">vcsLogQuit</a></td><td>close it</td></tr>
 <tr><td>?</td><td><a href="commands.html#modePopup">modePopup</a></td><td>the popup</td></tr>
@@ -524,6 +571,8 @@ caret while it reads on stops it. <b>Enter</b> or a double click filters the
 log to the ref, as the branch chip does (a stash's is gone to, as a click
 does), by its whole name (<code>refs/heads/release</code>) when a tag or
 another ref has the same one, and to its repository when there are several.
+The right button, or the menu key (Shift F10), opens the
+<a href="#branches">branch popup</a>, the ref first in its lists.
 Typing narrows the tree to the refs with the text in their names, and the
 label shows it; <b>Backspace</b> takes a character back, and <b>Escape</b>
 shows them all again, as they were opened. The refs are read when the log

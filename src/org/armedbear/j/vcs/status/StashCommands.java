@@ -24,7 +24,6 @@ import static org.armedbear.j.Constants.RESPONSE_YES;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -39,9 +38,7 @@ import org.armedbear.j.transients.Transient.Option;
 import org.armedbear.j.transients.TransientArgs;
 import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.transients.Transients;
-import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Capability;
-import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
@@ -181,44 +178,20 @@ public final class StashCommands {
             result -> (pop ? "Popped " : "Applied ") + st.name());
     }
 
-    // Does write in the background, the status bar saying what it is
-    // doing, then done or why it failed; the status read again.
     private static void write(
             Editor editor,
             VcsRepository r,
             String doing,
             Supplier<VcsResult> write,
             Function<VcsResult, String> done) {
-        final VcsStatusBuffer status = VcsStatusMode.owner(editor);
-        if (status != null && status.isWriting()) {
-            editor.status("Wait: the last change is still being made");
-            return;
-        }
-        if (status != null)
-            status.startWriting();
-        editor.status(doing + "…");
-        Background.then("vcs " + doing.toLowerCase(Locale.ROOT), write, result -> {
-            if (status != null)
-                status.wrote();
-            r.invalidate();
-            r.refresh();
-            if (result == null)
-                editor.status(r.backend().name() + " can't stash");
-            else if (result.succeeded())
-                editor.status(done.apply(result));
-            else {
-                editor.status(failed(doing, result));
-                if (editor.getFrame() != null)
-                    CommandLog.vcsCommandLog();
-            }
-        });
+        StatusWrites.write(editor, r, doing, "stash", write, done, result -> failed(doing, result));
     }
 
     /** What went wrong: a conflict, which leaves the stash, or git's last word. */
     static String failed(String doing, VcsResult result) {
         if ((result.out() + result.stderr()).contains("CONFLICT"))
             return doing + " conflicted: the stash is kept, and the conflicts are in Unmerged";
-        final String why = result.stderr().strip().lines().reduce((x, y) -> y).orElse("");
+        final String why = result.lastError();
         return doing + " failed: " + (why.isEmpty() ? "exit code " + result.exitCode() : why);
     }
 

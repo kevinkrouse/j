@@ -26,6 +26,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
+import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.log.LogRefTip;
 import org.armedbear.j.vcs.status.StatusData;
 
@@ -267,6 +268,56 @@ public interface VcsBackend {
     /** Drops the stash named name; fails without it if name is no longer the stash id. */
     default VcsResult stashDrop(VcsRepository repository, String name, String id) {
         return null;
+    }
+
+    /**
+     * Checks ref out: a branch; a remote's branch as a new local one
+     * tracking it; anything else detached.
+     */
+    default VcsResult switchTo(VcsRepository repository, LogRef ref) {
+        return null;
+    }
+
+    /** Makes branch name starting at from, the ref named; with checkout, checks it out. */
+    default VcsResult createBranch(VcsRepository repository, String name, String from, boolean checkout) {
+        return null;
+    }
+
+    default VcsResult renameBranch(VcsRepository repository, String branch, String name) {
+        return null;
+    }
+
+    /** Deletes branch; without force, failing if its commits aren't merged. */
+    default VcsResult deleteBranch(VcsRepository repository, String branch, boolean force) {
+        return null;
+    }
+
+    /**
+     * The commits on branch and no other branch, tag or remote's branch,
+     * newest first, each as "abc1234 subject"; null if they can't be read.
+     */
+    default List<String> readOnlyOn(VcsRepository repository, String branch) {
+        return null;
+    }
+
+    /** Merges ref, the ref named, into what is checked out. */
+    default VcsResult merge(VcsRepository repository, String ref, Set<MergeOption> options) {
+        return null;
+    }
+
+    /** Gives up the merge in progress, putting back what was there before it. */
+    default VcsResult mergeAbort(VcsRepository repository) {
+        return null;
+    }
+
+    /** Whether a merge is in progress, its commit not yet made. */
+    default boolean isMerging(VcsRepository repository) {
+        return false;
+    }
+
+    /** The local branches checked out, the latest first, each once; some may be gone. */
+    default List<String> readRecentBranches(VcsRepository repository) {
+        return List.of();
     }
 
     /** How many refs a fetch's result says it moved; -1 if it doesn't say. */

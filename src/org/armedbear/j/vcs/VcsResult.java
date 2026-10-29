@@ -35,4 +35,9 @@ public record VcsResult(VcsCommand command, int exitCode, byte[] stdout, String 
     public String out() {
         return new String(stdout, StandardCharsets.UTF_8);
     }
+
+    /** Standard error's last line, git's last word on a failure; "" for none. */
+    public String lastError() {
+        return stderr.strip().lines().reduce((x, y) -> y).orElse("");
+    }
 }

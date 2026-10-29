@@ -30,7 +30,6 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.git.GitSnapshot;
 import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.log.LogRefTip;
@@ -123,12 +122,12 @@ public final class ParentCommands {
         return names.containsValue(name) ? name : null;
     }
 
-    private static void set(Editor editor, VcsRepository r, String branch, String parent) {
+    static void set(Editor editor, VcsRepository r, String branch, String parent) {
         Background.then("vcs set parent", () -> r.backend().setParent(r, branch, parent), result -> {
             if (result == null)
                 editor.status(r.backend().name() + " can't record a parent");
             else if (!result.succeeded()) {
-                editor.status("Setting the parent failed: " + lastLine(result));
+                editor.status("Setting the parent failed: " + result.lastError());
                 if (editor.getFrame() != null)
                     CommandLog.vcsCommandLog();
             } else
@@ -139,10 +138,6 @@ public final class ParentCommands {
             r.invalidate();
             r.refresh();
         });
-    }
-
-    private static String lastLine(VcsResult result) {
-        return result.stderr().strip().lines().reduce((a, b) -> b).orElse("");
     }
 
     // The status's repository at the caret, or the buffer's.

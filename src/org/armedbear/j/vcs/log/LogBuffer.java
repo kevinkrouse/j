@@ -416,6 +416,13 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         LogNames.read(scope, true, this::refsRead);
     }
 
+    /** Each log of repository read again, as after its branches change. */
+    public static void refreshAll(VcsRepository repository) {
+        for (Buffer b : Editor.getBufferList())
+            if (b instanceof LogBuffer log && log.scope.repositories().contains(repository))
+                log.refresh();
+    }
+
     // Its refs in each frame's sidebar it is in, one for its list, files and
     // diff there; the refs are its names', read once for every tree.
     private final PerFrame<LogRefTree> refTrees = new PerFrame<>(frame -> {
@@ -976,7 +983,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
     private Jump jumping;
 
     /** The commit at editor's caret, or null. */
-    static LogCommit commitAt(Editor editor) {
+    public static LogCommit commitAt(Editor editor) {
         return editor != null && editor.getDot() != null && editor.getDotLine() instanceof LogLine l
                 ? l.commit()
                 : null;

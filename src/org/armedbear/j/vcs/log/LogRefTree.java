@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import javax.swing.JTree;
+import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
@@ -54,6 +55,7 @@ import org.armedbear.j.transients.FilterBar;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.status.BranchCommands;
 
 /**
  * A log's refs in the sidebar's lower half, one tree for its list, files
@@ -61,7 +63,9 @@ import org.armedbear.j.vcs.VcsRepository;
  * tags, newest first and the newest {@value #TAGS} until more are asked
  * for, and the stashes; a node per repository when there are several. A
  * name with a slash is in a folder. A click goes to the ref's commit in the
- * log; Enter or a double click filters the log to it, or goes to a stash. Typing narrows the tree. One per frame
+ * log; Enter or a double click filters the log to it, or goes to a stash;
+ * the right button, or the menu key, opens the branch popup on it. Typing
+ * narrows the tree. One per frame
  * the log is in, a component having one parent; the refs they show are
  * {@link LogNames}', read once for all of them and the log's filters.
  */
@@ -408,23 +412,12 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
             if (p.repository() == t.repository())
                 for (LogRefTip other : p.tips())
                     ambiguous |= other.ref().name().equals(ref.name()) && other.ref().kind() != ref.kind();
-        final String revision = ambiguous ? fullName(ref) : ref.name();
+        final String revision = ambiguous ? ref.fullName() : ref.name();
         LogQuery q = log.getQuery().withRevision(revision);
         if (log.getScope().isSeveral())
             q = q.withRepositories(List.of(log.getScope().name(t.repository())));
         log.setQuery(q);
         FilterBar.refreshAll(log);
-    }
-
-    /** "refs/heads/x", "refs/remotes/origin/x", "refs/tags/v1", "stash@{0}", or "HEAD". */
-    static String fullName(LogRef ref) {
-        return switch (ref.kind()) {
-            case HEAD -> "HEAD";
-            case BRANCH -> "refs/heads/" + ref.name();
-            case REMOTE -> "refs/remotes/" + ref.name();
-            case TAG -> "refs/tags/" + ref.name();
-            case STASH -> ref.name();
-        };
     }
 
     // The tags all shown, their section open.
@@ -461,6 +454,14 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
                 if (!filter.isEmpty()) {
                     e.consume();
                     narrow("");
+                    return;
+                }
+            }
+            case KeyEvent.VK_CONTEXT_MENU, KeyEvent.VK_F10 -> {
+                if (e.getKeyCode() == KeyEvent.VK_CONTEXT_MENU || e.isShiftDown()) {
+                    e.consume();
+                    if (selected() instanceof Tip t)
+                        branchPopup(t);
                     return;
                 }
             }
@@ -526,8 +527,31 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
         }
     }
 
+    // The right button: the branch popup on the ref under the pointer.
     @Override
-    public void mousePressed(MouseEvent e) {}
+    public void mousePressed(MouseEvent e) {
+        if (!SwingUtilities.isRightMouseButton(e))
+            return;
+        final TreePath path = getPathForLocation(e.getX(), e.getY());
+        if (path == null)
+            return;
+        setSelectionPath(path);
+        if (at(e) instanceof Tip t)
+            branchPopup(t);
+    }
+
+    // The branch popup on t, over the window on the log.
+    private void branchPopup(Tip t) {
+        final Editor ed = Editor.windowShowing(log);
+        if (ed == null)
+            return;
+        if (t.tip().ref().kind() == LogRef.Kind.STASH) {
+            ed.status("A stash: z in the status applies, pops or drops it");
+            return;
+        }
+        focusLog();
+        BranchCommands.vcsBranchPopup(ed, t.tip().ref().name() + " " + t.repository().root());
+    }
 
     @Override
     public void mouseReleased(MouseEvent e) {}

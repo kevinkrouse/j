@@ -440,6 +440,15 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#unwrapParagraph">unwrapParagraph</a></li>
     <li><a href="commands.html#up">up</a></li>
     <li><a href="commands.html#upperCaseRegion">upperCaseRegion</a></li>
+    <li><a href="commands.html#vcsBranchCheckout">vcsBranchCheckout</a></li>
+    <li><a href="commands.html#vcsBranchCheckoutLocal">vcsBranchCheckoutLocal</a></li>
+    <li><a href="commands.html#vcsBranchCheckoutNew">vcsBranchCheckoutNew</a></li>
+    <li><a href="commands.html#vcsBranchCheckoutRecent">vcsBranchCheckoutRecent</a></li>
+    <li><a href="commands.html#vcsBranchCreate">vcsBranchCreate</a></li>
+    <li><a href="commands.html#vcsBranchDelete">vcsBranchDelete</a></li>
+    <li><a href="commands.html#vcsBranchPopup">vcsBranchPopup</a></li>
+    <li><a href="commands.html#vcsBranchRename">vcsBranchRename</a></li>
+    <li><a href="commands.html#vcsBranchSetParent">vcsBranchSetParent</a></li>
     <li><a href="commands.html#vcsCommandLog">vcsCommandLog</a></li>
     <li><a href="commands.html#vcsCommit">vcsCommit</a></li>
     <li><a href="commands.html#vcsCommitAbort">vcsCommitAbort</a></li>
@@ -482,6 +491,10 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsLogToggleStashes">vcsLogToggleStashes</a></li>
     <li><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></li>
     <li><a href="commands.html#vcsLogVisit">vcsLogVisit</a></li>
+    <li><a href="commands.html#vcsMerge">vcsMerge</a></li>
+    <li><a href="commands.html#vcsMergeAbort">vcsMergeAbort</a></li>
+    <li><a href="commands.html#vcsMergeCommit">vcsMergeCommit</a></li>
+    <li><a href="commands.html#vcsMergePopup">vcsMergePopup</a></li>
     <li><a href="commands.html#vcsStage">vcsStage</a></li>
     <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
     <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a></li>
@@ -6091,6 +6104,96 @@ Converts all upper case characters in the selected region to lower case.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsBranchCheckout">vcsBranchCheckout</a><dl><dd>
+<p>
+Checks out a branch, tag or revision, asked for from a list, the ref at the caret first: a remote's branch as a new local branch tracking it, or the local branch of its name if there is one; a tag or revision detached. Changes in the way leave everything as it was. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> b in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchCheckoutLocal">vcsBranchCheckoutLocal</a><dl><dd>
+<p>
+Checks out a local branch, or a remote's branch that has no local one of its name as a new local branch tracking it, asked for from a list. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> l in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchCheckoutNew">vcsBranchCheckoutNew</a><dl><dd>
+<p>
+Creates a branch where it is asked to start, from a list, the ref at the caret first, asking for its name, and checks it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> c in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchCheckoutRecent">vcsBranchCheckoutRecent</a><dl><dd>
+<p>
+Checks out a branch checked out before, asked for from a list of them, the latest first, as the reflog has them. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> r in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchCreate">vcsBranchCreate</a><dl><dd>
+<p>
+Creates a branch where it is asked to start, from a list, the ref at the caret first, asking for its name, without checking it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> n in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchDelete">vcsBranchDelete</a><dl><dd>
+<p>
+Deletes a local branch, asked for from a list, after asking; if it has commits no other branch, tag or remote's branch has, asks again, naming them, then deletes it anyway. The status bar says its commit, which <code>git branch</code> takes to bring it back. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> D in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchPopup">vcsBranchPopup</a><dl><dd>
+<p>
+Opens the branch popup, after Neogit's: checking out a branch, a local one, a recent one or a new one, creating one, renaming, deleting, and the parent, each asking from a list with the ref at the caret first, or in the log's refs tree the ref clicked. With an argument, as for <a href="#vcsBranchCheckout">vcsBranchCheckout</a>.
+<br><br>
+<b>Default key mapping:</b> b in status buffers and the log's list; the right button or the menu key in the log's refs tree
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchRename">vcsBranchRename</a><dl><dd>
+<p>
+Renames a local branch, asked for from a list, the ref at the caret then the one checked out first, asking for the new name. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> m in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBranchSetParent">vcsBranchSetParent</a><dl><dd>
+<p>
+Makes a branch, asked for from a list, the parent of the branch checked out, as <a href="#gitSetParent">gitSetParent</a> does. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> p in the branch popup
+<br><br>
+<b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsCommandLog">vcsCommandLog</a><dl><dd>
 <p>
 Shows the version control commands j has run for its own use, newest last:
@@ -6541,6 +6644,46 @@ In the quick log, opens the full log at the commit; in the full log, moves to th
 <b>Default key mapping:</b> Enter, or a double click, in the log
 <br><br>
 <b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsMerge">vcsMerge</a><dl><dd>
+<p>
+Merges a branch, tag or revision, asked for from a list, the ref at the caret first, into what is checked out, with the merge popup's <b>-f</b> (fast-forward only) or <b>-n</b> (always a merge commit). With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> m in the merge popup
+<br><br>
+<b>See also:</b> <a href="git.html#merging">Merging</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsMergeAbort">vcsMergeAbort</a><dl><dd>
+<p>
+Gives up the merge in progress, after asking, putting back what was there before it. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> a in the merge popup, during a merge
+<br><br>
+<b>See also:</b> <a href="git.html#merging">Merging</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsMergeCommit">vcsMergeCommit</a><dl><dd>
+<p>
+Commits the merge in progress, with git's message, once its conflicts are resolved and staged. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> m in the merge popup, during a merge
+<br><br>
+<b>See also:</b> <a href="git.html#merging">Merging</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsMergePopup">vcsMergePopup</a><dl><dd>
+<p>
+Opens the merge popup, after Neogit's: its switches and merging, or during a merge, committing or aborting it. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+<br><br>
+<b>Default key mapping:</b> m in status buffers and the log's list
+<br><br>
+<b>See also:</b> <a href="git.html#merging">Merging</a>
 <br><br>
 </dl><!--<hr>-->
 

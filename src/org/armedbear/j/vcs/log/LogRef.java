@@ -31,4 +31,14 @@ public record LogRef(String name, Kind kind, boolean head) {
     public enum Kind {
         HEAD, BRANCH, REMOTE, TAG, STASH
     }
+
+    /** "refs/heads/x", "refs/remotes/origin/x", "refs/tags/v1"; else its name, as "HEAD" or "stash@{0}". */
+    public String fullName() {
+        return switch (kind) {
+            case BRANCH -> "refs/heads/" + name;
+            case REMOTE -> "refs/remotes/" + name;
+            case TAG -> "refs/tags/" + name;
+            case HEAD, STASH -> name;
+        };
+    }
 }

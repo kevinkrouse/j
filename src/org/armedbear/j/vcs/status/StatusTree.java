@@ -23,6 +23,7 @@ package org.armedbear.j.vcs.status;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -318,7 +319,11 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         }
         if (!best.equals(getSelectionPath())) {
             setSelectionPath(best);
-            scrollPathToVisible(best);
+            // Up or down alone: a long commit's row would scroll the tree
+            // sideways, hiding its folders.
+            final Rectangle bounds = getPathBounds(best);
+            if (bounds != null)
+                scrollRectToVisible(new Rectangle(getVisibleRect().x, bounds.y, 1, bounds.height));
         }
     }
 

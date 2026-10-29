@@ -95,7 +95,8 @@ public record Transient(String id, String title, String help, List<Group> groups
      * Runs a j command, which reads the popup's values with
      * {@link Transients#args}.
      *
-     * @param command null for one that can't be run here, shown dimmed
+     * @param command null for one that can't be run here, shown dimmed;
+     *     its argument, if any, after a space
      * @param stays whether the popup stays open after it, as for a filter
      */
     public record Command(String key, String command, String description, boolean stays) implements Item {
@@ -106,6 +107,14 @@ public record Transient(String id, String title, String help, List<Group> groups
         /** A command that can't be run here, description saying why. */
         public static Command unavailable(String key, String description) {
             return new Command(key, null, description, true);
+        }
+
+        /** The command's name, without its argument; null if it can't be run. */
+        public String name() {
+            if (command == null)
+                return null;
+            final int space = command.indexOf(' ');
+            return space < 0 ? command : command.substring(0, space);
         }
     }
 

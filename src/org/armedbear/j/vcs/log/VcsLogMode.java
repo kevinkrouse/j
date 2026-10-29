@@ -148,8 +148,9 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         return paneModalKeyMap;
     }
 
-    // The filters' keys, in the list alone: in the files and diff vim's
-    // - moves, and x out of habit would clear every filter.
+    // The filters' keys, x, b and m, in the list alone: in the files and
+    // diff vim's -, b and m are its own, and x out of habit would clear
+    // every filter.
     private static void listKeys(KeyMap km) {
         // -b, -a and the rest, as in the popup's Filters.
         final KeyMap filters = new KeyMap();
@@ -162,6 +163,8 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         filters.mapKey(LogFilters.REFS_ORDER.key().charAt(1), "vcsLogRefsOrder");
         km.mapKey('-', filters);
         km.mapKey('x', "vcsLogClearFilters");
+        km.mapKey('b', "vcsBranchPopup");
+        km.mapKey('m', "vcsMergePopup");
     }
 
     // As the status buffer's where they mean the same: Enter visits, Tab
@@ -334,6 +337,10 @@ public final class VcsLogMode extends AbstractMode implements Mode {
             groups.add(1, Group.of("View", LogFilters.TIME_STYLE, LogFilters.COLLAPSE, LogFilters.REFS_ORDER));
         }
         final List<Transient.Item> log = new ArrayList<>();
+        if (editor == null || editor.getBuffer() instanceof LogBuffer)
+            log.add(Command.of("b", "vcsBranchPopup", "branch…"));
+        if (editor == null || editor.getBuffer() instanceof LogBuffer)
+            log.add(Command.of("m", "vcsMergePopup", "merge…"));
         log.add(new Command(Transient.ctrl('r'), "vcsLogRefresh", "refresh", true));
         log.add(Command.of("$", "vcsCommandLog", "command log"));
         log.add(Command.of("q", "vcsLogQuit", "close"));
