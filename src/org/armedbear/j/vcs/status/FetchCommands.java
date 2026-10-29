@@ -42,7 +42,6 @@ import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.Snapshot.Relation;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.log.LogRefTip;
 
@@ -113,7 +112,7 @@ public final class FetchCommands {
     /** The fetch popup of the status, from another buffer in a repository its status opened first. */
     public static void vcsFetchPopup(Editor editor) {
         final Editor at = CommitCommands.statusWindow(editor);
-        final VcsRepository r = at == null ? null : repository(at);
+        final VcsRepository r = at == null ? null : VcsStatusMode.repositoryAt(at);
         if (r != null)
             Background.then("vcs fetch remotes", () -> remotes(r), remotes -> {
                 if (remotes == null)
@@ -132,14 +131,14 @@ public final class FetchCommands {
     }
 
     public static void vcsFetchAll(Editor editor) {
-        final VcsRepository r = repository(editor);
+        final VcsRepository r = VcsStatusMode.repositoryAt(editor);
         if (r != null)
             fetch(editor, r, null, null);
     }
 
     /** A remote asked for, from a list of them. */
     public static void vcsFetchElsewhere(Editor editor) {
-        final VcsRepository r = repository(editor);
+        final VcsRepository r = VcsStatusMode.repositoryAt(editor);
         if (r == null)
             return;
         Background.then("vcs fetch remotes", () -> r.backend().readRemotes(r), remotes -> {
@@ -157,7 +156,7 @@ public final class FetchCommands {
 
     /** A remote's branch asked for, from a list of them: only it fetched. */
     public static void vcsFetchBranch(Editor editor) {
-        final VcsRepository r = repository(editor);
+        final VcsRepository r = VcsStatusMode.repositoryAt(editor);
         if (r == null)
             return;
         Background.then("vcs fetch branches", () -> branches(r), branches -> {
@@ -190,7 +189,7 @@ public final class FetchCommands {
 
     // From the remote which says, or why there is none.
     private static void fetchFrom(Editor editor, Function<Remotes, String> which, String none) {
-        final VcsRepository r = repository(editor);
+        final VcsRepository r = VcsStatusMode.repositoryAt(editor);
         if (r == null)
             return;
         Background.then("vcs fetch remotes", () -> which.apply(remotes(r)), remote -> {
@@ -239,15 +238,5 @@ public final class FetchCommands {
         if (args.isOn("--tags"))
             options.add(FetchOption.TAGS);
         return options;
-    }
-
-    // The repository of the thing at the caret, or the status's only one.
-    private static VcsRepository repository(Editor editor) {
-        final VcsStatusBuffer status = VcsStatusMode.owner(editor);
-        if (status == null)
-            return null;
-        if (editor.getBuffer() == status && editor.getDotLine() instanceof StatusLine s && s.repository() != null)
-            return s.repository();
-        return status.getRepositories().get(0);
     }
 }

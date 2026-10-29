@@ -6216,7 +6216,7 @@ Compares the file being edited with what is staged of it, side by side: the stag
 
 <a name="vcsDiscard">vcsDiscard</a><dl><dd>
 <p>
-In a status buffer or the diff beside it, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash.
+In a status buffer or the diff beside it, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash. On a stash, drops it, as <a href="#vcsStashDrop">vcsStashDrop</a> does.
 <br><br>
 <b>Default key mapping:</b> x in status buffers
 <br><br>
@@ -6563,6 +6563,86 @@ In a file the version control tracks, stages the change at the caret, or the lin
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsStashApply">vcsStashApply</a><dl><dd>
+<p>
+In a status buffer, applies the stash at the caret, or the newest, keeping it. One that conflicts leaves the conflicts in the Unmerged section.
+<br><br>
+<b>Default key mapping:</b> a in the stash popup
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStashDrop">vcsStashDrop</a><dl><dd>
+<p>
+In a status buffer, drops the stash at the caret, or the newest, after asking. The status bar says its hash, which <code>git stash apply</code> takes to bring it back.
+<br><br>
+<b>Default key mapping:</b> k in the stash popup; x on a stash in a status buffer
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStashKeepIndex">vcsStashKeepIndex</a><dl><dd>
+<p>
+In a status buffer, stashes the changes, staged and not, keeping what is staged in the index too.
+<br><br>
+<b>Default key mapping:</b> i in the stash popup
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStashPop">vcsStashPop</a><dl><dd>
+<p>
+In a status buffer, applies the stash at the caret, or the newest, then drops it if it applied cleanly. One that conflicts is kept.
+<br><br>
+<b>Default key mapping:</b> p in the stash popup
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStashPopup">vcsStashPopup</a><dl><dd>
+<p>
+Opens the stash popup of a status buffer, or from another buffer in a repository, of its status, opened first: the message option, the ways to stash, and applying, popping and dropping the stash at the caret, or the newest, each dimmed when there is none.
+<br><br>
+<b>Default key mapping:</b> z in status buffers (Z in vim edit mode)
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStashSave">vcsStashSave</a><dl><dd>
+<p>
+In a status buffer, stashes the changes, staged and not, leaving the untracked files, with the stash popup's message if it has one.
+<br><br>
+<b>Default key mapping:</b> z in the stash popup
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStashStaged">vcsStashStaged</a><dl><dd>
+<p>
+In a status buffer, stashes what is staged alone, leaving the rest. Needs git 2.35.
+<br><br>
+<b>Default key mapping:</b> s in the stash popup
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStashUntracked">vcsStashUntracked</a><dl><dd>
+<p>
+In a status buffer, stashes the changes and the untracked files, which are removed.
+<br><br>
+<b>Default key mapping:</b> u in the stash popup
+<br><br>
+<b>See also:</b> <a href="git.html#stashing">Stashing</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsStatus">vcsStatus</a><dl><dd>
 <p>
 Opens the status of the current buffer's repository, or of the project's repositories when its directory holds several, or from the log of the log's: what has changed, what is staged, and the recent commits.
@@ -6695,7 +6775,7 @@ In a status buffer, opens or closes the section, file or hunk at the caret, or t
 
 <a name="vcsStatusVisit">vcsStatusVisit</a><dl><dd>
 <p>
-In a status buffer, visits the thing at the caret: a file, at the line of the hunk or diff line the caret is on, or a commit, shown with its diff. A staged line is visited where it is now in the working tree.
+In a status buffer, visits the thing at the caret: a file, at the line of the hunk or diff line the caret is on, or a commit, shown with its diff; on a stash, or a line in it, its details beside, as the log shows a commit. A staged line is visited where it is now in the working tree.
 <br><br>
 <b>Default key mapping:</b> Enter or a double click in status buffers
 <br><br>

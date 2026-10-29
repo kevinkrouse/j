@@ -30,6 +30,7 @@ import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
+import org.armedbear.j.vcs.status.StatusData.StashItem;
 
 /**
  * A line of a status buffer, with what it shows: a repository, a header
@@ -54,6 +55,7 @@ public final class StatusLine extends TextLine {
     private int diffIndex = -1;
     private int newLine;
     private CommitItem commit;
+    private StashItem stash;
     private boolean expandable;
     private boolean open;
     private int repositoryColor = -1;
@@ -149,6 +151,11 @@ public final class StatusLine extends TextLine {
         return commit;
     }
 
+    /** The stash it shows, a commit's line; null for none. */
+    public StashItem stash() {
+        return stash;
+    }
+
     /** Whether it heads lines that Tab shows and hides. */
     public boolean isExpandable() {
         return expandable;
@@ -188,6 +195,11 @@ public final class StatusLine extends TextLine {
 
     StatusLine commit(CommitItem commit) {
         this.commit = commit;
+        return this;
+    }
+
+    StatusLine stash(StashItem stash) {
+        this.stash = stash;
         return this;
     }
 

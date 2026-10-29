@@ -50,6 +50,9 @@ Unstaged changes (2)
 Staged changes (1)
   A  doc/git.html
 
+Stashes (1)
+  stash@{0}: On icons: half-done scaling
+
 Recent commits (10)
   1a2b3c4 (HEAD -> main, origin/main) icons: draw at the window's device scale
 </pre>
@@ -70,7 +73,8 @@ name when there is one, else origin's. <code>gitSetParent -</code> removes the r
 
 <p>
 The sections are those that have something in them: unmerged files during a
-merge, untracked files, unstaged changes, staged changes, then the commits
+merge, untracked files, unstaged changes, staged changes, the stashes
+(see <a href="#stashing">Stashing</a>), then the commits
 between the branch and its upstream, push target and parent each way
 (unpulled, unpushed, unmerged from the parent, and not in it), closed to
 begin with, as of the last fetch; and the recent commits, when no commit is on
@@ -327,6 +331,42 @@ asks for a password: a remote that wants one fails at once, unless a
 credential helper or an ssh agent gives it. It gives up after two minutes. The
 commits sections' counts are as of the last fetch.
 
+<h2><a name="stashing">Stashing</a></h2>
+
+<p>
+The Stashes section lists the stashes, newest first, as
+<code>stash@{0}: On main: message</code>. Each opens, as a file does, to its
+files, untracked ones too where git shows them (2.32 and later), and they to
+their diffs; nothing in a stash is staged or discarded. <b>Enter</b> on a
+stash, or on a line in it, shows its message and files over a file's diff
+beside the status, as the log shows a commit, and so does the diff beside
+when the caret is on one. Its parents are labeled: the commit it was made
+on, the index, and the untracked files. <b>x</b> on a stash drops it, after
+asking.
+
+<p>
+<b>z</b> opens the stash popup (<b>Z</b> in vim edit mode, where <b>z</b>
+begins the folds). Its option is <b>-m</b>, the stash's message, for the
+next stash alone. Then:
+
+<ul>
+    <li><b>z</b> stashes the changes, staged and not, leaving the untracked files;</li>
+    <li><b>i</b> stashes them, keeping what is staged in the index;</li>
+    <li><b>u</b> stashes the untracked files too;</li>
+    <li><b>s</b> stashes what is staged alone (git 2.35 and later);</li>
+    <li><b>a</b> applies the stash at the caret, or the newest;</li>
+    <li><b>p</b> pops it: applies it, and drops it if it applied cleanly;</li>
+    <li><b>k</b> drops it, after asking.</li>
+</ul>
+
+<p>
+Applying takes the stash the status showed, by its hash. Popping and dropping
+leave alone a stash that no longer has the name the status showed it with, as
+after another stash is made, and the status bar says to refresh. An
+apply or a pop that conflicts leaves the stash, and the conflicts are in the
+Unmerged section. A dropped stash's hash is in the status bar and the command
+log, so <code>git stash apply &lt;hash&gt;</code> brings it back.
+
 <h3>Keys</h3>
 
 <table>
@@ -345,6 +385,7 @@ commits sections' counts are as of the last fetch.
 <tr><td>S U</td><td>S U</td><td><a href="commands.html#vcsStageAll">vcsStageAll</a>, <a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></td><td>stage or unstage everything</td></tr>
 <tr><td>c</td><td>c</td><td><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></td><td>the commit popup</td></tr>
 <tr><td>f</td><td>f</td><td><a href="commands.html#vcsFetchPopup">vcsFetchPopup</a></td><td>the fetch popup</td></tr>
+<tr><td>z</td><td>Z</td><td><a href="commands.html#vcsStashPopup">vcsStashPopup</a></td><td>the stash popup</td></tr>
 <tr><td>$</td><td>$</td><td><a href="commands.html#vcsCommandLog">vcsCommandLog</a></td><td>the commands j ran</td></tr>
 <tr><td>?</td><td>?</td><td><a href="commands.html#modePopup">modePopup</a></td><td>the popup</td></tr>
 <tr><td>q</td><td>q</td><td><a href="commands.html#killBuffer">killBuffer</a></td><td>close it</td></tr>

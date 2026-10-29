@@ -1681,7 +1681,18 @@ plan with why it is left, before the next phase starts.
      git's in `GitWrites`, and `Capability.STASH` gates the section and
      the popup. Undo-like safety: a dropped stash's hash goes in the
      command log and the status bar, so `git stash apply <hash>` can bring
-     it back.
+     it back. Built as: a `StashItem` (name, hash, subject, files) whose
+     line is a commit's, so the diff beside follows it as it follows a
+     commit, from the stash's line or any line in it; its files are read
+     when it is opened (`wantsDiff` asked of `stashes` and its hash). The
+     popup is `z`, and `Z` with the vim keys, where `z` begins the folds.
+     Apply goes by the hash; pop and drop, which git takes only by name,
+     leave a stash whose name has moved to another alone. Ignoring
+     whitespace, a stash's file changed only in that is still listed, from
+     a second `stash show --name-status`. The details' parents are
+     labeled through `CommitDetails.Host.isStash`; their files are the
+     stash's tracked changes, against the commit it was made on, while
+     the status's lines have its untracked files too.
    - **f. Stashes in the log and the refs tree.** The refs tree's last
      node lists the stashes; a click goes to the stash's commit, which the
      log shows when the `-z` filter (`vcsLogToggleStashes`, off by

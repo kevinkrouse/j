@@ -76,6 +76,7 @@ import org.armedbear.j.vcs.log.LogScope;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
+import org.armedbear.j.vcs.status.StatusData.StashItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
 /**
@@ -369,7 +370,8 @@ public final class VcsStatusBuffer extends ViewBuffer
         return switch (kind) {
             // A section of commits between branches only deeper.
             case SECTION -> depth >= (StatusData.RANGES.contains(key.substring(key.lastIndexOf('|') + 1)) ? 3 : 2);
-            case FILE -> depth >= 3;
+            // A stash opens to its files as a file to its hunks.
+            case FILE, COMMIT -> depth >= 3;
             case HUNK -> depth != 3; // A file opened by hand shows its hunks.
             default -> true;
         };
@@ -399,7 +401,9 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     public void setExpanded(StatusLine head, boolean open) {
         expanded.put(head.key(), open);
-        if (open && head.kind() == Kind.FILE && head.file() != null && head.file().diff() == null) {
+        final boolean unread = head.kind() == Kind.FILE && head.file() != null && head.file().diff() == null
+                || head.stash() != null && head.stash().files() == null;
+        if (open && unread) {
             diffsRead.remove(head.key());
             render(); // "Reading the diff..." until it is read.
             refresh();
@@ -591,7 +595,6 @@ public final class VcsStatusBuffer extends ViewBuffer
         final CompareBuffer c = sides != null ? sides.comparison() : null;
         follow.stop();
         final CommitDetails details = commits;
-        commits = null;
         final List<Buffer> parts = new ArrayList<>(List.of(d));
         if (c != null)
             parts.addAll(List.of(c, c.getOld()));
@@ -601,8 +604,10 @@ public final class VcsStatusBuffer extends ViewBuffer
                     parts.add(b);
         if (closing)
             parts.add(this);
+        // Its children the details' panes still, as the frame lays them out.
         if (frame != null)
             frame.leaveView(this, parts);
+        commits = null;
         diff = null;
         sides = null;
         before = null;
@@ -623,7 +628,8 @@ public final class VcsStatusBuffer extends ViewBuffer
     @Override
     public void afterCommand(Editor editor) {
         if (diff != null && editor.getDot() != null && editor.getDotLine() instanceof StatusLine s) {
-            final String target = s.kind() == StatusLine.Kind.COMMIT ? commitKey(s) : StatusDiffBuffer.target(s);
+            final StatusLine c = commitOf(s);
+            final String target = c != null ? commitKey(c) : StatusDiffBuffer.target(s);
             if (target != null && !target.equals(followed))
                 follow.restart();
         }
@@ -648,8 +654,9 @@ public final class VcsStatusBuffer extends ViewBuffer
             return;
         final Editor ed = Editor.windowShowing(this);
         final StatusLine s = ed != null && ed.getDot() != null && ed.getDotLine() instanceof StatusLine l ? l : null;
-        if (s != null && s.kind() == StatusLine.Kind.COMMIT) {
-            followCommit(s);
+        final StatusLine c = s == null ? null : commitOf(s);
+        if (c != null) {
+            followCommit(c);
             return;
         }
         final String target = s == null ? null : StatusDiffBuffer.target(s);
@@ -733,13 +740,23 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     // A commit's details.
 
-    /** The commit at editor's caret, or null. */
+    /** The commit at editor's caret, or the stash the caret is in; null for none. */
     private static StatusLine commitAt(Editor editor) {
-        return editor != null
-                && editor.getDot() != null
-                && editor.getDotLine() instanceof StatusLine s
-                && s.kind() == StatusLine.Kind.COMMIT
-                && s.commit() != null ? s : null;
+        return editor != null && editor.getDot() != null && editor.getDotLine() instanceof StatusLine s
+                ? commitOf(s)
+                : null;
+    }
+
+    /** The commit line is, or the stash it is in, the line of its files and diffs; null for none. */
+    static StatusLine commitOf(StatusLine line) {
+        if (line.kind() == StatusLine.Kind.COMMIT)
+            return line.commit() != null ? line : null;
+        if (!StatusData.STASHES.equals(line.section()))
+            return null;
+        for (Line l = line.previous(); l != null; l = l.previous())
+            if (l instanceof StatusLine s && s.kind() == StatusLine.Kind.COMMIT)
+                return s.stash() != null && line.key().startsWith(s.key() + "|") ? s : null;
+        return null;
     }
 
     // What following a commit's line shows, as a key.
@@ -754,10 +771,8 @@ public final class VcsStatusBuffer extends ViewBuffer
         if (key.equals(followed) && commits != null)
             return;
         followed = key;
-        if (commits == null) {
-            commits = new CommitDetails(this, sideBySide);
-            layOut();
-        }
+        if (commits == null)
+            layOut(() -> commits = new CommitDetails(this, sideBySide));
         final CommitDetails details = commits;
         final LogCommit known = commitsRead.get(key);
         if (known != null) {
@@ -789,23 +804,28 @@ public final class VcsStatusBuffer extends ViewBuffer
     // side as = last left them.
     private void leaveCommit() {
         final CommitDetails was = commits;
-        commits = null;
         followed = null;
-        if (sideBySide && sides == null)
-            sides = newSides();
-        else if (!sideBySide && sides != null) {
-            sides.close();
-            sides = null;
-        }
-        layOut();
+        layOut(() -> {
+            commits = null;
+            if (sideBySide && sides == null)
+                sides = newSides();
+            else if (!sideBySide && sides != null) {
+                sides.close();
+                sides = null;
+            }
+        });
         was.close();
     }
 
-    // Its view laid out again, in the frame showing it, the focus kept.
-    private void layOut() {
+    // change made to its panes, then its view laid out again, in the frame
+    // showing it, the focus kept. Shown is as of before: the new panes have
+    // no windows yet.
+    private void layOut(Runnable change) {
         final Editor ed = Editor.windowShowing(this);
         final Frame frame = ed == null ? null : ed.getFrame();
-        if (frame == null || frame.shownView() != this)
+        final boolean shown = frame != null && frame.shownView() == this;
+        change.run();
+        if (!shown)
             return;
         final Editor current = frame.getCurrentEditor();
         frame.layOutView(this, current != null ? current.getBuffer() : this);
@@ -824,6 +844,17 @@ public final class VcsStatusBuffer extends ViewBuffer
     @Override
     public LogScope getScope() {
         return LogScope.of(repositories);
+    }
+
+    @Override
+    public boolean isStash(LogCommit c) {
+        for (StatusData d : data.values())
+            for (Section s : d.sections())
+                if (s.id().equals(StatusData.STASHES))
+                    for (Item i : s.items())
+                        if (i instanceof StashItem st && st.hash().equals(c.id()))
+                            return true;
+        return false;
     }
 
     @Override

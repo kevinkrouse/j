@@ -110,6 +110,14 @@ public class VcsStatusFormatter extends Formatter {
             }
             case DIFF -> diff(s, text);
             case COMMIT -> {
+                if (s.stash() != null) {
+                    // "stash@{0}: On main: message"
+                    final int name = StatusRenderer.INDENT.length() + s.stash().name().length() + 1;
+                    addSegment(text, 0, Math.min(name, text.length()), HASH);
+                    if (name < text.length())
+                        addSegment(text, name, TEXT);
+                    break;
+                }
                 final int start = StatusRenderer.INDENT.length();
                 final int hash = text.indexOf(' ', start);
                 addSegment(text, 0, hash < 0 ? text.length() : hash, HASH);

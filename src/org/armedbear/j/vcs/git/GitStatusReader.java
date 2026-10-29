@@ -23,6 +23,7 @@ package org.armedbear.j.vcs.git;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +44,7 @@ import org.armedbear.j.vcs.status.StatusData.Field;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
+import org.armedbear.j.vcs.status.StatusData.StashItem;
 
 /** What git's status buffer shows: the snapshot, the diffs asked for, and the recent commits. */
 final class GitStatusReader {
@@ -96,6 +98,12 @@ final class GitStatusReader {
                 new Section("unstaged", "Unstaged changes", files(repository, unstaged, false, wantsDiff, ignored)));
         if (!staged.isEmpty())
             sections.add(new Section("staged", "Staged changes", files(repository, staged, true, wantsDiff, ignored)));
+        // The count says whether to list them, where this git gives one.
+        if (git.stashes() != 0) {
+            final List<Item> stashes = stashes(repository, wantsDiff, ignored);
+            if (!stashes.isEmpty())
+                sections.add(new Section(StatusData.STASHES, "Stashes", stashes));
+        }
         sections.addAll(ranges(repository, git));
         // Recent ones when none are on this branch alone, as just after
         // branching, or on the parent itself.
@@ -205,6 +213,88 @@ final class GitStatusReader {
         args.addAll(paths);
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
         return r.succeeded() ? DiffParser.parse(r.stdout()) : null;
+    }
+
+    // stash show --include-untracked came in 2.32.
+    private static final int[] SHOW_UNTRACKED = { 2, 32 };
+
+    // The stashes, newest first, each with its files if wanted.
+    private static List<Item> stashes(
+            VcsRepository repository,
+            BiPredicate<String, String> wantsDiff,
+            Whitespace ignored) {
+        final List<Item> items = new ArrayList<>();
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "stash", "list", "--format=%gd%x1f%H%x1f%gs"));
+        if (!r.succeeded())
+            return items;
+        for (String line : r.out().split("\n")) {
+            final String[] f = line.split("\u001f", -1);
+            if (f.length != 3)
+                continue;
+            final List<FileItem> files =
+                    wantsDiff.test(StatusData.STASHES, f[1]) ? stashFiles(repository, f[1], ignored) : null;
+            items.add(new StashItem(f[0], f[1], f[2], files));
+        }
+        return items;
+    }
+
+    // What the stash hash holds against the commit it was made on, its
+    // untracked files too where git shows them; none if git fails.
+    private static List<FileItem> stashFiles(VcsRepository repository, String hash, Whitespace ignored) {
+        final List<FileItem> files = new ArrayList<>();
+        final VcsResult r = stashShow(repository, hash, ignored, "-p");
+        if (!r.succeeded())
+            return files;
+        final Map<String, FileDiff> diffs = new LinkedHashMap<>();
+        for (FileDiff d : DiffParser.parse(r.stdout()))
+            diffs.put(d.path(), d);
+        if (ignored == Whitespace.NONE) {
+            for (FileDiff d : diffs.values()) {
+                final Kind kind = d.isNew() ? Kind.ADDED
+                        : d.isDeleted() ? Kind.DELETED
+                        : d.isRename() ? Kind.RENAMED
+                        : Kind.MODIFIED;
+                files.add(stashFile(d.path(), d.isRename() ? FileDiff.decode(d.oldPath()) : null, kind, d));
+            }
+            return files;
+        }
+        // Ignoring whitespace, git leaves out a file changed only in that:
+        // the files named as they are, each with its diff or none.
+        final VcsResult names = stashShow(repository, hash, Whitespace.NONE, "--name-status", "-z");
+        if (!names.succeeded())
+            return files;
+        final String[] f = names.out().split("\0");
+        for (int i = 0; i + 1 < f.length;) {
+            final Kind kind = Kind.of(f[i].charAt(0));
+            final boolean two = kind == Kind.RENAMED || kind == Kind.COPIED;
+            if (two && i + 2 >= f.length)
+                break;
+            final String orig = two ? f[i + 1] : null;
+            final String path = f[two ? i + 2 : i + 1];
+            i += two ? 3 : 2;
+            files.add(
+                stashFile(
+                    path,
+                    orig,
+                    kind == null ? Kind.MODIFIED : kind,
+                    diffs.getOrDefault(path, FileDiff.ONLY_WHITESPACE)));
+        }
+        return files;
+    }
+
+    // git stash show of hash, with args.
+    private static VcsResult stashShow(VcsRepository repository, String hash, Whitespace ignored, String... args) {
+        final List<String> all = new ArrayList<>(List.of("stash", "show"));
+        all.addAll(List.of(args));
+        if (GitCli.versionAtLeast(SHOW_UNTRACKED))
+            all.add("--include-untracked");
+        GitCli.ignoring(ignored, all).addAll(List.of("--no-ext-diff", "--no-color", "-M", hash));
+        return GitCli.run(GitCli.read(repository.root(), all.toArray(new String[0])));
+    }
+
+    // A stash's file, staged as a commit's are: a rename shown from its old path.
+    private static FileItem stashFile(String path, String orig, Kind kind, FileDiff d) {
+        return new FileItem(new FileChange(path, orig, kind, null, kind.letter() + " "), kind.letter(), true, d);
     }
 
     // The commits on one side of a range and not the other: its section.

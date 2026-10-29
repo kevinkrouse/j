@@ -56,7 +56,7 @@ public record LogCommit(String id, List<String> parents, String author, String e
     }
 
     /** A commit's id as short as titles show it. */
-    static String shortId(String id) {
+    public static String shortId(String id) {
         return id.length() > 7 ? id.substring(0, 7) : id;
     }
 

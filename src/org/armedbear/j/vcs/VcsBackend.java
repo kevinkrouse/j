@@ -242,6 +242,24 @@ public interface VcsBackend {
         return null;
     }
 
+    /** Stashes the changes, with message if not null. */
+    default VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
+        return null;
+    }
+
+    /**
+     * Applies the stash id, named name; with pop drops it too if it applied
+     * cleanly, failing without either if name is no longer id.
+     */
+    default VcsResult stashApply(VcsRepository repository, String name, String id, boolean pop) {
+        return null;
+    }
+
+    /** Drops the stash named name; fails without it if name is no longer the stash id. */
+    default VcsResult stashDrop(VcsRepository repository, String name, String id) {
+        return null;
+    }
+
     /** How many refs a fetch's result says it moved; -1 if it doesn't say. */
     default int fetchedRefs(VcsResult result) {
         return -1;

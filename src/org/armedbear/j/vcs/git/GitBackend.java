@@ -33,6 +33,7 @@ import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.RepositoryWatcher;
 import org.armedbear.j.vcs.Snapshot;
+import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
@@ -179,6 +180,21 @@ public final class GitBackend implements VcsBackend {
     @Override
     public VcsResult setParent(VcsRepository repository, String branch, String parent) {
         return GitWrites.setParent(repository, branch, parent);
+    }
+
+    @Override
+    public VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
+        return GitWrites.stash(repository, message, options);
+    }
+
+    @Override
+    public VcsResult stashApply(VcsRepository repository, String name, String id, boolean pop) {
+        return GitWrites.stashApply(repository, name, id, pop);
+    }
+
+    @Override
+    public VcsResult stashDrop(VcsRepository repository, String name, String id) {
+        return GitWrites.stashDrop(repository, name, id);
     }
 
     @Override

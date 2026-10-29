@@ -121,6 +121,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         common(km);
+        km.mapKey('z', "vcsStashPopup");
         // The next and previous section, as ]] and [[ are in vim.
         km.mapKey('N', "vcsStatusNextSection");
         km.mapKey('P', "vcsStatusPreviousSection");
@@ -133,6 +134,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         if (modalKeyMap == null) {
             final KeyMap km = new KeyMap();
             common(km);
+            // z begins vim's folds.
+            km.mapKey('Z', "vcsStashPopup");
             modalKeyMap = km;
         }
         return modalKeyMap;
@@ -391,6 +394,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         if (stages)
             commands.add(new Prefix("c", "commit…", CommitCommands::popup));
         commands.add(Command.of("f", "vcsFetchPopup", "fetch…"));
+        commands.add(Command.of(vim ? "Z" : "z", "vcsStashPopup", "stash…"));
         commands.add(Command.of("$", "vcsCommandLog", "command log"));
         commands.add(Command.of("=", "vcsStatusDiffView", "diff layout"));
         commands.add(Command.of("q", "killBuffer", "close"));
@@ -595,17 +599,22 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
      */
     public static void vcsStatusDiff(Editor editor) {
         final VcsStatusBuffer b = owner(editor);
-        if (b == null)
-            return;
+        if (b != null && !showBeside(editor, b)) {
+            b.closeDiffToStatus(editor.getFrame());
+            toStatus(editor.getFrame(), b);
+        }
+    }
+
+    // b's diff beside opened, or laid out again; false, left as it is, if it is shown.
+    private static boolean showBeside(Editor editor, VcsStatusBuffer b) {
         final Frame frame = editor.getFrame();
         if (b.getDiff() == null)
             b.openDiff(frame);
         else if (frame != null && !b.isDiffShown(frame))
             frame.showView(b, editor.getBuffer());
-        else {
-            b.closeDiffToStatus(frame);
-            toStatus(frame, b);
-        }
+        else
+            return false;
+        return true;
     }
 
     // The status focused in frame, in the current window if none shows it.
@@ -660,6 +669,16 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         else
             MotionCommands.pageUp(ed);
         ed.updateDisplay();
+    }
+
+    /** The repository of the thing at the caret in the status or its diff, or the status's first; null for none. */
+    static VcsRepository repositoryAt(Editor editor) {
+        final VcsStatusBuffer status = owner(editor);
+        if (status == null)
+            return null;
+        if (editor.getBuffer() == status && editor.getDotLine() instanceof StatusLine s && s.repository() != null)
+            return s.repository();
+        return status.getRepositories().get(0);
     }
 
     private static StatusLine dotLine(Editor editor) {
@@ -761,6 +780,14 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final StatusLine line = dotLine(editor);
         if (line == null)
             return;
+        // A stash, or a line in it: its details beside.
+        final StatusLine commit = VcsStatusBuffer.commitOf(line);
+        if (commit != null && commit.stash() != null) {
+            final VcsStatusBuffer b = owner(editor);
+            if (b != null)
+                showBeside(editor, b);
+            return;
+        }
         if (line.kind() == Kind.COMMIT) {
             showCommit(editor, line);
             return;

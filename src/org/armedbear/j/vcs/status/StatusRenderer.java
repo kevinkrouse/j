@@ -36,6 +36,7 @@ import org.armedbear.j.vcs.status.StatusData.Field;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
+import org.armedbear.j.vcs.status.StatusData.StashItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
 /** The lines of a status buffer: its repositories' data, with what is expanded shown. */
@@ -160,6 +161,7 @@ public final class StatusRenderer {
                                 repository,
                                 s.id()).commit(c));
                 }
+                case StashItem st -> stash(repository, sk, s.id(), st);
             }
         }
         if (s.total() > s.items().size())
@@ -170,6 +172,27 @@ public final class StatusRenderer {
                         null,
                         repository,
                         s.id()));
+    }
+
+    // A stash's line, a commit's that opens to its files, read when first opened.
+    private void stash(VcsRepository repository, String sk, String section, StashItem st) {
+        final String key = sk + "|" + st.hash();
+        final boolean open = expanded.test(key, Kind.COMMIT);
+        add(
+            new StatusLine(Kind.COMMIT, INDENT + st.name() + ": " + st.subject(), key, key, repository, section)
+                    .commit(st.commit())
+                    .stash(st)
+                    .expandable(true)
+                    .open(open));
+        if (!open)
+            return;
+        if (st.files() == null) {
+            final String message = diffRead.test(key) ? "No diff: see vcsCommandLog" : "Reading the stash…";
+            add(new StatusLine(Kind.MESSAGE, INDENT + message, key + "|reading", key, repository, section));
+            return;
+        }
+        for (FileItem f : st.files())
+            file(repository, key, section, f);
     }
 
     private void file(VcsRepository repository, String sk, String section, FileItem f) {

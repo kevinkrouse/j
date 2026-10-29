@@ -133,7 +133,9 @@ final class LogFilesBuffer extends ViewPane<Buffer> {
         lines.add(StatusLine.of(Kind.FIELD, field("Commit:", c.id()), "commit"));
         lines.add(StatusLine.of(Kind.FIELD, field("Author:", c.author() + " <" + c.email() + ">"), "author"));
         lines.add(StatusLine.of(Kind.FIELD, field("Date:", date(c)), "date"));
-        if (c.isMerge())
+        if (details.host().isStash(c))
+            lines.add(StatusLine.of(Kind.FIELD, field("Stash:", stashParents(c.parents())), "merge"));
+        else if (c.isMerge())
             lines.add(StatusLine.of(Kind.FIELD, field("Merge:", String.join(" ", shortIds(c.parents()))), "merge"));
         lines.add(StatusLine.of(Kind.BLANK, "", "blank1"));
         int n = 0;
@@ -184,6 +186,16 @@ final class LogFilesBuffer extends ViewPane<Buffer> {
     // "Commit:" padded to the column values start at, as the status buffer's header.
     private static String field(String label, String value) {
         return String.format("%-10s%s", label, value);
+    }
+
+    // A stash's parents, as git makes them: the commit it was made on, the
+    // index, and the untracked files when it has them.
+    static String stashParents(List<String> parents) {
+        final String[] labels = { "on", "index", "untracked" };
+        final List<String> out = new ArrayList<>();
+        for (int i = 0; i < parents.size(); i++)
+            out.add(LogCommit.shortId(parents.get(i)) + (i < labels.length ? " (" + labels[i] + ")" : ""));
+        return String.join("  ", out);
     }
 
     private static List<String> shortIds(List<String> ids) {

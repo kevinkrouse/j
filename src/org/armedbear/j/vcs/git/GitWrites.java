@@ -29,10 +29,11 @@ import java.util.Set;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 
-/** Git's writes for the status buffer: staging, discarding and committing. */
+/** Git's writes for the status buffer: staging, discarding, committing and stashing. */
 final class GitWrites {
     // A commit's hooks may lint or test for a while.
     private static final Duration COMMIT_TIMEOUT = Duration.ofMinutes(30);
@@ -93,6 +94,42 @@ final class GitWrites {
             if (line.startsWith(" ") && line.contains(" -> ") && !line.endsWith("-> FETCH_HEAD"))
                 refs++;
         return refs;
+    }
+
+    static VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
+        final List<String> args = args("stash", "push");
+        if (options.contains(StashOption.KEEP_INDEX))
+            args.add("--keep-index");
+        if (options.contains(StashOption.UNTRACKED))
+            args.add("--include-untracked");
+        if (options.contains(StashOption.STAGED))
+            args.add("--staged");
+        if (message != null)
+            args.addAll(List.of("-m", message));
+        return run(repository, args);
+    }
+
+    static VcsResult stashApply(VcsRepository repository, String name, String id, boolean pop) {
+        // Applied by its hash, the one shown whatever name it has now; pop
+        // takes only a name.
+        if (!pop)
+            return run(repository, args("stash", "apply", id));
+        final VcsResult moved = moved(repository, name, id);
+        return moved != null ? moved : run(repository, args("stash", "pop", name));
+    }
+
+    static VcsResult stashDrop(VcsRepository repository, String name, String id) {
+        final VcsResult moved = moved(repository, name, id);
+        return moved != null ? moved : run(repository, args("stash", "drop", name));
+    }
+
+    // A failure if name is no longer the stash id, as after a stash made
+    // since the status was read; null if it is.
+    private static VcsResult moved(VcsRepository repository, String name, String id) {
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "-q", name));
+        if (r.succeeded() && r.out().strip().equals(id))
+            return null;
+        return new VcsResult(r.command(), 1, r.stdout(), name + " is no longer the stash shown: refresh", r.millis());
     }
 
     static VcsResult stageAll(VcsRepository repository) {

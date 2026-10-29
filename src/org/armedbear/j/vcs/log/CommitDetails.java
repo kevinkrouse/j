@@ -77,6 +77,11 @@ public final class CommitDetails {
 
         /** q, or visiting a file: the details left, as the log closes. */
         void leave(Frame frame);
+
+        /** Whether c is a stash, whose parents are labeled. */
+        default boolean isStash(LogCommit c) {
+            return false;
+        }
     }
 
     private final Host host;

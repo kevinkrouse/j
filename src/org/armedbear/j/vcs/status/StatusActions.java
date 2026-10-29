@@ -202,6 +202,11 @@ public final class StatusActions {
         final VcsStatusBuffer buffer = VcsStatusMode.owner(editor);
         if (buffer == null || editor.getDot() == null)
             return;
+        final StatusLine stash = stashDropped(editor, op);
+        if (stash != null) {
+            StashCommands.drop(editor, stash.repository(), stash.stash());
+            return;
+        }
         final List<Target> targets = targets(buffer, editor);
         final String why = refusal(editor, buffer, op, targets);
         if (why != null) {
@@ -256,9 +261,18 @@ public final class StatusActions {
             return out;
         final List<Target> targets = targets(buffer, editor);
         for (Op op : Op.values())
-            if (refusal(editor, buffer, op, targets) == null)
+            if (stashDropped(editor, op) != null ? !buffer.isWriting() : refusal(editor, buffer, op, targets) == null)
                 out.add(op);
         return out;
+    }
+
+    // x on a stash's line drops it: the line, or null.
+    private static StatusLine stashDropped(Editor editor, Op op) {
+        return op == Op.DISCARD
+                && editor.getMark() == null
+                && editor.getDotLine() instanceof StatusLine s
+                && s.kind() == Kind.COMMIT
+                && s.stash() != null ? s : null;
     }
 
     // Why op can't be done to targets in editor, or null.
@@ -355,13 +369,17 @@ public final class StatusActions {
             return t.repository().backend().name() + " has no index to stage to";
         return switch (op) {
             case STAGE -> section.equals("staged") ? "Already staged"
-                    : StatusData.isCommits(section) ? "Nothing to stage here"
+                    : isHistory(section) ? "Nothing to stage here"
                     : t instanceof Part && !section.equals("unstaged") ? "Only an unstaged hunk is staged in part"
                     : null;
             case UNSTAGE -> section.equals("staged") ? null : "Not staged";
-            case DISCARD ->
-                    StatusData.isCommits(section) || section.equals("unmerged") ? "Nothing to discard here" : null;
+            case DISCARD -> isHistory(section) || section.equals("unmerged") ? "Nothing to discard here" : null;
         };
+    }
+
+    // A section of commits or stashes, not of the working tree's changes.
+    private static boolean isHistory(String section) {
+        return StatusData.isCommits(section) || section.equals(StatusData.STASHES);
     }
 
     // Does it, off the event thread; what went wrong, or null.

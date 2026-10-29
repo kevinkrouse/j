@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
@@ -824,6 +825,98 @@ public class VcsStatusBufferTest {
         onEdt(status::kill);
         assertFalse(Editor.getBufferList().contains(diff));
         assertFalse(Editor.getBufferList().contains(status));
+    }
+
+    // Stashes.
+
+    // a.txt's change stashed, the status read again: the stash's line.
+    private StatusLine stashed() throws Exception {
+        git.git("stash", "push", "-q", "-m", "saved", "--", "a.txt");
+        repo().invalidate();
+        repo().refresh();
+        until(() -> text().contains("  stash@{0}: On main: saved"));
+        return line("  stash@{0}: On main: saved");
+    }
+
+    @Test
+    public void aStashIsAfterStagedAndOpensToItsFilesAndTheirDiffs() throws Exception {
+        repository();
+        git.git("stash", "push", "-q", "-m", "saved", "--", "a.txt");
+        open();
+        assertEquals(
+            List.of("Untracked files (1)", "Staged changes (1)", "Stashes (1)"),
+            sectionTitles().subList(0, 3));
+        final StatusLine stash = line("  stash@{0}: On main: saved");
+        assertFalse(stash.isOpen(), "closed to begin with");
+        assertEquals(git.git("rev-parse", "stash@{0}").strip(), stash.stash().hash());
+        onEdt(() -> status.toggle(stash));
+        until(() -> text().contains("  M  a.txt"));
+        final StatusLine file = line("  M  a.txt");
+        assertEquals(StatusData.STASHES, file.section());
+        onEdt(() -> status.toggle(file));
+        until(() -> text().contains("  -three blind mice"));
+        assertTrue(text().contains("  +three blind cats"));
+        // Nothing in it is staged or discarded.
+        assertEquals("Nothing to stage here", StatusActions.refuse(StatusActions.Op.STAGE, files(file)));
+        assertEquals("Nothing to discard here", StatusActions.refuse(StatusActions.Op.DISCARD, files(file)));
+    }
+
+    private static StatusActions.Files files(StatusLine l) {
+        return new StatusActions.Files(l.repository(), l.section(), List.of(l.file()));
+    }
+
+    @Test
+    public void xOnAStashDropsItAfterAskingAndSaysItsHash() throws Exception {
+        repository();
+        open();
+        final StatusLine stash = stashed();
+        final String id = stash.stash().hash().substring(0, 7);
+        final java.util.function.BiPredicate<Editor, String> was = StashCommands.confirm;
+        final List<String> asked = new ArrayList<>();
+        try {
+            StashCommands.confirm = (e, q) -> asked.add(q) && false;
+            onEdt(() -> {
+                h.editor().setDot(stash, 0);
+                StatusActions.run(h.editor(), StatusActions.Op.DISCARD);
+            });
+            assertEquals(List.of("Drop stash@{0}: On main: saved?"), asked);
+            // The Discard button and menu item agree.
+            final List<Set<StatusActions.Op>> able = new ArrayList<>();
+            onEdt(() -> able.add(StatusActions.able(h.editor())));
+            assertEquals(Set.of(StatusActions.Op.DISCARD), able.get(0));
+            assertTrue(git.run("rev-parse", "-q", "--verify", "stash@{0}").succeeded(), "kept when not confirmed");
+            StashCommands.confirm = (e, q) -> true;
+            onEdt(() -> StatusActions.run(h.editor(), StatusActions.Op.DISCARD));
+            until(() -> !sectionTitles().contains("Stashes (1)"));
+            assertFalse(git.run("rev-parse", "-q", "--verify", "stash@{0}").succeeded());
+            until(() -> h.status().contains("git stash apply " + id));
+        }
+        finally {
+            StashCommands.confirm = was;
+        }
+    }
+
+    @Test
+    public void enterOnAStashShowsItsDetailsBesideItsParentsLabeled() throws Exception {
+        repository();
+        open();
+        final StatusLine stash = stashed();
+        onEdt(() -> {
+            h.editor().setDot(stash, 0);
+            VcsStatusMode.vcsStatusVisit(h.editor());
+        });
+        caretOn(stash);
+        until(() -> status.details() != null && lines(status.details().panes().get(0)).contains("  M  a.txt"));
+        final List<String> files = lines(status.details().panes().get(0));
+        final String on = git.git("rev-parse", "--short=7", "stash@{0}^1").strip();
+        final String index = git.git("rev-parse", "--short=7", "stash@{0}^2").strip();
+        assertTrue(files.contains("Stash:    " + on + " (on)  " + index + " (index)"), files.toString());
+        // Its files' lines follow it too.
+        onEdt(() -> status.toggle(stash));
+        until(() -> text().contains("  M  a.txt"));
+        final CommitDetails details = status.details();
+        caretOn(line("  M  a.txt"));
+        assertSame(details, status.details());
     }
 
     // A commit's details.

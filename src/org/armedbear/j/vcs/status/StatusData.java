@@ -38,7 +38,7 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
 
     /**
      * @param id stable across refreshes: "untracked", "unstaged", "staged",
-     *     "unmerged", "recent", or one of RANGES
+     *     "unmerged", STASHES, "recent", or one of RANGES
      * @param total how many it has, of which items are the first
      * @param range the revisions its commits are, for the log; or null
      */
@@ -56,12 +56,15 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
     public static final Set<String> RANGES =
             Set.of("unpulled", "unpushed", "unpushed-push", "unmerged-parent", "not-in-parent");
 
+    /** The section of stashes, each a StashItem. */
+    public static final String STASHES = "stashes";
+
     /** Whether section id's items are commits. */
     public static boolean isCommits(String id) {
         return id.equals("recent") || RANGES.contains(id);
     }
 
-    public sealed interface Item permits FileItem, CommitItem {}
+    public sealed interface Item permits FileItem, CommitItem, StashItem {}
 
     /**
      * A changed file in a section.
@@ -82,6 +85,21 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
     }
 
     public record CommitItem(String hash, String subject, String refs) implements Item {}
+
+    /**
+     * A stash: a commit, as git keeps one, with the files it holds.
+     *
+     * @param name what it is called now, as "stash@{0}"
+     * @param hash its commit's full hash
+     * @param subject "On main: message", say
+     * @param files its files with their diffs, if read; null if not asked for
+     */
+    public record StashItem(String name, String hash, String subject, List<FileItem> files) implements Item {
+        /** As a commit, for its details. */
+        public CommitItem commit() {
+            return new CommitItem(hash, subject, name);
+        }
+    }
 
     public StatusData {
         header = List.copyOf(header);
