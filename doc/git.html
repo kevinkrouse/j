@@ -97,12 +97,16 @@ unified or side by side, from the status too. In a side of the comparison,
 the status's buttons and items act in the status.
 
 <p>
-With the sidebar shown, its lower half has the status's sections and their
-files: the untracked, unstaged and staged files closed to begin with, and
-the recent commits a section alone. What the caret is on in the status is
-selected there, or the section around it while that is closed. A click goes
-to the section or file in the status, opening a closed section, and the
-diff beside follows; a double click or <b>Enter</b> on a file visits it.
+With the sidebar shown, its lower half has the status's sections: their
+files under their directories, a directory holding only one directory shown
+with it as one (<code>src/org/armedbear/j</code>), or their commits or
+stashes. The untracked, unstaged and staged files and the commits between
+branches are closed to begin with. What the caret is on in the status is
+selected there, or the directory or section around it while that is closed.
+A click goes to the section, file, commit or stash in the status, or a
+directory's first file, opening a closed section, and the diff beside
+follows; a double click or <b>Enter</b> visits a file or shows a commit's
+or stash's details.
 
 <h3>Showing and hiding</h3>
 

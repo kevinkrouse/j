@@ -84,7 +84,12 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
         }
     }
 
-    public record CommitItem(String hash, String subject, String refs) implements Item {}
+    public record CommitItem(String hash, String subject, String refs) implements Item {
+        /** "abc1234 (main) subject", as listed. */
+        public String text() {
+            return hash + " " + (refs.isBlank() ? "" : "(" + refs + ") ") + subject;
+        }
+    }
 
     /**
      * A stash: a commit, as git keeps one, with the files it holds.

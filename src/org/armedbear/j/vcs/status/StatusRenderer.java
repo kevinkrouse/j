@@ -152,14 +152,9 @@ public final class StatusRenderer {
             switch (item) {
                 case FileItem f -> file(repository, sk, s.id(), f);
                 case CommitItem c -> {
-                    final String refs = c.refs().isBlank() ? "" : "(" + c.refs() + ") ";
                     add(
-                        new StatusLine(Kind.COMMIT,
-                                INDENT + c.hash() + " " + refs + c.subject(),
-                                sk + "|" + c.hash(),
-                                null,
-                                repository,
-                                s.id()).commit(c));
+                        new StatusLine(Kind.COMMIT, INDENT + c.text(), sk + "|" + c.hash(), null, repository, s.id())
+                                .commit(c));
                 }
                 case StashItem st -> stash(repository, sk, s.id(), st);
             }

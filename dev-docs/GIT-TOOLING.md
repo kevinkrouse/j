@@ -1715,6 +1715,13 @@ plan with why it is left, before the next phase starts.
      directory with more than one child (`src/org/armedbear/j` as one
      node), with the commit sections' commits as leaves. Its selection
      still follows the caret.
+     Built as: `StatusTree`'s `DirNode`s, keyed by the section's key and
+     the directory's path with a trailing slash, so no status line's key
+     selects one but as the shown node around a file; a click on one goes
+     to its first file. Directories come before files, by name; a
+     directory opens with its section, unless it was left closed. Commits
+     and stashes are `CommitNode`s with the commit icon; a stash's files
+     stay in the status.
    - **h. Actions on the refs tree's branches.** A popup on a ref (`Enter`
      stays the filter, so the popup is the right button and `b` in the
      tree, and `b` in the status and log for the branch at the caret, or

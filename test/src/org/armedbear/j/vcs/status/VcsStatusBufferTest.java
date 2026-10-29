@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
+import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -36,6 +38,7 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
+import javax.swing.tree.TreePath;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
@@ -180,9 +183,14 @@ public class VcsStatusBufferTest {
             for (int i = 0; i < tree.getRowCount(); i++)
                 rows.add(tree.getPathForRow(i).getLastPathComponent() + (tree.isExpanded(i) ? " +" : ""));
             assertEquals(
-                List.of("Untracked files (1)", "Unstaged changes (1)", "Staged changes (1)", "Recent commits (1)"),
-                rows,
-                "the files' sections closed, the commits alone");
+                List.of(
+                    "Untracked files (1)",
+                    "Unstaged changes (1)",
+                    "Staged changes (1)",
+                    "Recent commits (1) +",
+                    head() + " first"),
+                rows.stream().map(r -> r.replaceAll("^(\\w+) \\(.*\\) ", "$1 ")).toList(),
+                "the files' sections closed, the commits open");
             final String unstaged = git.root + "|unstaged";
             status.setExpanded(line("Unstaged changes (1)"), false);
             assertSame(h.editor(), status.reveal(null, unstaged, unstaged + "|a.txt"));
@@ -199,6 +207,59 @@ public class VcsStatusBufferTest {
             tree.updatePosition();
             assertEquals("Staged changes (1)", String.valueOf(tree.getSelectionPath().getLastPathComponent()));
             assertEquals("Staged changes (1)", h.editor().getDotLine().getText());
+        });
+    }
+
+    @Test
+    public void itsTreeGroupsTheFilesByDirectoryOneWithOnlyADirectoryShownWithIt() throws Exception {
+        git = GitFixture.init(tmp);
+        for (String f : List.of("docs/r.md", "src/org/a/X.java", "src/org/a/Y.java", "src/org/b/Z.java", "top.txt"))
+            git.write(f, "x\n");
+        git.commitAll("first");
+        for (String f : List.of("docs/r.md", "src/org/a/X.java", "src/org/a/Y.java", "src/org/b/Z.java", "top.txt"))
+            git.write(f, "y\n");
+        open();
+        onEdt(() -> {
+            final StatusTree tree = status.tree(null);
+            tree.expandRow(0);
+            final List<String> rows = new ArrayList<>();
+            for (int i = 0; i < tree.getRowCount(); i++) {
+                final TreePath p = tree.getPathForRow(i);
+                rows.add(" ".repeat(p.getPathCount() - 2) + p.getLastPathComponent());
+            }
+            assertEquals(
+                List.of(
+                    "Unstaged changes (5)",
+                    " docs",
+                    "  M  r.md",
+                    " src/org",
+                    "  a",
+                    "   M  X.java",
+                    "   M  Y.java",
+                    "  b",
+                    "   M  Z.java",
+                    " M  top.txt",
+                    "Recent commits (1)"),
+                rows.subList(0, 11));
+            tree.collapseRow(3);
+            assertNotNull(status.reveal(null, git.root + "|unstaged", git.root + "|unstaged|src/org/b/Z.java"));
+            tree.updatePosition();
+            assertEquals(
+                "src/org",
+                String.valueOf(tree.getSelectionPath().getLastPathComponent()),
+                "a file in a closed directory: the directory selected");
+            final Rectangle docs = tree.getRowBounds(1);
+            tree.mouseClicked(
+                new MouseEvent(tree,
+                        MouseEvent.MOUSE_CLICKED,
+                        0,
+                        0,
+                        docs.x + 2,
+                        docs.y + 2,
+                        1,
+                        false,
+                        MouseEvent.BUTTON1));
+            assertEquals("  M  docs/r.md", h.editor().getDotLine().getText(), "a directory's click: its first file");
         });
     }
 

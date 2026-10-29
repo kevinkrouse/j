@@ -32,7 +32,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.TreeMap;
+import javax.swing.Icon;
 import javax.swing.JTree;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
@@ -53,16 +54,21 @@ import org.armedbear.j.SidebarTree;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
+import org.armedbear.j.vcs.status.StatusData.StashItem;
 
 /**
- * A status's sections in the sidebar's lower half: each with its files,
- * the untracked, unstaged and staged closed to begin with, and the recent
- * commits alone; a node per repository when there are several. A click
- * goes to the section or file in the status, opening a closed section
- * there; Enter or a double click on a file visits it. What the caret is
+ * A status's sections in the sidebar's lower half: each with its files
+ * under their directories, a directory with one directory in it and no
+ * files shown as one, or its commits or stashes; the untracked, unstaged
+ * and staged files and the commits between branches closed to begin with;
+ * a node per repository when there are several. A click goes to the
+ * section, file, commit or stash in the status, or a directory's first
+ * file, opening a closed section there; Enter or a double click visits a
+ * file or shows a commit's or stash's details. What the caret is
  * on in the status is selected, as a tag is in a file's mode. One per
  * frame the status is in, a component having one parent.
  */
@@ -83,17 +89,34 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         }
     }
 
+    /** A directory: its name, its first file's key, and its section's key. */
+    record DirNode(String name, String key, String first, String section) {
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
     /** A file: its letter and path, keyed as the status's line, and its section's key. */
     record FileNode(char letter, String path, String key, String section) {
         @Override
         public String toString() {
-            return letter + "  " + path;
+            return letter + "  " + path.substring(path.lastIndexOf('/') + 1);
         }
     }
 
-    // The section with no nodes under it here, and those closed to begin with.
-    private static final String RECENT = "recent";
-    private static final Set<String> CLOSED = Set.of("untracked", "unstaged", "staged");
+    /** A commit or stash, keyed as the status's line, and its section's key. */
+    record CommitNode(String text, String key, String section) {
+        @Override
+        public String toString() {
+            return text;
+        }
+    }
+
+    // The sections closed to begin with.
+    private static boolean closed(String id) {
+        return id.equals("untracked") || id.equals("unstaged") || id.equals("staged") || StatusData.RANGES.contains(id);
+    }
 
     private final VcsStatusBuffer status;
     // The frame whose sidebar it is in; null in tests.
@@ -120,6 +143,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
             @Override
             public void treeExpanded(TreeExpansionEvent e) {
                 remember(e.getPath(), true);
+                restore(e.getPath());
             }
 
             @Override
@@ -144,18 +168,63 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
                 final String sk = rk + "|" + s.id();
                 final DefaultMutableTreeNode section =
                         new DefaultMutableTreeNode(new SectionNode(s.id(), s.title(), s.total(), sk));
-                if (!s.id().equals(RECENT))
-                    for (Item i : s.items())
-                        if (i instanceof FileItem f)
-                            section.add(
-                                new DefaultMutableTreeNode(
-                                        new FileNode(f.letter(), f.path(), sk + "|" + f.path(), sk)));
+                final Dir files = new Dir();
+                for (Item i : s.items())
+                    switch (i) {
+                        case FileItem f -> files.add(f.path(), f);
+                        case CommitItem c -> {
+                            section.add(new DefaultMutableTreeNode(new CommitNode(c.text(), sk + "|" + c.hash(), sk)));
+                        }
+                        case StashItem st -> section.add(
+                            new DefaultMutableTreeNode(
+                                    new CommitNode(st.name() + ": " + st.subject(), sk + "|" + st.hash(), sk)));
+                    }
+                files.addTo(section, "", sk);
                 under.add(section);
             }
             if (under != root)
                 root.add(under);
         }
         return root;
+    }
+
+    // A directory's files and directories, by name.
+    private static final class Dir {
+        final Map<String, Dir> dirs = new TreeMap<>();
+        final List<FileItem> files = new ArrayList<>();
+
+        void add(String rest, FileItem f) {
+            final int slash = rest.indexOf('/');
+            if (slash < 0)
+                files.add(f);
+            else
+                dirs.computeIfAbsent(rest.substring(0, slash), k -> new Dir()).add(rest.substring(slash + 1), f);
+        }
+
+        // Its directories, then its files, under node; path its own, "" or ending in '/'.
+        void addTo(DefaultMutableTreeNode node, String path, String sk) {
+            for (Map.Entry<String, Dir> e : dirs.entrySet()) {
+                String name = e.getKey();
+                Dir d = e.getValue();
+                while (d.files.isEmpty() && d.dirs.size() == 1) {
+                    final Map.Entry<String, Dir> only = d.dirs.entrySet().iterator().next();
+                    name += "/" + only.getKey();
+                    d = only.getValue();
+                }
+                final String dir = path + name + "/";
+                final DefaultMutableTreeNode child =
+                        new DefaultMutableTreeNode(new DirNode(name, sk + "|" + dir, sk + "|" + d.first().path(), sk));
+                d.addTo(child, dir, sk);
+                node.add(child);
+            }
+            for (FileItem f : files)
+                node.add(new DefaultMutableTreeNode(new FileNode(f.letter(), f.path(), sk + "|" + f.path(), sk)));
+        }
+
+        // The first file shown in it.
+        FileItem first() {
+            return dirs.isEmpty() ? files.get(0) : dirs.values().iterator().next().first();
+        }
     }
 
     /** Shows the status as last read, what was open staying, and selects what the caret is on. */
@@ -174,21 +243,23 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         this.parts = List.copyOf(parts);
         final DefaultMutableTreeNode root = build(parts);
         setModel(new DefaultTreeModel(root));
-        // Outermost first, a node opened only inside an open one: expanding
-        // it would open the ones around it.
-        final Enumeration<TreeNode> nodes = root.preorderEnumeration();
-        while (nodes.hasMoreElements()) {
-            final DefaultMutableTreeNode n = (DefaultMutableTreeNode) nodes.nextElement();
-            if (n == root || n.isLeaf())
-                continue;
-            final TreePath path = new TreePath(n.getPath());
-            if (n.getParent() != root && !isExpanded(path.getParentPath()))
-                continue;
-            final Boolean was = open.get(key(path));
-            if (was != null ? was : !(n.getUserObject() instanceof SectionNode s && CLOSED.contains(s.id())))
-                expandPath(path);
-        }
+        restore(new TreePath(root));
         updatePosition();
+    }
+
+    // The nodes in an open one opened as they were left, or to begin with;
+    // those in each opened as it opens.
+    private void restore(TreePath path) {
+        final DefaultMutableTreeNode n = (DefaultMutableTreeNode) path.getLastPathComponent();
+        for (int i = 0; i < n.getChildCount(); i++) {
+            final DefaultMutableTreeNode c = (DefaultMutableTreeNode) n.getChildAt(i);
+            if (c.isLeaf())
+                continue;
+            final TreePath p = path.pathByAddingChild(c);
+            final Boolean was = open.get(key(p));
+            if (was != null ? was : !(c.getUserObject() instanceof SectionNode s && closed(s.id())))
+                expandPath(p);
+        }
     }
 
     private static String name(VcsRepository r) {
@@ -200,7 +271,9 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         return switch (((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject()) {
             case Repository r -> r.key();
             case SectionNode s -> s.key();
+            case DirNode d -> d.key();
             case FileNode f -> f.key();
+            case CommitNode c -> c.key();
             case null, default -> "";
         };
     }
@@ -260,13 +333,17 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     private void go(Object node, boolean visit) {
         switch (node) {
             case SectionNode s -> status.reveal(frame, s.key(), null);
-            case FileNode f -> {
-                final Editor ed = status.reveal(frame, f.section(), f.key());
-                if (visit && ed != null)
-                    VcsStatusMode.vcsStatusVisit(ed);
-            }
+            case DirNode d -> status.reveal(frame, d.section(), d.first());
+            case FileNode f -> visit(f.section(), f.key(), visit);
+            case CommitNode c -> visit(c.section(), c.key(), visit);
             case null, default -> {}
         }
+    }
+
+    private void visit(String section, String key, boolean visit) {
+        final Editor ed = status.reveal(frame, section, key);
+        if (visit && ed != null)
+            VcsStatusMode.vcsStatusVisit(ed);
     }
 
     private Object selected() {
@@ -313,10 +390,12 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     @Override
     public void mouseExited(MouseEvent e) {}
 
-    // A file with its file type's icon; a section or repository with the
-    // file tree's folders.
+    // A file with its file type's icon, a commit or stash with the commit's;
+    // a section, directory or repository with the file tree's folders.
     private static final class Renderer extends DefaultTreeCellRenderer {
         private final Color focusedSelection = getBackgroundSelectionColor();
+
+        private final Icon commit = Icons.getIconFromFile("commit");
 
         Renderer() {
             setOpenIcon(Icons.getIconFromFile("dir_open"));
@@ -336,7 +415,9 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
             final Object o = ((DefaultMutableTreeNode) value).getUserObject();
             if (o instanceof FileNode f)
                 setIcon(FileIcons.getIcon(f.path(), null));
-            else if (o instanceof SectionNode)
+            else if (o instanceof CommitNode)
+                setIcon(commit);
+            else if (o instanceof SectionNode || o instanceof DirNode)
                 setIcon(expanded ? getOpenIcon() : getClosedIcon());
             final Frame frame = Editor.getCurrentFrame();
             setBackgroundSelectionColor(
