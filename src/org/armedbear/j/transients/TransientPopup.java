@@ -375,6 +375,11 @@ public final class TransientPopup extends JComponent {
     }
 
     private void run(Command c) {
+        if (c.command() == null) {
+            message = c.description();
+            refresh();
+            return;
+        }
         if (!c.stays())
             close(true);
         editor.getDispatcher().actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, c.command()));
@@ -384,7 +389,7 @@ public final class TransientPopup extends JComponent {
 
     // Item's help, or with null the popup's.
     private void help(Item item) {
-        final String topic = item instanceof Command c ? c.command() : current.help();
+        final String topic = item instanceof Command c && c.command() != null ? c.command() : current.help();
         close(false);
         Help.help(topic);
     }
@@ -584,8 +589,10 @@ public final class TransientPopup extends JComponent {
                 keyWidth = Math.max(keyWidth, bfm.stringWidth(item.key()));
             for (Item item : g.items()) {
                 final List<Cell> row = new ArrayList<>();
-                add(row, 0, item.key(), bold, keyColor(), item, false, bfm);
-                int end = add(row, keyWidth + cw, item.description(), plain, text, item, false, fm);
+                // One that can't be run, dimmed.
+                final boolean off = item instanceof Command c && c.command() == null;
+                add(row, 0, item.key(), bold, off ? dim() : keyColor(), item, false, bfm);
+                int end = add(row, keyWidth + cw, item.description(), plain, off ? dim() : text, item, false, fm);
                 end = addValue(row, item, end + cw, plain, fm);
                 width = Math.max(width, end);
                 col.add(row);
@@ -767,6 +774,7 @@ public final class TransientPopup extends JComponent {
         if (c.help())
             return current.help();
         return switch (c.item()) {
+            case Command cmd when cmd.command() == null -> cmd.description();
             case Command cmd -> {
                 final String summary = CommandTable.getSummary(cmd.command());
                 yield summary == null ? cmd.command() : cmd.command() + ": " + summary;

@@ -284,6 +284,29 @@ being written. A message can't be closed while it is being committed, and one
 whose hooks fail is kept for another try. The toolbar and the Mode menu have
 Commit and Cancel.
 
+<h2><a name="fetching">Fetching</a></h2>
+
+<p>
+<b>f</b> opens the fetch popup. Its switches are <b>-p</b> to prune the
+remote branches a remote no longer has, and <b>-t</b> to fetch every tag.
+Then:
+
+<ul>
+    <li><b>p</b> fetches from the push remote, the remote of where the branch pushes;</li>
+    <li><b>u</b> from the upstream's remote;</li>
+    <li><b>a</b> from every remote;</li>
+    <li><b>e</b> from a remote picked from a list of them;</li>
+    <li><b>o</b> only a remote's branch, picked from a list of them.</li>
+</ul>
+
+<p>
+A line whose remote isn't set says so, dimmed, and does nothing. A fetch runs
+in the background: the status bar says it is fetching, then how many refs it
+moved, or why it failed, the command log opening with git's message. It never
+asks for a password: a remote that wants one fails at once, unless a
+credential helper or an ssh agent gives it. It gives up after two minutes. The
+commits sections' counts are as of the last fetch.
+
 <h3>Keys</h3>
 
 <table>
@@ -301,6 +324,7 @@ Commit and Cancel.
 <tr><td>s u x</td><td>s u x</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
 <tr><td>S U</td><td>S U</td><td><a href="commands.html#vcsStageAll">vcsStageAll</a>, <a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></td><td>stage or unstage everything</td></tr>
 <tr><td>c</td><td>c</td><td><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></td><td>the commit popup</td></tr>
+<tr><td>f</td><td>f</td><td><a href="commands.html#vcsFetchPopup">vcsFetchPopup</a></td><td>the fetch popup</td></tr>
 <tr><td>$</td><td>$</td><td><a href="commands.html#vcsCommandLog">vcsCommandLog</a></td><td>the commands j ran</td></tr>
 <tr><td>?</td><td>?</td><td><a href="commands.html#modePopup">modePopup</a></td><td>the popup</td></tr>
 <tr><td>q</td><td>q</td><td><a href="commands.html#killBuffer">killBuffer</a></td><td>close it</td></tr>

@@ -220,6 +220,25 @@ public interface VcsBackend {
         return List.of();
     }
 
+    /** The remotes' names; none if it has none, or no remotes at all. */
+    default List<String> readRemotes(VcsRepository repository) {
+        return List.of();
+    }
+
+    /**
+     * Fetches from remote, or from every remote for null: refspec, as a
+     * remote's branch, or for null what the remote fetches. It never asks
+     * for a password.
+     */
+    default VcsResult fetch(VcsRepository repository, String remote, String refspec, Set<FetchOption> options) {
+        return null;
+    }
+
+    /** How many refs a fetch's result says it moved; -1 if it doesn't say. */
+    default int fetchedRefs(VcsResult result) {
+        return -1;
+    }
+
     /**
      * The authors of the newest max commits, newest first, each once; by
      * default from the log, which a backend can read more cheaply.

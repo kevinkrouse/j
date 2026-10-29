@@ -195,6 +195,19 @@ public class TransientPopupTest {
     }
 
     @Test
+    public void aCommandThatCantBeRunSaysWhyAndStays() {
+        popup.close(false);
+        final Transient t = new Transient("test.off",
+                "Off",
+                "dir.html",
+                List.of(Group.of("Run", Command.unavailable("p", "the push remote, not set"))));
+        popup = TransientPopup.open(h.editor(), t);
+        popup.typed('p');
+        assertFalse(popup.isClosed());
+        assertTrue(popup.text().get(0).contains("the push remote, not set"), popup.text().toString());
+    }
+
+    @Test
     public void aCommandRunsAndCloses() throws Exception {
         popup.typed('e');
         assertTrue(popup.isClosed());

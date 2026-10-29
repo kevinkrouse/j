@@ -452,6 +452,12 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
     <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
+    <li><a href="commands.html#vcsFetchAll">vcsFetchAll</a></li>
+    <li><a href="commands.html#vcsFetchBranch">vcsFetchBranch</a></li>
+    <li><a href="commands.html#vcsFetchElsewhere">vcsFetchElsewhere</a></li>
+    <li><a href="commands.html#vcsFetchPopup">vcsFetchPopup</a></li>
+    <li><a href="commands.html#vcsFetchPushRemote">vcsFetchPushRemote</a></li>
+    <li><a href="commands.html#vcsFetchUpstream">vcsFetchUpstream</a></li>
     <li><a href="commands.html#vcsLog">vcsLog</a></li>
     <li><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></li>
     <li><a href="commands.html#vcsLogFile">vcsLogFile</a></li>
@@ -6154,9 +6160,9 @@ In a commit message, steps forward through the messages committed or given up be
 
 <a name="vcsCommitPopup">vcsCommitPopup</a><dl><dd>
 <p>
-In a status buffer, opens the commit popup: its switches, and commit, amend,
-extend and reword. From a buffer that is not part of the status, opens its
-repository's status first.
+Opens the commit popup of a status buffer, or from another buffer in a
+repository, of its status, opened first: its switches, and commit, amend,
+extend and reword.
 <br><br>
 <b>Default key mapping:</b> c in status buffers; the VCS menu's Commit
 <br><br>
@@ -6199,6 +6205,66 @@ In a status buffer or the diff beside it, discards the thing at the caret, or wh
 <b>Default key mapping:</b> x in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#staging">Staging and discarding</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsFetchAll">vcsFetchAll</a><dl><dd>
+<p>
+In a status buffer, fetches from every remote of the repository at the caret, as the fetch popup's switches say.
+<br><br>
+<b>Default key mapping:</b> a in the fetch popup
+<br><br>
+<b>See also:</b> <a href="git.html#fetching">Fetching</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsFetchBranch">vcsFetchBranch</a><dl><dd>
+<p>
+In a status buffer, fetches only a remote's branch, picked from a list of the remote branches.
+<br><br>
+<b>Default key mapping:</b> o in the fetch popup
+<br><br>
+<b>See also:</b> <a href="git.html#fetching">Fetching</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsFetchElsewhere">vcsFetchElsewhere</a><dl><dd>
+<p>
+In a status buffer, fetches from a remote picked from a list of the repository's remotes.
+<br><br>
+<b>Default key mapping:</b> e in the fetch popup
+<br><br>
+<b>See also:</b> <a href="git.html#fetching">Fetching</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsFetchPopup">vcsFetchPopup</a><dl><dd>
+<p>
+Opens the fetch popup of a status buffer, or from another buffer in a repository, of its status, opened first: its switches, and the remotes to fetch from, each that isn't set dimmed.
+<br><br>
+<b>Default key mapping:</b> f in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#fetching">Fetching</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsFetchPushRemote">vcsFetchPushRemote</a><dl><dd>
+<p>
+In a status buffer, fetches from the push remote: the remote of where the branch pushes.
+<br><br>
+<b>Default key mapping:</b> p in the fetch popup
+<br><br>
+<b>See also:</b> <a href="git.html#fetching">Fetching</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsFetchUpstream">vcsFetchUpstream</a><dl><dd>
+<p>
+In a status buffer, fetches from the remote of the branch's upstream.
+<br><br>
+<b>Default key mapping:</b> u in the fetch popup
+<br><br>
+<b>See also:</b> <a href="git.html#fetching">Fetching</a>
 <br><br>
 </dl><!--<hr>-->
 

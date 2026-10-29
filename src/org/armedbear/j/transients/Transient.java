@@ -95,11 +95,17 @@ public record Transient(String id, String title, String help, List<Group> groups
      * Runs a j command, which reads the popup's values with
      * {@link Transients#args}.
      *
+     * @param command null for one that can't be run here, shown dimmed
      * @param stays whether the popup stays open after it, as for a filter
      */
     public record Command(String key, String command, String description, boolean stays) implements Item {
         public static Command of(String key, String command, String description) {
             return new Command(key, command, description, false);
+        }
+
+        /** A command that can't be run here, description saying why. */
+        public static Command unavailable(String key, String description) {
+            return new Command(key, null, description, true);
         }
     }
 

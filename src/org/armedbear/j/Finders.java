@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -541,6 +542,44 @@ public final class Finders {
         @Override
         public void accept(Editor editor, boolean otherWindow) {
             Registers.insertRegister(name, editor);
+        }
+    }
+
+    // ------------------------------------------------------------------ names
+
+    /** Asks for one of names, the prompt labeled as prompt says, and gives chosen the one picked. */
+    public static void choose(Editor editor, int prompt, String history, List<String> names, Consumer<String> chosen) {
+        HistoryTextField textField = editor.getPromptTextField();
+        if (textField == null)
+            return;
+        Supplier<List<FinderItem>> items = () -> {
+            List<FinderItem> list = new ArrayList<>();
+            for (String name : names)
+                list.add(new NameItem(name, chosen));
+            return list;
+        };
+        show(editor, prompt, new ListFinderTextFieldHandler(editor, textField, null, items), history, "");
+    }
+
+    private record NameItem(String name, Consumer<String> chosen) implements FinderItem {
+        @Override
+        public String matchText() {
+            return name;
+        }
+
+        @Override
+        public String label() {
+            return name;
+        }
+
+        @Override
+        public int labelOffset() {
+            return 0;
+        }
+
+        @Override
+        public void accept(Editor editor, boolean otherWindow) {
+            chosen.accept(name);
         }
     }
 

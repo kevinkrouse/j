@@ -102,7 +102,7 @@ public final class CommitCommands {
     // The window to commit from: editor's on a status; from the status's
     // diff or comparison, the status's; from another buffer, its
     // repository's status, opened. Made current; null for none.
-    private static Editor statusWindow(Editor editor) {
+    static Editor statusWindow(Editor editor) {
         if (editor.getBuffer() instanceof VcsStatusBuffer)
             return editor;
         final VcsStatusBuffer owner = VcsStatusMode.owner(editor);

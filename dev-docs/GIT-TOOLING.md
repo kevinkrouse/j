@@ -1649,8 +1649,13 @@ plan with why it is left, before the next phase starts.
      a password j can't give fails at once with git's message (a credential
      helper or an ssh agent works); asking for one is Later. It times out
      after two minutes and can't be cancelled before then; the command
-     log shows it running. Writes go
-     through `VcsBackend.fetch(repository, remote, refspec, options)`.
+     log shows it once it is done, as it shows every command, and the
+     status bar while it runs. Writes go
+     through `VcsBackend.fetch(repository, remote, refspec, options)`,
+     the remotes listed by `VcsBackend.readRemotes`. The push remote and
+     the upstream's are the remotes their branches' names start with. A
+     popup command that can't be run is `Command.unavailable`, dimmed;
+     `e` and `o` ask with `Finders.choose`, which step d's parent uses too.
      Pushing and pulling stay Later, with their popups beside this one.
    - **d. Setting the parent.** `gitSetParent [BRANCH]` writes
      `branch.<name>.gh-merge-base` (a branch asked for with the refs'

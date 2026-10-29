@@ -28,6 +28,7 @@ import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.CommitOption;
+import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.RepositoryWatcher;
@@ -157,6 +158,27 @@ public final class GitBackend implements VcsBackend {
             boolean reverse) {
         final VcsResult r = GitWrites.apply(repository, patch, index, workingTree, reverse, true);
         return r != null && r.succeeded();
+    }
+
+    @Override
+    public List<String> readRemotes(VcsRepository repository) {
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "remote"));
+        final List<String> remotes = new ArrayList<>();
+        if (r.succeeded())
+            for (String line : r.out().split("\n"))
+                if (!line.isBlank())
+                    remotes.add(line.strip());
+        return remotes;
+    }
+
+    @Override
+    public VcsResult fetch(VcsRepository repository, String remote, String refspec, Set<FetchOption> options) {
+        return GitWrites.fetch(repository, remote, refspec, options);
+    }
+
+    @Override
+    public int fetchedRefs(VcsResult result) {
+        return GitWrites.fetchedRefs(result.stderr());
     }
 
     @Override

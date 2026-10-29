@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.armedbear.j.vcs.CommitOption;
+import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
@@ -50,6 +51,35 @@ final class GitWrites {
         final List<String> args = args("--literal-pathspecs", "add", "-A", "--");
         args.addAll(paths);
         return run(repository, args);
+    }
+
+    static VcsResult fetch(VcsRepository repository, String remote, String refspec, Set<FetchOption> options) {
+        final List<String> args = args("fetch");
+        if (options.contains(FetchOption.PRUNE))
+            args.add("--prune");
+        if (options.contains(FetchOption.TAGS))
+            args.add("--tags");
+        if (remote == null)
+            args.add("--all");
+        else {
+            args.add(remote);
+            if (refspec != null)
+                args.add(refspec);
+        }
+        return run(repository, args);
+    }
+
+    /**
+     * The refs a fetch moved, as git says, a line each: " * [new branch]
+     * x -> origin/x", "   a..b  main -> origin/main". Not a branch fetched
+     * by name, which is "-> FETCH_HEAD" moved or not.
+     */
+    static int fetchedRefs(String said) {
+        int refs = 0;
+        for (String line : said.split("\n"))
+            if (line.startsWith(" ") && line.contains(" -> ") && !line.endsWith("-> FETCH_HEAD"))
+                refs++;
+        return refs;
     }
 
     static VcsResult stageAll(VcsRepository repository) {
