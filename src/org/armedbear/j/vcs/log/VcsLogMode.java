@@ -225,7 +225,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         if (!buffer.getBooleanProperty(Property.VCS_HINTS))
             return null;
         return switch (buffer) {
-            case LogBuffer l -> l.sides != null ? LIST_SIDE_BY_SIDE_HINTS : LIST_HINTS;
+            case LogBuffer l -> l.details != null && l.details.isSideBySide() ? LIST_SIDE_BY_SIDE_HINTS : LIST_HINTS;
             case LogFilesBuffer f -> FILES_HINTS;
             case LogDiffBuffer d -> DIFF_HINTS;
             default -> null;
@@ -243,7 +243,8 @@ public final class VcsLogMode extends AbstractMode implements Mode {
             return ed == null ? null : LogBuffers.owner(ed.getBuffer());
         };
         final BooleanSupplier full = () -> log.get() != null && log.get().isFull();
-        final BooleanSupplier sides = () -> log.get() != null && log.get().sides != null;
+        final BooleanSupplier sides =
+                () -> log.get() != null && log.get().details != null && log.get().details.isSideBySide();
         tb.addButton("New", ICON_NEW, "newBuffer");
         tb.addButton("Open", ICON_OPEN, "openFile");
         tb.addButton("Close", ICON_CLOSE, "vcsLogQuit");
@@ -272,7 +273,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
     public void populateModeMenu(Editor editor, Menu menu) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());
         final boolean full = log != null && log.isFull();
-        final boolean sides = log != null && log.sides != null;
+        final boolean sides = log != null && log.details != null && log.details.isSideBySide();
         menu.add(editor, "Next", 'N', "vcsLogNext");
         menu.add(editor, "Previous", 'P', "vcsLogPrevious");
         menu.add(editor, "Next File", 'X', "vcsLogNextFile", full);

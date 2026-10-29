@@ -48,6 +48,7 @@ import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
+import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.ViewPane;
 import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.compare.CompareCommands;
@@ -638,7 +639,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final VcsStatusBuffer b = owner(editor);
         final StatusDiffBuffer d = b == null ? null : b.getDiff();
         final CompareBuffer c = b == null ? null : b.getCompare();
-        final List<Editor> windows = c != null ? c.windows() : d == null ? List.of() : d.windows();
+        final Buffer commit = b == null || b.details() == null ? null : b.details().diffShown();
+        final List<Editor> windows = commit instanceof ViewBuffer v ? v.windows()
+                : c != null ? c.windows()
+                : d == null ? List.of()
+                : d.windows();
         // None: Space and Backspace move as they would.
         if (windows.isEmpty()) {
             if (forward)
@@ -758,13 +763,13 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             showCommit(editor, line);
             return;
         }
+        if (line.kind() == Kind.MESSAGE && line.key().endsWith(StatusRenderer.MORE)) {
+            showMore(editor, line);
+            return;
+        }
         final FileItem file = line.file();
         if (file == null) {
             editor.status("Nothing to visit here");
-            return;
-        }
-        if (line.kind() == Kind.MESSAGE && line.key().endsWith(StatusRenderer.MORE)) {
-            showMore(editor, line);
             return;
         }
         visit(editor, line.repository(), file, lineNumber(line));

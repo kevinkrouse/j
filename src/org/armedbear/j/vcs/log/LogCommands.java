@@ -36,9 +36,6 @@ import org.armedbear.j.Line;
 import org.armedbear.j.MotionCommands;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Sidebar;
-import org.armedbear.j.WindowLayout;
-import org.armedbear.j.WindowLayout.Split;
-import org.armedbear.j.WindowLayout.Window;
 import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.transients.FilterBar;
 import org.armedbear.j.transients.Transient;
@@ -158,38 +155,14 @@ public final class LogCommands {
      */
     static void showFull(Editor editor, LogBuffer log) {
         final Frame frame = editor.getFrame();
-        if (log.files == null) {
-            log.files = new LogFilesBuffer(log);
-            log.diff = new LogDiffBuffer(log);
-            log.openSides();
+        if (log.details == null) {
+            log.details = new CommitDetails(log, LogBuffer.sideBySideAtFirst());
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         }
-        log.forgetShown();
+        log.details.forgetShown();
         if (frame != null)
             frame.showView(log, log);
         log.showDetails();
-    }
-
-    // The list at the left, and at the right the files over the diff;
-    // focus's window focused.
-    static WindowLayout.Node layout(LogBuffer log, Buffer focus) {
-        if (log.sides != null) {
-            // Side by side: the list and the files over the two sides, across the frame.
-            final CompareBuffer c = log.sides.comparison();
-            final boolean inSides = CompareBuffer.of(focus) == c;
-            final Split top = new Split(true,
-                    List.of(
-                        Window.showing(log, focus != log.files && !inSides),
-                        Window.showing(log.files, focus == log.files)),
-                    List.of(0.55, 0.45));
-            return new Split(false, List.of(top, c.panes(focus)), List.of(0.4, 0.6));
-        }
-        final Window list = Window.showing(log, focus != log.files && focus != log.diff);
-        final Window files = Window.showing(log.files, focus == log.files);
-        final Window diff = Window.showing(log.diff, focus == log.diff);
-        // The files on top, a third of the height at most.
-        final Split details = new Split(false, List.of(files, diff), List.of(1 / 3.0, 2 / 3.0));
-        return new Split(true, List.of(list, details), List.of(0.5, 0.5));
     }
 
     // Closing.
@@ -197,8 +170,13 @@ public final class LogCommands {
     /** Closes the log: the windows before it come back, or the quick log's window goes. */
     public static void vcsLogQuit(Editor editor) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        if (log != null)
+        if (log != null) {
             log.close(editor.getFrame());
+            return;
+        }
+        final CommitDetails.Host host = CommitDetails.hostOf(editor.getBuffer());
+        if (host != null)
+            host.leave(editor.getFrame());
     }
 
     // Moving about.
@@ -218,11 +196,10 @@ public final class LogCommands {
             if (!log.isFull())
                 showFull(editor, log);
             else
-                focus(log.files);
+                focus(log.details.files);
         } else if (b instanceof LogFilesBuffer f) {
             f.showDiff();
-            final LogBuffer log = f.getOwner();
-            focus(log.sides != null ? log.sides.comparison() : log.diff);
+            focus(f.details().diffShown());
         } else if (b instanceof LogDiffBuffer d)
             visitLine(editor, d);
     }
@@ -277,9 +254,8 @@ public final class LogCommands {
     }
 
     private static void scrollDiff(Editor editor, boolean forward) {
-        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        final Editor ed =
-                log == null ? null : Editor.windowShowing(log.sides != null ? log.sides.comparison() : log.diff);
+        final CommitDetails details = detailsOf(editor);
+        final Editor ed = details == null ? null : Editor.windowShowing(details.diffShown());
         if (ed == null)
             return;
         if (forward)
@@ -299,16 +275,16 @@ public final class LogCommands {
     }
 
     private static void stepFile(Editor editor, boolean forward) {
-        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        if (log == null || log.files == null)
+        final CommitDetails details = detailsOf(editor);
+        if (details == null)
             return;
-        final Editor ed = Editor.windowShowing(log.files);
-        final Line to = log.files.nextFile(ed, forward);
+        final Editor ed = Editor.windowShowing(details.files);
+        final Line to = details.files.nextFile(ed, forward);
         if (ed == null || to == null)
             return;
         ed.moveDotTo(to, 0);
         ed.updateDisplay();
-        log.files.showDiff();
+        details.files.showDiff();
     }
 
     /** Tab: opens or closes the diff's hunk at the caret, as in the status buffer. */
@@ -337,9 +313,15 @@ public final class LogCommands {
 
     /** =: the diff unified, or side by side across the bottom. */
     public static void vcsLogDiffView(Editor editor) {
-        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        if (log != null)
-            log.diffView(editor.getFrame(), editor.getBuffer());
+        final CommitDetails.Host host = CommitDetails.hostOf(editor.getBuffer());
+        if (host != null)
+            host.diffView(editor.getFrame(), editor.getBuffer());
+    }
+
+    // The details editor's buffer is part of, or null.
+    private static CommitDetails detailsOf(Editor editor) {
+        final CommitDetails.Host host = CommitDetails.hostOf(editor.getBuffer());
+        return host == null ? null : host.details();
     }
 
     /** l: the popup of the log's filters. */
@@ -441,29 +423,29 @@ public final class LogCommands {
         if (editor.getBuffer() instanceof LogDiffBuffer d)
             visitLine(editor, d);
         else if (editor.getBuffer() instanceof LogFilesBuffer f && f.commit() != null && f.changeAt(editor) != null)
-            visit(editor, f.getOwner(), f.commit(), f.changeAt(editor), 0);
+            visit(editor, f.details().host(), f.commit(), f.changeAt(editor), 0);
         else
             editor.status("No file here");
     }
 
     // Side by side: the file at the new side's line at the caret's row.
     private static void visitCompared(Editor editor) {
-        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        final int n = log == null ? -1 : log.comparedLineAt(editor);
+        final CommitDetails details = detailsOf(editor);
+        final int n = details == null ? -1 : details.comparedLineAt(editor);
         if (n >= 0)
-            visit(editor, log, log.files.commit(), log.files.shownChange(), n);
+            visit(editor, details.host(), details.files.commit(), details.files.shownChange(), n);
     }
 
     // The diff line's file in the working tree, at the line the diff line is now.
     private static void visitLine(Editor editor, LogDiffBuffer d) {
         if (d.commit() == null || d.change() == null || editor.getDot() == null)
             return;
-        visit(editor, d.getOwner(), d.commit(), d.change(), diffLine(editor));
+        visit(editor, d.details().host(), d.commit(), d.change(), diffLine(editor));
     }
 
     // The change's file in the working tree, at the commit's line n mapped to now; 0 for its top.
-    private static void visit(Editor editor, LogBuffer log, LogCommit commit, CommitChange change, int n) {
-        final VcsRepository r = log.repositoryOf(commit);
+    private static void visit(Editor editor, CommitDetails.Host host, LogCommit commit, CommitChange change, int n) {
+        final VcsRepository r = host.repositoryOf(commit);
         final File file = File.getInstance(r.root().resolve(change.path()).toString());
         if (file == null || !file.isFile()) {
             editor.status(change.path() + " is not in the working tree");
@@ -474,9 +456,9 @@ public final class LogCommands {
             final int line = since == null ? n : VcsStatusMode.throughHunks(since.hunks(), n);
             SwingUtilities.invokeLater(() -> {
                 // Closed meanwhile, as by q: given up.
-                if (log.isDisposed())
+                if (host.isDisposed())
                     return;
-                log.close(editor.getFrame());
+                host.leave(editor.getFrame());
                 final Buffer buffer = Editor.getBuffer(file);
                 if (buffer != null)
                     VcsStatusMode.showAt(Editor.currentEditor(), buffer, line);
@@ -491,8 +473,8 @@ public final class LogCommands {
 
     /** Shift Enter: the file at the caret as the commit has it, read-only. */
     public static void vcsLogRevision(Editor editor) {
-        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
-        if (log == null)
+        final CommitDetails.Host host = CommitDetails.hostOf(editor.getBuffer());
+        if (host == null)
             return;
         LogCommit commit = null;
         CommitChange change = null;
@@ -512,19 +494,19 @@ public final class LogCommands {
             return;
         }
         final int n = editor.getBuffer() instanceof LogDiffBuffer ? diffLine(editor) : 0;
-        final VcsRepository r = log.repositoryOf(commit);
+        final VcsRepository r = host.repositoryOf(commit);
         final String id = commit.id();
         final String path = change.path();
         Background.start("vcs log revision", () -> {
             final byte[] text = r.backend().readFileAt(r, id, path);
             SwingUtilities.invokeLater(() -> {
-                if (log.isDisposed())
+                if (host.isDisposed())
                     return;
                 if (text == null) {
                     editor.status("Can't read " + path + " at " + id);
                     return;
                 }
-                log.close(editor.getFrame());
+                host.leave(editor.getFrame());
                 final RevisionBuffer buffer = new RevisionBuffer(path, id, new String(text, StandardCharsets.UTF_8));
                 VcsStatusMode.showAt(Editor.currentEditor(), buffer, n);
             });

@@ -1628,7 +1628,12 @@ plan with why it is left, before the next phase starts.
      would hold, pushed or not; Recent commits shows only when it is empty
      or absent (on the parent itself, or just after branching), as magit
      shows unpushed commits or else recent ones. Enter on a commit shows it as Recent commits' do; `D` and `=`
-     show its diff beside, in the log's commit form. Collapsed to begin
+     show its diff beside, in the log's commit form: with the caret on a
+     commit, the diff beside is the log's files over its diff, unified or
+     side by side as `=` last left either, and a file at the caret brings
+     the file's diff back. The log's panes and their side-by-side form are
+     `CommitDetails`, which the log and the status each own
+     (`CommitDetails.Host`); the panes' keys find it through its host. Collapsed to begin
      with, as Untracked, Unstaged and Staged are; the sidebar's tree has
      them too. Counts are as of the last fetch, which `f` makes now (below).
    - **c2. Fetch, `f`.** A popup after Neogit's and magit's: switches

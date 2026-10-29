@@ -54,6 +54,8 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.log.CommitDetails;
+import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -822,6 +824,96 @@ public class VcsStatusBufferTest {
         onEdt(status::kill);
         assertFalse(Editor.getBufferList().contains(diff));
         assertFalse(Editor.getBufferList().contains(status));
+    }
+
+    // A commit's details.
+
+    // The first commit's line.
+    private StatusLine commitLine() {
+        for (Line l = status.getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.kind() == Kind.COMMIT)
+                return s;
+        throw new AssertionError("no commit in " + text());
+    }
+
+    @Test
+    public void onACommitTheDiffBesideIsItsDetailsAsTheLogShowsThem() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(commitLine());
+        until(() -> status.details() != null && lines(status.details().panes().get(0)).contains("  first"));
+        final CommitDetails details = status.details();
+        assertEquals(details.panes(), status.getChildren());
+        final List<String> files = lines(details.panes().get(0));
+        assertTrue(files.contains("Commit:   " + git.git("rev-parse", "HEAD").strip()), files.toString());
+        assertTrue(files.contains("  A  a.txt"), files.toString());
+        until(() -> lines(details.panes().get(1)).contains("  +three blind mice"));
+
+        // A file at the caret: its diff again, the details gone.
+        caretOn(line("  M  a.txt"));
+        assertNull(status.details());
+        assertEquals(List.of(status.getDiff()), status.getChildren());
+        for (Buffer b : details.panes())
+            assertFalse(Editor.getBufferList().contains(b));
+        until(() -> paneText().contains("  +three blind cats"));
+    }
+
+    @Test
+    public void aCommitsDetailsAreReadAgainWhenTheRepositoryChanges() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(commitLine());
+        until(() -> status.details() != null && lines(status.details().panes().get(0)).contains("  first"));
+        assertFalse(lines(status.details().panes().get(0)).get(0).contains("other"));
+        git.git("branch", "other");
+        repo().invalidate();
+        repo().refresh();
+        until(() -> lines(status.details().panes().get(0)).get(0).contains("other"));
+    }
+
+    @Test
+    public void sideBySideOnACommitStaysSideBySideOnAFile() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(commitLine());
+        until(() -> status.details() != null);
+        onEdt(() -> status.diffView(null, status));
+        assertTrue(status.details().isSideBySide());
+        until(() -> lines(status.details().comparison()).contains("three blind mice"));
+        caretOn(line("  M  a.txt"));
+        assertNotNull(status.getCompare(), "= left it side by side");
+        // And back: the details side by side too.
+        caretOn(commitLine());
+        assertTrue(status.details().isSideBySide());
+    }
+
+    @Test
+    public void closingTheDiffBesideClosesACommitsDetails() throws Exception {
+        repository();
+        open();
+        onEdt(() -> status.openDiff(null));
+        caretOn(commitLine());
+        until(() -> status.details() != null);
+        final List<Buffer> panes = status.details().panes();
+        // q in the files, as the log's.
+        onEdt(() -> {
+            final EditorHarness w = EditorHarness.create();
+            try {
+                w.showBuffer(panes.get(0));
+                LogCommands.vcsLogQuit(w.editor());
+            }
+            finally {
+                w.showBuffer(w.buffer());
+                w.close();
+            }
+        });
+        assertNull(status.getDiff());
+        assertNull(status.details());
+        for (Buffer b : panes)
+            assertFalse(Editor.getBufferList().contains(b));
     }
 
     // Side by side.

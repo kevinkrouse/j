@@ -62,7 +62,7 @@ final class LogDetailsFormatter extends VcsStatusFormatter {
     }
 
     /** c's badges in owner's details: none for a commit of one repository with no refs. */
-    static List<Badge> badges(LogBuffer owner, LogCommit c) {
+    static List<Badge> badges(CommitDetails.Host owner, LogCommit c) {
         final List<Badge> out = new ArrayList<>();
         int at = 2;
         if (owner.getScope().isSeveral()) {

@@ -111,9 +111,10 @@ public class LogBufferTest {
             until(() -> !LogNames.of(repository).isReading());
         onEdt(() -> {
             Editor.getSessionProperties().setStringProperty(SIDE_BY_SIDE, sideBySideWas);
-            if (log != null && log.sides != null)
-                log.sides.close();
-            for (Buffer b : new Buffer[] { log == null ? null : log.diff, log == null ? null : log.files, log })
+            final CommitDetails d = log == null ? null : log.details;
+            if (d != null && d.sides != null)
+                d.sides.close();
+            for (Buffer b : new Buffer[] { d == null ? null : d.diff, d == null ? null : d.files, log })
                 if (b != null)
                     Editor.getBufferList().remove(b);
             if (h != null) {
@@ -245,16 +246,16 @@ public class LogBufferTest {
         repository = Repositories.forDirectory(git.root);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.files.commit() != null && log.diff.change() != null);
-        final List<String> files = texts(log.files);
+        until(() -> log.details.files.commit() != null && log.details.diff.change() != null);
+        final List<String> files = texts(log.details.files);
         assertEquals("   main ", files.get(0), "its branch's badge");
         assertTrue(files.get(1).startsWith("Commit:   "), files.toString());
         assertTrue(files.contains("  Second"), files.toString());
         assertTrue(files.contains("  With a body."), files.toString());
         assertTrue(files.contains("  M  a.txt"), files.toString());
         assertTrue(files.contains("  A  c.txt"), files.toString());
-        assertEquals("a.txt", log.diff.change().path());
-        final List<String> diff = texts(log.diff);
+        assertEquals("a.txt", log.details.diff.change().path());
+        final List<String> diff = texts(log.details.diff);
         assertTrue(diff.contains("  -two"), diff.toString());
         assertTrue(diff.contains("  +TWO"), diff.toString());
     }
@@ -271,15 +272,17 @@ public class LogBufferTest {
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
         // Side by side, the unified diff isn't read.
-        until(() -> log.files.shownChange() != null && (log.sides != null || log.diff.change() != null));
+        until(
+            () -> log.details.files.shownChange() != null
+                    && (log.details.sides != null || log.details.diff.change() != null));
     }
 
     @Test
     public void sideBySideTheDiffIsTheCommitsChangeToTheFile() throws Exception {
         twoCommitsInFull();
         onEdt(() -> log.diffView(null, log));
-        final CompareBuffer c = log.sides.comparison();
-        assertEquals(List.of(log.files, c, c.getOld()), log.getChildren());
+        final CompareBuffer c = log.details.sides.comparison();
+        assertEquals(List.of(log.details.files, c, c.getOld()), log.getChildren());
         until(() -> texts(c).contains("TWO"));
         final String parent = git.git("rev-parse", "--short=7", "HEAD~1").strip();
         final String head = git.git("rev-parse", "--short=7", "HEAD").strip();
@@ -287,18 +290,19 @@ public class LogBufferTest {
             assertEquals(List.of("one", "two"), texts(c.getOld()));
             assertEquals("a.txt @ " + parent, c.getOld().getTitle());
             assertEquals("a.txt @ " + head, c.getTitle());
-            assertTrue(log.compares());
+            assertTrue(log.details.compares());
             // An added file: nothing before it.
-            log.compareChange(log.files.commit(), new CommitChange("c.txt", null, FileChange.Kind.ADDED));
+            log.details
+                    .compareChange(log.details.files.commit(), new CommitChange("c.txt", null, FileChange.Kind.ADDED));
         });
         until(() -> texts(c).equals(List.of("c")));
         onEdt(() -> {
             assertEquals(List.of(""), texts(c.getOld()));
             // Unified again: the comparison closes.
             log.diffView(null, c);
-            assertNull(log.sides);
+            assertNull(log.details.sides);
             assertTrue(c.isClosed());
-            assertEquals(List.of(log.files, log.diff), log.getChildren());
+            assertEquals(List.of(log.details.files, log.details.diff), log.getChildren());
         });
     }
 
@@ -315,18 +319,22 @@ public class LogBufferTest {
         repository = Repositories.forDirectory(git.root);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.files.shownChange() != null && log.diff.change() != null);
+        until(() -> log.details.files.shownChange() != null && log.details.diff.change() != null);
         final String parent = git.git("rev-parse", "--short=7", "HEAD~1").strip();
         onEdt(() -> {
             log.diffView(null, log);
-            log.compareChange(log.files.commit(), new CommitChange("renamed.txt", "a.txt", FileChange.Kind.RENAMED));
+            log.details.compareChange(
+                log.details.files.commit(),
+                new CommitChange("renamed.txt", "a.txt", FileChange.Kind.RENAMED));
         });
-        final CompareBuffer c = log.sides.comparison();
+        final CompareBuffer c = log.details.sides.comparison();
         until(() -> texts(c).contains("THREE"));
         onEdt(() -> {
             assertEquals(List.of("one", "two", "three"), texts(c.getOld()));
             assertEquals("a.txt @ " + parent, c.getOld().getTitle());
-            log.compareChange(log.files.commit(), new CommitChange("b.txt", null, FileChange.Kind.DELETED));
+            log.details.compareChange(
+                log.details.files.commit(),
+                new CommitChange("b.txt", null, FileChange.Kind.DELETED));
         });
         until(() -> texts(c.getOld()).equals(List.of("b")));
         onEdt(() -> assertEquals(List.of(""), texts(c), "nothing after it"));
@@ -336,19 +344,19 @@ public class LogBufferTest {
     public void sideBySideBeforeTheDiffIsReadComparesTheFileAskedFor() throws Exception {
         twoCommitsInFull();
         onEdt(() -> {
-            h.showBuffer(log.files);
-            for (Line l = log.files.getFirstLine(); l != null; l = l.next())
+            h.showBuffer(log.details.files);
+            for (Line l = log.details.files.getFirstLine(); l != null; l = l.next())
                 if (l instanceof StatusLine sl && sl.file() != null && sl.file().path().equals("c.txt"))
                     h.editor().moveDotTo(l, 0);
-            log.files.showDiff();
+            log.details.files.showDiff();
             // The unified diff still shows a.txt, its read of c.txt not in.
-            log.diffView(null, log.files);
+            log.diffView(null, log.details.files);
         });
-        until(() -> texts(log.sides.comparison()).equals(List.of("c")));
-        onEdt(() -> assertTrue(log.compares()));
+        until(() -> texts(log.details.sides.comparison()).equals(List.of("c")));
+        onEdt(() -> assertTrue(log.details.compares()));
         // Unified again, it reads the file side by side showed.
-        onEdt(() -> log.diffView(null, log.files));
-        until(() -> log.diff.change() != null && log.diff.change().path().equals("c.txt"));
+        onEdt(() -> log.diffView(null, log.details.files));
+        until(() -> log.details.diff.change() != null && log.details.diff.change().path().equals("c.txt"));
     }
 
     @Test
@@ -357,9 +365,11 @@ public class LogBufferTest {
         onEdt(() -> {
             log.diffView(null, log);
             // Not in either commit, as git show fails.
-            log.compareChange(log.files.commit(), new CommitChange("sub/Makefile", null, FileChange.Kind.MODIFIED));
+            log.details.compareChange(
+                log.details.files.commit(),
+                new CommitChange("sub/Makefile", null, FileChange.Kind.MODIFIED));
         });
-        final CompareBuffer c = log.sides.comparison();
+        final CompareBuffer c = log.details.sides.comparison();
         until(() -> c.getTitle().startsWith("sub/Makefile"));
         onEdt(() -> {
             assertEquals(Editor.getModeList().getModeForFileName("Makefile"), c.getMode());
@@ -373,7 +383,7 @@ public class LogBufferTest {
         twoCommitsInFull();
         onEdt(() -> {
             log.diffView(null, log);
-            final CompareBuffer c = log.sides.comparison();
+            final CompareBuffer c = log.details.sides.comparison();
             assertEquals(log, LogBuffers.owner(c));
             assertEquals(log, LogBuffers.owner(c.getOld()));
             assertEquals("vcsLogDiffView", c.getKeyMapForMode().lookup('=', 0, 0).getCommand());
@@ -388,15 +398,15 @@ public class LogBufferTest {
     public void aLogShowsItsDiffAsTheLastLeftIt() throws Exception {
         onEdt(() -> Editor.getSessionProperties().setBooleanProperty(SIDE_BY_SIDE, true));
         twoCommitsInFull();
-        assertNotNull(log.sides, "side by side, as = left the last");
-        until(() -> texts(log.sides.comparison()).contains("TWO"));
+        assertNotNull(log.details.sides, "side by side, as = left the last");
+        until(() -> texts(log.details.sides.comparison()).contains("TWO"));
     }
 
     @Test
     public void closingTheLogClosesItsComparison() throws Exception {
         twoCommitsInFull();
         onEdt(() -> log.diffView(null, log));
-        final CompareBuffer c = log.sides.comparison();
+        final CompareBuffer c = log.details.sides.comparison();
         onEdt(() -> log.close(null));
         assertTrue(c.isClosed());
         assertFalse(Editor.getBufferList().contains(c));
@@ -408,15 +418,15 @@ public class LogBufferTest {
         repo(2);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.files.commit() != null);
-        assertEquals("commit 1", log.files.commit().subject());
+        until(() -> log.details.files.commit() != null);
+        assertEquals("commit 1", log.details.files.commit().subject());
         onEdt(() -> {
             h.editor().setDot(log.getLine(1), 0);
             log.afterCommand(h.editor());
         });
-        assertEquals("commit 1", log.files.commit().subject(), "not at once");
-        until(() -> "commit 0".equals(log.files.commit().subject()));
-        assertEquals("commit 0", log.shown().subject());
+        assertEquals("commit 1", log.details.files.commit().subject(), "not at once");
+        until(() -> "commit 0".equals(log.details.files.commit().subject()));
+        assertEquals("commit 0", log.details.shown().subject());
     }
 
     @Test
@@ -428,22 +438,22 @@ public class LogBufferTest {
         repository = Repositories.forDirectory(git.root);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null);
-        assertEquals("a.txt", log.diff.change().path());
+        until(() -> log.details.diff.change() != null);
+        assertEquals("a.txt", log.details.diff.change().path());
         // The files in a window of their own.
         final EditorHarness files = EditorHarness.create();
         try {
             onEdt(() -> {
-                files.showBuffer(log.files);
-                files.editor().setDot(log.files.getFirstLine(), 0);
-                files.editor().setDot(log.files.nextFile(files.editor(), true), 0);
+                files.showBuffer(log.details.files);
+                files.editor().setDot(log.details.files.getFirstLine(), 0);
+                files.editor().setDot(log.details.files.nextFile(files.editor(), true), 0);
                 Editor.setCurrentEditor(h.editor());
                 LogCommands.vcsLogNextFile(h.editor());
             });
-            until(() -> log.diff.change() != null && log.diff.change().path().equals("b.txt"));
-            assertTrue(log.files.getLine(files.editor().getDotLineNumber()).getText().endsWith("b.txt"));
+            until(() -> log.details.diff.change() != null && log.details.diff.change().path().equals("b.txt"));
+            assertTrue(log.details.files.getLine(files.editor().getDotLineNumber()).getText().endsWith("b.txt"));
             onEdt(() -> LogCommands.vcsLogPreviousFile(h.editor()));
-            until(() -> log.diff.change().path().equals("a.txt"));
+            until(() -> log.details.diff.change().path().equals("a.txt"));
         }
         finally {
             onEdt(() -> {
@@ -458,18 +468,18 @@ public class LogBufferTest {
         repo(2);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null && log.diff.getLineCount() > 2);
-        final int open = log.diff.getLineCount();
+        until(() -> log.details.diff.change() != null && log.details.diff.getLineCount() > 2);
+        final int open = log.details.diff.getLineCount();
         final StatusLine hunk = hunk();
         assertNotNull(hunk);
         assertTrue(hunk.isOpen());
-        onEdt(() -> assertTrue(log.diff.toggle(hunk)));
+        onEdt(() -> assertTrue(log.details.diff.toggle(hunk)));
         assertFalse(hunk().isOpen());
-        assertTrue(log.diff.getLineCount() < open);
+        assertTrue(log.details.diff.getLineCount() < open);
     }
 
     private StatusLine hunk() {
-        for (Line l = log.diff.getFirstLine(); l != null; l = l.next())
+        for (Line l = log.details.diff.getFirstLine(); l != null; l = l.next())
             if (l instanceof StatusLine s && s.kind() == Kind.HUNK)
                 return s;
         return null;
@@ -485,9 +495,9 @@ public class LogBufferTest {
         repository = Repositories.forDirectory(git.root);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null && hunk() != null);
+        until(() -> log.details.diff.change() != null && hunk() != null);
         assertEquals(6, VcsStatusMode.lineNumber(hunk()));
-        for (Line l = log.diff.getFirstLine(); l != null; l = l.next())
+        for (Line l = log.details.diff.getFirstLine(); l != null; l = l.next())
             if (l instanceof StatusLine s && s.kind() == Kind.DIFF && s.getText().endsWith("+six"))
                 assertEquals(6, VcsStatusMode.lineNumber(s));
     }
@@ -497,11 +507,11 @@ public class LogBufferTest {
         repo(1);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.files.commit() != null);
+        until(() -> log.details.files.commit() != null);
         onEdt(() -> LogCommands.vcsLogQuit(h.editor()));
         assertFalse(Editor.getBufferList().contains(log));
-        assertFalse(Editor.getBufferList().contains(log.files));
-        assertFalse(Editor.getBufferList().contains(log.diff));
+        assertFalse(Editor.getBufferList().contains(log.details.files));
+        assertFalse(Editor.getBufferList().contains(log.details.diff));
     }
 
     // A commit that changes lines far apart: three hunks, a long diff.
@@ -523,9 +533,9 @@ public class LogBufferTest {
     private EditorHarness diffWindow() throws Exception {
         final EditorHarness d = EditorHarness.create();
         onEdt(() -> {
-            d.showBuffer(log.diff);
-            d.editor().setDot(log.diff.getFirstLine(), 0);
-            d.editor().setTopLine(log.diff.getFirstLine());
+            d.showBuffer(log.details.diff);
+            d.editor().setDot(log.details.diff.getFirstLine(), 0);
+            d.editor().setTopLine(log.details.diff.getFirstLine());
         });
         return d;
     }
@@ -542,7 +552,7 @@ public class LogBufferTest {
         threeHunks();
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null && hunk() != null);
+        until(() -> log.details.diff.change() != null && hunk() != null);
         final EditorHarness d = diffWindow();
         try {
             onEdt(() -> {
@@ -567,8 +577,8 @@ public class LogBufferTest {
         threeHunks();
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null && hunk() != null);
-        final List<Line> hunks = StatusLine.hunks(log.diff);
+        until(() -> log.details.diff.change() != null && hunk() != null);
+        final List<Line> hunks = StatusLine.hunks(log.details.diff);
         assertEquals(3, hunks.size());
         final EditorHarness d = diffWindow();
         try {
@@ -583,7 +593,7 @@ public class LogBufferTest {
             assertEquals(hunks.get(2), d.editor().getDotLine(), "before the first: around to the last");
             onEdt(() -> {
                 d.vim();
-                log.diff.setProperty(Property.EDIT_MODE, "vim");
+                log.details.diff.setProperty(Property.EDIT_MODE, "vim");
                 d.keys("]c");
             });
             assertEquals(hunks.get(0), d.editor().getDotLine(), "]c, past the last: around to the first");
@@ -598,7 +608,7 @@ public class LogBufferTest {
         threeHunks();
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null && hunk() != null);
+        until(() -> log.details.diff.change() != null && hunk() != null);
         final EditorHarness d = diffWindow();
         try {
             onEdt(() -> {
@@ -609,10 +619,10 @@ public class LogBufferTest {
             onEdt(() -> d.keys("<Tab>"));
             assertTrue(hunk().isOpen());
             onEdt(() -> d.keys("<S-Tab>"));
-            for (Line l : StatusLine.hunks(log.diff))
+            for (Line l : StatusLine.hunks(log.details.diff))
                 assertFalse(((StatusLine) l).isOpen(), "all closed");
             onEdt(() -> d.keys("<S-Tab>"));
-            for (Line l : StatusLine.hunks(log.diff))
+            for (Line l : StatusLine.hunks(log.details.diff))
                 assertTrue(((StatusLine) l).isOpen(), "all open");
         }
         finally {
@@ -625,7 +635,7 @@ public class LogBufferTest {
         threeHunks();
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null);
+        until(() -> log.details.diff.change() != null);
         final EditorHarness d = diffWindow();
         try {
             assertFalse(groups(h).contains("File"), "the list has no file to open");
@@ -636,7 +646,7 @@ public class LogBufferTest {
                         h.vim();
                         d.vim();
                         log.setProperty(Property.EDIT_MODE, "vim");
-                        log.diff.setProperty(Property.EDIT_MODE, "vim");
+                        log.details.diff.setProperty(Property.EDIT_MODE, "vim");
                     }
                 });
                 for (EditorHarness e : List.of(h, d)) {
@@ -675,12 +685,12 @@ public class LogBufferTest {
         repo(1);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.files.commit() != null);
-        onEdt(() -> log.files.kill());
+        until(() -> log.details.files.commit() != null);
+        onEdt(() -> log.details.files.kill());
         assertTrue(log.isDisposed());
         assertFalse(Editor.getBufferList().contains(log));
-        assertFalse(Editor.getBufferList().contains(log.files));
-        assertFalse(Editor.getBufferList().contains(log.diff));
+        assertFalse(Editor.getBufferList().contains(log.details.files));
+        assertFalse(Editor.getBufferList().contains(log.details.diff));
         onEdt(() -> log.close(null));
     }
 
@@ -704,12 +714,12 @@ public class LogBufferTest {
         threeHunks();
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.diff.change() != null && hunk() != null);
+        until(() -> log.details.diff.change() != null && hunk() != null);
         final EditorHarness d = diffWindow();
         try {
             final String[] keys = new String[2];
             onEdt(() -> {
-                final List<Line> hunks = StatusLine.hunks(log.diff);
+                final List<Line> hunks = StatusLine.hunks(log.details.diff);
                 keys[0] = ((StatusLine) hunks.get(1)).key();
                 keys[1] = ((StatusLine) hunks.get(2)).key();
                 d.editor().setTopLine(hunks.get(1));
@@ -1112,12 +1122,12 @@ public class LogBufferTest {
         for (char c : new char[] { '-', 'x' }) {
             assertNotNull(mode.getKeyMap(log).lookup(c, 0, 0), c + " in the list");
             assertNotNull(mode.getModalKeyMap(log).lookup(c, 0, 0), c + " in the list, vim");
-            for (Buffer pane : new Buffer[] { log.files, log.diff }) {
+            for (Buffer pane : new Buffer[] { log.details.files, log.details.diff }) {
                 assertNull(mode.getKeyMap(pane).lookup(c, 0, 0), c + " in " + pane);
                 assertNull(mode.getModalKeyMap(pane).lookup(c, 0, 0), c + " in " + pane + ", vim");
             }
         }
-        assertNotNull(mode.getKeyMap(log.diff).lookup('n', 0, 0), "the rest are shared");
+        assertNotNull(mode.getKeyMap(log.details.diff).lookup('n', 0, 0), "the rest are shared");
     }
 
     @Test
@@ -1364,13 +1374,16 @@ public class LogBufferTest {
             h.editor().setDot(log.getLine(1), 0);
             LogCommands.showFull(h.editor(), log);
         });
-        until(() -> log.files.commit() != null && log.files.changes() != null && !log.files.changes().isEmpty());
-        assertEquals("a3", log.files.commit().subject());
-        assertEquals(List.of(new CommitChange("y.txt", null, FileChange.Kind.ADDED)), log.files.changes());
+        until(
+            () -> log.details.files.commit() != null
+                    && log.details.files.changes() != null
+                    && !log.details.files.changes().isEmpty());
+        assertEquals("a3", log.details.files.commit().subject());
+        assertEquals(List.of(new CommitChange("y.txt", null, FileChange.Kind.ADDED)), log.details.files.changes());
         // Its repository's badge in its color, then its branch's in its lane's.
-        assertEquals("   a   main ", texts(log.files).get(0));
-        final Formatter f = VcsLogMode.getMode().getFormatter(log.files);
-        final LineSegmentList segments = f.formatLine(log.files.getFirstLine());
+        assertEquals("   a   main ", texts(log.details.files).get(0));
+        final Formatter f = VcsLogMode.getMode().getFormatter(log.details.files);
+        final LineSegmentList segments = f.formatLine(log.details.files.getFirstLine());
         final List<Color> colors = new ArrayList<>();
         for (int i = 0; i < segments.size(); i++)
             if (!segments.getSegment(i).getText().isBlank())
@@ -1538,10 +1551,10 @@ public class LogBufferTest {
         repo(4);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.files.commit() != null);
+        until(() -> log.details.files.commit() != null);
         final LogCommit last = log.commits().get(3);
         onEdt(() -> log.jump(h.editor(), LogGraph.key(last, last.id())));
-        until(() -> log.files.commit() != null && log.files.commit().isSame(last));
+        until(() -> log.details.files.commit() != null && log.details.files.commit().isSame(last));
         onEdt(() -> LogFilters.BRANCH.binding().set(h.editor(), "main"));
         until(() -> !log.isLoading() && log.getQuery().revisions().equals(List.of("main")));
         final List<LogCommit> before = List.copyOf(log.commits());
@@ -1559,8 +1572,8 @@ public class LogBufferTest {
         assertEquals(List.of(), log.getChildren());
         onEdt(() -> LogCommands.showFull(h.editor(), log));
         assertEquals(log, log.getFrameView());
-        assertEquals(List.of(log.files, log.diff), log.getChildren());
-        for (Buffer pane : List.<Buffer>of(log.files, log.diff)) {
+        assertEquals(List.of(log.details.files, log.details.diff), log.getChildren());
+        for (Buffer pane : List.<Buffer>of(log.details.files, log.details.diff)) {
             assertEquals(log, pane.getFrameView());
             assertFalse(pane.isPrimary(), "listed under the log");
             assertEquals(log, pane.getPrimary());
@@ -1571,7 +1584,7 @@ public class LogBufferTest {
             Buffer at = log;
             for (int i = 0; i < list.size(); i++) {
                 at = list.getNextListedBuffer(at);
-                assertFalse(at == log.files || at == log.diff, "a pane: " + at);
+                assertFalse(at == log.details.files || at == log.details.diff, "a pane: " + at);
             }
         });
     }
@@ -1581,7 +1594,7 @@ public class LogBufferTest {
         repo(2);
         open(10);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        for (Buffer b : new Buffer[] { log, log.files, log.diff })
+        for (Buffer b : new Buffer[] { log, log.details.files, log.details.diff })
             assertEquals(List.of(repository), VcsStatusMode.repositoriesFor(b), b.toString());
     }
 
@@ -1604,14 +1617,15 @@ public class LogBufferTest {
         repo(2);
         open(100);
         onEdt(() -> LogCommands.showFull(h.editor(), log));
-        until(() -> log.files.commit() != null);
+        until(() -> log.details.files.commit() != null);
         final LogLine first = (LogLine) log.getFirstLine();
         assertEquals(TimeStyle.AGE, log.getTimeStyle());
         // The fixture's commits are dated, months back.
         assertTrue(first.getText().matches(".*  (now|\\d+(m|h|d|w|mo|y))"), first.getText());
         assertTrue(
-            texts(log.files).stream().anyMatch(t -> t.matches("Date: +\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} \\(\\w+\\)")),
-            texts(log.files).toString());
+            texts(log.details.files).stream()
+                    .anyMatch(t -> t.matches("Date: +\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} \\(\\w+\\)")),
+            texts(log.details.files).toString());
         final KeyMap dash = (KeyMap) VcsLogMode.getMode().getModalKeyMap().lookup('-', 0, 0).getCommand();
         assertEquals("vcsLogTimeStyle", dash.lookup('t', 0, 0).getCommand());
         onEdt(() -> LogCommands.vcsLogTimeStyle(h.editor()));
@@ -1620,8 +1634,8 @@ public class LogBufferTest {
         final String row = ((LogLine) log.getFirstLine()).getText();
         assertTrue(row.matches(".*  \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}"), row);
         assertTrue(
-            texts(log.files).stream().anyMatch(t -> t.matches("Date: +\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}")),
-            texts(log.files).toString());
+            texts(log.details.files).stream().anyMatch(t -> t.matches("Date: +\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}")),
+            texts(log.details.files).toString());
         assertNotNull(VcsLogMode.getMode().getTransient(h.editor()).item("-t"), "in the popup's View");
     }
 

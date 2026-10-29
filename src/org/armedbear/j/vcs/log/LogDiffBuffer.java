@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.log;
 
 import javax.swing.SwingUtilities;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Background;
@@ -31,12 +32,18 @@ import org.armedbear.j.vcs.status.DiffPane;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 
 /** The log's diff: the commit's change to the file picked in the files. */
-final class LogDiffBuffer extends DiffPane<LogBuffer> {
+final class LogDiffBuffer extends DiffPane<Buffer> {
+    private final CommitDetails details;
     private LogCommit commit;
     private CommitChange change;
 
-    LogDiffBuffer(LogBuffer owner) {
+    LogDiffBuffer(Buffer owner, CommitDetails details) {
         super(VcsLogMode.getMode(), owner, "diff", "");
+        this.details = details;
+    }
+
+    CommitDetails details() {
+        return details;
     }
 
     LogCommit commit() {
@@ -60,7 +67,7 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
             then.run();
             return;
         }
-        final VcsRepository r = getOwner().repositoryOf(c);
+        final VcsRepository r = details.host().repositoryOf(c);
         final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("vcs log diff", () -> {
             FileDiff read;
@@ -73,7 +80,7 @@ final class LogDiffBuffer extends DiffPane<LogBuffer> {
             }
             final FileDiff d = read;
             SwingUtilities.invokeLater(() -> {
-                if (at != generation || getOwner().isDisposed())
+                if (at != generation || details.host().isDisposed())
                     return;
                 commit = c;
                 change = ch;

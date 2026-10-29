@@ -22,16 +22,12 @@ package org.armedbear.j.vcs.log;
 
 import static org.armedbear.j.Constants.*;
 
-import java.awt.event.KeyEvent;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -42,7 +38,6 @@ import org.armedbear.j.FrameView;
 import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
-import org.armedbear.j.Mode;
 import org.armedbear.j.PerFrame;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
@@ -52,15 +47,10 @@ import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.compare.CompareCommands;
-import org.armedbear.j.mode.compare.DiffAlignment;
 import org.armedbear.j.mode.compare.DiffWhitespace;
-import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.TimeStyle;
-import org.armedbear.j.util.Whitespace;
-import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.status.SideBySide;
 
 /**
  * A repository's log, or several's together: a row per commit, newest
@@ -68,7 +58,7 @@ import org.armedbear.j.vcs.status.SideBySide;
  * log, the commit at the caret has its files and the diff of one shown
  * beside it, a moment after the caret stops on it.
  */
-public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhitespace.Listener {
+public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhitespace.Listener, CommitDetails.Host {
     private static final int PAGE = 2000;
     // How near the end the caret comes before the next page is read.
     private static final int AHEAD = 200;
@@ -113,11 +103,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
     // The windows before the log took the frame, put back when it is left
     // or closes; null when it isn't shown.
     private WindowLayout.Node before;
-    LogFilesBuffer files;
-    LogDiffBuffer diff;
-    // The diff's side-by-side form while it shows side by side.
-    SideBySide sides;
-    private LogCommit shown;
+    // The commit at the caret's details, in the full log; else null.
+    CommitDetails details;
     private final Timer follow;
 
     private LogBuffer(LogScope scope, LogQuery query, int pageSize) {
@@ -146,6 +133,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         return open(LogScope.of(repository), query, pageSize);
     }
 
+    @Override
     public LogScope getScope() {
         return scope;
     }
@@ -159,7 +147,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
     private final Map<String, Integer> branchLanes = new HashMap<>();
 
     /** The color of the lane c is in, its row read; -1 for none, as with no graph. */
-    int laneColorOf(LogCommit c) {
+    @Override
+    public int laneColorOf(LogCommit c) {
         for (LogLine ll : commitLines)
             if (ll.commit().isSame(c))
                 return ll.graph() == null ? -1 : ll.graph().color();
@@ -167,7 +156,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
     }
 
     /** The repository c is in. */
-    VcsRepository repositoryOf(LogCommit c) {
+    @Override
+    public VcsRepository repositoryOf(LogCommit c) {
         return c.repository() != null ? c.repository() : scope.first();
     }
 
@@ -205,7 +195,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
 
     /** Whether the log has the whole frame, with its details. */
     boolean isFull() {
-        return files != null;
+        return details != null;
     }
 
     // The full log is a frame view: switched to and away from as one, its
@@ -218,14 +208,12 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
 
     @Override
     public List<Buffer> getChildren() {
-        if (files == null)
-            return List.of();
-        return sides != null ? List.of(files, sides.comparison(), sides.comparison().getOld()) : List.of(files, diff);
+        return details == null ? List.of() : details.panes();
     }
 
     @Override
     public WindowLayout.Node layout(Frame frame, Buffer focus) {
-        return LogCommands.layout(this, focus);
+        return details.layout(this, focus);
     }
 
     @Override
@@ -251,8 +239,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
             if (isFull()) {
                 final List<Buffer> parts = new ArrayList<>(List.of(this));
                 parts.addAll(getChildren());
-                if (diff != null && !parts.contains(diff))
-                    parts.add(diff);
+                if (!parts.contains(details.diff))
+                    parts.add(details.diff);
                 frame.leaveView(this, parts);
             } else {
                 final Editor ed = Editor.windowShowing(this);
@@ -260,12 +248,10 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
                     frame.closeEditor(ed);
             }
         }
-        if (sides != null)
-            sides.close();
-        sides = null;
-        for (Buffer b : new Buffer[] { diff, files, this })
-            if (b != null && Editor.getBufferList().contains(b))
-                b.kill();
+        if (details != null)
+            details.close();
+        if (Editor.getBufferList().contains(this))
+            kill();
     }
 
     /**
@@ -275,7 +261,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
      */
     @Override
     public Editor windowFor(Editor from, String command) {
-        final Editor diffs = CompareCommands.windowFor(from, command, diff, sides != null ? sides.comparison() : null);
+        final Editor diffs =
+                details == null ? null : CompareCommands.windowFor(from, command, details.diff, details.comparison());
         if (diffs != null)
             return diffs;
         final Editor list = from.getFrame() != null ? from.getFrame().findEditor(this) : null;
@@ -313,7 +300,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         super.dispose();
     }
 
-    boolean isDisposed() {
+    @Override
+    public boolean isDisposed() {
         return disposed;
     }
 
@@ -626,6 +614,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         relayout();
     }
 
+    @Override
     public String getTimeStyle() {
         return timeStyle;
     }
@@ -636,8 +625,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
             return;
         timeStyle = style;
         relayout();
-        if (files != null)
-            files.restyle();
+        if (details != null)
+            details.restyle();
     }
 
     // Each row laid out again, for the width and the time style.
@@ -905,7 +894,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         syncRuns();
         if (nearTheEnd(editor.getDotLine()))
             loadMore();
-        if (isFull() && commitAt(editor) != shown)
+        if (isFull() && commitAt(editor) != details.shown())
             follow.restart();
     }
 
@@ -951,32 +940,28 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
                 : null;
     }
 
-    /** The commit whose details are shown, or null. */
-    LogCommit shown() {
-        return shown;
+    @Override
+    public CommitDetails details() {
+        return details;
+    }
+
+    @Override
+    public void leave(Frame frame) {
+        close(frame);
     }
 
     /** Shows the details of the commit at the caret of the window showing the log now. */
     void showDetails() {
         if (!isFull() || disposed)
             return;
-        final LogCommit c = commitAt(Editor.windowShowing(this));
-        if (c == null || c == shown)
-            return;
-        shown = c;
-        files.show(c);
+        details.show(commitAt(Editor.windowShowing(this)));
     }
 
     // Its unified diff read again, of the file the files pane shows.
     @Override
     public void diffWhitespaceChanged() {
-        if (!disposed && sides == null && diff != null && files != null && files.shownChange() != null)
-            diff.show(files.commit(), files.shownChange(), () -> {});
-    }
-
-    /** Forgets the details shown, as when they are rebuilt. */
-    void forgetShown() {
-        shown = null;
+        if (!disposed && details != null)
+            details.diffWhitespaceChanged();
     }
 
     // Side by side.
@@ -990,19 +975,12 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         return session != null && session.getBooleanProperty(SIDE_BY_SIDE_KEY, false);
     }
 
-    /** The side-by-side form, made as the diff is, if = last left the diff side by side. */
-    void openSides() {
-        if (sideBySideAtFirst() && sides == null && diff != null)
-            sides = newSides();
-    }
-
     /**
      * =: the diff switched between unified and side by side across frame,
      * the list and the files above the two sides, kept for the next log.
-     * The window focused stays where it was, or the diff in its new form,
-     * at the same line of the file.
      */
-    void diffView(Frame frame, Buffer focus) {
+    @Override
+    public void diffView(Frame frame, Buffer focus) {
         if (!isFull() || disposed)
             return;
         // Not laid out, as with a window closed by hand: laid out again as it is.
@@ -1012,128 +990,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         }
         final SessionProperties session = Editor.getSessionProperties();
         if (session != null)
-            session.setBooleanProperty(SIDE_BY_SIDE_KEY, sides == null);
+            session.setBooleanProperty(SIDE_BY_SIDE_KEY, !details.isSideBySide());
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
-        if (sides == null) {
-            sides = newSides();
-            sides.replace(frame, this, focus, diff, diffFile());
-            compareChange(files.commit(), files.shownChange());
-            return;
-        }
-        final SideBySide was = sides;
-        sides = null;
-        // Not read while side by side: read now, then placed.
-        diff.show(files.commit(), files.shownChange(), was.restore(frame, this, focus, diff, comparedFile()));
-    }
-
-    // The side-by-side form, part of this, its keys the diff's.
-    private SideBySide newSides() {
-        return new SideBySide(this, km -> {
-            km.mapKey('=', "vcsLogDiffView");
-            km.mapKey('q', "vcsLogQuit");
-            km.mapKey(KeyEvent.VK_ENTER, 0, "vcsLogVisit");
-            km.mapKey(' ', "vcsLogScrollDiff");
-            km.mapKey(KeyEvent.VK_SPACE, SHIFT_MASK, "vcsLogScrollDiffBack");
-            km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "vcsLogScrollDiffBack");
-            km.mapKey(KeyEvent.VK_DOWN, ALT_MASK, "vcsLogNextFile");
-            km.mapKey(KeyEvent.VK_UP, ALT_MASK, "vcsLogPreviousFile");
-        });
-    }
-
-    // The key of the file the unified diff shows, or null.
-    private String diffFile() {
-        return diff == null ? null : fileKey(diff.commit(), diff.change());
-    }
-
-    // The key of the file the files pane asked for, or null.
-    private String comparedFile() {
-        return files == null ? null : fileKey(files.commit(), files.shownChange());
-    }
-
-    private String fileKey(LogCommit c, CommitChange ch) {
-        return c == null || ch == null ? null : repositoryOf(c).root() + "|" + c.id() + "|" + ch.path();
-    }
-
-    /** Side by side, the new side's line, from 1, at editor's caret to visit; -1, saying why, for none. */
-    int comparedLineAt(Editor editor) {
-        return sides == null ? -1 : sides.lineAt(editor, comparedFile());
-    }
-
-    /** Whether the comparison shows the file the files pane asked for, read. For tests. */
-    boolean compares() {
-        return sides != null && sides.shows(comparedFile());
-    }
-
-    /**
-     * Side by side, the comparison shows c's change to ch's file, as its
-     * first parent had the file and as c has it; nothing for null.
-     */
-    void compareChange(LogCommit c, CommitChange ch) {
-        if (sides == null)
-            return;
-        final SideBySide ss = sides;
-        final String file = fileKey(c, ch);
-        if (file != null && ss.isAsked(file))
-            return;
-        final int asked = ss.ask(file);
-        if (file == null) {
-            ss.show(asked, SideBySide.plainText(), "", Side.NONE, "No file", Side.NONE, null);
-            return;
-        }
-        final VcsRepository r = repositoryOf(c);
-        final String parent = c.firstParent();
-        final String oldPath = ch.origPath() != null ? ch.origPath() : ch.path();
-        final boolean hasOld = parent != null && ch.kind() != FileChange.Kind.ADDED;
-        final boolean hasNew = ch.kind() != FileChange.Kind.DELETED;
-        final Mode mode = SideBySide.modeFor(Path.of(ch.path()).getFileName().toString());
-        final Charset charset = SideBySide.charset();
-        final Whitespace ignored = DiffWhitespace.ignored();
-        Background.start("vcs log compare", () -> {
-            String oldTitle = oldPath + " @ " + (parent == null ? "none" : LogCommit.shortId(parent));
-            String newTitle = ch.path() + " @ " + LogCommit.shortId(c.id());
-            Side oldSide = Side.NONE;
-            Side newSide = Side.NONE;
-            boolean read = true;
-            try {
-                // The two read at once; null for a side that has none, or a failed read.
-                final CompletableFuture<byte[]> before = CompletableFuture.supplyAsync(
-                    () -> hasOld ? r.backend().readFileAt(r, parent, oldPath) : null,
-                    task -> Background.start("vcs log compare old", task));
-                final byte[] after = hasNew ? r.backend().readFileAt(r, c.id(), ch.path()) : null;
-                final byte[] old = before.join();
-                if (hasOld && old == null) {
-                    oldTitle += " (not read)";
-                    read = false;
-                }
-                if (hasNew && after == null) {
-                    newTitle += " (not read)";
-                    read = false;
-                }
-                if (old != null && Side.isBinary(old) || after != null && Side.isBinary(after)) {
-                    oldTitle += " (binary)";
-                    newTitle += " (binary)";
-                } else {
-                    oldSide = old == null ? Side.NONE : Side.ofFile(old, charset);
-                    newSide = after == null ? Side.NONE : Side.ofFile(after, charset);
-                }
-            }
-            catch (RuntimeException e) {
-                Log.error(e);
-                oldTitle += " (not read)";
-                read = false;
-            }
-            final DiffAlignment alignment = DiffAlignment.of(oldSide, newSide, ignored);
-            final String ot = oldTitle;
-            final Side os = oldSide;
-            final String nt = newTitle;
-            final Side ns = newSide;
-            final boolean failed = !read;
-            SwingUtilities.invokeLater(() -> {
-                // A failed read is read again when asked for again.
-                if (failed && ss.isCurrent(asked))
-                    ss.forget();
-                ss.show(asked, mode, ot, os, nt, ns, alignment);
-            });
-        });
+        details.toggleSides(frame, this, focus);
     }
 }

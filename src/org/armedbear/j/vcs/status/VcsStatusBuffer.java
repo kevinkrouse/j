@@ -61,6 +61,7 @@ import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.compare.Following;
 import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Bases;
@@ -68,6 +69,10 @@ import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.log.CommitDetails;
+import org.armedbear.j.vcs.log.LogCommit;
+import org.armedbear.j.vcs.log.LogQuery;
+import org.armedbear.j.vcs.log.LogScope;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -81,7 +86,8 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
  * it is a frame view, the diff following its caret: unified at the right,
  * or side by side under it.
  */
-public final class VcsStatusBuffer extends ViewBuffer implements FrameView, DiffWhitespace.Listener {
+public final class VcsStatusBuffer extends ViewBuffer
+        implements FrameView, DiffWhitespace.Listener, CommitDetails.Host {
     // How long the caret rests on a file before the diff beside follows it.
     private static final int FOLLOW_DELAY = 100;
 
@@ -92,7 +98,11 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
     private final Map<String, Boolean> expanded = new ConcurrentHashMap<>();
     // Files whose diffs have been read, so that none means there is none.
     private final Set<String> diffsRead = new HashSet<>();
-    private final Consumer<VcsRepository> listener = r -> refresh();
+    // A change to a repository: its commits' refs read again too.
+    private final Consumer<VcsRepository> listener = r -> {
+        SwingUtilities.invokeLater(this::forgetCommits);
+        refresh();
+    };
     // How deep nodes are open by default: 1 sections closed, 2 files closed,
     // 3 hunks closed, 4 all open.
     private volatile int depth = 2;
@@ -115,6 +125,11 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
     // which shows the file the diff beside has.
     private boolean sideBySide;
     private SideBySide sides;
+    // In place of the diff, while the caret is on a commit: its details, as
+    // the log shows them; else null.
+    private CommitDetails commits;
+    // The commits read for them, by repository and hash.
+    private final Map<String, LogCommit> commitsRead = new HashMap<>();
 
     private VcsStatusBuffer(List<VcsRepository> repositories) {
         super(VcsStatusMode.getMode(), title(repositories), "Reading…");
@@ -169,6 +184,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
     // Its diffs read again, ignoring the whitespace diffs ignore now.
     @Override
     public void diffWhitespaceChanged() {
+        if (commits != null)
+            commits.diffWhitespaceChanged();
         refresh();
     }
 
@@ -538,6 +555,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
         pending = null;
         if (sideBySide)
             sides = newSides();
+        if (commitAt(Editor.windowShowing(this)) != null)
+            commits = new CommitDetails(this, sideBySide);
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         if (frame != null)
             frame.showView(this, this);
@@ -571,9 +590,15 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
         final StatusDiffBuffer d = diff;
         final CompareBuffer c = sides != null ? sides.comparison() : null;
         follow.stop();
+        final CommitDetails details = commits;
+        commits = null;
         final List<Buffer> parts = new ArrayList<>(List.of(d));
         if (c != null)
             parts.addAll(List.of(c, c.getOld()));
+        if (details != null)
+            for (Buffer b : details.panes())
+                if (!parts.contains(b))
+                    parts.add(b);
         if (closing)
             parts.add(this);
         if (frame != null)
@@ -590,13 +615,15 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
             d.kill();
         if (c != null)
             c.close(null);
+        if (details != null)
+            details.close();
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
     }
 
     @Override
     public void afterCommand(Editor editor) {
         if (diff != null && editor.getDot() != null && editor.getDotLine() instanceof StatusLine s) {
-            final String target = StatusDiffBuffer.target(s);
+            final String target = s.kind() == StatusLine.Kind.COMMIT ? commitKey(s) : StatusDiffBuffer.target(s);
             if (target != null && !target.equals(followed))
                 follow.restart();
         }
@@ -621,7 +648,14 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
             return;
         final Editor ed = Editor.windowShowing(this);
         final StatusLine s = ed != null && ed.getDot() != null && ed.getDotLine() instanceof StatusLine l ? l : null;
+        if (s != null && s.kind() == StatusLine.Kind.COMMIT) {
+            followCommit(s);
+            return;
+        }
         final String target = s == null ? null : StatusDiffBuffer.target(s);
+        // A file at the caret: its diff in place of a commit's details.
+        if (target != null && commits != null)
+            leaveCommit();
         if (target == null) {
             // No file at the caret: the diff keeps its own, read again with
             // the status, or cleared once its section no longer has it.
@@ -666,7 +700,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
      * stays the status, or the diff in its new form, at the same line of the
      * file: a removed line's on the old side, the rest on the new.
      */
-    void diffView(Frame frame, Buffer focus) {
+    @Override
+    public void diffView(Frame frame, Buffer focus) {
         if (diff == null) {
             openDiff(frame);
             return;
@@ -678,6 +713,12 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
             return;
         }
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
+        if (commits != null) {
+            // The file's diff takes it up as it comes back.
+            sideBySide = !commits.isSideBySide();
+            commits.toggleSides(frame, this, focus);
+            return;
+        }
         sideBySide = sides == null;
         if (sideBySide) {
             sides = newSides();
@@ -688,6 +729,129 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
         final SideBySide was = sides;
         sides = null;
         was.restore(frame, this, focus, diff, diffFile()).run();
+    }
+
+    // A commit's details.
+
+    /** The commit at editor's caret, or null. */
+    private static StatusLine commitAt(Editor editor) {
+        return editor != null
+                && editor.getDot() != null
+                && editor.getDotLine() instanceof StatusLine s
+                && s.kind() == StatusLine.Kind.COMMIT
+                && s.commit() != null ? s : null;
+    }
+
+    // What following a commit's line shows, as a key.
+    private static String commitKey(StatusLine line) {
+        return line.repository().root() + "|commit|" + line.commit().hash();
+    }
+
+    // The details of the commit at line, in place of the diff: read once,
+    // then kept.
+    private void followCommit(StatusLine line) {
+        final String key = commitKey(line);
+        if (key.equals(followed) && commits != null)
+            return;
+        followed = key;
+        if (commits == null) {
+            commits = new CommitDetails(this, sideBySide);
+            layOut();
+        }
+        final CommitDetails details = commits;
+        final LogCommit known = commitsRead.get(key);
+        if (known != null) {
+            details.show(known);
+            return;
+        }
+        final VcsRepository r = line.repository();
+        final String hash = line.commit().hash();
+        Background.start("vcs status commit", () -> {
+            List<LogCommit> read;
+            try {
+                read = r.backend().readLog(r, LogQuery.ALL.withRevisions(List.of(hash)), 0, 1);
+            }
+            catch (RuntimeException e) {
+                Log.error(e);
+                read = null;
+            }
+            final LogCommit c = read == null || read.isEmpty() ? null : read.get(0);
+            SwingUtilities.invokeLater(() -> {
+                if (c == null || commits != details || !key.equals(followed))
+                    return;
+                commitsRead.put(key, c);
+                details.show(c);
+            });
+        });
+    }
+
+    // The commits read forgotten, as their refs may have moved: the one
+    // shown is read again when the caret is next followed.
+    private void forgetCommits() {
+        commitsRead.clear();
+        if (commits != null)
+            followed = null;
+    }
+
+    // Back to the file's diff from a commit's details, unified or side by
+    // side as = last left them.
+    private void leaveCommit() {
+        final CommitDetails was = commits;
+        commits = null;
+        followed = null;
+        if (sideBySide && sides == null)
+            sides = newSides();
+        else if (!sideBySide && sides != null) {
+            sides.close();
+            sides = null;
+        }
+        layOut();
+        was.close();
+    }
+
+    // Its view laid out again, in the frame showing it, the focus kept.
+    private void layOut() {
+        final Editor ed = Editor.windowShowing(this);
+        final Frame frame = ed == null ? null : ed.getFrame();
+        if (frame == null || frame.shownView() != this)
+            return;
+        final Editor current = frame.getCurrentEditor();
+        frame.layOutView(this, current != null ? current.getBuffer() : this);
+    }
+
+    @Override
+    public CommitDetails details() {
+        return commits;
+    }
+
+    @Override
+    public VcsRepository repositoryOf(LogCommit c) {
+        return c.repository() != null ? c.repository() : repositories.get(0);
+    }
+
+    @Override
+    public LogScope getScope() {
+        return LogScope.of(repositories);
+    }
+
+    @Override
+    public int laneColorOf(LogCommit c) {
+        return -1;
+    }
+
+    @Override
+    public String getTimeStyle() {
+        return TimeStyle.valid(Editor.preferences().getStringProperty(Property.VCS_LOG_TIME_STYLE), TimeStyle.AGE);
+    }
+
+    @Override
+    public boolean isDisposed() {
+        return disposed;
+    }
+
+    @Override
+    public void leave(Frame frame) {
+        closeDiffToStatus(frame);
     }
 
     /** Side by side, the new side's line, from 1, at editor's caret to visit; -1, saying why, for none. */
@@ -882,6 +1046,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
 
     @Override
     public List<Buffer> getChildren() {
+        if (commits != null)
+            return commits.panes();
         final CompareBuffer c = getCompare();
         return diff == null ? List.of() : c != null ? List.of(c, c.getOld()) : List.of(diff);
     }
@@ -890,6 +1056,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
     // status at the top, the comparison under it.
     @Override
     public WindowLayout.Node layout(Frame frame, Buffer focus) {
+        if (commits != null)
+            return commits.layout(this, focus);
         final CompareBuffer c = getCompare();
         if (c != null)
             return new Split(false,
@@ -927,7 +1095,9 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
      */
     @Override
     public Editor windowFor(Editor from, String command) {
-        final Editor diffs = CompareCommands.windowFor(from, command, diff, getCompare());
+        final Editor diffs = commits != null
+                ? CompareCommands.windowFor(from, command, commits.unified(), commits.comparison())
+                : CompareCommands.windowFor(from, command, diff, getCompare());
         if (diffs != null)
             return diffs;
         final Editor status = from.getFrame() != null ? from.getFrame().findEditor(this) : null;
@@ -946,7 +1116,7 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
     // The diff killed on its own closes as D does.
     @Override
     public boolean partKilled(Buffer part) {
-        if (part != diff && part != getCompare())
+        if (part != diff && part != getCompare() && (commits == null || !commits.has(part)))
             return false;
         final Editor current = Editor.currentEditor();
         closeDiff(current != null ? current.getFrame() : null);
