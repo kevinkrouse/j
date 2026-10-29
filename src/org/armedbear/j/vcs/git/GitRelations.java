@@ -43,6 +43,7 @@ import org.armedbear.j.vcs.VcsResult;
 final class GitRelations {
     private static final String HEADS = "refs/heads/";
     private static final String REMOTES = "refs/remotes/";
+    private static final String ORIGIN = "origin/";
     private static final String ORIGIN_HEAD = "refs/remotes/origin/HEAD";
 
     private GitRelations() {}
@@ -122,18 +123,18 @@ final class GitRelations {
     private static List<String> patterns(String name) {
         if (name.startsWith("refs/"))
             return new ArrayList<>(List.of(name));
-        return new ArrayList<>(List.of(HEADS + name, REMOTES + name));
+        return new ArrayList<>(List.of(HEADS + name, REMOTES + name, REMOTES + ORIGIN + name));
     }
 
     // The full name of the branch name names, or null if there is none:
-    // a local branch before a remote one.
+    // a local branch before a remote one, and a bare name, as GitHub's CLI
+    // records one, origin's.
     private static String resolve(String name, Map<String, Ref> refs) {
         if (name.startsWith("refs/"))
             return refs.containsKey(name) ? name : null;
-        if (refs.containsKey(HEADS + name))
-            return HEADS + name;
-        if (refs.containsKey(REMOTES + name))
-            return REMOTES + name;
+        for (String ref : patterns(name))
+            if (refs.containsKey(ref))
+                return ref;
         return null;
     }
 

@@ -1660,7 +1660,12 @@ plan with why it is left, before the next phase starts.
    - **d. Setting the parent.** `gitSetParent [BRANCH]` writes
      `branch.<name>.gh-merge-base` (a branch asked for with the refs'
      fuzzy list when none is given), and `gitSetParent -` removes it. The
-     `Parent:` line's Enter runs it. No other key writes it.
+     `Parent:` line's Enter runs it. No other key writes it. A remote's
+     branch is written by its bare name (`origin/main` as `main`), as
+     `gh pr create` takes it, and a bare name is read back as the local
+     branch, else a remote's of that full name, else origin's. The list
+     leaves out the branch and its own copies on a remote. Written through
+     `VcsBackend.setParent`; picked with `Finders.choose`.
    - **e. Stash.** A `Stashes (2)` section after Staged, each
      `stash@{0}: On main: message` an item that opens to its files and
      their diffs as a staged file's do (`git stash show -p --include-untracked`

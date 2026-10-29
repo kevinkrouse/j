@@ -36,8 +36,9 @@ file's repository. In a project whose directory holds several repositories,
 it shows them all, each under a heading in its own color.
 
 <pre>
-Head:     main  1a2b3c4 icons: draw at the window's device scale
-Upstream: origin/main  ↑2 ↓0
+Head:     icons  1a2b3c4 icons: draw at the window's device scale
+Upstream: origin/icons  ↑2 ↓0
+Parent:   origin/main  (reflog)
 
 Untracked files (1)
   ?  notes.txt
@@ -54,10 +55,29 @@ Recent commits (10)
 </pre>
 
 <p>
+The header has the branch, its upstream and how far ahead and behind it is
+(or <code>gone</code>), where it pushes when that is not its upstream, and its
+parent: the branch it is to be merged into, with where j found it in
+parentheses. Git keeps no parent, so j reads the one GitHub's CLI, git-town,
+git-machete or VS Code recorded, else the upstream when the branch pushes
+elsewhere, else the branch the reflog says it was made from, else
+<code>origin/HEAD</code>, <code>main</code> or <code>master</code>. Enter on
+the Parent line, or
+<a href="commands.html#gitSetParent">gitSetParent</a>, picks another, which
+is recorded as GitHub's CLI records it, so <code>gh pr create</code> targets it
+too: a remote's branch by its bare name, read back as the local branch of that
+name when there is one, else origin's. <code>gitSetParent -</code> removes the record.
+
+<p>
 The sections are those that have something in them: unmerged files during a
-merge, untracked files, unstaged changes, staged changes, and the recent
-commits. A line under the header says when a merge, a rebase or a cherry-pick
-is in progress, and how many conflicts it has.
+merge, untracked files, unstaged changes, staged changes, then the commits
+between the branch and its upstream, push target and parent each way
+(unpulled, unpushed, unmerged from the parent, and not in it), closed to
+begin with, as of the last fetch; and the recent commits, when no commit is on
+the branch alone. A section of commits shows the newest ten, then how many
+more, whose Enter opens the log of them all. A line under the header says when
+a merge, a rebase or a cherry-pick is in progress, and how many conflicts it
+has.
 
 <p>
 A dimmed row over the first line shows the main keys, in the notation of the

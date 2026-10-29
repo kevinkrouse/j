@@ -70,6 +70,19 @@ final class GitWrites {
     }
 
     /**
+     * The parent as GitHub's CLI records it, which gh pr create takes as
+     * its base; none to remove it, which is no failure if there is none.
+     */
+    static VcsResult setParent(VcsRepository repository, String branch, String parent) {
+        final String key = "branch." + branch + ".gh-merge-base";
+        if (parent != null)
+            return run(repository, args("config", key, parent));
+        final VcsResult r = run(repository, args("config", "--unset", key));
+        // 5: there was none.
+        return r.exitCode() == 5 ? new VcsResult(r.command(), 0, r.stdout(), "", r.millis()) : r;
+    }
+
+    /**
      * The refs a fetch moved, as git says, a line each: " * [new branch]
      * x -> origin/x", "   a..b  main -> origin/main". Not a branch fetched
      * by name, which is "-> FETCH_HEAD" moved or not.

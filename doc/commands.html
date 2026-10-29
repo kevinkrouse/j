@@ -165,6 +165,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#followLinkOrTask">followLinkOrTask</a></li>
     <li><a href="commands.html#forwardSexp">forwardSexp</a></li>
     <li><a href="commands.html#git">git</a></li>
+    <li><a href="commands.html#gitSetParent">gitSetParent</a></li>
     <li><a href="commands.html#gotoBookmark">gotoBookmark</a></li>
     <li><a href="commands.html#gotoTemporaryMarker">gotoTemporaryMarker</a></li>
     <li><a href="commands.html#gotoFile">gotoFile</a></li>
@@ -2494,6 +2495,21 @@ is "diff".  The git command is run in the directory of the current
 editor.
 <p>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="gitSetParent">gitSetParent</a><dl><dd>
+<p>
+Records the branch the current one is to be merged into, picked from a list of
+the branches, local and remote, or named: <code>gitSetParent main</code>.
+<code>gitSetParent -</code> removes the record, so that the parent is found
+again. It is recorded as GitHub's CLI records it, in
+<code>branch.&lt;name&gt;.gh-merge-base</code>, a remote's branch by its bare
+name.
+<br><br>
+<b>Default key mapping:</b> Enter on the Parent line of a status buffer
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>
 </dl><!--<hr>-->
 

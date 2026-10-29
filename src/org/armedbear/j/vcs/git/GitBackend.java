@@ -177,6 +177,11 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
+    public VcsResult setParent(VcsRepository repository, String branch, String parent) {
+        return GitWrites.setParent(repository, branch, parent);
+    }
+
+    @Override
     public int fetchedRefs(VcsResult result) {
         return GitWrites.fetchedRefs(result.stderr());
     }

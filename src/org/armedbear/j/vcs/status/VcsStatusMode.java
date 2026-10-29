@@ -765,6 +765,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             showCommit(editor, line);
             return;
         }
+        // The parent's line: another asked for.
+        if (line.kind() == Kind.FIELD && line.key().endsWith("|field|Parent")) {
+            ParentCommands.gitSetParent(editor);
+            return;
+        }
         if (line.kind() == Kind.MESSAGE && line.key().endsWith(StatusRenderer.MORE)) {
             showMore(editor, line);
             return;

@@ -234,6 +234,14 @@ public interface VcsBackend {
         return null;
     }
 
+    /**
+     * Records parent as the branch branch is to be merged into, by name;
+     * null removes the record.
+     */
+    default VcsResult setParent(VcsRepository repository, String branch, String parent) {
+        return null;
+    }
+
     /** How many refs a fetch's result says it moved; -1 if it doesn't say. */
     default int fetchedRefs(VcsResult result) {
         return -1;

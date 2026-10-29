@@ -71,6 +71,7 @@ import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.CommitCommands;
 import org.armedbear.j.vcs.status.FetchCommands;
+import org.armedbear.j.vcs.status.ParentCommands;
 import org.armedbear.j.vcs.status.StatusActions;
 import org.armedbear.j.vcs.status.VcsStatusMode;
 import org.armedbear.j.vcs.svn.SVN;
@@ -231,6 +232,7 @@ public class CommandTable {
             add("foldAll", FoldCommands::foldAll);
             add("foldMethods", FoldCommands::foldMethods);
             add("foldRegion", FoldCommands::foldRegion);
+            add("gitSetParent", ParentCommands::gitSetParent, ParentCommands::gitSetParent);
             add("gotoBookmark", JumpCommands::gotoBookmark, (e, s) -> JumpCommands.gotoBookmark(e, s));
             add("gotoTemporaryMarker", JumpCommands::gotoTemporaryMarker);
             add("gotoWindow", null, (e, s) -> WindowCommands.gotoWindow(e, s));
