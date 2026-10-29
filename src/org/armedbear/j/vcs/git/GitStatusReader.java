@@ -224,16 +224,13 @@ final class GitStatusReader {
             BiPredicate<String, String> wantsDiff,
             Whitespace ignored) {
         final List<Item> items = new ArrayList<>();
-        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "stash", "list", "--format=%gd%x1f%H%x1f%gs"));
-        if (!r.succeeded())
+        final List<String[]> list = GitLog.stashList(repository);
+        if (list == null)
             return items;
-        for (String line : r.out().split("\n")) {
-            final String[] f = line.split("\u001f", -1);
-            if (f.length != 3)
-                continue;
+        for (String[] f : list) {
             final List<FileItem> files =
                     wantsDiff.test(StatusData.STASHES, f[1]) ? stashFiles(repository, f[1], ignored) : null;
-            items.add(new StashItem(f[0], f[1], f[2], files));
+            items.add(new StashItem(f[0], f[1], f[3], files));
         }
         return items;
     }

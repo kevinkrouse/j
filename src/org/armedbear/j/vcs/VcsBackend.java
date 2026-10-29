@@ -177,6 +177,15 @@ public interface VcsBackend {
         return null;
     }
 
+    /**
+     * The stashes as the log shows them, newest first, each badged with its
+     * name and drawn off the commit it was made on alone: its graph's parent
+     * is its first; none if it has none, or none can be read.
+     */
+    default List<LogCommit> readStashes(VcsRepository repository) {
+        return List.of();
+    }
+
     /** A commit's whole message, or null. */
     default String readMessage(VcsRepository repository, String id) {
         return null;
@@ -212,9 +221,9 @@ public interface VcsBackend {
     }
 
     /**
-     * HEAD, the branches, remotes and tags, each with its commit and date,
-     * and a local branch's ahead and behind its upstream; empty if none can
-     * be read. A detached HEAD is first, as HEAD.
+     * HEAD, the branches, remotes, tags and stashes, each with its commit
+     * and date, and a local branch's ahead and behind its upstream; empty if
+     * none can be read. A detached HEAD is first, as HEAD.
      */
     default List<LogRefTip> readRefTips(VcsRepository repository) {
         return List.of();

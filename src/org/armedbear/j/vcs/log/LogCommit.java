@@ -78,4 +78,12 @@ public record LogCommit(String id, List<String> parents, String author, String e
     public boolean isMerge() {
         return parents.size() > 1;
     }
+
+    /** Whether it is a stash, badged with its name, as the log reads one. */
+    public boolean isStash() {
+        for (LogRef r : refs)
+            if (r.kind() == LogRef.Kind.STASH)
+                return true;
+        return false;
+    }
 }

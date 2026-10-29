@@ -122,6 +122,22 @@ final class LogFilters {
         }
     });
 
+    /** Whether the stashes are shown, each off the commit it was made on: off by default. */
+    static final Switch STASHES = new Switch("-z", "--stashes", "stashes", new Binding<>() {
+        @Override
+        public Boolean get(Editor editor) {
+            final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+            return log != null && log.getQuery().stashes();
+        }
+
+        @Override
+        public void set(Editor editor, Boolean on) {
+            final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+            if (log != null)
+                log.setQuery(log.getQuery().withStashes(Boolean.TRUE.equals(on)));
+        }
+    });
+
     /** -l: runs of plain commits collapsed, a view option rather than a filter. */
     static final Switch COLLAPSE = new Switch("-l", "--collapse", "collapse linear runs", new Binding<>() {
         @Override
@@ -173,6 +189,7 @@ final class LogFilters {
             });
 
     private static final Switch TAGS_ARGUMENT = Switch.of(TAGS.key(), TAGS.name(), TAGS.description());
+    private static final Switch STASHES_ARGUMENT = Switch.of(STASHES.key(), STASHES.name(), STASHES.description());
 
     /** The same, unbound: arguments kept by the popup they are in. */
     static final List<Option> ARGUMENTS =
@@ -197,7 +214,7 @@ final class LogFilters {
 
     /** An open log's filters, in its popup, with x to clear them all. */
     static Group group(LogScope scope) {
-        final List<Transient.Item> items = items(of(scope), TAGS);
+        final List<Transient.Item> items = items(of(scope), TAGS, STASHES);
         items.add(new Command("x", "vcsLogClearFilters", "clear the filters", true));
         return new Group("Filters", items);
     }
@@ -217,13 +234,13 @@ final class LogFilters {
                 "Log",
                 "git.html#log-filters",
                 List.of(
-                    new Group("Filter", items(arguments(scope), TAGS_ARGUMENT)),
+                    new Group("Filter", items(arguments(scope), TAGS_ARGUMENT, STASHES_ARGUMENT)),
                     Group.of("Log", Command.of("l", "vcsLog", "log"), Command.of("q", "vcsLogQuick", "quick log"))));
     }
 
-    private static List<Transient.Item> items(List<Option> options, Switch tags) {
+    private static List<Transient.Item> items(List<Option> options, Switch... switches) {
         final List<Transient.Item> out = new ArrayList<>(options);
-        out.add(tags);
+        out.addAll(List.of(switches));
         return out;
     }
 
@@ -235,7 +252,9 @@ final class LogFilters {
             if (value != null && !(f.option() == PATH && q.path() != null) && of(scope).contains(f.option()))
                 q = f.with().apply(q, value, scope);
         }
-        return args.isOn(TAGS.name()) ? q.withTags(true) : q;
+        if (args.isOn(TAGS.name()))
+            q = q.withTags(true);
+        return args.isOn(STASHES.name()) ? q.withStashes(true) : q;
     }
 
     // The repositories checked, in the log's order, those it hasn't after;

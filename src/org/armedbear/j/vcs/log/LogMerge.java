@@ -86,6 +86,12 @@ final class LogMerge {
         source.more = page.size() == pageSize;
     }
 
+    /** source's commits, the last of them read. */
+    void addLast(Source source, List<LogCommit> commits) {
+        add(source, commits);
+        source.more = false;
+    }
+
     /** The commits that can be listed now, in order, taken. */
     List<LogCommit> take() {
         final List<LogCommit> out = new ArrayList<>();

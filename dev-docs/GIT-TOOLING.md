@@ -1698,7 +1698,18 @@ plan with why it is left, before the next phase starts.
      log shows when the `-z` filter (`vcsLogToggleStashes`, off by
      default) adds `refs/stash` and its reflog (`git log --walk-reflogs`
      is not a graph, so each stash is read as `stash@{n}` and drawn as a
-     tip off its base, labeled `stash@{n}`).
+     tip off its base, labeled `stash@{n}`). Built as: `LogQuery.stashes`,
+     shown (`showsStashes`) only with no filter but the repositories, as a
+     filter could leave a stash's base out; `VcsBackend.readStashes`, git's
+     a `stash list` for the names then one `log --no-walk` of them, each a
+     `LogCommit` badged with a `LogRef.Kind.STASH` whose `graphParents` is
+     its first parent alone, so the index's and untracked commits aren't
+     read. Each repository's stashes are a `LogMerge` source of their own,
+     read whole and placed by commit time before the repository's commits,
+     so the branches' pages and skips are untouched. The refs tree's
+     Stashes come from `readRefTips`; a click, Enter or a double click goes
+     to the stash, or says `-z` shows it. The graph draws a stash as a
+     plain commit (`LogCommit.isStash`).
    - **g. The sidebar by directory.** The status's `StatusTree` groups each
      section's files under their directories, collapsed to the first
      directory with more than one child (`src/org/armedbear/j` as one

@@ -155,18 +155,32 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         return -1;
     }
 
+    @Override
+    public boolean isStash(LogCommit c) {
+        return c.isStash();
+    }
+
     /** The repository c is in. */
     @Override
     public VcsRepository repositoryOf(LogCommit c) {
         return c.repository() != null ? c.repository() : scope.first();
     }
 
-    // The repositories query reads, each a source.
+    // A repository's stashes, a source of their own, read whole.
+    private record Stashes(VcsRepository repository) {}
+
+    // The repositories query reads, each a source, its stashes before it
+    // to go above a commit of the same time, as their bases are.
     private LogMerge newMerge() {
-        final List<VcsRepository> read = new ArrayList<>();
-        for (VcsRepository r : scope.repositories())
-            if (scope.queryFor(r, query) != null)
-                read.add(r);
+        final List<Object> read = new ArrayList<>();
+        for (VcsRepository r : scope.repositories()) {
+            final LogQuery q = scope.queryFor(r, query);
+            if (q == null)
+                continue;
+            if (q.showsStashes())
+                read.add(new Stashes(r));
+            read.add(r);
+        }
         return new LogMerge(read, pageSize);
     }
 
@@ -178,8 +192,12 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
     void setQuery(LogQuery query) {
         if (query.equals(this.query))
             return;
-        // With a branch, tags change nothing read: kept for when it is unset.
-        final boolean same = !query.revisions().isEmpty() && query.withTags(this.query.tags()).equals(this.query);
+        // With a branch, tags change nothing read, nor stashes with a
+        // filter: kept for when it is unset.
+        final LogQuery was = this.query;
+        final boolean same = query.withTags(was.tags()).withStashes(was.stashes()).equals(was)
+                && (query.tags() == was.tags() || !query.revisions().isEmpty())
+                && (query.stashes() == was.stashes() || !query.canShowStashes());
         this.query = query;
         if (same)
             return;
@@ -332,6 +350,10 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         }
         for (LogMerge.Source source : m.wanted()) {
             m.loading(source);
+            if (source.key instanceof Stashes s) {
+                loadStashes(m, source, s.repository());
+                continue;
+            }
             final VcsRepository r = (VcsRepository) source.key;
             final int skip = source.skip();
             final LogQuery q = scope.queryFor(r, query);
@@ -374,6 +396,18 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
                 });
             });
         }
+    }
+
+    // r's stashes, all of them, in the background.
+    private void loadStashes(LogMerge m, LogMerge.Source source, VcsRepository r) {
+        Background.then("vcs log stashes", () -> r.backend().readStashes(r), read -> {
+            if (m != merge) {
+                ++dropped;
+                return;
+            }
+            m.addLast(source, read != null ? read : List.of());
+            append(m.take());
+        });
     }
 
     /** Reads it again from the first page, the caret staying on its commit, and the refs and paths. */
@@ -424,15 +458,23 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
     /**
      * The caret of the window on it to commit id of repository, reading on
      * to it, if the log lists it: asked of the backend first, so that a
-     * commit its filters leave out reads nothing.
+     * commit its filters leave out reads nothing. A stash is listed when
+     * the log shows the stashes.
      */
-    void reveal(VcsRepository repository, String id) {
+    void reveal(VcsRepository repository, String id, boolean stash) {
         final Editor ed = Editor.windowShowing(this);
         if (ed == null)
             return;
         final LogQuery q = scope.queryFor(repository, query);
         if (q == null) {
             ed.status("Not in the log: its repository is filtered out");
+            return;
+        }
+        if (stash) {
+            if (q.showsStashes())
+                jump(ed, repository.root() + "\0" + id);
+            else
+                ed.status(q.stashes() ? "Not in the log with its filters" : "Not in the log (-z shows the stashes)");
             return;
         }
         Background.start("vcs log reveal", () -> {

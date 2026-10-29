@@ -241,6 +241,11 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
+    public List<LogCommit> readStashes(VcsRepository repository) {
+        return GitLog.stashes(repository);
+    }
+
+    @Override
     public String readMessage(VcsRepository repository, String id) {
         return GitLog.message(repository, id);
     }

@@ -109,7 +109,7 @@ final class LogNames {
             tips = List.copyOf(repository.backend().readRefTips(repository));
             final List<LogRef> named = new ArrayList<>();
             for (LogRefTip t : tips)
-                if (t.ref().kind() != LogRef.Kind.HEAD)
+                if (t.ref().kind() != LogRef.Kind.HEAD && t.ref().kind() != LogRef.Kind.STASH)
                     named.add(t.ref());
             refs = List.copyOf(named);
             paths = withDirectories(repository.backend().readPaths(repository));

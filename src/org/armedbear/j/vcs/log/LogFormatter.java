@@ -44,6 +44,7 @@ final class LogFormatter extends Formatter {
     static final int REMOTE = 4;
     static final int TAG = 5;
     static final int GAP = 6;
+    static final int STASH = 7;
     // A branch's badge in a lane's color, and HEAD's: these plus the color.
     private static final int LANE = 16;
     private static final int HEAD_LANE = LANE + LogGraph.COLORS;
@@ -84,6 +85,7 @@ final class LogFormatter extends Formatter {
             case BRANCH -> lane < 0 ? BRANCH : LANE + lane;
             case REMOTE -> lane < 0 ? REMOTE : LANE + lane;
             case TAG -> TAG;
+            case STASH -> STASH;
             case COUNT, AUTHOR, DATE -> DIM;
         };
     }
@@ -118,7 +120,12 @@ final class LogFormatter extends Formatter {
     }
 
     private static boolean isBadge(int format) {
-        return format == HEAD || format == BRANCH || format == REMOTE || format == TAG || isLane(format);
+        return format == HEAD
+                || format == BRANCH
+                || format == REMOTE
+                || format == TAG
+                || format == STASH
+                || isLane(format);
     }
 
     // A badge: a shade of its text's color behind it.
@@ -139,6 +146,7 @@ final class LogFormatter extends Formatter {
             formatTable.addEntryFromPrefs(BRANCH, "branch", "function");
             formatTable.addEntryFromPrefs(REMOTE, "remote", "string");
             formatTable.addEntryFromPrefs(TAG, "tag", "type");
+            formatTable.addEntryFromPrefs(STASH, "stash", "comment");
         }
         return formatTable;
     }

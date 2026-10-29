@@ -34,9 +34,11 @@ import java.util.List;
  * @param repositories the names of those of several shown; none for all of them
  * @param tags whether the commits only tags reach are shown too, with no
  *     revisions given
+ * @param stashes whether the stashes are shown too, each off the commit it
+ *     was made on, with nothing narrowing it
  */
 public record LogQuery(List<String> revisions, String author, String path, String since, String grep, String pickaxe,
-        boolean follow, List<String> repositories, boolean tags) {
+        boolean follow, List<String> repositories, boolean tags, boolean stashes) {
     /** Everything. */
     public static final LogQuery ALL = new LogQuery(List.of(), null, null, null, null, null, false);
 
@@ -53,7 +55,7 @@ public record LogQuery(List<String> revisions, String author, String path, Strin
             String grep,
             String pickaxe,
             boolean follow) {
-        this(revisions, author, path, since, grep, pickaxe, follow, List.of(), false);
+        this(revisions, author, path, since, grep, pickaxe, follow, List.of(), false, false);
     }
 
     /** A file's history, through its renames. */
@@ -86,42 +88,69 @@ public record LogQuery(List<String> revisions, String author, String path, Strin
     public LogQuery withRevision(String revision) {
         return new LogQuery(revision == null
                 ? List.of()
-                : List.of(revision), author, path, since, grep, pickaxe, follow, repositories, tags);
+                : List.of(revision), author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
     }
 
     /** From revisions, or every branch for none. */
     public LogQuery withRevisions(List<String> revisions) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
     }
 
     public LogQuery withAuthor(String author) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
     }
 
     /** Under path, following a file's renames when follow says it is one. */
     public LogQuery withPath(String path, boolean follow) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, path != null && follow, repositories, tags);
+        return new LogQuery(revisions,
+                author,
+                path,
+                since,
+                grep,
+                pickaxe,
+                path != null && follow,
+                repositories,
+                tags,
+                stashes);
     }
 
     public LogQuery withSince(String since) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
     }
 
     public LogQuery withGrep(String grep) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
     }
 
     public LogQuery withPickaxe(String pickaxe) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
     }
 
     /** Of the repositories named, or all of them for none. */
     public LogQuery withRepositories(List<String> repositories) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
     }
 
     /** With the commits only tags reach, or without. */
     public LogQuery withTags(boolean tags) {
-        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags);
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
+    }
+
+    /** With the stashes, or without. */
+    public LogQuery withStashes(boolean stashes) {
+        return new LogQuery(revisions, author, path, since, grep, pickaxe, follow, repositories, tags, stashes);
+    }
+
+    /** Whether it shows the stashes: asked for, and {@link #canShowStashes}. */
+    public boolean showsStashes() {
+        return stashes && canShowStashes();
+    }
+
+    /**
+     * Whether it could show the stashes: nothing but the repositories
+     * narrowing it, as a stash's base may otherwise be left out.
+     */
+    public boolean canShowStashes() {
+        return withRepositories(List.of()).withTags(false).withStashes(false).equals(ALL);
     }
 }

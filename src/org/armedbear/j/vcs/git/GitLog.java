@@ -71,6 +71,60 @@ final class GitLog {
         return rewrites ? withOwnParents(repository, commits) : commits;
     }
 
+    /** The stashes, newest first, each its name, id, commit time and subject; null if git fails. */
+    static List<String[]> stashList(VcsRepository repository) {
+        final VcsResult r =
+                GitCli.run(GitCli.read(repository.root(), "stash", "list", "--format=%gd%x1f%H%x1f%ct%x1f%gs"));
+        if (!r.succeeded())
+            return null;
+        final List<String[]> out = new ArrayList<>();
+        for (String line : r.out().split("\n")) {
+            final String[] f = line.split("\u001f", -1);
+            if (f.length == 4)
+                out.add(f);
+        }
+        return out;
+    }
+
+    /**
+     * The stashes, newest first, each a commit badged with its name whose
+     * graph's parent is the commit it was made on: the index's and the
+     * untracked files' commits, its other parents, aren't listed.
+     */
+    static List<LogCommit> stashes(VcsRepository repository) {
+        final List<String[]> list = stashList(repository);
+        if (list == null || list.isEmpty())
+            return List.of();
+        final List<String> args = new ArrayList<>(List.of("log", "--no-walk=unsorted", "-z", "--no-color", FORMAT));
+        for (String[] f : list)
+            args.add(f[1]);
+        args.add("--");
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        if (!r.succeeded())
+            return List.of();
+        final Map<String, LogCommit> read = new HashMap<>();
+        for (LogCommit c : parse(r.stdout()))
+            read.put(c.id(), c);
+        final List<LogCommit> out = new ArrayList<>();
+        for (String[] f : list) {
+            final LogCommit c = read.get(f[1]);
+            if (c == null || c.parents().isEmpty())
+                continue;
+            out.add(
+                new LogCommit(c.id(),
+                        c.parents(),
+                        c.author(),
+                        c.email(),
+                        c.time(),
+                        List.of(new LogRef(f[0], LogRef.Kind.STASH, false)),
+                        c.subject(),
+                        List.of(c.parents().get(0)),
+                        c.committed(),
+                        repository));
+        }
+        return out;
+    }
+
     /** What query starts from, as commit ids, each once; null if a revision can't be told. */
     static List<String> starts(VcsRepository repository, LogQuery query) {
         final List<String> args = new ArrayList<>(List.of("rev-parse"));
@@ -391,7 +445,11 @@ final class GitLog {
                 "refs/tags"));
         if (!r.succeeded())
             return List.of();
-        final List<LogRefTip> tips = parseTips(r.out());
+        final List<LogRefTip> tips = new ArrayList<>(parseTips(r.out()));
+        final List<String[]> stashes = stashList(repository);
+        if (stashes != null)
+            for (String[] f : stashes)
+                tips.add(new LogRefTip(new LogRef(f[0], LogRef.Kind.STASH, false), f[1], number(f[2]), 0, 0, false));
         // No branch checked out: HEAD detached, at a commit of its own.
         if (tips.stream().noneMatch(t -> t.ref().head())) {
             final VcsResult head =

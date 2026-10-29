@@ -477,6 +477,7 @@ go to the next or previous file, Space and Shift Space scroll, and
 <tr><td>-l (in the list)</td><td><a href="commands.html#vcsLogCollapseRuns">vcsLogCollapseRuns</a></td><td>collapse each run of plain commits into one row, or show every commit</td></tr>
 <tr><td>-t (in the list)</td><td><a href="commands.html#vcsLogTimeStyle">vcsLogTimeStyle</a></td><td>step the dates through age, locale, iso and long-iso</td></tr>
 <tr><td>-T (in the list)</td><td><a href="commands.html#vcsLogToggleTags">vcsLogToggleTags</a></td><td>show the commits only tags reach too, or not</td></tr>
+<tr><td>-z (in the list)</td><td><a href="commands.html#vcsLogToggleStashes">vcsLogToggleStashes</a></td><td>show the stashes too, or not</td></tr>
 <tr><td>x (in the list)</td><td><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></td><td>clear every filter</td></tr>
 <tr><td>Ctrl R</td><td><a href="commands.html#vcsLogRefresh">vcsLogRefresh</a></td><td>read it again</td></tr>
 <tr><td>q</td><td><a href="commands.html#vcsLogQuit">vcsLogQuit</a></td><td>close it</td></tr>
@@ -496,9 +497,9 @@ and Alt Shift O, or Ctrl W in vim edit mode.
 <p>
 The sidebar's lower half shows the log's refs, the same from its list, files
 and diff: HEAD when it is detached, the branches, the remotes by remote, and
-the tags, newest first, the newest 25 and then a node for the rest; with
-several repositories, each under its name. The branches are open, the remotes
-and tags closed. A name with a slash is in a folder
+the tags, newest first, the newest 25 and then a node for the rest, and the
+stashes, newest first; with several repositories, each under its name. The
+branches are open, the remotes, tags and stashes closed. A name with a slash is in a folder
 (<code>feature/x</code> in <code>feature</code>). The default branch comes
 first, the one the remote's HEAD names (<code>origin</code>'s first), or else
 <code>main</code> or <code>master</code>, then the branch checked out, each by
@@ -513,10 +514,11 @@ again.
 <p>
 A click on a ref puts the log's caret on its commit, reading on to it, and the
 keys are the log's again; a commit the log doesn't list, as one only a tag
-reaches without <b>-T</b>, or one its filters leave out, is said to be so,
-with no page of the log read for it; moving the caret while it reads on
-stops it. <b>Enter</b> or a double click filters the log to the ref, as the branch
-chip does, by its whole name (<code>refs/heads/release</code>) when a tag or
+reaches without <b>-T</b>, a stash without <b>-z</b>, or one its filters
+leave out, is said to be so, with no page of the log read for it; moving the
+caret while it reads on stops it. <b>Enter</b> or a double click filters the
+log to the ref, as the branch chip does (a stash's is gone to, as a click
+does), by its whole name (<code>refs/heads/release</code>) when a tag or
 another ref has the same one, and to its repository when there are several.
 Typing narrows the tree to the refs with the text in their names, and the
 label shows it; <b>Backspace</b> takes a character back, and <b>Escape</b>
@@ -569,8 +571,12 @@ starts each log collapsed.
 <b>-T</b> shows the commits only tags reach too: off at first, as a
 repository converted from CVS has a commit of its own for each tag, apart
 from its branch, which would each take a lane; a tag on a branch's commit
-shows on it either way. The
-log is read again as each is set.
+shows on it either way. <b>-z</b> shows the stashes too, off at first: each
+<code>stash@{n}</code> a commit off the one it was made on, its badge its
+name, above it, its details' files its tracked changes, and its parents
+labeled; the index's and the untracked files' commits aren't listed. As a
+stash's base may be left out by a filter, they are shown only with none but
+the repositories set. The log is read again as each is set.
 
 <p>
 In the status buffer, <b>l</b> opens the log's popup with the same filters,

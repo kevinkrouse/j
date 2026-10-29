@@ -75,7 +75,7 @@ final class LogGraph {
      *
      * @param column the place of the lane the commit is in
      * @param lane that lane
-     * @param merge whether it has more than one parent
+     * @param merge whether it has more than one parent, but for a stash
      * @param top lines from the row's top to its middle: each lane in, to where it goes
      * @param bottom lines from the middle to the bottom: each lane out, from where it was
      * @param width how many lanes the row spans
@@ -305,7 +305,8 @@ final class LogGraph {
         }
         lanes = out;
         final int width = Math.max(Math.max(in.size(), out.size()), column + 1);
-        return new Row(column, own, c.isMerge(), top, bottom, width);
+        // A stash, though git's merge of its parts, is drawn as a commit off its base.
+        return new Row(column, own, c.isMerge() && !c.isStash(), top, bottom, width);
     }
 
     // A commit's id as lanes wait for it: in its repository, as two can

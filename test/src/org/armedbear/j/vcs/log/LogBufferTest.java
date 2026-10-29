@@ -1072,6 +1072,52 @@ public class LogBufferTest {
     }
 
     @Test
+    public void theStashesAreShownWhenAskedForEachOffItsBaseAndInTheRefsTree() throws Exception {
+        repo(3);
+        git.write("a.txt", "stashed\n");
+        git.git("stash", "push", "-m", "wip");
+        final String id = git.git("rev-parse", "stash@{0}").strip();
+        open(100);
+        assertEquals(List.of("commit 2", "commit 1", "commit 0"), subjects());
+        final LogRefTree tree = onEdtGet(() -> log.refTree(null));
+        until(() -> !tree.parts().isEmpty() && rows(tree).contains("Stashes"));
+        onEdt(() -> {
+            tree.setSize(200, 400);
+            tree.expandRow(rows(tree).indexOf("Stashes"));
+            click(tree, "stash@{0}", 1);
+        });
+        assertEquals("Not in the log (-z shows the stashes)", h.status());
+        onEdt(() -> LogCommands.vcsLogToggleStashes(h.editor()));
+        until(() -> !log.isLoading() && subjects().size() == 4);
+        // Above its base, a plain commit off it: the index's commit isn't listed.
+        assertEquals(List.of("On main: wip", "commit 2", "commit 1", "commit 0"), subjects());
+        final LogLine stash = (LogLine) log.getFirstLine();
+        assertEquals(id, stash.commit().id());
+        assertTrue(texts(log).get(0).contains("stash@{0}"), texts(log).get(0));
+        assertEquals(2, stash.commit().parents().size(), "its own parents, the index's too, for its details");
+        assertFalse(stash.graph().merge());
+        assertTrue(log.isStash(stash.commit()));
+        assertFalse(log.isStash(((LogLine) log.getLine(1)).commit()));
+        onEdt(() -> click(tree, "stash@{0}", 1));
+        until(() -> commitAtCaret().equals("On main: wip"));
+        // Enter on it goes to it too: filtered to, its index's commit would show.
+        onEdt(() -> {
+            h.editor().setDot(log.getLine(3), 0);
+            select(tree, "stash@{0}");
+            key(tree, KeyEvent.VK_ENTER);
+        });
+        until(() -> commitAtCaret().equals("On main: wip"));
+        assertEquals(List.of(), log.getQuery().revisions());
+        // With a branch, no stash: toggling them reads nothing again.
+        onEdt(() -> LogFilters.BRANCH.binding().set(h.editor(), "main"));
+        until(() -> !log.isLoading() && subjects().size() == 3);
+        onEdt(() -> LogCommands.vcsLogToggleStashes(h.editor()));
+        assertFalse(log.getQuery().stashes());
+        assertFalse(log.isLoading(), "not read again");
+        assertEquals("Not showing the stashes", h.status());
+    }
+
+    @Test
     public void dashKeysOpenTheirChipsFieldInEitherEditMode() throws Exception {
         twoAuthors();
         open(100);
@@ -1103,8 +1149,8 @@ public class LogBufferTest {
                     continue;
                 final KeyMapping m = filters.lookup(item.key().charAt(1), 0, 0);
                 assertNotNull(m, item.key());
-                if (item == LogFilters.TAGS) {
-                    assertEquals("vcsLogToggleTags", m.getCommand());
+                if (item == LogFilters.TAGS || item == LogFilters.STASHES) {
+                    assertEquals(item == LogFilters.TAGS ? "vcsLogToggleTags" : "vcsLogToggleStashes", m.getCommand());
                     continue;
                 }
                 assertEquals("vcsLogFilter " + item.description(), m.getCommand());

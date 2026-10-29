@@ -156,6 +156,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         for (Option o : LogFilters.ALL)
             filters.mapKey(o.key().charAt(1), "vcsLogFilter " + o.description());
         filters.mapKey(LogFilters.TAGS.key().charAt(1), "vcsLogToggleTags");
+        filters.mapKey(LogFilters.STASHES.key().charAt(1), "vcsLogToggleStashes");
         filters.mapKey(LogFilters.TIME_STYLE.key().charAt(1), "vcsLogTimeStyle");
         filters.mapKey(LogFilters.COLLAPSE.key().charAt(1), "vcsLogCollapseRuns");
         filters.mapKey(LogFilters.REFS_ORDER.key().charAt(1), "vcsLogRefsOrder");
@@ -296,6 +297,7 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         menu.add(editor, "Filter...", 'F', "vcsLogFilter");
         menu.add(editor, "Clear Filters", 'C', "vcsLogClearFilters");
         menu.add(editor, "Tags", 'G', "vcsLogToggleTags");
+        menu.add(editor, "Stashes", 'S', "vcsLogToggleStashes");
         menu.add(editor, "Time Style", 'Y', "vcsLogTimeStyle");
         menu.addSeparator();
         menu.add(editor, "Refresh", 'H', "vcsLogRefresh");

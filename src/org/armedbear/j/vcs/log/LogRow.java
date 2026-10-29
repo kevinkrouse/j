@@ -41,7 +41,7 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
      * a run folded under it, the author or the date.
      */
     public enum Part {
-        SUBJECT, HEAD, BRANCH, REMOTE, TAG, COUNT, AUTHOR, DATE
+        SUBJECT, HEAD, BRANCH, REMOTE, TAG, STASH, COUNT, AUTHOR, DATE
     }
 
     /** A part of the row, from start to end (exclusive). */
@@ -88,13 +88,13 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
         }
     }
 
-    // HEAD's first, then the branches, the remotes and the tags, as they came.
+    // HEAD's first, then the branches, the remotes, the tags and a stash, as they came.
     static List<LogRef> badges(List<LogRef> refs) {
         final List<LogRef> out = new ArrayList<>();
         for (LogRef r : refs)
             if (r.head())
                 out.add(r);
-        for (LogRef.Kind kind : List.of(LogRef.Kind.BRANCH, LogRef.Kind.REMOTE, LogRef.Kind.TAG))
+        for (LogRef.Kind kind : List.of(LogRef.Kind.BRANCH, LogRef.Kind.REMOTE, LogRef.Kind.TAG, LogRef.Kind.STASH))
             for (LogRef r : refs)
                 if (!r.head() && r.kind() == kind)
                     out.add(r);
@@ -175,6 +175,7 @@ public record LogRow(String text, List<Span> spans, boolean cut) {
             case BRANCH -> Part.BRANCH;
             case REMOTE -> Part.REMOTE;
             case TAG -> Part.TAG;
+            case STASH -> Part.STASH;
         };
     }
 

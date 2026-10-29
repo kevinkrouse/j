@@ -21,14 +21,14 @@
 package org.armedbear.j.vcs.log;
 
 /**
- * A branch, tag or HEAD at a commit, by its short name: "main",
- * "origin/main", "v1.0".
+ * A branch, tag, stash or HEAD at a commit, by its short name: "main",
+ * "origin/main", "v1.0", "stash@{0}".
  *
  * @param head whether HEAD is it: the branch checked out, or HEAD itself
  *     when detached
  */
 public record LogRef(String name, Kind kind, boolean head) {
     public enum Kind {
-        HEAD, BRANCH, REMOTE, TAG
+        HEAD, BRANCH, REMOTE, TAG, STASH
     }
 }

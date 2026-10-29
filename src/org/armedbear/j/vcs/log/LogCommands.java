@@ -397,6 +397,17 @@ public final class LogCommands {
         editor.status(log.getQuery().revisions().isEmpty() ? what : what + ", once no branch is set");
     }
 
+    /** -z: the stashes shown too, or not. */
+    public static void vcsLogToggleStashes(Editor editor) {
+        final LogBuffer log = LogBuffers.owner(editor.getBuffer());
+        if (log == null)
+            return;
+        final boolean on = !log.getQuery().stashes();
+        log.setQuery(log.getQuery().withStashes(on));
+        final String what = on ? "Showing the stashes" : "Not showing the stashes";
+        editor.status(log.getQuery().showsStashes() || !on ? what : what + ", once no filter is set");
+    }
+
     /** x: every filter cleared, a file's log's path too. */
     public static void vcsLogClearFilters(Editor editor) {
         final LogBuffer log = LogBuffers.owner(editor.getBuffer());

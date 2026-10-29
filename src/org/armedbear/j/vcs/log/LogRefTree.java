@@ -59,9 +59,9 @@ import org.armedbear.j.vcs.VcsRepository;
  * A log's refs in the sidebar's lower half, one tree for its list, files
  * and diff: HEAD when detached, the branches, the remotes by remote and the
  * tags, newest first and the newest {@value #TAGS} until more are asked
- * for; a node per repository when there are several. A name with a slash
- * is in a folder. A click goes to the ref's commit in the log; Enter or a
- * double click filters the log to it. Typing narrows the tree. One per frame
+ * for, and the stashes; a node per repository when there are several. A
+ * name with a slash is in a folder. A click goes to the ref's commit in the
+ * log; Enter or a double click filters the log to it, or goes to a stash. Typing narrows the tree. One per frame
  * the log is in, a component having one parent; the refs they show are
  * {@link LogNames}', read once for all of them and the log's filters.
  */
@@ -142,6 +142,7 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
         final List<LogRefTip> branches = new ArrayList<>();
         final List<LogRefTip> remotes = new ArrayList<>();
         final List<LogRefTip> tags = new ArrayList<>();
+        final List<LogRefTip> stashes = new ArrayList<>();
         for (LogRefTip t : p.tips()) {
             if (!t.ref().name().toLowerCase(Locale.ROOT).contains(filter))
                 continue;
@@ -150,6 +151,7 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
                 case BRANCH -> branches.add(t);
                 case REMOTE -> remotes.add(t);
                 case TAG -> tags.add(t);
+                case STASH -> stashes.add(t);
             }
         }
         for (LogRefTip t : heads)
@@ -189,6 +191,13 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
                 section.add(new DefaultMutableTreeNode(new Tip(p.repository(), t, t.ref().name())));
             if (shown < tags.size())
                 section.add(new DefaultMutableTreeNode(new More(tags.size() - shown)));
+            under.add(section);
+        }
+        if (!stashes.isEmpty()) {
+            // Newest first, as read.
+            final DefaultMutableTreeNode section = new DefaultMutableTreeNode(new Folder("Stashes"));
+            for (LogRefTip t : stashes)
+                section.add(new DefaultMutableTreeNode(new Tip(p.repository(), t, t.ref().name())));
             under.add(section);
         }
     }
@@ -381,7 +390,7 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
 
     // A ref: the log's caret to its commit, if the log lists it.
     private void reveal(Tip t) {
-        log.reveal(t.repository(), t.tip().id());
+        log.reveal(t.repository(), t.tip().id(), t.tip().ref().kind() == LogRef.Kind.STASH);
     }
 
     // A ref: the log filtered to it, as the branch chip has it, and to its
@@ -389,6 +398,11 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
     // ref there has the same short one, as a tag and a branch "release".
     private void filterTo(Tip t) {
         final LogRef ref = t.tip().ref();
+        // A stash's history is its base's, with the index's commit: gone to.
+        if (ref.kind() == LogRef.Kind.STASH) {
+            reveal(t);
+            return;
+        }
         boolean ambiguous = false;
         for (Part p : parts)
             if (p.repository() == t.repository())
@@ -402,13 +416,14 @@ public final class LogRefTree extends SidebarTree implements NavigationComponent
         FilterBar.refreshAll(log);
     }
 
-    /** "refs/heads/x", "refs/remotes/origin/x", "refs/tags/v1", or "HEAD". */
+    /** "refs/heads/x", "refs/remotes/origin/x", "refs/tags/v1", "stash@{0}", or "HEAD". */
     static String fullName(LogRef ref) {
         return switch (ref.kind()) {
             case HEAD -> "HEAD";
             case BRANCH -> "refs/heads/" + ref.name();
             case REMOTE -> "refs/remotes/" + ref.name();
             case TAG -> "refs/tags/" + ref.name();
+            case STASH -> ref.name();
         };
     }
 

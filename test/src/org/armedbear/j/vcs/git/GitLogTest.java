@@ -276,6 +276,34 @@ public class GitLogTest {
     }
 
     @Test
+    public void readsTheStashesNewestFirstEachOffItsBaseAndAsRefTips() throws Exception {
+        init();
+        git.write("a.txt", "a\n");
+        git.commitAll("first");
+        assertEquals(List.of(), GitLog.stashes(repository));
+        git.write("a.txt", "one\n");
+        git.git("stash", "push", "-m", "older");
+        git.write("a.txt", "two\n");
+        git.write("u.txt", "untracked\n");
+        git.git("stash", "push", "-u", "-m", "newer");
+        final List<LogCommit> stashes = GitLog.stashes(repository);
+        assertEquals(List.of("On main: newer", "On main: older"), subjects(stashes));
+        final LogCommit newer = stashes.get(0);
+        assertEquals(id("stash@{0}"), newer.id());
+        assertEquals(List.of(new LogRef("stash@{0}", LogRef.Kind.STASH, false)), newer.refs());
+        assertEquals(3, newer.parents().size(), "on, index and untracked");
+        assertEquals(List.of(id("HEAD")), newer.graphParents());
+        assertEquals(repository, newer.repository());
+        assertEquals(
+            List.of(id("stash@{0}"), id("stash@{1}")),
+            GitLog.refTips(repository)
+                    .stream()
+                    .filter(t -> t.ref().kind() == LogRef.Kind.STASH)
+                    .map(LogRefTip::id)
+                    .toList());
+    }
+
+    @Test
     public void readsTheRefTipsWithTheirCommitsAndUpstreams() throws Exception {
         init();
         git.write("a.txt", "a\n");
