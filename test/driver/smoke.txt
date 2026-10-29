@@ -1,0 +1,13 @@
+# A smoke test of j: bb drive test/driver/smoke.txt README.md
+# Edits README.md (never saved), opens the status, pictures it, leaves.
+expect buffer README.md
+key ctrl END
+type hello
+expect line hello
+exec vcsStatus
+expect mode VcsStatus
+expect text Head:
+shot status
+key Q
+expect mode Markdown
+log after

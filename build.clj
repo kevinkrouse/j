@@ -453,6 +453,55 @@
   {})
 
 
+;; driving J from a script
+
+(def ^:private driver-src-dir "test/driver")
+(def ^:private driver-dir (str build-dir "/driver"))
+
+(defn drive
+  "Run J under Xvfb and drive it from a script of keys, commands, pictures and
+  expectations (see test/driver/org/armedbear/j/GuiDriver.java): bb drive
+  SCRIPT [FILE...]. Options: --out DIR for pictures (build/drive/shots),
+  --home-from DIR copied into the fresh home (build/drive/home), --screen
+  1400x1000x24, --display :N to use a running X server. Fails when an
+  expectation fails or J logs or throws an error."
+  [{:keys [args opts]}]
+  (let [[script & files] args
+        {:keys [out home-from screen display]
+         :or   {out "build/drive/shots" screen "1400x1000x24"}} opts]
+    (when-not script
+      (throw (ex-info "Usage: bb drive SCRIPT [FILE...] [--out DIR] [--home-from DIR] [--screen WxHxD] [--display :N]" {})))
+    (build {})
+    (extensions {})
+    (javac-against! {:src-dirs [driver-src-dir] :class-dir driver-dir :basis (basis)} [(abs-path classes-dir)])
+    (let [[display xvfb] (if display [(str display) nil] (start-xvfb :screen screen))
+          home           (abs-path (str build-dir "/drive/home"))
+          env            (fresh-home-env display home)
+          prefs          (fs/path home ".config" "j" "prefs")]
+      (when home-from
+        (fs/copy-tree home-from home {:replace-existing true}))
+      ;; A picture may land on the half of the blink with no caret.
+      (when-not (fs/exists? prefs)
+        (fs/create-dirs (fs/parent prefs))
+        (spit (str prefs) "blinkCaret=false\n"))
+      (try
+        (let [{:keys [exit]}
+              (apply shell
+                     {:continue true
+                      ;; Not the desktop's Wayland, whatever the session has.
+                      :env      (merge (dissoc (into {} (System/getenv)) "WAYLAND_DISPLAY") env)}
+                     "java" (str "-Duser.home=" home)
+                     "-cp" (join-paths [(abs-path classes-dir) (abs-path driver-dir)])
+                     "org.armedbear.j.GuiDriver" (abs-path script) (abs-path out)
+                     "--force-new-instance" "--no-server" "--no-session" "--no-restore"
+                     (map abs-path files))]
+          (when-not (zero? exit)
+            (throw (ex-info (str "driving J failed: exit " exit) {}))))
+        (finally
+          (when xvfb (babashka.process/destroy-tree xvfb))))))
+  {})
+
+
 ;; theme catalog
 
 (def ^:private theme-catalog-classes (str build-dir "/theme-catalog-classes"))

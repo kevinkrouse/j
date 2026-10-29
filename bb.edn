@@ -31,6 +31,9 @@
                 :requires ([babashka.cli :as cli])
                 :task (build/fuzz-windows
                        (cli/parse-opts *command-line-args* {:coerce {:steps :long :jobs :long}}))}
+  drive      {:doc "Drive J under Xvfb from a script: bb drive SCRIPT [FILE...] --out DIR --home-from DIR"
+              :requires ([babashka.cli :as cli])
+              :task (build/drive (cli/parse-args *command-line-args*))}
   theme-catalog {:doc "Write doc/themes, a catalogue of theme pictures: --themes builtin,Dark --jobs 4"
                  :requires ([babashka.cli :as cli])
                  :task (build/theme-catalog
