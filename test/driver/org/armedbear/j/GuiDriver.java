@@ -149,7 +149,7 @@ public final class GuiDriver {
             case "shotwin" -> shot(out.resolve(rest + ".png"), true);
             case "log" -> System.out.println("LOG " + rest + (rest.isEmpty() ? "" : ": ") + onEdt(GuiDriver::state));
             case "text" -> {
-                final String text = onEdt(() -> Editor.currentEditor().getBuffer().getText());
+                final String text = onEdt(GuiDriver::bufferText);
                 text.lines().limit(200).forEach(l -> System.out.println("TEXT " + l));
             }
             case "expect" -> expect(rest, true);
@@ -184,12 +184,20 @@ public final class GuiDriver {
             case "status" -> Objects.toString(ed.getFrame().getStatusBar().getText(), "");
             case "buffer" -> String.valueOf(ed.getBuffer());
             case "mode" -> ed.getMode().getDisplayName();
-            case "text" -> ed.getBuffer().getText();
+            case "text" -> bufferText();
             case "line" -> ed.getDotLine() == null ? "" : ed.getDotLine().getText();
             case "location" -> ed.getLocationBarTextField() == null ? "" : ed.getLocationBarTextField().getText();
             case "focus" -> name(focus());
             default -> throw new IllegalArgumentException("can't read " + what);
         };
+    }
+
+    // Its lines, not Buffer.getText, which a buffer that redraws itself, as the status does, may leave stale.
+    private static String bufferText() {
+        final StringBuilder sb = new StringBuilder();
+        for (Line l = Editor.currentEditor().getBuffer().getFirstLine(); l != null; l = l.next())
+            sb.append(l.getText()).append('\n');
+        return sb.toString();
     }
 
     private static String state() {
