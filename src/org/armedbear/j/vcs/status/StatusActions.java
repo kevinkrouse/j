@@ -355,11 +355,12 @@ public final class StatusActions {
             return t.repository().backend().name() + " has no index to stage to";
         return switch (op) {
             case STAGE -> section.equals("staged") ? "Already staged"
-                    : section.equals("recent") ? "Nothing to stage here"
+                    : StatusData.isCommits(section) ? "Nothing to stage here"
                     : t instanceof Part && !section.equals("unstaged") ? "Only an unstaged hunk is staged in part"
                     : null;
             case UNSTAGE -> section.equals("staged") ? null : "Not staged";
-            case DISCARD -> section.equals("recent") || section.equals("unmerged") ? "Nothing to discard here" : null;
+            case DISCARD ->
+                    StatusData.isCommits(section) || section.equals("unmerged") ? "Nothing to discard here" : null;
         };
     }
 

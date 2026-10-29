@@ -22,9 +22,11 @@ package org.armedbear.j.vcs.git;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.FileChange;
@@ -94,9 +96,15 @@ final class GitStatusReader {
                 new Section("unstaged", "Unstaged changes", files(repository, unstaged, false, wantsDiff, ignored)));
         if (!staged.isEmpty())
             sections.add(new Section("staged", "Staged changes", files(repository, staged, true, wantsDiff, ignored)));
-        final List<Item> recent = recent(repository, git);
-        if (!recent.isEmpty())
-            sections.add(new Section("recent", "Recent commits", recent));
+        sections.addAll(ranges(repository, git));
+        // Recent ones when none are on this branch alone, as just after
+        // branching, or on the parent itself.
+        final Relation parent = git.parent();
+        if (parent == null || parent.ahead() <= 0) {
+            final List<Item> recent = git.head() == null ? List.of() : commits(repository, null);
+            if (!recent.isEmpty())
+                sections.add(new Section("recent", "Recent commits", recent));
+        }
         return new StatusData(header(repository, git), inProgress(git, unmerged.size()), sections, null);
     }
 
@@ -199,12 +207,53 @@ final class GitStatusReader {
         return r.succeeded() ? DiffParser.parse(r.stdout()) : null;
     }
 
-    private static List<Item> recent(VcsRepository repository, GitSnapshot git) {
+    // The commits on one side of a range and not the other: its section.
+    private record Range(String id, String title, String range, int total) {}
+
+    // The commits between the branch and its upstream, push target and
+    // parent each way, as of the last fetch: a section of each that has
+    // any, and no section before it of the same range.
+    private static List<Section> ranges(VcsRepository repository, GitSnapshot git) {
+        final List<Range> wanted = new ArrayList<>();
+        final Relation up = git.upstream();
+        if (up != null) {
+            wanted.add(new Range("unpulled", "Unpulled from " + up.name(), "HEAD.." + up.name(), up.behind()));
+            wanted.add(new Range("unpushed", "Unpushed to " + up.name(), up.name() + "..HEAD", up.ahead()));
+        }
+        final Relation push = git.push();
+        if (push != null)
+            wanted.add(new Range("unpushed-push", "Unpushed to " + push.name(), push.name() + "..HEAD", push.ahead()));
+        final Relation parent = git.parent();
+        if (parent != null) {
+            wanted.add(
+                new Range("unmerged-parent",
+                        "Unmerged from " + parent.name(),
+                        "HEAD.." + parent.name(),
+                        parent.behind()));
+            wanted.add(new Range("not-in-parent", "Not in " + parent.name(), parent.name() + "..HEAD", parent.ahead()));
+        }
+        final List<Section> sections = new ArrayList<>();
+        final Set<String> seen = new HashSet<>();
+        for (Range w : wanted) {
+            // None, or gone.
+            if (w.total() <= 0 || !seen.add(w.range()))
+                continue;
+            final List<Item> items = commits(repository, w.range());
+            if (!items.isEmpty())
+                sections.add(new Section(w.id(), w.title(), items, Math.max(w.total(), items.size()), w.range()));
+        }
+        return sections;
+    }
+
+    // The newest commits of range, or of HEAD when it is null.
+    private static List<Item> commits(VcsRepository repository, String range) {
+        final List<String> args =
+                new ArrayList<>(List.of("log", "-n", Integer.toString(RECENT), "--format=%h%x1f%s%x1f%D"));
+        if (range != null)
+            args.add(range);
+        args.add("--");
         final List<Item> items = new ArrayList<>();
-        if (git.head() == null)
-            return items;
-        final VcsResult r = GitCli
-                .run(GitCli.read(repository.root(), "log", "-n", Integer.toString(RECENT), "--format=%h%x1f%s%x1f%D"));
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
         if (!r.succeeded())
             return items;
         for (String line : r.out().split("\n")) {

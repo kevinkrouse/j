@@ -76,6 +76,11 @@ public final class LogCommands {
         showFull(editor, LogBuffer.open(scope, startingQuery(editor, LogQuery.ALL, scope)));
     }
 
+    /** The log of repository's commits in range, as "HEAD..origin/main", taking the whole frame. */
+    public static void showRange(Editor editor, VcsRepository repository, String range) {
+        showFull(editor, LogBuffer.open(LogScope.of(repository), LogQuery.ALL.withRevisions(List.of(range))));
+    }
+
     // query narrowed by the filters set in scope's log popup, as editor's buffer keeps them.
     private static LogQuery startingQuery(Editor editor, LogQuery query, LogScope scope) {
         return LogFilters.withArguments(query, Transients.args(editor, LogFilters.openingId(scope)), scope);

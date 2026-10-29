@@ -732,7 +732,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             if (l instanceof StatusLine s
                     && (sections
                             ? s.kind() == Kind.SECTION || s.kind() == Kind.REPOSITORY
-                            : s.isExpandable() || s.kind() == Kind.COMMIT)) {
+                            : s.isExpandable()
+                                    || s.kind() == Kind.COMMIT
+                                    || s.kind() == Kind.MESSAGE && s.key().endsWith(StatusRenderer.MORE))) {
                 editor.moveDotTo(l, 0);
                 return;
             }
@@ -759,6 +761,10 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final FileItem file = line.file();
         if (file == null) {
             editor.status("Nothing to visit here");
+            return;
+        }
+        if (line.kind() == Kind.MESSAGE && line.key().endsWith(StatusRenderer.MORE)) {
+            showMore(editor, line);
             return;
         }
         visit(editor, line.repository(), file, lineNumber(line));
@@ -854,6 +860,19 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             ed.getDisplay().setUpdateFlag(REFRAME);
         }
         ed.updateDisplay();
+    }
+
+    // The log of the commits of line's section.
+    private static void showMore(Editor editor, StatusLine line) {
+        final VcsStatusBuffer b = owner(editor);
+        final StatusData data = b == null ? null : b.getData(line.repository());
+        if (data != null)
+            for (StatusData.Section s : data.sections())
+                if (s.id().equals(line.section()) && s.range() != null) {
+                    LogCommands.showRange(editor, line.repository(), s.range());
+                    return;
+                }
+        editor.status("Nothing to visit here");
     }
 
     private static void showCommit(Editor editor, StatusLine line) {

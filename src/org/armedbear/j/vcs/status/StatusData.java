@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.List;
+import java.util.Set;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.diff.FileDiff;
 
@@ -37,9 +38,28 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
 
     /**
      * @param id stable across refreshes: "untracked", "unstaged", "staged",
-     *     "unmerged", "recent"
+     *     "unmerged", "recent", or one of RANGES
+     * @param total how many it has, of which items are the first
+     * @param range the revisions its commits are, for the log; or null
      */
-    public record Section(String id, String title, List<Item> items) {}
+    public record Section(String id, String title, List<Item> items, int total, String range) {
+        public Section(String id, String title, List<Item> items) {
+            this(id, title, items, items.size(), null);
+        }
+    }
+
+    /**
+     * The sections of commits on one branch and not another: from the
+     * upstream, to it, to the push target, from the parent, and not in it.
+     * Closed to begin with.
+     */
+    public static final Set<String> RANGES =
+            Set.of("unpulled", "unpushed", "unpushed-push", "unmerged-parent", "not-in-parent");
+
+    /** Whether section id's items are commits. */
+    public static boolean isCommits(String id) {
+        return id.equals("recent") || RANGES.contains(id);
+    }
 
     public sealed interface Item permits FileItem, CommitItem {}
 

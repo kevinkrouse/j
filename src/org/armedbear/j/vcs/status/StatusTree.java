@@ -143,7 +143,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
             for (Section s : p.sections()) {
                 final String sk = rk + "|" + s.id();
                 final DefaultMutableTreeNode section =
-                        new DefaultMutableTreeNode(new SectionNode(s.id(), s.title(), s.items().size(), sk));
+                        new DefaultMutableTreeNode(new SectionNode(s.id(), s.title(), s.total(), sk));
                 if (!s.id().equals(RECENT))
                     for (Item i : s.items())
                         if (i instanceof FileItem f)

@@ -350,7 +350,8 @@ public final class VcsStatusBuffer extends ViewBuffer implements FrameView, Diff
         if (b != null)
             return b;
         return switch (kind) {
-            case SECTION -> depth >= 2;
+            // A section of commits between branches only deeper.
+            case SECTION -> depth >= (StatusData.RANGES.contains(key.substring(key.lastIndexOf('|') + 1)) ? 3 : 2);
             case FILE -> depth >= 3;
             case HUNK -> depth != 3; // A file opened by hand shows its hunks.
             default -> true;

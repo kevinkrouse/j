@@ -402,9 +402,11 @@ public class VcsStatusBufferTest {
         return text.subList(0, blank);
     }
 
+    private GitFixture origin;
+
     // A clone of a repository with one commit, on x made from origin/main.
     private void cloned() throws Exception {
-        final GitFixture origin = GitFixture.init(Files.createDirectory(tmp.resolve("origin")));
+        origin = GitFixture.init(Files.createDirectory(tmp.resolve("origin")));
         origin.commitAll("one");
         git = GitFixture.init(Files.createDirectory(tmp.resolve("work")));
         git.git("remote", "add", "origin", origin.root.toString());
@@ -459,6 +461,63 @@ public class VcsStatusBufferTest {
         git.git("fetch", "-q", "-p");
         open();
         assertEquals("Upstream: origin/x  gone", header().get(1));
+    }
+
+    // The sections' titles after the files'.
+    private List<String> sectionTitles() {
+        final List<String> titles = new ArrayList<>();
+        for (Line l = status.getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.kind() == Kind.SECTION)
+                titles.add(s.getText());
+        return titles;
+    }
+
+    @Test
+    public void justAfterBranchingTheRecentCommitsShow() throws Exception {
+        cloned();
+        open();
+        assertEquals(List.of("Recent commits (1)"), sectionTitles());
+    }
+
+    @Test
+    public void theCommitsBetweenTheBranchAndItsOthersEachOnceAndClosed() throws Exception {
+        cloned();
+        git.git("push", "-q", "-u", "origin", "x");
+        git.commitAll("two");
+        origin.commitAll("theirs");
+        git.git("fetch", "-q", "origin");
+        open();
+        // The parent, origin/main from the reflog, isn't the upstream: its
+        // own sections. No recent commits, as some are on x alone.
+        assertEquals(
+            List.of("Unpushed to origin/x (1)", "Unmerged from origin/main (1)", "Not in origin/main (1)"),
+            sectionTitles());
+        assertFalse(line("Not in origin/main (1)").isOpen());
+        onEdt(() -> status.setExpanded(line("Not in origin/main (1)"), true));
+        assertTrue(text().contains("  " + head() + " (HEAD -> x) two"), text().toString());
+    }
+
+    @Test
+    public void aParentThatIsTheUpstreamHasNoSectionsOfItsOwn() throws Exception {
+        cloned();
+        git.commitAll("two");
+        origin.commitAll("theirs");
+        git.git("fetch", "-q", "origin");
+        open();
+        assertEquals(List.of("Unpulled from origin/main (1)", "Unpushed to origin/main (1)"), sectionTitles());
+    }
+
+    @Test
+    public void aSectionShowsTheNewestTenAndHowManyMore() throws Exception {
+        cloned();
+        for (int i = 1; i <= 12; i++)
+            git.commitAll("c" + i);
+        open();
+        onEdt(() -> status.setExpanded(line("Unpushed to origin/main (12)"), true));
+        final List<String> text = text();
+        final int at = text.indexOf("Unpushed to origin/main (12)");
+        assertEquals("  " + head() + " (HEAD -> x) c12", text.get(at + 1));
+        assertEquals("  … 2 more", text.get(at + 11));
     }
 
     @Test

@@ -1604,7 +1604,7 @@ plan with why it is left, before the next phase starts.
      rev-list --left-right --count`. A push target not pushed yet is
      gone, as a gone upstream is (counts of -1).
    - **b. The header.** `Head:`, `Upstream: origin/x ↑2 ↓1` (or `gone`),
-     `Push: origin/x ↑1` when it differs from the upstream, and `Parent:
+     `Push: origin/x ↑1 ↓0` when it differs from the upstream, and `Parent:
      origin/main (upstream)` with the source in parentheses, as the
      design has it. `Push:` is left out when it is the upstream; a gone
      push target says `gone` too, pushed and deleted or never pushed.

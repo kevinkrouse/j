@@ -43,6 +43,9 @@ public final class StatusRenderer {
     /** Before a file, a hunk, a diff line or a commit. */
     static final String INDENT = "  ";
 
+    /** After a section's key, its line saying how many more it has than it shows. */
+    static final String MORE = "|more";
+
     /** A repository and what was read of it; colorIndex is -1 when it is the only one. */
     record Part(VcsRepository repository, StatusData data, int colorIndex) {}
 
@@ -139,7 +142,7 @@ public final class StatusRenderer {
         blank(rk);
         final String sk = rk + "|" + s.id();
         add(
-            new StatusLine(Kind.SECTION, s.title() + " (" + s.items().size() + ")", sk, sk, repository, s.id())
+            new StatusLine(Kind.SECTION, s.title() + " (" + s.total() + ")", sk, sk, repository, s.id())
                     .expandable(true)
                     .open(expanded.test(sk, Kind.SECTION)));
         if (!expanded.test(sk, Kind.SECTION))
@@ -159,6 +162,14 @@ public final class StatusRenderer {
                 }
             }
         }
+        if (s.total() > s.items().size())
+            add(
+                new StatusLine(Kind.MESSAGE,
+                        INDENT + "… " + (s.total() - s.items().size()) + " more",
+                        sk + MORE,
+                        null,
+                        repository,
+                        s.id()));
     }
 
     private void file(VcsRepository repository, String sk, String section, FileItem f) {
