@@ -25,10 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
-import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Finders;
 import org.armedbear.j.LocationBar;
@@ -118,7 +115,12 @@ public final class FetchCommands {
         final Editor at = CommitCommands.statusWindow(editor);
         final VcsRepository r = at == null ? null : repository(at);
         if (r != null)
-            async(() -> remotes(r), remotes -> TransientPopup.open(at, popup(remotes)));
+            Background.then("vcs fetch remotes", () -> remotes(r), remotes -> {
+                if (remotes == null)
+                    at.status("Can't read the remotes: see the log");
+                else
+                    TransientPopup.open(at, popup(remotes));
+            });
     }
 
     public static void vcsFetchPushRemote(Editor editor) {
@@ -140,8 +142,8 @@ public final class FetchCommands {
         final VcsRepository r = repository(editor);
         if (r == null)
             return;
-        async(() -> r.backend().readRemotes(r), remotes -> {
-            if (remotes.isEmpty())
+        Background.then("vcs fetch remotes", () -> r.backend().readRemotes(r), remotes -> {
+            if (remotes == null || remotes.isEmpty())
                 editor.status("There is no remote");
             else
                 Finders.choose(
@@ -158,8 +160,8 @@ public final class FetchCommands {
         final VcsRepository r = repository(editor);
         if (r == null)
             return;
-        async(() -> branches(r), branches -> {
-            if (branches.isEmpty())
+        Background.then("vcs fetch branches", () -> branches(r), branches -> {
+            if (branches == null || branches.isEmpty())
                 editor.status("There is no remote branch");
             else
                 Finders.choose(
@@ -191,7 +193,7 @@ public final class FetchCommands {
         final VcsRepository r = repository(editor);
         if (r == null)
             return;
-        async(() -> which.apply(remotes(r)), remote -> {
+        Background.then("vcs fetch remotes", () -> which.apply(remotes(r)), remote -> {
             if (remote == null)
                 editor.status(none);
             else
@@ -204,7 +206,7 @@ public final class FetchCommands {
         final Set<FetchOption> options = options(editor);
         final String from = remote == null ? "all remotes" : branch == null ? remote : remote + "/" + branch;
         editor.status("Fetching from " + from + "…");
-        async(() -> r.backend().fetch(r, remote, branch, options), result -> {
+        Background.then("vcs fetch", () -> r.backend().fetch(r, remote, branch, options), result -> {
             if (result == null)
                 editor.status(r.backend().name() + " can't fetch");
             else if (!result.succeeded()) {
@@ -226,14 +228,6 @@ public final class FetchCommands {
         if (refs == 0)
             return "Fetched from " + from + ": nothing new";
         return "Fetched from " + from + ": " + refs + (refs == 1 ? " ref" : " refs") + " updated";
-    }
-
-    // work's result, read in the background, given to then on the event thread.
-    private static <T> void async(Supplier<T> work, Consumer<T> then) {
-        Background.start("vcs fetch", () -> {
-            final T t = work.get();
-            SwingUtilities.invokeLater(() -> then.accept(t));
-        });
     }
 
     // The popup's switches, as options.

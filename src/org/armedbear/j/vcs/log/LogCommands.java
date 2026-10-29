@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ChangeMarks;
 import org.armedbear.j.Editor;
@@ -451,18 +450,17 @@ public final class LogCommands {
             editor.status(change.path() + " is not in the working tree");
             return;
         }
-        Background.start("vcs log visit", () -> {
+        Background.then("vcs log visit", () -> {
             final FileDiff since = n > 0 ? r.backend().readDiffToWorkingTree(r, commit.id(), change.path()) : null;
-            final int line = since == null ? n : VcsStatusMode.throughHunks(since.hunks(), n);
-            SwingUtilities.invokeLater(() -> {
-                // Closed meanwhile, as by q: given up.
-                if (host.isDisposed())
-                    return;
-                host.leave(editor.getFrame());
-                final Buffer buffer = Editor.getBuffer(file);
-                if (buffer != null)
-                    VcsStatusMode.showAt(Editor.currentEditor(), buffer, line);
-            });
+            return since == null ? n : VcsStatusMode.throughHunks(since.hunks(), n);
+        }, line -> {
+            // Closed meanwhile, as by q: given up.
+            if (host.isDisposed())
+                return;
+            host.leave(editor.getFrame());
+            final Buffer buffer = Editor.getBuffer(file);
+            if (buffer != null)
+                VcsStatusMode.showAt(Editor.currentEditor(), buffer, line != null ? line : n);
         });
     }
 
@@ -497,19 +495,16 @@ public final class LogCommands {
         final VcsRepository r = host.repositoryOf(commit);
         final String id = commit.id();
         final String path = change.path();
-        Background.start("vcs log revision", () -> {
-            final byte[] text = r.backend().readFileAt(r, id, path);
-            SwingUtilities.invokeLater(() -> {
-                if (host.isDisposed())
-                    return;
-                if (text == null) {
-                    editor.status("Can't read " + path + " at " + id);
-                    return;
-                }
-                host.leave(editor.getFrame());
-                final RevisionBuffer buffer = new RevisionBuffer(path, id, new String(text, StandardCharsets.UTF_8));
-                VcsStatusMode.showAt(Editor.currentEditor(), buffer, n);
-            });
+        Background.then("vcs log revision", () -> r.backend().readFileAt(r, id, path), text -> {
+            if (host.isDisposed())
+                return;
+            if (text == null) {
+                editor.status("Can't read " + path + " at " + id);
+                return;
+            }
+            host.leave(editor.getFrame());
+            final RevisionBuffer buffer = new RevisionBuffer(path, id, new String(text, StandardCharsets.UTF_8));
+            VcsStatusMode.showAt(Editor.currentEditor(), buffer, n);
         });
     }
 }

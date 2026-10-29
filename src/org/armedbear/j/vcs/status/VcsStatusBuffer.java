@@ -766,22 +766,14 @@ public final class VcsStatusBuffer extends ViewBuffer
         }
         final VcsRepository r = line.repository();
         final String hash = line.commit().hash();
-        Background.start("vcs status commit", () -> {
-            List<LogCommit> read;
-            try {
-                read = r.backend().readLog(r, LogQuery.ALL.withRevisions(List.of(hash)), 0, 1);
-            }
-            catch (RuntimeException e) {
-                Log.error(e);
-                read = null;
-            }
-            final LogCommit c = read == null || read.isEmpty() ? null : read.get(0);
-            SwingUtilities.invokeLater(() -> {
-                if (c == null || commits != details || !key.equals(followed))
-                    return;
-                commitsRead.put(key, c);
-                details.show(c);
-            });
+        Background.then("vcs status commit", () -> {
+            final List<LogCommit> read = r.backend().readLog(r, LogQuery.ALL.withRevisions(List.of(hash)), 0, 1);
+            return read == null || read.isEmpty() ? null : read.get(0);
+        }, c -> {
+            if (c == null || commits != details || !key.equals(followed))
+                return;
+            commitsRead.put(key, c);
+            details.show(c);
         });
     }
 

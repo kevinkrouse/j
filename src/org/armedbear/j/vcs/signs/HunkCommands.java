@@ -246,29 +246,26 @@ public final class HunkCommands {
         if (u == null)
             return;
         final Snapshot s = snapshot(editor);
-        Background.start("vcs reset hunk", () -> {
-            final Sides sides = sides(u, s);
-            SwingUtilities.invokeLater(() -> {
-                if (sides == null) {
-                    editor.status("Not in the index");
-                    return;
-                }
-                if (!s.current(editor)) {
-                    editor.status("The buffer changed; try again");
-                    return;
-                }
-                final List<Edit> taken = taken(EditorHunks.edits(sides.index(), sides.now()), s);
-                if (taken.isEmpty()) {
-                    editor.status("No unstaged change here");
-                    return;
-                }
-                editor.setMark(null);
-                final CompoundEdit compound = editor.beginCompoundEdit();
-                for (Edit e : taken)
-                    reset(editor, e, sides.index(), sides.now().lines().size());
-                editor.endCompoundEdit(compound);
-                HunkPreview.close(editor);
-            });
+        Background.then("vcs reset hunk", () -> sides(u, s), sides -> {
+            if (sides == null) {
+                editor.status("Not in the index");
+                return;
+            }
+            if (!s.current(editor)) {
+                editor.status("The buffer changed; try again");
+                return;
+            }
+            final List<Edit> taken = taken(EditorHunks.edits(sides.index(), sides.now()), s);
+            if (taken.isEmpty()) {
+                editor.status("No unstaged change here");
+                return;
+            }
+            editor.setMark(null);
+            final CompoundEdit compound = editor.beginCompoundEdit();
+            for (Edit e : taken)
+                reset(editor, e, sides.index(), sides.now().lines().size());
+            editor.endCompoundEdit(compound);
+            HunkPreview.close(editor);
         });
     }
 
@@ -311,17 +308,14 @@ public final class HunkCommands {
             return;
         }
         final Snapshot s = snapshot(editor);
-        Background.start("vcs preview hunk", () -> {
-            final Sides sides = sides(u, s);
-            SwingUtilities.invokeLater(() -> {
-                // Moved on meanwhile: a later preview's, or none.
-                if (!s.current(editor) || editor.getDotLineNumber() != s.caret())
-                    return;
-                if (sides == null || !preview(editor, sides, s.caret())) {
-                    HunkPreview.close(editor);
-                    editor.status("No change here");
-                }
-            });
+        Background.then("vcs preview hunk", () -> sides(u, s), sides -> {
+            // Moved on meanwhile: a later preview's, or none.
+            if (!s.current(editor) || editor.getDotLineNumber() != s.caret())
+                return;
+            if (sides == null || !preview(editor, sides, s.caret())) {
+                HunkPreview.close(editor);
+                editor.status("No change here");
+            }
         });
     }
 

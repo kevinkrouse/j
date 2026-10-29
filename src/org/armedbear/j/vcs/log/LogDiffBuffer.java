@@ -20,9 +20,7 @@
 
 package org.armedbear.j.vcs.log;
 
-import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Log;
 import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Whitespace;
@@ -69,26 +67,16 @@ final class LogDiffBuffer extends DiffPane<Buffer> {
         }
         final VcsRepository r = details.host().repositoryOf(c);
         final Whitespace ignored = DiffWhitespace.ignored();
-        Background.start("vcs log diff", () -> {
-            FileDiff read;
-            try {
-                read = r.backend().readChangeDiff(r, c.id(), c.firstParent(), ch, ignored);
-            }
-            catch (RuntimeException e) {
-                Log.error(e);
-                read = null;
-            }
-            final FileDiff d = read;
-            SwingUtilities.invokeLater(() -> {
-                if (at != generation || details.host().isDisposed())
-                    return;
-                commit = c;
-                change = ch;
-                final FileItem f = LogFilesBuffer.item(ch);
-                // Keyed by the commit, so another commit's diff of the file starts afresh.
-                show(r, "diff|" + c.id(), null, new FileItem(f.change(), f.letter(), true, d), null);
-                then.run();
-            });
-        });
+        Background
+                .then("vcs log diff", () -> r.backend().readChangeDiff(r, c.id(), c.firstParent(), ch, ignored), d -> {
+                    if (at != generation || details.host().isDisposed())
+                        return;
+                    commit = c;
+                    change = ch;
+                    final FileItem f = LogFilesBuffer.item(ch);
+                    // Keyed by the commit, so another commit's diff of the file starts afresh.
+                    show(r, "diff|" + c.id(), null, new FileItem(f.change(), f.letter(), true, d), null);
+                    then.run();
+                });
     }
 }

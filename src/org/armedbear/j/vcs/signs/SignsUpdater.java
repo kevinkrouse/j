@@ -28,7 +28,6 @@ import javax.swing.Timer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
-import org.armedbear.j.Log;
 import org.armedbear.j.Signs;
 import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
@@ -122,24 +121,16 @@ public final class SignsUpdater implements Buffer.Follower {
             buffer.unlockRead();
         }
         running = true;
-        Background.start("vcs signs", () -> {
-            Signs signs = null;
-            try {
-                final Bases b = bases();
-                if (b.index() != null) {
-                    final Charset cs = buffer.getCharset();
-                    final Side now = Side.ofBuffer(texts, cs, false);
-                    final Side index = Side.of(b.index(), cs);
-                    final Side head = b.head() == null ? null : Side.of(b.head(), cs);
-                    signs = SignsMath.compute(lines, now.keys(), index.keys(), head == null ? null : head.keys());
-                }
-            }
-            catch (RuntimeException e) {
-                Log.error(e);
-            }
-            final Signs result = signs;
-            SwingUtilities.invokeLater(() -> done(result, modCount));
-        });
+        Background.then("vcs signs", () -> {
+            final Bases b = bases();
+            if (b.index() == null)
+                return null;
+            final Charset cs = buffer.getCharset();
+            final Side now = Side.ofBuffer(texts, cs, false);
+            final Side index = Side.of(b.index(), cs);
+            final Side head = b.head() == null ? null : Side.of(b.head(), cs);
+            return SignsMath.compute(lines, now.keys(), index.keys(), head == null ? null : head.keys());
+        }, signs -> done(signs, modCount));
     }
 
     private void done(Signs signs, int modCount) {

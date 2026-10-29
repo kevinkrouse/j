@@ -11,6 +11,9 @@
 
 package org.armedbear.j.util;
 
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Log;
 
 /** Named daemon threads that log what they throw. */
@@ -21,6 +24,25 @@ public final class Background {
         Thread thread = newThread(name, task);
         thread.start();
         return thread;
+    }
+
+    /**
+     * Runs work on a thread named name, then gives what it returns to then
+     * on the event thread: null if it threw, which is logged.
+     */
+    public static <T> void then(String name, Supplier<T> work, Consumer<T> then) {
+        start(name, () -> {
+            T result;
+            try {
+                result = work.get();
+            }
+            catch (RuntimeException e) {
+                Log.error(e);
+                result = null;
+            }
+            final T read = result;
+            SwingUtilities.invokeLater(() -> then.accept(read));
+        });
     }
 
     /** Not started, for callers that set a priority or start it later. */

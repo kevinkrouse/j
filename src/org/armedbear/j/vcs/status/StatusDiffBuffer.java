@@ -21,9 +21,7 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.List;
-import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
-import org.armedbear.j.Log;
 import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Whitespace;
@@ -111,28 +109,20 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
             return;
         final int read = ++generation;
         final Whitespace ignored = DiffWhitespace.ignored();
-        Background.start("vcs status diff", () -> {
-            List<FileDiff> diffs;
-            try {
-                diffs = r.backend().readDiff(r, f.staged(), List.of(f.path()), ignored);
-            }
-            catch (RuntimeException e) {
-                Log.error(e);
-                diffs = null;
-            }
+        Background.then("vcs status diff", () -> {
+            final List<FileDiff> diffs = r.backend().readDiff(r, f.staged(), List.of(f.path()), ignored);
             // Not read: none kept, so that it says so and is read again.
-            final FileDiff d = diffs == null ? null
+            return diffs == null ? null
                     : !diffs.isEmpty() ? diffs.get(0)
                     : ignored != Whitespace.NONE ? FileDiff.ONLY_WHITESPACE
                     : FileDiff.EMPTY;
-            SwingUtilities.invokeLater(() -> {
-                if (read == generation && Editor.getBufferList().contains(this)) {
-                    final FileItem withDiff = new FileItem(f.change(), f.letter(), f.staged(), d);
-                    show(r, key(line), line.section(), withDiff, at);
-                    caughtUp = Math.max(caughtUp, upTo);
-                    getOwner().diffShown(r, line.section(), withDiff, why);
-                }
-            });
+        }, d -> {
+            if (read == generation && Editor.getBufferList().contains(this)) {
+                final FileItem withDiff = new FileItem(f.change(), f.letter(), f.staged(), d);
+                show(r, key(line), line.section(), withDiff, at);
+                caughtUp = Math.max(caughtUp, upTo);
+                getOwner().diffShown(r, line.section(), withDiff, why);
+            }
         });
     }
 }

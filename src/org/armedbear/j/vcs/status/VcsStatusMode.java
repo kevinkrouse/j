@@ -886,19 +886,16 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final VcsRepository repository = line.repository();
         final String hash = line.commit().hash();
         final Whitespace ignored = DiffWhitespace.ignored();
-        Background.start("vcs show", () -> {
-            final byte[] text = repository.backend().readCommit(repository, hash, ignored);
-            SwingUtilities.invokeLater(() -> {
-                if (text == null) {
-                    editor.status("Can't show " + hash);
-                    return;
-                }
-                final DiffOutputBuffer buffer = new DiffOutputBuffer(File.getInstance(repository.root().toString()),
-                        new String(text, StandardCharsets.UTF_8),
-                        repository.backend().id());
-                buffer.setTitle(repository.backend().name() + " show " + hash);
-                editor.show(buffer);
-            });
+        Background.then("vcs show", () -> repository.backend().readCommit(repository, hash, ignored), text -> {
+            if (text == null) {
+                editor.status("Can't show " + hash);
+                return;
+            }
+            final DiffOutputBuffer buffer = new DiffOutputBuffer(File.getInstance(repository.root().toString()),
+                    new String(text, StandardCharsets.UTF_8),
+                    repository.backend().id());
+            buffer.setTitle(repository.backend().name() + " show " + hash);
+            editor.show(buffer);
         });
     }
 }
