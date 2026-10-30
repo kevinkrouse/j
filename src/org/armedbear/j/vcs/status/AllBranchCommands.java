@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.log.LogRef;
@@ -180,11 +181,25 @@ final class AllBranchCommands {
                 Background.then("vcs branch unmerged", () -> {
                     final Map<Context, List<String>> only = new LinkedHashMap<>();
                     for (Context c : cs)
-                        if (locals.apply(c).contains(branch) && !branch.equals(c.current()))
-                            only.put(c, c.repository().backend().readOnlyOn(c.repository(), branch));
+                        if (locals.apply(c).contains(branch) && !branch.equals(c.current())) {
+                            List<String> commits;
+                            try {
+                                commits = c.repository().backend().readOnlyOn(c.repository(), branch);
+                            }
+                            catch (RuntimeException e) {
+                                // Unread: -d, git's check deciding.
+                                Log.error(e);
+                                commits = null;
+                            }
+                            only.put(c, commits);
+                        }
                     return only;
                 }, only -> {
-                    if (only == null || only.isEmpty()) {
+                    if (only == null) {
+                        editor.status("Can't read the branches: see the log");
+                        return;
+                    }
+                    if (only.isEmpty()) {
                         editor.status(branch + " is checked out where it is");
                         return;
                     }

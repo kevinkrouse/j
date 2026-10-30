@@ -28,7 +28,8 @@ public final class Background {
 
     /**
      * Runs work on a thread named name, then gives what it returns to then
-     * on the event thread: null if it threw, which is logged.
+     * on the event thread: null if it threw, an error too, which is logged,
+     * so that then always runs.
      */
     public static <T> void then(String name, Supplier<T> work, Consumer<T> then) {
         start(name, () -> {
@@ -36,7 +37,7 @@ public final class Background {
             try {
                 result = work.get();
             }
-            catch (RuntimeException e) {
+            catch (RuntimeException | Error e) {
                 Log.error(e);
                 result = null;
             }

@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Log;
 import org.armedbear.j.transients.Transients;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.CommandLog;
@@ -59,10 +60,14 @@ final class EachRepository {
     }
 
     /** What one repository did: its result, null if its backend can't; or why it was left alone. */
-    record Done(VcsRepository repository, VcsResult result, String skipped) {
+    record Done(VcsRepository repository, VcsResult result, String skipped, String error) {
+        Done(VcsRepository repository, VcsResult result, String skipped) {
+            this(repository, result, skipped, null);
+        }
+
         /** Run and not done. */
         boolean failed() {
-            return skipped == null && (result == null || !result.succeeded());
+            return skipped == null && (error != null || result == null || !result.succeeded());
         }
     }
 
@@ -106,7 +111,15 @@ final class EachRepository {
             for (int i = 0; i < each.size(); i++) {
                 final int n = i + 1;
                 SwingUtilities.invokeLater(() -> editor.status(doing + ": " + n + " of " + each.size() + "…"));
-                out.add(write.apply(each.get(i)));
+                final T t = each.get(i);
+                try {
+                    out.add(write.apply(t));
+                }
+                catch (RuntimeException e) {
+                    // This one alone: the others' outcomes are kept.
+                    Log.error(e);
+                    out.add(new Done(repository.apply(t), null, null, "see the log"));
+                }
             }
             return out;
         }, done -> {
@@ -138,6 +151,8 @@ final class EachRepository {
             final String name = d.repository().name();
             if (d.skipped() != null)
                 skipped.add(name + " (" + d.skipped() + ")");
+            else if (d.error() != null)
+                failed.add(name + ": " + d.error());
             else if (d.result() == null)
                 failed.add(name + ": " + d.repository().backend().name() + " can't");
             else if (d.result().succeeded())

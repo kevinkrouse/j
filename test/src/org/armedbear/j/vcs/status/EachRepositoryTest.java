@@ -40,6 +40,7 @@ import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transients;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.junit.jupiter.api.AfterEach;
@@ -263,6 +264,22 @@ public class EachRepositoryTest {
         assertTrue(fs.get(1).git("stash", "list").contains("wip"), fs.get(1).git("stash", "list"));
         assertEquals("1", fs.get(0).git("rev-list", "--walk-reflogs", "--count", "refs/stash").strip(), "x's once");
         until(() -> Transients.args(h.editor(), StashCommands.ID).get("--message=") == null);
+    }
+
+    @Test
+    public void oneThatThrowsFailsAloneTheOthersOutcomesKept() throws Exception {
+        three();
+        open();
+        final List<List<EachRepository.Done>> after = new ArrayList<>();
+        onEdt(() -> EachRepository.write(h.editor(), rs, r -> r, "Trying", "Tried", r -> {
+            if (r == rs.get(1))
+                throw new IllegalStateException("y's");
+            return new EachRepository.Done(r, r.backend().stash(r, null, EnumSet.noneOf(StashOption.class)), null);
+        }, after::add));
+        until(() -> !after.isEmpty());
+        assertEquals("Tried in x, z; failed in y: see the log", h.status());
+        assertTrue(after.get(0).get(1).failed());
+        until(() -> !status.isWriting()); // Its writing ended, with the status read again.
     }
 
     @Test
