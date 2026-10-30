@@ -115,6 +115,9 @@ public class BranchCommandsTest {
                 repo().backend().readRefTips(repo()));
     }
 
+    // Where run, or statusOf, last ran.
+    private EditorHarness ran;
+
     // Runs command with the ref at, each list answered with pick.
     private void run(BiConsumer<Editor, String> command, String at, String pick) throws Exception {
         BranchCommands.choose = (editor, q, history, names, chosen) -> {
@@ -123,6 +126,7 @@ public class BranchCommandsTest {
             chosen.accept(pick);
         };
         final EditorHarness h = EditorHarness.create();
+        ran = h;
         onEdt(() -> command.accept(h.editor(), (at == null ? "-" : at) + " " + git.root));
     }
 
@@ -271,7 +275,9 @@ public class BranchCommandsTest {
         assertEquals(List.of("b", "a"), offered.get(0), "the ref at the caret first, not the one checked out");
         assertEquals("Delete branch b?", asked.get(0));
         assertTrue(asked.get(1).contains(" on b"), asked.get(1));
-        Thread.sleep(200);
+        // A delete starts as the answer is given, saying so: none did.
+        onEdt(() -> {});
+        assertFalse(ran.status().startsWith("Deleting"), ran.status());
         assertTrue(has("refs/heads/b"), "kept: the second was no");
         // a's commits are main's: asked once, and deleted.
         asked.clear();
@@ -392,6 +398,7 @@ public class BranchCommandsTest {
     // An editor on a status of them, with -a on.
     private Editor statusOf(List<GitFixture> fs) throws Exception {
         final EditorHarness h = EditorHarness.create();
+        ran = h;
         final List<VcsRepository> rs = new ArrayList<>();
         for (GitFixture f : fs)
             rs.add(Repositories.forDirectory(f.root));
@@ -415,8 +422,11 @@ public class BranchCommandsTest {
             chosen.accept("feature (2 of 3)");
         };
         onEdt(() -> BranchCommands.vcsBranchCheckout(editor, null));
-        until(() -> branchOf(fs.get(0)).equals("feature"));
-        Thread.sleep(300);
+        until(() -> ran.status().startsWith("Checked out feature in"));
+        assertTrue(
+            ran.status().startsWith("Checked out feature in x; not in z (no feature); failed in y: "),
+            ran.status());
+        assertEquals("feature", branchOf(fs.get(0)));
         assertEquals(List.of("feature (2 of 3)"), offered.get(0), "main is checked out in each");
         assertEquals("main", branchOf(fs.get(1)), "the change in the way: left as it was");
         assertEquals("main", branchOf(fs.get(2)));
