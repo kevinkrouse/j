@@ -216,6 +216,14 @@ public class EachRepositoryTest {
             () -> fs.subList(0, 2)
                     .stream()
                     .allMatch(f -> f.git("log", "-1", "--format=%s", "origin/main").strip().equals("newer")));
+        until(() -> h.status().startsWith("Fetched"));
+        assertEquals("Fetched in x, y; not in z (no remote)", h.status());
+        // All remotes: git's --all succeeds with none, but z is said to have none.
+        until(() -> !status.isWriting());
+        onEdt(() -> h.editor().status(""));
+        onEdt(() -> FetchCommands.vcsFetchAll(h.editor()));
+        until(() -> h.status().startsWith("Fetched"));
+        assertEquals("Fetched in x, y; not in z (no remote)", h.status());
     }
 
     @Test

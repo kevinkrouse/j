@@ -163,7 +163,7 @@ public final class FetchCommands {
     }
 
     public static void vcsFetchAll(Editor editor) {
-        if (fetchEach(editor, "all its remotes", null, null))
+        if (fetchEach(editor, "all its remotes", null, "no remote"))
             return;
         final VcsRepository r = VcsStatusMode.repositoryAt(editor);
         if (r != null)
@@ -179,7 +179,11 @@ public final class FetchCommands {
             return false;
         final Set<FetchOption> options = options(editor);
         EachRepository.write(editor, rs, r -> r, "Fetching from " + from, "Fetched", r -> {
-            final String remote = which == null ? null : which.apply(remotes(r));
+            final Remotes remotes = remotes(r);
+            // git fetch --all with none succeeds, fetching nothing.
+            if (remotes.all().isEmpty())
+                return new EachRepository.Done(r, null, "no remote");
+            final String remote = which == null ? null : which.apply(remotes);
             if (which != null && remote == null)
                 return new EachRepository.Done(r, null, none);
             return new EachRepository.Done(r, r.backend().fetch(r, remote, null, options), null);
