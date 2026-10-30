@@ -107,7 +107,8 @@ final class GitRelations {
                 refs.putAll(refs(root, new LinkedHashSet<>(more)));
             }
             final String ref = resolve(name, refs);
-            if (ref == null || ref.equals(HEADS + branch))
+            // Not the branch, nor where it pushes: its own copy, as main's origin/main.
+            if (ref == null || ref.equals(HEADS + branch) || push != null && push.name().equals(shortName(ref)))
                 continue;
             return s.with(push, parent(root, shortName(ref), ref, c.source(), upstream, push));
         }

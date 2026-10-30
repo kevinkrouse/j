@@ -177,6 +177,14 @@ public class GitRelationsTest {
     }
 
     @Test
+    public void mainInACloneIsNotItsOwnParentThroughOriginsDefault() throws IOException {
+        cloned();
+        f.commitAll("unpushed");
+        assertEquals("origin/main", snapshot().push().name());
+        assertNull(parent(), "origin/main is where main pushes");
+    }
+
+    @Test
     public void aRecordOfABranchThereIsNotIsPassedOver() throws IOException {
         cloned();
         f.git("switch", "-q", "-c", "x", "main");
