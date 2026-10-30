@@ -1690,7 +1690,7 @@ plan with why it is left, before the next phase starts.
      says so, and the status shows the conflicts (phase 9 resolves them).
      Writes go through `VcsBackend` (`stash`, `stashApply`, `stashDrop`),
      git's in `GitWrites`, and `Capability.STASH` gates the section and
-     the popup. Undo-like safety: a dropped stash's hash goes in the
+     the popup. `s` before git 2.35 fails saying so, without running git. Undo-like safety: a dropped stash's hash goes in the
      command log and the status bar, so `git stash apply <hash>` can bring
      it back. Built as: a `StashItem` (name, hash, subject, files) whose
      line is a commit's, so the diff beside follows it as it follows a
@@ -1845,7 +1845,8 @@ plan with why it is left, before the next phase starts.
      order; each section's range and its leaving out, Recent commits only
      without "Not in <parent>"; a gone upstream; a detached HEAD; an
      unborn branch; stash save, apply, pop with a conflict, drop, and show,
-     with git versions that lack `--staged` and `--include-untracked`;
+     (not on git versions that lack `--staged` and `--include-untracked`,
+     as the tests run the git installed);
      the refs tree's actions against a real repository, a delete refused
      for unmerged commits included.
    - **Decided:** `f` fetches from a popup; `x` on a stash drops it after

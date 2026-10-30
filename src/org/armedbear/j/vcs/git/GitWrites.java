@@ -108,8 +108,17 @@ final class GitWrites {
             args.add("--staged");
         if (message != null)
             args.addAll(List.of("-m", message));
+        // An older git's usage text would be all it said.
+        if (options.contains(StashOption.STAGED) && !GitCli.versionAtLeast(STASH_STAGED))
+            return new VcsResult(GitCli.write(repository.root(), null, args.toArray(new String[0])),
+                    1,
+                    new byte[0],
+                    "fatal: git " + GitCli.versionString() + " can't stash what is staged alone; 2.35 can",
+                    0);
         return run(repository, args);
     }
+
+    private static final int[] STASH_STAGED = { 2, 35 };
 
     static VcsResult stashApply(VcsRepository repository, String name, String id, boolean pop) {
         // Applied by its hash, the one shown whatever name it has now; pop
