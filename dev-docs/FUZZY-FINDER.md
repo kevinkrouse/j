@@ -1,8 +1,8 @@
 # Fuzzy finder: plan
 
-Ctrl P finds a file in the project, Ctrl Shift P finds a command, both by
-fuzzy matching in the location bar. Ctrl O finds files under the current
-buffer's directory, then the project, and still opens typed paths and URLs.
+Ctrl P and Ctrl O find a file, Ctrl Shift P finds a command, both by fuzzy
+matching in the location bar. The file finder also lists a typed path's
+directory and opens typed paths and URLs.
 User docs: `doc/navigation.html`.
 
 ## What others do
@@ -45,9 +45,10 @@ key for the other window, `:line`, and key binding plus summary on commands.
 **Matching** (`util/FuzzyMatcher`). fzf's constants and scoring, by dynamic
 programming over each term (greedy past 1024 characters or 64K cells), plus a
 bonus per character in a path's last component so names beat directories.
-Smart case per term. `rank()` keeps a bounded heap and, for lists of 20,000 or
-more, ranks chunks in parallel: about 15 ms for 100,000 paths. An item can add
-a boost (open buffers, recent files).
+Smart case per term, by its part after the last path separator. `rank()` keeps
+a bounded heap and, for lists of 20,000 or more, ranks chunks in parallel:
+about 15 ms for 100,000 paths. An item can add a boost (open buffers, recent
+files).
 
 **Project root** (`ProjectRoot`). The `projectRoot` preference (absolute);
 the outermost `.j-project` directory, which will also hold project settings;
@@ -77,8 +78,21 @@ handler the location bar has replaced it. `FinderCellRenderer` draws one line:
 icon, label with matched characters in bold, dimmed detail and note (cut short
 first), key binding at the right.
 
-**Files** (`FindFileTextFieldHandler`, Ctrl P). Open buffers, recent files
-under the root, then the project's files. Status bar: root name and count.
+**Files** (`FindFileTextFieldHandler`: Ctrl P, Ctrl O, and the location
+bar's default handler). An empty field lists the open buffers and recent
+files under the root. A name matches those and the project's files, the
+ones under the buffer's directory boosted; with them, the entries of the
+directory a relative head names that the project's list leaves out (outside
+a project, or what it skips, as `build/`), each matched as its whole path,
+head and name, so they rank beside the project's. A path starting with
+`./`, `../` or `~`, or an absolute one, lists that directory alone, itself
+first; Tab fills in an entry and Enter goes into a directory. No match, a
+URL, an alias, an `-e` encoding, or Shift Enter opens what was typed with
+`OpenFileTextFieldHandler.enter()`: absolute paths, the source path, new
+files. In a remote buffer, Ctrl O gives the location bar's old completion.
+Ctrl Shift O's dialog keeps the old prefix completion, which also falls
+back to fuzzy matches of the directory's entries. Status bar: root name and
+count.
 
 **Actions** (`ActionTextFieldHandler`, Ctrl Shift P). Every command, matched
 on its humanised name, its name and its summary. Summaries are the first
@@ -90,19 +104,8 @@ for the commands that have them, and related ones. In vim mode a command's
 vim keys (`VimKeyMap.keysFor`, the first normal mode row still in effect)
 come before j's.
 
-**Ctrl O** (`OpenFileFinderTextFieldHandler`, the location bar's default
-handler). A name matches the files under the buffer's directory, taken from
-the project's list, or the directory's own entries in the home directory; if
-none match, `fallbackCandidates()` gives the project-wide list. A path (a
-separator, or a leading `~`) lists that directory, itself first; Tab fills
-in an entry and Enter goes into a directory. No match, a URL, an alias, an
-`-e` encoding, or Shift Enter opens what was typed with
-`OpenFileTextFieldHandler.enter()`: absolute paths, the source path, new
-files. Ctrl Shift O's dialog keeps the old prefix completion, which also
-falls back to fuzzy matches of the directory's entries.
-
 **Icons.** `FileIcons` picks an icon by file name; the buffer list, the
-finders and Ctrl O's list share it.
+finders share it.
 
 **Keys.** Ctrl P was `print` and, in XML mode, `xmlParseBuffer`; Ctrl Shift P
 was `xmlValidateBuffer`. Those are unbound now. Shell, Lisp shell and checkin
@@ -113,4 +116,4 @@ modes keep Ctrl P for their history.
 - Symbols in the project (`@` in VS Code and Sublime), from tag files.
 - Preview of the selected file.
 - `.j-project` settings, which `ProjectRoot` already finds.
-- Fuzzy search of the source path from Ctrl O.
+- Fuzzy search of the source path from the file finder.

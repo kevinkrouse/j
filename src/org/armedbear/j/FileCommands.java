@@ -24,6 +24,7 @@ package org.armedbear.j;
 import static org.armedbear.j.Constants.*;
 
 import java.awt.AWTEvent;
+import java.awt.MenuItem;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
@@ -339,24 +340,28 @@ public final class FileCommands {
         Editor.getTagFileManager().setEnabled(true);
     }
 
+    /**
+     * The file finder, as findFileInProject; in a remote buffer, the
+     * location bar, which completes its names.
+     */
     public static void openFile(Editor editor) {
-        // The location bar may still be holding another prompt's handler.
-        LocationBar locationBar = editor.getPromptLocationBar();
-        TextFieldHandler handler = locationBar == null ? null : locationBar.getTextField().getHandler();
-        if (handler instanceof FinderTextFieldHandler && !(handler instanceof OpenFileFinderTextFieldHandler)) {
-            locationBar.update();
-            // The field may have the focus already, and not gain it.
-            if (locationBar.getTextField().getHandler() instanceof OpenFileFinderTextFieldHandler finder)
-                SwingUtilities.invokeLater(finder::start);
+        openFile(editor, "");
+    }
+
+    /** The same, starting from query, which the location bar doesn't take. */
+    static void openFile(Editor editor, String query) {
+        final File dir = editor.getBuffer() == null ? null : editor.getBuffer().getCompletionDirectory();
+        if (dir == null || !dir.isRemote()) {
+            ProjectCommands.findFileInProject(editor, query);
+            return;
         }
-        AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e != null && e.getSource() instanceof MenuItem) {
-            Runnable r = () -> {
-                editor.setFocusToTextField();
-            };
-            SwingUtilities.invokeLater(r);
-        } else
-            editor.setFocusToTextField();
+        final LocationBar locationBar = editor.getPromptLocationBar();
+        if (locationBar != null)
+            locationBar.update();
+        // Again once a menu has closed, which takes the focus back.
+        editor.setFocusToTextField();
+        if (editor.getDispatcher().getLastEvent() instanceof AWTEvent e && e.getSource() instanceof MenuItem)
+            SwingUtilities.invokeLater(editor::setFocusToTextField);
     }
 
     /**
@@ -409,10 +414,7 @@ public final class FileCommands {
         if (ed == null)
             return;
         if (ed.getLocationBar() != null) {
-            Runnable r = () -> {
-                editor.getFrame().setFocus(ed.getLocationBar().getTextField());
-            };
-            SwingUtilities.invokeLater(r);
+            SwingUtilities.invokeLater(() -> openFile(ed));
             Editor.setCurrentEditor(ed);
             if (alreadySplit) {
                 // Current editor has changed.

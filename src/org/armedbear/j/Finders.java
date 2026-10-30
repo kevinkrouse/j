@@ -45,7 +45,7 @@ public final class Finders {
         Map.entry("findFileInProject", ProjectCommands::findFileInProject),
         Map.entry("findAction", ProjectCommands::findAction),
         Map.entry("findTag", Finders::findTag),
-        Map.entry("openFile", Finders::openFile),
+        Map.entry("openFile", FileCommands::openFile),
         Map.entry("recentFiles", Finders::recentFiles),
         Map.entry("switchBuffer", Finders::switchBuffer),
         Map.entry("help", Finders::help),
@@ -57,6 +57,15 @@ public final class Finders {
     /** Whether command opens a finder. */
     public static boolean isFinder(String command) {
         return FINDERS.containsKey(command);
+    }
+
+    /** Whether commands a and b open the same finder: openFile is findFileInProject's but remotely. */
+    static boolean same(String a, String b) {
+        return b != null && finder(a).equals(finder(b));
+    }
+
+    private static String finder(String command) {
+        return command.equals("openFile") ? "findFileInProject" : command;
     }
 
     /** Opens the finder command names, starting from query. */
@@ -96,19 +105,6 @@ public final class Finders {
                 new FindTagFinderTextFieldHandler(editor, textField),
                 "findTag.tag",
                 query);
-    }
-
-    static void openFile(Editor editor, String query) {
-        LocationBar locationBar = editor.getPromptLocationBar();
-        if (locationBar == null)
-            return;
-        locationBar.update();
-        HistoryTextField textField = locationBar.getTextField();
-        textField.setText(query);
-        textField.setCaretPosition(query.length());
-        editor.setFocusToTextField();
-        if (textField.getHandler() instanceof FinderTextFieldHandler finder)
-            SwingUtilities.invokeLater(finder::start);
     }
 
     // ----------------------------------------------------------- recent files

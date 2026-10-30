@@ -25,19 +25,26 @@ history.
 <h2>Files</h2>
 <ul>
 <li><b>Ctrl P</b> (<a href="commands.html#findFileInProject">findFileInProject</a>)
-finds a file in the current <a href="#projects">project</a>, its open buffers
-or its recent files. Type a few characters of the name, in order, such as
-<code>ofth</code> for <code>OpenFileTextFieldHandler.java</code>; words
-separated by spaces match in any order. Enter opens the selected file, Ctrl
-Enter opens it in the other window, and <code>name:N</code> goes to line N.
-Ctrl Shift P switches to finding a command, and back, keeping what you typed.
-
-<li><b>Ctrl O</b> (<a href="commands.html#openFile">openFile</a>) finds a
-file under the current buffer's directory, the same way, and in the project
-if nothing there matches. A path lists that directory: Tab fills in the
-selected entry, and Tab again the next; a directory filled in lists its own
-entries, which Tab goes on through. Enter goes into a directory. A URL, or Shift Enter, opens
-exactly what you typed.
+and <b>Ctrl O</b> (<a href="commands.html#openFile">openFile</a>) find a
+file. With nothing typed, the list is the open buffers and recent files. Type
+a few characters of the name, in order, such as <code>ofth</code> for
+<code>OpenFileTextFieldHandler.java</code>; words separated by spaces match in
+any order. The open buffers, the recent files and the current
+<a href="#projects">project</a>'s files match, those under the current
+buffer's directory ahead of the rest; outside a project, so do that
+directory's own files. Enter opens the selected file, Ctrl Enter opens it in
+the other window, and <code>name:N</code> goes to line N. Ctrl Shift P
+switches to finding a command, and back, keeping what you typed.
+<p>
+A path relative to the current buffer's directory, such as <code>src/</code>,
+lists that directory's entries among the matches; one starting with
+<code>./</code>, <code>../</code> or <code>~</code>, or an absolute one,
+lists them alone. Tab
+fills in the selected entry, and Tab again the next; a directory filled in
+lists its own entries, which Tab goes on through. Enter goes into a
+directory. A name of an existing file or directory, such as <code>.</code>,
+opens as named; so does a URL, and Shift Enter opens exactly what you
+typed.
 <a href="commands.html#openFileInOtherWindow">openFileInOtherWindow</a> and
 Ctrl Shift O (<a href="commands.html#openFileInOtherFrame">openFileInOtherFrame</a>)
 open in another window or frame.
@@ -176,7 +183,7 @@ changes you have made: see <a href="changes.html">Change Marks</a>.
 In vim edit mode, outside insert mode, vim's key map is asked first. It takes
 every plain character and a few chords: Ctrl O and Ctrl I (the jump list),
 Ctrl F and Ctrl B (paging), Ctrl ^, Ctrl R, Ctrl V, Ctrl A and Ctrl X. So
-Ctrl O doesn't open the location bar and Ctrl F doesn't find; every other key
+Ctrl O doesn't find a file and Ctrl F doesn't find text; every other key
 above, Ctrl P and Ctrl Shift P among them, works as it does without vim. Any
 of j's commands also runs as an ex command, as in
 <b>:findFileInProject</b> or <b>:openFile</b>. As you type a name after

@@ -192,7 +192,7 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         File dir = buffer == null ? null : buffer.getCompletionDirectory();
         if (dir != null && dir.isRemote())
             return new OpenFileTextFieldHandler(editor, textField);
-        return new OpenFileFinderTextFieldHandler(editor, textField);
+        return new FindFileTextFieldHandler(editor, textField);
     }
 
     public final HistoryTextField getTextField() {

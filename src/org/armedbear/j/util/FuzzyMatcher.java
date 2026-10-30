@@ -63,8 +63,11 @@ public final class FuzzyMatcher {
         private Query(String[] terms) {
             this.terms = terms;
             caseSensitive = new boolean[terms.length];
+            // Smart case by the part after a path's last separator: a capital
+            // in "/Users/kk/" doesn't make "foo" miss Foo.java.
             for (int i = 0; i < terms.length; i++) {
                 String t = terms[i];
+                t = t.substring(Math.max(t.lastIndexOf('/'), t.lastIndexOf('\\')) + 1);
                 caseSensitive[i] = !t.equals(t.toLowerCase(Locale.ROOT));
             }
         }

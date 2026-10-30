@@ -510,7 +510,7 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             mapping = KeyMap.getGlobalKeyMap().lookup(e.getKeyChar(), e.getKeyCode(), modifiers);
         if (mapping != null && mapping.getCommand() instanceof String command && Finders.isFinder(command)) {
             String target = command;
-            if (target.equals(command()))
+            if (Finders.same(target, command()))
                 target = target.equals("findAction") ? "findFileInProject" : null;
             if (target != null) {
                 e.consume();

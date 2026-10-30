@@ -95,6 +95,12 @@ public class FuzzyMatcherTest {
     }
 
     @Test
+    public void smartCaseGoesByTheLastPathSegment() {
+        assertNotNull(FuzzyMatcher.match("/Users/kk/src/Foo.java", Query.parse("/Users/kk/src/foo")));
+        assertNull(FuzzyMatcher.match("/Users/kk/src/foo.java", Query.parse("/users/kk/src/Foo")));
+    }
+
+    @Test
     public void termsMatchInAnyOrder() {
         assertEquals(List.of("KeyMap.java"), rank("java key", "KeyMap.java", "KeyMap.txt", "Other.java"));
         Match m = FuzzyMatcher.match("KeyMap.java", Query.parse("java key"));
