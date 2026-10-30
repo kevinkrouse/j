@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -164,6 +165,27 @@ public final class BranchCommands {
                 if (!locals.contains(bare(remote)))
                     out.add(remote);
             return out;
+        }
+
+        /** The local branches, and the remotes' that have none, by their bare names, as l with -a lists them. */
+        List<String> localNames() {
+            final Set<String> out = new TreeSet<>(names(LogRef.Kind.BRANCH));
+            for (String remote : names(LogRef.Kind.REMOTE))
+                out.add(bare(remote));
+            return List.copyOf(out);
+        }
+
+        /** The local branch name, else a remote's of that bare name, origin's first; null for none. */
+        String local(String name) {
+            if (names(LogRef.Kind.BRANCH).contains(name))
+                return name;
+            final List<String> remotes = names(LogRef.Kind.REMOTE);
+            if (remotes.contains("origin/" + name))
+                return "origin/" + name;
+            for (String remote : remotes)
+                if (bare(remote).equals(name))
+                    return remote;
+            return null;
         }
 
         /** What checking out name checks out: a remote's branch with a local one of its name, that one. */

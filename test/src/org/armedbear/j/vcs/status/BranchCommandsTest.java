@@ -423,6 +423,27 @@ public class BranchCommandsTest {
     }
 
     @Test
+    public void withAllALocalBranchIsListedByNameAndCheckedOutWhereItIsARemotesAlone() throws Exception {
+        final List<GitFixture> fs = three();
+        fs.get(1).git("checkout", "-q", "--", "f.txt");
+        // z has x's feature as origin/feature alone.
+        fs.get(2).git("remote", "add", "origin", fs.get(0).root.toString());
+        fs.get(2).git("fetch", "-q", "origin");
+        final Editor editor = statusOf(fs);
+        BranchCommands.choose = (e, q, history, names, chosen) -> {
+            offered.add(names);
+            chosen.accept("feature (3)");
+        };
+        onEdt(() -> BranchCommands.vcsBranchCheckoutLocal(editor, null));
+        until(() -> fs.stream().allMatch(f -> branchOf(f).equals("feature")));
+        assertTrue(offered.get(0).contains("feature (3)"), offered.toString());
+        assertEquals(
+            "origin/feature",
+            fs.get(2).git("rev-parse", "--abbrev-ref", "feature@{upstream}").strip(),
+            "z's tracking origin's");
+    }
+
+    @Test
     public void withAllABranchIsMadeInEachFromHeadWhereTheStartIsMissing() throws Exception {
         final List<GitFixture> fs = three();
         final Editor editor = statusOf(fs);

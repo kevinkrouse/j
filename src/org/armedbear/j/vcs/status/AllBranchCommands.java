@@ -56,7 +56,8 @@ final class AllBranchCommands {
         final List<VcsRepository> rs = repositories(editor);
         if (rs == null)
             return false;
-        final Function<Context, List<String>> names = locals ? Context::locals : Context::refs;
+        // l's by bare name, local in one repository, a remote's in another.
+        final Function<Context, List<String>> names = locals ? Context::localNames : Context::refs;
         contexts(
             editor,
             rs,
@@ -78,7 +79,7 @@ final class AllBranchCommands {
                                 return new EachRepository.Done(c.repository(), null, "no " + name);
                             if (name.equals(c.current()))
                                 return new EachRepository.Done(c.repository(), null, "checked out");
-                            final LogRef to = c.checkout(name);
+                            final LogRef to = c.checkout(locals ? c.local(name) : name);
                             return new EachRepository.Done(c.repository(),
                                     c.repository().backend().switchTo(c.repository(), to),
                                     null);
