@@ -2176,3 +2176,43 @@ Left open:
 - The VCS menu is registered (`AbstractMode.registerMenu`) by core itself.
 - The popup shows Enter, Tab and Ctrl R as `<cr>`, `<Tab>` and `<C-r>` in
   both edit modes, as it does `<BS>`.
+
+### Phase 7 review
+
+Fixed:
+
+- A status commit's refs are read typed, `--decorate=full` as the log's
+  are, and the ref at the caret is chosen by kind: git lists tags and
+  remotes' branches before local ones, so `origin/main` had come first.
+- A branch's parent is never where it pushes, so `main` in a clone is not
+  its own parent through `origin/HEAD`, which had hidden Recent commits
+  whenever it was ahead.
+- A popup opened from a source, or a prefix's, is made again as a switch
+  or option changes (`TransientPopup.open(Editor, Supplier)`), so fetch,
+  merge, stash and commit say what `-a` or `--all` now does.
+- With `-a`, the start, checkout and merge lists take a name from the
+  list alone; a typed revision, one repository's, had become HEAD in each.
+- A parent on a remote but origin is recorded whole, `upstream/main`,
+  which reads back as that remote's.
+- `l` with `-a` lists branches by bare name, checked out local where one
+  is and from a remote's, origin's first, where none is.
+- Fetch with `-a` leaves a repository with no remote, said; `git fetch
+  --all` succeeds there.
+- Stash with `-a` decides on the event thread which repositories have
+  something to stash.
+- With `-a`, a repository that throws fails alone, its outcome said; the
+  delete's failed read says so; `Background.then` runs its callback after
+  an error too, so a status's writing always ends.
+- The branch popup's tests wait on what is said, not a sleep; `-a`'s
+  reports are checked.
+
+Left open:
+
+- A section's range uses short names (`HEAD..main`) while the parent's
+  counts use the full ref; with a tag and a branch of one name, git takes
+  the tag, so the section and its count could disagree. Not reproduced.
+- Every snapshot reads the branch's relations, 3 to 6 more git processes
+  (config, for-each-ref, the reflog, rev-list), and the status adds up to
+  five `git log` runs and `stash list` a repository a refresh; the change
+  marks pay for the relations on each save and focus return. Read them
+  lazily in the status reader, or cache them by HEAD and refs, in phase 8.
