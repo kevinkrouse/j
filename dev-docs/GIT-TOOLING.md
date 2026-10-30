@@ -562,7 +562,7 @@ lines on one side to its lines on the other.
   - Hover lists every author with their line count and last date. A click
     opens the blame in the gutter and scrolls the method into view, with its
     lines' commits bright and the rest dimmed until the caret leaves it.
-  - `vcsCodeAuthors`, on by default; files over `vcsCodeAuthorsMaxLines`
+  - `vcsCodeAuthors`, off by default; files over `vcsCodeAuthorsMaxLines`
     (10,000) get none, since blame on them is slow.
   - It is a virtual line `ABOVE` the method's first line
     (`VIRTUAL-TEXT.md`), so it needs that phase. Other code vision (usages,
@@ -1924,7 +1924,8 @@ plan with why it is left, before the next phase starts.
      in the background once per buffer shown, so a file never blamed
      pays one `git blame` when it is first looked at; files over
      `vcsBlameMaxLines` (10,000) get none.
-   - **g. Authors of a method.** `vcsCodeAuthors`, on by default: an
+   - **g. Authors of a method.** `vcsCodeAuthors`, off by default (a
+     line over every method is noisy): an
      `ABOVE` line (`vcs.blame.authors`) over each method and class the
      mode's tags give, its end from `Mode.getFoldRange`, `kkrouse +4`,
      with `*` when it has uncommitted lines (counted for `user.name`).
@@ -1937,10 +1938,9 @@ plan with why it is left, before the next phase starts.
      `vcsBlame`; vim `<leader>gb`. Checked in the app under Xvfb: a file
      of this repository blamed, a hover, a click into the log, the parent.
      The adversarial review closes the phase.
-   - **To decide:** whether (f) and (g) are on by default, as the design
-     has them, given a `git blame` per file shown (on large files and
-     repositories, seconds of CPU); whether the column's age ranks the
-     buffer's commits or, as IntelliJ does, those in view.
+   - **Decided:** the line's blame on and the authors off by default;
+     the column's age ranks the buffer's commits, so a line's shade stays
+     as it scrolls.
 9. **Conflicts.** Markers, inline actions, navigation, marking resolved,
    and finishing.
 10. **Changelists.** The store, ranges as markers, re-anchoring, the status
