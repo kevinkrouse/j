@@ -1590,7 +1590,7 @@ plan with why it is left, before the next phase starts.
      sections and files, what the caret is on selected (`StatusTree`).
      The command log leaves out the `-c` options git always runs with,
      listing them once (`VcsCommand.options`).
-7. **Next. Branches relative to others, and stash.** The parent branch, the
+7. **Done. Branches relative to others, and stash.** The parent branch, the
    unmerged, unpulled and unpushed sections, the stash section and popup,
    stashes in the log and the refs tree, the status's files in the
    sidebar by directory, actions on the refs
@@ -1853,8 +1853,94 @@ plan with why it is left, before the next phase starts.
    - **Decided:** `f` fetches from a popup; `x` on a stash drops it after
      asking; `b` is the branch popup; "Not in <parent>" shows, collapsed,
      in place of Recent commits when it has any.
-8. **Blame.** Streaming blame, aging, hovers, to the log, blame at the
-   parent, the current line's blame, and the authors of each method.
+8. **Next. Blame.** Streaming blame, aging, hovers, to the log, blame at the
+   parent, the current line's blame, and the authors of each method, as
+   [Blame in the gutter](#blame-in-the-gutter-vcsblame-toggles) has them.
+   Draft plan, in the order it lands:
+   - **a. Phase 7's leftovers.** The branch's relations read once per
+     HEAD and refs, not with every snapshot: kept with the repository and
+     dropped when `RepositoryWatcher` sees HEAD, the refs or (new) the config
+     change (it watches the index too, so the cache needs its own reason
+     to drop, not `invalidate()` alone), so a save's change marks pay
+     nothing; and a section's range by full ref (`HEAD..refs/heads/main`),
+     as its count is, so a tag of the branch's name can't make them
+     disagree. First, since blame runs a snapshot's worth of git per file
+     shown and should not add to a cost already paid on every save.
+   - **b. Gutter columns.** `Buffer.getGutterColumn()` becomes
+     `getGutterColumns()`, a list, painted left to right after the line
+     numbers; `Display`'s width, hit tests, tool tips and clicks go through
+     the list (`GutterColumn.At` gains its column). The log's graph is
+     one; blame's is another, which a file buffer adds and removes.
+     Change marks and line numbers stay `Display`'s own: nothing needs
+     them moved, and the plan's "every column a provider" would be an
+     abstraction with one new user.
+   - **c. Reading blame.** `VcsBackend.blame(repository, path, contents,
+     sink)` streams `git blame --incremental --contents - -- <path>`
+     (the buffer's text on stdin, so lines changed since read as not
+     committed yet) into `BlameData`: per line, a `BlameCommit` (hash,
+     author, author time, summary, the previous commit and path from
+     `previous`, boundary) shared by its lines. `.git-blame-ignore-revs`
+     is passed with `--ignore-revs-file` when the repository has one and
+     `blame.ignoreRevsFile` is not set: git reads it only through that
+     config, so "git honors it" holds for those who set it alone (2.23 and
+     later; gated). A `Capability.BLAME`; svn's comes in phase 11.
+     `GitBlame` parses `--incremental`'s groups (a header per run, the
+     commit's fields the first time it is seen). The result is the
+     buffer's lines as `Line` objects, read under the buffer's lock when
+     it was started, so an edit made while it streamed moves its
+     annotations with the lines; it runs again 500 ms after a save or a
+     change of HEAD, the old one kept until the new one has finished.
+     Several repositories: a file's blame is its own repository's, a
+     nested one's included, by `Repositories.forFile`. Tests: a file with
+     commits by two authors, an edited buffer, a rename followed through
+     `previous`, an ignored revision, a file not committed, a binary
+     file.
+   - **d. The column.** `vcsBlame` (`<leader>gb` in vim) toggles it on the
+     buffer. Each run of one commit shows `vcsBlameFormat` (`%d %a`, date
+     and author; `%h` hash, `%s` summary) on its first line, and a thin
+     bar in the commit's color on the rest; lines not committed yet are
+     blank. The column is as wide as its widest entry, capped at
+     `vcsBlameMaxWidth` columns, with an ellipsis. Age by rank, as the
+     design says: the commits in the buffer, not only those in view
+     (which would change the shade as you scroll), ranked by author time
+     onto 8 steps from the text's color to the comment's. Turning it on
+     says "Reading blame…" until the first lines arrive.
+   - **e. Hover, click and the parent.** The tool tip has the hash,
+     author, both dates when they differ, and the whole message, read
+     with `git show -s` the first time it is asked for, cached by hash.
+     A click on an entry opens the log at that commit (`LogBuffer.reveal`,
+     the file's path as the log's file filter) with the file selected in
+     its details. `vcsBlameParent` on the caret's line opens the file as
+     the commit's parent had it (`previous`'s hash and path, so a rename
+     is followed), read-only (`RevisionBuffer`, made public to `vcs`),
+     blamed at that revision (`git blame <rev> -- <path>`), the caret on
+     the line nearest; going back is the buffer list's. A boundary
+     commit has no parent, said.
+   - **f. The current line's blame.** `vcsLineBlame`, on by default: `EOL`
+     virtual text (`vcs.blame.line`) on the caret's line after the caret
+     rests 500 ms, `kkrouse, 2 days ago · summary`, dimmed; "Not committed
+     yet" on a changed line; none on a line that is a run's first while
+     the column is on, which already says it. It reads the blame of (c)
+     in the background once per buffer shown, so a file never blamed
+     pays one `git blame` when it is first looked at; files over
+     `vcsBlameMaxLines` (10,000) get none.
+   - **g. Authors of a method.** `vcsCodeAuthors`, on by default: an
+     `ABOVE` line (`vcs.blame.authors`) over each method and class the
+     mode's tags give, its end from `Mode.getFoldRange`, `kkrouse +4`,
+     with `*` when it has uncommitted lines (counted for `user.name`).
+     The hover lists every author with their lines and last date; a
+     click turns the column on with the method's lines' commits bright
+     and the rest dimmed until the caret leaves it. Made again with the
+     blame and when the tags are read again. Same blame, same limit.
+   - **h. Docs, keys, review.** `doc/git.html` gains Blame; commands and
+     preferences documented; the status's and editor's `?` popups list
+     `vcsBlame`; vim `<leader>gb`. Checked in the app under Xvfb: a file
+     of this repository blamed, a hover, a click into the log, the parent.
+     The adversarial review closes the phase.
+   - **To decide:** whether (f) and (g) are on by default, as the design
+     has them, given a `git blame` per file shown (on large files and
+     repositories, seconds of CPU); whether the column's age ranks the
+     buffer's commits or, as IntelliJ does, those in view.
 9. **Conflicts.** Markers, inline actions, navigation, marking resolved,
    and finishing.
 10. **Changelists.** The store, ranges as markers, re-anchoring, the status
