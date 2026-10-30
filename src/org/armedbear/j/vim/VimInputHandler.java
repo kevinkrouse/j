@@ -15,6 +15,7 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CommandTable;
@@ -92,14 +93,20 @@ public final class VimInputHandler implements InputHandler {
 
     @Override
     public Result handle(Editor editor, JEvent event) {
-        switch (event.getID()) {
-            case JEvent.KEY_PRESSED:
-                return keyPressed(editor, event);
-            case JEvent.KEY_TYPED:
-                return keyTyped(editor, event);
-            default:
-                // Mouse presses move the caret through j's own bindings.
-                return Result.PASS_THROUGH;
+        state.forgetColumnIfMoved(editor);
+        try {
+            switch (event.getID()) {
+                case JEvent.KEY_PRESSED:
+                    return keyPressed(editor, event);
+                case JEvent.KEY_TYPED:
+                    return keyTyped(editor, event);
+                default:
+                    // Mouse presses move the caret through j's own bindings.
+                    return Result.PASS_THROUGH;
+            }
+        }
+        finally {
+            state.caretLeft(editor);
         }
     }
 
@@ -1618,6 +1625,7 @@ public final class VimInputHandler implements InputHandler {
                 // CTRL-^ does: twice there would be back where it started.
                 final String param = command.getString("param", null);
                 final int times = command.getBoolean("once") ? 1 : Math.max(1, count);
+                final Position before = editor.getDot() == null ? null : new Position(editor.getDot());
                 boolean ran = true;
                 try {
                     for (int i = 0; i < times && ran; i++)
@@ -1626,6 +1634,10 @@ public final class VimInputHandler implements InputHandler {
                 catch (NoSuchMethodException e) {
                     ran = false;
                 }
+                // One that moved the caret sets the column j and k aim for,
+                // as zt's start does, unless its row keeps it.
+                if (ran && !command.getBoolean("keepColumn") && !Objects.equals(before, editor.getDot()))
+                    state.clearDesiredColumn();
                 // execute() throws for an unknown name, or one that takes
                 // no such argument.
                 // A mapping from a vimrc may name a vim ex command instead.

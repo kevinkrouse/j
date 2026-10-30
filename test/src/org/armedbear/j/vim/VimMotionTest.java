@@ -141,6 +141,16 @@ public class VimMotionTest {
     }
 
     @Test
+    public void aCaretMovedOutsideVimSetsTheColumnAgain() {
+        // As a directory buffer opened, a click, or one of j's commands.
+        vim("alphabet\nalphabet\nalphabet\n").cursor(0, 0).keys("$");
+        h.cursor(1, 2).keys("j");
+        at(2, 2);
+        h.keys("0").cursor(1, 5).keys("k");
+        at(0, 5);
+    }
+
+    @Test
     public void zeroIsAMotionButOnlyWithoutACount() {
         vim("alphabet\n").cursor(0, 4).keys("0");
         at(0, 0);

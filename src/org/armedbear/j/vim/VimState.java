@@ -787,6 +787,26 @@ public final class VimState {
         desiredColumn = -1;
     }
 
+    // Where the caret was after the last key. Lines are a buffer's own, so
+    // another buffer's caret never equals it.
+    private Position caretLeft;
+
+    /** Notes where the caret is after a key. */
+    void caretLeft(Editor editor) {
+        final Position dot = editor.getDot();
+        caretLeft = dot == null ? null : new Position(dot);
+    }
+
+    /**
+     * Forgets the column if the caret moved since the last key, by
+     * anything else: another buffer, a click, one of j's commands.
+     */
+    void forgetColumnIfMoved(Editor editor) {
+        final Position dot = editor.getDot();
+        if (dot != null && !dot.equals(caretLeft))
+            clearDesiredColumn();
+    }
+
     /**
      * Where vim's cursor stands when an operator on a selection starts, which
      * is where undoing it leaves the caret. Worked out before the selection
