@@ -366,6 +366,9 @@ public class BranchCommandsTest {
         final VcsResult r = repo().backend().merge(repo(), "refs/heads/a", EnumSet.noneOf(MergeOption.class));
         assertFalse(r.succeeded());
         assertEquals("Merging a conflicted: the conflicts are in Unmerged", BranchCommands.failed("Merging a", r));
+        assertEquals(
+            "Merged a in none; failed in work: conflicted: the conflicts are in Unmerged",
+            EachRepository.said("Merging a", "Merged a", List.of(new EachRepository.Done(repo(), r, null))));
         assertTrue(repo().backend().isMerging(repo()));
         final Transient merging = MergeCommands.popup(context(null), true);
         assertEquals("vcsMergeCommit", ((Command) merging.item("m")).name());

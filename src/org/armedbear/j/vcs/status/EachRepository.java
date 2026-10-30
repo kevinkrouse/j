@@ -158,7 +158,7 @@ final class EachRepository {
             else if (d.result().succeeded())
                 ok.add(name);
             else
-                failed.add(name + ": " + BranchCommands.failed(doing, d.result()).replaceFirst("^.*? failed: ", ""));
+                failed.add(name + ": " + why(doing, BranchCommands.failed(doing, d.result())));
         }
         final StringBuilder sb = new StringBuilder();
         sb.append(ok.isEmpty() ? did + " in none" : did + " in " + String.join(", ", ok));
@@ -167,5 +167,11 @@ final class EachRepository {
         if (!failed.isEmpty())
             sb.append("; failed in ").append(String.join("; ", failed));
         return sb.toString();
+    }
+
+    // What failed says after doing, as "conflicted: …"; its "failed: " left out.
+    private static String why(String doing, String failed) {
+        final String why = failed.substring(doing.length() + 1);
+        return why.startsWith("failed: ") ? why.substring("failed: ".length()) : why;
     }
 }
