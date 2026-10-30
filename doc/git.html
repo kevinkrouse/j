@@ -401,8 +401,9 @@ all repositories, as IntelliJ's "Execute branch operations on all roots".
 With it on, <b>b</b>, <b>l</b>, <b>c</b>, <b>n</b>, <b>m</b> and <b>D</b>
 act in each repository at once. Their lists have the names any repository
 has, each saying how many have it: <code>main (3)</code>,
-<code>feature (2 of 3)</code>. A checkout, rename or delete acts in each
-that has the branch, not one that has it checked out; a new branch is made
+<code>feature (2 of 3)</code>. A checkout or delete acts in each that has
+the branch, not one that has it checked out; a rename, in each that has it,
+checked out or not, as git allows; a new branch is made
 in each, starting where it is asked to in those that have it and at HEAD in
 those that haven't. A delete asks once, naming the repositories, and again
 if any would lose commits, naming them by repository. The repositories are
