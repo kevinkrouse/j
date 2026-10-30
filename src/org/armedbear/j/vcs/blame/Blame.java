@@ -45,8 +45,8 @@ import org.armedbear.j.vcs.VcsResult;
 /**
  * A file's buffer's blame, read while something wants it: the column, the
  * current line's. It is read again 500 ms after a save or a change of HEAD
- * or the refs, the last one shown until the new one has finished. On the
- * event thread.
+ * or the refs, the last one shown until the new one has finished, and
+ * kept if it fails. On the event thread.
  */
 public final class Blame implements Buffer.Follower {
     static final int DELAY_MILLIS = 500;
@@ -57,6 +57,7 @@ public final class Blame implements Buffer.Follower {
     private final AtomicBoolean told = new AtomicBoolean();
     private BlameData shown;
     private BlameData reading;
+    private BlameData failed;
     private boolean again;
     // The repository's refs and the file as the last read started.
     private String readFor;
@@ -112,9 +113,14 @@ public final class Blame implements Buffer.Follower {
         }
     }
 
-    /** The blame shown: the last read, or the first while it streams; null before any. */
+    /** The blame shown: the last read that succeeded, or the first while it streams; null before any. */
     public BlameData data() {
         return shown;
+    }
+
+    /** The last read finished, if it failed; null if it succeeded. */
+    public BlameData failure() {
+        return failed;
     }
 
     @Override
@@ -185,7 +191,9 @@ public final class Blame implements Buffer.Follower {
 
     private void done(BlameData data, VcsResult r) {
         data.finished(r == null ? "can't blame" : r.succeeded() ? null : r.lastError());
-        if (reading == data)
+        failed = data.error() != null ? data : null;
+        // A failed read again leaves the last good one shown.
+        if (reading == data && failed == null)
             shown = data;
         tell();
         if (again) {

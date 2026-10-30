@@ -376,8 +376,21 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     public final void setTopLine(Line line) {
+        final Line old = topLine;
         topLine = line;
         pixelsAboveTopLine = 0;
+        topChanged(old);
+    }
+
+    // A gutter column paints the top row apart, as blame's entry: the old
+    // top and the new painted again, where a scroll moved them unpainted.
+    private void topChanged(Line old) {
+        if (old == topLine || editor.getBuffer().getGutterColumns().isEmpty())
+            return;
+        if (old != null)
+            lineChanged(old);
+        if (topLine != null)
+            lineChanged(topLine);
     }
 
     public final int getPixelsAboveTopLine() {
@@ -1761,7 +1774,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
         int left = gutterWidth - width(gutterColumns);
         for (GutterColumn column : gutterColumns) {
-            column.paint((Graphics2D) g, line, left, y, line.getHeight());
+            column.paint((Graphics2D) g, line, left, y, line.getHeight(), line == topLine);
             left += column.width();
         }
     }
@@ -2713,8 +2726,10 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             offset -= rowHeight(line);
             line = next;
         }
+        final Line old = topLine;
         topLine = line;
         pixelsAboveTopLine = offset;
+        topChanged(old);
         return dy;
     }
 

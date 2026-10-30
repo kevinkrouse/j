@@ -130,7 +130,7 @@ final class LogGraphColumn implements GutterColumn {
     }
 
     @Override
-    public void paint(Graphics2D g, Line line, int x, int y, int height) {
+    public void paint(Graphics2D g, Line line, int x, int y, int height, boolean top) {
         if (!(line instanceof LogLine l))
             return;
         final int strip = strip();

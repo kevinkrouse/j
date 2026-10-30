@@ -32,8 +32,11 @@ public interface GutterColumn {
     /** Its width in pixels now. */
     int width();
 
-    /** Paints line's part of it, its left at x and the row's top at y, height tall. */
-    void paint(Graphics2D g, Line line, int x, int y, int height);
+    /**
+     * Paints line's part of it, its left at x and the row's top at y, height
+     * tall; top if line is the window's first row.
+     */
+    void paint(Graphics2D g, Line line, int x, int y, int height, boolean top);
 
     /** The tool tip at x and y in line's part of it, from its left and the row's top, or null. */
     default String getToolTipText(Line line, int x, int y) {

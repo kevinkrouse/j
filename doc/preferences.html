@@ -2395,6 +2395,32 @@ default "From" address for outgoing mail messages.
 <a href="mail.html">Mail</a>
 </dl>
 
+<code><a name="vcsBlameFormat">vcsBlameFormat</a></code>
+<dl>
+<dd>
+What the blame column shows for a commit: <code>%d</code> the date,
+short, as your locale writes it; <code>%D</code> the date as
+<code>2026-10-30</code>; <code>%r</code> its age (<code>3h</code>,
+<code>4mo</code>); <code>%a</code> the author's last name;
+<code>%A</code> the author's full name; <code>%e</code> the user part of
+the author's mail address; <code>%h</code> the short hash;
+<code>%s</code> the summary; <code>%%</code> for a literal
+<code>%</code>. Each field is padded to its widest among the file's
+commits, so the next lines up. See
+<a href="commands.html#vcsBlame">vcsBlame</a>.
+<p>
+<b>Default value:</b> %d %a
+</dl>
+
+<code><a name="vcsBlameMaxWidth">vcsBlameMaxWidth</a></code>
+<dl>
+<dd>
+The most characters a blame column's entry is wide; a longer one ends in
+an ellipsis.
+<p>
+<b>Default value:</b> 30
+</dl>
+
 <code><a name="vcsHints">vcsHints</a></code>
 <dl>
 <dd>

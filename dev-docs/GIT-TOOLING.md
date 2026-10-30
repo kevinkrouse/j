@@ -1914,6 +1914,17 @@ plan with why it is left, before the next phase starts.
      (which would change the shade as you scroll), ranked by author time
      onto 8 steps from the text's color to the comment's. Turning it on
      says "Reading blame…" until the first lines arrive.
+     Built: `vcs/blame`'s `BlameColumn` and `BlameCommands`. The format
+     is `%d %a` as the short locale date and the last name (`%D` ISO
+     date, `%A` full name, `%e` the mail's user, `%r` age); each field is
+     padded to its widest among the buffer's commits, so the next lines
+     up. The bar is on every committed line, the entry on a run's first
+     and on the window's top row (`GutterColumn.paint` takes `top`;
+     `Display` repaints the old and new top when it moves). Colors by
+     rank: the newest white (black on a light background), the rest 7
+     steps of a cool blue-gray fading toward the background, not the
+     log's palette. The width settles when the read finishes, not as it
+     streams; a failed read again keeps the last one shown, and is said.
    - **e. Hover, click and the parent.** The tool tip has the hash,
      author, both dates when they differ, and the whole message, read
      with `git show -s` the first time it is asked for, cached by hash.

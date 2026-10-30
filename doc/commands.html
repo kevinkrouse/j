@@ -441,6 +441,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#unwrapParagraph">unwrapParagraph</a></li>
     <li><a href="commands.html#up">up</a></li>
     <li><a href="commands.html#upperCaseRegion">upperCaseRegion</a></li>
+    <li><a href="commands.html#vcsBlame">vcsBlame</a></li>
     <li><a href="commands.html#vcsBranchCheckout">vcsBranchCheckout</a></li>
     <li><a href="commands.html#vcsBranchCheckoutLocal">vcsBranchCheckoutLocal</a></li>
     <li><a href="commands.html#vcsBranchCheckoutNew">vcsBranchCheckoutNew</a></li>
@@ -6051,6 +6052,26 @@ Converts all upper case characters in the selected region to lower case.
 <b>Default key mapping:</b> None
 <br><br>
 <b>See also:</b> <a href="#lowerCaseRegion">lowerCaseRegion</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBlame">vcsBlame</a><dl><dd>
+<p>
+Shows or hides the blame column: each line's commit, date and author.
+Each committed line has a thin bar in its commit's color, and each run of
+lines last changed in one commit shows the commit on its first line and on
+the window's top row, in <a href="preferences.html#vcsBlameFormat">vcsBlameFormat</a>.
+Colors go by age, the buffer's commits ranked newest first: the newest is
+white (black on a light background), the rest a cool blue-gray, dimmer the
+older, so an old file is not all dim and a line's color stays as you
+scroll. Lines not committed yet are blank. The column is as wide as its
+widest entry, capped at
+<a href="preferences.html#vcsBlameMaxWidth">vcsBlameMaxWidth</a>
+characters. It says <code>Reading blame…</code> until the first lines
+arrive, and reads again after a save or a change of HEAD or the refs; a
+read that fails is said, and leaves the last one shown.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;gb in vim edit mode
 <br><br>
 </dl><!--<hr>-->
 

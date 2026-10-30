@@ -68,6 +68,8 @@ public final class Property implements Comparable<Property> {
     public static final Property STATUS_BAR_DISPLAY_CONTEXT = createProperty("StatusBar.displayContext", 1);
     public static final Property TAB_WIDTH = createProperty("tabWidth", 8);
     public static final Property TEXT_FIELD_FONT_SIZE = createProperty("textFieldFontSize", 0);
+    // The most characters a blame column's entry is wide, with an ellipsis past it.
+    public static final Property VCS_BLAME_MAX_WIDTH = createProperty("vcsBlameMaxWidth", 30);
     public static final Property VCS_LOG_COLLAPSE_RUNS = createProperty("vcsLogCollapseRuns", false);
     public static final Property VCS_LOG_TIME_STYLE = createProperty("vcsLogTimeStyle", "age");
     public static final Property VCS_LOG_REFS_ORDER = createProperty("vcsLogRefsOrder", "name");
@@ -216,6 +218,8 @@ public final class Property implements Comparable<Property> {
     // A fractional value is allowed, so this is stored as a string. Unset or
     // 0 means detect it from the display; see UIScale.
     public static final Property UI_SCALE = createProperty("uiScale", "0");
+    // What the blame column shows for a commit: %d short date, %a last name; see preferences.html.
+    public static final Property VCS_BLAME_FORMAT = createProperty("vcsBlameFormat", "%d %a");
     // Whether a status buffer opens with the diff beside it: off or right.
     public static final Property VCS_STATUS_DIFF = createProperty("vcsStatusDiff", "off");
     public static final Property TEXT_FIELD_FONT_NAME = createProperty("textFieldFontName", "Monospaced");

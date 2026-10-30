@@ -33,7 +33,7 @@ public class GutterColumnsTest {
     // A column of a width, whose tool tip is its name and where it is.
     private record Named(String name, int width) implements GutterColumn {
         @Override
-        public void paint(Graphics2D g, Line line, int x, int y, int height) {}
+        public void paint(Graphics2D g, Line line, int x, int y, int height, boolean top) {}
 
         @Override
         public String getToolTipText(Line line, int x, int y) {

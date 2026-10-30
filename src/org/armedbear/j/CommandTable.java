@@ -66,6 +66,7 @@ import org.armedbear.j.transients.TransientCommands;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.VcsDiffCommands;
+import org.armedbear.j.vcs.blame.BlameCommands;
 import org.armedbear.j.vcs.git.Git;
 import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.signs.HunkCommands;
@@ -552,6 +553,7 @@ public class CommandTable {
             add("vcsLog", LogCommands::vcsLog);
             add("vcsLogFile", LogCommands::vcsLogFile);
             add("vcsLogQuick", LogCommands::vcsLogQuick);
+            add("vcsBlame", BlameCommands::vcsBlame);
             add("vcsStatus", VcsStatusMode::vcsStatus);
             add("google", e -> WebMode.google(), (e, s) -> WebMode.google(s));
             add("gotoFile", e -> GotoFile.gotoFile());
