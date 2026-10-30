@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.VcsCommand;
 import org.armedbear.j.vcs.VcsResult;
@@ -113,6 +114,11 @@ public final class GitCli {
 
     public static VcsResult run(VcsCommand command) {
         return VcsRunner.run(command);
+    }
+
+    /** As run, its output given to stdout as it comes, on another thread. */
+    static VcsResult run(VcsCommand command, Consumer<byte[]> stdout) {
+        return VcsRunner.run(command, stdout);
     }
 
     private static volatile int[] version;

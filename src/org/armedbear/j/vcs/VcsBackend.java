@@ -22,6 +22,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Whitespace;
+import org.armedbear.j.vcs.blame.BlameCommit;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
@@ -175,6 +176,16 @@ public interface VcsBackend {
      * the skip-th on, at most max; null if this backend has no log.
      */
     default List<LogCommit> readLog(VcsRepository repository, LogQuery query, int skip, int max) {
+        return null;
+    }
+
+    /**
+     * Blames contents, path's text in the working tree or as edited, in the
+     * background: sink told of each run of lines as it is read. Lines not
+     * as committed are blamed on a commit isUncommitted says so of, and so
+     * is every line of a path with no history. Null if the backend can't.
+     */
+    default VcsResult blame(VcsRepository repository, String path, byte[] contents, BlameCommit.Sink sink) {
         return null;
     }
 

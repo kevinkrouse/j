@@ -43,6 +43,7 @@ import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.VersionControlEntry;
+import org.armedbear.j.vcs.blame.BlameCommit;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
@@ -68,7 +69,8 @@ public final class GitBackend implements VcsBackend {
         Capability.BRANCHES,
         Capability.MERGE_GRAPH,
         Capability.HUNK_CHANGELISTS,
-        Capability.PARTIAL_COMMIT);
+        Capability.PARTIAL_COMMIT,
+        Capability.BLAME);
 
     @Override
     public Set<Capability> capabilities() {
@@ -128,6 +130,11 @@ public final class GitBackend implements VcsBackend {
         final GitSnapshot read = GitRelations.read(repository.root(), dirs, s);
         kept.put(repository, new Kept(refs, s.head(), s.branch(), s.upstream(), read));
         return read;
+    }
+
+    @Override
+    public VcsResult blame(VcsRepository repository, String path, byte[] contents, BlameCommit.Sink sink) {
+        return GitBlame.blame(repository, path, contents, sink);
     }
 
     @Override

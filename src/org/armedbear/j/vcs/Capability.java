@@ -33,5 +33,7 @@ public enum Capability {
     /** The system's own changelists, of whole files. */
     NATIVE_CHANGELISTS,
     /** Committing part of a file's changes. */
-    PARTIAL_COMMIT
+    PARTIAL_COMMIT,
+    /** The commit each line was last changed in. */
+    BLAME
 }

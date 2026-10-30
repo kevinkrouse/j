@@ -25,10 +25,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.ProcessRunner;
@@ -45,19 +47,27 @@ public final class VcsRunner {
 
     /** Runs the command on this thread and waits for it. */
     public static VcsResult run(VcsCommand command) {
+        return run(command, null);
+    }
+
+    /**
+     * The same, its output given to stdout as it comes, on another thread,
+     * a chunk at a time, and in the result too.
+     */
+    public static VcsResult run(VcsCommand command, Consumer<byte[]> stdout) {
         if (!command.write())
-            return exec(command);
+            return exec(command, stdout);
         ReentrantLock lock = writeLocks.computeIfAbsent(command.directory().toString(), k -> new ReentrantLock());
         lock.lock();
         try {
-            return exec(command);
+            return exec(command, stdout);
         }
         finally {
             lock.unlock();
         }
     }
 
-    private static VcsResult exec(VcsCommand command) {
+    private static VcsResult exec(VcsCommand command, Consumer<byte[]> stdout) {
         final long start = System.nanoTime();
         VcsResult result;
         Process process;
@@ -74,8 +84,8 @@ public final class VcsRunner {
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        Thread outReader = Background.start("vcs stdout", () -> copy(process.getInputStream(), out));
-        Thread errReader = Background.start("vcs stderr", () -> copy(process.getErrorStream(), err));
+        Thread outReader = Background.start("vcs stdout", () -> copy(process.getInputStream(), out, stdout));
+        Thread errReader = Background.start("vcs stderr", () -> copy(process.getErrorStream(), err, null));
         Background.start("vcs stdin", () -> {
             try (OutputStream in = process.getOutputStream()) {
                 if (command.stdin() != null)
@@ -109,16 +119,16 @@ public final class VcsRunner {
         }
         if (failure != null)
             stderr = stderr.isEmpty() ? failure : stderr + "\n" + failure;
-        byte[] stdout;
+        byte[] said;
         synchronized (out) {
-            stdout = out.toByteArray();
+            said = out.toByteArray();
         }
-        result = new VcsResult(command, exitCode, stdout, stderr, millisSince(start));
+        result = new VcsResult(command, exitCode, said, stderr, millisSince(start));
         CommandLog.add(result);
         return result;
     }
 
-    private static void copy(InputStream in, ByteArrayOutputStream to) {
+    private static void copy(InputStream in, ByteArrayOutputStream to, Consumer<byte[]> chunks) {
         byte[] buf = new byte[8192];
         try (in) {
             int n;
@@ -126,6 +136,8 @@ public final class VcsRunner {
                 synchronized (to) {
                     to.write(buf, 0, n);
                 }
+                if (chunks != null)
+                    chunks.accept(Arrays.copyOf(buf, n));
             }
         }
         catch (IOException e) {
