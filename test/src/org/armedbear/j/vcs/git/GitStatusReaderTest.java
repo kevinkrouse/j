@@ -33,6 +33,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.status.StatusData;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
+import org.armedbear.j.vcs.status.StatusData.Field;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusData.StashItem;
@@ -101,5 +102,25 @@ public class GitStatusReaderTest {
                 new LogRef("origin/HEAD", LogRef.Kind.REMOTE, false),
                 new LogRef("main", LogRef.Kind.BRANCH, false)),
             c.refs());
+    }
+
+    @Test
+    public void aStashListGitCantReadIsSaidInTheHeader() throws Exception {
+        final GitFixture git = GitFixture.init(tmp);
+        git.write("a.txt", "a\n");
+        git.commitAll("first");
+        git.write("a.txt", "b\n");
+        git.git("stash");
+        breakStash(git);
+        final StatusData d =
+                GitStatusReader.read(Repositories.forDirectory(git.root), (s, k) -> false, Whitespace.NONE);
+        assertTrue(d.sections().stream().noneMatch(s -> s.id().equals(StatusData.STASHES)));
+        assertTrue(d.header().contains(new Field("Stashes", "can't be read: see vcsCommandLog")));
+    }
+
+    /** The stash's commit gone, so git status counts it but git stash list fails. */
+    static void breakStash(GitFixture git) throws Exception {
+        final String id = git.git("rev-parse", "stash").strip();
+        Files.delete(git.root.resolve(".git/objects/" + id.substring(0, 2) + "/" + id.substring(2)));
     }
 }

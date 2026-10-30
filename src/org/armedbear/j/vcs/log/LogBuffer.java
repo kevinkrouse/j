@@ -384,12 +384,8 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
                     else {
                         source.starts = started;
                         // A failed read ends its repository's pages, and says so.
-                        if (!ok) {
-                            failed = true;
-                            final Editor ed = Editor.windowShowing(this);
-                            if (ed != null)
-                                ed.status("Reading the log failed: see vcsCommandLog");
-                        }
+                        if (!ok)
+                            readFailed();
                         m.add(source, read);
                         append(m.take());
                     }
@@ -405,9 +401,18 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
                 ++dropped;
                 return;
             }
+            if (read == null)
+                readFailed();
             m.addLast(source, read != null ? read : List.of());
             append(m.take());
         });
+    }
+
+    private void readFailed() {
+        failed = true;
+        final Editor ed = Editor.windowShowing(this);
+        if (ed != null)
+            ed.status("Reading the log failed: see vcsCommandLog");
     }
 
     /** Reads it again from the first page, the caret staying on its commit, and the refs and paths. */

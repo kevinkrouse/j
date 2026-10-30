@@ -181,7 +181,7 @@ public interface VcsBackend {
     /**
      * The stashes as the log shows them, newest first, each badged with its
      * name and drawn off the commit it was made on alone: its graph's parent
-     * is its first; none if it has none, or none can be read.
+     * is its first; none if it has none, null if they can't be read.
      */
     default List<LogCommit> readStashes(VcsRepository repository) {
         return List.of();

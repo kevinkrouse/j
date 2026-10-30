@@ -276,6 +276,17 @@ public class GitLogTest {
     }
 
     @Test
+    public void stashesGitCantReadAreNull() throws Exception {
+        init();
+        git.write("a.txt", "a\n");
+        git.commitAll("first");
+        git.write("a.txt", "b\n");
+        git.git("stash");
+        GitStatusReaderTest.breakStash(git);
+        assertNull(GitLog.stashes(repository));
+    }
+
+    @Test
     public void readsTheStashesNewestFirstEachOffItsBaseAndAsRefTips() throws Exception {
         init();
         git.write("a.txt", "a\n");

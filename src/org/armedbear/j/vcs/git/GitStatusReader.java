@@ -99,11 +99,9 @@ final class GitStatusReader {
         if (!staged.isEmpty())
             sections.add(new Section("staged", "Staged changes", files(repository, staged, true, wantsDiff, ignored)));
         // The count says whether to list them, where this git gives one.
-        if (git.stashes() != 0) {
-            final List<Item> stashes = stashes(repository, wantsDiff, ignored);
-            if (!stashes.isEmpty())
-                sections.add(new Section(StatusData.STASHES, "Stashes", stashes));
-        }
+        final List<Item> stashes = git.stashes() == 0 ? List.of() : stashes(repository, wantsDiff, ignored);
+        if (stashes != null && !stashes.isEmpty())
+            sections.add(new Section(StatusData.STASHES, "Stashes", stashes));
         sections.addAll(ranges(repository, git));
         // Recent ones when none are on this branch alone, as just after
         // branching, or on the parent itself.
@@ -113,7 +111,10 @@ final class GitStatusReader {
             if (!recent.isEmpty())
                 sections.add(new Section("recent", "Recent commits", recent));
         }
-        return new StatusData(header(repository, git), inProgress(git, unmerged.size()), sections, null);
+        final List<Field> header = header(repository, git);
+        if (stashes == null)
+            header.add(new Field("Stashes", "can't be read: see vcsCommandLog"));
+        return new StatusData(header, inProgress(git, unmerged.size()), sections, null);
     }
 
     private static List<Field> header(VcsRepository repository, GitSnapshot git) {
@@ -218,7 +219,7 @@ final class GitStatusReader {
     // stash show --include-untracked came in 2.32.
     private static final int[] SHOW_UNTRACKED = { 2, 32 };
 
-    // The stashes, newest first, each with its files if wanted.
+    // The stashes, newest first, each with its files if wanted; null if git fails.
     private static List<Item> stashes(
             VcsRepository repository,
             BiPredicate<String, String> wantsDiff,
@@ -226,7 +227,7 @@ final class GitStatusReader {
         final List<Item> items = new ArrayList<>();
         final List<String[]> list = GitLog.stashList(repository);
         if (list == null)
-            return items;
+            return null;
         for (String[] f : list) {
             final List<FileItem> files =
                     wantsDiff.test(StatusData.STASHES, f[1]) ? stashFiles(repository, f[1], ignored) : null;

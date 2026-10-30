@@ -124,11 +124,14 @@ final class GitLog {
     /**
      * The stashes, newest first, each a commit badged with its name whose
      * graph's parent is the commit it was made on: the index's and the
-     * untracked files' commits, its other parents, aren't listed.
+     * untracked files' commits, its other parents, aren't listed; null if
+     * git fails.
      */
     static List<LogCommit> stashes(VcsRepository repository) {
         final List<String[]> list = stashList(repository);
-        if (list == null || list.isEmpty())
+        if (list == null)
+            return null;
+        if (list.isEmpty())
             return List.of();
         final List<String> args = new ArrayList<>(List.of("log", "--no-walk=unsorted", "-z", "--no-color", FORMAT));
         for (String[] f : list)
@@ -136,7 +139,7 @@ final class GitLog {
         args.add("--");
         final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
         if (!r.succeeded())
-            return List.of();
+            return null;
         final Map<String, LogCommit> read = new HashMap<>();
         for (LogCommit c : parse(r.stdout()))
             read.put(c.id(), c);
