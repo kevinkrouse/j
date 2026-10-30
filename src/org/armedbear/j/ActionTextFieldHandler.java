@@ -143,25 +143,6 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         return emptyQueryItems;
     }
 
-    /** Humanizes a command name: "openFileInOtherWindow" is "Open File In Other Window". */
-    static String humanize(String name) {
-        StringBuilder sb = new StringBuilder(name.length() + 8);
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            if (i == 0) {
-                sb.append(Character.toUpperCase(c));
-                continue;
-            }
-            char prev = name.charAt(i - 1);
-            boolean hump = Character.isUpperCase(c) && !Character.isUpperCase(prev);
-            boolean digits = Character.isDigit(c) && !Character.isDigit(prev);
-            if (hump || digits)
-                sb.append(' ');
-            sb.append(c);
-        }
-        return sb.toString();
-    }
-
     // Toolbar icons, and the commands that share them.
     private static final Map<String, String> ICONS = new HashMap<>();
 
@@ -212,8 +193,6 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
 
     static final class ActionItem implements FinderItem {
         private final Command command;
-        private final String label;
-        private final String primary;
         private final String text;
         private final String note;
         private final String keyText;
@@ -221,14 +200,12 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         ActionItem(Editor editor, Command command) {
             this.command = command;
             final String name = command.getName();
-            label = humanize(name);
             String summary = CommandTable.getSummary(name);
             note = summary == null ? "" : summary;
-            // The name, so a query in its exact case matches, then its label,
-            // then the summary, its slashes blanked so the matcher doesn't take
-            // its tail for a file name.
-            primary = name + " " + label;
-            text = note.isEmpty() ? primary : primary + " " + note.replace('/', ' ').replace('\\', ' ');
+            // The name, so a query in its exact case matches, then the
+            // summary, its slashes blanked so the matcher doesn't take its tail
+            // for a file name.
+            text = note.isEmpty() ? name : name + " " + note.replace('/', ' ').replace('\\', ' ');
             keyText = keyText(editor, name);
         }
 
@@ -253,11 +230,11 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
 
         @Override
         public String primaryMatchText() {
-            return primary;
+            return command.getName();
         }
 
-        // The name first, as typed after ":" or Alt X, then its label and, set
-        // off by a dot, what it does.
+        // The name, as typed after ":" or Alt X, then, set off by a dot, what
+        // it does.
         @Override
         public String label() {
             return command.getName();
@@ -266,16 +243,6 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         @Override
         public int labelOffset() {
             return 0;
-        }
-
-        @Override
-        public String detail() {
-            return label;
-        }
-
-        @Override
-        public int detailOffset() {
-            return command.getName().length() + 1;
         }
 
         @Override

@@ -424,6 +424,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#tab">tab</a></li>
     <li><a href="commands.html#task">task</a></li>
     <li><a href="commands.html#thisError">thisError</a></li>
+    <li><a href="commands.html#toBottom">toBottom</a></li>
     <li><a href="commands.html#toCenter">toCenter</a></li>
     <li><a href="commands.html#toggleGroupByThread">toggleGroupByThread</a></li>
     <li><a href="commands.html#toggleSidebar">toggleSidebar</a></li>
@@ -560,8 +561,8 @@ Sets or modifies an alias. See <a href="aliases.html">Aliases</a>.
 
 <a name="alignStrings">alignStrings</a><dl><dd>
 <p>
-Prompts for a regular expression and aligns the first occurrence of the
-specified regular expression in each line of the selected region.
+Aligns the first match of a regular expression in each selected line. It
+prompts for the regular expression.
 <p>
 For example, suppose you start with a region that looks like this:
 <pre>
@@ -724,8 +725,8 @@ Centers the current function vertically in the edit window.
 
 <a name="changeList">changeList</a><dl><dd>
 <p>
-Lists where the current buffer was changed, oldest first, as vim's
-<code>:changes</code> does, with the line's text; the current position is
+Lists where the buffer was changed, oldest first, as vim's
+<code>:changes</code> does. Each has its line's text; the current position is
 marked and selected. Typing narrows the list; Enter goes to the change.
 <a href="commands.html#olderChange">olderChange</a> and
 <a href="commands.html#newerChange">newerChange</a> travel the same list.
@@ -750,7 +751,7 @@ in your path, which is more likely to be the case on Unix than on Windows.
 
 <a name="changePopup">changePopup</a><dl><dd>
 <p>
-Opens a popup of what to do with the change at the caret, under its preview: revert it, stage or unstage it in a file the version control tracks, and go to the next or previous change.
+Opens a popup of what to do with the change at the caret. It shows under the change's preview: revert it, stage or unstage it in a file the version control tracks, and go to the next or previous change.
 <br><br>
 <b>Default key mapping:</b> A click on a change mark
 <br><br>
@@ -760,8 +761,8 @@ Opens a popup of what to do with the change at the caret, under its preview: rev
 
 <a name="checkPath">checkPath</a><dl><dd>
 <p>
-Examines all the lines in the current buffer that start with "#include" and
-reports which included files can't be found in your
+Reports the <code>#include</code> files that can't be found. It examines
+each line of the buffer that starts with "#include", looking in your
 <a href="preferences.html#includePath">include path</a> (or in the current
 directory, if the filename is enclosed in quotes rather than in angle
 brackets). This command also recursively checks all the included files that it
@@ -798,9 +799,8 @@ In <a href="editmodes.html">vim edit mode</a> the registers a to z are
 
 <a name="clearSearchHighlight">clearSearchHighlight</a><dl><dd>
 <p>
-Stops highlighting the matches of the last search until the next search, or
-until <a href="#findNext">findNext</a> or <a href="#findPrev">findPrev</a>
-shows them again. In <a href="editmodes.html">vim edit mode</a>
+Stops highlighting the last search's matches. They show again at the next search, or
+with <a href="#findNext">findNext</a> or <a href="#findPrev">findPrev</a>. In <a href="editmodes.html">vim edit mode</a>
 <code>:noh</code> runs it.
 <br><br>
 <b>Default key mapping:</b> None
@@ -831,8 +831,8 @@ Closes all open buffers except the current one.
 
 <a name="closePanel">closePanel</a><dl><dd>
 <p>
-Closes the panel of help, results or output, and the buffer in it, from any
-window; in a transient buffer outside the panel, closes that buffer. With the
+Closes the panel of help, results or output, and its buffer. It works from any
+window; in a transient buffer outside the panel, it closes that buffer. With the
 argument <code>transient</code> it only closes a transient buffer the window
 shows, and leaves the panel alone from any other: what <code>q</code> does.
 Formerly <code>tempBufferQuit</code>, which still works, as
@@ -847,8 +847,7 @@ transient buffer, unless its mode binds it to something else; Escape there too, 
 
 <a name="closeParen">closeParen</a><dl><dd>
 <p>
-Inserts a closing parenthesis and briefly moves the caret to the matching
-opening parenthesis.
+Inserts ')' and briefly shows the caret at the matching '('.
 <br><br>
 <b>Default key mapping:</b> ')' in Java mode
 <br><br>
@@ -856,7 +855,7 @@ opening parenthesis.
 
 <a name="commentRegion">commentRegion</a><dl><dd>
 <p>
-Comments out each line in the selected region, or the current line if no region is selected.
+Comments out the selected lines, or the current line.
 <br><br>
 <b>Default key mapping:</b> F11
 <br><br>
@@ -876,9 +875,9 @@ In a comparison, closes it: both sides go and the windows from before come back.
 
 <a name="compareScrollLock">compareScrollLock</a><dl><dd>
 <p>
-In a comparison, unlocks its two sides, so that each scrolls and moves its
-caret on its own; again, locks them, the other side scrolled to match the
-one you are in. It holds for every comparison, for the session.
+Unlocks or locks a comparison's two sides. Unlocked, each scrolls and moves
+its caret on its own; locked again, the other side scrolls to match the one
+you are in. It holds for every comparison, for the session.
 <br><br>
 <b>Default key mapping:</b> s in a comparison, outside vim edit mode; the
 toolbar's lock button and the Mode menu's Scroll Lock
@@ -912,8 +911,8 @@ Opens a new mail composition buffer.
 
 <a name="copyAppend">copyAppend</a><dl><dd>
 <p>
-Appends the selected region (or the current line if no region is selected)
-to last entry in the <a href="killring.html">kill ring</a>.
+Appends the selection, or the current line, to the last
+<a href="killring.html">kill ring</a> entry.
 <br><br>
 <b>Default key mapping:</b> Ctrl Shift C
 <br><br>
@@ -924,8 +923,8 @@ to last entry in the <a href="killring.html">kill ring</a>.
 
 <a name="copyLink">copyLink</a><dl><dd>
 <p>
-In web mode, copies to the <a href="killring.html">kill ring</a> (and to the
-system clipboard) the link at the location of the caret.
+Copies the link at the caret. In web mode, it goes to the
+<a href="killring.html">kill ring</a> and the system clipboard.
 <p>
 <b>Default key mapping:</b> None
 <br><br>
@@ -933,9 +932,9 @@ system clipboard) the link at the location of the caret.
 
 <a name="copyPath">copyPath</a><dl><dd>
 <p>
-In directory buffers, copies to the <a href="killring.html">kill ring</a> (and
-to the system clipboard) the full pathname of the file on the line containing
-the caret.
+Copies the full path of the file on the caret's line. In directory buffers,
+it goes to the <a href="killring.html">kill ring</a> and the system
+clipboard.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -943,8 +942,7 @@ the caret.
 
 <a name="copyRegion">copyRegion</a><dl><dd>
 <p>
-Copies the contents of the selected region (or the current line if no region
-is selected). For normal regions, the copied text is placed in the
+Copies the selection, or the current line. For normal regions, the copied text is placed in the
 <a href="killring.html">kill ring</a>. If the selected region is a column, the
 text is saved but not placed in the kill ring; it can be retrieved with the
 command <a href="#pasteColumn">pasteColumn</a>.
@@ -959,8 +957,8 @@ command <a href="#pasteColumn">pasteColumn</a>.
 
 <a name="copyXPath">copyXPath</a><dl><dd>
 <p>
-In XML mode, copies to the <a href="killring.html">kill ring</a> (and to the
-system clipboard) the path of the element at the current location of the caret.
+Copies the path of the element at the caret. In XML mode, it goes to the
+<a href="killring.html">kill ring</a> and the system clipboard.
 <p>
 <b>Default key mapping:</b> None
 <br><br>
@@ -1009,8 +1007,7 @@ actually placed in the CVS repository until you use
 
 <a name="cvsCommit">cvsCommit</a><dl><dd>
 <p>
-Opens a checkin buffer in which you can compose a CVS checkin comment for the
-file associated with the current buffer.
+Opens a buffer to write a CVS checkin comment for the current file.
 <p>
 When your comment is ready, you can use the command
 <a href="commands.html#finish">finish</a>, mapped by default to Ctrl Enter in
@@ -1027,8 +1024,8 @@ with CVS using <a href="#cvsAdd">cvsAdd</a> or the CVS "add" command.
 
 <a name="cvsDiff">cvsDiff</a><dl><dd>
 <p>
-Opens a diff output buffer showing the changes between the checked-in version
-of the file associated with the current buffer and your local copy.
+Shows the current file's changes from its checked-in version, in a diff
+output buffer.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -1038,9 +1035,8 @@ of the file associated with the current buffer and your local copy.
 
 <a name="cvsDiffDir">cvsDiffDir</a><dl><dd>
 <p>
-Opens a diff output buffer showing the changes between the checked-in version
-and your local copy for all the files in the current directory and its
-subdirectories.
+Shows the CVS changes of every file under the current directory, in a diff
+output buffer.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -1061,8 +1057,7 @@ output is displayed in a transient output buffer.
 
 <a name="cycleIndentSize">cycleIndentSize</a><dl><dd>
 <p>
-Cycles through the most plausible possibilities for the indent size of the
-current buffer (2, 4 and 8 spaces).  The value that is currently in effect is
+Cycles the buffer's indent size through 2, 4 and 8 spaces.  The value that is currently in effect is
 shown in the status bar.
 <br><br>
 If you use cycleIndentSize to set the indent size, j will try to
@@ -1074,8 +1069,9 @@ remember the setting the next time you open the same file.
 
 <a name="cyclePaste">cyclePaste</a><dl><dd>
 <p>
-If the last command to be executed was not paste or cyclePaste, cyclePaste does
-exactly the same thing as <a href="#paste">paste</a>.
+Pastes, or replaces what was just pasted with the next kill. If the last
+command was not paste or cyclePaste, cyclePaste does exactly the same thing
+as <a href="#paste">paste</a>.
 <br><br>
 If the last command to be executed was paste or cyclePaste, cyclePaste fetches
 the next item from the <a href="killring.html">kill ring</a> and inserts it in
@@ -1092,8 +1088,7 @@ would like to cancel the operation, use <a href="#undo">undo</a>.
 
 <a name="cycleTabWidth">cycleTabWidth</a><dl><dd>
 <p>
-Cycles through the most plausible possibilities for the tab width of the
-current buffer (2, 4 and 8 spaces). The value that is currently in effect is
+Cycles the buffer's tab width through 2, 4 and 8 spaces. The value that is currently in effect is
 shown in the status bar.
 <p>
 This is intended to be a quick way to figure out the proper tab width to use
@@ -1123,8 +1118,7 @@ editor.
 
 <a name="decodeRegion">decodeRegion</a><dl><dd>
 <p>
-Base 64 decodes the selected region (or the line containing the caret if no
-region is selected). If the resulting output is text, it is displayed in a new
+Base 64 decodes the selection, or the caret's line. If the resulting output is text, it is displayed in a new
 buffer; otherwise, you are prompted for a filename and the output is saved in
 the specified file.
 <p>
@@ -1164,8 +1158,7 @@ location of the caret.
 
 <a name="detabRegion">detabRegion</a><dl><dd>
 <p>
-Replaces tab characters in the selected region with the appropriate number of
-spaces, based on the tab width of the buffer. Buffer-specific settings such as
+Replaces the selection's tabs with spaces, by the buffer's tab width. Buffer-specific settings such as
 <a href="preferences.html#tabWidth">tabWidth</a> may be inspected and modified
 in the Properties dialog (see <a href="#properties">properties</a>).
 <br><br>
@@ -1223,10 +1216,10 @@ Displays information about the command mapped to a particular key or key combina
 
 <a name="diff">diff</a><dl><dd>
 <p>
-Compares the current buffer with a file, side by side, as
-<a href="#vcsDiff">vcsDiff</a> compares it with what is staged: the
-file at the left, the buffer's text at the right, saved or not, followed as it
-is edited. The file is read again when it changes on disk, as seen when j's
+Compares the current buffer with a file, side by side. As
+<a href="#vcsDiff">vcsDiff</a> compares it with what is staged, the
+file is at the left and the buffer's text at the right, saved or not,
+followed as it is edited. The file is read again when it changes on disk, as seen when j's
 window is activated or the comparison shown again. A relative name is taken
 from the buffer's directory.
 <p>
@@ -1242,8 +1235,7 @@ otherwise j asks for a file.
 
 <a name="diffGotoFile">diffGotoFile</a><dl><dd>
 <p>
-Jumps to the location in the source buffer corresponding to the current line
-in the diff output buffer.
+Goes to the source line of the diff output buffer's current line.
 <p>
 <b>Default key mapping:</b> Enter, Ctrl Shift G, Double Mouse-1, or Mouse-2 in
 Diff mode
@@ -1254,8 +1246,8 @@ Diff mode
 
 <a name="diffIgnoreWhitespace">diffIgnoreWhitespace</a><dl><dd>
 <p>
-Ignores whitespace in diffs, unified and side by side, or compares it
-again: in the status and its diff beside, the log, and every comparison.
+Ignores whitespace in diffs, or compares it again. It applies unified and side
+by side: in the status and its diff beside, the log, and every comparison.
 With no argument, it ignores what it last did, or what
 <a href="preferences.html#diffIgnoreWhitespace">diffIgnoreWhitespace</a>
 names, or else all of it; with <code>trailing</code>, <code>amount</code> or
@@ -1272,8 +1264,8 @@ Ignore Whitespace
 
 <a name="diffPatch">diffPatch</a><dl><dd>
 <p>
-A legacy command: runs diff with the supplied arguments and presents the
-output in a diff output buffer.
+Runs diff with the given arguments, in a diff output buffer. A legacy
+command.
 <p>
 When constructing the command line, you can use "%" as a dynamic alias for the
 file associated with the current buffer. For example:
@@ -1335,7 +1327,7 @@ For this command to work, you need to specify the properties
 
 <a name="dirClearFilters">dirClearFilters</a><dl><dd>
 <p>
-Clears a directory listing's filters: sorts it by name, forward, lifts its limit, and shows or hides the hidden names as <a href="preferences.html#dirShowHidden">dirShowHidden</a> says.
+Clears a directory listing's filters. It sorts by name, forward, lifts its limit, and shows or hides the hidden names as <a href="preferences.html#dirShowHidden">dirShowHidden</a> says.
 <br><br>
 <b>Default key mapping:</b> x in directory buffers
 <br><br>
@@ -1356,8 +1348,7 @@ You can specify either a filename or a directory as the destination.
 
 <a name="dirCycleSortBy">dirCycleSortBy</a><dl><dd>
 <p>
-Cycles through the possibilities (name, date, size) for the sort order of the
-directory listing. The sort order that is currently in effect is displayed in
+Cycles the listing's sort order: name, date, size. The sort order that is currently in effect is displayed in
 the title bar of the editor window.
 <br><br>
 <b>Default key mapping:</b> '-s', s, and Ctrl S in simple edit mode, in directory buffers
@@ -1368,8 +1359,7 @@ the title bar of the editor window.
 
 <a name="dirDeleteFiles">dirDeleteFiles</a><dl><dd>
 <p>
-Deletes the marked files, or, if no files are marked, deletes the file at the
-current location of the caret.
+Deletes the marked files, or the file at the caret.
 <br><br>
 <b>Default key mapping:</b> Delete or d in directory buffers
 <br><br>
@@ -1379,8 +1369,7 @@ current location of the caret.
 
 <a name="dirDoShellCommand">dirDoShellCommand</a><dl><dd>
 <p>
-Prompts for a shell command and executes the specified command on all the
-marked files in the current directory buffer.
+Runs a shell command on the marked files. It prompts for the command.
 <p>
 If no files are marked, the command is executed on the file at the current
 location of the caret.
@@ -1413,8 +1402,7 @@ Changes to the next directory in the history list for the current directory buff
 
 <a name="dirGetFile">dirGetFile</a><dl><dd>
 <p>
-Copies the remote file at the current location of the caret to a specified
-destination on the local machine. You can specify either a filename or a
+Copies the remote file at the caret to the local machine. You can specify either a filename or a
 directory as the destination.
 <br><br>
 <b>Default key mapping:</b> G in remote directory buffers
@@ -1425,9 +1413,8 @@ directory as the destination.
 
 <a name="dirHome">dirHome</a><dl><dd>
 <p>
-If the caret is to the right of the first character of the filename on the
-current line, moves the caret to the first character of the filename.
-Otherwise, moves the caret to the beginning of the line.
+Moves the caret to the start of the filename, or of the line. It goes to the
+filename if the caret is to the right of its first character.
 <br><br>
 <b>Default key mapping:</b> Home or ~ in directory buffers
 <br><br>
@@ -1437,8 +1424,7 @@ Otherwise, moves the caret to the beginning of the line.
 
 <a name="dirHomeDir">dirHomeDir</a><dl><dd>
 <p>
-If the current buffer is a directory buffer, changes to the home directory of
-the current user. Otherwise, finds an existing directory buffer or opens a new
+In a directory buffer, changes to your home directory. Otherwise, finds an existing directory buffer or opens a new
 one on the home directory of the current user.
 <br><br>
 <b>Default key mapping:</b> None
@@ -1460,7 +1446,7 @@ You can specify either a filename or a directory as the destination.
 
 <a name="dirNewDirectory">dirNewDirectory</a><dl><dd>
 <p>
-Makes a new directory in a directory listing, with the directories it is in, its name asked for or given as an argument, and leaves the caret on it.
+Makes a new directory in a listing and leaves the caret on it. Its name is asked for or given as an argument; the directories it is in are made too.
 <br><br>
 <b>Default key mapping:</b> A in directory buffers
 <br><br>
@@ -1470,7 +1456,7 @@ Makes a new directory in a directory listing, with the directories it is in, its
 
 <a name="dirNewFile">dirNewFile</a><dl><dd>
 <p>
-Opens a new file from a directory listing, its name asked for or given as an argument, in a buffer that writes it when saved, as <a href="#openFile">openFile</a> does; the directories it is in are made if they aren't there. A file that is there is opened.
+Opens a new file from a directory listing. Its name is asked for or given as an argument, in a buffer that writes it when saved, as <a href="#openFile">openFile</a> does; the directories it is in are made if they aren't there. A file that is there is opened.
 <br><br>
 <b>Default key mapping:</b> a in directory buffers
 <br><br>
@@ -1480,8 +1466,7 @@ Opens a new file from a directory listing, its name asked for or given as an arg
 
 <a name="dirOpenFile">dirOpenFile</a><dl><dd>
 <p>
-Opens the file or directory at the location of the caret or mouse click in a
-directory buffer.
+Opens the file or directory at the caret or mouse click.
 <p>
 <b>Default key mapping:</b> Enter, o, Ctrl Shift G, Double Mouse-1, or Mouse-2 in directory buffers
 <p>
@@ -1492,9 +1477,9 @@ directory buffer.
 
 <a name="dirOpenFileInSplit">dirOpenFileInSplit</a><dl><dd>
 <p>
-Opens the file or directory at the caret in a new window over the
-directory listing, with the caret, as vim's <code>:split</code>; a
-directory in a listing of its own.
+Opens the file or directory at the caret in a window over the listing. The
+caret goes with it, as vim's <code>:split</code>; a directory opens in a
+listing of its own.
 <br><br>
 <b>Default key mapping:</b> Shift Enter in directory buffers.
 <br><br>
@@ -1504,8 +1489,8 @@ directory in a listing of its own.
 
 <a name="dirOpenFileInVsplit">dirOpenFileInVsplit</a><dl><dd>
 <p>
-Opens the file or directory at the caret in a new window beside the
-directory listing, on the left, as vim's <code>:vsplit</code>.
+Opens the file or directory at the caret in a window beside the listing. The
+new window is on the left, as vim's <code>:vsplit</code>.
 <br><br>
 <b>Default key mapping:</b> Ctrl Enter in directory buffers.
 <br><br>
@@ -1515,8 +1500,7 @@ directory listing, on the left, as vim's <code>:vsplit</code>.
 
 <a name="dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a><dl><dd>
 <p>
-Opens the file or directory at the location of the caret or mouse click in a
-directory buffer and then closes the directory buffer.
+Opens the file or directory at the caret, then closes the directory buffer.
 <p>
 <b>Default key mapping:</b> none
 <p>
@@ -1527,8 +1511,8 @@ directory buffer and then closes the directory buffer.
 
 <a name="dirProjectDir">dirProjectDir</a><dl><dd>
 <p>
-Shows the current buffer's project root in a directory buffer: the current
-buffer, if it is one, or else one for the root. See
+Shows the project root in a directory buffer. That is the current buffer, if
+it is one, or else one for the root. See
 <a href="navigation.html#projects">Projects</a> for how the root is found.
 <p>
 <b>Default key mapping:</b> None
@@ -1541,8 +1525,7 @@ buffer, if it is one, or else one for the root. See
 
 <a name="dirRescan">dirRescan</a><dl><dd>
 <p>
-Refreshes the directory listing for the current directory buffer and rescans the
-directory tree.
+Refreshes the listing and rescans the directory tree.
 <br><br>
 <b>Default key mapping:</b> Ctrl R or r in directory buffers
 <br><br>
@@ -1552,9 +1535,9 @@ directory tree.
 
 <a name="dirLimit">dirLimit</a><dl><dd>
 <p>
-Sets a limit pattern (something like "*.java") to control what files are
-displayed in the directory listing, typed over the limit chip in the
-listing's filter bar; Up and Down step through the patterns used before.
+Limits the listing to names matching a pattern, such as "*.java". The
+pattern is typed over the limit chip in the listing's filter bar; Up and
+Down step through the patterns used before.
 Entering a blank string removes the limit, so that all files are displayed.
 <br><br>
 <b>Default key mapping:</b> '-p', and 'l' in simple edit mode, in directory buffers.
@@ -1576,7 +1559,7 @@ Tags or untags the file at the current location of the caret.
 
 <a name="dirTimeStyle">dirTimeStyle</a><dl><dd>
 <p>
-Steps the listing's dates through the time styles locale (<code>Oct 16 09:02</code>), iso (<code>10-16 09:02</code>) and long-iso (<code>2026-10-16 09:02</code>), as <code>ls --time-style</code> writes them, and age (<code>3h</code>, <code>4mo</code>), as the git log's; with one named, uses it. With <code>ls</code>, only GNU's takes the first three; an age is j's in any listing.
+Steps the listing's date style. The styles are locale (<code>Oct 16 09:02</code>), iso (<code>10-16 09:02</code>) and long-iso (<code>2026-10-16 09:02</code>), as <code>ls --time-style</code> writes them, and age (<code>3h</code>, <code>4mo</code>), as the git log's; with one named, uses it. With <code>ls</code>, only GNU's takes the first three; an age is j's in any listing.
 <br><br>
 <b>Default key mapping:</b> '-t' in directory buffers.
 <br><br>
@@ -1596,7 +1579,7 @@ Lists directories over the files, whatever the sort, or among them.
 
 <a name="dirToggleHidden">dirToggleHidden</a><dl><dd>
 <p>
-Shows or hides the hidden names in the directory listing: those starting with
+Shows or hides the listing's hidden names. They are those starting with
 a dot, those matching filenameCompletionsExcludePattern, and those version control ignores.
 <br><br>
 <b>Default key mapping:</b> '-.' and '.' in directory buffers.
@@ -1627,8 +1610,7 @@ Reverses the listing's sort, with the current and parent directories kept on top
 
 <a name="dirUnlimit">dirUnlimit</a><dl><dd>
 <p>
-Removes any limit pattern that may be in effect for the current directory
-buffer, so that all files are displayed.
+Removes the listing's limit pattern, so that all files are shown.
 <br><br>
 <b>Default key mapping:</b> 'L' in directory buffers.
 <br><br>
@@ -1649,8 +1631,8 @@ Navigates to the parent of the current directory.
 
 <a name="doShellCommandOnRegion">doShellCommandOnRegion</a><dl><dd>
 <p>
-Prompts for a shell command and then executes that command, using the selected
-region as input. The contents of the selected region are replaced by the
+Runs a shell command with the selection as its input. It prompts for the
+command. The contents of the selected region are replaced by the
 output of the command. If an error occurs, you can use
 <a href="commands.html#undo">undo</a> to restore the previous contents.
 <br><br>
@@ -1735,8 +1717,7 @@ Opens the <a href="preferences.html">preferences</a> file for editing.
 
 <a name="editRegister">editRegister</a><dl><dd>
 <p>
-Prompts for a register name and opens a buffer so you can edit the contents of
-the specified register.
+Opens a buffer to edit a register's contents. It prompts for the register.
 <p>
 Register names must be lower case letters (a-z). The contents of registers
 persist automatically from one j session to the next.
@@ -1753,9 +1734,8 @@ persist automatically from one j session to the next.
 
 <a name="electricCloseAngleBracket">electricCloseAngleBracket</a><dl><dd>
 <p>
-Inserts '>' and, if the property
-<a href="preferences.html#autoIndent">autoIndent</a> is <code>true</code>,
-re-indents the current line according to context.
+Inserts '>' and re-indents the line. It re-indents only if
+<a href="preferences.html#autoIndent">autoIndent</a> is <code>true</code>.
 <br><br>
 <b>Default key mapping:</b> '>' in HTML and XML modes
 <br><br>
@@ -1789,8 +1769,7 @@ You can add this to your <a href="init.lisp.html">init.lisp</a> with:
 
 <a name="electricColon">electricColon</a><dl><dd>
 <p>
-Inserts a colon at the current location of the caret and re-indents the current
-line according to context.  If the property
+Inserts a colon and re-indents the line.  If the property
 <a href="preferences.html#autoNewline">autoNewline</a> is <code>true</code>,
 also inserts a line separator and moves the caret to the appropriate column on
 the new line.
@@ -1823,8 +1802,7 @@ contains only whitespace, the '#' will be forced into the first column.
 
 <a name="electricQuote">electricQuote</a><dl><dd>
 <p>
-Inserts a pair of '"' characters at the current location of the caret and
-places the caret between them.  If the cursor is on a '"' character, a newline
+Inserts a pair of '"' characters, with the caret between them.  If the cursor is on a '"' character, a newline
 will be inserted and the caret will be indented according to the context.
 <br><br>
 <b>Default key mapping:</b> Ctrl " in Lisp mode
@@ -1833,8 +1811,7 @@ will be inserted and the caret will be indented according to the context.
 
 <a name="electricSemi">electricSemi</a><dl><dd>
 <p>
-Inserts a semicolon at the current location of the caret and re-indents the
-current line according to context.  If the property <a href="preferences.html#autoNewline">autoNewline</a> is
+Inserts a semicolon and re-indents the line.  If the property <a href="preferences.html#autoNewline">autoNewline</a> is
 <code>true</code>, also inserts a line separator and moves the caret to the
 appropriate column on the new line.
 <br><br>
@@ -1844,8 +1821,7 @@ appropriate column on the new line.
 
 <a name="electricStar">electricStar</a><dl><dd>
 <p>
-Inserts '*' at the current location of the caret and, if the current line is
-otherwise blank, re-indents the line according to context.
+Inserts '*', re-indenting the line if it is otherwise blank.
 <br><br>
 <b>Default key mapping:</b> '*' in Java, JavaScript, C and C++ modes
 <br><br>
@@ -1892,8 +1868,7 @@ Grows the current split window by a line.
 
 <a name="entabRegion">entabRegion</a><dl><dd>
 <p>
-Replaces spaces with tab characters in the selected region, based on the tab
-width of the buffer. Buffer-specific settings such as <code>tabWidth</code> may
+Replaces the selection's spaces with tabs, by the buffer's tab width. Buffer-specific settings such as <code>tabWidth</code> may
 be inspected and modified in the Properties dialog (see <a href="#properties">properties</a>).
 <p>
 <b>Default key mapping:</b> None
@@ -1920,8 +1895,7 @@ Moves the caret to the end of the line.
 
 <a name="evalDefunLisp">evalDefunLisp</a><dl><dd>
 <p>
-Sends the definition at the location of the caret in a Lisp source buffer to
-the active Lisp shell for evaluation.
+Sends the definition at the caret to the Lisp shell for evaluation.
 <p>
 <b>Default key mapping:</b> Ctrl Alt E in Lisp mode
 <p>
@@ -1931,8 +1905,7 @@ the active Lisp shell for evaluation.
 
 <a name="evalRegionLisp">evalRegionLisp</a><dl><dd>
 <p>
-Sends the selected region in a Lisp source buffer to the active Lisp shell for
-evaluation.
+Sends the selection to the Lisp shell for evaluation.
 <p>
 <b>Default key mapping:</b> Ctrl Alt R in Lisp mode
 <p>
@@ -1983,8 +1956,7 @@ or like this:
 
 <a name="expand">expand</a><dl><dd>
 <p>
-Replaces the text to the left of the caret with a word in the current buffer for
-which that text is a prefix.
+Completes the word before the caret from the buffer's words.
 <br><br>
 The expand command takes the sequence of characters you've just typed (more
 precisely, the sequence of characters that are legal in a Java identifier,
@@ -2015,8 +1987,7 @@ expansion can be cancelled by pressing Escape.
 
 <a name="find">find</a><dl><dd>
 <p>
-Prompts for a pattern and finds the next occurrence of the specified pattern in
-the current buffer.
+Finds the next match of a pattern in the buffer. It prompts for the pattern.
 <p>
 The search is case-insensitive if the "Ignore case" checkbox is checked.
 <p>
@@ -2072,8 +2043,8 @@ its name filled in.
 
 <a name="findBookmark">findBookmark</a><dl><dd>
 <p>
-Lists the bookmarks, 0 to 9 and A to Z, each with its file, line and text,
-and goes to the one you pick. Typing narrows the list.
+Lists the bookmarks and goes to the one you pick. They are 0 to 9 and A to Z,
+each with its file, line and text. Typing narrows the list.
 <p>
 <b>Default key mapping:</b> Ctrl `
 <p>
@@ -2084,8 +2055,8 @@ and goes to the one you pick. Typing narrows the list.
 
 <a name="findDefinitionAtDot">findDefinitionAtDot</a><dl><dd>
 <p>
-Goes to the definition of the name at the caret, read exactly as the mode
-reads names, from the buffer's tags and tag files.
+Goes to the definition of the name at the caret. It reads the name exactly as the mode
+does, from the buffer's tags and tag files.
 <p>
 <b>Default key mapping:</b> <code>gd</code> in vim edit mode
 <p>
@@ -2096,12 +2067,25 @@ reads names, from the buffer's tags and tag files.
 
 <a name="findFileInProject">findFileInProject</a><dl><dd>
 <p>
-Finds a file in the current buffer's project, its open buffers or its recent
-files, matching the characters you type in order but not necessarily together:
+Finds a file in the project, the open buffers or the recent files. It
+matches the characters you type in order but not necessarily together:
 <code>ofth</code> finds <code>OpenFileTextFieldHandler.java</code>. Words
 separated by spaces match in any order. With nothing typed, the list is the
 open buffers and the project's recent files; as you type, they rank ahead of
-other files that match about as well. Up and Down, or Ctrl P and Ctrl N, move through the list; Enter
+other files that match about as well, and the files under the current
+buffer's directory ahead of the project's others. Outside a project, the
+current buffer's directory's own files match too.
+<p>
+A path relative to the current buffer's directory, such as <code>src/</code>,
+lists that directory's entries among the matches; one starting with
+<code>./</code>, <code>../</code> or <code>~</code>, or an absolute one,
+lists them alone, with the directory itself first. Tab puts the selected entry in the edit
+control, and a directory put there lists its own entries; Enter goes into a
+directory. A name of an existing file or directory, such as <code>.</code>
+or <code>..</code>, opens as named unless you have picked another row. For a
+URL, an <a href="aliases.html">alias</a>, an encoding (<code>-e</code>), a
+name nothing matches, or Shift Enter, Enter opens what you typed, as
+<a href="commands.html#openFile">openFile</a> describes: a new file, too. Up and Down, or Ctrl P and Ctrl N, move through the list; Enter
 opens the selected file, and Ctrl Enter or Alt Enter opens it in the other
 window. Ending with <code>:N</code>, as in <code>KeyMap.java:156</code>, goes
 to line N. Ctrl Shift P switches to
@@ -2124,8 +2108,7 @@ The project's files are listed in the background and kept for later; see
 
 <a name="findFirstOccurrence">findFirstOccurrence</a><dl><dd>
 <p>
-Finds the first occurrence in the current buffer of the word at the current
-location of the caret.
+Finds the first occurrence in the buffer of the word at the caret.
 <p>
 The search is case-sensitive and is carried out as if the "whole words only"
 option was specified.
@@ -2139,8 +2122,8 @@ option was specified.
 
 <a name="findInFiles">findInFiles</a><dl><dd>
 <p>
-Prompts for a pattern and a file specification and generates a list of all
-occurrences of the specified pattern in files matching the file specification.
+Lists every match of a pattern in the files a file specification names. It
+prompts for both.
 <p>
 Several file specifications can be supplied at once, separated by semicolons.
 If the full path is not given in a file specification, the directory "Search
@@ -2208,7 +2191,7 @@ An alias for <a href="#findMatchingPair">findMatchingPair</a>.
 
 <a name="findMatchingPair">findMatchingPair</a><dl><dd>
 <p>
-Moves the caret to the other end of the pair at the caret: a brace,
+Moves the caret to the other end of the pair at the caret. That is a brace,
 parenthesis or bracket; in C and C++ modes, an <code>#if</code>,
 <code>#else</code>, <code>#elif</code> or <code>#endif</code> when the caret
 is at or before the line's <code>#</code>; in XML and HTML modes, the other
@@ -2228,9 +2211,9 @@ or a comment matches too. In <a href="editmodes.html">vim edit mode</a>,
 
 <a name="findNext">findNext</a><dl><dd>
 <p>
-Finds the next match in the current search (initiated by <a href="#find">find</a>,
+Finds the next match of the current search. That search was started by <a href="#find">find</a>,
 <a href="#incrementalFind">incrementalFind</a>, <a href="#findNextWord">findNextWord</a>
-or <a href="#findPrevWord">findPrevWord</a>).
+or <a href="#findPrevWord">findPrevWord</a>.
 The search is every window's unless
 <a href="preferences.html#shareSearch">shareSearch</a> is false, and is also
 the one a search in <a href="editmodes.html">vim edit mode</a> made, so this
@@ -2242,8 +2225,8 @@ goes on with a <code>/</code>.
 
 <a name="findNextWord">findNextWord</a><dl><dd>
 <p>
-Finds the next occurrence in the current buffer of the word at the caret,
-as <code>*</code> does in <a href="editmodes.html">vim edit mode</a>: the
+Finds the next occurrence of the word at the caret. It works as
+<code>*</code> does in <a href="editmodes.html">vim edit mode</a>: the
 keyword under the caret, or else the next one along its line; on a line with
 none, the next run of non-blanks.
 <p>
@@ -2262,8 +2245,7 @@ this way, so vim's <code>n</code> goes on forward.
 
 <a name="findOccurrenceAtDot">findOccurrenceAtDot</a><dl><dd>
 <p>
-Jumps to the source line that corresponds to the current line in a List
-Occurrences buffer.
+Goes to the source line of the current List Occurrences line.
 <p>
 <b>Default key mapping:</b> Enter or Ctrl Shift G in List Occurrences buffers
 <p>
@@ -2274,8 +2256,8 @@ Occurrences buffer.
 
 <a name="findOccurrenceAtDotAndKillList">findOccurrenceAtDotAndKillList</a><dl><dd>
 <p>
-Jumps to the source line that corresponds to the current line in a List
-Occurrences buffer, and closes the List Occurrences buffer.
+Goes to the source line of the current List Occurrences line, and closes the
+list.
 <p>
 <b>Default key mapping:</b> Ctrl Enter in List Occurrences buffers
 <p>
@@ -2286,9 +2268,9 @@ Occurrences buffer, and closes the List Occurrences buffer.
 
 <a name="findPrev">findPrev</a><dl><dd>
 <p>
-Finds the previous match in the current search (initiated by <a href="#find">find</a>,
+Finds the previous match of the current search. That search was started by <a href="#find">find</a>,
 <a href="#incrementalFind">incrementalFind</a>, <a href="#findNextWord">findNextWord</a>
-or <a href="#findPrevWord">findPrevWord</a>).
+or <a href="#findPrevWord">findPrevWord</a>.
 <br><br>
 <b>Default key mapping:</b> Shift F3, Ctrl H
 <br><br>
@@ -2296,8 +2278,8 @@ or <a href="#findPrevWord">findPrevWord</a>).
 
 <a name="findPrevWord">findPrevWord</a><dl><dd>
 <p>
-Finds the previous occurrence in the current buffer of the word at the caret,
-as <code>#</code> does in <a href="editmodes.html">vim edit mode</a>: the
+Finds the previous occurrence of the word at the caret. It works as
+<code>#</code> does in <a href="editmodes.html">vim edit mode</a>: the
 keyword under the caret, or else the next one along its line; on a line with
 none, the next run of non-blanks.
 <p>
@@ -2316,8 +2298,8 @@ this way, so vim's <code>n</code> goes on backward.
 
 <a name="findTag">findTag</a><dl><dd>
 <p>
-Prompts for a tag (generally speaking, a tag is a function name) and moves the
-caret to the definition of the specified function. As you type, a list shows
+Goes to the definition of a tag, generally a function name. It prompts for
+the tag. As you type, a list shows
 the tags that match, in the way
 <a href="commands.html#findFileInProject">findFileInProject</a> matches
 files: the current buffer's first, with their line numbers, then those in the
@@ -2355,8 +2337,8 @@ Perl modes
 
 <a name="findTagAtDotOtherWindow">findTagAtDotOtherWindow</a><dl><dd>
 <p>
-Jumps to the definition of the function at the current location of the caret,
-using the other window (splitting the current window if necessary). Keyboard
+Goes to the definition of the function at the caret, in the other window. It
+splits the window if necessary. Keyboard
 focus stays in the original window.
 <p>
 <b>Default key mapping:</b> Ctrl Alt . (Ctrl Alt dot) in Java mode and its
@@ -2370,8 +2352,7 @@ derivatives
 
 <a name="finish">finish</a><dl><dd>
 <p>
-Completes the version control checkin operation, using the contents of the current buffer
-as the checkin comment. This command is only available in checkin buffers.
+Completes the version control checkin, with the buffer as the comment. This command is only available in checkin buffers.
 <p>
 <b>Default key mapping:</b> Ctrl Enter in checkin buffers
 <p>
@@ -2397,7 +2378,7 @@ that is already folded folds the one around it.
 
 <a name="foldAll">foldAll</a><dl><dd>
 <p>
-Folds everything the mode can, leaving an outline: the methods, as
+Folds everything the mode can, leaving an outline. That is the methods, as
 <a href="#foldMethods">foldMethods</a> does in Java and Perl modes, or in
 Markdown mode, the headings, as <a href="#foldHeadings">foldHeadings</a>
 does. Other modes say there is nothing to fold.
@@ -2480,9 +2461,9 @@ it, in the link color and underlined, with a hand for the mouse.
 
 <a name="followLinkOrTask">followLinkOrTask</a><dl><dd>
 <p>
-In Markdown mode, <a href="#followLink">followLink</a> if the caret is on a
-link, saying so if its reference is not defined; else
-<a href="#task">task</a> on a list item or a selection. On a line of text
+Follows the link at the caret, or toggles a task. In Markdown mode, it is
+<a href="#followLink">followLink</a> on a link, saying so if its reference is
+not defined; else <a href="#task">task</a> on a list item or a selection. On a line of text
 it does nothing, where task would make the line a task.
 <br><br>
 <b>Default key mapping:</b> Ctrl+Enter (Markdown mode)
@@ -2514,8 +2495,9 @@ editor.
 
 <a name="gitSetParent">gitSetParent</a><dl><dd>
 <p>
-Records the branch the current one is to be merged into, picked from a list of
-the branches, local and remote, or named: <code>gitSetParent main</code>.
+Records the branch the current one is to be merged into. It is picked from a
+list of the branches, local and remote, or named:
+<code>gitSetParent main</code>.
 <code>gitSetParent -</code> removes the record, so that the parent is found
 again. It is recorded as GitHub's CLI records it, in
 <code>branch.&lt;name&gt;.gh-merge-base</code>, origin's branch by its bare
@@ -2570,10 +2552,10 @@ Returns to a previously dropped temporary marker.
 
 <a name="help">help</a><dl><dd>
 <p>
-Finds a help topic: a page of this manual, a command or a preference, by
-matching what you type as
+Finds a help topic: a page of this manual, a command or a preference. It
+matches what you type as
 <a href="commands.html#findFileInProject">findFileInProject</a> does, and
-displays it.
+displays the topic.
 <p>
 For this command to work, you may need to set the <a href="preferences.html#docPath">docPath</a>
 property in your <a href="preferences.html">preferences</a> file to point to the
@@ -2603,8 +2585,8 @@ or
 
 <a name="home">home</a><dl><dd>
 <p>
-Moves the caret to the beginning of the text on the current line, if the caret
-is to the right of that location to begin with. If the caret is already at the
+Moves the caret to the start of the line's text, or to column 1. It goes to
+the text if the caret is to the right of it to begin with. If the caret is already at the
 beginning of the text on the current line or in the whitespace to the left of
 the text, <b>home</b> moves the caret to column 1 on the same line.
 <p>
@@ -2627,9 +2609,8 @@ of the first, and the special behavior is not triggered.
 
 <a name="htmlBold">htmlBold</a><dl><dd>
 <p>
-Inserts an HTML bold tag ("&lt;B&gt;") before the selected text (or before the location of
-the caret, if there's no selection) and an HTML end tag ("&lt;/B&gt;") after the selected
-text (or after the location of the caret).
+Wraps the selection, or the caret, in an HTML bold tag ("&lt;B&gt;" and
+"&lt;/B&gt;").
 <br><br>
 The case of the inserted tags is controlled by the property <a href="preferences.html#HtmlMode.upperCaseTagNames">HtmlMode.upperCaseTagNames</a>,
 which is <code>true</code> by default.
@@ -2679,8 +2660,7 @@ An alias for <a href="#findMatchingPair">findMatchingPair</a>.
 
 <a name="htmlInsertMatchingEndTag">htmlInsertMatchingEndTag</a><dl><dd>
 <p>
-Inserts the HTML end tag corresponding to the last HTML start tag before the
-location of the caret. Nested tags are not currently supported.
+Inserts the end tag of the last HTML start tag before the caret. Nested tags are not currently supported.
 <br><br>
 <b>Default key mapping:</b> Ctrl E in HTML mode
 <br><br>
@@ -2688,8 +2668,7 @@ location of the caret. Nested tags are not currently supported.
 
 <a name="htmlInsertTag">htmlInsertTag</a><dl><dd>
 <p>
-Inserts an HTML start tag and (if appropriate) the corresponding end tag,
-enclosing the current selection. If no selection is marked, the start and end
+Inserts an HTML start tag and, if needed, its end tag, around the selection. If no selection is marked, the start and end
 tags will enclose the word at the current location of the caret, if any.
 <br><br>
 If the property <a href="preferences.html#HtmlMode.fixCase">HtmlMode.fixCase</a>
@@ -2706,7 +2685,7 @@ behavior by supply a tag customization file; see <a href="preferences.html#HtmlM
 
 <a name="htmlStartTag">htmlStartTag</a><dl><dd>
 <p>
-Inserts an empty HTML start tag, with the caret positioned after the opening angle bracket.
+Inserts an empty HTML start tag, with the caret after its '&lt;'.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -2722,8 +2701,7 @@ Displays the request and response headers for the current HTTP buffer.
 
 <a name="hyperspec">hyperspec</a><dl><dd>
 <p>
-Displays the Common Lisp HyperSpec documentation for the symbol at the current
-location of the caret.
+Shows the Common Lisp HyperSpec entry for the symbol at the caret.
 <p>
 The documentation is displayed in another window, splitting the current window
 if necessary. This transient window can be dismissed using
@@ -2752,9 +2730,9 @@ HyperSpec root directory on your system:
 
 <a name="iList">iList</a><dl><dd>
 <p>
-Lists all occurrences of the identifier at the location of the caret, both in
-the current buffer and in any files referenced by a "#include" directive in
-the current buffer, in the order in which they occur.
+Lists the identifier at the caret everywhere it occurs. That is in the
+buffer and in any file it names in a "#include" directive, in the order in
+which they occur.
 <p>
 <b>Default key mapping:</b> Ctrl F6 in C and C++ modes
 <p>
@@ -2890,8 +2868,7 @@ Applies j's idea of correct indentation to the current line.
 
 <a name="indentLineOrRegion">indentLineOrRegion</a><dl><dd>
 <p>
-Applies j's idea of correct indentation to the marked region, or, if no region is
-marked, the current line.
+Indents the selection, or the current line.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -2915,8 +2892,7 @@ Applies j's idea of correct indentation to the marked region.
 
 <a name="insertBraces">insertBraces</a><dl><dd>
 <p>
-Inserts an opening brace followed by a closing brace, indented appropriately,
-leaving the caret positioned between them.
+Inserts a pair of braces, indented, with the caret between them.
 <br><br>
 <b>Default key mapping:</b> Ctrl Shift [ in Java, JavaScript, C and C++ modes
 <br><br>
@@ -2924,8 +2900,7 @@ leaving the caret positioned between them.
 
 <a name="insertByte">insertByte</a><dl><dd>
 <p>
-Inserts the character that corresponds to the specified byte in the default
-encoding at the current location of the caret. The byte must be specified as a
+Inserts the character a byte stands for in the default encoding. The byte must be specified as a
 decimal, hexadecimal or octal number. A leading zero denotes an octal number; a
 leading "0x" or "0X" denotes a hexidecimal number; otherwise the number is
 assumed to be decimal.
@@ -2947,10 +2922,8 @@ hexidecimal number; otherwise the number is assumed to be decimal.
 
 <a name="insertKeyText">insertKeyText</a><dl><dd>
 <p>
-Inserts the next key combination you type (which can be a single key like Enter
-or Backspace, or a combination like Ctrl Alt S) as a string (like "Enter" or
-"Backspace" or "Ctrl Alt S") at the location of the caret in the current
-buffer. The action mapped to the key combination in question (if any) is not
+Inserts the name of the next key you type, as "Ctrl Alt S". It can be a
+single key like Enter or Backspace, or a combination. The action mapped to the key combination in question (if any) is not
 performed. Useful for editing a custom key map. The inserted text is guaranteed
 (well, not guaranteed, exactly, but extremely likely) to be in a format
 recognizable by j's key map parser.
@@ -2978,9 +2951,8 @@ Perl modes
 
 <a name="insertRegister">insertRegister</a><dl><dd>
 <p>
-Lists the registers, each with the first line it holds, and inserts the
-contents of the one you pick at the location of the caret in the current
-buffer. Typing narrows the list, by name or content.
+Lists the registers and inserts the one you pick. Each is listed with the
+first line it holds. Typing narrows the list, by name or content.
 <p>
 Register names must be lower case letters (a-z). The contents of registers
 persist automatically from one j session to the next.
@@ -3016,9 +2988,8 @@ For example:
 
 <a name="insertTab">insertTab</a><dl><dd>
 <p>
-If <code>useTabs</code> is <code>true</code> for the current buffer, inserts a
-tab character at the location of the caret, otherwise inserts the appropriate
-number of spaces, based on the buffer's <code>indentSize</code>.
+Inserts a tab, or spaces when <code>useTabs</code> is false. The spaces are
+by the buffer's <code>indentSize</code>.
 Buffer-specific settings such as <code>useTabs</code> and
 <code>indentSize</code> may be inspected and modified in the Properties dialog
 (see <a href="#properties">properties</a>).
@@ -3029,8 +3000,7 @@ Buffer-specific settings such as <code>useTabs</code> and
 
 <a name="jdb">jdb</a><dl><dd>
 <p>
-Invokes j's built-in Java debugger, or, if the debugger is already running,
-ensures that the debugger transcript buffer is visible.
+Starts j's Java debugger, or shows its transcript if it is running.
 <p>
 If an argument is supplied, it is passed as a command to the running instance
 of the debugger. For example:
@@ -3049,8 +3019,7 @@ already been started.
 
 <a name="jdkHelp">jdkHelp</a><dl><dd>
 <p>
-Displays the JDK HTML help file corresponding to the class name at the
-location of the caret or mouse click.
+Shows the JDK help page for the class name at the caret.
 <p>
 The help file is displayed in another window, splitting the current window if
 necessary. The help buffer can subsequently be dismissed using
@@ -3070,8 +3039,7 @@ JDK documentation:
 
 <a name="jlisp">jlisp</a><dl><dd>
 <p>
-Runs Armed Bear Lisp embedded in the running instance of j, with interaction in
-a Lisp shell buffer.
+Runs Armed Bear Lisp inside j, in a Lisp shell buffer.
 <p>
 Using this command to run Lisp lets you use the resulting Lisp shell to
 interact with the running instance of j.
@@ -3109,8 +3077,8 @@ is, so <code>jumpForward</code> comes back to it.
 
 <a name="jumps">jumps</a><dl><dd>
 <p>
-Lists the jump list, oldest first, as vim's <code>:jumps</code> does, with each
-position's line; the current position is marked and selected. Typing narrows
+Lists the jump list, oldest first, as vim's <code>:jumps</code> does. Each
+position has its line; the current position is marked and selected. Typing narrows
 the list; Enter goes to the position, as
 <a href="commands.html#jumpBack">jumpBack</a> and
 <a href="commands.html#jumpForward">jumpForward</a> would.
@@ -3146,8 +3114,8 @@ The line number can be a simple number ("123"), an arithmetic expression
 
 <a name="jumpToOffset">jumpToOffset</a><dl><dd>
 <p>
-Prompts for an absolute offset (the number of characters from the start of the
-buffer) and moves the caret to the specified location.
+Moves the caret to a character offset from the start of the buffer. It
+prompts for the offset.
 <p>
 The offset can be a simple number ("123"), an arithmetic expression
 ("100+23"), or a positive or negative offset from the current location ("+7",
@@ -3161,8 +3129,7 @@ The offset can be a simple number ("123"), an arithmetic expression
 
 <a name="justOneSpace">justOneSpace</a><dl><dd>
 <p>
-Replaces all whitespace under the caret, including newlines, with a single
-space character.
+Replaces the whitespace at the caret, newlines too, with one space.
 <p>
 <b>Default key mapping:</b> Ctrl Shift Space in Lisp mode
 <br><br>
@@ -3170,9 +3137,8 @@ space character.
 
 <a name="killAppend">killAppend</a><dl><dd>
 <p>
-Deletes the selected region (or the current line if no region is selected),
-appending the deleted text to the most recent entry in the
-<a href="killring.html">kill ring</a>.
+Cuts the selection, or the current line, appending it to the last
+<a href="killring.html">kill ring</a> entry.
 <br><br>
 <b>Default key mapping:</b> Ctrl Shift X
 <br><br>
@@ -3197,8 +3163,8 @@ Closes the current frame.
 
 <a name="killLine">killLine</a><dl><dd>
 <p>
-Copies the text from the location of the caret to the end of the current line to
-the <a href="killring.html">kill ring</a> and then deletes that text. If the
+Cuts from the caret to the end of the line, to the
+<a href="killring.html">kill ring</a>. If the
 text to be deleted is nothing but whitespace, or if the caret is already at the
 end of the line, the following line separator is copied to the kill ring and
 deleted too.
@@ -3224,8 +3190,7 @@ with the command <a href="#pasteColumn">pasteColumn</a>.
 
 <a name="killWindow">killWindow</a><dl><dd>
 <p>
-If the current frame contains a split window, closes the current edit window,
-and gives focus to the other edit window. Equivalent to
+Closes the current split window, giving focus to the other. Equivalent to
 <a href="#otherWindow">otherWindow</a> followed by
 <a href="#unsplitWindow">unsplitWindow</a>.
 The last window in a frame can't be closed. With the argument
@@ -3317,8 +3282,8 @@ Deprecated: Use <a href="#describeBindings">describeBindings</a> instead.
 
 <a name="listFiles">listFiles</a><dl><dd>
 <p>
-Displays the List Occurrences output buffer generated by the last invocation
-of <a href="#findInFiles">findInFiles</a>.
+Shows the List Occurrences buffer of the last
+<a href="#findInFiles">findInFiles</a>.
 <p>
 <b>Default key mapping:</b> Ctrl Shift L
 <br><br>
@@ -3326,8 +3291,7 @@ of <a href="#findInFiles">findInFiles</a>.
 
 <a name="listIncludes">listIncludes</a><dl><dd>
 <p>
-Recursively lists all files referenced by a "#include" directive in the
-current buffer or in a file so referenced.
+Lists the files the buffer's "#include" directives name, recursively.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -3346,8 +3310,8 @@ Lists all lines in the current buffer that match the last search.
 
 <a name="listOccurrencesOfPatternAtDot">listOccurrencesOfPatternAtDot</a><dl><dd>
 <p>
-Lists all occurrences in the current buffer of the selected text (if any) or of
-the word at the current location of the caret.
+Lists every occurrence in the buffer of the selection or the word at the
+caret.
 <p>
 If text is selected on the current line, the selected text is used as the
 pattern for the search, and the search is carried out as if the "whole words
@@ -3367,12 +3331,13 @@ Multi-line selections are not supported.
 
 <a name="listStyles">listStyles</a><dl><dd>
 <p>
-Lists every style the theme gives: the built-in ones every mode has (text,
-background, caret, selection, comment, keyword and so on), the
-<a href="themes.html#shared">shared styles</a>, and the current buffer's mode's,
-each drawn in itself with a swatch of its color in the gutter, in columns:
-its color and style, the names it links to (<code>&#8594; heading</code>), and
-where its color and its style came from. A source is the preference that set
+Lists every style the theme gives, each drawn in itself. They are the
+built-in ones every mode has (text, background, caret, selection, comment,
+keyword and so on), the <a href="themes.html#shared">shared styles</a>, and
+the current buffer's mode's, each with a swatch of its color in the gutter,
+in columns: its color and style, the names it links to
+(<code>&#8594; heading</code>), and where its color and its style came
+from. A source is the preference that set
 it, such as <code>color.heading</code>, or <code>default</code> for j's own,
 dimmed so that what the theme set stands out. For finding out why something
 is the color it is.
@@ -3446,8 +3411,7 @@ Converts all upper case characters in the selected region to lower case.
 
 <a name="mailboxDelete">mailboxDelete</a><dl><dd>
 <p>
-Marks for deletion the tagged messages or the message at the current location
-of the caret.
+Marks the tagged messages, or the one at the caret, deleted.
 <br><br>
 <b>Default key mapping:</b> 'd' in Mailbox mode
 <br><br>
@@ -3508,8 +3472,7 @@ Moves to the last message in the mailbox.
 
 <a name="mailboxLimit">mailboxLimit</a><dl><dd>
 <p>
-Prompts for a pattern and limits the messages displayed in the mailbox to
-those matching the specified pattern.
+Shows only the messages matching a pattern. It prompts for the pattern.
 <br><br>
 If a simple pattern is specified, j looks for a match in the "Subject" and
 "From" fields.
@@ -3731,11 +3694,11 @@ caret or mouse click.
 
 <a name="markdownBackspace">markdownBackspace</a><dl><dd>
 <p>
-In Markdown mode, <a href="#backspace">backspace</a>, except at the end of
-an empty list item, where it takes the marker away and leaves the caret
-under the text of the item above, and in a blank line's indentation under
-a list item, where it steps back to that item's text, then its level, then
-the levels of the items it is under.
+In Markdown mode, <a href="#backspace">backspace</a>, aware of list items. At
+the end of an empty list item, it takes the marker away and leaves the caret
+under the text of the item above; in a blank line's indentation under a list
+item, it steps back to that item's text, then its level, then the levels of
+the items it is under.
 <br><br>
 <b>Default key mapping:</b> Backspace (Markdown mode)
 <br><br>
@@ -3743,8 +3706,8 @@ the levels of the items it is under.
 
 <a name="markdownNewline">markdownNewline</a><dl><dd>
 <p>
-In Markdown mode, on a list item, starts the next item: the same marker,
-numbered on, with an empty box if the item has a box. On an empty item it
+In Markdown mode, on a list item, starts the next item. It has the same
+marker, numbered on, with an empty box if the item has a box. On an empty item it
 takes the marker away instead, ending the list. Elsewhere it is
 <a href="#newlineAndIndent">newlineAndIndent</a>.
 <br><br>
@@ -3754,8 +3717,8 @@ takes the marker away instead, ending the list. Elsewhere it is
 
 <a name="markdownShiftTab">markdownShiftTab</a><dl><dd>
 <p>
-In Markdown mode, the inverse of <a href="#markdownTab">markdownTab</a>:
-shifts the line, or the lines of a selection, left by the indent size.
+In Markdown mode, shifts the line or selection left. It is the inverse of
+<a href="#markdownTab">markdownTab</a>, by the indent size.
 <br><br>
 <b>Default key mapping:</b> Shift+Tab (Markdown mode)
 <br><br>
@@ -3763,8 +3726,9 @@ shifts the line, or the lines of a selection, left by the indent size.
 
 <a name="markdownTab">markdownTab</a><dl><dd>
 <p>
-In Markdown mode, shifts a list item, a line with the caret in its
-indentation, or the lines of a selection, right by the indent size. In the
+In Markdown mode, shifts a list item or the selection right. It shifts a list
+item, a line with the caret in its indentation, or the lines of a selection,
+by the indent size. In the
 text of a line that isn't a list item it inserts a tab.
 <br><br>
 <b>Default key mapping:</b> Tab (Markdown mode)
@@ -3781,8 +3745,7 @@ Marks the region from the caret position to the end of the containing sexp.
 
 <a name="messageDelete">messageDelete</a><dl><dd>
 <p>
-Marks the current message deleted and loads the next undeleted message in the
-current message buffer.
+Marks the message deleted and shows the next undeleted one.
 <br><br>
 <b>Default key mapping:</b> 'd' in Message mode
 <br><br>
@@ -3792,8 +3755,7 @@ current message buffer.
 
 <a name="messageFlag">messageFlag</a><dl><dd>
 <p>
-Toggles the "important" flag of the current message and loads the next
-undeleted message in the current message buffer.
+Toggles the message's "important" flag and shows the next undeleted one.
 <br><br>
 <b>Default key mapping:</b> 'F' in Message mode
 <br><br>
@@ -3899,8 +3861,8 @@ addressed to the sender of the original message.
 
 <a name="messageSaveAttachment">messageSaveAttachment</a><dl><dd>
 <p>
-Prompts for a filename and saves the attachment listed on the line containing
-the caret to the specified file.
+Saves the attachment on the caret's line to a file. It prompts for the
+filename.
 <br><br>
 <b>Default key mapping:</b> 's' in Message mode
 <br><br>
@@ -3971,7 +3933,7 @@ X, "mode lisp".
 
 <a name="modePopup">modePopup</a><dl><dd>
 <p>
-Opens a popup of the current buffer's keys, as magit's are: settings to change,
+Opens a popup of the buffer's keys, as magit's are. It shows settings to change,
 such as a listing's sort and filters, and commands to run, in groups, with the
 keys in bold. A key or a click does what an item says. Escape goes back from a
 popup opened from another, and closes the first; q closes it too. Ctrl S saves
@@ -3995,8 +3957,7 @@ Copies the current selection or the current sexp to the input line.
 
 <a name="mouseFindOccurrence">mousefindOccurrence</a><dl><dd>
 <p>
-Jumps to the line in the source file corresponding to the location of the
-mouse click in a List Occurrences buffer.
+Goes to the source line of the List Occurrences line clicked.
 <p>
 <b>Default key mapping:</b> Mouse-2 or Double Mouse-1 in List Occurrences buffers
 <p>
@@ -4031,8 +3992,8 @@ Moves the caret to the location of the mouse click.
 
 <a name="mousePaste">mousePaste</a><dl><dd>
 <p>
-If a selection is marked, the contents of the selected region are copied to
-the <a href="killring.html">kill ring</a>, and the region is deselected. Then
+Pastes at the mouse click. If a selection is marked, its contents are copied
+to the <a href="killring.html">kill ring</a>, and the region is deselected. Then
 the copied text is inserted at the location of the mouse click.
 <p>
 If no selection is marked, mousePaste is equivalent to
@@ -4055,8 +4016,7 @@ indentation of the inserted lines is corrected to match their new context.
 
 <a name="mouseSelect">mouseSelect</a><dl><dd>
 <p>
-Selects the region from the caret to the location of the mouse click, or
-adjusts the current selection accordingly.
+Selects from the caret to the mouse click, or extends the selection.
 <p>
 <b>Default key mapping:</b> Mouse-1
 <p>
@@ -4074,8 +4034,8 @@ Displays the context menu (if any) for the current buffer.
 
 <a name="movePastCloseAndReindent">movePastCloseAndReindent</a><dl><dd>
 <p>
-Moves the caret past the next unmatched closing parenthesis to the right of its
-current location, inserts a line separator, and indents according to context.
+Moves past the next unmatched closing parenthesis, then starts an indented
+line.
 <br><br>
 <b>Default key mapping:</b> Ctrl Shift ) in Java, JavaScript, C, C++ and Lisp modes
 <br><br>
@@ -4137,9 +4097,9 @@ Switches to the next buffer.
 
 <a name="nextChange">nextChange</a><dl><dd>
 <p>
-Moves to the first line of the next group of changed lines, around to the
-first past the last: changed since the file was loaded, or in a file the
-version control tracks, the next change it sees. In the status buffer and
+Moves to the next group of changed lines, around past the last. They are
+changes since the file was loaded, or in a file the version control tracks,
+the changes it sees. In the status buffer and
 the log's diff, the next hunk. See
 <a href="changes.html">Change marks</a>.
 <p>
@@ -4202,8 +4162,7 @@ argument moves around the cycle in the opposite order.
 
 <a name="offset">offset</a><dl><dd>
 <p>
-Reports the current location of the caret as an absolute offset (the number of
-characters from the start of the buffer).
+Reports the caret's character offset from the start of the buffer.
 <br><br>
 <b>Default key mapping:</b> None
 <p>
@@ -4213,9 +4172,9 @@ characters from the start of the buffer).
 
 <a name="olderChange">olderChange</a><dl><dd>
 <p>
-Goes to the next older position in the buffer's
-<a href="commands.html#changeList">change list</a>; from the newest change,
-to where it was made.
+Goes to the next older position in the
+<a href="commands.html#changeList">change list</a>. From the newest change,
+it goes to where it was made.
 <p>
 <b>Default key mapping:</b> <code>g;</code> in vim edit mode
 <br><br>
@@ -4223,24 +4182,12 @@ to where it was made.
 
 <a name="openFile">openFile</a><dl><dd>
 <p>
-Sets focus to the edit control in the location bar of the current window,
-where you can find a file and press Enter to open it.
+The same as <a href="commands.html#findFileInProject">findFileInProject</a>:
+finds a file, or opens what you type. In a remote buffer, it sets focus to the
+location bar, which completes names as it used to.
 <p>
-A name lists, as you type, the files under the current buffer's directory that
-match it the way
-<a href="commands.html#findFileInProject">findFileInProject</a> matches: the
-characters in order, not necessarily together. If none match, the list is the
-matches in the whole <a href="navigation.html#projects">project</a>. A path,
-with a <code>/</code> or starting with <code>~</code>, lists the entries of
-that directory, with the directory itself first. Up and Down move through the
-list; Tab puts the selected entry in the edit control; Enter opens it, or goes
-into it if it's a directory; Ctrl Enter opens it in the other window.
-<p>
-A name of an existing file or directory, such as <code>..</code>, opens as
-named unless you have picked another row. When nothing in the list matches,
-and for a URL, an <a href="aliases.html">alias</a> or Shift Enter, Enter opens
-what you typed, as follows; so Shift Enter makes a new file whose name matches
-others. In a remote buffer, the location bar completes names as it used to.
+What you type is opened as follows; so Shift Enter makes a new file whose
+name matches others.
 <br><br>
 If the specified file is not found in the current directory, j will look for it
 first in the <a href="preferences.html#includePath">include path</a> (if it's a
@@ -4254,8 +4201,7 @@ Alt Down shows the history of what you've typed.
 In addition to normal text files, you can open a directory, a .zip or .gz file,
 or a URL (like http://armedbear.org).
 <br><br>
-If you press Enter with no text in the edit control, you will get a directory
-buffer on the current directory.
+<code>.</code> opens a directory buffer on the current directory.
 <br><br>
 <b>Default key mapping:</b> Ctrl O
 <br><br>
@@ -4265,8 +4211,8 @@ buffer on the current directory.
 
 <a name="openFileInOtherFrame">openFileInOtherFrame</a><dl><dd>
 <p>
-Same as <a href="#openFile">openFile</a>, but the specified file is opened in
-a different (possibly new) frame (top-level editor window). You will be
+Same as <a href="#openFile">openFile</a>, but in another frame. The frame
+is a top-level editor window, made if need be. You will be
 prompted to enter the filename in a dialog box, rather than in the location
 bar of the current window.
 <br><br>
@@ -4276,9 +4222,9 @@ bar of the current window.
 
 <a name="openFileInSplit">openFileInSplit</a>, <a name="openFileInVsplit">openFileInVsplit</a><dl><dd>
 <p>
-Splits the window, top and bottom or side by side, and opens the file named by
-the command's argument in the top or left one, with the caret, as in
-<code>openFileInSplit README</code>. Unlike
+Splits the window and opens a file in the top or left one. The caret goes
+with it, as in <code>openFileInSplit README</code>; the split is top and
+bottom, or side by side. Unlike
 <a href="#openFileInOtherWindow">openFileInOtherWindow</a> it always makes a
 new window, and does not prompt.
 <br><br>
@@ -4291,8 +4237,7 @@ new window, and does not prompt.
 
 <a name="openFileInOtherWindow">openFileInOtherWindow</a><dl><dd>
 <p>
-Same as <a href="#openFile">openFile</a>, but the specified file
-is opened in the other window of the current frame. The current window is
+Same as <a href="#openFile">openFile</a>, but in the other window. The current window is
 split if necessary.
 <br><br>
 <b>Default key mapping:</b> Ctrl Alt O
@@ -4374,9 +4319,8 @@ Runs the Perforce "change" command.
 
 <a name="p4Diff">p4Diff</a><dl><dd>
 <p>
-Opens a diff output buffer showing the changes between your local copy of the
-file associated with the current buffer and the version in the Perforce
-repository.
+Shows the current file's changes from the Perforce version, in a diff
+output buffer.
 <p>
 <b>Default key mapping:</b> None
 <br><br>
@@ -4384,8 +4328,7 @@ repository.
 
 <a name="p4DiffDir">p4DiffDir</a><dl><dd>
 <p>
-Opens a diff output buffer showing the changes between the checked-in version
-and your local copy for all files that are open in Perforce.
+Shows the changes of every file open in Perforce, in a diff output buffer.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -4428,9 +4371,8 @@ buffer.
 
 <a name="p4Submit">p4Submit</a><dl><dd>
 <p>
-Opens a checkin buffer in which you can compose a Perforce checkin comment for
-the default changelist (or you can use the "-c" option to specify a different
-numbered changelist).
+Opens a buffer to write a Perforce checkin comment. It is for the default
+changelist, or another numbered one with the "-c" option.
 <p>
 When your comment is ready, you can use the command
 <a href="commands.html#finish">finish</a>, mapped by default to Ctrl Enter in
@@ -4485,10 +4427,9 @@ Moves the caret up one full screen in the other window in the same frame.
 
 <a name="paste">paste</a><dl><dd>
 <p>
-The contents of the system clipboard (if any) are appended to the
-<a href="killring.html">kill ring</a>, and then the last item from the
-kill ring (which will be the contents of the system clipboard, if anything was
-there) is inserted at the current location of the caret.
+Pastes the system clipboard, or the last kill. The clipboard's contents (if
+any) are appended to the <a href="killring.html">kill ring</a>, and then the
+last item from the kill ring is inserted at the caret.
 <p>
 If a block is marked, the inserted text replaces the marked block.
 <p>
@@ -4546,9 +4487,9 @@ Plays back previously recorded keystrokes.
 
 <a name="popPosition">popPosition</a><dl><dd>
 <p>
-Goes back to where the caret was before the last jump, as
-<a href="#jumpBack">jumpBack</a> does: the position stays on the jump list, so
-<a href="#jumpForward">jumpForward</a> comes back.
+Goes back to where the caret was before the last jump. As
+<a href="#jumpBack">jumpBack</a> does, the position stays on the jump list,
+so <a href="#jumpForward">jumpForward</a> comes back.
 <br><br>
 <b>Default key mapping:</b> Shift F5
 <br><br>
@@ -4572,7 +4513,7 @@ vim's alternate file, <code>Ctrl ^</code>.
 
 <a name="previewChange">previewChange</a><dl><dd>
 <p>
-Shows the change at the caret, its removed and added lines with the characters that differ marked, in a window under the caret until the next command: since the file was loaded, or in a file the version control tracks, against what is staged, or the staged change when there is no other. Its bar has buttons for the previous and next change, to stage or unstage it, and to revert it; going to another change shows that one.
+Shows the change at the caret in a window under it. The removed and added lines have the characters that differ marked, until the next command: since the file was loaded, or in a file the version control tracks, against what is staged, or the staged change when there is no other. Its bar has buttons for the previous and next change, to stage or unstage it, and to revert it; going to another change shows that one.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;hp in vim edit mode
 <br><br>
@@ -4582,9 +4523,9 @@ Shows the change at the caret, its removed and added lines with the characters t
 
 <a name="previousChange">previousChange</a><dl><dd>
 <p>
-Moves to the first line of the previous group of changed lines, around to the
-last before the first: changed since the file was loaded, or in a file the
-version control tracks, the previous change it sees.
+Moves to the previous group of changed lines, around past the first. They
+are changes since the file was loaded, or in a file the version control
+tracks, the changes it sees.
 <p>
 <b>Default key mapping:</b> Ctrl Alt P; [c in vim edit mode
 <p>
@@ -4611,8 +4552,7 @@ Cycles backwards through the history of version control checkin comments.
 
 <a name="previousError">previousError</a><dl><dd>
 <p>
-Jumps to the location in the source file that corresponds to the previous
-compilation error.
+Goes to the source line of the previous compilation error.
 <p>
 <b>Default key mapping:</b> Shift F4
 <p>
@@ -4653,8 +4593,8 @@ Selects the previously focused window in the current frame.
 
 <a name="properties">properties</a><dl><dd>
 <p>
-Invokes the Properties dialog, which lets you inspect and modify
-buffer-specific settings such as tab width, indent size, and mode.
+Opens the Properties dialog for the buffer's settings. They include tab
+width, indent size, and mode.
 <p>
 <b>Default key mapping:</b> Alt P
 <br><br>
@@ -4662,9 +4602,9 @@ buffer-specific settings such as tab width, indent size, and mode.
 
 <a name="pushPosition">pushPosition</a><dl><dd>
 <p>
-Puts the location of the caret on the jump list, for
-<a href="#popPosition">popPosition</a> or <a href="#jumpBack">jumpBack</a> to
-come back to.
+Puts the caret's position on the jump list. Then
+<a href="#popPosition">popPosition</a> or <a href="#jumpBack">jumpBack</a>
+comes back to it.
 <br><br>
 <b>Default key mapping:</b> F5
 <br><br>
@@ -4685,7 +4625,7 @@ buffers with unsaved changes.
 
 <a name="recentFiles">recentFiles</a><dl><dd>
 <p>
-Finds a file you've visited recently, by matching what you type as
+Finds a file you've visited recently. It matches what you type as
 <a href="commands.html#findFileInProject">findFileInProject</a> does; with
 nothing typed, the most recent come first. Enter opens it where you left it.
 <p>
@@ -4744,8 +4684,8 @@ made in <a href="init.lisp.html">init.lisp</a>) are discarded.
 
 <a name="renumberRegion">renumberRegion</a><dl><dd>
 <p>
-Changes the first number in each line of the selected region so that the it is
-one more than the first number in the preceding line. By default, the smallest
+Renumbers the selected lines: each line's first number one more than the
+line before's. By default, the smallest
 value in the entire region is used as the value for the first line. The order
 of the lines is not changed. Only the first number in each line is considered,
 and lines that don't contain a number at all are ignored.
@@ -4959,9 +4899,9 @@ prompted for confirmation before they are discarded.
 
 <a name="revertLines">revertLines</a><dl><dd>
 <p>
-Puts the changed lines at the caret, or under the selection, back: as they were
-when the file was loaded, or in a file the version control tracks, as they are
-staged. Undo takes it back. In the diff beside a status buffer, discards the
+Puts the changed lines at the caret, or under the selection, back. They go back to
+how they were when the file was loaded, or in a file the version control
+tracks, to how they are staged. Undo takes it back. In the diff beside a status buffer, discards the
 hunk at the caret or the lines selected, after asking, as
 <a href="#vcsDiscard">vcsDiscard</a> does there.
 <br><br>
@@ -5010,7 +4950,7 @@ invoked for new buffers so you can provide filenames if necessary.
 
 <a name="saveAs">saveAs</a><dl><dd>
 <p>
-Given a file name as its argument, as in <code>saveAs notes.txt</code>, it
+Saves the buffer to another file. Given a file name as its argument, as in <code>saveAs notes.txt</code>, it
 saves there without the dialog; a relative name is taken from the buffer's
 directory. <code>:w FILE</code> in vim edit mode uses this for a buffer with no
 name yet.
@@ -5167,8 +5107,7 @@ Selects the syntactic expression in the vicinity of the caret.
 
 <a name="selectToMarker">selectToMarker</a><dl><dd>
 <p>
-Selects the region from the current location of the caret to the specified
-marker (bookmark).
+Selects from the caret to a marker (bookmark).
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -5297,8 +5236,8 @@ prompt and moves the caret to the end of the prompt.
 
 <a name="shellHome">shellHome</a><dl><dd>
 <p>
-In a shell buffer, if the current line begins with a prompt, and if the caret
-is to the right of the prompt, moves the caret to the end of prompt.  Otherwise,
+Moves the caret to the end of the shell prompt. In a shell buffer, it does so
+if the line begins with a prompt and the caret is to the right of it.  Otherwise,
 moves the caret to the beginning of the current line.
 <p>
 <b>Default key mapping:</b> Home in Shell mode
@@ -5355,8 +5294,7 @@ Completes pending input.
 
 <a name="shrinkWindowIfLargerThanBuffer">shrinkWindowIfLargerThanBuffer</a><dl><dd>
 <p>
-Reduces the size of a split window to the height of the buffer if the
-buffer is smaller than the current split window size.
+Shrinks a split window to its buffer's height, if the buffer is shorter.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -5385,8 +5323,7 @@ Displays (and sets keyboard focus to) the sidebar buffer list.
 
 <a name="sidebarListTags">sidebarListTags</a><dl><dd>
 <p>
-Displays (and sets keyboard focus to) the sidebar tag list, if the current
-buffer supports tags.
+Shows and focuses the sidebar's tag list, if the buffer has tags.
 <br><br>
 <b>Default key mapping:</b> Ctrl Shift T
 <br><br>
@@ -5414,8 +5351,7 @@ modified in the Properties dialog (see <a href="#properties">properties</a>).
 
 <a name="sortLines">sortLines</a><dl><dd>
 <p>
-Sorts the lines in the selected region in ascending lexicographic order, based
-on the Unicode value of the characters in each line.
+Sorts the selected lines by their characters' Unicode values.
 <p>
 It also takes an argument, spelt the way vim's <code>:sort</code> spells it,
 so that the two are the same command:
@@ -5466,8 +5402,8 @@ These never leave the line the caret is on.
 <a name="moveToWindowTop">moveToWindowTop</a>, <a name="moveToWindowMiddle">moveToWindowMiddle</a>,
 <a name="moveToWindowBottom">moveToWindowBottom</a><dl><dd>
 <p>
-Moves the caret to the first non-blank of the top, middle or bottom line the
-window is showing, without scrolling.
+Moves the caret to the top, middle or bottom line on screen, without
+scrolling. It lands on the line's first non-blank.
 <p>
 Not to be confused with <a href="#toTop">toTop</a>, toCenter and toBottom,
 which scroll the window and leave the caret where it is.
@@ -5481,7 +5417,7 @@ which scroll the window and leave the caret where it is.
 
 <a name="forwardParagraph">forwardParagraph</a>, <a name="backwardParagraph">backwardParagraph</a><dl><dd>
 <p>
-Moves the caret to the empty line after (or before) the paragraph, passing
+Moves the caret to the empty line after (or before) the paragraph. It passes
 over a run of empty lines first. A form feed at the start of a line, or an
 nroff macro such as <code>.PP</code> or <code>.SH</code>, also starts a
 paragraph. With no paragraph left the caret goes to the end (or start) of the
@@ -5497,8 +5433,8 @@ buffer.
 <a name="forwardSection">forwardSection</a>, <a name="backwardSection">backwardSection</a><dl><dd>
 <p>
 Moves the caret to the next (or previous) line with a <code>{</code> in its
-first column, or with the argument <code>}</code>, as in
-<code>forwardSection }</code>, a <code>}</code>. A form feed or a section
+first column. With the argument <code>}</code>, as in
+<code>forwardSection }</code>, it is a <code>}</code>. A form feed or a section
 macro such as <code>.SH</code> also starts a section. The caret lands on the
 first non-blank.
 <br><br>
@@ -5526,10 +5462,10 @@ section, ends one too.
 
 <a name="findUnmatchedBracket">findUnmatchedBracket</a><dl><dd>
 <p>
-Moves the caret to the bracket that is still open where the caret is: with
-the argument <code>(</code>, <code>[</code> or <code>{</code> back to the
-one that opens it, with <code>)</code>, <code>]</code> or <code>}</code> on
-to the one that closes it, as in <code>findUnmatchedBracket (</code>. It
+Moves the caret to a bracket still open where the caret is. With
+the argument <code>(</code>, <code>[</code> or <code>{</code> it goes back to
+the one that opens it, with <code>)</code>, <code>]</code> or <code>}</code>
+on to the one that closes it, as in <code>findUnmatchedBracket (</code>. It
 matches brackets as <a href="#findMatchingPair">findMatchingPair</a> does.
 <br><br>
 <b>Default key mapping:</b> None
@@ -5566,8 +5502,7 @@ with the caret.
 
 <a name="balanceWindows">balanceWindows</a><dl><dd>
 <p>
-Makes the windows in each row and column the same size again, however their
-dividers have been dragged.
+Makes the windows in each row and column the same size again.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -5589,9 +5524,9 @@ Moves to the window with the number given, counting from the top left.
 
 <a name="incrementNumber">incrementNumber</a>, <a name="decrementNumber">decrementNumber</a><dl><dd>
 <p>
-Adds the command's argument, or 1, to the number at or after the caret on
-its line, or takes it away: decimal, with a leading minus, <code>0x</code>
-hexadecimal and <code>0b</code> binary. The digits keep their width, so
+Adds 1, or the argument, to the number at or after the caret, or takes it
+away. The number may be decimal, with a leading minus, <code>0x</code>
+hexadecimal or <code>0b</code> binary. The digits keep their width, so
 <code>0x10</code> less one is <code>0x0f</code>, and the caret ends on the
 number's last character.
 <p>
@@ -5611,8 +5546,7 @@ selection, which call the same code.
 
 <a name="toggleCaseRegion">toggleCaseRegion</a><dl><dd>
 <p>
-Swaps the case of every letter in the selected region, so that upper becomes
-lower and lower becomes upper.
+Swaps the case of every letter in the selection.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -5634,8 +5568,8 @@ Unfolds the fold just below the caret's line if there is one, else
 
 <a name="joinLines">joinLines</a><dl><dd>
 <p>
-Joins the next line onto the current one, putting a single space at the join
-and dropping the indent of the line pulled up. A line that already ends in
+Joins the next line onto this one, with a single space. The indent of the
+line pulled up is dropped. A line that already ends in
 whitespace gets no second space.
 <p>
 With a selection, joins every line the selection covers. With an argument, as
@@ -5651,8 +5585,8 @@ over an argument.
 
 <a name="shiftLinesRight">shiftLinesRight</a>, <a name="shiftLinesLeft">shiftLinesLeft</a><dl><dd>
 <p>
-Moves the indent of the current line, or of every line the selection covers,
-right or left by one <a href="indentation.html">indentSize</a>. Not a re-indent:
+Shifts the line, or the selected lines, right or left by one
+<a href="indentation.html">indentSize</a>. Not a re-indent:
 the lines move by the same amount whatever their syntax says, which is what
 <a href="#indentLineOrRegion">indentLineOrRegion</a> does not do. Empty lines are
 left empty.
@@ -5801,8 +5735,7 @@ Note: svn version 1.5 is required for this command.
 
 <a name="svnCommit">svnCommit</a><dl><dd>
 <p>
-Opens a checkin buffer in which you can compose a svn checkin comment for the
-file associated with the current buffer.  You may checkin an entire changelist
+Opens a buffer to write an svn checkin comment for the current file.  You may checkin an entire changelist
 by passing the arguments "--cl foo" where 'foo' is the name of the changelist.
 <p>
 When your comment is ready, you can use the command
@@ -5821,9 +5754,8 @@ with svn using <a href="#svnAdd">svnAdd</a> or the svn "add" command.
 
 <a name="svnDiff">svnDiff</a><dl><dd>
 <p>
-Opens a diff output buffer showing the changes between your local copy of the
-file associated with the current buffer and the version in the Perforce
-repository.
+Shows the current file's changes from the svn version, in a diff output
+buffer.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -5833,8 +5765,7 @@ repository.
 
 <a name="svnDiffDir">svnDiffDir</a><dl><dd>
 <p>
-Opens a diff output buffer showing the changes between the checked-in version
-and your local copy for all files that are modified in svn.
+Shows the changes of every file modified in svn, in a diff output buffer.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -5866,9 +5797,8 @@ buffer.
 
 <a name="svnStatus">svnStatus</a><dl><dd>
 <p>
-Opens a status output buffer showing the changes between the checked-in version
-and your local copy for all the files in the current directory and its
-subdirectories.  In the status output buffer, Enter will open a diff on
+Shows the svn status of every file under the current directory, in an output
+buffer.  In the status output buffer, Enter will open a diff on
 the file for the current line and Ctrl Enter will open the file.
 <p>
 <b>Default key mapping:</b> None
@@ -5879,9 +5809,9 @@ the file for the current line and Ctrl Enter will open the file.
 
 <a name="switchBuffer">switchBuffer</a><dl><dd>
 <p>
-Finds an open buffer, by matching what you type as
-<a href="commands.html#findFileInProject">findFileInProject</a> does, and
-switches to it; Ctrl Enter shows it in the other window. With nothing typed,
+Finds an open buffer and switches to it. It matches what you type as
+<a href="commands.html#findFileInProject">findFileInProject</a> does; Ctrl
+Enter shows it in the other window. With nothing typed,
 the most recently used come first and the current buffer last, so Enter goes
 back to the one before.
 <p>
@@ -5892,8 +5822,8 @@ matching end tag; in a finder it still switches to this one)
 
 <a name="tab">tab</a><dl><dd>
 <p>
-If a multi-line region is selected, or if the property <a href="preferences.html#tabAlwaysIndent">tabAlwaysIndent</a>
-is true, this command simply calls <a href="commands.html#indentLineOrRegion">indentLineOrRegion</a>.
+Indents, or inserts a tab. If a multi-line region is selected, or if <a href="preferences.html#tabAlwaysIndent">tabAlwaysIndent</a>
+is true, it calls <a href="commands.html#indentLineOrRegion">indentLineOrRegion</a>.
 <p>
 Otherwise (i.e. no multi-line selection, <a href="preferences.html#tabAlwaysIndent">tabAlwaysIndent</a> is
 false), the behavior depends on the location of the caret.
@@ -5931,8 +5861,7 @@ task. Blank lines are left alone. The whole change is one undo step.
 
 <a name="thisError">thisError</a><dl><dd>
 <p>
-Jumps to the location in the source file that corresponds to the error message
-at the current location in the compilation buffer.
+Goes to the source line of the error message at the caret.
 <p>
 <b>Default key mapping:</b> Enter, Ctrl Shift G, Double Mouse-1 or Mouse-2 in
 compilation buffers
@@ -5943,11 +5872,26 @@ compilation buffers
 <br><br>
 </dl><!--<hr>-->
 
-<a name="toCenter">toCenter</a><dl><dd>
+<a name="toBottom">toBottom</a> [start | previous]<dl><dd>
 <p>
-Moves the line containing the caret to the center of the window.
+Moves the line containing the caret to the bottom of the window, but for
+<a href="preferences.html#scrollMargin">scrollMargin</a> lines under it. With
+<code>start</code>, the caret goes to its line's first non-blank character
+too; with <code>previous</code>, to that of the line just over the window
+first, which then goes to the bottom.
 <br><br>
-<b>Default key mapping:</b> Ctrl -
+<b>Default key mapping:</b> None (<code>zb</code>, <code>z-</code> and
+<code>z^</code> in vim edit mode)
+<br><br>
+</dl><!--<hr>-->
+<a name="toCenter">toCenter</a> [start]<dl><dd>
+<p>
+Moves the line containing the caret to the center of the window. With
+<code>start</code>, the caret goes to its line's first non-blank character
+too.
+<br><br>
+<b>Default key mapping:</b> Ctrl - (<code>zz</code> and <code>z.</code> in vim
+edit mode)
 <br><br>
 </dl><!--<hr>-->
 
@@ -5988,17 +5932,23 @@ Moves the caret to the top line of the display, keeping it in the same column.
 <br><br>
 </dl><!--<hr>-->
 
-<a name="toTop">toTop</a><dl><dd>
+<a name="toTop">toTop</a> [start | next]<dl><dd>
 <p>
-Moves the line containing the caret to the top of the window.
+Moves the line containing the caret to the top of the window, but for
+<a href="preferences.html#scrollMargin">scrollMargin</a> lines over it, or
+one if that is 0. With
+<code>start</code>, the caret goes to its line's first non-blank character
+too; with <code>next</code>, to that of the line just under the window
+first, which then goes to the top.
 <br><br>
-<b>Default key mapping:</b> Ctrl Shift -
+<b>Default key mapping:</b> Ctrl Shift - (<code>zt</code>, <code>z Enter</code>
+and <code>z+</code> in vim edit mode)
 <br><br>
 </dl><!--<hr>-->
 
 <a name="uncommentRegion">uncommentRegion</a><dl><dd>
 <p>
-Uncomments each line in the selected region, or the current line if no region is selected.
+Uncomments the selected lines, or the current line.
 <br><br>
 <b>Default key mapping:</b> Shift F11
 <br><br>
@@ -6043,7 +5993,7 @@ Unfolds all the folds in the current buffer.
 
 <a name="unfoldHere">unfoldHere</a><dl><dd>
 <p>
-Unfolds the fold just below the caret's line, and only that one; where
+Unfolds the fold just below the caret's line, and only that one. Where
 <a href="#unfold">unfold</a> opens the next fold wherever it is.
 <br><br>
 <b>Default key mapping:</b> <code>zo</code> in
@@ -6106,7 +6056,7 @@ Converts all upper case characters in the selected region to lower case.
 
 <a name="vcsBranchCheckout">vcsBranchCheckout</a><dl><dd>
 <p>
-Checks out a branch, tag or revision, asked for from a list, the ref at the caret first, or typed: a remote's branch as a new local branch tracking it, or the local branch of its name if there is one; a tag or revision detached. Changes in the way leave everything as it was. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Checks out a branch, tag or revision, from a list or typed. The ref at the caret is first; a remote's branch becomes a new local branch tracking it, or the local branch of its name if there is one; a tag or revision is detached. Changes in the way leave everything as it was. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> b in the branch popup
 <br><br>
@@ -6116,7 +6066,7 @@ Checks out a branch, tag or revision, asked for from a list, the ref at the care
 
 <a name="vcsBranchCheckoutLocal">vcsBranchCheckoutLocal</a><dl><dd>
 <p>
-Checks out a local branch, or a remote's branch that has no local one of its name as a new local branch tracking it, asked for from a list. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Checks out a local branch, from a list. A remote's branch with no local one of its name becomes a new local branch tracking it. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> l in the branch popup
 <br><br>
@@ -6126,7 +6076,7 @@ Checks out a local branch, or a remote's branch that has no local one of its nam
 
 <a name="vcsBranchCheckoutNew">vcsBranchCheckoutNew</a><dl><dd>
 <p>
-Creates a branch where it is asked to start, from a list labeled <i>Start from:</i>, the ref at the caret first, else the branch checked out, or a revision typed, then asking for its name, and checks it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Creates a branch and checks it out. It starts where you pick, from a list labeled <i>Start from:</i>, the ref at the caret first, else the branch checked out, or a revision typed, then asks for its name. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> c in the branch popup
 <br><br>
@@ -6136,7 +6086,7 @@ Creates a branch where it is asked to start, from a list labeled <i>Start from:<
 
 <a name="vcsBranchCheckoutRecent">vcsBranchCheckoutRecent</a><dl><dd>
 <p>
-Checks out a branch checked out before, asked for from a list of them, the latest first, as the reflog has them. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Checks out a branch checked out before, latest first, as the reflog has them. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> r in the branch popup
 <br><br>
@@ -6146,7 +6096,7 @@ Checks out a branch checked out before, asked for from a list of them, the lates
 
 <a name="vcsBranchCreate">vcsBranchCreate</a><dl><dd>
 <p>
-Creates a branch where it is asked to start, from a list labeled <i>Start from:</i>, the ref at the caret first, else the branch checked out, or a revision typed, then asking for its name, without checking it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Creates a branch without checking it out. It starts where you pick, from a list labeled <i>Start from:</i>, the ref at the caret first, else the branch checked out, or a revision typed, then asks for its name. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> n in the branch popup
 <br><br>
@@ -6156,7 +6106,7 @@ Creates a branch where it is asked to start, from a list labeled <i>Start from:<
 
 <a name="vcsBranchDelete">vcsBranchDelete</a><dl><dd>
 <p>
-Deletes a local branch, asked for from a list, after asking; if it has commits no other branch, tag or remote's branch has, asks again, naming them, then deletes it anyway. The status bar says its commit, which <code>git branch</code> takes to bring it back. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Deletes a local branch, from a list, after asking. If it has commits no other branch, tag or remote's branch has, it asks again, naming them, then deletes it anyway. The status bar says its commit, which <code>git branch</code> takes to bring it back. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> D in the branch popup
 <br><br>
@@ -6166,7 +6116,7 @@ Deletes a local branch, asked for from a list, after asking; if it has commits n
 
 <a name="vcsBranchPopup">vcsBranchPopup</a><dl><dd>
 <p>
-Opens the branch popup, after Neogit's: checking out a branch, a local one, a recent one or a new one, creating one, renaming, deleting, and the parent, each asking from a list with the ref at the caret first, or in the log's refs tree the ref clicked. With several repositories, its <b>-a</b> does each in every repository at once. With an argument, as for <a href="#vcsBranchCheckout">vcsBranchCheckout</a>.
+Opens the branch popup, after Neogit's. It has checking out a branch, a local one, a recent one or a new one, creating one, renaming, deleting, and the parent, each asking from a list with the ref at the caret first, or in the log's refs tree the ref clicked. With several repositories, its <b>-a</b> does each in every repository at once. With an argument, as for <a href="#vcsBranchCheckout">vcsBranchCheckout</a>.
 <br><br>
 <b>Default key mapping:</b> b in status buffers and the log's list; the right button or the menu key in the log's refs tree
 <br><br>
@@ -6176,7 +6126,7 @@ Opens the branch popup, after Neogit's: checking out a branch, a local one, a re
 
 <a name="vcsBranchRename">vcsBranchRename</a><dl><dd>
 <p>
-Renames a local branch, asked for from a list, the ref at the caret then the one checked out first, asking for the new name. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Renames a local branch, from a list. The ref at the caret, then the one checked out, comes first; it asks for the new name. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> m in the branch popup
 <br><br>
@@ -6186,7 +6136,7 @@ Renames a local branch, asked for from a list, the ref at the caret then the one
 
 <a name="vcsBranchSetParent">vcsBranchSetParent</a><dl><dd>
 <p>
-Makes a branch, asked for from a list, the parent of the branch checked out, as <a href="#gitSetParent">gitSetParent</a> does. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Sets the parent of the branch checked out, from a list. It does as <a href="#gitSetParent">gitSetParent</a> does. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> p in the branch popup
 <br><br>
@@ -6196,9 +6146,8 @@ Makes a branch, asked for from a list, the parent of the branch checked out, as 
 
 <a name="vcsCommandLog">vcsCommandLog</a><dl><dd>
 <p>
-Shows the version control commands j has run for its own use, newest last:
-the time, how long each took, and the command line, under the directory it ran
-in. The options every git command runs with, as <code>-c color.ui=false</code>,
+Shows the version control commands j has run, newest last. Each has the time,
+how long it took, and the command line, under the directory it ran in. The options every git command runs with, as <code>-c color.ui=false</code>,
 are left out of each line and listed once above. A command that failed shows
 its exit code and its error output. j keeps the last 500.
 <br><br>
@@ -6230,7 +6179,7 @@ Gives up the commit message being written without asking; it goes to the comment
 
 <a name="vcsCommitAmend">vcsCommitAmend</a><dl><dd>
 <p>
-In a status buffer, opens the last commit's message, to replace the last commit with it and what is staged.
+In a status buffer, replaces the last commit, with what is staged. It opens the last commit's message.
 <br><br>
 <b>Default key mapping:</b> c a in status buffers
 <br><br>
@@ -6240,7 +6189,7 @@ In a status buffer, opens the last commit's message, to replace the last commit 
 
 <a name="vcsCommitCancel">vcsCommitCancel</a><dl><dd>
 <p>
-Gives up the commit message being written, asking first if it has one; it goes to the comment ring.
+Gives up the commit message being written, asking first. It goes to the comment ring.
 <br><br>
 <b>Default key mapping:</b> Escape in commit messages; in vim edit mode, in normal mode, and :q
 <br><br>
@@ -6280,9 +6229,9 @@ In a commit message, steps forward through the messages committed or given up be
 
 <a name="vcsCommitPopup">vcsCommitPopup</a><dl><dd>
 <p>
-Opens the commit popup of a status buffer, or from another buffer in a
-repository, of its status, opened first: its switches, and commit, amend,
-extend and reword.
+Opens the commit popup: its switches, and commit, amend, extend and reword.
+It is the status buffer's, or from another buffer in a repository, its
+status's, opened first.
 <br><br>
 <b>Default key mapping:</b> c in status buffers; the VCS menu's Commit
 <br><br>
@@ -6312,7 +6261,7 @@ In a status buffer, opens the last commit's message, to change only its message.
 
 <a name="vcsDiff">vcsDiff</a><dl><dd>
 <p>
-Compares the file being edited with what is staged of it, side by side: the staged text at the left, the buffer's at the right, saved or not.
+Compares the file with what is staged of it, side by side. The staged text is at the left, the buffer's at the right, saved or not.
 <br><br>
 <b>See also:</b> <a href="git.html#compare">Compare</a>, <a href="#diff">diff</a>
 <br><br>
@@ -6320,7 +6269,7 @@ Compares the file being edited with what is staged of it, side by side: the stag
 
 <a name="vcsDiscard">vcsDiscard</a><dl><dd>
 <p>
-In a status buffer or the diff beside it, discards the thing at the caret, or what the selection covers, after asking: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash. On a stash, drops it, as <a href="#vcsStashDrop">vcsStashDrop</a> does.
+In a status buffer or its diff, discards the thing at the caret, after asking. What the selection covers too: unstaged changes go back to what is staged, staged ones come out of the index and the working tree, and files no commit has go to the trash. On a stash, drops it, as <a href="#vcsStashDrop">vcsStashDrop</a> does.
 <br><br>
 <b>Default key mapping:</b> x in status buffers
 <br><br>
@@ -6330,7 +6279,7 @@ In a status buffer or the diff beside it, discards the thing at the caret, or wh
 
 <a name="vcsFetchAll">vcsFetchAll</a><dl><dd>
 <p>
-In a status buffer, fetches from every remote of the repository at the caret, as the fetch popup's switches say.
+In a status buffer, fetches from every remote. That is of the repository at the caret, as the fetch popup's switches say.
 <br><br>
 <b>Default key mapping:</b> a in the fetch popup
 <br><br>
@@ -6340,7 +6289,7 @@ In a status buffer, fetches from every remote of the repository at the caret, as
 
 <a name="vcsFetchBranch">vcsFetchBranch</a><dl><dd>
 <p>
-In a status buffer, fetches only a remote's branch, picked from a list of the remote branches.
+In a status buffer, fetches only a remote's branch, picked from a list.
 <br><br>
 <b>Default key mapping:</b> o in the fetch popup
 <br><br>
@@ -6350,7 +6299,7 @@ In a status buffer, fetches only a remote's branch, picked from a list of the re
 
 <a name="vcsFetchElsewhere">vcsFetchElsewhere</a><dl><dd>
 <p>
-In a status buffer, fetches from a remote picked from a list of the repository's remotes, or from a URL or path typed, into FETCH_HEAD alone.
+In a status buffer, fetches from a remote picked, or a URL or path typed. It fetches into FETCH_HEAD alone.
 <br><br>
 <b>Default key mapping:</b> e in the fetch popup
 <br><br>
@@ -6360,7 +6309,7 @@ In a status buffer, fetches from a remote picked from a list of the repository's
 
 <a name="vcsFetchPopup">vcsFetchPopup</a><dl><dd>
 <p>
-Opens the fetch popup of a status buffer, or from another buffer in a repository, of its status, opened first: its switches, and the remotes to fetch from, each that isn't set dimmed.
+Opens the fetch popup: its switches, and the remotes to fetch from. Each that isn't set is dimmed; from another buffer in a repository, its status opens first.
 <br><br>
 <b>Default key mapping:</b> f in status buffers
 <br><br>
@@ -6390,7 +6339,7 @@ In a status buffer, fetches from the remote of the branch's upstream.
 
 <a name="vcsLog">vcsLog</a><dl><dd>
 <p>
-Shows the log of the current buffer's repository, every branch and tag, newest first, taking the whole frame: the commit at the caret's files and diff beside the list. q closes it and puts the windows back. From the quick log, it grows into the full log.
+Shows the repository's log, every branch and tag, newest first. It takes the whole frame: the commit at the caret's files and diff are beside the list. q closes it and puts the windows back. From the quick log, it grows into the full log.
 <br><br>
 <b>Default key mapping:</b> l l in the status buffer
 <br><br>
@@ -6410,7 +6359,7 @@ In the log, clears every filter, a file's log's path too, and reads the log agai
 
 <a name="vcsLogDiffView">vcsLogDiffView</a><dl><dd>
 <p>
-In the full log, switches the diff between unified and side by side, across the bottom of the frame under the list and the files, keeping the line; the next log opens with it as left.
+In the full log, switches the diff between unified and side by side. Side by side, it is across the bottom of the frame under the list and the files, keeping the line; the next log opens with it as left.
 <br><br>
 <b>Default key mapping:</b> = in the log, its files and diff, and the diff's sides
 <br><br>
@@ -6430,7 +6379,7 @@ Shows the log of the current file, through its renames, taking the whole frame.
 
 <a name="vcsLogFilter">vcsLogFilter</a><dl><dd>
 <p>
-In the log, with a filter's name (branch, author, path, since, message or change), opens the field over its chip in the filter bar to type its value; with none, opens the log's popup, its filters first.
+In the log, edits a filter's value in the filter bar. The filter is named: branch, author, path, since, message or change; with none, it opens the log's popup, its filters first.
 <br><br>
 <b>Default key mapping:</b> -b, -a, -p, -s, -g and -c, in the log's list
 <br><br>
@@ -6440,7 +6389,7 @@ In the log, with a filter's name (branch, author, path, since, message or change
 
 <a name="vcsLogNext">vcsLogNext</a><dl><dd>
 <p>
-In the log, goes to the next thing in the pane: the next commit, the next file, or the diff's next hunk, around to the first past the last.
+In the log, goes to the next commit, file or hunk. It goes around to the first past the last.
 <br><br>
 <b>Default key mapping:</b> n in the log
 <br><br>
@@ -6460,7 +6409,7 @@ In the log, shows the next file's diff, the focus staying where it is.
 
 <a name="vcsLogOpenFile">vcsLogOpenFile</a><dl><dd>
 <p>
-In the log's files or diff, opens the file at the caret in the working tree, at the diff line's line as it is now, past the changes made since the commit, and closes the log.
+In the log's files or diff, opens the file at the caret in the working tree. It opens at the diff line's line as it is now, past the changes made since the commit, and closes the log.
 <br><br>
 <b>Default key mapping:</b> o in the log
 <br><br>
@@ -6470,7 +6419,7 @@ In the log's files or diff, opens the file at the caret in the working tree, at 
 
 <a name="vcsLogPopup">vcsLogPopup</a><dl><dd>
 <p>
-In a status buffer, opens a popup of the logs: the filters to start from (a branch, an author, a path, a date, text in the message or a change), then the full log or the quick log.
+In a status buffer, opens a popup of the logs. It has the filters to start from (a branch, an author, a path, a date, text in the message or a change), then the full log or the quick log.
 <br><br>
 <b>Default key mapping:</b> l in the status buffer
 <br><br>
@@ -6500,7 +6449,7 @@ In the log, shows the previous file's diff, the focus staying where it is.
 
 <a name="vcsLogQuick">vcsLogQuick</a><dl><dd>
 <p>
-Shows the log of the current buffer's repository alone, in a window under the current one; Enter on a commit there opens the full log at it.
+Shows the repository's log alone, in a window under the current one. Enter on a commit there opens the full log at it.
 <br><br>
 <b>Default key mapping:</b> l q in the status buffer; &lt;leader&gt;gl in vim edit mode
 <br><br>
@@ -6530,7 +6479,7 @@ Reads the log again, the caret staying on its commit.
 
 <a name="vcsLogRefsOrder">vcsLogRefsOrder</a><dl><dd>
 <p>
-In the log, orders the refs tree's branches and remotes the other way: by name, or the newest commit first.
+In the log, orders the refs tree's branches by name or by newest commit.
 <br><br>
 <b>Default key mapping:</b> -o in the log
 <br><br>
@@ -6540,7 +6489,7 @@ In the log, orders the refs tree's branches and remotes the other way: by name, 
 
 <a name="vcsLogRevision">vcsLogRevision</a><dl><dd>
 <p>
-In the log's files or diff, opens the file at the caret as the commit has it, read-only, and closes the log.
+In the log's files or diff, opens the file as the commit has it. It is read-only, and the log closes.
 <br><br>
 <b>Default key mapping:</b> O, Shift Enter in the log
 <br><br>
@@ -6570,7 +6519,7 @@ In the log, scrolls the diff a page back, from any pane.
 
 <a name="vcsLogToggle">vcsLogToggle</a><dl><dd>
 <p>
-In the log's diff, opens or closes the hunk at the caret, as Tab does in the status buffer; in the list, opens or closes the run of commits at the caret, as a fold.
+In the log, opens or closes the hunk or run of commits at the caret. In the diff, a hunk, as Tab does in the status buffer; in the list, a run of commits, as a fold.
 <br><br>
 <b>Default key mapping:</b> Tab in the log
 <br><br>
@@ -6580,7 +6529,7 @@ In the log's diff, opens or closes the hunk at the caret, as Tab does in the sta
 
 <a name="vcsLogToggleAll">vcsLogToggleAll</a><dl><dd>
 <p>
-In the log's diff, closes every hunk, or opens them all when none is open; in the list, the same for the runs of commits.
+In the log, closes every hunk or run of commits, or opens them all. It opens them when none is open.
 <br><br>
 <b>Default key mapping:</b> Shift Tab in the log
 <br><br>
@@ -6591,10 +6540,10 @@ In the log's diff, closes every hunk, or opens them all when none is open; in th
 
 <a name="vcsLogCollapseRuns">vcsLogCollapseRuns</a><dl><dd>
 <p>
-In the log, folds each run of plain commits (one parent, one child, no
-merge, no branch or tag, two or more one after another down a lane) under
-the commit above it, which shows its count after its subject, or shows every commit again,
-as the fold commands' fold all and unfold all do. Each run is a fold: Tab
+In the log, folds each run of plain commits, or shows every commit again. A
+run is one parent, one child, no merge, no branch or tag, two or more one
+after another down a lane, folded under the commit above it, which shows its
+count after its subject, as the fold commands' fold all and unfold all do. Each run is a fold: Tab
 and the fold commands open or close the one at the caret.
 <br><br>
 <b>Default key mapping:</b> -l in the log's list
@@ -6605,7 +6554,7 @@ and the fold commands open or close the one at the caret.
 
 <a name="vcsLogTimeStyle">vcsLogTimeStyle</a><dl><dd>
 <p>
-In the log, steps how the dates are written through age (<code>3h</code>,
+In the log, steps the date style. The styles are age (<code>3h</code>,
 <code>4mo</code>), locale (<code>Oct 16 09:02</code>), iso
 (<code>10-16 09:02</code>) and long-iso (<code>2026-10-16 09:02</code>),
 in the rows and the details' Date, which shows the full date with an age;
@@ -6619,7 +6568,7 @@ with a style named, uses it.
 
 <a name="vcsLogToggleStashes">vcsLogToggleStashes</a><dl><dd>
 <p>
-In the log, shows the stashes too, each off the commit it was made on, or stops showing them, and reads the log again. They are shown only while no filter but the repositories is set.
+In the log, shows or hides the stashes. Each is off the commit it was made on, and the log is read again. They are shown only while no filter but the repositories is set.
 <br><br>
 <b>Default key mapping:</b> -z in the log's list
 <br><br>
@@ -6629,7 +6578,7 @@ In the log, shows the stashes too, each off the commit it was made on, or stops 
 
 <a name="vcsLogToggleTags">vcsLogToggleTags</a><dl><dd>
 <p>
-In the log, shows the commits only tags reach too, or stops showing them, and reads the log again.
+In the log, shows or hides the commits only tags reach. The log is read again.
 <br><br>
 <b>Default key mapping:</b> -T in the log's list
 <br><br>
@@ -6639,7 +6588,7 @@ In the log, shows the commits only tags reach too, or stops showing them, and re
 
 <a name="vcsLogVisit">vcsLogVisit</a><dl><dd>
 <p>
-In the quick log, opens the full log at the commit; in the full log, moves to the commit's files, or from a file to its diff; on a diff line, opens the file in the working tree at the line it is now, and closes the log.
+In the log, goes into the thing at the caret. In the quick log, it opens the full log at the commit; in the full log, it moves to the commit's files, or from a file to its diff; on a diff line, it opens the file in the working tree at the line it is now, and closes the log.
 <br><br>
 <b>Default key mapping:</b> Enter, or a double click, in the log
 <br><br>
@@ -6649,7 +6598,7 @@ In the quick log, opens the full log at the commit; in the full log, moves to th
 
 <a name="vcsMerge">vcsMerge</a><dl><dd>
 <p>
-Merges a branch, tag or revision, asked for from a list, the ref at the caret first, or typed, into what is checked out, with the merge popup's <b>-f</b> (fast-forward only) or <b>-n</b> (always a merge commit). With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Merges a branch, tag or revision into what is checked out. It is from a list, the ref at the caret first, or typed, with the merge popup's <b>-f</b> (fast-forward only) or <b>-n</b> (always a merge commit). With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> m in the merge popup
 <br><br>
@@ -6669,7 +6618,7 @@ Gives up the merge in progress, after asking, putting back what was there before
 
 <a name="vcsMergeCommit">vcsMergeCommit</a><dl><dd>
 <p>
-Commits the merge in progress, with git's message, once its conflicts are resolved and staged. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Commits the merge in progress, with git's message. Its conflicts must be resolved and staged. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> m in the merge popup, during a merge
 <br><br>
@@ -6679,7 +6628,7 @@ Commits the merge in progress, with git's message, once its conflicts are resolv
 
 <a name="vcsMergePopup">vcsMergePopup</a><dl><dd>
 <p>
-Opens the merge popup, after Neogit's: its switches and merging, or during a merge, committing or aborting it. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Opens the merge popup, after Neogit's. It has its switches and merging, or during a merge, committing or aborting it. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> m in status buffers and the log's list
 <br><br>
@@ -6689,7 +6638,7 @@ Opens the merge popup, after Neogit's: its switches and merging, or during a mer
 
 <a name="vcsStage">vcsStage</a><dl><dd>
 <p>
-In a status buffer or the diff beside it, stages the thing at the caret, or what the selection covers, down to single lines of a hunk.
+In a status buffer or its diff, stages the thing at the caret. It stages what the selection covers too, down to single lines of a hunk.
 <br><br>
 <b>Default key mapping:</b> s in status buffers
 <br><br>
@@ -6709,7 +6658,7 @@ In a status buffer, stages every change to a tracked file.
 
 <a name="vcsStageHunk">vcsStageHunk</a><dl><dd>
 <p>
-In a file the version control tracks, stages the change at the caret, or the lines of the selection, as the buffer has them, saved or not. In the diff beside a status buffer, stages the hunk at the caret or the lines selected, as <a href="#vcsStage">vcsStage</a> does there.
+Stages the change at the caret, or the selected lines. In a file the version control tracks, they are staged as the buffer has them, saved or not. In the diff beside a status buffer, stages the hunk at the caret or the lines selected, as <a href="#vcsStage">vcsStage</a> does there.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;hs in vim edit mode
 <br><br>
@@ -6739,7 +6688,7 @@ In a status buffer, drops the stash at the caret, or the newest, after asking. T
 
 <a name="vcsStashKeepIndex">vcsStashKeepIndex</a><dl><dd>
 <p>
-In a status buffer, stashes the changes, staged and not, keeping what is staged in the index too.
+In a status buffer, stashes the changes, keeping what is staged in the index too.
 <br><br>
 <b>Default key mapping:</b> i in the stash popup
 <br><br>
@@ -6749,7 +6698,7 @@ In a status buffer, stashes the changes, staged and not, keeping what is staged 
 
 <a name="vcsStashPop">vcsStashPop</a><dl><dd>
 <p>
-In a status buffer, applies the stash at the caret, or the newest, then drops it if it applied cleanly. One that conflicts is kept.
+In a status buffer, applies a stash, then drops it if it applied cleanly. It is the stash at the caret, or the newest. One that conflicts is kept.
 <br><br>
 <b>Default key mapping:</b> p in the stash popup
 <br><br>
@@ -6759,7 +6708,7 @@ In a status buffer, applies the stash at the caret, or the newest, then drops it
 
 <a name="vcsStashPopup">vcsStashPopup</a><dl><dd>
 <p>
-Opens the stash popup of a status buffer, or from another buffer in a repository, of its status, opened first: the message option, the ways to stash, and applying, popping and dropping the stash at the caret, or the newest, each dimmed when there is none.
+Opens the stash popup: the ways to stash, and applying, popping and dropping. It has the message option, and the stash at the caret, or the newest, each dimmed when there is none; from another buffer in a repository, its status opens first.
 <br><br>
 <b>Default key mapping:</b> z in status buffers (Z in vim edit mode)
 <br><br>
@@ -6769,7 +6718,7 @@ Opens the stash popup of a status buffer, or from another buffer in a repository
 
 <a name="vcsStashSave">vcsStashSave</a><dl><dd>
 <p>
-In a status buffer, stashes the changes, staged and not, leaving the untracked files, with the stash popup's message if it has one.
+In a status buffer, stashes the changes, staged and not. It leaves the untracked files, with the stash popup's message if it has one.
 <br><br>
 <b>Default key mapping:</b> z in the stash popup
 <br><br>
@@ -6799,7 +6748,7 @@ In a status buffer, stashes the changes and the untracked files, which are remov
 
 <a name="vcsStatus">vcsStatus</a><dl><dd>
 <p>
-Opens the status of the current buffer's repository, or of the project's repositories when its directory holds several, or from the log of the log's: what has changed, what is staged, and the recent commits.
+Opens the status of the buffer's repository: changes, staging and recent commits. When the project's directory holds several repositories, it shows them all; from the log, the log's.
 <br><br>
 <b>Default key mapping:</b> Ctrl Alt G; &lt;leader&gt;gg in vim edit mode
 <br><br>
@@ -6809,7 +6758,7 @@ Opens the status of the current buffer's repository, or of the project's reposit
 
 <a name="vcsStatusCycle">vcsStatusCycle</a><dl><dd>
 <p>
-In a status buffer, opens everything one depth further: sections, then files, then hunks, then the lines of the diffs, then back to the sections.
+In a status buffer, opens everything one depth further. That is sections, then files, then hunks, then the lines of the diffs, then back to the sections.
 <br><br>
 <b>Default key mapping:</b> Shift Tab in status buffers
 <br><br>
@@ -6819,7 +6768,7 @@ In a status buffer, opens everything one depth further: sections, then files, th
 
 <a name="vcsStatusDepth">vcsStatusDepth</a><dl><dd>
 <p>
-In a status buffer, opens everything to a depth, 1 to 4, given as an argument: 1 shows the sections, 2 their files, 3 the files' hunks, and 4 every line of the diffs.
+In a status buffer, opens everything to a depth, 1 to 4. The depth is an argument: 1 shows the sections, 2 their files, 3 the files' hunks, and 4 every line of the diffs.
 <br><br>
 <b>Default key mapping:</b> 1, 2, 3 and 4 in status buffers
 <br><br>
@@ -6829,7 +6778,7 @@ In a status buffer, opens everything to a depth, 1 to 4, given as an argument: 1
 
 <a name="vcsStatusDiff">vcsStatusDiff</a><dl><dd>
 <p>
-In a status buffer, shows the diff of the file at the caret beside it, following the caret, or closes it and goes back to the status.
+In a status buffer, shows or closes the diff of the file at the caret. It is beside the status, following the caret; closing it goes back to the status.
 <br><br>
 <b>Default key mapping:</b> D in status buffers; q in the diff beside one and in its sides
 <br><br>
@@ -6839,7 +6788,7 @@ In a status buffer, shows the diff of the file at the caret beside it, following
 
 <a name="vcsStatusDiffView">vcsStatusDiffView</a><dl><dd>
 <p>
-In a status buffer, switches the diff beside it between unified, at the right, and side by side, under the status, keeping the line; with the diff closed, opens it as it was last shown.
+In a status buffer, switches its diff between unified and side by side. Unified is at the right, side by side under the status, keeping the line; with the diff closed, it opens as it was last shown.
 <br><br>
 <b>Default key mapping:</b> = in status buffers, the diff beside and its sides
 <br><br>
@@ -6919,7 +6868,7 @@ In a status buffer, scrolls the diff beside it up a page, from the status or the
 
 <a name="vcsStatusToggle">vcsStatusToggle</a><dl><dd>
 <p>
-In a status buffer, opens or closes the section, file or hunk at the caret, or that the caret is in. Opening a file reads its diff.
+In a status buffer, opens or closes the section, file or hunk at the caret. Inside one, it is the one the caret is in; opening a file reads its diff.
 <br><br>
 <b>Default key mapping:</b> Tab in status buffers
 <br><br>
@@ -6929,7 +6878,7 @@ In a status buffer, opens or closes the section, file or hunk at the caret, or t
 
 <a name="vcsStatusVisit">vcsStatusVisit</a><dl><dd>
 <p>
-In a status buffer, visits the thing at the caret: a file, at the line of the hunk or diff line the caret is on, or a commit, shown with its diff; on a stash, or a line in it, its details beside, as the log shows a commit. A staged line is visited where it is now in the working tree.
+In a status buffer, visits the file, commit or stash at the caret. A file opens at the line of the hunk or diff line the caret is on, a commit with its diff; on a stash, or a line in it, its details show beside, as the log shows a commit. A staged line is visited where it is now in the working tree.
 <br><br>
 <b>Default key mapping:</b> Enter or a double click in status buffers
 <br><br>
@@ -6939,7 +6888,7 @@ In a status buffer, visits the thing at the caret: a file, at the line of the hu
 
 <a name="vcsUnstage">vcsUnstage</a><dl><dd>
 <p>
-In a status buffer or the diff beside it, unstages the thing at the caret, or what the selection covers, down to single lines of a hunk.
+In a status buffer or its diff, unstages the thing at the caret. It unstages what the selection covers too, down to single lines of a hunk.
 <br><br>
 <b>Default key mapping:</b> u in status buffers
 <br><br>
@@ -6959,7 +6908,7 @@ In a status buffer, unstages everything.
 
 <a name="vcsUnstageHunk">vcsUnstageHunk</a><dl><dd>
 <p>
-In a file the version control tracks, takes the staged change at the caret, or under the selection, back out of the index; in a file new to the index, the whole file. In the diff beside a status buffer, unstages the hunk at the caret or the lines selected, as <a href="#vcsUnstage">vcsUnstage</a> does there.
+Unstages the change at the caret, or under the selection. In a file the version control tracks, it comes back out of the index; in a file new to the index, the whole file does. In the diff beside a status buffer, unstages the hunk at the caret or the lines selected, as <a href="#vcsUnstage">vcsUnstage</a> does there.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;hu in vim edit mode
 <br><br>
@@ -6979,7 +6928,7 @@ In vim edit mode, runs :q!, which a buffer's mode may take as its own.
 
 <a name="vimWriteQuit">vimWriteQuit</a><dl><dd>
 <p>
-In vim edit mode, runs :x, which writes the buffer if it was changed and closes the window; a buffer's mode may take it as its own.
+In vim edit mode, runs :x: writes the buffer if changed, and closes the window. A buffer's mode may take it as its own.
 <br><br>
 <b>Default key mapping:</b> ZZ in vim edit mode
 <br><br>
@@ -7016,8 +6965,7 @@ in the left window.
 
 <a name="whatChar">whatChar</a><dl><dd>
 <p>
-Displays decimal, hex and character equivalents for the character at
-the current location of the caret.
+Shows the decimal, hex and character of the character at the caret.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -7033,8 +6981,7 @@ Displays information about the keys mapped to a particular command.
 
 <a name="windowDown">windowDown</a><dl><dd>
 <p>
-Moves the window down one line (so that the text seems to move up one line),
-without changing the location of the caret.
+Scrolls the text up one line, without moving the caret.
 <br><br>
 <b>Default key mapping:</b> Ctrl Down
 <br><br>
@@ -7042,8 +6989,7 @@ without changing the location of the caret.
 
 <a name="windowUp">windowUp</a><dl><dd>
 <p>
-Moves the window up one line (so that the text seems to move down one line),
-without changing the location of the caret.
+Scrolls the text down one line, without moving the caret.
 <br><br>
 <b>Default key mapping:</b> Ctrl Up
 <br><br>
@@ -7051,8 +6997,7 @@ without changing the location of the caret.
 
 <a name="wordLeft">wordLeft</a><dl><dd>
 <p>
-Moves the caret to the beginning of the current word, or, if the caret is
-already at the beginning of the current word, to the beginning of the previous word.
+Moves the caret to the start of this word, or of the previous one.
 <p>
 With the argument <code>vim</code>, as in <code>wordRight vim</code>, it
 follows vim's rule instead. The two agree on ordinary text &mdash; j already
@@ -7084,8 +7029,7 @@ works on <a href="#wordLeft">wordLeft</a>,
 
 <a name="wrapComment">wrapComment</a><dl><dd>
 <p>
-Wraps all the lines in the current multi-line comment at the wrap column,
-which by default is column 80. The wrap column is controlled by the property
+Wraps the comment's lines at the wrap column, by default 80. The wrap column is controlled by the property
 <a href="preferences.html#wrapCol">wrapCol</a>, which is a buffer-specific
 setting that may be inspected and modified in the Properties dialog (see
 <a href="#properties">properties</a>). You can set global and mode-specific
@@ -7101,8 +7045,7 @@ defaults for <a href="preferences.html#wrapCol">wrapCol</a> in your
 
 <a name="wrapParagraph">wrapParagraph</a><dl><dd>
 <p>
-Wraps all the lines in the current paragraph at the wrap column, which by
-default is column 80. The wrap column is controlled by the property
+Wraps the paragraph at the wrap column, by default 80. The wrap column is controlled by the property
 <a href="preferences.html#wrapCol">wrapCol</a>, which is a buffer-specific
 setting that may be inspected and modified in the Properties dialog (see
 <a href="#properties">properties</a>). You can set global and mode-specific
@@ -7129,9 +7072,8 @@ paragraph and immediately continue typing right where you left off.
 
 <a name="wrapParagraphsInRegion">wrapParagraphsInRegion</a><dl><dd>
 <p>
-Calls <a href="#wrapParagraph">wrapParagraph</a> on all the paragraphs in the
-selected region (or on all the paragraphs in the buffer if no region is
-selected).
+Wraps every paragraph in the selection, or in the buffer. It calls
+<a href="#wrapParagraph">wrapParagraph</a> on each.
 <p>
 <b>Default key mapping:</b> Ctrl Shift F12 in plain text and mail composition buffers
 <br><br>
@@ -7142,8 +7084,7 @@ selected).
 
 <a name="wrapRegion">wrapRegion</a><dl><dd>
 <p>
-Wraps all the lines in the selected region at the wrap column, which by
-default is column 80. The wrap column is controlled by the property
+Wraps the selected lines at the wrap column, by default 80. The wrap column is controlled by the property
 <a href="preferences.html#wrapCol">wrapCol</a>, which is a buffer-specific
 setting that may be inspected and modified in the Properties dialog (see
 <a href="#properties">properties</a>). You can set global and mode-specific
@@ -7159,8 +7100,7 @@ defaults for <a href="preferences.html#wrapCol">wrapCol</a> in your
 
 <a name="writeGlobalKeyMap">writeGlobalKeyMap</a><dl><dd>
 <p>
-Prompts for a filename and writes out the current global key map to the
-specifed file, in human-readable form.
+Writes the global key map to a file, readably. It prompts for the filename.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -7168,8 +7108,8 @@ specifed file, in human-readable form.
 
 <a name="writeLocalKeyMap">writeLocalKeyMap</a><dl><dd>
 <p>
-Prompts for a filename and writes out the local key map for the current buffer
-to the specifed file, in human-readable form. The local key map supplements
+Writes the buffer's local key map to a file, readably. It prompts for the
+filename. The local key map supplements
 (and possible overrides) global key assignments, based on the mode (Java, HTML,
 etc.) of the buffer.
 <br><br>
@@ -7212,9 +7152,8 @@ buffer.
 
 <a name="xmlFindCurrentNode">xmlFindCurrentNode</a><dl><dd>
 <p>
-In XML mode, if XML parser support is available and the document tree is
-displayed in the sidebar, forces the tree to expand all the way down to the
-node corresponding to the location of the caret in the edit buffer.
+In XML mode, expands the sidebar's tree to the caret's node. It needs XML
+parser support and the document tree displayed in the sidebar.
 <br><br>
 <b>Default key mapping:</b> Ctrl = in XML mode
 <br><br>
@@ -7232,12 +7171,11 @@ An alias for <a href="#findMatchingPair">findMatchingPair</a>.
 
 <a name="xmlFormatAttributes">xmlFormatAttributes</a><dl><dd>
 <p>
-Lays out the attributes of the start tag at the caret, or of every start tag
-that begins in the selected lines, by the
-<a href="preferences.html#splitAttributes">splitAttributes</a> preference:
-force-aligned puts each attribute after the first on a line of its own, lined
-up with the first; preserve and preserve-aligned keep the line breaks there
-are and add one before an attribute that would end past
+Lays out the attributes of the start tag at the caret, or the selected lines'.
+It follows the <a href="preferences.html#splitAttributes">splitAttributes</a>
+preference: force-aligned puts each attribute after the first on a line of
+its own, lined up with the first; preserve and preserve-aligned keep the line
+breaks there are and add one before an attribute that would end past
 <a href="preferences.html#wrapCol">wrapCol</a>.
 <br><br>
 <b>Default key mapping:</b> None
@@ -7261,8 +7199,7 @@ when it is inserted in the buffer.
 
 <a name="xmlInsertMatchingEndTag">xmlInsertMatchingEndTag</a><dl><dd>
 <p>
-If there is an unmatched start tag before the current location of the caret,
-automatically inserts the corresponding end tag.
+Inserts the end tag of the unmatched start tag before the caret.
 <p>
 <b>Default key mapping:</b> Ctrl E in XML mode
 <br><br>

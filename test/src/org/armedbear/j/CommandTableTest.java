@@ -99,15 +99,6 @@ public class CommandTableTest {
     }
 
     @Test
-    public void humanizedNames() {
-        assertEquals("Open File In Other Window", ActionTextFieldHandler.humanize("openFileInOtherWindow"));
-        assertEquals("Bob", ActionTextFieldHandler.humanize("bob"));
-        assertEquals("Vsplit Window", ActionTextFieldHandler.humanize("vsplitWindow"));
-        assertEquals("Jdb Step", ActionTextFieldHandler.humanize("jdbStep"));
-        assertEquals("Goto Line 2", ActionTextFieldHandler.humanize("gotoLine2"));
-    }
-
-    @Test
     public void abbreviationsRunButAreNotListed() {
         assertTrue(CommandTable.getCommand("ir") != null);
         assertFalse(CommandTable.getCommands().stream().anyMatch(c -> c.getName().equals("ir")));
