@@ -334,8 +334,8 @@ final class GitStatusReader {
 
     // The newest commits of range, or of HEAD when it is null.
     private static List<Item> commits(VcsRepository repository, String range) {
-        final List<String> args =
-                new ArrayList<>(List.of("log", "-n", Integer.toString(RECENT), "--format=%h%x1f%s%x1f%D"));
+        final List<String> args = new ArrayList<>(
+                List.of("log", "-n", Integer.toString(RECENT), "--decorate=full", "--format=%h%x1f%s%x1f%D"));
         if (range != null)
             args.add(range);
         args.add("--");
@@ -346,7 +346,7 @@ final class GitStatusReader {
         for (String line : r.out().split("\n")) {
             final String[] f = line.split("\u001f", -1);
             if (f.length == 3)
-                items.add(new CommitItem(f[0], f[1], f[2]));
+                items.add(new CommitItem(f[0], f[1], GitLog.refs(f[2])));
         }
         return items;
     }

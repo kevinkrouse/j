@@ -20,10 +20,12 @@
 
 package org.armedbear.j.vcs.status;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.log.LogRef;
 
 /**
  * What a status buffer shows of one repository, as its backend read it: the
@@ -84,10 +86,26 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
         }
     }
 
-    public record CommitItem(String hash, String subject, String refs) implements Item {
+    public record CommitItem(String hash, String subject, List<LogRef> refs) implements Item {
+        public CommitItem {
+            refs = List.copyOf(refs);
+        }
+
         /** "abc1234 (main) subject", as listed. */
         public String text() {
-            return hash + " " + (refs.isBlank() ? "" : "(" + refs + ") ") + subject;
+            final String label = label();
+            return hash + " " + (label.isEmpty() ? "" : "(" + label + ") ") + subject;
+        }
+
+        /** Its refs as git decorates it: "HEAD -> main, tag: v1, origin/main". */
+        public String label() {
+            final List<String> out = new ArrayList<>();
+            for (LogRef r : refs)
+                out.add(
+                    r.kind() == LogRef.Kind.TAG ? "tag: " + r.name()
+                            : r.head() && r.kind() == LogRef.Kind.BRANCH ? "HEAD -> " + r.name()
+                            : r.name());
+            return String.join(", ", out);
         }
     }
 
@@ -102,7 +120,7 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
     public record StashItem(String name, String hash, String subject, List<FileItem> files) implements Item {
         /** As a commit, for its details. */
         public CommitItem commit() {
-            return new CommitItem(hash, subject, name);
+            return new CommitItem(hash, subject, List.of(new LogRef(name, LogRef.Kind.STASH, false)));
         }
     }
 

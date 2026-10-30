@@ -24,12 +24,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.status.StatusData;
+import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusData.StashItem;
@@ -69,5 +72,34 @@ public class GitStatusReaderTest {
         assertEquals(List.of("a.txt", "b.txt"), files.stream().map(FileItem::path).toList());
         assertTrue(!files.get(0).diff().hunks().isEmpty());
         assertSame(FileDiff.ONLY_WHITESPACE, files.get(1).diff());
+    }
+
+    @Test
+    public void aRecentCommitsRefsAreTypedAndLabeledAsGitDecoratesIt() throws Exception {
+        final GitFixture origin = GitFixture.init(Files.createDirectory(tmp.resolve("origin")));
+        origin.write("f.txt", "one\n");
+        origin.commitAll("one");
+        final GitFixture git = GitFixture.init(Files.createDirectory(tmp.resolve("work")));
+        git.git("remote", "add", "origin", origin.root.toString());
+        git.git("fetch", "-q", "origin");
+        git.git("reset", "-q", "--hard", "origin/main");
+        git.git("remote", "set-head", "origin", "main");
+        git.git("tag", "v1");
+        git.git("switch", "-q", "-c", "feat");
+        final StatusData d =
+                GitStatusReader.read(Repositories.forDirectory(git.root), (s, k) -> false, Whitespace.NONE);
+        CommitItem c = null;
+        for (Section s : d.sections())
+            if (s.id().equals("recent"))
+                c = (CommitItem) s.items().get(0);
+        assertEquals(git.git("log", "-1", "--format=%D").strip(), c.label());
+        assertEquals(
+            List.of(
+                new LogRef("feat", LogRef.Kind.BRANCH, true),
+                new LogRef("v1", LogRef.Kind.TAG, false),
+                new LogRef("origin/main", LogRef.Kind.REMOTE, false),
+                new LogRef("origin/HEAD", LogRef.Kind.REMOTE, false),
+                new LogRef("main", LogRef.Kind.BRANCH, false)),
+            c.refs());
     }
 }

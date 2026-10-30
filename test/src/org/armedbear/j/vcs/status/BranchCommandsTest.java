@@ -131,7 +131,14 @@ public class BranchCommandsTest {
         cloned();
         git.git("switch", "-q", "-c", "new");
         // In the status, its commit's refs: the other branch, not new.
-        assertEquals("main", BranchCommands.refOf("abc1234", "HEAD -> new, main"));
+        assertEquals(
+            "main",
+            BranchCommands.refOf(
+                "abc1234",
+                List.of(
+                    new LogRef("new", LogRef.Kind.BRANCH, true),
+                    ref("origin/main", LogRef.Kind.REMOTE),
+                    ref("main", LogRef.Kind.BRANCH))));
         run(BranchCommands::vcsBranchCheckout, "main", "main");
         until(() -> branch().equals("main"));
         assertEquals("main", offered.get(0).get(0));
@@ -293,21 +300,24 @@ public class BranchCommandsTest {
         assertEquals("refs/remotes/origin/feature", c.ref("origin/feature").fullName());
     }
 
+    private static LogRef ref(String name, LogRef.Kind kind) {
+        return new LogRef(name, kind, false);
+    }
+
     @Test
-    public void aStatusCommitsRefIsTheFirstButTheBranchCheckedOut() {
-        assertEquals("origin/main", BranchCommands.refOf("abc1234", "HEAD -> main, origin/main, tag: v1"));
-        assertEquals("v1", BranchCommands.refOf("abc1234", "tag: v1"));
-        assertEquals(
-            "feature",
-            BranchCommands.refOf("abc1234", "HEAD -> main, tag: v1, feature"),
-            "a branch before a tag");
-        assertEquals(
-            "v1",
-            BranchCommands.refOf("abc1234", "HEAD -> main, tag: v1"),
-            "a tag before the branch checked out");
-        assertEquals("main", BranchCommands.refOf("abc1234", "HEAD -> main"));
-        assertEquals("abc1234", BranchCommands.refOf("abc1234", "HEAD"));
-        assertEquals("abc1234", BranchCommands.refOf("abc1234", ""));
+    public void aCommitsRefIsByKindTheBranchCheckedOutLast() {
+        final LogRef feat = new LogRef("feat", LogRef.Kind.BRANCH, true);
+        final LogRef v1 = ref("v1", LogRef.Kind.TAG);
+        final LogRef originMain = ref("origin/main", LogRef.Kind.REMOTE);
+        final LogRef originHead = ref("origin/HEAD", LogRef.Kind.REMOTE);
+        final LogRef main = ref("main", LogRef.Kind.BRANCH);
+        // git's order: "HEAD -> feat, tag: v1, origin/main, origin/HEAD, main".
+        assertEquals("main", BranchCommands.refOf("abc1234", List.of(feat, v1, originMain, originHead, main)));
+        assertEquals("origin/main", BranchCommands.refOf("abc1234", List.of(feat, v1, originHead, originMain)));
+        assertEquals("v1", BranchCommands.refOf("abc1234", List.of(feat, v1, originHead)), "not a remote's HEAD");
+        assertEquals("feat", BranchCommands.refOf("abc1234", List.of(feat)));
+        assertEquals("abc1234", BranchCommands.refOf("abc1234", List.of(new LogRef("HEAD", LogRef.Kind.HEAD, true))));
+        assertEquals("abc1234", BranchCommands.refOf("abc1234", List.of()));
     }
 
     @Test

@@ -497,36 +497,23 @@ public final class BranchCommands {
     // A log row's: a branch not checked out, else a remote's, a tag, the
     // branch checked out, or the commit.
     private static String refOf(LogCommit c) {
-        for (LogRef.Kind kind : List.of(LogRef.Kind.BRANCH, LogRef.Kind.REMOTE, LogRef.Kind.TAG))
-            for (LogRef ref : c.refs())
-                if (ref.kind() == kind && !ref.head())
-                    return ref.name();
-        for (LogRef ref : c.refs())
-            if (ref.kind() == LogRef.Kind.BRANCH)
-                return ref.name();
-        return LogCommit.shortId(c.id());
+        return refOf(LogCommit.shortId(c.id()), c.refs());
     }
 
     /**
-     * A status commit's, from git's "HEAD -> main, origin/main, tag: v1",
-     * which lists the local branches, then the remotes': the first branch
-     * but the one checked out, else a tag, else that branch, else the
-     * commit.
+     * A commit's ref, by kind, whatever order git lists them in: a branch
+     * but the one checked out, else a remote's branch, but a remote's
+     * HEAD, else a tag, else that branch, else the commit.
      */
-    static String refOf(String hash, String decorations) {
-        String head = null;
-        String tag = null;
-        for (String d : decorations.split(", ")) {
-            final String name = d.strip();
-            if (name.startsWith("HEAD -> "))
-                head = name.substring("HEAD -> ".length());
-            else if (name.startsWith("tag: ")) {
-                if (tag == null)
-                    tag = name.substring("tag: ".length());
-            } else if (!name.isEmpty() && !name.equals("HEAD"))
-                return name;
-        }
-        return tag != null ? tag : head != null ? head : hash;
+    static String refOf(String hash, List<LogRef> refs) {
+        for (LogRef.Kind kind : List.of(LogRef.Kind.BRANCH, LogRef.Kind.REMOTE, LogRef.Kind.TAG))
+            for (LogRef ref : refs)
+                if (ref.kind() == kind && !ref.head() && !ref.name().endsWith("/HEAD"))
+                    return ref.name();
+        for (LogRef ref : refs)
+            if (ref.kind() == LogRef.Kind.BRANCH)
+                return ref.name();
+        return hash;
     }
 
     // Writing.

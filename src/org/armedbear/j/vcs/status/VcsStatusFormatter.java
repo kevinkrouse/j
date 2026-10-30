@@ -123,8 +123,8 @@ public class VcsStatusFormatter extends Formatter {
                 addSegment(text, 0, hash < 0 ? text.length() : hash, HASH);
                 if (hash >= 0) {
                     int rest = hash;
-                    if (s.commit() != null && !s.commit().refs().isBlank()) {
-                        rest = hash + s.commit().refs().length() + 3;
+                    if (s.commit() != null && !s.commit().refs().isEmpty()) {
+                        rest = hash + s.commit().label().length() + 3;
                         addSegment(text, hash, Math.min(rest, text.length()), REFS);
                     }
                     if (rest < text.length())
