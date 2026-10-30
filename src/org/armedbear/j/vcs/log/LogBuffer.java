@@ -35,7 +35,6 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Folds;
 import org.armedbear.j.Frame;
 import org.armedbear.j.FrameView;
-import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.PerFrame;
@@ -113,6 +112,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         this.query = query;
         this.pageSize = pageSize;
         merge = newMerge();
+        addGutterColumn(graphColumn);
         follow = new Timer(FOLLOW_DELAY, e -> showDetails());
         follow.setRepeats(false);
     }
@@ -645,11 +645,6 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
             return "No commits match the filters";
         final String none = scope.first().backend().name() + ": no commits";
         return query.path() != null ? none + " of " + query.path() : none;
-    }
-
-    @Override
-    public GutterColumn getGutterColumn() {
-        return graphColumn;
     }
 
     /** How many lanes the widest row of the graph spans. */

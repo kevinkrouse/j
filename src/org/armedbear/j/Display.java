@@ -48,6 +48,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JLayeredPane;
@@ -121,7 +122,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private boolean showLineNumbers;
     private int gutterWidth;
     // The buffer's column before the text, at the gutter's right; null for none.
-    private GutterColumn gutterColumn;
+    private List<GutterColumn> gutterColumns = List.of();
     private Color changeColor;
     private Color savedChangeColor;
     // The version control's signs, and their colors by kind.
@@ -576,10 +577,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 signColors[kind.ordinal()] = Signs.color(kind, editor.getFormatter().getBackgroundColor());
         showLineNumbers = buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS);
         foldMarkers = buffer.getStringProperty(Property.FOLD_MARKERS);
-        gutterColumn = buffer.getGutterColumn();
+        gutterColumns = buffer.getGutterColumns();
         final int gutterWas = gutterWidth;
-        gutterWidth =
-                getGutterWidth(showChangeMarks, showLineNumbers) + (gutterColumn == null ? 0 : gutterColumn.width());
+        gutterWidth = getGutterWidth(showChangeMarks, showLineNumbers) + width(gutterColumns);
         // The text's room changed, as when a buffer's column widened: laid
         // out again as after a resize, once this paint is done.
         if (gutterWidth != gutterWas && gutterWas != 0)
@@ -1759,8 +1759,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 g.drawString(s, x, y + charAscent);
             }
         }
-        if (gutterColumn != null)
-            gutterColumn.paint((Graphics2D) g, line, gutterWidth - gutterColumn.width(), y, line.getHeight());
+        int left = gutterWidth - width(gutterColumns);
+        for (GutterColumn column : gutterColumns) {
+            column.paint((Graphics2D) g, line, left, y, line.getHeight());
+            left += column.width();
+        }
     }
 
     // When open folds show their markers: "hover", "always" or "never".
@@ -1890,10 +1893,17 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     // Returns width in pixels.
     public static final int getGutterWidth(Buffer buffer) {
-        final GutterColumn column = buffer.getGutterColumn();
         return getGutterWidth(
             buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS),
-            buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS)) + (column == null ? 0 : column.width());
+            buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS)) + width(buffer.getGutterColumns());
+    }
+
+    // The columns' width together.
+    private static int width(List<GutterColumn> columns) {
+        int width = 0;
+        for (GutterColumn column : columns)
+            width += column.width();
+        return width;
     }
 
     // Returns width in pixels.
@@ -3436,31 +3446,34 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final VirtualText.Run run = virtualRunAt(e.getX(), e.getY());
         if (run != null && run.tooltip() != null)
             return run.tooltip();
-        final GutterColumn column = editor.getBuffer().getGutterColumn();
-        if (column != null && inGutterColumn(e.getX())) {
+        if (inGutterColumn(e.getX())) {
             final GutterColumn.At at = gutterColumnAt(e.getX(), e.getY());
-            return at == null ? null : column.getToolTipText(at.line(), at.x(), at.y());
+            return at == null ? null : at.column().getToolTipText(at.line(), at.x(), at.y());
         }
         return editor.getMode().getToolTipText(editor, e);
     }
 
-    /** Whether x is in the buffer's gutter column. */
+    /** Whether x is in one of the buffer's gutter columns. */
     public boolean inGutterColumn(int x) {
-        final GutterColumn column = editor.getBuffer().getGutterColumn();
         final int right = getGutterWidth(editor.getBuffer());
-        return column != null && x >= right - column.width() && x < right;
+        return x >= right - width(editor.getBuffer().getGutterColumns()) && x < right;
     }
 
-    /** Where x and y are in the buffer's gutter column, or null if not on a line's part of it. */
+    /** Where x and y are in the buffer's gutter columns, or null if not on a line's part of one. */
     public GutterColumn.At gutterColumnAt(int x, int y) {
         final Line line = lineFromY(y);
         if (!inGutterColumn(x) || line == null)
             return null;
         final int top = y - getY(line);
-        return top >= 0 && top < line.getHeight()
-                ? new GutterColumn.At(line,
-                        x - (getGutterWidth(editor.getBuffer()) - editor.getBuffer().getGutterColumn().width()),
-                        top)
-                : null;
+        if (top < 0 || top >= line.getHeight())
+            return null;
+        final List<GutterColumn> columns = editor.getBuffer().getGutterColumns();
+        int left = getGutterWidth(editor.getBuffer()) - width(columns);
+        for (GutterColumn column : columns) {
+            if (x < left + column.width())
+                return new GutterColumn.At(column, line, x - left, top);
+            left += column.width();
+        }
+        return null;
     }
 }

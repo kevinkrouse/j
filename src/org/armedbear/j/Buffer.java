@@ -34,6 +34,7 @@ import java.lang.ref.SoftReference;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -1998,9 +1999,24 @@ public class Buffer extends SystemBuffer {
     /** A window showing this buffer was resized, as text laid out to its width wants to know. */
     public void windowResized(Editor editor) {}
 
-    /** A column it paints in the gutter before its text, as the log's graph; null for none. */
-    public GutterColumn getGutterColumn() {
-        return null;
+    private final List<GutterColumn> gutterColumns = new CopyOnWriteArrayList<>();
+
+    /** The columns it paints in the gutter before its text, left to right, as the log's graph. */
+    public final List<GutterColumn> getGutterColumns() {
+        return Collections.unmodifiableList(gutterColumns);
+    }
+
+    /** Adds column after the others, repainting the windows showing this buffer. */
+    public final void addGutterColumn(GutterColumn column) {
+        if (!gutterColumns.contains(column)) {
+            gutterColumns.add(column);
+            repaint();
+        }
+    }
+
+    public final void removeGutterColumn(GutterColumn column) {
+        if (gutterColumns.remove(column))
+            repaint();
     }
 
     // The text changed: its followers told, the change marks among them.

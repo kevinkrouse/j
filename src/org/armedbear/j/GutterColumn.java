@@ -24,8 +24,9 @@ import java.awt.Graphics2D;
 
 /**
  * A column a buffer paints in the gutter, after the line numbers and before
- * the text, as the log's graph: a decoration with a width, not text, so
- * columns and selections stay the text's.
+ * the text, as the log's graph or blame: a decoration with a width, not
+ * text, so columns and selections stay the text's. A buffer's columns are
+ * painted left to right.
  */
 public interface GutterColumn {
     /** Its width in pixels now. */
@@ -49,6 +50,6 @@ public interface GutterColumn {
         return false;
     }
 
-    /** A point in a column: the line, and x and y from the column's left and the row's top. */
-    record At(Line line, int x, int y) {}
+    /** A point in a column: the column, the line, and x and y from the column's left and the row's top. */
+    record At(GutterColumn column, Line line, int x, int y) {}
 }

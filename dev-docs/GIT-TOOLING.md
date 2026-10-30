@@ -1170,7 +1170,7 @@ plan with why it is left, before the next phase starts.
      left, an octopus, pages apart) and on 200 random ones: each row's
      lanes out are the next row's lanes in, with no gap. `LogGraphColumn`
      paints a row in the gutter, before the text: `GutterColumn`, a
-     buffer's column there (`Buffer.getGutterColumn`), which
+     buffer's column there (`Buffer.getGutterColumns`), which
      `Display.getGutterWidth` counts, so clicks, columns and the rows'
      width leave room for it; it is the first of the gutter column
      providers the blame column needs; `Display` lays a buffer out again

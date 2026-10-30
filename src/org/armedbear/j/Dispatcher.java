@@ -498,9 +498,9 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             if (at != null
                     && button == MouseEvent.BUTTON1
                     && modifiers == 0
-                    && buffer.getGutterColumn().isClickable(at.line(), at.x(), at.y())) {
+                    && at.column().isClickable(at.line(), at.x(), at.y())) {
                 if (e.getClickCount() == 1)
-                    buffer.getGutterColumn().clicked(editor, at.line(), at.x(), at.y());
+                    at.column().clicked(editor, at.line(), at.x(), at.y());
                 return true;
             }
             Position pos = display.positionFromPoint(x, y);
@@ -667,7 +667,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             final boolean marker = pos != null
                     && (display.isFoldMarkerAt(e.getX(), pos.getLine())
                             || display.isChangeMarkAt(e.getX(), pos.getLine()))
-                    || at != null && buffer.getGutterColumn().isClickable(at.line(), at.x(), at.y());
+                    || at != null && at.column().isClickable(at.line(), at.x(), at.y());
             editor.setCursor(Cursor.getPredefinedCursor(marker ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
         } else
             editor.setCursor(buffer.getDefaultCursor(pos));

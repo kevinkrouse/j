@@ -1317,14 +1317,14 @@ public class LogBufferTest {
         open(100);
         assertTrue(log.graphWidth() >= 1);
         final int gutter = Display.getGutterWidth(log);
-        assertTrue(log.getGutterColumn().width() > 0);
-        assertTrue(gutter >= log.getGutterColumn().width(), "in the gutter");
+        assertTrue(log.getGutterColumns().get(0).width() > 0);
+        assertTrue(gutter >= log.getGutterColumns().get(0).width(), "in the gutter");
         assertTrue(((LogLine) log.getFirstLine()).graph() != null);
         // Over its lane, the branch's name.
         final Display display = h.editor().getDisplay();
         final Set<String> tips = new HashSet<>();
         onEdt(() -> {
-            for (int x = gutter - log.getGutterColumn().width(); x < gutter; x++)
+            for (int x = gutter - log.getGutterColumns().get(0).width(); x < gutter; x++)
                 tips.add(
                     display.getToolTipText(
                         new MouseEvent(display, 0, 0, 0, x, log.getFirstLine().getHeight() / 2, 0, false)));
@@ -1344,7 +1344,7 @@ public class LogBufferTest {
         until(() -> !log.isLoading() && subjects().equals(List.of("by ada")));
         assertEquals(null, ((LogLine) log.getFirstLine()).graph(), "an author's commits: no graph");
         assertEquals(0, log.graphWidth());
-        assertEquals(0, log.getGutterColumn().width(), "no room kept for it");
+        assertEquals(0, log.getGutterColumns().get(0).width(), "no room kept for it");
         assertEquals(
             h.editor().getDisplay().getColumns(),
             log.getFirstLine().getText().length(),
@@ -1413,7 +1413,7 @@ public class LogBufferTest {
             List.of(repositoryAt(0), repositoryAt(1), repositoryAt(2), repositoryAt(3)));
         // Each repository's lane its own, the strip before them.
         assertEquals(2, log.graphWidth());
-        final GutterColumn column = log.getGutterColumn();
+        final GutterColumn column = log.getGutterColumns().get(0);
         assertEquals(b.root.toString(), column.getToolTipText(log.getFirstLine(), 1, 1), "the strip: its repository");
         // A commit's details are from its repository.
         onEdt(() -> {
@@ -1463,7 +1463,7 @@ public class LogBufferTest {
     @Test
     public void theRepositoryChecklistOrAClickOnTheStripShowsOneAlone() throws Exception {
         open(project(), 100);
-        final GutterColumn column = log.getGutterColumn();
+        final GutterColumn column = log.getGutterColumns().get(0);
         assertTrue(column.isClickable(log.getFirstLine(), 1, 1), "the strip: a hand");
         assertFalse(column.isClickable(log.getFirstLine(), column.width() - 1, 1), "the graph");
         // The lists' boxes: a repository's color, a branch's lane's.
@@ -1489,10 +1489,10 @@ public class LogBufferTest {
         assertEquals(List.of("a", "gone"), log.getQuery().repositories(), "the log's order, then the rest");
         onEdt(() -> LogFilters.REPOSITORY.binding().set(h.editor(), null));
         until(() -> !log.isLoading() && subjects().size() == 4);
-        onEdt(() -> assertTrue(log.getGutterColumn().clicked(h.editor(), log.getFirstLine(), 1, 1)));
+        onEdt(() -> assertTrue(log.getGutterColumns().get(0).clicked(h.editor(), log.getFirstLine(), 1, 1)));
         until(() -> !log.isLoading() && subjects().equals(List.of("b4", "b2")));
         assertEquals(List.of("b"), log.getQuery().repositories());
-        onEdt(() -> log.getGutterColumn().clicked(h.editor(), log.getFirstLine(), 1, 1));
+        onEdt(() -> log.getGutterColumns().get(0).clicked(h.editor(), log.getFirstLine(), 1, 1));
         until(() -> !log.isLoading() && subjects().size() == 4);
         assertTrue(LogFilters.of(log.getScope()).contains(LogFilters.REPOSITORY));
         assertFalse(LogFilters.of(LogScope.of(repository)).contains(LogFilters.REPOSITORY), "not for one");
