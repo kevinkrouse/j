@@ -37,6 +37,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
+import org.armedbear.j.transients.Transients;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
@@ -57,8 +58,9 @@ public class BranchCommandsTest {
 
     private GitFixture git;
 
-    // What each list offered, in order.
+    // What each list offered, in order, and asked.
     private final List<List<String>> offered = new ArrayList<>();
+    private final List<BranchCommands.Question> questions = new ArrayList<>();
 
     @AfterEach
     public void reset() {
@@ -115,8 +117,9 @@ public class BranchCommandsTest {
 
     // Runs command with the ref at, each list answered with pick.
     private void run(BiConsumer<Editor, String> command, String at, String pick) throws Exception {
-        BranchCommands.choose = (editor, history, names, chosen) -> {
+        BranchCommands.choose = (editor, q, history, names, chosen) -> {
             offered.add(names);
+            questions.add(q);
             chosen.accept(pick);
         };
         final EditorHarness h = EditorHarness.create();
@@ -154,6 +157,17 @@ public class BranchCommandsTest {
     }
 
     @Test
+    public void aCommitTypedIsCheckedOutDetached() throws Exception {
+        cloned();
+        final String hash = git.git("rev-parse", "--short", "b").strip();
+        run(BranchCommands::vcsBranchCheckout, null, hash);
+        until(() -> branch().isEmpty());
+        assertEquals(git.git("rev-parse", "b"), git.git("rev-parse", "HEAD"));
+        assertEquals(List.of(BranchCommands.CHECKOUT), questions);
+        assertTrue(BranchCommands.CHECKOUT.typed());
+    }
+
+    @Test
     public void theRecentBranchesAreTheReflogsLatestFirst() throws Exception {
         cloned();
         git.git("switch", "-q", "a");
@@ -164,10 +178,11 @@ public class BranchCommandsTest {
         run(BranchCommands::vcsBranchCheckoutRecent, null, "b");
         until(() -> branch().equals("b"));
         assertEquals(List.of("b"), offered.get(0), "neither the one checked out nor one gone");
+        assertEquals(List.of(BranchCommands.CHECKOUT_RECENT), questions);
     }
 
     @Test
-    public void aNewBranchStartsWhereItIsAskedToAndARemotesOffersItsName() throws Exception {
+    public void aNewBranchStartsWhereItIsAskedToTheRefAtTheCaretFirstAndARemotesOffersItsName() throws Exception {
         cloned();
         final List<String> suggested = new ArrayList<>();
         BranchCommands.ask = (editor, prompt, title, offer) -> {
@@ -177,12 +192,16 @@ public class BranchCommandsTest {
         run(BranchCommands::vcsBranchCreate, "a", "origin/feature");
         until(() -> has("refs/heads/feature2"));
         assertEquals(List.of("a", "main"), offered.get(0).subList(0, 2), "the ref at the caret, then HEAD's");
+        assertEquals(BranchCommands.START, questions.get(0));
         assertEquals(List.of("feature"), suggested);
         assertEquals("main", branch(), "n: not checked out");
         assertEquals(git.git("rev-parse", "origin/feature"), git.git("rev-parse", "feature2"));
+        // A revision typed.
+        final String hash = git.git("rev-parse", "--short", "b").strip();
         BranchCommands.ask = (editor, prompt, title, offer) -> "c";
-        run(BranchCommands::vcsBranchCheckoutNew, null, "b");
+        run(BranchCommands::vcsBranchCheckoutNew, null, hash);
         until(() -> branch().equals("c"));
+        assertEquals("main", offered.get(1).get(0), "no ref at the caret: the branch checked out first");
         assertEquals(git.git("rev-parse", "b"), git.git("rev-parse", "c"));
     }
 
@@ -193,6 +212,7 @@ public class BranchCommandsTest {
         run(BranchCommands::vcsBranchRename, "a", "a");
         until(() -> has("refs/heads/aa"));
         assertEquals(List.of("a", "main", "b"), offered.get(0));
+        assertEquals(List.of(BranchCommands.RENAME), questions);
         assertFalse(has("refs/heads/a"));
     }
 
@@ -293,7 +313,7 @@ public class BranchCommandsTest {
     @Test
     public void thePopupIsNeogitsItsCommandsGivenTheRefAtTheCaret() throws Exception {
         cloned();
-        final Transient p = BranchCommands.popup(context("a"));
+        final Transient p = BranchCommands.popup(context("a"), false);
         final String arg = " a " + git.root;
         assertEquals("vcsBranchCheckout" + arg, ((Command) p.item("b")).command());
         assertEquals("vcsBranchCheckout", ((Command) p.item("b")).name());
@@ -301,9 +321,11 @@ public class BranchCommandsTest {
             assertTrue(((Command) p.item(key)).command().endsWith(arg), key);
         assertEquals(
             "vcsBranchCheckoutLocal - " + git.root,
-            ((Command) BranchCommands.popup(context(null)).item("l")).command());
+            ((Command) BranchCommands.popup(context(null), false).item("l")).command());
         git.git("switch", "-q", "--detach", "a");
-        assertNull(((Command) BranchCommands.popup(context("a")).item("p")).command(), "no branch to be the parent of");
+        assertNull(
+            ((Command) BranchCommands.popup(context("a"), false).item("p")).command(),
+            "no branch to be the parent of");
     }
 
     @Test
@@ -335,6 +357,121 @@ public class BranchCommandsTest {
         assertTrue(repo().backend().mergeAbort(repo()).succeeded());
         assertFalse(repo().backend().isMerging(repo()));
         assertEquals("main's\n", git.read("f.txt"));
+    }
+
+    // Three repositories, each on main: x and y with feature, z without;
+    // y with a change feature's checkout would overwrite.
+    private List<GitFixture> three() throws Exception {
+        final List<GitFixture> out = new ArrayList<>();
+        for (String name : List.of("x", "y", "z")) {
+            final GitFixture f = GitFixture.init(Files.createDirectory(tmp.resolve(name)));
+            f.write("f.txt", "one\n");
+            f.commitAll("one");
+            if (!name.equals("z")) {
+                f.git("switch", "-q", "-c", "feature");
+                f.write("f.txt", "feature\n");
+                f.commitAll("on feature");
+                f.git("switch", "-q", "main");
+            }
+            out.add(f);
+        }
+        out.get(1).write("f.txt", "in the way\n");
+        return out;
+    }
+
+    // An editor on a status of them, with -a on.
+    private Editor statusOf(List<GitFixture> fs) throws Exception {
+        final EditorHarness h = EditorHarness.create();
+        final List<VcsRepository> rs = new ArrayList<>();
+        for (GitFixture f : fs)
+            rs.add(Repositories.forDirectory(f.root));
+        onEdt(() -> {
+            h.showBuffer(VcsStatusBuffer.of(rs));
+            Transients.args(h.editor(), BranchCommands.ID).setOn(EachRepository.ALL, true);
+        });
+        return h.editor();
+    }
+
+    private static String branchOf(GitFixture f) {
+        return f.git("branch", "--show-current").strip();
+    }
+
+    @Test
+    public void withAllACheckoutIsMadeInEachThatHasTheBranchOneFailingLeavingTheOthers() throws Exception {
+        final List<GitFixture> fs = three();
+        final Editor editor = statusOf(fs);
+        BranchCommands.choose = (e, q, history, names, chosen) -> {
+            offered.add(names);
+            chosen.accept("feature (2 of 3)");
+        };
+        onEdt(() -> BranchCommands.vcsBranchCheckout(editor, null));
+        until(() -> branchOf(fs.get(0)).equals("feature"));
+        Thread.sleep(300);
+        assertEquals(List.of("feature (2 of 3)"), offered.get(0), "main is checked out in each");
+        assertEquals("main", branchOf(fs.get(1)), "the change in the way: left as it was");
+        assertEquals("main", branchOf(fs.get(2)));
+    }
+
+    @Test
+    public void withAllABranchIsMadeInEachFromHeadWhereTheStartIsMissing() throws Exception {
+        final List<GitFixture> fs = three();
+        final Editor editor = statusOf(fs);
+        BranchCommands.choose = (e, q, history, names, chosen) -> {
+            offered.add(names);
+            chosen.accept("feature (2 of 3)");
+        };
+        BranchCommands.ask = (e, prompt, title, offer) -> "topic";
+        onEdt(() -> BranchCommands.vcsBranchCreate(editor, null));
+        until(() -> fs.stream().allMatch(f -> f.run("rev-parse", "-q", "--verify", "refs/heads/topic").succeeded()));
+        assertEquals(List.of("HEAD", "feature (2 of 3)", "main (3)"), offered.get(0));
+        assertEquals(fs.get(0).git("rev-parse", "feature"), fs.get(0).git("rev-parse", "topic"));
+        assertEquals(fs.get(2).git("rev-parse", "main"), fs.get(2).git("rev-parse", "topic"), "no feature: HEAD");
+        assertEquals("main", branchOf(fs.get(0)), "n: not checked out");
+    }
+
+    @Test
+    public void withAllADeleteAsksOnceNamingTheCommitsLostInEach() throws Exception {
+        final List<GitFixture> fs = three();
+        final Editor editor = statusOf(fs);
+        BranchCommands.choose = (e, q, history, names, chosen) -> chosen.accept("feature (2 of 3)");
+        final List<String> asked = new ArrayList<>();
+        BranchCommands.confirm = (e, text, title) -> asked.add(text);
+        onEdt(() -> BranchCommands.vcsBranchDelete(editor, null));
+        until(
+            () -> !fs.get(0).run("rev-parse", "-q", "--verify", "refs/heads/feature").succeeded()
+                    && !fs.get(1).run("rev-parse", "-q", "--verify", "refs/heads/feature").succeeded());
+        assertEquals(2, asked.size());
+        assertEquals("Delete branch feature in x, y?", asked.get(0));
+        assertTrue(asked.get(1).contains("x:\n") && asked.get(1).contains("y:\n"), asked.get(1));
+    }
+
+    @Test
+    public void theOutcomeSaysWhereItWasDoneLeftAloneAndFailed() throws Exception {
+        final List<GitFixture> fs = three();
+        final List<VcsRepository> rs = new ArrayList<>();
+        for (GitFixture f : fs)
+            rs.add(Repositories.forDirectory(f.root));
+        final VcsResult failed = fs.get(1).run("switch", "feature");
+        final VcsResult ok = fs.get(0).run("switch", "feature");
+        assertEquals(
+            "Checked out feature in x; not in z (no feature); failed in y: Your local changes to the following files"
+                    + " would be overwritten by checkout",
+            EachRepository.said(
+                "Checking out feature",
+                "Checked out feature",
+                List.of(
+                    new EachRepository.Done(rs.get(0), ok, null),
+                    new EachRepository.Done(rs.get(1), failed, null),
+                    new EachRepository.Done(rs.get(2), null, "no feature"))));
+    }
+
+    @Test
+    public void thePopupHasAllWithSeveralRepositories() throws Exception {
+        cloned();
+        assertEquals(
+            "--all-repositories",
+            ((Transient.Switch) BranchCommands.popup(context(null), true).item("-a")).name());
+        assertNull(BranchCommands.popup(context(null), false).item("-a"));
     }
 
     private static void onEdt(Runnable r) throws Exception {

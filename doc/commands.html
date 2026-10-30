@@ -6106,7 +6106,7 @@ Converts all upper case characters in the selected region to lower case.
 
 <a name="vcsBranchCheckout">vcsBranchCheckout</a><dl><dd>
 <p>
-Checks out a branch, tag or revision, asked for from a list, the ref at the caret first: a remote's branch as a new local branch tracking it, or the local branch of its name if there is one; a tag or revision detached. Changes in the way leave everything as it was. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Checks out a branch, tag or revision, asked for from a list, the ref at the caret first, or typed: a remote's branch as a new local branch tracking it, or the local branch of its name if there is one; a tag or revision detached. Changes in the way leave everything as it was. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> b in the branch popup
 <br><br>
@@ -6126,7 +6126,7 @@ Checks out a local branch, or a remote's branch that has no local one of its nam
 
 <a name="vcsBranchCheckoutNew">vcsBranchCheckoutNew</a><dl><dd>
 <p>
-Creates a branch where it is asked to start, from a list, the ref at the caret first, asking for its name, and checks it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Creates a branch where it is asked to start, from a list labeled <i>Start from:</i>, the ref at the caret first, else the branch checked out, or a revision typed, then asking for its name, and checks it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> c in the branch popup
 <br><br>
@@ -6146,7 +6146,7 @@ Checks out a branch checked out before, asked for from a list of them, the lates
 
 <a name="vcsBranchCreate">vcsBranchCreate</a><dl><dd>
 <p>
-Creates a branch where it is asked to start, from a list, the ref at the caret first, asking for its name, without checking it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Creates a branch where it is asked to start, from a list labeled <i>Start from:</i>, the ref at the caret first, else the branch checked out, or a revision typed, then asking for its name, without checking it out. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> n in the branch popup
 <br><br>
@@ -6166,7 +6166,7 @@ Deletes a local branch, asked for from a list, after asking; if it has commits n
 
 <a name="vcsBranchPopup">vcsBranchPopup</a><dl><dd>
 <p>
-Opens the branch popup, after Neogit's: checking out a branch, a local one, a recent one or a new one, creating one, renaming, deleting, and the parent, each asking from a list with the ref at the caret first, or in the log's refs tree the ref clicked. With an argument, as for <a href="#vcsBranchCheckout">vcsBranchCheckout</a>.
+Opens the branch popup, after Neogit's: checking out a branch, a local one, a recent one or a new one, creating one, renaming, deleting, and the parent, each asking from a list with the ref at the caret first, or in the log's refs tree the ref clicked. With several repositories, its <b>-a</b> does each in every repository at once. With an argument, as for <a href="#vcsBranchCheckout">vcsBranchCheckout</a>.
 <br><br>
 <b>Default key mapping:</b> b in status buffers and the log's list; the right button or the menu key in the log's refs tree
 <br><br>
@@ -6350,7 +6350,7 @@ In a status buffer, fetches only a remote's branch, picked from a list of the re
 
 <a name="vcsFetchElsewhere">vcsFetchElsewhere</a><dl><dd>
 <p>
-In a status buffer, fetches from a remote picked from a list of the repository's remotes.
+In a status buffer, fetches from a remote picked from a list of the repository's remotes, or from a URL or path typed, into FETCH_HEAD alone.
 <br><br>
 <b>Default key mapping:</b> e in the fetch popup
 <br><br>
@@ -6649,7 +6649,7 @@ In the quick log, opens the full log at the commit; in the full log, moves to th
 
 <a name="vcsMerge">vcsMerge</a><dl><dd>
 <p>
-Merges a branch, tag or revision, asked for from a list, the ref at the caret first, into what is checked out, with the merge popup's <b>-f</b> (fast-forward only) or <b>-n</b> (always a merge commit). With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Merges a branch, tag or revision, asked for from a list, the ref at the caret first, or typed, into what is checked out, with the merge popup's <b>-f</b> (fast-forward only) or <b>-n</b> (always a merge commit). With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> m in the merge popup
 <br><br>

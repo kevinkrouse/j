@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Finders;
-import org.armedbear.j.LocationBar;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.Snapshot;
@@ -80,9 +79,12 @@ public final class ParentCommands {
                 editor.status("There is no other branch");
                 return;
             }
+            final BranchCommands.Question q = BranchCommands.parent(branches.branch());
             Finders.choose(
                 editor,
-                LocationBar.PROMPT_BRANCH,
+                q.prompt(),
+                q.hint(),
+                q.typed(),
                 "gitSetParent.branch",
                 List.copyOf(branches.names().keySet()),
                 picked -> set(editor, r, branches.branch(), branches.names().get(picked)));

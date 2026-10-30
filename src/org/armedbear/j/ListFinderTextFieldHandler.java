@@ -12,12 +12,14 @@
 package org.armedbear.j;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** A finder over a list made when it starts; each item knows what to do when picked. */
 public final class ListFinderTextFieldHandler extends FinderTextFieldHandler {
     private final String command;
     private final Supplier<List<FinderItem>> supplier;
+    private final Function<String, FinderItem> typed;
     private List<FinderItem> items; // Made on start, or on the first Enter before it.
 
     public ListFinderTextFieldHandler(
@@ -25,9 +27,20 @@ public final class ListFinderTextFieldHandler extends FinderTextFieldHandler {
             HistoryTextField textField,
             String command,
             Supplier<List<FinderItem>> supplier) {
+        this(editor, textField, command, supplier, null);
+    }
+
+    /** With typed, the item for text matching nothing listed; null for none. */
+    public ListFinderTextFieldHandler(
+            Editor editor,
+            HistoryTextField textField,
+            String command,
+            Supplier<List<FinderItem>> supplier,
+            Function<String, FinderItem> typed) {
         super(editor, textField);
         this.command = command;
         this.supplier = supplier;
+        this.typed = typed;
     }
 
     @Override
@@ -41,6 +54,12 @@ public final class ListFinderTextFieldHandler extends FinderTextFieldHandler {
             return;
         items = supplier.get();
         refilter();
+    }
+
+    @Override
+    protected List<FinderItem> fallbackCandidates() {
+        final String text = textField.getText().strip();
+        return typed == null || text.isEmpty() ? null : List.of(typed.apply(text));
     }
 
     @Override

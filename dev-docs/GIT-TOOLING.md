@@ -124,6 +124,15 @@ several repositories at once.
 
 ## Design
 
+**Several repositories, always.** Every feature is designed for a
+project of several repositories as well as one: it either acts in each
+(as IntelliJ's "all roots": a popup's `-a`, names labeled with how many
+repositories have them, one repository after another with each one's
+outcome said, a failure in one leaving the others done) or says why it
+stays with the repository at the caret. Which repositories an action
+takes is shown before it runs. A phase's plan states this for each of
+its features, and its tests use three repositories, one failing or left.
+
 ### A shared VCS layer
 
 Today `VcsBackend` has a backend per system with commands to run
@@ -1585,8 +1594,9 @@ plan with why it is left, before the next phase starts.
    unmerged, unpulled and unpushed sections, the stash section and popup,
    stashes in the log and the refs tree, the status's files in the
    sidebar by directory, actions on the refs
-   tree's branches, and branching in every repository at once. Draft
-   plan, in the order it lands:
+   tree's branches, and branching, committing, fetching, stashing and
+   merging in every repository at once. Draft plan, in the order it
+   lands:
    - **a. The branch's others, read.** `GitSnapshot` gains the push target
      and the parent, read with the snapshot (one `git for-each-ref
      --format='%(upstream:short)%00%(push:short)%00%(upstream:track)'
@@ -1777,6 +1787,56 @@ plan with why it is left, before the next phase starts.
      status bar counting them. Not `r` (each repository's reflog differs)
      nor `p`. Tests: three repositories, one without the branch, one with
      changes in the way.
+     Built as `AllBranchCommands`, which `BranchCommands`' commands hand
+     to first when the buffer's `-a` is on and it has several
+     repositories: each repository's `Context` read, the names labeled by
+     count (a name checked out in every one that has it left out of
+     checkout and delete), and one background job doing each in turn,
+     its `Done`s said together. Checked in the app under Xvfb: three
+     repositories, one with a change in the way.
+   - **j. Committing, fetching, stashing and merging in every
+     repository.** With several repositories in the status:
+     - **Commit** goes to each repository with something staged (with
+       `-a`, any tracked change), one commit each with the one message,
+       as IntelliJ's commit does across roots. Which repositories a commit
+       takes is never left to guess: the popup's `c` line names them
+       ("commit to x" or "commit to 3 repositories: x, y, z"); the
+       message window's title does too ("git commit: x" or "git commit:
+       3 repositories"); its template opens with them in capitals
+       (`# COMMITS TO 3 REPOSITORIES, ONE EACH: x, y, z`), or with one
+       of several, which it is and that the others have nothing staged;
+       the staged files are listed under each repository, and a verbose
+       diff is headed by each. The hint line over the message says it
+       again, and Ctrl Enter's status line says each commit made. Amend,
+       extend and reword take the caret's repository alone, and their
+       lines name it ("amend x's last commit"). A failure in one, as a
+       hook's, leaves the others committed and the message open for the
+       ones that failed, its title and template saying which are left.
+     - **Fetch** gains `-a`, all repositories: `p`, `u` and `a` fetch in
+       each, each from its own remotes; one without the remote asked for
+       is said and left. `e` and `o` stay with the caret's repository,
+       remote names being each one's own.
+     - **Stash** gains `-a`: `z`, `i`, `u` and `s` stash in each
+       repository with something to stash, with the one message; apply,
+       pop and drop stay with the stash at the caret, which is one
+       repository's.
+     - **Merge** gains `-a`: `m` merges a ref by name, labeled with how
+       many repositories have it, into what each that has it has checked
+       out; a conflict in one stops that one alone. Committing or
+       aborting a merge stays with the caret's repository.
+     All but commit's report as the branch commands' do: one repository
+     after another, the status bar counting them, then where it was done,
+     where not and why, and where it failed. Tests: three repositories,
+     each operation, with one that fails or is left.
+     Built as: `EachRepository`, the `-a` switch, the loop and its report,
+     taken out of `AllBranchCommands` for fetch, stash and merge to share.
+     Commit has no switch: `CommitCommands.targets` picks the repositories
+     and `reach` writes the template's capitals line;
+     `CommitMessageBuffer` holds its repositories, its title from them, and
+     after a partial failure the ones left, its template written again
+     around the message. `VcsRepository.name()` names a repository as the
+     status's heading does. A stash with `-a` is in each that the status
+     last read with something to stash.
    - **Docs and keys.** `doc/git.html` gains the parent, the commit
      sections, fetch, stash and the branch popup; the status popup gains
      `f`, `z` and `b` under Commands. Help anchors for each.

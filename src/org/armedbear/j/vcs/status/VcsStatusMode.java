@@ -394,7 +394,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         commands.add(new Prefix("l", "log…", () -> LogCommands.openingPopup(editor)));
         commands.add(Command.of("D", "vcsStatusDiff", "diff"));
         if (stages)
-            commands.add(new Prefix("c", "commit…", CommitCommands::popup));
+            commands.add(new Prefix("c", "commit…", () -> CommitCommands.popup(editor)));
         commands.add(Command.of("b", "vcsBranchPopup", "branch…"));
         commands.add(Command.of("m", "vcsMergePopup", "merge…"));
         commands.add(Command.of("f", "vcsFetchPopup", "fetch…"));

@@ -234,7 +234,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         for (VcsRepository r : status.getRepositories()) {
             final StatusData d = status.getData(r);
             if (d != null)
-                parts.add(new Part(r, name(r), d.sections()));
+                parts.add(new Part(r, r.name(), d.sections()));
         }
         // Nothing new, as after a section opens in the status: left as it is.
         if (parts.equals(this.parts)) {
@@ -261,10 +261,6 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
             if (was != null ? was : !(c.getUserObject() instanceof SectionNode s && closed(s.id())))
                 expandPath(p);
         }
-    }
-
-    private static String name(VcsRepository r) {
-        return r.root().getFileName() != null ? r.root().getFileName().toString() : r.root().toString();
     }
 
     // A node's key: the status line's, or a repository's root.

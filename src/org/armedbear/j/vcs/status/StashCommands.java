@@ -22,6 +22,7 @@ package org.armedbear.j.vcs.status;
 
 import static org.armedbear.j.Constants.RESPONSE_YES;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,7 @@ import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Field;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Option;
+import org.armedbear.j.transients.Transient.Switch;
 import org.armedbear.j.transients.TransientArgs;
 import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.transients.Transients;
@@ -65,20 +67,32 @@ public final class StashCommands {
 
     /** The stash popup, applying, popping and dropping target, or dimmed for null. */
     static Transient popup(StashItem target) {
+        return popup(target, null, false);
+    }
+
+    /**
+     * The popup in a status of several repositories, here the caret's, or
+     * null for one: -a, and where its lines stash, with -a in each.
+     */
+    static Transient popup(StashItem target, String here, boolean each) {
         final String name = target == null ? null : target.name();
+        final List<Transient.Item> arguments =
+                new ArrayList<>(List.of(new Option("-m", MESSAGE, "message", new Field("vcsStash.message"), null)));
+        if (here != null)
+            arguments.add(Switch.of("-a", EachRepository.ALL, "all repositories"));
         return new Transient(ID,
                 "Stash",
                 "git.html#stashing",
                 List.of(
-                    Group.of("Arguments", new Option("-m", MESSAGE, "message", new Field("vcsStash.message"), null)),
+                    new Group("Arguments", arguments),
                     Group.of(
-                        "Stash",
+                        each ? "Stash in each repository" : here != null ? "Stash in " + here : "Stash",
                         Command.of("z", "vcsStashSave", "the changes"),
                         Command.of("i", "vcsStashKeepIndex", "keeping the index"),
                         Command.of("u", "vcsStashUntracked", "with untracked files"),
                         Command.of("s", "vcsStashStaged", "what is staged")),
                     Group.of(
-                        "Use",
+                        here != null ? "Use, in " + here : "Use",
                         name != null
                                 ? Command.of("a", "vcsStashApply", "apply " + name)
                                 : Command.unavailable("a", "apply, no stash"),
@@ -100,7 +114,9 @@ public final class StashCommands {
             at.status(r.backend().name() + " has no stash");
             return;
         }
-        TransientPopup.open(at, popup(target(at, r)));
+        TransientPopup.open(
+            at,
+            popup(target(at, r), EachRepository.several(at) ? r.name() : null, EachRepository.of(at, ID) != null));
     }
 
     public static void vcsStashSave(Editor editor) {
@@ -149,6 +165,8 @@ public final class StashCommands {
     }
 
     private static void save(Editor editor, Set<StashOption> options) {
+        if (saveEach(editor, options))
+            return;
         final VcsRepository r = VcsStatusMode.repositoryAt(editor);
         if (r == null)
             return;
@@ -161,6 +179,38 @@ public final class StashCommands {
             final String said = result.out().strip();
             return said.isEmpty() ? "Stashed" : said.split("\n", 2)[0];
         });
+    }
+
+    // With -a and several repositories, stashes in each with something to
+    // stash, as its status was last read; false, doing nothing, otherwise.
+    private static boolean saveEach(Editor editor, Set<StashOption> options) {
+        final List<VcsRepository> rs = EachRepository.of(editor, ID);
+        final VcsStatusBuffer status = VcsStatusMode.owner(editor);
+        if (rs == null || status == null)
+            return false;
+        final TransientArgs args = Transients.args(editor, ID);
+        final String message = args.get(MESSAGE);
+        EachRepository.write(editor, rs, r -> r, "Stashing", "Stashed", r -> {
+            if (!hasToStash(status, r, options))
+                return new EachRepository.Done(r, null, "nothing to stash");
+            return new EachRepository.Done(r, r.backend().stash(r, message, options), null);
+        }, done -> {
+            // For these stashes alone: kept to try again, in those left, if any failed.
+            if (done.stream().noneMatch(EachRepository.Done::failed))
+                args.set(MESSAGE, null);
+        });
+        return true;
+    }
+
+    // Whether r has what a stash with options takes: what is staged, or
+    // that or the tracked changes, or those or the untracked files.
+    static boolean hasToStash(VcsStatusBuffer status, VcsRepository r, Set<StashOption> options) {
+        if (!status.files(r, "staged").isEmpty())
+            return true;
+        if (options.contains(StashOption.STAGED))
+            return false;
+        return !status.files(r, "unstaged").isEmpty()
+                || options.contains(StashOption.UNTRACKED) && !status.files(r, "untracked").isEmpty();
     }
 
     private static void apply(Editor editor, boolean pop) {

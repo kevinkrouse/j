@@ -154,8 +154,9 @@ public class FetchCommandsTest {
     @Test
     public void thePopupDimsWhatHasNoRemote() {
         final Transient none = FetchCommands.popup(new FetchCommands.Remotes(List.of(), null, null));
-        for (String key : List.of("p", "u", "a", "e", "o"))
+        for (String key : List.of("p", "u", "a", "o"))
             assertNull(((Command) none.item(key)).command(), key);
+        assertEquals("a URL", none.item("e").description(), "a URL typed needs no remote");
         final Transient set = FetchCommands.popup(new FetchCommands.Remotes(List.of("origin"), "origin", "upstream"));
         assertEquals("vcsFetchPushRemote", ((Command) set.item("p")).command());
         assertEquals("origin", set.item("p").description());

@@ -20,9 +20,12 @@
 
 package org.armedbear.j;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
@@ -43,6 +46,9 @@ public class HistoryTextField extends JTextField implements FocusListener, Mouse
     private TextListener textListener;
 
     protected TextFieldHandler handler;
+
+    // Shown, dimmed, while the field is empty; until the next handler.
+    private String hint;
 
     public HistoryTextField(Editor editor, int columns) {
         super(columns);
@@ -103,6 +109,7 @@ public class HistoryTextField extends JTextField implements FocusListener, Mouse
         if (old != null)
             removeKeyListener(old);
         this.handler = handler;
+        hint = null;
         addKeyListener(handler);
         if (old != null && old != handler)
             old.detached();
@@ -181,6 +188,20 @@ public class HistoryTextField extends JTextField implements FocusListener, Mouse
         // advances instead of rounding each one to a whole pixel.
         Display.setRenderingHints(g);
         super.paintComponent(g);
+        if (hint != null && getDocument().getLength() == 0) {
+            final Insets insets = getInsets();
+            g.setColor(getDisabledTextColor() != null ? getDisabledTextColor() : Color.GRAY);
+            g.setFont(getFont().deriveFont(Font.ITALIC));
+            final FontMetrics fm = g.getFontMetrics();
+            final int y = insets.top + (getHeight() - insets.top - insets.bottom - fm.getHeight()) / 2 + fm.getAscent();
+            g.drawString(hint, insets.left, y);
+        }
+    }
+
+    /** Text shown, dimmed, while the field is empty, until the next handler; null for none. */
+    public final void setHint(String hint) {
+        this.hint = hint;
+        repaint();
     }
 
     @Override

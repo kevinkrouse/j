@@ -54,6 +54,11 @@ public final class VcsRepository {
         this.backend = backend;
     }
 
+    /** Its directory's name, as a status or log of several shows it. */
+    public String name() {
+        return root().getFileName() != null ? root().getFileName().toString() : root().toString();
+    }
+
     public Path root() {
         return root;
     }

@@ -20,6 +20,7 @@
 
 package org.armedbear.j.vcs.status;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,17 +82,43 @@ public final class FetchCommands {
 
     /** The fetch popup: its switches, and where to fetch from, each it has no remote for dimmed. */
     static Transient popup(Remotes remotes) {
+        return popup(remotes, null, false);
+    }
+
+    /**
+     * The popup in a status of several repositories, here the caret's, or
+     * null for one: -a, and what each line fetches in, with -a in each.
+     */
+    static Transient popup(Remotes remotes, String here, boolean each) {
         final boolean any = !remotes.all().isEmpty();
+        final List<Transient.Item> arguments = new ArrayList<>(List
+                .of(Switch.of("-p", "--prune", "prune deleted branches"), Switch.of("-t", "--tags", "fetch all tags")));
+        if (here != null)
+            arguments.add(Switch.of("-a", EachRepository.ALL, "all repositories"));
+        if (each)
+            return new Transient(ID,
+                    "Fetch",
+                    "git.html#fetching",
+                    List.of(
+                        new Group("Arguments", arguments),
+                        Group.of(
+                            "Fetch in each repository from",
+                            Command.of("p", "vcsFetchPushRemote", "its push remote"),
+                            Command.of("u", "vcsFetchUpstream", "its upstream's remote"),
+                            Command.of("a", "vcsFetchAll", "all its remotes")),
+                        Group.of(
+                            "Fetch in " + here + " alone from",
+                            Command.of("e", "vcsFetchElsewhere", any ? "elsewhere" : "a URL"),
+                            any
+                                    ? Command.of("o", "vcsFetchBranch", "another branch")
+                                    : Command.unavailable("o", "another branch, no remote set"))));
         return new Transient(ID,
                 "Fetch",
                 "git.html#fetching",
                 List.of(
+                    new Group("Arguments", arguments),
                     Group.of(
-                        "Arguments",
-                        Switch.of("-p", "--prune", "prune deleted branches"),
-                        Switch.of("-t", "--tags", "fetch all tags")),
-                    Group.of(
-                        "Fetch from",
+                        here == null ? "Fetch from" : "Fetch in " + here + " from",
                         remotes.push() != null
                                 ? Command.of("p", "vcsFetchPushRemote", remotes.push())
                                 : Command.unavailable("p", "the push remote, not set"),
@@ -101,9 +128,7 @@ public final class FetchCommands {
                         any
                                 ? Command.of("a", "vcsFetchAll", "all remotes")
                                 : Command.unavailable("a", "all remotes, none set"),
-                        any
-                                ? Command.of("e", "vcsFetchElsewhere", "elsewhere")
-                                : Command.unavailable("e", "elsewhere, no remote set"),
+                        Command.of("e", "vcsFetchElsewhere", any ? "elsewhere" : "a URL"),
                         any
                                 ? Command.of("o", "vcsFetchBranch", "another branch")
                                 : Command.unavailable("o", "another branch, no remote set"))));
@@ -118,22 +143,48 @@ public final class FetchCommands {
                 if (remotes == null)
                     at.status("Can't read the remotes: see the log");
                 else
-                    TransientPopup.open(at, popup(remotes));
+                    TransientPopup.open(
+                        at,
+                        popup(
+                            remotes,
+                            EachRepository.several(at) ? r.name() : null,
+                            EachRepository.of(at, ID) != null));
             });
     }
 
     public static void vcsFetchPushRemote(Editor editor) {
-        fetchFrom(editor, Remotes::push, "There is no push remote");
+        if (!fetchEach(editor, "its push remote", Remotes::push, "no push remote"))
+            fetchFrom(editor, Remotes::push, "There is no push remote");
     }
 
     public static void vcsFetchUpstream(Editor editor) {
-        fetchFrom(editor, Remotes::upstream, "There is no upstream on a remote");
+        if (!fetchEach(editor, "its upstream's remote", Remotes::upstream, "no upstream on a remote"))
+            fetchFrom(editor, Remotes::upstream, "There is no upstream on a remote");
     }
 
     public static void vcsFetchAll(Editor editor) {
+        if (fetchEach(editor, "all its remotes", null, null))
+            return;
         final VcsRepository r = VcsStatusMode.repositoryAt(editor);
         if (r != null)
             fetch(editor, r, null, null);
+    }
+
+    // With -a and several repositories, fetches in each from the remote
+    // which says, null for all of them, one with none left, saying why;
+    // false, doing nothing, otherwise.
+    private static boolean fetchEach(Editor editor, String from, Function<Remotes, String> which, String none) {
+        final List<VcsRepository> rs = EachRepository.of(editor, ID);
+        if (rs == null)
+            return false;
+        final Set<FetchOption> options = options(editor);
+        EachRepository.write(editor, rs, r -> r, "Fetching from " + from, "Fetched", r -> {
+            final String remote = which == null ? null : which.apply(remotes(r));
+            if (which != null && remote == null)
+                return new EachRepository.Done(r, null, none);
+            return new EachRepository.Done(r, r.backend().fetch(r, remote, null, options), null);
+        });
+        return true;
     }
 
     /** A remote asked for, from a list of them. */
@@ -142,15 +193,17 @@ public final class FetchCommands {
         if (r == null)
             return;
         Background.then("vcs fetch remotes", () -> r.backend().readRemotes(r), remotes -> {
-            if (remotes == null || remotes.isEmpty())
-                editor.status("There is no remote");
+            if (remotes == null)
+                editor.status("Can't read the remotes: see the log");
             else
                 Finders.choose(
                     editor,
                     LocationBar.PROMPT_REMOTE,
+                    "select a remote or enter a URL",
+                    true,
                     "vcsFetch.remote",
                     remotes,
-                    remote -> fetch(editor, r, remote, null));
+                    remote -> fetch(editor, r, remote, null, !remotes.contains(remote)));
         });
     }
 
@@ -165,7 +218,9 @@ public final class FetchCommands {
             else
                 Finders.choose(
                     editor,
-                    LocationBar.PROMPT_BRANCH,
+                    LocationBar.PROMPT_FETCH,
+                    "select a remote's branch",
+                    false,
                     "vcsFetch.branch",
                     List.copyOf(branches.keySet()),
                     branch -> {
@@ -202,6 +257,11 @@ public final class FetchCommands {
 
     // Fetches in the background, the popup's switches on, saying so.
     private static void fetch(Editor editor, VcsRepository r, String remote, String branch) {
+        fetch(editor, r, remote, branch, false);
+    }
+
+    // With url, remote a URL, or a path, fetched into FETCH_HEAD alone.
+    private static void fetch(Editor editor, VcsRepository r, String remote, String branch, boolean url) {
         final Set<FetchOption> options = options(editor);
         final String from = remote == null ? "all remotes" : branch == null ? remote : remote + "/" + branch;
         editor.status("Fetching from " + from + "…");
@@ -213,7 +273,9 @@ public final class FetchCommands {
                 editor.status("Fetching from " + from + " failed: " + why);
                 if (editor.getFrame() != null)
                     CommandLog.vcsCommandLog();
-            } else
+            } else if (url)
+                editor.status("Fetched from " + from + " into FETCH_HEAD");
+            else
                 editor.status(fetched(from, r.backend().fetchedRefs(result)));
             r.invalidate();
             r.refresh();

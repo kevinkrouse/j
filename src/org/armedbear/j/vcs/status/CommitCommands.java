@@ -28,6 +28,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.BufferCommands;
@@ -63,8 +65,28 @@ public final class CommitCommands {
 
     static final String ID = "vcs.commit";
 
-    /** The commit popup: its switches, and what to commit. */
-    public static Transient popup() {
+    /**
+     * The commit popup: its switches, and what to commit. In a status of
+     * several repositories, each line names the ones it commits to.
+     */
+    public static Transient popup(Editor editor) {
+        final VcsStatusBuffer status =
+                editor != null && editor.getBuffer() instanceof VcsStatusBuffer b && b.getRepositories().size() > 1
+                        ? b
+                        : null;
+        String commit = "commit";
+        String amend = "amend";
+        String extend = "extend, keeping its message";
+        String reword = "reword";
+        if (status != null) {
+            final VcsRepository caret = repository(editor, status);
+            final List<VcsRepository> targets = targets(status, caret, options(editor));
+            commit = targets.isEmpty() ? "commit: nothing is staged" : "commit to " + names(targets);
+            final String last = caret.name() + "'s last commit";
+            amend = "amend " + last;
+            extend = "extend " + last + ", keeping its message";
+            reword = "reword " + last;
+        }
         return new Transient(ID,
                 "Commit",
                 "git.html#committing",
@@ -76,12 +98,39 @@ public final class CommitCommands {
                         Switch.of("-n", "--no-verify", "skip the hooks"),
                         Switch.of("-s", "--signoff", "sign off"),
                         Switch.of("-v", "--verbose", "show the diff under the message")),
-                    Group.of("Create", Command.of("c", "vcsCommit", "commit")),
+                    Group.of("Create", Command.of("c", "vcsCommit", commit)),
                     Group.of(
                         "Edit the last commit",
-                        Command.of("a", "vcsCommitAmend", "amend"),
-                        Command.of("e", "vcsCommitExtend", "extend, keeping its message"),
-                        Command.of("w", "vcsCommitReword", "reword"))));
+                        Command.of("a", "vcsCommitAmend", amend),
+                        Command.of("e", "vcsCommitExtend", extend),
+                        Command.of("w", "vcsCommitReword", reword))));
+    }
+
+    /** "x", or "3 repositories: x, y, z". */
+    static String names(List<VcsRepository> repositories) {
+        if (repositories.size() == 1)
+            return repositories.get(0).name();
+        final List<String> names = new ArrayList<>();
+        for (VcsRepository r : repositories)
+            names.add(r.name());
+        return repositories.size() + " repositories: " + String.join(", ", names);
+    }
+
+    /**
+     * What a commit with options takes: changing the last commit, the
+     * caret's repository; else in a status of several, each with something
+     * staged, or with -a any tracked change, or with none and an empty
+     * commit allowed, the caret's; else the caret's.
+     */
+    static List<VcsRepository> targets(VcsStatusBuffer status, VcsRepository caret, Set<CommitOption> options) {
+        if (options.contains(CommitOption.AMEND) || status.getRepositories().size() == 1)
+            return List.of(caret);
+        final List<VcsRepository> out = new ArrayList<>();
+        for (VcsRepository r : status.getRepositories())
+            if (!status.files(r, "staged").isEmpty()
+                    || options.contains(CommitOption.ALL) && !status.files(r, "unstaged").isEmpty())
+                out.add(r);
+        return out.isEmpty() && options.contains(CommitOption.ALLOW_EMPTY) ? List.of(caret) : out;
     }
 
     /** Shows a message buffer in a window of its own, beside the status; tests show it their own way. */
@@ -96,7 +145,7 @@ public final class CommitCommands {
             at.status("Nothing here stages to commit");
             return;
         }
-        TransientPopup.open(at, popup());
+        TransientPopup.open(at, popup(at));
     }
 
     // The window to commit from: editor's on a status; from the status's
@@ -157,7 +206,7 @@ public final class CommitCommands {
     private static void start(Editor editor, Set<CommitOption> kind) {
         if (!(editor.getBuffer() instanceof VcsStatusBuffer status))
             return;
-        final VcsRepository repository = repository(editor, status);
+        final VcsRepository caret = repository(editor, status);
         final Set<CommitOption> options = options(editor);
         options.addAll(kind);
         // A reword takes nothing staged, so nothing to stage first.
@@ -165,26 +214,45 @@ public final class CommitCommands {
             options.remove(CommitOption.ALL);
         final boolean takesStaged = !options.contains(CommitOption.MESSAGE_ONLY)
                 && !(options.contains(CommitOption.AMEND) && !options.contains(CommitOption.KEEP_MESSAGE));
+        final List<VcsRepository> targets = targets(status, caret, options);
         if (takesStaged
                 && !options.contains(CommitOption.ALL)
                 && !options.contains(CommitOption.ALLOW_EMPTY)
-                && status.files(repository, "staged").isEmpty()) {
-            editor.status("Nothing is staged: s stages the thing at the caret, or -a in the popup every change");
+                && (targets.isEmpty() || status.files(targets.get(0), "staged").isEmpty())) {
+            editor.status(
+                (status.getRepositories().size() > 1 ? "Nothing is staged in any repository" : "Nothing is staged")
+                        + ": s stages the thing at the caret, or -a in the popup every change");
+            return;
+        }
+        if (targets.isEmpty()) {
+            editor.status("Nothing to commit in any repository");
             return;
         }
         if (options.contains(CommitOption.KEEP_MESSAGE)) {
-            commit(editor, status, repository, null, options, null);
+            commit(editor, status, targets, null, options, null);
             return;
         }
         final boolean verboseSwitch = Transients.args(editor, ID).isOn("--verbose");
         Background.start("vcs commit message", () -> {
-            final String last =
-                    options.contains(CommitOption.AMEND) ? repository.backend().lastMessage(repository) : "";
-            if (verboseSwitch || repository.backend().verboseCommits(repository))
+            final String last = options.contains(CommitOption.AMEND) ? caret.backend().lastMessage(caret) : "";
+            if (verboseSwitch || caret.backend().verboseCommits(caret))
                 options.add(CommitOption.VERBOSE);
-            final byte[] diff = options.contains(CommitOption.VERBOSE)
-                    ? repository.backend().readCommitDiff(repository, options)
-                    : null;
+            // Each repository's diff, headed by its name when there are several.
+            final StringBuilder diffs = new StringBuilder();
+            if (options.contains(CommitOption.VERBOSE))
+                for (VcsRepository r : targets) {
+                    final byte[] diff = r.backend().readCommitDiff(r, options);
+                    if (targets.size() > 1)
+                        diffs.append("# ")
+                                .append("=".repeat(20))
+                                .append(' ')
+                                .append(r.name())
+                                .append(' ')
+                                .append("=".repeat(20))
+                                .append('\n');
+                    if (diff != null)
+                        diffs.append(new String(diff, StandardCharsets.UTF_8));
+                }
             SwingUtilities.invokeLater(() -> {
                 if (last == null) {
                     editor.status("There is no commit to change");
@@ -193,14 +261,8 @@ public final class CommitCommands {
                 // A message with # lines of its own keeps them, with no template's.
                 if (last.lines().anyMatch(l -> l.startsWith("#")))
                     options.add(CommitOption.VERBATIM);
-                final String diffText = diff == null ? null : new String(diff, StandardCharsets.UTF_8);
-                open(
-                    editor,
-                    status,
-                    repository,
-                    options,
-                    diffText,
-                    template(status, repository, options, last, diffText));
+                final String diffText = options.contains(CommitOption.VERBOSE) ? diffs.toString() : null;
+                open(editor, status, targets, options, diffText, template(status, targets, options, last, diffText));
             });
         });
     }
@@ -213,7 +275,7 @@ public final class CommitCommands {
     // a diff, the diff under the scissors line.
     static String template(
             VcsStatusBuffer status,
-            VcsRepository repository,
+            List<VcsRepository> repositories,
             Set<CommitOption> options,
             String message,
             String diff) {
@@ -224,32 +286,76 @@ public final class CommitCommands {
         if (options.contains(CommitOption.VERBATIM))
             return message + below;
         final StringBuilder sb = new StringBuilder(message);
-        sb.append("\n\n# Lines starting with # are left out.\n");
+        sb.append("\n\n");
+        final String reach = reach(status, repositories, options);
+        if (reach != null)
+            sb.append(reach).append('\n');
+        sb.append("# Lines starting with # are left out.\n");
         if (options.contains(CommitOption.MESSAGE_ONLY)) {
             sb.append("# Only the message changes.\n");
             return sb + below;
         }
-        final List<FileItem> files = new ArrayList<>(status.files(repository, "staged"));
-        if (options.contains(CommitOption.ALL))
-            for (FileItem f : status.files(repository, "unstaged"))
-                if (files.stream().noneMatch(s -> s.path().equals(f.path())))
-                    files.add(f);
-        if (!files.isEmpty()) {
-            sb.append(options.contains(CommitOption.ALL) ? "# To commit:\n" : "# Staged:\n");
+        for (VcsRepository repository : repositories) {
+            final List<FileItem> files = new ArrayList<>(status.files(repository, "staged"));
+            if (options.contains(CommitOption.ALL))
+                for (FileItem f : status.files(repository, "unstaged"))
+                    if (files.stream().noneMatch(s -> s.path().equals(f.path())))
+                        files.add(f);
+            if (files.isEmpty())
+                continue;
+            final String what = options.contains(CommitOption.ALL) ? "to commit" : "staged";
+            sb.append("# ")
+                    .append(repositories.size() > 1 ? repository.name() + ", " + what : capitalized(what))
+                    .append(":\n");
             for (FileItem f : files)
                 sb.append("#   ").append(f.letter()).append("  ").append(f.path()).append('\n');
         }
         return sb + below;
     }
 
+    /**
+     * In a status of several repositories, the line saying which the commit
+     * takes: "# COMMITS TO 3 REPOSITORIES, ONE EACH: x, y, z", or which one
+     * alone and why not the others; null with one.
+     */
+    static String reach(VcsStatusBuffer status, List<VcsRepository> repositories, Set<CommitOption> options) {
+        if (status == null || status.getRepositories().size() < 2)
+            return null;
+        if (repositories.size() > 1) {
+            final List<String> names = new ArrayList<>();
+            for (VcsRepository r : repositories)
+                names.add(r.name());
+            return "# COMMITS TO " + repositories.size() + " REPOSITORIES, ONE EACH: " + String.join(", ", names);
+        }
+        final VcsRepository r = repositories.get(0);
+        if (options.contains(CommitOption.AMEND))
+            return "# CHANGES " + r.name() + "'S LAST COMMIT ALONE, not the other repositories'";
+        final List<String> others = new ArrayList<>();
+        for (VcsRepository o : status.getRepositories())
+            if (o != r)
+                others.add(o.name());
+        return "# COMMITS TO " + r.name() + " ALONE: " + String.join(", ", others)
+                + (others.size() == 1 ? " has" : " have") + " nothing "
+                + (options.contains(CommitOption.ALL) ? "to commit" : "staged");
+    }
+
+    /** Whether text is reach's line. */
+    static boolean isReach(String text) {
+        return text.startsWith("# COMMITS TO ") || text.startsWith("# CHANGES ");
+    }
+
+    private static String capitalized(String s) {
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
     private static void open(
             Editor editor,
             VcsStatusBuffer status,
-            VcsRepository repository,
+            List<VcsRepository> repositories,
             Set<CommitOption> options,
             String diff,
             String text) {
-        final CommitMessageBuffer buffer = new CommitMessageBuffer(repository, options, status, text);
+        final CommitMessageBuffer buffer = new CommitMessageBuffer(repositories, options, status, text);
         buffer.setDiff(diff);
         buffer.setStarted(buffer.getMessage());
         final Editor ed = show.apply(editor, buffer);
@@ -272,13 +378,13 @@ public final class CommitCommands {
             editor.status("The message is empty");
             return;
         }
-        commit(editor, buffer.getStatus(), buffer.getRepository(), message, buffer.getOptions(), buffer);
+        commit(editor, buffer.getStatus(), buffer.getRepositories(), message, buffer.getOptions(), buffer);
     }
 
     private static void commit(
             Editor editor,
             VcsStatusBuffer status,
-            VcsRepository repository,
+            List<VcsRepository> repositories,
             String message,
             Set<CommitOption> options,
             CommitMessageBuffer buffer) {
@@ -291,42 +397,100 @@ public final class CommitCommands {
             buffer.setCommitting(true);
         if (status != null)
             status.startWriting();
-        editor.status("Committing…");
+        editor.status(repositories.size() == 1 ? "Committing…" : "Committing to " + names(repositories) + "…");
         Background.start("vcs commit", () -> {
-            VcsResult result = null;
-            // Whatever happens, the message and the status take keys again.
-            try {
-                result = repository.backend().commit(repository, message, options);
+            // One after another; whatever happens, the message and the
+            // status take keys again.
+            final List<VcsResult> results = new ArrayList<>();
+            for (VcsRepository repository : repositories) {
+                VcsResult result = null;
+                try {
+                    result = repository.backend().commit(repository, message, options);
+                }
+                catch (RuntimeException e) {
+                    Log.error(e);
+                }
+                results.add(result);
             }
-            catch (RuntimeException e) {
-                Log.error(e);
-            }
-            final VcsResult r = result;
             if (status != null)
                 status.wrote();
-            repository.invalidate();
-            repository.refresh();
-            SwingUtilities.invokeLater(() -> {
-                if (r != null && r.succeeded()) {
-                    if (message != null)
-                        CommentRing.getInstance().appendNew(message);
-                    // git says "[main 1a2b3c4] subject".
-                    final String said = r.out().strip();
-                    if (buffer != null)
-                        close(editor, buffer);
-                    Editor.currentEditor().status(said.isEmpty() ? "Committed" : said.split("\n", 2)[0]);
-                    return;
-                }
-                if (buffer != null)
-                    buffer.setCommitting(false);
-                editor.status(
-                    r == null
-                            ? repository.backend().name() + " couldn't commit"
-                            : repository.backend().name() + ": " + firstLine(r));
-                if (r != null && editor.getFrame() != null)
-                    CommandLog.vcsCommandLog();
-            });
+            for (VcsRepository repository : repositories) {
+                repository.invalidate();
+                repository.refresh();
+            }
+            SwingUtilities.invokeLater(() -> committed(editor, status, repositories, message, buffer, results));
         });
+    }
+
+    // Each commit made said; the message closed if all were, else kept
+    // for those that failed, saying which they are.
+    private static void committed(
+            Editor editor,
+            VcsStatusBuffer status,
+            List<VcsRepository> repositories,
+            String message,
+            CommitMessageBuffer buffer,
+            List<VcsResult> results) {
+        final List<String> done = new ArrayList<>();
+        final List<String> failed = new ArrayList<>();
+        final List<VcsRepository> left = new ArrayList<>();
+        for (int i = 0; i < repositories.size(); i++) {
+            final VcsRepository r = repositories.get(i);
+            final VcsResult result = results.get(i);
+            if (result != null && result.succeeded())
+                done.add(said(r, result, repositories.size()));
+            else {
+                left.add(r);
+                failed.add(
+                    (repositories.size() > 1 ? r.name() + ": " : "")
+                            + (result == null ? r.backend().name() + " couldn't commit" : firstLine(result)));
+            }
+        }
+        if (!done.isEmpty() && message != null)
+            CommentRing.getInstance().appendNew(message);
+        if (left.isEmpty()) {
+            if (buffer != null)
+                close(editor, buffer);
+            Editor.currentEditor()
+                    .status(repositories.size() == 1 ? done.get(0) : "Committed to " + String.join(", ", done));
+            return;
+        }
+        if (buffer != null) {
+            buffer.setCommitting(false);
+            if (!done.isEmpty()) {
+                buffer.setRepositories(left);
+                for (Editor ed : Editor.getEditorList())
+                    if (ed.getBuffer() == buffer)
+                        replace(
+                            ed,
+                            buffer,
+                            template(status, left, buffer.getOptions(), buffer.getMessage(), buffer.getDiff()));
+            }
+        }
+        final String failures = repositories.size() == 1
+                ? repositories.get(0).backend().name() + ": " + failed.get(0)
+                : "Commit failed in " + String.join("; ", failed);
+        editor.status(
+            done.isEmpty()
+                    ? failures
+                    : "Committed to " + String.join(", ", done) + "; " + failures
+                            + (buffer != null ? ": Ctrl Enter commits to " + names(left) : ""));
+        if (results.stream().anyMatch(r -> r != null) && editor.getFrame() != null)
+            CommandLog.vcsCommandLog();
+    }
+
+    // git's "[main 1a2b3c4] subject", "[main (root-commit) 1a2b3c4] subject",
+    // "[detached HEAD f10f71e] subject".
+    private static final Pattern SAID = Pattern.compile("^\\[(?:.*? )?([0-9a-f]{4,40})\\]");
+
+    // git's line; with several, "x (1a2b3c4)".
+    private static String said(VcsRepository r, VcsResult result, int of) {
+        final String out = result.out().strip();
+        final String first = out.isEmpty() ? "Committed" : out.split("\n", 2)[0];
+        if (of == 1)
+            return first;
+        final Matcher m = SAID.matcher(first);
+        return m.find() ? r.name() + " (" + m.group(1) + ")" : r.name();
     }
 
     private static String firstLine(VcsResult r) {
@@ -416,7 +580,7 @@ public final class CommitCommands {
                 buffer,
                 template(
                     buffer.getStatus(),
-                    buffer.getRepository(),
+                    buffer.getRepositories(),
                     buffer.getOptions(),
                     buffer.getStarted(),
                     buffer.getDiff()));
@@ -429,7 +593,7 @@ public final class CommitCommands {
         replace(
             editor,
             buffer,
-            template(buffer.getStatus(), buffer.getRepository(), buffer.getOptions(), message, buffer.getDiff()));
+            template(buffer.getStatus(), buffer.getRepositories(), buffer.getOptions(), message, buffer.getDiff()));
     }
 
     /** Replaces the message buffer's text, as one edit undo takes back. */

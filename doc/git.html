@@ -312,6 +312,31 @@ being written. A message can't be closed while it is being committed, and one
 whose hooks fail is kept for another try. The toolbar and the Mode menu have
 Commit and Cancel.
 
+<h3><a name="committing-several">Committing in several repositories</a></h3>
+
+<p>
+In a status of several repositories, <b>c</b> commits to each repository
+with something staged (with <b>-a</b>, any tracked change), one commit each,
+all with the one message, as IntelliJ's commit does across roots. Which
+repositories a commit takes is said everywhere before it is made:
+
+<ul>
+    <li>the popup's line: <code>commit to 3 repositories: x, y, z</code>, or <code>commit to x</code>;</li>
+    <li>the message window's title: <code>git commit: 3 repositories: x, y, z</code>, or <code>git commit: x</code>;</li>
+    <li>the message's first # line, in capitals and the keyword's color (the theme's <code>reach</code>): <code># COMMITS TO 3 REPOSITORIES, ONE EACH: x, y, z</code>, or <code># COMMITS TO x ALONE: y, z have nothing staged</code>;</li>
+    <li>the files, listed under each repository's name, and with <b>-v</b> each repository's diff under its name;</li>
+    <li>the hint over the message: <code>Ctrl Enter commit to 3 repositories: x, y, z</code>.</li>
+</ul>
+
+<p>
+<b>Ctrl Enter</b> commits to them one after another, and the status bar says
+each commit made, as <code>Committed to x (1a2b3c4), y (5d6e7f8)</code>. One
+that fails, as when its hook refuses, leaves the others committed; the
+message stays open for the ones left, its title and first line saying which
+they are, and <b>Ctrl Enter</b> commits to them. Amend, extend and reword
+change the last commit of the repository at the caret alone, and their lines
+say whose (<code>amend x's last commit</code>).
+
 <h2><a name="fetching">Fetching</a></h2>
 
 <p>
@@ -323,11 +348,16 @@ Then:
     <li><b>p</b> fetches from the push remote, the remote of where the branch pushes;</li>
     <li><b>u</b> from the upstream's remote;</li>
     <li><b>a</b> from every remote;</li>
-    <li><b>e</b> from a remote picked from a list of them;</li>
+    <li><b>e</b> from a remote picked from a list of them, or a URL or path typed, fetched into FETCH_HEAD alone;</li>
     <li><b>o</b> only a remote's branch, picked from a list of them.</li>
 </ul>
 
 <p>
+With several repositories, the popup has <b>-a</b>, all repositories: then
+<b>p</b>, <b>u</b> and <b>a</b> fetch in each, each from its own push
+remote, upstream's remote or remotes, one without that remote left and said
+so; <b>e</b> and <b>o</b> stay with the repository at the caret, whose remotes
+they list. Without <b>-a</b>, the lines say which repository they fetch in.
 A line whose remote isn't set says so, dimmed, and does nothing. A fetch runs
 in the background: the status bar says it is fetching, then how many refs it
 moved, or why it failed, the command log opening with git's message. It never
@@ -346,18 +376,39 @@ than the one checked out, else a remote's branch or a tag there, else that
 branch, else the commit itself; in the log's refs tree, the ref the right
 button or the menu key (Shift F10) is on. So after <b>c</b> makes a branch
 from <code>main</code>, <b>b b</b> on that commit offers <code>main</code>
-first.
+first. Each list's label says what it asks for (<i>Check out:</i>,
+<i>Start from:</i>, <i>Rename:</i>, <i>Delete:</i>, <i>Parent:</i>), and its
+empty field says what to give it, dimmed. Where a commit will do, as for
+<b>b</b>, <b>c</b> and <b>n</b>, a hash or any ref git knows can be typed
+instead; with <b>-a</b>, only a branch or tag name, which each repository
+that has it uses.
 
 <ul>
     <li><b>b</b> checks out a branch, tag or the commit at the caret: a remote's branch as a new local branch tracking it, or the local branch of its name if there is one; a tag or a commit detached;</li>
     <li><b>l</b> checks out a local branch, or a remote's branch that has no local one of its name, as a new local one tracking it;</li>
     <li><b>r</b> checks out a branch checked out before, the latest first, as the reflog has them;</li>
-    <li><b>c</b> creates a branch where it is asked to start, asking for its name, a remote's branch offering its own, and checks it out;</li>
+    <li><b>c</b> creates a branch, asking first where it starts, under <i>Start from:</i>, the ref at the caret first, else the branch checked out, or a commit's hash typed; then its name, a remote's branch offering its own; and checks it out;</li>
     <li><b>n</b> creates one without checking it out;</li>
     <li><b>m</b> renames a local branch, asking for the new name;</li>
     <li><b>D</b> deletes a local branch, after asking; if it has commits no other branch, tag or remote's branch has, asking again, naming them;</li>
     <li><b>p</b> makes a branch the parent of the one checked out, as <a href="commands.html#gitSetParent">gitSetParent</a> does.</li>
 </ul>
+
+<p>
+With several repositories in the status or the log, the popup has <b>-a</b>,
+all repositories, as IntelliJ's "Execute branch operations on all roots".
+With it on, <b>b</b>, <b>l</b>, <b>c</b>, <b>n</b>, <b>m</b> and <b>D</b>
+act in each repository at once. Their lists have the names any repository
+has, each saying how many have it: <code>main (3)</code>,
+<code>feature (2 of 3)</code>. A checkout, rename or delete acts in each
+that has the branch, not one that has it checked out; a new branch is made
+in each, starting where it is asked to in those that have it and at HEAD in
+those that haven't. A delete asks once, naming the repositories, and again
+if any would lose commits, naming them by repository. The repositories are
+done one after another, the status bar counting them, then saying where it
+was done, where not and why, and where it failed; one that fails, as a
+checkout with changes in the way, leaves the others done. <b>r</b> and
+<b>p</b> act in the repository at the caret alone.
 
 <p>
 Each runs in the background, the status bar saying what git said or why it
@@ -372,11 +423,19 @@ each, the open logs of the repository are read again.
 <b>m</b> opens the merge popup, after Neogit's. Its switches are <b>-f</b>,
 a fast-forward only, failing otherwise, and <b>-n</b>, a merge commit even
 when a fast-forward would do; not both. <b>m</b> merges a branch, tag or commit, asked
-for from a list as the branch popup's are, into what is checked out, with
+for from a list labeled <i>Merge:</i> as the branch popup's are, a hash typed too, into what is checked out, with
 git's message. A merge that conflicts leaves the conflicts in the Unmerged
 section; then the popup has <b>m</b>, to commit the merge once they are
 resolved and staged, and <b>a</b>, to give it up after asking, putting back
 what was there before it.
+
+<p>
+With several repositories, the popup has <b>-a</b>, all repositories: then
+<b>m</b> lists the names any repository has, each saying how many have it,
+and merges the one picked into what each repository that has it has checked
+out; a conflict in one stops that one alone, and the status bar says where
+it merged, where not, and where it failed. Committing or aborting a merge in
+progress is the repository at the caret's.
 
 <h2><a name="stashing">Stashing</a></h2>
 
@@ -405,6 +464,14 @@ next stash alone. Then:
     <li><b>p</b> pops it: applies it, and drops it if it applied cleanly;</li>
     <li><b>k</b> drops it, after asking.</li>
 </ul>
+
+<p>
+With several repositories, the popup has <b>-a</b>, all repositories: then
+<b>z</b>, <b>i</b>, <b>u</b> and <b>s</b> stash in each repository with
+something to stash, with the one message, and the status bar says where it
+stashed and where there was nothing. If any fails, the message is kept, and
+stashing again stashes in those left, the others having nothing to stash. Applying, popping and dropping act on the
+stash at the caret, which is one repository's.
 
 <p>
 Applying takes the stash the status showed, by its hash. Popping and dropping

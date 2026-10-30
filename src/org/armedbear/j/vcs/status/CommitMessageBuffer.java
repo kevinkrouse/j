@@ -23,6 +23,7 @@ package org.armedbear.j.vcs.status;
 import static org.armedbear.j.Constants.*;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CommentRing;
@@ -37,15 +38,21 @@ import org.armedbear.j.vcs.VcsRepository;
  * git's own editor leaves them.
  */
 public final class CommitMessageBuffer extends Buffer {
-    private final VcsRepository repository;
+    // What it commits to: one repository, or with a status of several each
+    // with something staged; after some fail, those left.
+    private List<VcsRepository> repositories;
     private final Set<CommitOption> options;
     private final VcsStatusBuffer status;
     private boolean committing;
     // Where Ctrl P and Ctrl N are in the comment ring; -1 before either.
     int ringIndex = -1;
 
-    CommitMessageBuffer(VcsRepository repository, Set<CommitOption> options, VcsStatusBuffer status, String text) {
-        this.repository = repository;
+    CommitMessageBuffer(
+            List<VcsRepository> repositories,
+            Set<CommitOption> options,
+            VcsStatusBuffer status,
+            String text) {
+        this.repositories = List.copyOf(repositories);
         this.options = options.isEmpty() ? EnumSet.noneOf(CommitOption.class) : EnumSet.copyOf(options);
         this.status = status;
         initializeUndo();
@@ -57,9 +64,7 @@ public final class CommitMessageBuffer extends Buffer {
         setProperty(Property.SHOW_LINE_NUMBERS, false);
         setProperty(Property.SHOW_CHANGE_MARKS, false);
         setProperty(Property.WRAP, false);
-        title = repository.backend().name() + (options.contains(CommitOption.MESSAGE_ONLY) ? " reword: "
-                : options.contains(CommitOption.AMEND) ? " amend: "
-                : " commit: ") + repository.root().getFileName();
+        title = title();
         withWriteLock(() -> {
             append(text);
             if (getFirstLine() == null)
@@ -70,8 +75,28 @@ public final class CommitMessageBuffer extends Buffer {
         setInitialized(true);
     }
 
+    /** The repository it commits to, or the first of several. */
     public VcsRepository getRepository() {
-        return repository;
+        return repositories.get(0);
+    }
+
+    /** The repositories it commits to, one commit each. */
+    public List<VcsRepository> getRepositories() {
+        return repositories;
+    }
+
+    /** What it commits to now, as after it committed to some of them. */
+    void setRepositories(List<VcsRepository> repositories) {
+        this.repositories = List.copyOf(repositories);
+        title = title();
+    }
+
+    // "git commit: x", or "git commit: 3 repositories: x, y, z".
+    private String title() {
+        final String what = options.contains(CommitOption.MESSAGE_ONLY) ? " reword: "
+                : options.contains(CommitOption.AMEND) ? " amend: "
+                : " commit: ";
+        return getRepository().backend().name() + what + CommitCommands.names(repositories);
     }
 
     public Set<CommitOption> getOptions() {

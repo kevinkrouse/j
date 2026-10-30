@@ -38,6 +38,7 @@ import org.armedbear.j.LocationBar;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
+import org.armedbear.j.transients.Transient.Switch;
 import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Repositories;
@@ -79,13 +80,34 @@ public final class BranchCommands {
 
     static Ask ask = InputDialog::showInputDialog;
 
-    /** Asks for one of names, listed in their order; replaced in tests. */
-    interface Choose {
-        void choose(Editor editor, String history, List<String> names, Consumer<String> chosen);
+    /** A list's label, its empty field's hint, and whether what is typed matching none is taken. */
+    record Question(int prompt, String hint, boolean typed) {}
+
+    static final Question START = new Question(LocationBar.PROMPT_START, "select a branch or enter a ref", true);
+    static final Question CHECKOUT =
+            new Question(LocationBar.PROMPT_CHECKOUT, "select a branch or tag, or enter a commit", true);
+    static final Question CHECKOUT_LOCAL = new Question(LocationBar.PROMPT_CHECKOUT, "select a local branch", false);
+    static final Question CHECKOUT_RECENT =
+            new Question(LocationBar.PROMPT_CHECKOUT, "select a branch checked out before", false);
+    static final Question MERGE = new Question(LocationBar.PROMPT_MERGE, "select a branch or enter a ref", true);
+    static final Question RENAME = new Question(LocationBar.PROMPT_RENAME, "select the branch to rename", false);
+    static final Question DELETE = new Question(LocationBar.PROMPT_DELETE, "select the branch to delete", false);
+
+    // In every repository a ref is asked for by name: no commit.
+    static final Question CHECKOUT_EACH = new Question(LocationBar.PROMPT_CHECKOUT, "select a branch or tag", true);
+    static final Question MERGE_EACH = new Question(LocationBar.PROMPT_MERGE, "select a branch or tag", true);
+
+    static Question parent(String branch) {
+        return new Question(LocationBar.PROMPT_PARENT, "select the parent of " + branch, false);
     }
 
-    static Choose choose = (editor, history, names, chosen) -> Finders
-            .choose(editor, LocationBar.PROMPT_BRANCH, history, names, chosen);
+    /** Asks q, from names listed in their order; replaced in tests. */
+    interface Choose {
+        void choose(Editor editor, Question q, String history, List<String> names, Consumer<String> chosen);
+    }
+
+    static Choose choose = (editor, q, history, names, chosen) -> Finders
+            .choose(editor, q.prompt(), q.hint(), q.typed(), history, names, chosen);
 
     /**
      * A repository's refs, with the ref at the caret, null for none, and
@@ -132,50 +154,74 @@ public final class BranchCommands {
             return new LogRef(name, LogRef.Kind.HEAD, false);
         }
 
+        /** The local branches, and the remotes' that have none of their name. */
+        List<String> locals() {
+            final List<String> locals = names(LogRef.Kind.BRANCH);
+            final List<String> out = new ArrayList<>(locals);
+            for (String remote : names(LogRef.Kind.REMOTE))
+                if (!locals.contains(bare(remote)))
+                    out.add(remote);
+            return out;
+        }
+
+        /** What checking out name checks out: a remote's branch with a local one of its name, that one. */
+        LogRef checkout(String name) {
+            final LogRef ref = ref(name);
+            return ref.kind() == LogRef.Kind.REMOTE && names(LogRef.Kind.BRANCH).contains(bare(name))
+                    ? new LogRef(bare(name), LogRef.Kind.BRANCH, false)
+                    : ref;
+        }
+
         /** Its commands' argument. */
         String argument() {
             return (at == null ? "-" : at) + " " + repository.root();
         }
     }
 
-    /** The popup, its commands given the ref at the caret. */
-    static Transient popup(Context c) {
+    /** The popup, its commands given the ref at the caret; with several repositories, -a. */
+    static Transient popup(Context c, boolean several) {
         final String arg = " " + c.argument();
-        return new Transient(ID,
-                "Branch",
-                "git.html#branches",
-                List.of(
-                    Group.of(
-                        "Checkout",
-                        Command.of("b", "vcsBranchCheckout" + arg, "branch/revision"),
-                        Command.of("l", "vcsBranchCheckoutLocal" + arg, "local branch"),
-                        Command.of("r", "vcsBranchCheckoutRecent" + arg, "recent branch"),
-                        Command.of("c", "vcsBranchCheckoutNew" + arg, "new branch")),
-                    Group.of("Create", Command.of("n", "vcsBranchCreate" + arg, "new branch")),
-                    Group.of(
-                        "Do",
-                        Command.of("m", "vcsBranchRename" + arg, "rename"),
-                        Command.of("D", "vcsBranchDelete" + arg, "delete"),
-                        c.current() == null
-                                ? Command.unavailable("p", "parent, not on a branch")
-                                : Command.of("p", "vcsBranchSetParent" + arg, "parent"))));
+        final List<Group> groups = new ArrayList<>();
+        if (several)
+            groups.add(Group.of("Arguments", Switch.of("-a", EachRepository.ALL, "all repositories")));
+        groups.addAll(
+            List.of(
+                Group.of(
+                    "Checkout",
+                    Command.of("b", "vcsBranchCheckout" + arg, "branch/revision"),
+                    Command.of("l", "vcsBranchCheckoutLocal" + arg, "local branch"),
+                    Command.of("r", "vcsBranchCheckoutRecent" + arg, "recent branch"),
+                    Command.of("c", "vcsBranchCheckoutNew" + arg, "new branch")),
+                Group.of("Create", Command.of("n", "vcsBranchCreate" + arg, "new branch")),
+                Group.of(
+                    "Do",
+                    Command.of("m", "vcsBranchRename" + arg, "rename"),
+                    Command.of("D", "vcsBranchDelete" + arg, "delete"),
+                    c.current() == null
+                            ? Command.unavailable("p", "parent, not on a branch")
+                            : Command.of("p", "vcsBranchSetParent" + arg, "parent"))));
+        return new Transient(ID, "Branch", "git.html#branches", groups);
     }
 
     /** The branch popup, the ref named or at the caret first in its lists. */
     public static void vcsBranchPopup(Editor editor, String arg) {
-        context(editor, arg, c -> TransientPopup.open(editor, popup(c)));
+        final boolean several = EachRepository.several(editor);
+        context(editor, arg, c -> TransientPopup.open(editor, popup(c, several)));
     }
 
     /** Checks out a branch, a remote's as a local one tracking it, or a tag or revision detached. */
     public static void vcsBranchCheckout(Editor editor, String arg) {
+        if (AllBranchCommands.checkout(editor, at(editor, arg), false))
+            return;
         context(
             editor,
             arg,
             c -> choose.choose(
                 editor,
+                CHECKOUT,
                 "vcsBranch.checkout",
                 c.offered(c.refs(), true),
-                name -> switchTo(editor, c, c.ref(name))));
+                name -> switchTo(editor, c, name)));
     }
 
     /**
@@ -183,18 +229,17 @@ public final class BranchCommands {
      * a new local one tracking it.
      */
     public static void vcsBranchCheckoutLocal(Editor editor, String arg) {
-        context(editor, arg, c -> {
-            final List<String> locals = c.names(LogRef.Kind.BRANCH);
-            final List<String> names = new ArrayList<>(locals);
-            for (String remote : c.names(LogRef.Kind.REMOTE))
-                if (!locals.contains(bare(remote)))
-                    names.add(remote);
-            choose.choose(
+        if (AllBranchCommands.checkout(editor, at(editor, arg), true))
+            return;
+        context(
+            editor,
+            arg,
+            c -> choose.choose(
                 editor,
+                CHECKOUT_LOCAL,
                 "vcsBranch.checkout",
-                c.offered(names, false),
-                name -> switchTo(editor, c, c.ref(name)));
-        });
+                c.offered(c.locals(), false),
+                name -> switchTo(editor, c, name)));
     }
 
     /** Checks out a branch checked out before, the latest first. */
@@ -210,22 +255,33 @@ public final class BranchCommands {
                 if (names.isEmpty())
                     editor.status("No other branch was checked out");
                 else
-                    choose.choose(editor, "vcsBranch.checkout", names, name -> switchTo(editor, c, c.ref(name)));
+                    choose.choose(
+                        editor,
+                        CHECKOUT_RECENT,
+                        "vcsBranch.checkout",
+                        names,
+                        name -> switchTo(editor, c, name));
             });
         });
     }
 
     /** A branch made where it is asked to start, and checked out. */
     public static void vcsBranchCheckoutNew(Editor editor, String arg) {
+        if (AllBranchCommands.create(editor, at(editor, arg), true))
+            return;
         context(editor, arg, c -> create(editor, c, true));
     }
 
     /** A branch made where it is asked to start. */
     public static void vcsBranchCreate(Editor editor, String arg) {
+        if (AllBranchCommands.create(editor, at(editor, arg), false))
+            return;
         context(editor, arg, c -> create(editor, c, false));
     }
 
     public static void vcsBranchRename(Editor editor, String arg) {
+        if (AllBranchCommands.rename(editor, at(editor, arg)))
+            return;
         context(editor, arg, c -> {
             final List<String> locals = c.names(LogRef.Kind.BRANCH);
             final Set<String> names = new LinkedHashSet<>();
@@ -234,7 +290,7 @@ public final class BranchCommands {
             if (c.current() != null)
                 names.add(c.current());
             names.addAll(locals);
-            choose.choose(editor, "vcsBranch.rename", List.copyOf(names), branch -> {
+            choose.choose(editor, RENAME, "vcsBranch.rename", List.copyOf(names), branch -> {
                 final String name = asked(editor, "New name:", "Rename " + branch, branch);
                 if (name == null || name.equals(branch))
                     return;
@@ -256,12 +312,14 @@ public final class BranchCommands {
      * go with it.
      */
     public static void vcsBranchDelete(Editor editor, String arg) {
+        if (AllBranchCommands.delete(editor, at(editor, arg)))
+            return;
         context(editor, arg, c -> {
             final List<String> names = c.offered(c.names(LogRef.Kind.BRANCH), false);
             if (names.isEmpty())
                 editor.status("There is no other branch");
             else
-                choose.choose(editor, "vcsBranch.delete", names, branch -> delete(editor, c, branch));
+                choose.choose(editor, DELETE, "vcsBranch.delete", names, branch -> delete(editor, c, branch));
         });
     }
 
@@ -320,6 +378,7 @@ public final class BranchCommands {
                 final List<String> names = c.offered(List.copyOf(branches.names().keySet()), false);
                 choose.choose(
                     editor,
+                    parent(c.current()),
                     "gitSetParent.branch",
                     names,
                     picked -> ParentCommands.set(editor, r, c.current(), branches.names().get(picked)));
@@ -327,13 +386,15 @@ public final class BranchCommands {
         });
     }
 
+    // Asks where it starts, the ref at the caret, else the branch checked
+    // out, offered first, then its name, and makes it there.
     private static void create(Editor editor, Context c, boolean checkout) {
         final Set<String> starts = new LinkedHashSet<>();
         if (c.at() != null)
             starts.add(c.at());
         starts.add(c.current() != null ? c.current() : "HEAD");
         starts.addAll(c.refs());
-        choose.choose(editor, "vcsBranch.start", List.copyOf(starts), start -> {
+        choose.choose(editor, START, "vcsBranch.start", List.copyOf(starts), start -> {
             final LogRef from = c.ref(start);
             // A remote's branch: its name offered.
             final String offered = from.kind() == LogRef.Kind.REMOTE ? bare(start) : "";
@@ -352,23 +413,20 @@ public final class BranchCommands {
         });
     }
 
-    private static void switchTo(Editor editor, Context c, LogRef ref) {
+    private static void switchTo(Editor editor, Context c, String name) {
         final VcsRepository r = c.repository();
-        // A remote's branch with a local one of its name: that one.
-        final LogRef to = ref.kind() == LogRef.Kind.REMOTE && c.names(LogRef.Kind.BRANCH).contains(bare(ref.name()))
-                ? new LogRef(bare(ref.name()), LogRef.Kind.BRANCH, false)
-                : ref;
+        final LogRef to = c.checkout(name);
         write(
             editor,
             c,
-            "Checking out " + ref.name(),
+            "Checking out " + name,
             "check out",
             () -> r.backend().switchTo(r, to),
             result -> said(result, "Checked out " + to.name()));
     }
 
     // A remote's branch's name without its remote's.
-    private static String bare(String remote) {
+    static String bare(String remote) {
         return remote.substring(remote.indexOf('/') + 1);
     }
 
@@ -399,6 +457,12 @@ public final class BranchCommands {
     }
 
     private record At(VcsRepository repository, String ref) {}
+
+    // The ref arg names, else the one at the caret; null for none.
+    static String at(Editor editor, String arg) {
+        final At at = arg == null || arg.isBlank() ? atCaret(editor) : named(editor, arg.strip());
+        return at == null ? null : at.ref();
+    }
 
     private static At named(Editor editor, String arg) {
         final int space = arg.indexOf(' ');

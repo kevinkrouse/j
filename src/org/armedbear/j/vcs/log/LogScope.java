@@ -76,20 +76,15 @@ public record LogScope(List<VcsRepository> repositories, Path base) {
      * path from base.
      */
     public String name(VcsRepository repository) {
-        final String own = dirName(repository);
+        final String own = repository.name();
         for (VcsRepository r : repositories)
-            if (r != repository && dirName(r).equals(own)) {
+            if (r != repository && r.name().equals(own)) {
                 if (!under(repository))
                     return repository.root().toString();
                 final String path = base.relativize(repository.root()).toString().replace('\\', '/');
                 return path.isEmpty() ? own : path;
             }
         return own;
-    }
-
-    private static String dirName(VcsRepository repository) {
-        final Path name = repository.root().getFileName();
-        return name != null ? name.toString() : repository.root().toString();
     }
 
     private boolean under(VcsRepository repository) {

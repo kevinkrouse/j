@@ -26,6 +26,7 @@ import static org.armedbear.j.ToolBarIcon.*;
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.ChangeColors;
 import org.armedbear.j.CommentRing;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
@@ -37,8 +38,8 @@ import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
-import org.armedbear.j.ChangeColors;
 import org.armedbear.j.ToolBar;
+import org.armedbear.j.vcs.CommitOption;
 
 /**
  * A commit message's mode: a summary line past 50 characters, and any line
@@ -91,9 +92,19 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
 
     private static final String[][] HINTS = { { "vcsCommitFinish", "commit" }, { "vcsCommitCancel", "cancel" } };
 
+    // In a status of several repositories, the hint names the ones it commits to.
     @Override
     public String[][] getHints(Buffer buffer) {
-        return buffer.getBooleanProperty(Property.VCS_HINTS) ? HINTS : null;
+        if (!buffer.getBooleanProperty(Property.VCS_HINTS))
+            return null;
+        if (buffer instanceof CommitMessageBuffer b
+                && b.getStatus() != null
+                && b.getStatus().getRepositories().size() > 1
+                && !b.getOptions().contains(CommitOption.AMEND))
+            return new String[][] {
+                { "vcsCommitFinish", "commit to " + CommitCommands.names(b.getRepositories()) },
+                { "vcsCommitCancel", "cancel" } };
+        return HINTS;
     }
 
     /** :wq and :x commit, :q gives the message up asking first, :q! without asking. */
@@ -173,6 +184,7 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
         private static final int REMOVED = 4;
         private static final int HUNK = 5;
         private static final int FILE = 6;
+        private static final int REACH = 7;
 
         // The scissors line's number, until the text changes.
         private int scissorsModCount = -1;
@@ -196,6 +208,11 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
                             : text.startsWith("@@") ? HUNK
                             : text.startsWith("diff ") || text.startsWith("+++ ") || text.startsWith("--- ") ? FILE
                             : TEXT);
+                return segmentList;
+            }
+            if (CommitCommands.isReach(text)) {
+                // Which repositories it commits to: not to be missed.
+                addSegment(text, REACH);
                 return segmentList;
             }
             if (text.startsWith("#")) {
@@ -251,6 +268,7 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
                 formatTable.addEntryFromPrefs(REMOVED, "text");
                 formatTable.addEntryFromPrefs(HUNK, "hunkHeader", "comment");
                 formatTable.addEntryFromPrefs(FILE, "file", "keyword");
+                formatTable.addEntryFromPrefs(REACH, "reach", "keyword");
             }
             return formatTable;
         }

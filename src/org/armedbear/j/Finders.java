@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -549,6 +550,21 @@ public final class Finders {
 
     /** Asks for one of names, the prompt labeled as prompt says, and gives chosen the one picked. */
     public static void choose(Editor editor, int prompt, String history, List<String> names, Consumer<String> chosen) {
+        choose(editor, prompt, null, false, history, names, chosen);
+    }
+
+    /**
+     * As choose, the empty field saying hint, dimmed, null for none; with
+     * typed, what is typed matching none of names is given chosen too.
+     */
+    public static void choose(
+            Editor editor,
+            int prompt,
+            String hint,
+            boolean typed,
+            String history,
+            List<String> names,
+            Consumer<String> chosen) {
         HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
@@ -558,7 +574,9 @@ public final class Finders {
                 list.add(new NameItem(name, chosen));
             return list;
         };
-        show(editor, prompt, new ListFinderTextFieldHandler(editor, textField, null, items), history, "");
+        Function<String, FinderItem> fallback = typed ? text -> new NameItem(text, chosen) : null;
+        show(editor, prompt, new ListFinderTextFieldHandler(editor, textField, null, items, fallback), history, "");
+        textField.setHint(hint);
     }
 
     private record NameItem(String name, Consumer<String> chosen) implements FinderItem {

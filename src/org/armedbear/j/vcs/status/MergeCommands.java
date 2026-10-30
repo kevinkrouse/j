@@ -20,8 +20,10 @@
 
 package org.armedbear.j.vcs.status;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.armedbear.j.Editor;
 import org.armedbear.j.transients.Transient;
@@ -52,6 +54,15 @@ public final class MergeCommands {
 
     /** The popup: with merging, finishing or giving up the merge; else the switches and merging. */
     static Transient popup(Context c, boolean merging) {
+        return popup(c, merging, null, false);
+    }
+
+    /**
+     * The popup in a status or log of several repositories, here the
+     * caret's, or null for one: -a, and where m merges, with -a in each;
+     * a merge in progress is here's alone.
+     */
+    static Transient popup(Context c, boolean merging, String here, boolean each) {
         final String arg = " " + c.argument();
         if (merging)
             return new Transient(ID,
@@ -59,18 +70,20 @@ public final class MergeCommands {
                     "git.html#merging",
                     List.of(
                         Group.of(
-                            "Actions",
+                            here == null ? "Actions" : "Actions, in " + here,
                             Command.of("m", "vcsMergeCommit" + arg, "commit merge"),
                             Command.of("a", "vcsMergeAbort" + arg, "abort merge"))));
+        final List<Transient.Item> arguments = new ArrayList<>(
+                List.of(Switch.of("-f", FF_ONLY, "fast-forward only"), Switch.of("-n", NO_FF, "no fast-forward")));
+        if (here != null)
+            arguments.add(Switch.of("-a", EachRepository.ALL, "all repositories"));
+        final String merge = each ? "merge into each repository" : here != null ? "merge into " + here : "merge";
         return new Transient(ID,
                 "Merge",
                 "git.html#merging",
                 List.of(
-                    Group.of(
-                        "Arguments",
-                        Switch.of("-f", FF_ONLY, "fast-forward only"),
-                        Switch.of("-n", NO_FF, "no fast-forward")),
-                    Group.of("Actions", Command.of("m", "vcsMerge" + arg, "merge"))));
+                    new Group("Arguments", arguments),
+                    Group.of("Actions", Command.of("m", "vcsMerge" + arg, merge))));
     }
 
     /** The merge popup, the ref named or at the caret first in its list. */
@@ -78,7 +91,13 @@ public final class MergeCommands {
         BranchCommands.context(editor, arg, c -> {
             final VcsRepository r = c.repository();
             Background.then("vcs merging", () -> r.backend().isMerging(r), merging -> {
-                TransientPopup.open(editor, popup(c, Boolean.TRUE.equals(merging)));
+                TransientPopup.open(
+                    editor,
+                    popup(
+                        c,
+                        Boolean.TRUE.equals(merging),
+                        EachRepository.several(editor) ? r.name() : null,
+                        EachRepository.of(editor, ID) != null));
             });
         });
     }
@@ -95,22 +114,57 @@ public final class MergeCommands {
             editor.status("Merge with -f or -n, not both");
             return;
         }
+        final List<VcsRepository> rs = EachRepository.of(editor, ID);
+        if (rs != null) {
+            mergeEach(editor, rs, BranchCommands.at(editor, arg), options);
+            return;
+        }
         BranchCommands.context(
             editor,
             arg,
-            c -> BranchCommands.choose.choose(editor, "vcsMerge.branch", c.offered(c.refs(), true), name -> {
-                final VcsRepository r = c.repository();
-                final String into = c.current() == null ? "HEAD" : c.current();
-                BranchCommands.write(
-                    editor,
-                    c,
-                    "Merging " + name,
-                    "merge",
-                    () -> r.backend().merge(r, c.ref(name).fullName(), options),
-                    result -> result.out().contains("Already up to date")
-                            ? into + " already has " + name
-                            : "Merged " + name + " into " + into);
-            }));
+            c -> BranchCommands.choose
+                    .choose(editor, BranchCommands.MERGE, "vcsMerge.branch", c.offered(c.refs(), true), name -> {
+                        final VcsRepository r = c.repository();
+                        final String into = c.current() == null ? "HEAD" : c.current();
+                        BranchCommands.write(
+                            editor,
+                            c,
+                            "Merging " + name,
+                            "merge",
+                            () -> r.backend().merge(r, c.ref(name).fullName(), options),
+                            result -> result.out().contains("Already up to date")
+                                    ? into + " already has " + name
+                                    : "Merged " + name + " into " + into);
+                    }));
+    }
+
+    // A ref by name, labeled with how many repositories have it, merged in
+    // each that has it, not where it is checked out.
+    private static void mergeEach(Editor editor, List<VcsRepository> rs, String at, Set<MergeOption> options) {
+        AllBranchCommands.contexts(editor, rs, at, cs -> {
+            final Map<String, String> labeled = AllBranchCommands.labeled(cs, Context::refs, true);
+            if (labeled.isEmpty()) {
+                editor.status("There is nothing to merge");
+                return;
+            }
+            BranchCommands.choose.choose(
+                editor,
+                BranchCommands.MERGE_EACH,
+                "vcsMerge.branch",
+                List.copyOf(labeled.keySet()),
+                label -> {
+                    // A label, or a name typed.
+                    final String name = labeled.getOrDefault(label, label);
+                    EachRepository.write(editor, cs, Context::repository, "Merging " + name, "Merged " + name, c -> {
+                        final VcsRepository r = c.repository();
+                        if (!c.refs().contains(name))
+                            return new EachRepository.Done(r, null, "no " + name);
+                        if (name.equals(c.current()))
+                            return new EachRepository.Done(r, null, "checked out");
+                        return new EachRepository.Done(r, r.backend().merge(r, c.ref(name).fullName(), options), null);
+                    });
+                });
+        });
     }
 
     /** Makes the merge's commit, with git's message, its conflicts resolved and staged. */
