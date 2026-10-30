@@ -244,12 +244,9 @@ public final class StashCommands {
         StatusWrites.write(editor, r, doing, "stash", write, done, result -> failed(doing, result));
     }
 
-    /** What went wrong: a conflict, which leaves the stash, or git's last word. */
+    /** What went wrong: a conflict, which leaves the stash, or git's error. */
     static String failed(String doing, VcsResult result) {
-        if ((result.out() + result.stderr()).contains("CONFLICT"))
-            return doing + " conflicted: the stash is kept, and the conflicts are in Unmerged";
-        final String why = result.lastError();
-        return doing + " failed: " + (why.isEmpty() ? "exit code " + result.exitCode() : why);
+        return StatusWrites.failed(doing, result, "the stash is kept, and the conflicts are in Unmerged");
     }
 
     // The stash at the caret, else the newest; null for none.

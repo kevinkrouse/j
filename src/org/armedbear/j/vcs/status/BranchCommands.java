@@ -555,21 +555,9 @@ public final class BranchCommands {
         }, result -> failed(doing, result));
     }
 
-    /** What went wrong: a merge's conflict, or git's error, as changes in the way of a checkout. */
+    /** What went wrong: a merge's conflict, or git's error. */
     static String failed(String doing, VcsResult result) {
-        if (result.out().contains("CONFLICT"))
-            return doing + " conflicted: the conflicts are in Unmerged";
-        String why = "";
-        for (String line : result.stderr().strip().split("\n"))
-            if (line.startsWith("error: ") || line.startsWith("fatal: ")) {
-                why = line.substring(line.indexOf(' ') + 1);
-                break;
-            }
-        if (why.isEmpty())
-            why = result.lastError();
-        if (why.endsWith(":"))
-            why = why.substring(0, why.length() - 1);
-        return doing + " failed: " + (why.isEmpty() ? "exit code " + result.exitCode() : why);
+        return StatusWrites.failed(doing, result, "the conflicts are in Unmerged");
     }
 
     // git's last word on a checkout, as "Switched to a new branch 'x'"; else plain.

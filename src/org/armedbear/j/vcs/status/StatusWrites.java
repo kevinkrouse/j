@@ -70,4 +70,24 @@ final class StatusWrites {
             }
         });
     }
+
+    /**
+     * What went wrong: a conflict, conflicted saying where it left things,
+     * or git's error, as changes in the way of a checkout.
+     */
+    static String failed(String doing, VcsResult result, String conflicted) {
+        if ((result.out() + result.stderr()).contains("CONFLICT"))
+            return doing + " conflicted: " + conflicted;
+        String why = "";
+        for (String line : result.stderr().strip().split("\n"))
+            if (line.startsWith("error: ") || line.startsWith("fatal: ")) {
+                why = line.substring(line.indexOf(' ') + 1);
+                break;
+            }
+        if (why.isEmpty())
+            why = result.lastError();
+        if (why.endsWith(":"))
+            why = why.substring(0, why.length() - 1);
+        return doing + " failed: " + (why.isEmpty() ? "exit code " + result.exitCode() : why);
+    }
 }
