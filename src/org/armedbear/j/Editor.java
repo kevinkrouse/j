@@ -1512,7 +1512,11 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             return;
         if (buffer.getBooleanProperty(Property.SCROLL_CARET)) {
             final int dotLineNumber = dot.lineNumber();
-            final Line topLine = display.getFirstWholeLine();
+            // Inside the margin, which the reframe would otherwise scroll back to.
+            final int margin = display.scrollMargin();
+            Line topLine = display.getFirstWholeLine();
+            if (topLine.previousVisible() != null)
+                topLine = Display.linesBelow(topLine, margin);
             if (dotLineNumber < topLine.lineNumber()) {
                 // Caret is above window.
                 addUndo(SimpleEdit.SCROLL_CARET);
@@ -1522,7 +1526,9 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 goalColumn = 0;
                 return;
             }
-            final Line bottomLine = display.getBottomLine();
+            Line bottomLine = display.getBottomLine();
+            if (bottomLine.nextVisible() != null)
+                bottomLine = Display.linesAbove(bottomLine, margin);
             if (dotLineNumber > bottomLine.lineNumber()) {
                 // Caret is below window.
                 addUndo(SimpleEdit.SCROLL_CARET);

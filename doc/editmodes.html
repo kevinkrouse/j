@@ -137,7 +137,14 @@ commands, counts, registers, marks and the dot command:
 <dt><b>scroll</b></dt>
 <dd><code>zz zt zb</code>, which are j's own
     <a href="commands.html#toCenter">toCenter</a>, <code>toTop</code> and
-    <code>toBottom</code>; <code>Ctrl F</code> and <code>Ctrl B</code>,
+    <code>toBottom</code> (<code>zt</code> leaving a line over the caret's
+    where nvim leaves none), and <code>z. z&lt;CR&gt; z-</code>, the same
+    with the caret on the first non-blank; <code>z+</code> and
+    <code>z^</code>, the line under or over the window to the top or
+    bottom; each keeps j's
+    <a href="preferences.html#scrollMargin">scrollMargin</a>, which is
+    vim's <code>scrolloff</code>, set as j's preference, not with
+    <code>:set</code>; <code>Ctrl F</code> and <code>Ctrl B</code>,
     which are its <a href="commands.html#pageDown">pageDown</a> and
     <code>pageUp</code> with the <code>vim</code> argument</dd>
 <dt><b>folds</b></dt>
@@ -153,7 +160,10 @@ commands, counts, registers, marks and the dot command:
     the URL, Markdown link or <code>#heading</code> at the caret</dd>
 <dt><b>buffers</b></dt>
 <dd><code>Ctrl ^</code> (or <code>Ctrl 6</code>), the alternate file:
-    the buffer used most recently before this one</dd>
+    the buffer used most recently before this one; <code>Ctrl E</code>,
+    j's <a href="commands.html#switchBuffer">switchBuffer</a>, even where
+    a mode binds it to something typed, as XML's end tag, which insert
+    mode keeps</dd>
 <dt><b>windows</b></dt>
 <dd><code>Ctrl W</code> then <code>s</code> or <code>v</code> to split,
     <code>h j k l</code> (or the arrows) to the window beside, of
@@ -468,10 +478,6 @@ These are known and deliberate:
     and differ past a wide character such as <code>&#20013;</code> (U+4E2D, one unit, two
     cells) or a narrow one outside the plane such as U+1D400, a mathematical
     bold A (two units, one cell).</li>
-<li><code>zt</code> leaves one line of context above the caret, because it is
-    j's <code>toTop</code>; vim leaves none unless <code>'scrolloff'</code> is
-    set. The command was left as j has it rather than changed to suit this
-    mode.</li>
 <li><code>:normal!</code> runs its keys through your mappings, as
     <code>:normal</code> does; vim's leaves them out. Your mappings share one
     table with the built-in bindings, so there is no unmapped table to run

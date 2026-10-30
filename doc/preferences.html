@@ -1829,6 +1829,19 @@ window, regardless of the value of this property.
 <b>Default value:</b> true
 </dl>
 
+<code><a name="scrollMargin">scrollMargin</a></code>
+<dl>
+<dd>
+How many lines are kept between the caret and the top and bottom of the
+window, where the buffer goes on past them, as vim's <code>scrolloff</code>:
+moving the caret nearer scrolls the window. At most half the window.
+<a href="commands.html#toTop">toTop</a> and
+<a href="commands.html#toBottom">toBottom</a> leave that many lines past the
+caret too.
+<p>
+<b>Default value:</b> 0
+</dl>
+
 <code><a name="shareSearch">shareSearch</a></code>
 <dl>
 <dd>

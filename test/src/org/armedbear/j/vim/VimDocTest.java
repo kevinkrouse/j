@@ -132,6 +132,9 @@ public class VimDocTest {
             "scroll toBottom",
             "scroll pageUp",
             "scroll vim",
+            // Vim's option, named to say j's preference stands for it.
+            "scroll scrolloff",
+            "scroll :set",
             // A link's target, beside the key that follows it.
             "links #heading",
             // Ex ranges, read by the command line rather than the key map.

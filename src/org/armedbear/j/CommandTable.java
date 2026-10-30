@@ -344,9 +344,9 @@ public class CommandTable {
             add("textMode", Editor::textMode);
             add("tillCharInLine", null, (e, s) -> CaretCommands.tillCharInLine(s));
             add("tillCharInLineBackward", null, (e, s) -> CaretCommands.tillCharInLineBackward(s));
-            add("toBottom", MotionCommands::toBottom);
-            add("toCenter", MotionCommands::toCenter);
-            add("toTop", MotionCommands::toTop);
+            add("toBottom", MotionCommands::toBottom, (e, s) -> MotionCommands.toBottom(e, s));
+            add("toCenter", MotionCommands::toCenter, (e, s) -> MotionCommands.toCenter(e, s));
+            add("toTop", MotionCommands::toTop, (e, s) -> MotionCommands.toTop(e, s));
             add("toggleCaseRegion", e -> RegionCommands.toggleCaseRegion());
             add("toggleFold", FoldCommands::toggleFold);
             add("toggleSidebar", WindowCommands::toggleSidebar);

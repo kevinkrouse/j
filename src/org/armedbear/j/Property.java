@@ -59,6 +59,7 @@ public final class Property implements Comparable<Property> {
     public static final Property NNTP_READ_TIMEOUT = createProperty("nntpReadTimeout", 0);
     public static final Property PRINTER_FONT_SIZE = createProperty("printerFontSize", 10);
     public static final Property REORDER_BUFFERS = createProperty("reorderBuffers", 1);
+    public static final Property SCROLL_MARGIN = createProperty("scrollMargin", 0);
     public static final Property SHELL_OUTPUT_LIMIT = createProperty("shellOutputLimit", 1000);
     public static final Property SMOOTH_SCROLLING_DURATION = createProperty("smoothScrollingDuration", 250);
     // Under splitAttributes=preserve, how many indent levels a wrapped attribute line goes in.

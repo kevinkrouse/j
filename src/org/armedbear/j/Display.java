@@ -2977,6 +2977,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             setUpdateFlag(REPAINT);
         }
 
+        keepMargin();
+
         reframeParam = 0;
 
         // Now we need to check to make sure there's not unnecessary
@@ -2994,6 +2996,49 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             setTopLine(top);
             setUpdateFlag(REPAINT);
             reframeParam = 0;
+        }
+    }
+
+    /**
+     * The lines kept between the caret and the window's top and bottom,
+     * where the buffer goes on past them, as vim's scrolloff: scrollMargin,
+     * at most half the window.
+     */
+    public int scrollMargin() {
+        final Buffer buffer = editor.getBuffer();
+        final int margin = buffer == null ? 0 : buffer.getIntegerProperty(Property.SCROLL_MARGIN);
+        return Math.max(0, Math.min(margin, (getRows() - 1) / 2));
+    }
+
+    // The line n visible lines over line, or the first.
+    static Line linesAbove(Line line, int n) {
+        for (int i = 0; i < n && line.previousVisible() != null; i++)
+            line = line.previousVisible();
+        return line;
+    }
+
+    // The line n visible lines under line, or the last.
+    static Line linesBelow(Line line, int n) {
+        for (int i = 0; i < n && line.nextVisible() != null; i++)
+            line = line.nextVisible();
+        return line;
+    }
+
+    // Scrolls the least that shows scrollMargin lines over and under the caret's line.
+    private void keepMargin() {
+        final int margin = scrollMargin();
+        if (margin == 0)
+            return;
+        final Line top = linesAbove(editor.getDotLine(), margin);
+        if (top.isBefore(getFirstWholeLine())) {
+            setTopLine(top);
+            setUpdateFlag(REPAINT);
+            return;
+        }
+        final Line bottom = linesBelow(editor.getDotLine(), margin);
+        if (getBottomLine().isBefore(bottom)) {
+            setTopLine(topFor(bottom));
+            setUpdateFlag(REPAINT);
         }
     }
 
@@ -3125,20 +3170,18 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
+    /** Scrolls so the caret's line is at the top, but for scrollMargin lines over it, or one. */
     public void toTop() {
-        Line goal = editor.getDotLine().previousVisible();
-        if (goal == null)
-            goal = editor.getDotLine();
-        if (topLine != goal) {
+        final Line goal = linesAbove(editor.getDotLine(), Math.max(1, scrollMargin()));
+        if (topLine != goal || pixelsAboveTopLine != 0) {
             setTopLine(goal);
             setUpdateFlag(REPAINT);
         }
     }
 
-    /** Scrolls so the caret's line is the last one on screen. */
+    /** Scrolls so the caret's line is at the bottom, but for scrollMargin lines under it. */
     public void toBottom() {
-        final Line dotLine = editor.getDotLine();
-        final Line line = lineAbove(dotLine, getHeight() - dotLine.getHeight());
+        final Line line = topFor(linesBelow(editor.getDotLine(), scrollMargin()));
         if (topLine != line) {
             setTopLine(line);
             setUpdateFlag(REPAINT);

@@ -35,12 +35,63 @@ public final class MotionCommands {
         editor.getDisplay().toCenter();
     }
 
+    /** With "start", the caret to its line's first non-blank too. */
+    public static void toCenter(Editor editor, String arg) {
+        if (placeCaret(editor, arg, null))
+            toCenter(editor);
+    }
+
     public static void toBottom(Editor editor) {
         editor.getDisplay().toBottom();
     }
 
+    /**
+     * With "start", the caret to its line's first non-blank too; with
+     * "previous", to the line over the window first.
+     */
+    public static void toBottom(Editor editor, String arg) {
+        if (placeCaret(editor, arg, "previous"))
+            toBottom(editor);
+    }
+
     public static void toTop(Editor editor) {
         editor.getDisplay().toTop();
+    }
+
+    /**
+     * With "start", the caret to its line's first non-blank too; with
+     * "next", to the line under the window first.
+     */
+    public static void toTop(Editor editor, String arg) {
+        if (placeCaret(editor, arg, "next"))
+            toTop(editor);
+    }
+
+    // The caret for toTop, toCenter or toBottom with arg: with "start" at
+    // its line's first non-blank, with past at the first non-blank of the
+    // line past the window's edge; none for no arg; false, saying so, for
+    // another.
+    private static boolean placeCaret(Editor editor, String arg, String past) {
+        if (editor.getDot() == null)
+            return false;
+        final String a = arg == null ? "" : arg.strip();
+        if (a.isEmpty())
+            return true;
+        Line line = editor.getDotLine();
+        if (a.equals("next") && a.equals(past)) {
+            final Line next = editor.getDisplay().getBottomLine().nextVisible();
+            line = next != null ? next : line;
+        } else if (a.equals("previous") && a.equals(past)) {
+            final Line previous = editor.getDisplay().getFirstWholeLine().previousVisible();
+            line = previous != null ? previous : line;
+        } else if (!a.equals("start")) {
+            editor.status(past == null ? "Takes start" : "Takes start or " + past);
+            return false;
+        }
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.moveDotTo(line, CaretCommands.firstNonBlank(line));
+        editor.moveCaretToDotCol();
+        return true;
     }
 
     static boolean nextChar(Editor editor) {

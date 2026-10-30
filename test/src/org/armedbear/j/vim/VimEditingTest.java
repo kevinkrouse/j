@@ -13,7 +13,9 @@ package org.armedbear.j.vim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.Property;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -513,19 +515,81 @@ public class VimEditingTest {
         // them from H, M and L.
         vim("1\n2\n3\n4\n5\n6\n7\n8\n9\n").cursor(4, 0).keys("zt");
         at(4, 0);
-        // j's toTop keeps one line of context above, which is vim's zt with
-        // 'scrolloff' at 1 rather than at its default 0. Left as j has it:
-        // nothing is duplicated either way, so there is no reason to change
-        // how an existing j command feels.
-        assertEquals(
-            3,
-            h.editor().getDisplay().getTopLine().lineNumber(),
-            "scrolled to the caret's line, less one"
-        );
+        assertEquals(3, top(), "scrolled to the caret's line, but for one over it");
         h.keys("zz");
         at(4, 0);
         h.keys("zb");
         at(4, 0);
+    }
+
+    private int top() {
+        return h.editor().getDisplay().getTopLine().lineNumber();
+    }
+
+    private static String indented(int n) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++)
+            sb.append("  line").append(i).append('\n');
+        return sb.toString();
+    }
+
+    @Test
+    public void zEnterDotAndMinusPutTheCaretOnTheFirstNonBlank() {
+        vim(indented(40)).rows(10).cursor(20, 5).keys("z<CR>");
+        at(20, 2);
+        assertEquals(19, top(), "one line over it");
+        h.keys("j");
+        at(21, 2);
+        h.cursor(20, 5).keys("z-");
+        at(20, 2);
+        assertEquals(11, top(), "the caret's line the last of ten");
+        h.cursor(20, 5).keys("z.");
+        at(20, 2);
+        assertEquals(15, top());
+    }
+
+    @Test
+    public void zPlusAndCaretTakeTheLineUnderAndOverTheWindow() {
+        vim(indented(40)).rows(10).cursor(5, 0);
+        h.editor().getDisplay().setTopLine(h.buffer().getLine(0));
+        h.keys("z+");
+        at(10, 2);
+        assertEquals(9, top());
+        h.keys("z^");
+        at(8, 2);
+        assertEquals(0, top(), "line 8, over the window, near its bottom");
+    }
+
+    // As a key's command ends; a test's display is otherwise never ready.
+    private void reframe() {
+        final boolean ready = Editor.displayReady();
+        Editor.setDisplayReady(true);
+        try {
+            h.editor().updateDisplay();
+        }
+        finally {
+            Editor.setDisplayReady(ready);
+        }
+    }
+
+    @Test
+    public void scrollMarginKeepsLinesPastTheCaret() {
+        vim(indented(40)).rows(10).cursor(0, 0);
+        h.buffer().setProperty(Property.SCROLL_MARGIN, 3);
+        h.editor().getDisplay().setTopLine(h.buffer().getLine(0));
+        h.keys("6j");
+        reframe();
+        assertEquals(0, top(), "line 6 has three under it on screen");
+        h.keys("j");
+        reframe();
+        assertEquals(1, top(), "line 7 scrolls one");
+        h.keys("zt");
+        assertEquals(4, top(), "three lines over the caret's");
+        h.keys("zb");
+        assertEquals(1, top(), "three lines under it");
+        h.keys("gg");
+        reframe();
+        assertEquals(0, top(), "none over the first line");
     }
 
     @Test
