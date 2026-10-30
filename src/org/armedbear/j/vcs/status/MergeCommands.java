@@ -153,8 +153,7 @@ public final class MergeCommands {
                 "vcsMerge.branch",
                 List.copyOf(labeled.keySet()),
                 label -> {
-                    // A label, or a name typed.
-                    final String name = labeled.getOrDefault(label, label);
+                    final String name = labeled.get(label);
                     EachRepository.write(editor, cs, Context::repository, "Merging " + name, "Merged " + name, c -> {
                         final VcsRepository r = c.repository();
                         if (!c.refs().contains(name))

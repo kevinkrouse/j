@@ -105,9 +105,8 @@ final class AllBranchCommands {
             starts.put("HEAD", "HEAD");
             starts.putAll(refs);
             BranchCommands.choose
-                    .choose(editor, BranchCommands.START, "vcsBranch.start", List.copyOf(starts.keySet()), l -> {
-                        // A label, or a revision typed.
-                        final String start = starts.getOrDefault(l, l);
+                    .choose(editor, BranchCommands.START_EACH, "vcsBranch.start", List.copyOf(starts.keySet()), l -> {
+                        final String start = starts.get(l);
                         final String title =
                                 (checkout ? "Create and Check Out" : "Create") + " a Branch in Each from " + l;
                         final String offered = start.equals("HEAD") || cs.get(0).ref(start).kind() != LogRef.Kind.REMOTE
@@ -237,7 +236,7 @@ final class AllBranchCommands {
     // The unmerged commits a delete names at most in each repository.
     private static final int SHOWN = 10;
 
-    // One of labeled's labels asked for, its name, or what is typed, given to chosen.
+    // One of labeled's labels asked for, its name given to chosen.
     private static void pick(
             Editor editor,
             BranchCommands.Question q,
@@ -247,12 +246,8 @@ final class AllBranchCommands {
         if (labeled.isEmpty())
             editor.status("There is no other branch");
         else
-            BranchCommands.choose.choose(
-                editor,
-                q,
-                history,
-                List.copyOf(labeled.keySet()),
-                l -> chosen.accept(labeled.getOrDefault(l, l)));
+            BranchCommands.choose
+                    .choose(editor, q, history, List.copyOf(labeled.keySet()), l -> chosen.accept(labeled.get(l)));
     }
 
     /** Each repository's refs, the ref at the caret at, given to then on the event thread. */

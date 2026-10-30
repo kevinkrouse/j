@@ -93,9 +93,11 @@ public final class BranchCommands {
     static final Question RENAME = new Question(LocationBar.PROMPT_RENAME, "select the branch to rename", false);
     static final Question DELETE = new Question(LocationBar.PROMPT_DELETE, "select the branch to delete", false);
 
-    // In every repository a ref is asked for by name: no commit.
-    static final Question CHECKOUT_EACH = new Question(LocationBar.PROMPT_CHECKOUT, "select a branch or tag", true);
-    static final Question MERGE_EACH = new Question(LocationBar.PROMPT_MERGE, "select a branch or tag", true);
+    // In every repository, a ref by a name one has, as listed: nothing
+    // typed, a revision being one repository's.
+    static final Question START_EACH = new Question(LocationBar.PROMPT_START, "select a branch or tag", false);
+    static final Question CHECKOUT_EACH = new Question(LocationBar.PROMPT_CHECKOUT, "select a branch or tag", false);
+    static final Question MERGE_EACH = new Question(LocationBar.PROMPT_MERGE, "select a branch or tag", false);
 
     static Question parent(String branch) {
         return new Question(LocationBar.PROMPT_PARENT, "select the parent of " + branch, false);

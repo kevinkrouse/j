@@ -428,6 +428,7 @@ public class BranchCommandsTest {
         final Editor editor = statusOf(fs);
         BranchCommands.choose = (e, q, history, names, chosen) -> {
             offered.add(names);
+            questions.add(q);
             chosen.accept("feature (2 of 3)");
         };
         BranchCommands.ask = (e, prompt, title, offer) -> "topic";
@@ -437,6 +438,8 @@ public class BranchCommandsTest {
         assertEquals(fs.get(0).git("rev-parse", "feature"), fs.get(0).git("rev-parse", "topic"));
         assertEquals(fs.get(2).git("rev-parse", "main"), fs.get(2).git("rev-parse", "topic"), "no feature: HEAD");
         assertEquals("main", branchOf(fs.get(0)), "n: not checked out");
+        assertEquals(List.of(BranchCommands.START_EACH), questions);
+        assertFalse(BranchCommands.START_EACH.typed(), "a revision, one repository's, not taken");
     }
 
     @Test
