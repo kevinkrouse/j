@@ -68,8 +68,9 @@ elsewhere, else the branch the reflog says it was made from, else
 the Parent line, or
 <a href="commands.html#gitSetParent">gitSetParent</a>, picks another, which
 is recorded as GitHub's CLI records it, so <code>gh pr create</code> targets it
-too: a remote's branch by its bare name, read back as the local branch of that
-name when there is one, else origin's. <code>gitSetParent -</code> removes the record.
+too: origin's branch by its bare name, read back as the local branch of that
+name when there is one, else origin's; another remote's whole, as
+<code>upstream/main</code>. <code>gitSetParent -</code> removes the record.
 
 <p>
 The sections are those that have something in them: unmerged files during a

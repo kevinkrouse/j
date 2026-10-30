@@ -108,6 +108,22 @@ public class ParentCommandsTest {
     }
 
     @Test
+    public void anotherRemotesBranchIsRecordedWholeAndReadBackAsIts() throws Exception {
+        cloned();
+        final GitFixture fork = GitFixture.init(Files.createDirectory(tmp.resolve("fork")));
+        fork.commitAll("fork's");
+        fork.git("branch", "develop");
+        git.git("remote", "add", "upstream", fork.root.toString());
+        git.git("fetch", "-q", "upstream");
+        final Map<String, String> names = ParentCommands.branches(repo()).names();
+        assertEquals("upstream/main", names.get("upstream/main"), "not main, origin's");
+        assertEquals("main", names.get("origin/main"));
+        repo().backend().setParent(repo(), "x", names.get("upstream/develop"));
+        assertEquals("upstream/develop", parent().name());
+        assertEquals("gh-merge-base", parent().source());
+    }
+
+    @Test
     public void aRemotesBranchRecordedBareIsReadAsTheRemotes() throws Exception {
         cloned();
         repo().backend().setParent(repo(), "x", "feature");

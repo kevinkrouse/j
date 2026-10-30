@@ -93,7 +93,9 @@ public final class ParentCommands {
 
     /**
      * The branch checked out, and the others, local and remote, each by the
-     * name it is listed under and the name it is recorded as.
+     * name it is listed under and the name it is recorded as: origin's bare,
+     * as GitHub's CLI records one; another remote's whole, which a bare name
+     * would read back as origin's.
      */
     record Branches(String branch, Map<String, String> names) {}
 
@@ -110,7 +112,7 @@ public final class ParentCommands {
                 final String remote = FetchCommands.remoteOf(n, remotes);
                 // Not its own copy on a remote.
                 if (remote != null && !n.substring(remote.length() + 1).equals(branch))
-                    names.put(n, n.substring(remote.length() + 1));
+                    names.put(n, remote.equals("origin") ? n.substring(remote.length() + 1) : n);
             }
         }
         return new Branches(branch, names);
