@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.RESPONSE_YES;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -191,8 +192,13 @@ public final class StashCommands {
             return false;
         final TransientArgs args = Transients.args(editor, ID);
         final String message = args.get(MESSAGE);
+        // Decided here, on the event thread, which reads the status.
+        final Set<VcsRepository> has = new HashSet<>();
+        for (VcsRepository r : rs)
+            if (hasToStash(status, r, options))
+                has.add(r);
         EachRepository.write(editor, rs, r -> r, "Stashing", "Stashed", r -> {
-            if (!hasToStash(status, r, options))
+            if (!has.contains(r))
                 return new EachRepository.Done(r, null, "nothing to stash");
             return new EachRepository.Done(r, r.backend().stash(r, message, options), null);
         }, done -> {
