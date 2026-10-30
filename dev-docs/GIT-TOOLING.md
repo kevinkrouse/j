@@ -303,8 +303,8 @@ first of these that exists:
    local, so this covers recent branches made here.
 6. `origin/HEAD`, then `main`, then `master`.
 
-`gitSetParent` (or editing the `Parent:` line) is the only thing that
-writes, and it writes `gh-merge-base`: its meaning is the same (the branch
+`gitSetParent` (Enter on the `Parent:` line, or the branch popup's `p`)
+is the only thing that writes, and it writes `gh-merge-base`: its meaning is the same (the branch
 this one merges into), `gh pr create` then targets the same branch, and git
 moves it with `git branch -m` and drops it with `git branch -d`. It never
 changes the upstream, so `git pull` and `git push` behave as before.
@@ -325,7 +325,7 @@ has several, with a heading per repository in its color. Sections, in
 magit's order:
 
 ```
-Head:     master  icons: draw at the window's device scale
+Head:     master 1a2b3c4 icons: draw at the window's device scale
 Upstream: origin/master  ↑2 ↓0
 Parent:   origin/master
 
@@ -1599,8 +1599,9 @@ plan with why it is left, before the next phase starts.
    lands:
    - **a. The branch's others, read.** `GitSnapshot` gains the push target
      and the parent, read with the snapshot (one `git for-each-ref
-     --format='%(upstream:short)%00%(push:short)%00%(upstream:track)'
-     refs/heads/<branch>` and one `git config --get-regexp` for the
+     --format='%(refname)%00%(push:short)%00%(push:track)%00%(symref:short)'`
+     over the branch, `origin/HEAD` and the candidates, the upstream
+     coming from the status's own header, and one `git config --get-regexp` for the
      records of [Parent branch](#parent-branch), in its order). The
      parent's source is kept with it (`upstream`, `gh-merge-base`,
      `git-town`, `machete`, `vscode`, `reflog`, `default`). A detached
@@ -1619,8 +1620,8 @@ plan with why it is left, before the next phase starts.
      origin/main (upstream)` with the source in parentheses, as the
      design has it. `Push:` is left out when it is the upstream; a gone
      push target says `gone` too, pushed and deleted or never pushed.
-     `Parent:` always shows, though another line names its branch, so
-     its source is seen and step d's Enter has a line. A parent's name is a local branch before a remote one, so
+     `Parent:` shows whenever there is one, though another line names its
+     branch, so its source is seen and step d's Enter has a line. A parent's name is a local branch before a remote one, so
      a `gh-merge-base` of `main` is counted against the local `main`,
      which may be behind the `origin/main` that `gh pr create` compares
      with; the source in parentheses says which record it came from.
@@ -1671,7 +1672,7 @@ plan with why it is left, before the next phase starts.
    - **d. Setting the parent.** `gitSetParent [BRANCH]` writes
      `branch.<name>.gh-merge-base` (a branch asked for with the refs'
      fuzzy list when none is given), and `gitSetParent -` removes it. The
-     `Parent:` line's Enter runs it. No other key writes it. A remote's
+     `Parent:` line's Enter runs it, as the branch popup's `p` does. A remote's
      branch is written by its bare name (`origin/main` as `main`), as
      `gh pr create` takes it, and a bare name is read back as the local
      branch, else a remote's of that full name, else origin's. The list
@@ -1689,8 +1690,8 @@ plan with why it is left, before the next phase starts.
      `-m` message option. A pop or apply that conflicts leaves the stash,
      says so, and the status shows the conflicts (phase 9 resolves them).
      Writes go through `VcsBackend` (`stash`, `stashApply`, `stashDrop`),
-     git's in `GitWrites`, and `Capability.STASH` gates the section and
-     the popup. `s` before git 2.35 fails saying so, without running git. Undo-like safety: a dropped stash's hash goes in the
+     git's in `GitWrites`, and `Capability.STASH` gates the popup. `s`
+     before git 2.35 fails saying so, without running git. Undo-like safety: a dropped stash's hash goes in the
      command log and the status bar, so `git stash apply <hash>` can bring
      it back. Built as: a `StashItem` (name, hash, subject, files) whose
      line is a commit's, so the diff beside follows it as it follows a
@@ -1716,7 +1717,7 @@ plan with why it is left, before the next phase starts.
      `LogCommit` badged with a `LogRef.Kind.STASH` whose `graphParents` is
      its first parent alone, so the index's and untracked commits aren't
      read. Each repository's stashes are a `LogMerge` source of their own,
-     read whole and placed by commit time before the repository's commits,
+     read whole and placed among the repository's commits by commit time,
      so the branches' pages and skips are untouched. The refs tree's
      Stashes come from `readRefTips`; a click, Enter or a double click goes
      to the stash, or says `-z` shows it. The graph draws a stash as a
@@ -1795,7 +1796,7 @@ plan with why it is left, before the next phase starts.
      its `Done`s said together. Checked in the app under Xvfb: three
      repositories, one with a change in the way.
    - **j. Committing, fetching, stashing and merging in every
-     repository.** With several repositories in the status:
+     repository.** With several repositories in the status or the log:
      - **Commit** goes to each repository with something staged (with
        `-a`, any tracked change), one commit each with the one message,
        as IntelliJ's commit does across roots. Which repositories a commit
