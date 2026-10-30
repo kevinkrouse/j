@@ -1895,15 +1895,15 @@ plan with why it is left, before the next phase starts.
      commits by two authors, an edited buffer, a rename followed through
      `previous`, an ignored revision, a file not committed, a binary
      file.
-     Built: `vcs/blame`'s `Blame` is the buffer's (a `Buffer.Follower`,
-     read while it has listeners), `BlameData` its lines'. A line whose
+     Built: `vcs/blame`'s `Blame` is the buffer's (a `Buffer.Follower`
+     kept on the buffer, as its signs are, read while it has listeners),
+     `BlameData` its lines'. The text sent is what a save writes
+     (`SystemBuffer.write`: a byte order mark, UTF-16's separators). A line whose
      text changed since it was blamed reads as `NOT_COMMITTED` (an
      insertion at a line's start keeps the old `Line` for the new text).
      "Read again" is the repository's `refsGeneration` and the file's
      modified time changing, seen on `vcsChecked`. A file with no history
      is not committed throughout. `VcsRunner.run(command, stdout)` streams.
-     A UTF-8 byte order mark isn't sent, so a file with one has its first
-     line not committed.
    - **d. The column.** `vcsBlame` (`<leader>gb` in vim) toggles it on the
      buffer. Each run of one commit shows `vcsBlameFormat` (`%d %a`, date
      and author; `%h` hash, `%s` summary) on its first line, and a thin

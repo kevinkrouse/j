@@ -34,6 +34,11 @@ package org.armedbear.j.vcs.blame;
 public record BlameCommit(String hash, String author, String authorMail, long authorTime, String summary, String path,
         String previous, String previousPath, boolean boundary) {
 
+    /** The commit of lines not committed yet, of path in the working tree. */
+    public static BlameCommit uncommitted(String path) {
+        return new BlameCommit("0".repeat(40), "Not Committed Yet", "", 0, "", path, null, null, false);
+    }
+
     /** Whether its lines are not committed yet. */
     public boolean isUncommitted() {
         return hash.chars().allMatch(c -> c == '0');
@@ -41,7 +46,7 @@ public record BlameCommit(String hash, String author, String authorMail, long au
 
     /** Told of each run of lines blame reads, as it reads them. */
     public interface Sink {
-        /** count lines from first, counted from 0, were last changed in commit. */
+        /** count lines from first, counted from 0, were last changed in commit; count may run past the last. */
         void lines(int first, int count, BlameCommit commit);
     }
 }

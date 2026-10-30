@@ -59,10 +59,17 @@ public class BlameTest {
     }
 
     private void open(String path) throws Exception {
+        open(path, null);
+    }
+
+    // The same, the file read in encoding, or as detected for null.
+    private void open(String path, String encoding) throws Exception {
         onEdt(() -> {
             h = EditorHarness.create();
             Editor.setCurrentEditor(h.editor());
             file = Editor.getBuffer(File.getInstance(git.root.resolve(path).toString()));
+            if (encoding != null)
+                file.getFile().setEncoding(encoding);
             if (!file.initialized())
                 file.initialize();
             file.load();
@@ -135,6 +142,31 @@ public class BlameTest {
         });
         until(() -> !at(1).isUncommitted());
         assertEquals("Bob", at(1).author());
+    }
+
+    @Test
+    public void aUtf16FileIsBlamedAsSaved() throws Exception {
+        committedAs("UnicodeLittle", new byte[] { (byte) 0xff, (byte) 0xfe }, "a\nb\nc\n".getBytes("UTF-16LE"));
+    }
+
+    @Test
+    public void aUtf8FileWithAByteOrderMarkIsBlamedAsSaved() throws Exception {
+        committedAs(null, new byte[] { (byte) 0xef, (byte) 0xbb, (byte) 0xbf }, "a\nb\nc\n".getBytes("UTF-8"));
+    }
+
+    // A file of bom and text, committed, read in encoding: every line its commit's.
+    private void committedAs(String encoding, byte[] bom, byte[] text) throws Exception {
+        git = GitFixture.init(tmp);
+        final byte[] bytes = new byte[bom.length + text.length];
+        System.arraycopy(bom, 0, bytes, 0, bom.length);
+        System.arraycopy(text, 0, bytes, bom.length, text.length);
+        java.nio.file.Files.write(git.root.resolve("f.txt"), bytes);
+        commitAs("Ann", "first");
+        open("f.txt", encoding);
+        onEdt(() -> Blame.of(file).addListener(listener));
+        until(this::read);
+        for (int i = 0; i < 3; i++)
+            assertEquals("Ann", at(i).author(), "line " + i);
     }
 
     @Test

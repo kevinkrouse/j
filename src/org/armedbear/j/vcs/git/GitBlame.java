@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Log;
@@ -51,7 +52,7 @@ final class GitBlame {
         // git reads the file only when blame.ignoreRevsFile names it.
         if (Files.isRegularFile(repository.root().resolve(IGNORE_REVS))
                 && GitCli.versionAtLeast(IGNORE_REVS_FILE)
-                && !GitCli.run(GitCli.read(repository.root(), "config", "--get", "blame.ignoreRevsFile")).succeeded())
+                && !ignoreRevsFileSet(repository))
             args.addAll(List.of("--ignore-revs-file", IGNORE_REVS));
         args.addAll(List.of("--contents", "-", "--", path));
         final Parser parser = new Parser(sink);
@@ -63,26 +64,29 @@ final class GitBlame {
                 Log.error(e);
             }
         });
+        parser.finish();
         // Not in HEAD, as a file not committed yet: none of it is.
         if (!r.succeeded() && r.stderr().contains("no such path")) {
-            sink.lines(0, lines(contents), uncommitted(path));
+            sink.lines(0, Integer.MAX_VALUE, BlameCommit.uncommitted(path));
             return new VcsResult(r.command(), 0, r.stdout(), "", r.millis());
         }
         return r;
     }
 
-    private static int lines(byte[] contents) {
-        int n = contents.length == 0 || contents[contents.length - 1] == '\n' ? 0 : 1;
-        for (byte b : contents)
-            if (b == '\n')
-                n++;
-        return n;
-    }
+    // Whether blame.ignoreRevsFile is set, as of the repository's config now.
+    private record Configured(long refs, boolean set) {}
 
-    // As git names lines not committed, for a file it has no history of.
-    private static BlameCommit uncommitted(String path) {
-        final String none = "0".repeat(40);
-        return new BlameCommit(none, "Not Committed Yet", "not.committed.yet", 0, "", path, null, null, false);
+    private static final Map<VcsRepository, Configured> configured = new ConcurrentHashMap<>();
+
+    private static boolean ignoreRevsFileSet(VcsRepository repository) {
+        final long refs = repository.refsGeneration();
+        final Configured c = configured.get(repository);
+        if (c != null && c.refs() == refs)
+            return c.set();
+        final boolean set =
+                GitCli.run(GitCli.read(repository.root(), "config", "--get", "blame.ignoreRevsFile")).succeeded();
+        configured.put(repository, new Configured(refs, set));
+        return set;
     }
 
     /** Reads --incremental's output a chunk at a time, telling sink of each group as it ends. */
@@ -102,6 +106,18 @@ final class GitBlame {
 
         Parser(BlameCommit.Sink sink) {
             this.sink = sink;
+        }
+
+        // The output's end: a last line without its newline read, and a group it cut short told.
+        void finish() {
+            if (pending.size() > 0) {
+                line(pending.toString(StandardCharsets.UTF_8));
+                pending.reset();
+            }
+            if (hash != null) {
+                sink.lines(first, count, commit(""));
+                hash = null;
+            }
         }
 
         void feed(byte[] chunk) {

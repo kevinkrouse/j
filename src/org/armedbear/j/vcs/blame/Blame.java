@@ -23,16 +23,15 @@ package org.armedbear.j.vcs.blame;
 import static org.armedbear.j.Constants.BINARY_MODE;
 
 import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -51,8 +50,6 @@ import org.armedbear.j.vcs.VcsResult;
  */
 public final class Blame implements Buffer.Follower {
     static final int DELAY_MILLIS = 500;
-
-    private static final Map<Buffer, Blame> blames = new WeakHashMap<>();
 
     private final Buffer buffer;
     private final List<Runnable> listeners = new CopyOnWriteArrayList<>();
@@ -74,7 +71,9 @@ public final class Blame implements Buffer.Follower {
     public static Blame of(Buffer buffer) {
         if (target(buffer) == null)
             return null;
-        return blames.computeIfAbsent(buffer, Blame::new);
+        if (buffer.getBlame() == null)
+            buffer.setBlame(new Blame(buffer));
+        return buffer.getBlame();
     }
 
     // The repository that blames buffer's file, and the file's path in it; null if none.
@@ -108,7 +107,8 @@ public final class Blame implements Buffer.Follower {
         if (listeners.isEmpty()) {
             buffer.removeFollower(this);
             timer.stop();
-            blames.remove(buffer);
+            if (buffer.getBlame() == this)
+                buffer.setBlame(null);
         }
     }
 
@@ -136,7 +136,8 @@ public final class Blame implements Buffer.Follower {
 
     // The buffer's lines now, blamed in the background.
     private void read() {
-        if (listeners.isEmpty())
+        // Not the buffer's, or the buffer closed, though a listener was left behind.
+        if (listeners.isEmpty() || buffer.getBlame() != this || !Editor.getBufferList().contains(buffer))
             return;
         if (reading != null && !reading.isDone()) {
             again = true;
@@ -154,23 +155,19 @@ public final class Blame implements Buffer.Follower {
             return;
         }
         try {
-            // As a save writes it, so git compares like with like.
-            final String encoding = buffer.getSaveEncoding();
-            final String separator = buffer.getLineSeparator() != null ? buffer.getLineSeparator() : "\n";
-            for (Line l = buffer.getFirstLine(); l != null; l = l.next()) {
+            for (Line l = buffer.getFirstLine(); l != null; l = l.next())
                 lines.add(l);
-                text.writeBytes(l.getBytes(encoding));
-                if (l.next() != null)
-                    text.writeBytes(separator.getBytes(encoding));
-            }
+            // As a save writes it, so git compares like with like.
+            buffer.write(text, buffer.getSaveEncoding());
         }
-        catch (UnsupportedEncodingException e) {
+        catch (IOException e) {
             Log.error(e);
             return;
         }
         finally {
             buffer.unlockRead();
         }
+        // A failed read is tried again when the file or the refs change.
         readFor = key(t);
         final BlameData data = new BlameData(lines);
         reading = data;

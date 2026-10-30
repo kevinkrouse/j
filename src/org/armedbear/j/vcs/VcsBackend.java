@@ -181,9 +181,9 @@ public interface VcsBackend {
 
     /**
      * Blames contents, path's text in the working tree or as edited, in the
-     * background: sink told of each run of lines as it is read. Lines not
-     * as committed are blamed on a commit isUncommitted says so of, and so
-     * is every line of a path with no history. Null if the backend can't.
+     * background: sink told of each run of lines as it is read. A line not
+     * as committed, and every line of a path with no history, has a commit
+     * whose isUncommitted() is true. Null if the backend can't.
      */
     default VcsResult blame(VcsRepository repository, String path, byte[] contents, BlameCommit.Sink sink) {
         return null;

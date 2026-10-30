@@ -56,7 +56,7 @@ public class GitBlameTest {
         final BlameCommit[] commits = new BlameCommit[n];
         final VcsResult result =
                 r.backend().blame(r, path, text.getBytes(StandardCharsets.UTF_8), (first, count, c) -> {
-                    for (int i = first; i < first + count; i++)
+                    for (int i = first; i < Math.min((long) first + count, n); i++)
                         commits[i] = c;
                 });
         assertTrue(result.succeeded(), result.stderr());
@@ -159,5 +159,11 @@ public class GitBlameTest {
             p.feed(Arrays.copyOfRange(bytes, split, bytes.length));
             assertEquals(List.of("0+2 Ann null", "2+1 Bob 1111111111111111111111111111111111111111"), runs);
         }
+        // Cut short: the last group told at the end.
+        final List<String> runs = new ArrayList<>();
+        final GitBlame.Parser p = new GitBlame.Parser((first, count, c) -> runs.add(first + "+" + count));
+        p.feed("1111111111111111111111111111111111111111 1 4 2\nauthor Ann".getBytes(StandardCharsets.UTF_8));
+        p.finish();
+        assertEquals(List.of("3+2"), runs);
     }
 }

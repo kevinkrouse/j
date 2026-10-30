@@ -63,6 +63,7 @@ import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.VersionControlEntry;
+import org.armedbear.j.vcs.blame.Blame;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 
 public class Buffer extends SystemBuffer {
@@ -3100,6 +3101,17 @@ public class Buffer extends SystemBuffer {
 
     public final void setSigns(Signs signs) {
         this.signs = signs;
+    }
+
+    // Its blame, while something wants it.
+    private Blame blame;
+
+    public final Blame getBlame() {
+        return blame;
+    }
+
+    public final void setBlame(Blame blame) {
+        this.blame = blame;
     }
 
     public final SignsUpdater getSignsUpdater() {

@@ -51,21 +51,24 @@ public final class BlameData implements BlameCommit.Sink {
 
     @Override
     public synchronized void lines(int first, int count, BlameCommit commit) {
-        for (int i = first; i < first + count && i < lines.size(); i++) {
+        final long end = Math.min((long) first + count, lines.size());
+        for (int i = first; i < end; i++) {
             commits.put(lines.get(i), commit);
             blamed.put(lines.get(i), texts.get(i));
         }
     }
 
-    /** The commit line was last changed in, NOT_COMMITTED if changed since; null if not known. */
+    /**
+     * The commit line was last changed in, NOT_COMMITTED if changed since;
+     * null if not known. A paint's worth of lines compares their text.
+     */
     public synchronized BlameCommit commit(Line line) {
         final BlameCommit c = commits.get(line);
         return c == null || line.getText().equals(blamed.get(line)) ? c : NOT_COMMITTED;
     }
 
     /** A line's commit when it has changed since it was blamed. */
-    public static final BlameCommit NOT_COMMITTED =
-            new BlameCommit("0".repeat(40), "Not Committed Yet", "", 0, "", "", null, null, false);
+    public static final BlameCommit NOT_COMMITTED = BlameCommit.uncommitted(null);
 
     /** The commits read so far, each once, in the order first read. */
     public synchronized Set<BlameCommit> commits() {

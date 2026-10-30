@@ -25,6 +25,7 @@ import static org.armedbear.j.Constants.*;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
@@ -544,31 +545,40 @@ public class SystemBuffer {
 
     public boolean writeFile(File outputFile) {
         try (BufferedOutputStream out = new BufferedOutputStream(outputFile.getOutputStream())) {
-            if (lineSeparator == null)
-                lineSeparator = System.getProperty("line.separator");
             String encoding = outputFile.getEncoding();
             if (encoding == null)
                 encoding = getSaveEncoding();
-            Line line = getFirstLine();
-            if (line != null) {
-                final byte[] byteOrderMark = getByteOrderMark(encoding);
-                if (byteOrderMark != null)
-                    out.write(byteOrderMark);
-                out.write(line.getBytes(encoding));
-                line = line.next();
-                final byte[] sepBytes = getSeparatorBytes(encoding);
-                while (line != null) {
-                    out.write(sepBytes);
-                    out.write(line.getBytes(encoding));
-                    line = line.next();
-                }
-            }
+            write(out, encoding);
             out.flush();
             return true;
         }
         catch (IOException e) {
             Log.error(e);
             return false;
+        }
+    }
+
+    /**
+     * Writes the text to out in encoding as a save does: a byte order mark
+     * if it has one, and the line separator between lines. The caller holds
+     * the lock it needs.
+     */
+    public void write(OutputStream out, String encoding) throws IOException {
+        if (lineSeparator == null)
+            lineSeparator = System.getProperty("line.separator");
+        Line line = getFirstLine();
+        if (line == null)
+            return;
+        final byte[] byteOrderMark = getByteOrderMark(encoding);
+        if (byteOrderMark != null)
+            out.write(byteOrderMark);
+        out.write(line.getBytes(encoding));
+        line = line.next();
+        final byte[] sepBytes = getSeparatorBytes(encoding);
+        while (line != null) {
+            out.write(sepBytes);
+            out.write(line.getBytes(encoding));
+            line = line.next();
         }
     }
 
