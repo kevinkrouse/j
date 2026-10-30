@@ -145,7 +145,7 @@ public final class FetchCommands {
                 else
                     TransientPopup.open(
                         at,
-                        popup(
+                        () -> popup(
                             remotes,
                             EachRepository.several(at) ? r.name() : null,
                             EachRepository.of(at, ID) != null));

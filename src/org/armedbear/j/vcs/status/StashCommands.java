@@ -114,9 +114,10 @@ public final class StashCommands {
             at.status(r.backend().name() + " has no stash");
             return;
         }
+        final StashItem target = target(at, r);
         TransientPopup.open(
             at,
-            popup(target(at, r), EachRepository.several(at) ? r.name() : null, EachRepository.of(at, ID) != null));
+            () -> popup(target, EachRepository.several(at) ? r.name() : null, EachRepository.of(at, ID) != null));
     }
 
     public static void vcsStashSave(Editor editor) {

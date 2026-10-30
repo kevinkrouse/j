@@ -208,6 +208,28 @@ public class TransientPopupTest {
     }
 
     @Test
+    public void aPopupFromASourceSaysWhatItNowDoesAsASwitchChanges() {
+        popup.close(false);
+        final Supplier<Transient> each = () -> new Transient("test.each",
+                "Each",
+                "dir.html",
+                List.of(
+                    Group.of("Arguments", Switch.of("-a", "--each", "each")),
+                    Group.of(
+                        "Run",
+                        Transients.args(h.editor(), "test.each").isOn("--each")
+                                ? Command.of("p", "eob", "in each")
+                                : Command.unavailable("p", "here, not set"))));
+        popup = TransientPopup.open(h.editor(), each);
+        assertTrue(popup.text().toString().contains("here, not set"), popup.text().toString());
+        popup.typed('-');
+        popup.typed('a');
+        assertTrue(popup.text().toString().contains("p in each"), popup.text().toString());
+        popup.typed('p');
+        assertTrue(popup.isClosed(), "runs as it now says");
+    }
+
+    @Test
     public void aCommandRunsAndCloses() throws Exception {
         popup.typed('e');
         assertTrue(popup.isClosed());

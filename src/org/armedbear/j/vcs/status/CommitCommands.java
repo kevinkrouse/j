@@ -145,7 +145,7 @@ public final class CommitCommands {
             at.status("Nothing here stages to commit");
             return;
         }
-        TransientPopup.open(at, popup(at));
+        TransientPopup.open(at, () -> popup(at));
     }
 
     // The window to commit from: editor's on a status; from the status's

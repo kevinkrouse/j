@@ -93,7 +93,7 @@ public final class MergeCommands {
             Background.then("vcs merging", () -> r.backend().isMerging(r), merging -> {
                 TransientPopup.open(
                     editor,
-                    popup(
+                    () -> popup(
                         c,
                         Boolean.TRUE.equals(merging),
                         EachRepository.several(editor) ? r.name() : null,

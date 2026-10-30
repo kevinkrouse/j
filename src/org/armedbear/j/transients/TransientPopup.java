@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
 import javax.swing.JComponent;
 import javax.swing.JLayeredPane;
 import javax.swing.JRootPane;
@@ -82,8 +83,13 @@ public final class TransientPopup extends JComponent {
     private static TransientPopup open;
 
     private final Editor editor;
-    private final Deque<Transient> back = new ArrayDeque<>();
+    private final Deque<Level> back = new ArrayDeque<>();
     private Transient current;
+    // What makes current again as its arguments change; null if they don't.
+    private Supplier<Transient> source;
+
+    private record Level(Transient t, Supplier<Transient> source) {}
+
     // The first character of a two character key, or "".
     private String pending = "";
     // Ctrl H was pressed: the next key shows its item's help.
@@ -181,6 +187,16 @@ public final class TransientPopup extends JComponent {
                     close(false);
             }
         });
+    }
+
+    /**
+     * Opens what source makes over editor's window, made again as a switch
+     * or option changes, for lines that say what it now does.
+     */
+    public static TransientPopup open(Editor editor, Supplier<Transient> source) {
+        final TransientPopup popup = open(editor, source.get());
+        popup.source = source;
+        return popup;
     }
 
     /** Opens t over editor's window, in place of any popup open. */
@@ -342,7 +358,9 @@ public final class TransientPopup extends JComponent {
             refresh();
         } else if (!back.isEmpty()) {
             message = null;
-            current = back.pop();
+            final Level level = back.pop();
+            current = level.t();
+            source = level.source();
             refresh();
         } else
             close(true);
@@ -367,8 +385,9 @@ public final class TransientPopup extends JComponent {
             }
             case Command c -> run(c);
             case Prefix p -> {
-                back.push(current);
-                current = p.next().get();
+                back.push(new Level(current, source));
+                source = p.next();
+                current = source.get();
                 refresh();
             }
         }
@@ -442,6 +461,7 @@ public final class TransientPopup extends JComponent {
         } else {
             args().setOn(s.name(), b);
             Transients.changed(current.id(), args());
+            again();
         }
     }
 
@@ -456,7 +476,14 @@ public final class TransientPopup extends JComponent {
         } else {
             args().set(o.name(), value);
             Transients.changed(current.id(), args());
+            again();
         }
+    }
+
+    // current made again from its source, its arguments changed.
+    private void again() {
+        if (source != null)
+            current = source.get();
     }
 
     // A binding changed the buffer: what a command's end does, in every
