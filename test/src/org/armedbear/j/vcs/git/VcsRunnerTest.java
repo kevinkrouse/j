@@ -54,6 +54,15 @@ public class VcsRunnerTest {
     }
 
     @Test
+    public void gitNeverAsksForCredentials() throws IOException {
+        // Else a fetch from a remote wanting a password waits on a terminal it hasn't.
+        final GitFixture f = GitFixture.init(tmp);
+        final String[] said = { "-c", "alias.prompt=!printf %s \"$GIT_TERMINAL_PROMPT\"", "prompt" };
+        assertEquals("0", GitCli.run(GitCli.read(f.root, said)).out());
+        assertEquals("0", GitCli.run(GitCli.write(f.root, null, said)).out());
+    }
+
+    @Test
     public void keepsOutputAndErrorApart() throws IOException {
         GitFixture f = GitFixture.init(tmp);
         VcsResult ok = GitCli.run(GitCli.read(f.root, "rev-parse", "--is-inside-work-tree"));
