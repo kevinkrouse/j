@@ -34,11 +34,21 @@ public class Snapshot {
      * apart they are: commits only on this one (ahead) and only on the
      * other (behind), both -1 if the other is gone or not yet pushed.
      *
+     * @param ref its full ref, or null if not known
      * @param source where it was found, for a parent; null otherwise
      */
-    public record Relation(String name, String source, int ahead, int behind) {
+    public record Relation(String name, String ref, String source, int ahead, int behind) {
+        public Relation(String name, String source, int ahead, int behind) {
+            this(name, null, source, ahead, behind);
+        }
+
         public boolean gone() {
             return ahead < 0;
+        }
+
+        /** Its full ref where known, so a tag of its name can't stand for it; else its name. */
+        public String revision() {
+            return ref != null ? ref : name;
         }
     }
 

@@ -163,12 +163,24 @@ public final class Repositories {
      * listeners is read again in the background.
      */
     public static void invalidateAll() {
+        invalidateAll(true);
+    }
+
+    /** As invalidateAll, after a save: HEAD, the refs and the config are kept. */
+    public static void filesChanged() {
+        invalidateAll(false);
+    }
+
+    private static void invalidateAll(boolean refs) {
         synchronized (roots) {
             roots.clear();
             projects.clear();
         }
         for (VcsRepository repository : repositories.values()) {
-            repository.invalidate();
+            if (refs)
+                repository.invalidate();
+            else
+                repository.invalidateFiles();
             if (repository.hasListeners())
                 repository.refresh();
         }

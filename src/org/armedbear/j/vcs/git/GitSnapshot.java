@@ -56,9 +56,9 @@ public final class GitSnapshot extends Snapshot {
         this.operation = operation;
     }
 
-    /** This snapshot with its push target and parent. */
-    GitSnapshot with(Relation push, Relation parent) {
-        return new GitSnapshot(changes(), head, branch, upstream(), push, parent, stashes, operation);
+    /** This snapshot with its upstream, push target and parent. */
+    GitSnapshot with(Relation upstream, Relation push, Relation parent) {
+        return new GitSnapshot(changes(), head, branch, upstream, push, parent, stashes, operation);
     }
 
     public String head() {

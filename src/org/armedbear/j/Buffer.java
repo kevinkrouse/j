@@ -1460,7 +1460,7 @@ public class Buffer extends SystemBuffer {
         }
 
         // clear the vcs snapshot and recheck
-        VersionControl.invalidate();
+        VersionControl.saved();
         checkVCS();
 
         if (repaint) {
@@ -1705,7 +1705,7 @@ public class Buffer extends SystemBuffer {
             changeFile(destination);
             ProjectFiles.fileSaved(destination);
             setLastModified(getFile().lastModified());
-            VersionControl.invalidate();
+            VersionControl.saved();
             checkVCS();
             final String encoding = destination.getEncoding();
             if (encoding != null)

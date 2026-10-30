@@ -118,6 +118,30 @@ public class GitStatusReaderTest {
         assertTrue(d.header().contains(new Field("Stashes", "can't be read: see vcsCommandLog")));
     }
 
+    @Test
+    public void aTagNamedAsTheUpstreamLeavesItsSectionsAsTheyAre() throws Exception {
+        final GitFixture origin = GitFixture.init(Files.createDirectory(tmp.resolve("origin")));
+        origin.write("f.txt", "one\n");
+        origin.commitAll("one");
+        final GitFixture git = GitFixture.init(Files.createDirectory(tmp.resolve("work")));
+        git.git("remote", "add", "origin", origin.root.toString());
+        git.git("fetch", "-q", "origin");
+        git.git("reset", "-q", "--hard", "origin/main");
+        git.git("branch", "-q", "-u", "origin/main");
+        git.write("f.txt", "two\n");
+        git.commitAll("two");
+        // "origin/main" alone would now be the tag, at HEAD: nothing unpushed.
+        git.git("tag", "origin/main");
+        final StatusData d =
+                GitStatusReader.read(Repositories.forDirectory(git.root), (s, k) -> false, Whitespace.NONE);
+        Section unpushed = null;
+        for (Section s : d.sections())
+            if (s.id().equals("unpushed"))
+                unpushed = s;
+        assertEquals("refs/remotes/origin/main..HEAD", unpushed.range());
+        assertEquals(1, unpushed.items().size());
+    }
+
     /** The stash's commit gone, so git status counts it but git stash list fails. */
     static void breakStash(GitFixture git) throws Exception {
         final String id = git.git("rev-parse", "stash").strip();

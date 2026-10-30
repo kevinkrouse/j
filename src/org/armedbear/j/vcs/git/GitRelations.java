@@ -52,9 +52,10 @@ final class GitRelations {
     // reflog's name, null, is read when it is reached.
     private record Candidate(String name, String source) {}
 
-    // A ref for-each-ref listed: its push target and how far it is, and
-    // the ref it points at, for origin/HEAD.
-    private record Ref(String push, String pushTrack, String symref) {}
+    // A ref for-each-ref listed: its upstream's full name, its push
+    // target's short and full names and how far it is, and the ref it
+    // points at, for origin/HEAD.
+    private record Ref(String upstream, String push, String pushRef, String pushTrack, String symref) {}
 
     static GitSnapshot read(Path root, GitDirs dirs, GitSnapshot s) {
         final String branch = s.branch();
@@ -65,7 +66,7 @@ final class GitRelations {
         final String town = config.get("git-town-branch." + branch + ".parent");
         final String machete = dirs == null ? null : machete(dirs.commonDir().resolve("machete"), branch);
         final String vscode = config.get("branch." + branch + ".vscode-merge-base");
-        final Relation upstream = s.upstream() == null || s.upstream().gone() ? null : s.upstream();
+        Relation upstream = s.upstream() == null || s.upstream().gone() ? null : s.upstream();
 
         final Set<String> listed =
                 new LinkedHashSet<>(List.of(HEADS + branch, ORIGIN_HEAD, HEADS + "main", HEADS + "master"));
@@ -77,8 +78,12 @@ final class GitRelations {
         Relation push = null;
         if (own != null && !own.push().isEmpty()) {
             final int[] ab = track(own.pushTrack());
-            push = new Relation(own.push(), null, ab[0], ab[1]);
+            push = new Relation(own.push(), own.pushRef(), null, ab[0], ab[1]);
         }
+        // Status names it short; ranges want it whole.
+        if (upstream != null && own != null && !own.upstream().isEmpty())
+            upstream = new Relation(upstream.name(), own.upstream(), null, upstream.ahead(), upstream.behind());
+        final Relation status = s.upstream() != null && s.upstream().gone() ? s.upstream() : upstream;
 
         final List<Candidate> candidates = new ArrayList<>();
         add(candidates, gh, "gh-merge-base");
@@ -110,9 +115,9 @@ final class GitRelations {
             // Not the branch, nor where it pushes: its own copy, as main's origin/main.
             if (ref == null || ref.equals(HEADS + branch) || push != null && push.name().equals(shortName(ref)))
                 continue;
-            return s.with(push, parent(root, shortName(ref), ref, c.source(), upstream, push));
+            return s.with(status, push, parent(root, shortName(ref), ref, c.source(), upstream, push));
         }
-        return s.with(push, null);
+        return s.with(status, push, null);
     }
 
     private static void add(List<Candidate> candidates, String name, String source) {
@@ -157,9 +162,9 @@ final class GitRelations {
             Relation upstream,
             Relation push) {
         if (upstream != null && upstream.name().equals(name))
-            return new Relation(name, source, upstream.ahead(), upstream.behind());
+            return new Relation(name, ref, source, upstream.ahead(), upstream.behind());
         if (push != null && !push.gone() && push.name().equals(name))
-            return new Relation(name, source, push.ahead(), push.behind());
+            return new Relation(name, ref, source, push.ahead(), push.behind());
         final VcsResult r = GitCli.run(GitCli.read(root, "rev-list", "--left-right", "--count", "HEAD..." + ref));
         if (!r.succeeded())
             return null;
@@ -167,7 +172,7 @@ final class GitRelations {
         if (f.length != 2)
             return null;
         try {
-            return new Relation(name, source, Integer.parseInt(f[0]), Integer.parseInt(f[1]));
+            return new Relation(name, ref, source, Integer.parseInt(f[0]), Integer.parseInt(f[1]));
         }
         catch (NumberFormatException e) {
             return null;
@@ -193,8 +198,9 @@ final class GitRelations {
     // The refs of patterns there are; a pattern also matches the refs
     // under it, which are left out.
     private static Map<String, Ref> refs(Path root, Set<String> patterns) {
-        final List<String> args = new ArrayList<>(
-                List.of("for-each-ref", "--format=%(refname)%00%(push:short)%00%(push:track)%00%(symref:short)"));
+        final List<String> args = new ArrayList<>(List.of(
+            "for-each-ref",
+            "--format=%(refname)%00%(upstream)%00%(push:short)%00%(push)%00%(push:track)%00%(symref:short)"));
         args.addAll(patterns);
         final Map<String, Ref> refs = new HashMap<>();
         final VcsResult r = GitCli.run(GitCli.read(root, args.toArray(new String[0])));
@@ -202,8 +208,8 @@ final class GitRelations {
             return refs;
         for (String line : r.out().split("\n")) {
             final String[] f = line.split("\0", -1);
-            if (f.length == 4 && patterns.contains(f[0]))
-                refs.put(f[0], new Ref(f[1], f[2], f[3]));
+            if (f.length == 6 && patterns.contains(f[0]))
+                refs.put(f[0], new Ref(f[1], f[2], f[3], f[4], f[5]));
         }
         return refs;
     }

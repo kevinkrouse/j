@@ -77,7 +77,7 @@ public class ParentCommandsTest {
         assertEquals("reflog", parent().source());
         assertTrue(repo().backend().setParent(repo(), "x", "a").succeeded());
         assertEquals("a", git.git("config", "branch.x.gh-merge-base").strip());
-        assertEquals(new Relation("a", "gh-merge-base", 0, 0), parent());
+        assertEquals(new Relation("a", "refs/heads/a", "gh-merge-base", 0, 0), parent());
         assertTrue(repo().backend().setParent(repo(), "x", null).succeeded());
         assertFalse(git.run("config", "branch.x.gh-merge-base").succeeded());
         assertEquals("reflog", parent().source());
@@ -127,6 +127,6 @@ public class ParentCommandsTest {
     public void aRemotesBranchRecordedBareIsReadAsTheRemotes() throws Exception {
         cloned();
         repo().backend().setParent(repo(), "x", "feature");
-        assertEquals(new Relation("origin/feature", "gh-merge-base", 0, 0), parent());
+        assertEquals(new Relation("origin/feature", "refs/remotes/origin/feature", "gh-merge-base", 0, 0), parent());
     }
 }

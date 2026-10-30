@@ -17,7 +17,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -34,6 +37,7 @@ import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.RepositoryWatcher;
 import org.armedbear.j.vcs.Snapshot;
+import org.armedbear.j.vcs.Snapshot.Relation;
 import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
@@ -102,7 +106,28 @@ public final class GitBackend implements VcsBackend {
             r.stdout(),
             dirs == null ? GitSnapshot.Operation.NONE : dirs.operation(),
             GitCli.versionAtLeast(STASH_HEADER));
-        return GitRelations.read(repository.root(), dirs, s);
+        return withRelations(repository, dirs, s);
+    }
+
+    // A branch's relations as last read, good while the refs are as they
+    // were then and HEAD, the branch and the upstream status gave the same.
+    private record Kept(long refs, String head, String branch, Relation status, GitSnapshot read) {}
+
+    private final Map<VcsRepository, Kept> kept = new ConcurrentHashMap<>();
+
+    // So a save's change marks run no more git than the status.
+    private GitSnapshot withRelations(VcsRepository repository, GitDirs dirs, GitSnapshot s) {
+        final long refs = repository.refsGeneration();
+        final Kept k = kept.get(repository);
+        if (k != null
+                && k.refs() == refs
+                && Objects.equals(k.head(), s.head())
+                && Objects.equals(k.branch(), s.branch())
+                && Objects.equals(k.status(), s.upstream()))
+            return s.with(k.read().upstream(), k.read().push(), k.read().parent());
+        final GitSnapshot read = GitRelations.read(repository.root(), dirs, s);
+        kept.put(repository, new Kept(refs, s.head(), s.branch(), s.upstream(), read));
+        return read;
     }
 
     @Override

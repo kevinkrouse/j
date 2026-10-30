@@ -51,6 +51,11 @@ public abstract class VersionControl {
         Repositories.invalidateAll();
     }
 
+    /** After a save: every snapshot stale, what is kept of HEAD, the refs and the config not. */
+    public static void saved() {
+        Repositories.filesChanged();
+    }
+
     private static final Set<VcsRepository> tracked = ConcurrentHashMap.newKeySet();
 
     /**

@@ -305,20 +305,22 @@ final class GitStatusReader {
         final List<Range> wanted = new ArrayList<>();
         final Relation up = git.upstream();
         if (up != null) {
-            wanted.add(new Range("unpulled", "Unpulled from " + up.name(), "HEAD.." + up.name(), up.behind()));
-            wanted.add(new Range("unpushed", "Unpushed to " + up.name(), up.name() + "..HEAD", up.ahead()));
+            wanted.add(new Range("unpulled", "Unpulled from " + up.name(), "HEAD.." + up.revision(), up.behind()));
+            wanted.add(new Range("unpushed", "Unpushed to " + up.name(), up.revision() + "..HEAD", up.ahead()));
         }
         final Relation push = git.push();
         if (push != null)
-            wanted.add(new Range("unpushed-push", "Unpushed to " + push.name(), push.name() + "..HEAD", push.ahead()));
+            wanted.add(
+                new Range("unpushed-push", "Unpushed to " + push.name(), push.revision() + "..HEAD", push.ahead()));
         final Relation parent = git.parent();
         if (parent != null) {
             wanted.add(
                 new Range("unmerged-parent",
                         "Unmerged from " + parent.name(),
-                        "HEAD.." + parent.name(),
+                        "HEAD.." + parent.revision(),
                         parent.behind()));
-            wanted.add(new Range("not-in-parent", "Not in " + parent.name(), parent.name() + "..HEAD", parent.ahead()));
+            wanted.add(
+                new Range("not-in-parent", "Not in " + parent.name(), parent.revision() + "..HEAD", parent.ahead()));
         }
         final List<Section> sections = new ArrayList<>();
         final Set<String> seen = new HashSet<>();

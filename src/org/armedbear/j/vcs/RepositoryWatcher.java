@@ -44,8 +44,9 @@ import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 
 /**
- * Watches repositories' metadata (git's index, HEAD and refs) for changes
- * made outside j. A change marks the repository stale; one with listeners is
+ * Watches repositories' metadata (git's index, HEAD, refs and config) for
+ * changes made outside j. A change marks the repository stale, and one to
+ * more than the index what is kept of its refs too; one with listeners is
  * read again 150 ms after the last change. The working tree is not watched.
  */
 public final class RepositoryWatcher {
@@ -103,9 +104,10 @@ public final class RepositoryWatcher {
                 reg = keys.get(key);
             }
             boolean changed = false;
+            boolean refs = false; // Something but the index: HEAD, a ref, the config.
             for (WatchEvent<?> event : key.pollEvents()) {
                 if (event.kind() == OVERFLOW) {
-                    changed = true;
+                    changed = refs = true;
                     continue;
                 }
                 Path name = (Path) event.context();
@@ -113,6 +115,8 @@ public final class RepositoryWatcher {
                 if (name.toString().endsWith(".lock"))
                     continue;
                 changed = true;
+                if (!name.toString().equals("index"))
+                    refs = true;
                 if (reg != null && reg.tree() && event.kind() == ENTRY_CREATE) {
                     Path child = ((Path) key.watchable()).resolve(name);
                     if (Files.isDirectory(child))
@@ -125,12 +129,15 @@ public final class RepositoryWatcher {
                 }
             }
             if (changed && reg != null)
-                changed(reg.repository());
+                changed(reg.repository(), refs);
         }
     }
 
-    private static synchronized void changed(VcsRepository repository) {
-        repository.invalidate();
+    private static synchronized void changed(VcsRepository repository, boolean refs) {
+        if (refs)
+            repository.invalidate();
+        else
+            repository.invalidateFiles();
         ScheduledFuture<?> previous = pending.get(repository);
         if (previous != null)
             previous.cancel(false);

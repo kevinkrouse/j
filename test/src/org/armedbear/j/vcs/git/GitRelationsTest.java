@@ -28,8 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.Snapshot.Relation;
+import org.armedbear.j.vcs.VcsRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -67,12 +69,39 @@ public class GitRelationsTest {
     }
 
     @Test
+    public void aSnapshotAfterASaveKeepsTheRelationsAndOneAfterARefChangeReadsThem() throws Exception {
+        cloned();
+        f.git("switch", "-q", "-c", "x", "origin/main");
+        final VcsRepository r = Repositories.forDirectory(f.root);
+        // The watcher's events for the setup's own commands, which mark
+        // the refs changed, have come by now.
+        Thread.sleep(300);
+        r.snapshotNow();
+        final int before = forEachRefs();
+        r.invalidateFiles();
+        assertEquals("origin/main", r.snapshotNow().parent().name());
+        assertEquals(before, forEachRefs(), "kept");
+        r.invalidate();
+        assertEquals("origin/main", r.snapshotNow().parent().name());
+        assertTrue(forEachRefs() > before, "read again");
+    }
+
+    // How many for-each-refs have run in the repository.
+    private int forEachRefs() {
+        int n = 0;
+        for (CommandLog.Entry e : CommandLog.entries())
+            if (e.directory().equals(f.root.toString()) && e.commandLine().contains("for-each-ref"))
+                ++n;
+        return n;
+    }
+
+    @Test
     public void ghMergeBaseComesFirst() throws IOException {
         cloned();
         f.git("switch", "-q", "-c", "x", "origin/main");
         f.git("branch", "-q", "other");
         f.git("config", "branch.x.gh-merge-base", "other");
-        assertEquals(new Relation("other", "gh-merge-base", 0, 0), parent());
+        assertEquals(new Relation("other", "refs/heads/other", "gh-merge-base", 0, 0), parent());
     }
 
     @Test
@@ -81,11 +110,11 @@ public class GitRelationsTest {
         f.git("switch", "-q", "-c", "x", "origin/main");
         f.commitAll("two");
         GitSnapshot s = snapshot();
-        assertEquals(new Relation("origin/main", "upstream", 1, 0), s.parent());
+        assertEquals(new Relation("origin/main", "refs/remotes/origin/main", "upstream", 1, 0), s.parent());
         assertNull(s.push(), "simple pushes nowhere to an upstream of another name");
         f.git("config", "push.default", "current");
         s = snapshot();
-        assertEquals(new Relation("origin/main", "upstream", 1, 0), s.parent());
+        assertEquals(new Relation("origin/main", "refs/remotes/origin/main", "upstream", 1, 0), s.parent());
         assertEquals("origin/x", s.push().name());
         assertTrue(s.push().gone(), "not pushed yet");
     }
@@ -97,9 +126,9 @@ public class GitRelationsTest {
         f.commitAll("two");
         f.git("push", "-q", "-u", "origin", "x");
         final GitSnapshot s = snapshot();
-        assertEquals(new Relation("origin/x", null, 0, 0), s.upstream());
-        assertEquals(new Relation("origin/x", null, 0, 0), s.push());
-        assertEquals(new Relation("main", "reflog", 1, 0), s.parent());
+        assertEquals(new Relation("origin/x", "refs/remotes/origin/x", null, 0, 0), s.upstream());
+        assertEquals(new Relation("origin/x", "refs/remotes/origin/x", null, 0, 0), s.push());
+        assertEquals(new Relation("main", "refs/heads/main", "reflog", 1, 0), s.parent());
     }
 
     @Test
@@ -118,7 +147,7 @@ public class GitRelationsTest {
         f.git("branch", "-q", "a");
         f.git("switch", "-q", "-c", "b");
         f.write(".git/machete", "main\n    a  PR #1\n        b\n    c\n");
-        assertEquals(new Relation("a", "machete", 0, 0), parent());
+        assertEquals(new Relation("a", "refs/heads/a", "machete", 0, 0), parent());
     }
 
     @Test
@@ -126,7 +155,7 @@ public class GitRelationsTest {
         cloned();
         f.git("switch", "-q", "-c", "x");
         f.git("config", "branch.x.vscode-merge-base", "origin/main");
-        assertEquals(new Relation("origin/main", "vscode", 0, 0), parent());
+        assertEquals(new Relation("origin/main", "refs/remotes/origin/main", "vscode", 0, 0), parent());
     }
 
     @Test
@@ -134,7 +163,7 @@ public class GitRelationsTest {
         cloned();
         f.git("branch", "-q", "a");
         f.git("switch", "-q", "-c", "b", "a");
-        assertEquals(new Relation("a", "reflog", 0, 0), parent());
+        assertEquals(new Relation("a", "refs/heads/a", "reflog", 0, 0), parent());
     }
 
     @Test
@@ -144,7 +173,7 @@ public class GitRelationsTest {
         f.git("switch", "-q", "-c", "b");
         f.git("switch", "-q", "main");
         f.git("switch", "-q", "b");
-        assertEquals(new Relation("a", "reflog", 0, 0), parent());
+        assertEquals(new Relation("a", "refs/heads/a", "reflog", 0, 0), parent());
     }
 
     @Test
@@ -154,7 +183,7 @@ public class GitRelationsTest {
         f.git("branch", "-q", "-D", "main");
         f.git("switch", "-q", "-c", "x");
         f.git("reflog", "expire", "--expire=all", "--all");
-        assertEquals(new Relation("origin/main", "default", 0, 0), parent());
+        assertEquals(new Relation("origin/main", "refs/remotes/origin/main", "default", 0, 0), parent());
     }
 
     @Test
@@ -164,9 +193,9 @@ public class GitRelationsTest {
         f.git("branch", "-q", "-m", "master");
         f.git("switch", "-q", "-c", "x");
         f.git("reflog", "expire", "--expire=all", "--all");
-        assertEquals(new Relation("master", "default", 0, 0), parent());
+        assertEquals(new Relation("master", "refs/heads/master", "default", 0, 0), parent());
         f.git("branch", "-q", "main", "master");
-        assertEquals(new Relation("main", "default", 0, 0), parent());
+        assertEquals(new Relation("main", "refs/heads/main", "default", 0, 0), parent());
     }
 
     @Test
@@ -189,7 +218,7 @@ public class GitRelationsTest {
         cloned();
         f.git("switch", "-q", "-c", "x", "main");
         f.git("config", "branch.x.gh-merge-base", "deleted");
-        assertEquals(new Relation("main", "reflog", 0, 0), parent());
+        assertEquals(new Relation("main", "refs/heads/main", "reflog", 0, 0), parent());
     }
 
     @Test
@@ -220,7 +249,7 @@ public class GitRelationsTest {
         final GitSnapshot s = snapshot();
         assertTrue(s.upstream().gone());
         assertTrue(s.push().gone());
-        assertEquals(new Relation("origin/main", "default", 0, 0), s.parent());
+        assertEquals(new Relation("origin/main", "refs/remotes/origin/main", "default", 0, 0), s.parent());
     }
 
     @Test

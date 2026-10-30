@@ -44,6 +44,8 @@ public final class VcsRepository {
     private volatile Snapshot snapshot;
     // Bumped by invalidate; a read that started before a bump is stale when done.
     private final AtomicLong generation = new AtomicLong(1);
+    // Bumped by invalidate, not invalidateFiles.
+    private final AtomicLong refsGeneration = new AtomicLong(1);
     private volatile long readGeneration;
 
     private boolean refreshing;
@@ -93,9 +95,23 @@ public final class VcsRepository {
         }
     }
 
-    /** Marks the snapshot stale, for a change made outside a read. */
+    /**
+     * Marks the snapshot stale, for a change made outside a read, and what
+     * a backend keeps of HEAD, the refs and the config.
+     */
     public void invalidate() {
+        refsGeneration.incrementAndGet();
         generation.incrementAndGet();
+    }
+
+    /** Marks the snapshot stale for a change to files alone, as a save: HEAD, the refs and the config are kept. */
+    public void invalidateFiles() {
+        generation.incrementAndGet();
+    }
+
+    /** The same while HEAD, the refs and the config are, so far as j knows: what a backend keeps of them is good. */
+    public long refsGeneration() {
+        return refsGeneration.get();
     }
 
     /** Reads the snapshot again in the background, then tells the listeners. */
