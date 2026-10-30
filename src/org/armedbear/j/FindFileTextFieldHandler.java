@@ -77,9 +77,12 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
     private List<FinderItem> candidates = List.of();
     private List<FinderItem> emptyQueryItems = List.of();
     private Set<String> namedPaths = Set.of(); // The open buffers' and recent files' paths.
-    private List<Object> namedKey; // Those buffers and recent files, in order; null until built.
+    private List<Object> builtNamed; // The namedKey() the candidates were built from; null until built.
     // By head, and whether those the project lists are left out; made again with the candidates.
-    private final Map<String, List<FinderItem>> listings = new HashMap<>();
+    private final Map<Listing, List<FinderItem>> listings = new HashMap<>();
+
+    private record Listing(String head, boolean self, boolean unlisted) {}
+
     private String namedHead;
     private List<FinderItem> namedItems;
 
@@ -121,7 +124,7 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
         started = true;
         // Focus comes back often: the candidates are made again only when
         // what they list changed; directories are read again.
-        if (!namedKey().equals(namedKey) || projectFiles != null && projectFiles.files() != snapshot)
+        if (!namedKey().equals(builtNamed) || projectFiles != null && projectFiles.files() != snapshot)
             rebuild();
         else {
             listings.clear();
@@ -242,6 +245,7 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
         };
     }
 
+    // Typed text matches nothing, so its query is empty too: it lists nothing.
     @Override
     protected List<FinderItem> emptyQueryItems() {
         return kind(typed()) == Kind.NAME ? emptyQueryItems : List.of();
@@ -270,8 +274,7 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
     // directory itself first if self; leaving out, if unlisted, the files
     // the candidates have: those the project lists, and those named.
     private List<FinderItem> listing(String head, boolean self, boolean unlisted) {
-        String key = (unlisted ? "u" : "a") + (self ? "s" : "-") + head;
-        return listings.computeIfAbsent(key, k -> list(head, self, unlisted));
+        return listings.computeIfAbsent(new Listing(head, self, unlisted), k -> list(head, self, unlisted));
     }
 
     private List<FinderItem> list(String head, boolean self, boolean unlisted) {
@@ -316,14 +319,21 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
         return Collections.binarySearch(snapshot, rel) >= 0;
     }
 
+    // The directory head names, relative to dir; null if none.
     private File resolve(String head) {
         if (head.isEmpty())
             return dir;
-        boolean own = isOwnPath(head);
+        File d = local(head);
+        return d != null && d.isDirectory() ? d : null;
+    }
+
+    // The local file path names, absolute, from home or relative to dir; null if it can't.
+    private File local(String path) {
+        boolean own = isOwnPath(path);
         if (!own && dir == null)
             return null;
-        File d = own ? File.getInstance(head) : File.getInstance(dir, head);
-        return d != null && d.isLocal() && d.isDirectory() ? d : null;
+        File f = own ? File.getInstance(path) : File.getInstance(dir, path);
+        return f != null && f.isLocal() ? f : null;
     }
 
     @Override
@@ -366,8 +376,9 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
     @Override
     public void enter() {
-        // A name of an existing file or directory, such as "..", opens as named,
-        // unless the user has picked another row.
+        // A name of an existing file or directory, such as ".." or a file
+        // beside the buffer's, opens as named, unless the user has picked
+        // another row: as the location bar always has.
         final Kind kind = kind(textField.getText());
         if (kind == Kind.TYPED || kind == Kind.NAME && !selectionMoved() && existing(textField.getText()) != null) {
             openTyped();
@@ -383,13 +394,8 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
     // The local file or directory text names, without a ":N" suffix; null if none.
     private File existing(String text) {
         String t = withoutLine(text).strip();
-        if (t.isEmpty())
-            return null;
-        boolean own = isOwnPath(t);
-        if (!own && dir == null)
-            return null;
-        File f = own ? File.getInstance(t) : File.getInstance(dir, t);
-        return f != null && f.isLocal() && f.exists() ? f : null;
+        File f = t.isEmpty() ? null : local(t);
+        return f != null && f.exists() ? f : null;
     }
 
     // As the location bar always has: paths, URLs, aliases, encodings, new files.
@@ -439,7 +445,7 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
     }
 
     private void rebuild() {
-        namedKey = namedKey();
+        builtNamed = namedKey();
         final String rootPath = root == null ? null : root.canonicalPath();
         Map<String, FileItem> items = new LinkedHashMap<>(); // By path.
         Set<String> listed = new HashSet<>(); // Their root-relative names, if under the root.

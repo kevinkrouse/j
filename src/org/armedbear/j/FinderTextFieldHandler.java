@@ -158,9 +158,6 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         return null;
     }
 
-    /** Called with whether the list now showing came from fallbackCandidates(). */
-    protected void listed(boolean fromFallback) {}
-
     /** The part of the field's text to match; a subclass may strip a suffix it handles itself. */
     protected String queryText(String text) {
         return text;
@@ -204,7 +201,7 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
                 // The fallback is built, on this thread, only when it's needed.
                 List<FinderItem> fallback = rows.isEmpty() && !query.isEmpty() ? fallbackCandidates() : null;
                 if (fallback == null) {
-                    showRanked(text, rows, false);
+                    showRanked(text, rows);
                     return;
                 }
                 ranker.execute(() -> {
@@ -213,20 +210,18 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
                     List<FinderItem.Row> fallbackRows = rank(fallback, query);
                     SwingUtilities.invokeLater(() -> {
                         if (gen == generation.get() && isActive())
-                            showRanked(text, fallbackRows, !fallbackRows.isEmpty());
+                            showRanked(text, fallbackRows);
                     });
                 });
             });
         });
     }
 
-    private void showRanked(String text, List<FinderItem.Row> rows, boolean fromFallback) {
-        if (hasFocus()) {
+    private void showRanked(String text, List<FinderItem.Row> rows) {
+        if (hasFocus())
             show(text, rows);
-            listed(fromFallback);
-        } else {
+        else
             popup.hide();
-        }
     }
 
     // Items matching in their primary text first, then the rest matching
@@ -299,13 +294,9 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             Query query = Query.parse(queryText(text));
             List<FinderItem.Row> rows = rank(query.isEmpty() ? emptyQueryItems() : candidates(), query);
             List<FinderItem> fallback = rows.isEmpty() && !query.isEmpty() ? fallbackCandidates() : null;
-            boolean fromFallback = false;
-            if (fallback != null) {
+            if (fallback != null)
                 rows = rank(fallback, query);
-                fromFallback = !rows.isEmpty();
-            }
             show(text, rows);
-            listed(fromFallback);
         }
         return popup.getSelected();
     }

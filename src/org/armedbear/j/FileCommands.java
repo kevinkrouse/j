@@ -348,7 +348,7 @@ public final class FileCommands {
         openFile(editor, "");
     }
 
-    /** The same, starting from query, which the location bar doesn't take. */
+    /** The same, starting from query; remotely, from the buffer's name, query dropped. */
     static void openFile(Editor editor, String query) {
         final File dir = editor.getBuffer() == null ? null : editor.getBuffer().getCompletionDirectory();
         if (dir == null || !dir.isRemote()) {

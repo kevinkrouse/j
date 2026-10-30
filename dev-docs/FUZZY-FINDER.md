@@ -89,7 +89,11 @@ head and name, so they rank beside the project's. A path starting with
 first; Tab fills in an entry and Enter goes into a directory. No match, a
 URL, an alias, an `-e` encoding, or Shift Enter opens what was typed with
 `OpenFileTextFieldHandler.enter()`: absolute paths, the source path, new
-files. In a remote buffer, Ctrl O gives the location bar's old completion.
+files. So does the name of a file or directory there is, as `..` or a file
+beside the buffer's, unless a row was moved to: Ctrl O's rule, which Ctrl P
+now has too. Ctrl O shares Ctrl P's history (`findFileInProject.input`),
+no longer the location bar's. In a remote buffer, Ctrl O gives the location
+bar's old completion.
 Ctrl Shift O's dialog keeps the old prefix completion, which also falls
 back to fuzzy matches of the directory's entries. Status bar: root name and
 count.
