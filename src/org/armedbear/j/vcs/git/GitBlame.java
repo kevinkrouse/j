@@ -85,7 +85,7 @@ final class GitBlame {
         parser.finish();
         // Not in HEAD, as a file not committed yet: none of it is.
         if (revision == null && !r.succeeded() && r.stderr().contains("no such path")) {
-            sink.lines(0, Integer.MAX_VALUE, BlameCommit.uncommitted(path), 0);
+            sink.noHistory();
             return new VcsResult(r.command(), 0, r.stdout(), "", r.millis());
         }
         return r;

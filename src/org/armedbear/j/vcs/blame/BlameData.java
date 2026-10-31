@@ -20,7 +20,7 @@
 
 package org.armedbear.j.vcs.blame;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,24 +30,29 @@ import org.armedbear.j.Line;
 
 /**
  * A buffer's blame, by its lines as they were when it was read: an edit
- * made since moves a line's commit with it, a line changed is not
- * committed, and a line added has none. Filled in as blame streams; safe to
- * read meanwhile.
+ * made since moves a line's commit with it, and a line changed or added is
+ * not committed. Filled in as blame streams; safe to read meanwhile.
  */
 public final class BlameData implements BlameCommit.Sink {
     private final List<Line> lines;
-    private final List<String> texts = new ArrayList<>();
+    // Each line's text as read, by identity: a line not among them was added since.
+    private final Map<Line, String> asRead = new IdentityHashMap<>();
+    // The texts the file had, which an undo or a reload puts back in new lines.
+    private final Set<String> texts = new HashSet<>();
     private final Map<Line, BlameCommit> commits = new IdentityHashMap<>();
-    private final Map<Line, String> blamed = new IdentityHashMap<>();
     private final Map<Line, Integer> sources = new IdentityHashMap<>();
     private volatile boolean done;
     private volatile String error;
+    // The file has no history: none of it is in HEAD, as one never committed.
+    private volatile boolean noHistory;
 
     /** For lines, the buffer's when it was read. */
     BlameData(List<Line> lines) {
         this.lines = List.copyOf(lines);
-        for (Line l : lines)
+        for (Line l : lines) {
+            asRead.put(l, l.getText());
             texts.add(l.getText());
+        }
     }
 
     @Override
@@ -55,18 +60,33 @@ public final class BlameData implements BlameCommit.Sink {
         final long end = Math.min((long) first + count, lines.size());
         for (int i = first; i < end; i++) {
             commits.put(lines.get(i), commit);
-            blamed.put(lines.get(i), texts.get(i));
             sources.put(lines.get(i), source + (i - first));
         }
     }
 
+    @Override
+    public void noHistory() {
+        noHistory = true;
+    }
+
+    /** Whether the file has no history to blame: none of it is in HEAD. */
+    public boolean hasNoHistory() {
+        return noHistory;
+    }
+
     /**
-     * The commit line was last changed in, NOT_COMMITTED if changed since;
-     * null if not known. A paint's worth of lines compares their text.
+     * The commit line was last changed in, NOT_COMMITTED if changed or
+     * added since; null if not read yet, or added since with text the file
+     * had, as an undo or a reload puts back. A paint's worth of lines
+     * compares their text.
      */
     public synchronized BlameCommit commit(Line line) {
         final BlameCommit c = commits.get(line);
-        return c == null || line.getText().equals(blamed.get(line)) ? c : NOT_COMMITTED;
+        if (c != null)
+            return line.getText().equals(asRead.get(line)) ? c : NOT_COMMITTED;
+        if (asRead.containsKey(line))
+            return null;
+        return texts.contains(line.getText()) ? null : NOT_COMMITTED;
     }
 
     /** A line's commit when it has changed since it was blamed. */

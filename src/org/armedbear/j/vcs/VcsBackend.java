@@ -183,9 +183,9 @@ public interface VcsBackend {
      * Blames path in the background: sink told of each run of lines as it
      * is read. With revision null, its text in the working tree or as
      * edited, given as contents on stdin; with one, the file as that
-     * revision has it, contents ignored. A line not as committed, and
-     * every line of a path with no history, has a commit whose
-     * isUncommitted() is true. A change only to the whitespace ignored, as
+     * revision has it, contents ignored. A line not as committed has a
+     * commit whose isUncommitted() is true; a path with no history is
+     * told by sink.noHistory(), with no lines. A change only to the whitespace ignored, as
      * near as the backend can, leaves the line its older commit's. Null if
      * the backend can't.
      */

@@ -53,5 +53,12 @@ public record BlameCommit(String hash, String author, String authorMail, long au
          * commit's version of the file, counted from 0.
          */
         void lines(int first, int count, BlameCommit commit, int source);
+
+        /**
+         * The file has no history to blame: none of it is in HEAD, as a
+         * file never committed. Said instead of lines, so a reader can
+         * tell it from a tracked file whose lines have all changed.
+         */
+        default void noHistory() {}
     }
 }

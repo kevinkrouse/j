@@ -70,6 +70,10 @@ public final class Property implements Comparable<Property> {
     public static final Property TEXT_FIELD_FONT_SIZE = createProperty("textFieldFontSize", 0);
     // The most characters a blame column's entry is wide, with an ellipsis past it.
     public static final Property VCS_BLAME_MAX_WIDTH = createProperty("vcsBlameMaxWidth", 30);
+    // The current line's blame after the caret rests; and the most lines a
+    // buffer may have and still be blamed for it, or a method's authors.
+    public static final Property VCS_LINE_BLAME = createProperty("vcsLineBlame", true);
+    public static final Property VCS_BLAME_MAX_LINES = createProperty("vcsBlameMaxLines", 10000);
     public static final Property VCS_LOG_COLLAPSE_RUNS = createProperty("vcsLogCollapseRuns", false);
     public static final Property VCS_LOG_TIME_STYLE = createProperty("vcsLogTimeStyle", "age");
     public static final Property VCS_LOG_REFS_ORDER = createProperty("vcsLogRefsOrder", "name");

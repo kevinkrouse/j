@@ -2412,6 +2412,15 @@ commits, so the next lines up. See
 <b>Default value:</b> %d %a
 </dl>
 
+<code><a name="vcsBlameMaxLines">vcsBlameMaxLines</a></code>
+<dl>
+<dd>
+The most lines a buffer may have and still show the caret line's blame.
+The blame column, turned on by hand, reads a file of any length.
+<p>
+<b>Default value:</b> 10000
+</dl>
+
 <code><a name="vcsBlameMaxWidth">vcsBlameMaxWidth</a></code>
 <dl>
 <dd>
@@ -2425,6 +2434,15 @@ an ellipsis.
 <dl>
 <dd>
 Whether git's buffers show a dimmed row of their main keys over the first line.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="vcsLineBlame">vcsLineBlame</a></code>
+<dl>
+<dd>
+Whether the caret's line shows, dimmed after its end, who last changed
+it once the caret has rested there. See <a href="git.html#blame">Blame</a>.
 <p>
 <b>Default value:</b> true
 </dl>

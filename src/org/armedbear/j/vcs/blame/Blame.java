@@ -265,14 +265,23 @@ public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
             shown = data;
         final byte[] contents = t.revision() == null ? text.toByteArray() : null;
         final Whitespace ignored = DiffWhitespace.ignored();
+        // The data's own sink, so a read with no history reaches it as
+        // plainly as a run of lines does.
+        final BlameCommit.Sink sink = new BlameCommit.Sink() {
+            @Override
+            public void lines(int first, int count, BlameCommit c, int source) {
+                data.lines(first, count, c, source);
+                tell();
+            }
+
+            @Override
+            public void noHistory() {
+                data.noHistory();
+            }
+        };
         Background.then(
             "vcs blame",
-            () -> t.repository()
-                    .backend()
-                    .blame(t.repository(), t.path(), t.revision(), contents, ignored, (first, count, c, source) -> {
-                        data.lines(first, count, c, source);
-                        tell();
-                    }),
+            () -> t.repository().backend().blame(t.repository(), t.path(), t.revision(), contents, ignored, sink),
             r -> done(data, r));
     }
 

@@ -1903,7 +1903,10 @@ plan with why it is left, before the next phase starts.
      insertion at a line's start keeps the old `Line` for the new text).
      "Read again" is the repository's `refsGeneration` and the file's
      modified time changing, seen on `vcsChecked`. A file with no history
-     is not committed throughout. `VcsRunner.run(command, stdout)` streams.
+     is not committed throughout: `BlameCommit.Sink.noHistory()` says so,
+     rather than a failure, since a tracked file whose every line is
+     edited looks the same by commit data alone.
+     `VcsRunner.run(command, stdout)` streams.
    - **d. The column.** `vcsBlame` (`<leader>gb` in vim) toggles it on the
      buffer. Each run of one commit shows `vcsBlameFormat` (`%d %a`, date
      and author; `%h` hash, `%s` summary) on its first line, and a thin
@@ -2041,6 +2044,36 @@ plan with why it is left, before the next phase starts.
      - *Not in f:* a key or command to toggle it (the preference is
        enough until asked; a command would be `vcsToggleLineBlame`, and
        vim only binds it), and (g)'s authors.
+     Built: `vcs/blame/LineBlame`, one for the app, on the event thread.
+     The hook is `Editor.registerViewWatcher(Consumer<Editor>)`,
+     registered in `BuiltinModes` beside the context menu's, so core
+     imports no blame. It is told at the end of `commandRan` (a click
+     that moves the caret dispatches), on a window switch, and when a
+     scroll moves the caret (`maybeScrollCaret`: the wheel, the scroll
+     bar and the eased scroll don't dispatch). One non-repeating `Timer`
+     of 750 ms, started only for a window on screen, so a test's editor
+     runs no blame; `viewChanged` compares the caret's `Line`, the editor
+     and the buffer's `modCount`, so resting where the text is costs one
+     check and typing on the shown line restarts the timer rather than
+     redrawing. A redraw as more streams in leaves the same text alone.
+     The text is three spaces from the line's end, in a color 0.35 of
+     the way from the background to the text, lighter than other dimmed
+     virtual text; the hash is its tool tip. No action: `Dispatcher`
+     runs one on a plain click, and a click past the line's end should
+     move the caret. The age is `TimeStyle.ago(time, now)`, the short form
+     spelled out (`now` as `just now`). It shows on a run's first line
+     with the column on too, since the column has no summary: not
+     hiding it there was decided after trying it. Listening moves with
+     the caret: `listen` swaps the `Blame` the one `Runnable` is added
+     to, and `viewChanged` drops it as soon as the caret is in another
+     buffer, so a buffer left with the column off stops being read. A
+     line added since the read with text the file didn't have is
+     `NOT_COMMITTED`, so it says `Not committed yet` before the save that
+     reads again; one with text the file had, as an undo or a reload puts
+     back in a new `Line`, stays unknown until then.
+     `data.hasNoHistory()` shows nothing, which is how an untracked file
+     stays blank where a tracked file with every line edited says
+     `Not committed yet`.
    - **g. Authors of a method.** `vcsCodeAuthors`, off by default (a
      line over every method is noisy): an
      `ABOVE` line (`vcs.blame.authors`) over each method and class the
@@ -2050,6 +2083,14 @@ plan with why it is left, before the next phase starts.
      click turns the column on with the method's lines' commits bright
      and the rest dimmed until the caret leaves it. Made again with the
      blame and when the tags are read again. Same blame, same limit.
+     Decided for the hand-off: most modes' `getFoldRange` is null, so a
+     method's lines are its tag's line through `Folds.getFoldBelow`'s
+     last, and a closing brace at the tag's indent after it; the tagger
+     runs in the background as the sidebar's does, 750 ms after an edit
+     (tags are cleared on a change and have no event); `user.name` is
+     `VcsBackend.userName`, cached until the config changes; started and
+     stopped by the view watcher, as `LineBlame` is; the highlight on a
+     click may be left out if it grows.
    - **h. Docs, keys, review.** `doc/git.html` gains Blame; commands and
      preferences documented; the status's and editor's `?` popups list
      `vcsBlame`; vim `<leader>gb`. Checked in the app under Xvfb: a file

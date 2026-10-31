@@ -745,6 +745,17 @@ On the change at the caret, or the lines of the selection, too:
 <p>
 The preview's bar and the popup a click on a mark opens have these too.
 
+<h2><a name="blame">Blame</a></h2>
+
+<p>
+Once the caret has rested on a line for a moment, dimmed text after its end
+says who last changed it: the author, how long ago, and the commit's
+summary; a line changed since it was committed says so instead. Its tool
+tip is the commit's hash. <a
+href="preferences.html#vcsLineBlame">vcsLineBlame</a> turns it off, and
+<a href="preferences.html#vcsBlameMaxLines">vcsBlameMaxLines</a> keeps it
+from reading a file too long to blame quickly.
+
 <h2><a name="bufferlist">The buffer list</a></h2>
 
 <p>

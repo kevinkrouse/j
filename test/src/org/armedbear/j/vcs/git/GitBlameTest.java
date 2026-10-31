@@ -155,14 +155,26 @@ public class GitBlameTest {
     }
 
     @Test
-    public void aFileNotCommittedIsNotCommittedYetThroughout() throws Exception {
+    public void aFileNotCommittedIsSaidToHaveNoHistory() throws Exception {
         git = GitFixture.init(tmp);
         git.write("f.txt", "a\n");
         commitAs("Ann", "first");
         git.write("new.txt", "x\ny\n");
-        final BlameCommit[] c = blame("new.txt", "x\ny\n");
-        assertTrue(c[0].isUncommitted());
-        assertTrue(c[1].isUncommitted());
+        // None of it is in HEAD: the blame says so, rather than a failure.
+        final VcsRepository r = Repositories.forDirectory(git.root);
+        final boolean[] noHistory = new boolean[1];
+        final VcsResult result = r.backend()
+                .blame(r, "new.txt", null, "x\ny\n".getBytes(StandardCharsets.UTF_8), ignored, new BlameCommit.Sink() {
+                    @Override
+                    public void lines(int first, int count, BlameCommit commit, int source) {}
+
+                    @Override
+                    public void noHistory() {
+                        noHistory[0] = true;
+                    }
+                });
+        assertTrue(result.succeeded(), result.stderr());
+        assertTrue(noHistory[0], "no history told");
     }
 
     @Test

@@ -79,4 +79,26 @@ public final class TimeStyle {
             return s / (86400 * 30) + "mo";
         return s / (86400 * 365) + "y";
     }
+
+    /** How long ago, in seconds, in words: "just now", "5 minutes ago", "1 hour ago", "2 years ago". */
+    public static String ago(long time, long now) {
+        final long s = Math.max(0, now - time);
+        if (s < 60)
+            return "just now";
+        if (s < 3600)
+            return words(s / 60, "minute");
+        if (s < 86400)
+            return words(s / 3600, "hour");
+        if (s < 86400 * 14)
+            return words(s / 86400, "day");
+        if (s < 86400 * 60)
+            return words(s / (86400 * 7), "week");
+        if (s < 86400 * 365)
+            return words(s / (86400 * 30), "month");
+        return words(s / (86400 * 365), "year");
+    }
+
+    private static String words(long n, String unit) {
+        return n + " " + (n == 1 ? unit : unit + "s") + " ago";
+    }
 }

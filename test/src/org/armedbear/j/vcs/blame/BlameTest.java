@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -25,6 +26,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
+import org.armedbear.j.TextLine;
 import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
@@ -101,6 +103,17 @@ public class BlameTest {
     }
 
     @Test
+    public void aLineAddedWithTextTheFileHadIsUnknownNotUncommitted() {
+        final Line a = new TextLine("a");
+        final Line b = new TextLine("b");
+        final BlameData d = new BlameData(List.of(a, b));
+        d.lines(0, 2, new BlameCommit("1234", "Ann", "", 0, 0, "first", "f.txt", null, null, false), 0);
+        // As an undo or a reload puts it back, in a new Line: known again at the next read.
+        assertNull(d.commit(new TextLine("b")), "text the file had");
+        assertSame(BlameData.NOT_COMMITTED, d.commit(new TextLine("new")), "text it didn't");
+    }
+
+    @Test
     public void readWhileWantedEachLineItsCommitAndAnEditMovesItWithItsLine() throws Exception {
         git = GitFixture.init(tmp);
         git.write("f.txt", "a\nb\n");
@@ -119,7 +132,7 @@ public class BlameTest {
             h.editor().insertString("\nnew");
         });
         assertEquals("Ann", at(0).author());
-        assertNull(at(1), "a line added has none");
+        assertSame(BlameData.NOT_COMMITTED, at(1), "a line added is not committed yet");
         assertSame(second, file.getLine(2));
         assertEquals("Bob", at(2).author(), "moved with its line");
         onEdt(() -> {

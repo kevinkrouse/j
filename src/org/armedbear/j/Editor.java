@@ -45,7 +45,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.Box;
@@ -859,6 +861,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             if (oldCurrentEditor != null)
                 oldCurrentEditor.repaintLocationBar();
             Extensions.hooks().bufferActivated(editor.getBuffer());
+            viewChanged(editor);
         }
     }
 
@@ -1234,6 +1237,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     void commandRan() {
         if (buffer != null)
             buffer.afterCommand(this);
+        viewChanged(this);
         final Editor current = currentEditor();
         if (current != null && current.getFrame() != null)
             current.getFrame().updateToolbar();
@@ -1243,6 +1247,19 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             caretPopupReplaced = false;
         else
             closeCaretPopup();
+    }
+
+    private static final List<Consumer<Editor>> viewWatchers = new CopyOnWriteArrayList<>();
+
+    /** Tells the view watchers editor's caret or buffer may have changed. */
+    static void viewChanged(Editor editor) {
+        for (Consumer<Editor> watcher : viewWatchers)
+            watcher.accept(editor);
+    }
+
+    /** watcher is told after every command, a switch of window, and a scroll that moves the caret. */
+    public static void registerViewWatcher(Consumer<Editor> watcher) {
+        viewWatchers.add(watcher);
     }
 
     /** Whether a key sequence is begun and waits for its next key. */
@@ -1524,6 +1541,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 updateDotLine();
                 moveCaretToDotCol();
                 goalColumn = 0;
+                viewChanged(this);
                 return;
             }
             Line bottomLine = display.getBottomLine();
@@ -1537,6 +1555,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 updateDotLine();
                 moveCaretToDotCol();
                 goalColumn = 0;
+                viewChanged(this);
             }
         }
     }

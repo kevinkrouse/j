@@ -50,6 +50,7 @@ import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.vcs.StatusMode;
 import org.armedbear.j.vcs.blame.BlameCommands;
+import org.armedbear.j.vcs.blame.LineBlame;
 import org.armedbear.j.vcs.log.VcsLogMode;
 import org.armedbear.j.vcs.status.CommitMessageMode;
 import org.armedbear.j.vcs.status.VcsStatusMode;
@@ -60,6 +61,7 @@ final class BuiltinModes implements ModeProvider {
         // Its own menu, for the vcs modes and any buffer in a repository.
         AbstractMode.registerMenu(new AbstractMode.AddedMenu("VCS", 'C', VcsStatusMode::populateVcsMenu));
         AbstractMode.registerContextMenuItems(BlameCommands::addContextMenuItems);
+        Editor.registerViewWatcher(LineBlame::viewChanged);
     }
 
     @Override
