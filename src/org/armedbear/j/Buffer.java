@@ -167,6 +167,11 @@ public class Buffer extends SystemBuffer {
         return false;
     }
 
+    /** The share of the frame's height the panel takes while showing this buffer. */
+    public double panelShare() {
+        return 0.35;
+    }
+
     public boolean isPaired() {
         return isSecondary() || getSecondary() != null;
     }

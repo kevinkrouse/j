@@ -869,6 +869,12 @@ public final class WebBuffer extends Buffer implements WebConstants {
         Editor.currentEditor().status("Loading complete");
     }
 
+    // Help is read at length.
+    @Override
+    public double panelShare() {
+        return 0.5;
+    }
+
     @Override
     public boolean isTransient() {
         if (super.isTransient())

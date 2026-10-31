@@ -1068,12 +1068,13 @@ public final class Frame extends JFrame
             if (!Editor.preferences().getBooleanProperty(Property.TRANSIENT_PANEL_LOCATION_BAR))
                 panel.removeLocationBar();
             panel.updateLocation();
-            editorPane.openPanel(panel);
+            editorPane.openPanel(panel, buffer.panelShare());
             validate();
         } else {
             if (panel.getBuffer() != buffer)
                 panel.activate(buffer);
             panel.updateLocation();
+            editorPane.setPanelWeight(buffer.panelShare());
         }
         if (switchWindows) {
             Editor.setCurrentEditor(panel);

@@ -36,8 +36,8 @@ import org.jdesktop.swingx.MultiSplitLayout.Node;
 import org.jdesktop.swingx.MultiSplitLayout.Split;
 
 public class EditorPane extends JXMultiSplitPane {
-    /** The transient panel's share of the height. */
-    private static final double PANEL_WEIGHT = 0.3;
+    /** The transient panel's share of the height, as its buffer asks. */
+    private double panelWeight = 0.35;
 
     /**
      * The transient panel's leaf, or null. When there is one the model is a
@@ -148,8 +148,9 @@ public class EditorPane extends JXMultiSplitPane {
      * Puts a window along the bottom, across all the others, for transient
      * buffers.
      */
-    public void openPanel(Editor editor) {
+    public void openPanel(Editor editor, double weight) {
         Debug.bugIf(panel != null);
+        panelWeight = weight;
         Debug.bugIf(editor.getLayoutLeaf() != null);
         final Leaf leaf = new LayoutLeaf();
         editor.setLayoutLeaf(leaf);
@@ -161,6 +162,15 @@ public class EditorPane extends JXMultiSplitPane {
         evenOut();
         add(editor, leaf.getName());
         assert checkEditorLeafCount() : "count mismatch after opening the panel";
+        revalidate();
+    }
+
+    /** Resizes the open panel to a buffer's share. */
+    public void setPanelWeight(double weight) {
+        if (panel == null || weight == panelWeight)
+            return;
+        panelWeight = weight;
+        evenOut();
         revalidate();
     }
 
@@ -423,7 +433,7 @@ public class EditorPane extends JXMultiSplitPane {
         final List<Node> children = split.getChildren();
         final int count = (children.size() + 1) / 2;
         final int total = (row ? bounds.width : bounds.height) - divider * (count - 1);
-        final int panelSize = split == panelSplit() ? (int) (total * PANEL_WEIGHT) : 0;
+        final int panelSize = split == panelSplit() ? (int) (total * panelWeight) : 0;
         // By the weights, the last taking what is left.
         int at = row ? bounds.x : bounds.y;
         int i = 0;
@@ -567,8 +577,8 @@ public class EditorPane extends JXMultiSplitPane {
         else if (model == panelSplit()) {
             // The windows' tree over the panel, which keeps its share.
             final Node windows = ((Split) model).getChildren().get(0);
-            windows.setWeight(1 - PANEL_WEIGHT);
-            panel.setWeight(PANEL_WEIGHT);
+            windows.setWeight(1 - panelWeight);
+            panel.setWeight(panelWeight);
             if (windows instanceof Split split)
                 adjustWeights(split.getChildren());
         } else if (model instanceof Split split)

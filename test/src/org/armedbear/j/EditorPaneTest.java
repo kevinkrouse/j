@@ -139,7 +139,7 @@ public class EditorPaneTest {
         final EditorPane pane = new EditorPane(a);
         pane.split(a, b, true);
         final Node windows = model(pane);
-        pane.openPanel(p);
+        pane.openPanel(p, 0.3);
         assertTrue(pane.isPanel(p));
         final Split column = (Split) model(pane);
         assertFalse(column.isRowLayout());
@@ -157,7 +157,7 @@ public class EditorPaneTest {
         final Editor b = new Editor();
         final Editor p = new Editor();
         final EditorPane pane = new EditorPane(a);
-        pane.openPanel(p);
+        pane.openPanel(p, 0.3);
         // The same direction as the panel's column, but not in it.
         pane.split(a, b, false);
         final List<Node> children = ((Split) model(pane)).getChildren();
@@ -179,7 +179,7 @@ public class EditorPaneTest {
         final Editor p = new Editor();
         final EditorPane pane = new EditorPane(a);
         pane.split(a, b, false);
-        pane.openPanel(p);
+        pane.openPanel(p, 0.3);
         pane.setSize(100, 1000);
         pane.getMultiSplitLayout().setFloatingDividers(false);
         pane.balance();
@@ -193,7 +193,7 @@ public class EditorPaneTest {
         final Editor a = new Editor();
         final Editor p = new Editor();
         final EditorPane pane = new EditorPane(a);
-        pane.openPanel(p);
+        pane.openPanel(p, 0.3);
         pane.unsplit(a);
         assertSame(p.getLayoutLeaf(), model(pane));
         assertFalse(pane.isPanel(p));
