@@ -637,6 +637,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             posBracket = null;
             posMatch = flashMatch != null ? new PairMatcher.Delimiter(flashMatch, 1) : null;
         }
+        updateFoldExtents();
     }
 
     private void repaintIfMoved(PairMatcher.Delimiter old, PairMatcher.Delimiter now) {
@@ -1452,23 +1453,24 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (layer == null)
             return y;
         if (layer.isTopLine(line))
-            y = paintRows(layer.on(line, VirtualText.Placement.TOP), g2d, y);
-        return paintRows(layer.on(line, VirtualText.Placement.ABOVE), g2d, y);
+            y = paintRows(line, ROWS_ABOVE, layer.on(line, VirtualText.Placement.TOP), g2d, y);
+        return paintRows(line, ROWS_ABOVE, layer.on(line, VirtualText.Placement.ABOVE), g2d, y);
     }
 
     private void paintRowsBelow(Line line, Graphics2D g2d, int y) {
         final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
         if (layer != null)
-            paintRows(layer.on(line, VirtualText.Placement.BELOW), g2d, y);
+            paintRows(line, ROWS_BELOW, layer.on(line, VirtualText.Placement.BELOW), g2d, y);
     }
 
-    // Returns the y after the rows.
-    private int paintRows(java.util.List<VirtualText> list, Graphics2D g2d, int y) {
+    // Returns the y after the rows; part is where they are, for the fold extents.
+    private int paintRows(Line line, int part, java.util.List<VirtualText> list, Graphics2D g2d, int y) {
         final Color background = editor.getFormatter().getBackgroundColor();
         for (VirtualText v : list) {
             for (java.util.List<VirtualText.Run> row : v.rows()) {
                 g2d.setColor(background);
                 g2d.fillRect(0, y, gutterWidth, charHeight);
+                drawFoldExtents(g2d, line, y, charHeight, part, false);
                 g2d.setColor(v.background() != null ? v.background() : background);
                 g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, charHeight);
                 if (showLineNumbers && editor.getDot() != null)
@@ -1756,12 +1758,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             g.setColor(editor.getFormatter().getColor(0));
             g.setFont(plainFont);
             g.drawChars(new char[] { annotation.getGutterChar() }, 0, 1, x, y + charAscent);
-        } else if (editor.getBuffer().getFolds().isFolded(line))
-            drawFoldMarker(g, x, y, true);
-        else if (swatch != null)
+        } else if (editor.getBuffer().getFolds().isFolded(line)) {
+            drawFoldMarker(g, x, y, true, gutterLine == line);
+            drawFoldExtents(g, line, y, line.getHeight(), TEXT_ROW, true);
+        } else if (swatch != null)
             drawSwatch(g, swatch, x, y);
-        else if (showsOpenFolds() && isFoldStart(line))
-            drawFoldMarker(g, x, y, false);
+        else if (showsOpenFold(line, foldMarkers) && isFoldStart(line)) {
+            drawFoldMarker(g, x, y, false, hoverFold != null && hoverFold[0] == line);
+            drawFoldExtents(g, line, y, line.getHeight(), TEXT_ROW, true);
+        } else
+            drawFoldExtents(g, line, y, line.getHeight(), TEXT_ROW, false);
         x += charWidth;
         if (showLineNumbers) {
             final String s = String.valueOf(line.lineNumber() + 1);
@@ -1783,31 +1789,185 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     // When open folds show their markers: "hover", "always" or "never".
     private String foldMarkers;
     private boolean mouseInGutter;
-    // Mode.isFoldStart's answers, until the buffer or its folds change.
+    // Where the mouse is in the gutter, or -1; and the line beside it, or
+    // null, found again as the view scrolls or the text changes.
+    private int gutterY = -1;
+    private Line gutterLine;
+    // The first and last lines of the open folds around the caret and
+    // gutterLine, their extents drawn; or null.
+    private Line[] caretFold;
+    private Line[] hoverFold;
+    // Mode.isFoldStart's answers and the folds around lines, until the
+    // buffer or its folds change.
     private final Map<Line, Boolean> foldStarts = new IdentityHashMap<>();
+    private final Map<Line, Line[]> foldsAround = new IdentityHashMap<>();
+    private static final Line[] NO_FOLD = new Line[0];
+
     private Buffer foldStartsBuffer;
     private int foldStartsModCount;
     private int foldStartsFoldVersion;
     private Folds foldStartsFolds;
 
-    private boolean showsOpenFolds() {
-        return "always".equals(foldMarkers) || mouseInGutter && !"never".equals(foldMarkers);
+    // A fold extent's part in a line's rows: those over it, its text's,
+    // those under it.
+    private static final int ROWS_ABOVE = 0;
+    private static final int TEXT_ROW = 1;
+    private static final int ROWS_BELOW = 2;
+
+    // Whether line's open fold shows its marker, markers the foldMarkers
+    // preference: the caret's fold's does but with "never".
+    private boolean showsOpenFold(Line line, String markers) {
+        if ("never".equals(markers))
+            return false;
+        return "always".equals(markers) || mouseInGutter || caretFold != null && caretFold[0] == line;
     }
 
-    /** Whether line heads a fold, open or closed, as its mode says. */
-    public boolean isFoldStart(Line line) {
+    private void forgetFoldsIfChanged() {
         final Buffer buffer = editor.getBuffer();
         if (buffer != foldStartsBuffer
                 || buffer.getModCount() != foldStartsModCount
                 || buffer.getFoldVersion() != foldStartsFoldVersion
-                || editor.getBuffer().getFolds() != foldStartsFolds) {
+                || buffer.getFolds() != foldStartsFolds) {
             foldStarts.clear();
+            foldsAround.clear();
             foldStartsBuffer = buffer;
             foldStartsModCount = buffer.getModCount();
             foldStartsFoldVersion = buffer.getFoldVersion();
-            foldStartsFolds = editor.getBuffer().getFolds();
+            foldStartsFolds = buffer.getFolds();
         }
-        return foldStarts.computeIfAbsent(line, l -> editor.getBuffer().getFolds().isFoldStart(buffer, l));
+    }
+
+    /** Whether line heads a fold, open or closed, as its mode says. */
+    public boolean isFoldStart(Line line) {
+        forgetFoldsIfChanged();
+        final Buffer buffer = editor.getBuffer();
+        return foldStarts.computeIfAbsent(line, l -> buffer.getFolds().isFoldStart(buffer, l));
+    }
+
+    /**
+     * The first and last lines of the innermost open fold around line, a
+     * closing brace after it included; null if none, or line heads a closed
+     * one.
+     */
+    Line[] foldAround(Line line) {
+        forgetFoldsIfChanged();
+        final Line[] known = foldsAround.get(line);
+        if (known != null)
+            return known == NO_FOLD ? null : known;
+        final Buffer buffer = editor.getBuffer();
+        final Folds folds = buffer.getFolds();
+        Line[] found = null;
+        for (Line start = line; start != null; start = start.previous()) {
+            if (start.isHidden() || !isFoldStart(start))
+                continue;
+            if (folds.isFolded(start)) {
+                if (start == line)
+                    break;
+                continue;
+            }
+            final Line[] below = folds.getFoldBelow(buffer, start);
+            if (below == null || below.length != 2)
+                continue;
+            final Line last = FoldCommands.throughClosing(buffer, start, below[1]);
+            if (last.lineNumber() >= line.lineNumber()) {
+                found = new Line[] { start, last };
+                break;
+            }
+        }
+        foldsAround.put(line, found != null ? found : NO_FOLD);
+        return found;
+    }
+
+    // The hovered line and the caret's and its folds, again after a move,
+    // a scroll, an edit or a fold; the gutter repainted when one changed.
+    private void updateFoldExtents() {
+        final Buffer buffer = editor.getBuffer();
+        final boolean shown = !"never".equals(foldMarkers);
+        forgetFoldsIfChanged();
+        final Line hovered = gutterY >= 0 ? lineBesideY(gutterY) : null;
+        final Line[] caret = shown && editor.getDot() != null ? foldAround(editor.getDotLine()) : null;
+        final Line[] hover = shown && hovered != null ? foldAround(hovered) : null;
+        // A closed fold's marker brightens beside the mouse, its fold null.
+        final Folds folds = buffer.getFolds();
+        final boolean closedChanged = hovered != gutterLine
+                && (hovered != null && folds.isFolded(hovered) || gutterLine != null && folds.isFolded(gutterLine));
+        gutterLine = hovered;
+        if (closedChanged || !sameFold(caret, caretFold) || !sameFold(hover, hoverFold)) {
+            caretFold = caret;
+            hoverFold = hover;
+            repaint(0, 0, getGutterWidth(buffer), getHeight());
+        }
+    }
+
+    // The line whose row is at y, or null below the last.
+    private Line lineBesideY(int y) {
+        int top = -pixelsAboveTopLine;
+        for (Line line = topLine; line != null && top <= y; line = line.nextVisible()) {
+            top += rowHeight(line);
+            if (y < top)
+                return line;
+        }
+        return null;
+    }
+
+    private static boolean sameFold(Line[] a, Line[] b) {
+        return a == null ? b == null : b != null && a[0] == b[0] && a[1] == b[1];
+    }
+
+    // Draws the caret's and the hovered fold's extents in one of line's
+    // rows, as a thin line down the fold column from the marker to the
+    // fold's last line; the hovered one's brighter. marked: the marker of
+    // a fold line heads is drawn in the row, so no other fold's passes it.
+    private void drawFoldExtents(Graphics g, Line line, int top, int height, int row, boolean marked) {
+        if (caretFold != null && !sameFold(caretFold, hoverFold))
+            drawFoldExtent(g, caretFold, line, top, height, row, marked, lineNumberColor);
+        if (hoverFold != null)
+            drawFoldExtent(g, hoverFold, line, top, height, row, marked, hoverFoldColor());
+    }
+
+    private void drawFoldExtent(
+            Graphics g,
+            Line[] fold,
+            Line line,
+            int top,
+            int height,
+            int row,
+            boolean marked,
+            Color color) {
+        final int n = line.lineNumber();
+        final int first = fold[0].lineNumber();
+        final int last = fold[1].lineNumber();
+        if (n < first || n > last || row == ROWS_ABOVE && n == first || row == ROWS_BELOW && n == last)
+            return;
+        if (row == TEXT_ROW && marked && n != first && n != last)
+            return;
+        final int x = (showChangeMarks ? changeMarkWidth : 0) + charWidth / 2;
+        int y1 = top;
+        int y2 = top + height;
+        if (row == TEXT_ROW && n == first)
+            y1 = top + (charAscent + charDescent + foldMarkerSize()) / 2;
+        g.setColor(color);
+        if (row == TEXT_ROW && n == last && marked) {
+            // Down to the marker the last line has of its own.
+            g.drawLine(x, y1, x, top + (charAscent + charDescent - foldMarkerSize()) / 2);
+        } else if (row == TEXT_ROW && n == last) {
+            // Down to the middle of the last line, then a tick toward the text.
+            y2 = top + (charAscent + charDescent) / 2;
+            g.drawLine(x, y1, x, y2);
+            g.drawLine(x, y2, x + charWidth / 2, y2);
+        } else
+            g.drawLine(x, y1, x, y2 - 1);
+    }
+
+    // The fold markers' and extent's color where the mouse is: between the
+    // line numbers' and the text's.
+    private Color hoverFoldColor() {
+        return DefaultTheme.blend(lineNumberColor, editor.getFormatter().getColor(0), 0.4);
+    }
+
+    // The chevron's height and width.
+    private int foldMarkerSize() {
+        return Math.min(charHeight, 2 * charWidth);
     }
 
     /** Whether a change mark is drawn beside line at x, to click for its change. */
@@ -1834,26 +1994,33 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             return true;
         // As painted, so what is clickable is what is drawn.
         final String shown = foldMarkers != null ? foldMarkers : buffer.getStringProperty(Property.FOLD_MARKERS);
-        return isFoldStart(line) && ("always".equals(shown) || mouseInGutter && !"never".equals(shown));
+        return showsOpenFold(line, shown) && isFoldStart(line);
     }
 
-    /** The mouse came into or left the gutter, which shows open folds' markers while it is there. */
-    public void setMouseInGutter(boolean b) {
-        if (b == mouseInGutter)
-            return;
-        mouseInGutter = b;
-        if ("hover".equals(editor.getBuffer().getStringProperty(Property.FOLD_MARKERS)))
-            repaint(0, 0, getGutterWidth(editor.getBuffer()), getHeight());
+    /**
+     * The mouse came into or left the gutter, which shows open folds'
+     * markers while it is there, or moved in it to y; the fold of the line
+     * beside it shows its marker and extent brighter.
+     */
+    public void setMouseInGutter(boolean b, int y) {
+        gutterY = b ? y : -1;
+        if (b != mouseInGutter) {
+            mouseInGutter = b;
+            if ("hover".equals(editor.getBuffer().getStringProperty(Property.FOLD_MARKERS)))
+                repaint(0, 0, getGutterWidth(editor.getBuffer()), getHeight());
+        }
+        updateFoldExtents();
     }
 
     // The tree's chevron, from expanded.svg or collapsed.svg, in the line
-    // numbers' color: pointing right at a closed fold, down at an open one.
-    private void drawFoldMarker(Graphics g, int x, int y, boolean closed) {
+    // numbers' color, or brighter where the mouse is: pointing right at a
+    // closed fold, down at an open one.
+    private void drawFoldMarker(Graphics g, int x, int y, boolean closed, boolean hovered) {
         final Graphics2D g2d = (Graphics2D) g.create();
         try {
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-            final float size = Math.min(charHeight, 2 * charWidth);
+            final float size = foldMarkerSize();
             final float k = size / 16f;
             g2d.translate(x + charWidth / 2f - 8 * k, y + (charAscent + charDescent - size) / 2f);
             g2d.scale(k, k);
@@ -1867,7 +2034,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 p.lineTo(8f, 10f);
                 p.lineTo(11.5f, 6.5f);
             }
-            g2d.setColor(lineNumberColor);
+            g2d.setColor(hovered ? hoverFoldColor() : lineNumberColor);
             g2d.setStroke(
                 new java.awt.BasicStroke(closed ? 1.6f : 1.2f,
                         java.awt.BasicStroke.CAP_ROUND,

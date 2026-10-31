@@ -452,6 +452,12 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return buffer instanceof DiffPane ? s.kind() == Kind.HUNK : s.isExpandable();
     }
 
+    // Not a range of lines: the gutter draws no extent.
+    @Override
+    public Line[] getFoldBelow(Buffer buffer, Line line) {
+        return null;
+    }
+
     @Override
     public boolean isFolded(Line line) {
         return line instanceof StatusLine s && s.isExpandable() && !s.isOpen();

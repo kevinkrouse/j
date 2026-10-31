@@ -99,12 +99,12 @@ public class FoldMarkerTest {
         assertTrue(h.editor().getMode().isFolded(line(3)));
         assertTrue(h.editor().getDisplay().isFoldMarkerAt(foldColumn(), line(3)), "a closed fold's, always");
         assertFalse(h.editor().getDisplay().isFoldMarkerAt(foldColumn(), line(0)), "an open one's, on hover");
-        h.editor().getDisplay().setMouseInGutter(true);
+        h.editor().getDisplay().setMouseInGutter(true, -1);
         assertTrue(h.editor().getDisplay().isFoldMarkerAt(foldColumn(), line(0)));
         assertFalse(
             h.editor().getDisplay().isFoldMarkerAt(foldColumn() + Display.getCharWidth(), line(0)),
             "beside the fold column: a line number, say");
-        h.editor().getDisplay().setMouseInGutter(false);
+        h.editor().getDisplay().setMouseInGutter(false, -1);
         h.editor().getMode().toggleFoldAt(h.editor(), line(0));
         assertEquals("class A {|}", visible(), "the blank line inside goes too");
         h.editor().getMode().toggleFoldAt(h.editor(), line(0));
@@ -140,20 +140,103 @@ public class FoldMarkerTest {
         final Display display = h.editor().getDisplay();
         final BufferedImage plain = paint();
         assertEquals(column(plain, 4), column(plain, 3), "hover: none until the mouse is in the gutter");
-        display.setMouseInGutter(true);
+        display.setMouseInGutter(true, -1);
         final BufferedImage hover = paint();
         assertNotEquals(column(hover, 4), column(hover, 3), "the mouse is in the gutter");
-        display.setMouseInGutter(false);
+        display.setMouseInGutter(false, -1);
         h.buffer().setProperty(Property.FOLD_MARKERS, "always");
         final BufferedImage always = paint();
         assertNotEquals(column(always, 4), column(always, 3), "always");
         h.buffer().setProperty(Property.FOLD_MARKERS, "never");
-        display.setMouseInGutter(true);
+        display.setMouseInGutter(true, -1);
         final BufferedImage never = paint();
         assertEquals(column(never, 4), column(never, 3), "never");
         h.editor().getMode().toggleFoldAt(h.editor(), line(3));
         final BufferedImage closed = paint();
         assertNotEquals(column(closed, 4), column(closed, 3), "a closed fold's marker shows anyway");
+    }
+
+    @Test
+    public void theFoldAroundALineIsTheInnermostOpenOneThroughItsClosingBrace() {
+        on(JAVA, JavaMode.getMode());
+        final Display display = h.editor().getDisplay();
+        assertArrayEquals(new Line[] { line(3), line(5) }, display.foldAround(line(4)), "the method, its brace");
+        assertArrayEquals(new Line[] { line(3), line(5) }, display.foldAround(line(3)), "its first line");
+        assertArrayEquals(new Line[] { line(0), line(6) }, display.foldAround(line(1)), "the class");
+        assertArrayEquals(new Line[] { line(0), line(6) }, display.foldAround(line(6)), "the class's brace");
+        h.editor().getMode().toggleFoldAt(h.editor(), line(3));
+        assertNull(display.foldAround(line(3)), "a closed fold's first line");
+        assertArrayEquals(new Line[] { line(0), line(6) }, display.foldAround(line(5)), "its brace, the class's");
+        h.editor().getMode().toggleFoldAt(h.editor(), line(3));
+        assertArrayEquals(new Line[] { line(3), line(5) }, display.foldAround(line(5)), "opened: the method's again");
+    }
+
+    @Test
+    public void aClosedFoldsMarkerBrightensBesideTheMouse() {
+        on(JAVA, JavaMode.getMode());
+        h.editor().setDot(line(6), 0);
+        h.editor().getMode().toggleFoldAt(h.editor(), line(3));
+        final Display display = h.editor().getDisplay();
+        display.setMouseInGutter(true, rowY(1));
+        final BufferedImage away = paint();
+        display.setMouseInGutter(true, rowY(3));
+        final BufferedImage beside = paint();
+        assertNotEquals(column(away, 3), column(beside, 3));
+    }
+
+    @Test
+    public void belowTheLastLineTheMouseIsBesideNoFold() {
+        on(JAVA, JavaMode.getMode());
+        h.editor().setDot(line(6), 0);
+        final Display display = h.editor().getDisplay();
+        display.setMouseInGutter(true, -1);
+        final BufferedImage none = paint();
+        display.setMouseInGutter(true, rowY(9));
+        final BufferedImage below = paint();
+        assertEquals(column(none, 1), column(below, 1), "not the last line's, the class's, brighter");
+    }
+
+    @Test
+    public void anExtentEndingOnAnotherFoldsMarkerReachesIt() {
+        on(
+            "class A {\n    void f() {\n        if (a) {\n            b();\n        } else {\n            c();\n        }\n    }\n}\n",
+            JavaMode.getMode());
+        h.buffer().setProperty(Property.FOLD_MARKERS, "always");
+        h.editor().setDot(line(7), 0);
+        final BufferedImage inMethod = paint();
+        h.editor().setDot(line(3), 0);
+        final BufferedImage inIf = paint();
+        assertNotEquals(column(inMethod, 4), column(inIf, 4), "the if's extent down to the else's marker");
+    }
+
+    // The top of the n'th row shown, a pixel in.
+    private static int rowY(int n) {
+        return n * Display.getCharHeight() + 1;
+    }
+
+    @Test
+    public void theCaretsFoldShowsItsMarkerAndExtentTheHoveredOnesBrighter() {
+        on(JAVA, JavaMode.getMode());
+        final Display display = h.editor().getDisplay();
+        // The caret on the method's brace, off the rows compared.
+        h.editor().setDot(line(5), 0);
+        final BufferedImage inMethod = paint();
+        assertNotEquals(column(inMethod, 1), column(inMethod, 3), "the method's marker");
+        assertNotEquals(column(inMethod, 1), column(inMethod, 4), "its extent");
+        assertEquals(column(inMethod, 1), column(inMethod, 6), "not the class's");
+        h.editor().setDot(line(1), 0);
+        final BufferedImage inClass = paint();
+        assertEquals(column(inClass, 3), column(inClass, 4), "the class's extent past the method's line, no marker");
+        assertNotEquals(column(inMethod, 3), column(inClass, 3));
+        h.editor().setDot(line(5), 0);
+        display.setMouseInGutter(true, rowY(4));
+        final BufferedImage hovered = paint();
+        assertNotEquals(column(inMethod, 4), column(hovered, 4), "brighter under the mouse");
+        display.setMouseInGutter(false, -1);
+        h.buffer().setProperty(Property.FOLD_MARKERS, "never");
+        final BufferedImage never = paint();
+        assertEquals(column(never, 1), column(never, 3), "never: no marker");
+        assertEquals(column(never, 1), column(never, 4), "nor extent");
     }
 
     // The fold column's pixels on the n'th row shown, as a string.

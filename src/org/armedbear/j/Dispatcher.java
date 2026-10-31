@@ -460,7 +460,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     @Override
     public void mouseExited(MouseEvent e) {
         lastMousePoint = null;
-        display.setMouseInGutter(false);
+        display.setMouseInGutter(false, -1);
         forgetLink();
         hideLink();
     }
@@ -641,7 +641,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     @Override
     public void mouseMoved(MouseEvent e) {
         lastMousePoint = e.getPoint();
-        display.setMouseInGutter(e.getX() < Display.getGutterWidth(editor.getBuffer()));
+        display.setMouseInGutter(e.getX() < Display.getGutterWidth(editor.getBuffer()), e.getY());
         if (e.isControlDown()) {
             if (showLinkAt(lastMousePoint))
                 return;

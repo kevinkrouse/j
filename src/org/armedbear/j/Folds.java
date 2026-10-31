@@ -51,7 +51,15 @@ public interface Folds {
         return FoldCommands.isIndentedBelow(buffer, line);
     }
 
-    /** The first and last lines that folding what line heads hides, or null. */
+    /**
+     * The first and last lines that folding what line heads hides, or null:
+     * nothing to fold there, or folds that aren't a range of lines, as a
+     * status's or log's, whose gutter then draws no extent.
+     *
+     * <p>Null serves both now. A method of its own, saying whether a mode's
+     * folds are ranges of lines the gutter can draw, would keep this one
+     * for what a fold hides, should a caller need a status's or a log's.
+     */
     public default Line[] getFoldBelow(Buffer buffer, Line line) {
         return FoldCommands.indentedBelow(buffer, line);
     }

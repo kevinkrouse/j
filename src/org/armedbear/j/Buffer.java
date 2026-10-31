@@ -789,7 +789,10 @@ public class Buffer extends SystemBuffer {
     // Bumped when the mode's folds change with no edit, as a log's runs do as its pages are read.
     private volatile int foldVersion;
 
-    /** The mode's folds changed, though the text didn't: the gutter's markers are asked for again. */
+    /**
+     * The mode's folds changed, or lines were hidden or shown, though the
+     * text didn't: the gutter's markers are asked for again.
+     */
     public final void foldsChanged() {
         ++foldVersion;
     }
@@ -2617,6 +2620,8 @@ public class Buffer extends SystemBuffer {
 
     @Override
     public final void renumber() {
+        // Called after lines are hidden or shown, as by a fold or its undo.
+        foldsChanged();
         folded = false;
         lineCount = 0;
         visibleLineCount = 0;

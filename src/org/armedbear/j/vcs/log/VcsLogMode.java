@@ -367,6 +367,12 @@ public final class VcsLogMode extends AbstractMode implements Mode {
         return buffer instanceof LogDiffBuffer && line instanceof StatusLine s && s.kind() == Kind.HUNK;
     }
 
+    // Not a range of lines: the gutter draws no extent.
+    @Override
+    public Line[] getFoldBelow(Buffer buffer, Line line) {
+        return null;
+    }
+
     @Override
     public boolean isFolded(Line line) {
         if (line instanceof LogLine l)

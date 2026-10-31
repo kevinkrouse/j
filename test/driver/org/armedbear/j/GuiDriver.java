@@ -17,6 +17,7 @@ import java.awt.KeyboardFocusManager;
 import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +47,7 @@ import javax.swing.SwingUtilities;
  * type TEXT                              TEXT typed, a key a character
  * exec COMMAND [ARGS]                    a command run, as Alt X runs it
  * execlater COMMAND [ARGS]               the same, not waited for: one that opens a dialog
+ * hover X Y                              the mouse moved to X Y in the window's text area
  * wait MS                                a pause
  * timeout MS                             how long expect waits; 5000 to begin with
  * shot NAME                              the frame pictured, NAME.png
@@ -139,6 +141,7 @@ public final class GuiDriver {
             case "wait" -> Thread.sleep(Long.parseLong(rest));
             case "timeout" -> timeout = Long.parseLong(rest);
             case "key" -> key(rest);
+            case "hover" -> hover(rest);
             case "type" -> {
                 for (char c : rest.toCharArray())
                     type(c);
@@ -248,6 +251,18 @@ public final class GuiDriver {
         final Editor ed = Editor.currentEditor();
         final Component f = ed.getFrame().getFocusedComponent();
         return f != null ? f : ed.getDisplay();
+    }
+
+    // The mouse moved to x y, in the current window's text area.
+    private static void hover(String spec) throws Exception {
+        final String[] xy = spec.split("\\s+");
+        final int x = Integer.parseInt(xy[0]);
+        final int y = Integer.parseInt(xy[1]);
+        onEdt(() -> {
+            final Component display = Editor.currentEditor().getDisplay();
+            display.dispatchEvent(
+                new MouseEvent(display, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, x, y, 0, false));
+        });
     }
 
     private static void key(String spec) throws Exception {

@@ -271,6 +271,12 @@ final class CompareFolds {
             return at(line, old, false) != null;
         }
 
+        // Not a range of lines: the gutter draws no extent.
+        @Override
+        public Line[] getFoldBelow(Buffer buffer, Line line) {
+            return null;
+        }
+
         @Override
         public boolean isFolded(Line line) {
             final Fold f = at(line, old, false);

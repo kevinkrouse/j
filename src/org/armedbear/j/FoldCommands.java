@@ -69,6 +69,18 @@ public final class FoldCommands {
             hideLines(editor, range[0], range[1].next());
     }
 
+    /**
+     * The line after last when it closes what line heads, a closing
+     * bracket at line's indent, as a method's brace; else last.
+     */
+    public static Line throughClosing(Buffer buffer, Line line, Line last) {
+        final Line next = last.next();
+        if (next == null || buffer.getIndentation(next) != buffer.getIndentation(line))
+            return last;
+        final String text = next.getText().strip();
+        return !text.isEmpty() && "})]".indexOf(text.charAt(0)) >= 0 ? next : last;
+    }
+
     /** Whether the next line that is not blank is indented more than line. */
     public static boolean isIndentedBelow(Buffer buffer, Line line) {
         if (line.isBlank())
