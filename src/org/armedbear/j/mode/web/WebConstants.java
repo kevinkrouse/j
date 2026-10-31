@@ -20,15 +20,15 @@
 
 package org.armedbear.j.mode.web;
 
-public interface WebConstants
-{
+public interface WebConstants {
     // Bit flags.
-    int FORMAT_TEXT         = 0x00;
-    int FORMAT_LINK         = 0x01;
-    int FORMAT_WHITESPACE   = 0x02;
-    int FORMAT_DISABLED     = 0x04;
-    int FORMAT_HEADER_NAME  = 0x08;
+    int FORMAT_TEXT = 0x00;
+    int FORMAT_LINK = 0x01;
+    int FORMAT_WHITESPACE = 0x02;
+    int FORMAT_DISABLED = 0x04;
+    int FORMAT_HEADER_NAME = 0x08;
     int FORMAT_HEADER_VALUE = 0x10;
-    int FORMAT_ITALIC       = 0x40;
-    int FORMAT_BOLD         = 0x80;
+    int FORMAT_CODE = 0x20;
+    int FORMAT_ITALIC = 0x40;
+    int FORMAT_BOLD = 0x80;
 }

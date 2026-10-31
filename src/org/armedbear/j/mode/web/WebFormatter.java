@@ -69,12 +69,39 @@ public final class WebFormatter extends Formatter implements WebConstants {
 
     @Override
     public final Color getColor(int format) {
-        return super.getColor(format & ~(FORMAT_BOLD | FORMAT_ITALIC));
+        return super.getColor(base(format));
+    }
+
+    // format's own entry in the table: code's color, but a link in code a link's.
+    private static int base(int format) {
+        final int f = format & ~(FORMAT_BOLD | FORMAT_ITALIC);
+        if ((f & FORMAT_CODE) == 0)
+            return f;
+        return (f & FORMAT_LINK) != 0 ? f & ~FORMAT_CODE : FORMAT_CODE;
+    }
+
+    // The shade behind code, as Markdown's inline code.
+    private Color codeBackground;
+
+    /** Code, as &lt;code&gt;, shaded. */
+    @Override
+    public Color getRunBackground(int format) {
+        if ((format & FORMAT_CODE) == 0)
+            return null;
+        if (codeBackground == null)
+            codeBackground = getShade("codeBackground");
+        return codeBackground;
+    }
+
+    @Override
+    public void reset() {
+        super.reset();
+        codeBackground = null;
     }
 
     @Override
     public int getStyle(int format) {
-        int style = super.getStyle(format & ~(FORMAT_BOLD | FORMAT_ITALIC));
+        int style = super.getStyle(base(format));
         if ((format & FORMAT_BOLD) != 0)
             style |= Font.BOLD;
         else if ((format & FORMAT_ITALIC) != 0)
@@ -100,6 +127,7 @@ public final class WebFormatter extends Formatter implements WebConstants {
             formatTable.addEntryFromPrefs(FORMAT_DISABLED, "disabled");
             formatTable.addEntryFromPrefs(FORMAT_HEADER_NAME, "headerName", "keyword");
             formatTable.addEntryFromPrefs(FORMAT_HEADER_VALUE, "headerValue", "operator");
+            formatTable.addEntryFromPrefs(FORMAT_CODE, "code");
         }
         return formatTable;
     }

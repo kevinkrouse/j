@@ -40,6 +40,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.ImageLink;
 import org.armedbear.j.Line;
+import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.LineSequence;
 import org.armedbear.j.Link;
@@ -162,6 +163,8 @@ public final class WebLoader implements WebConstants {
     private boolean center;
     private boolean preformatted;
     private boolean whitespace;
+    // How deep in <code>, <tt>, <kbd> and <samp>.
+    private int code;
     private Link link;
 
     private final boolean centered() {
@@ -298,6 +301,16 @@ public final class WebLoader implements WebConstants {
         if (tagName == "/em") {
             flushSegment();
             emphasis = false;
+            return;
+        }
+        if (tagName == "code" || tagName == "tt" || tagName == "kbd" || tagName == "samp") {
+            flushSegment();
+            code++;
+            return;
+        }
+        if (tagName == "/code" || tagName == "/tt" || tagName == "/kbd" || tagName == "/samp") {
+            flushSegment();
+            code = Math.max(0, code - 1);
             return;
         }
         if (tagName == "q" || tagName == "/q") {
@@ -1400,6 +1413,8 @@ public final class WebLoader implements WebConstants {
                 format |= FORMAT_ITALIC;
             if (whitespace)
                 format |= FORMAT_WHITESPACE;
+            if (code > 0)
+                format |= FORMAT_CODE;
             if (segments == null)
                 segments = new LineSegmentList();
             segments.addSegment(new HtmlLineSegment(textBuffer.toString(), format, link));
@@ -1450,53 +1465,50 @@ public final class WebLoader implements WebConstants {
                 maybeIndent();
                 textBuffer.append(remainder);
             } else {
-                // No suitable break in text buffer.
+                // No suitable break in text buffer: break before the word
+                // the line ends with, which may be several segments, as
+                // "(" and the code after it.
                 textBuffer.setLength(0);
-                if (segments != null) {
+                if (segments != null && segments.size() > 0) {
                     final int last = segments.size() - 1;
-                    if (last >= 0) {
-                        final HtmlLineSegment lastSegment = (HtmlLineSegment) segments.getSegment(last);
-                        final String segmentText = lastSegment.getText();
-                        index = segmentText.lastIndexOf(' ');
-                        if (index >= 0) {
-                            // Found a break.
-                            final String head = segmentText.substring(0, index);
-                            final String tail = segmentText.substring(index + 1);
-
-                            // We're removing a trailing space. Adjust offset
-                            // accordingly.
-                            --offset;
-
-                            final int format = lastSegment.getFormat();
-                            final Link link = lastSegment.getLink();
-
-                            segments.setSegment(last, new HtmlLineSegment(head, format, link));
-                            lines.appendLine(new WebLine(segments, sourceOffset));
-
-                            // Line separator always counts as 1.
-                            ++offset;
-
-                            segments = null;
-                            if (tail.length() > 0) {
-                                maybeIndent();
-                                if (segments == null)
-                                    segments = new LineSegmentList();
-                                segments.addSegment(new HtmlLineSegment(tail, format, link));
-                            }
-                        } else {
-                            // No break. Move last segment to current line.
-                            segments.removeSegment(lastSegment);
-                            lines.appendLine(new WebLine(segments, sourceOffset));
-
-                            // Line separator always counts as 1.
-                            ++offset;
-
-                            segments = null;
-                            maybeIndent();
-                            if (segments == null)
-                                segments = new LineSegmentList();
-                            segments.addSegment(lastSegment);
-                        }
+                    // The segment with the word's start after its last space; not the indent's.
+                    int split = last;
+                    while (split >= 0
+                            && (segments.getSegment(split).getFormat() & FORMAT_WHITESPACE) == 0
+                            && segments.getSegment(split).getText().lastIndexOf(' ') < 0)
+                        --split;
+                    final List<LineSegment> moved = new ArrayList<>();
+                    if (split >= 0 && (segments.getSegment(split).getFormat() & FORMAT_WHITESPACE) == 0) {
+                        final HtmlLineSegment at = (HtmlLineSegment) segments.getSegment(split);
+                        final String segmentText = at.getText();
+                        final int space = segmentText.lastIndexOf(' ');
+                        final String tail = segmentText.substring(space + 1);
+                        if (tail.length() > 0)
+                            moved.add(new HtmlLineSegment(tail, at.getFormat(), at.getLink()));
+                        for (int i = split + 1; i <= last; i++)
+                            moved.add(segments.getSegment(i));
+                        for (int i = last; i > split; i--)
+                            segments.removeSegment(segments.getSegment(i));
+                        segments.setSegment(
+                            split,
+                            new HtmlLineSegment(segmentText.substring(0, space), at.getFormat(), at.getLink()));
+                        // We're removing a trailing space. Adjust offset accordingly.
+                        --offset;
+                    } else {
+                        // No break. Move last segment to current line.
+                        moved.add(segments.getSegment(last));
+                        segments.removeSegment(segments.getSegment(last));
+                    }
+                    lines.appendLine(new WebLine(segments, sourceOffset));
+                    // Line separator always counts as 1.
+                    ++offset;
+                    segments = null;
+                    if (!moved.isEmpty()) {
+                        maybeIndent();
+                        if (segments == null)
+                            segments = new LineSegmentList();
+                        for (LineSegment m : moved)
+                            segments.addSegment(m);
                     }
                 }
 
