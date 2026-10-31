@@ -48,7 +48,7 @@ public class LineBlameTest {
 
     @AfterEach
     public void tearDown() throws Exception {
-        onEdt(LineBlame::reset);
+        onEdt(BlameText::reset);
         onEdt(() -> {
             if (file != null) {
                 for (GutterColumn c : List.copyOf(file.getGutterColumns()))
@@ -107,8 +107,8 @@ public class LineBlameTest {
         // Move the caret: the old line clears at once, the new shows after.
         onEdt(() -> {
             h.editor().moveDotTo(file.getLine(1), 0);
-            LineBlame.viewChanged(h.editor());
-            LineBlame.show();
+            BlameText.viewChanged(h.editor());
+            BlameText.show();
         });
         assertNull(eolText(0), "cleared where the caret left");
         final String s = untilText(1);
@@ -170,7 +170,7 @@ public class LineBlameTest {
         rest(0);
         untilText(0);
         onEdt(() -> {
-            final List<VirtualText.Run> row = file.getVirtualText().get(LineBlame.OWNER).get(0).rows().get(0);
+            final List<VirtualText.Run> row = file.getVirtualText().get(BlameText.OWNER).get(0).rows().get(0);
             // EOL text is a space after the line's end; the gap is two more.
             assertEquals("  ", row.get(0).text());
             assertNotNull(row.get(1).color(), "a color of its own, lighter than the dimmed default");
@@ -252,8 +252,8 @@ public class LineBlameTest {
             Editor.getBufferList().add(b);
             h.showBuffer(b);
             h.editor().moveDotTo(b.getLine(0), 0);
-            LineBlame.viewChanged(h.editor());
-            LineBlame.show();
+            BlameText.viewChanged(h.editor());
+            BlameText.show();
         });
         assertNull(a.getBlame(), "the old buffer's blame dropped when the caret left it");
     }
@@ -283,8 +283,8 @@ public class LineBlameTest {
     private void rest(int line) throws Exception {
         onEdt(() -> {
             h.editor().moveDotTo(file.getLine(line), 0);
-            LineBlame.viewChanged(h.editor());
-            LineBlame.show();
+            BlameText.viewChanged(h.editor());
+            BlameText.show();
         });
     }
 
@@ -323,7 +323,7 @@ public class LineBlameTest {
     private VirtualText.Run eolRun(int line) throws Exception {
         final VirtualText.Run[] r = new VirtualText.Run[1];
         onEdt(() -> {
-            for (VirtualText v : file.getVirtualText().get(LineBlame.OWNER))
+            for (VirtualText v : file.getVirtualText().get(BlameText.OWNER))
                 if (v.line() == file.getLine(line) && !v.rows().isEmpty() && !v.rows().get(0).isEmpty())
                     r[0] = v.rows().get(0).get(v.rows().get(0).size() - 1);
         });

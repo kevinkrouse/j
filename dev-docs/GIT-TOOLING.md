@@ -548,8 +548,9 @@ lines on one side to its lines on the other.
   text after the end of the caret's line (`kkrouse, 2 days ago · icons:
   draw at…`), dimmed, after the caret rests for 500 ms. It is
   `vcsLineBlame`, on by default, and it does not need the gutter column.
-- **Authors of a method**, as IntelliJ's code vision shows them: a dimmed
-  virtual line above each method and class, `kkrouse +4`. That is the
+- **Authors of a method**, as IntelliJ's code vision shows them, but at
+  the end of the line: dimmed text after the first line of each method and
+  class, `kkrouse +4`. That is the
   author of the most lines in it, and how many others have changed it.
   - Ranges: the mode's tags give where methods and classes start (a
     `LocalTag` of type `TAG_METHOD`, or a class), and `Mode.getFoldRange`
@@ -1966,9 +1967,10 @@ plan with why it is left, before the next phase starts.
        `vcsLineBlame` (true) and `vcsBlameMaxLines` (10000; (g) shares
        it). Both read per buffer (`buffer.getBooleanProperty`), so a mode
        or file can turn it off.
-     - *Where it lives:* `vcs/blame/LineBlame`, one for the app
-       (static, as `DiffWhitespace`), following the current editor. One
-       non-repeating Swing `Timer` of `Blame.DELAY_MILLIS`. It keeps the
+     - *Where it lives:* `vcs/blame/LineBlame` (`BlameText` since (g)),
+       one for the app (static, as `DiffWhitespace`), following the
+       current editor. One non-repeating Swing `Timer` of
+       `Blame.DELAY_MILLIS`. It keeps the
        `Editor` and `Line` it last showed on, and the `Blame` it listens
        to with its own `Runnable`.
      - *The hook:* core must not import blame (the review's #10). Add a
@@ -2044,7 +2046,8 @@ plan with why it is left, before the next phase starts.
      - *Not in f:* a key or command to toggle it (the preference is
        enough until asked; a command would be `vcsToggleLineBlame`, and
        vim only binds it), and (g)'s authors.
-     Built: `vcs/blame/LineBlame`, one for the app, on the event thread.
+     Built: `vcs/blame/LineBlame` (`BlameText` since (g)), one for the
+     app, on the event thread.
      The hook is `Editor.registerViewWatcher(Consumer<Editor>)`,
      registered in `BuiltinModes` beside the context menu's, so core
      imports no blame. It is told at the end of `commandRan` (a click
@@ -2074,9 +2077,9 @@ plan with why it is left, before the next phase starts.
      `data.hasNoHistory()` shows nothing, which is how an untracked file
      stays blank where a tracked file with every line edited says
      `Not committed yet`.
-   - **g. Authors of a method.** `vcsCodeAuthors`, off by default (a
-     line over every method is noisy): an
-     `ABOVE` line (`vcs.blame.authors`) over each method and class the
+   - **g. Authors of a method.** `vcsCodeAuthors`, off by default (an
+     entry on every method is noisy): `EOL` text (`vcs.blame.authors`)
+     after the first line of each method and class the
      mode's tags give, its end from `Mode.getFoldRange`, `kkrouse +4`,
      with `*` when it has uncommitted lines (counted for `user.name`).
      The hover lists every author with their lines and last date; a
@@ -2088,8 +2091,11 @@ plan with why it is left, before the next phase starts.
      last, and a closing brace at the tag's indent after it; the tagger
      runs in the background as the sidebar's does, 750 ms after an edit
      (tags are cleared on a change and have no event); `user.name` is
-     `VcsBackend.userName`, cached until the config changes; started and
-     stopped by the view watcher, as `LineBlame` is; the highlight on a
+     `VcsBackend.userName`, cached until the config changes; built by
+     `LineBlame`, renamed `BlameText`, which already listens to the
+     current buffer's blame and rests after an edit, rather than a class
+     of its own; on the caret's line the line blame follows the entry (to
+     be tried; it may give way to the entry instead); the highlight on a
      click may be left out if it grows.
    - **h. Docs, keys, review.** `doc/git.html` gains Blame; commands and
      preferences documented; the status's and editor's `?` popups list

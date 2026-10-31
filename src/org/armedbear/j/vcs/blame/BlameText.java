@@ -1,5 +1,5 @@
 /*
- * LineBlame.java
+ * BlameText.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -40,7 +40,7 @@ import org.armedbear.j.util.TimeStyle;
  * line, who last changed it, once the caret has rested. One for the app,
  * on the event thread, following the current editor.
  */
-public final class LineBlame {
+public final class BlameText {
     static final String OWNER = "vcs.blame.line";
     // How long the caret rests before the text shows.
     static final int DELAY_MILLIS = 750;
@@ -61,13 +61,13 @@ public final class LineBlame {
     private static Line shownLine;
     private static String shownText;
     private static Blame listened;
-    private static final Runnable listener = LineBlame::redraw;
+    private static final Runnable listener = BlameText::redraw;
 
     static {
         timer.setRepeats(false);
     }
 
-    private LineBlame() {}
+    private BlameText() {}
 
     /** The caret, buffer or scroll may have changed: keep the text where the caret rests. */
     public static void viewChanged(Editor editor) {
