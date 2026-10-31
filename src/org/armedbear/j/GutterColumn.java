@@ -21,6 +21,7 @@
 package org.armedbear.j;
 
 import java.awt.Graphics2D;
+import javax.swing.JPopupMenu;
 
 /**
  * A column a buffer paints in the gutter, after the line numbers and before
@@ -51,6 +52,14 @@ public interface GutterColumn {
     /** A click of the first button at x and y in line's part of it, where isClickable; true if it took it. */
     default boolean clicked(Editor editor, Line line, int x, int y) {
         return false;
+    }
+
+    /**
+     * The menu a right click at x and y in line's part of it shows, or null
+     * for none. Its items act on the caret, put on line before it shows.
+     */
+    default JPopupMenu contextMenu(Editor editor, Line line, int x, int y) {
+        return null;
     }
 
     /** A point in a column: the column, the line, and x and y from the column's left and the row's top. */

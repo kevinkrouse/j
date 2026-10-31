@@ -25,8 +25,12 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
+import org.armedbear.j.mode.compare.DiffWhitespace;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.log.RevisionBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -55,6 +59,7 @@ public class BlameTest {
             if (file != null)
                 Editor.getBufferList().remove(file);
         });
+        DiffWhitespace.forget();
         GitFixture.reset();
     }
 
@@ -179,6 +184,88 @@ public class BlameTest {
             file.setMode(Editor.getModeList().getMode(BINARY_MODE));
             assertNull(Blame.of(file));
         });
+    }
+
+    @Test
+    public void aRevisionBufferIsBlamedAtItsRevisionAndNeverAgain() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\nb\n");
+        commitAs("Ann", "first");
+        git.write("f.txt", "a\nB\n");
+        commitAs("Bob", "second");
+        final String first = git.git("rev-parse", "HEAD~").strip();
+        file = new RevisionBuffer(Repositories.forDirectory(git.root), "f.txt", first, "a\nb\n");
+        onEdt(() -> {
+            h = EditorHarness.create();
+            Editor.setCurrentEditor(h.editor());
+            Editor.getBufferList().add(file);
+            h.showBuffer(file);
+            Blame.of(file).addListener(listener);
+        });
+        until(this::read);
+        // Its file at that revision, not the working tree's: both lines Ann's.
+        assertEquals("Ann", at(0).author());
+        assertEquals("Ann", at(1).author());
+        assertEquals(first, at(0).hash());
+        final BlameData read = data();
+        // The revision is fixed: checking the repository reads nothing new.
+        told.set(0);
+        onEdt(() -> file.checkVCS());
+        Thread.sleep(2L * Blame.DELAY_MILLIS);
+        assertEquals(0, told.get(), "not read again");
+        assertSame(read, data(), "the same blame");
+    }
+
+    @Test
+    public void aRevisionsFailedReadIsTriedAgainAsItsRepositoryChanges() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\n");
+        commitAs("Ann", "first");
+        final VcsRepository r = Repositories.forDirectory(git.root);
+        // A branch made only later.
+        file = new RevisionBuffer(r, "f.txt", "later", "a\n");
+        onEdt(() -> {
+            h = EditorHarness.create();
+            Editor.setCurrentEditor(h.editor());
+            Editor.getBufferList().add(file);
+            h.showBuffer(file);
+            Blame.of(file).addListener(listener);
+        });
+        until(() -> failure() != null);
+        git.git("branch", "later");
+        r.invalidate();
+        r.refresh();
+        until(() -> failure() == null && read() && data().error() == null);
+        assertEquals("Ann", at(0).author());
+    }
+
+    @Test
+    public void ignoringWhitespaceBlamesAgainPassingOverAWhitespaceChange() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a b\n");
+        commitAs("Ann", "first");
+        git.write("f.txt", "a  b\n");
+        commitAs("Bob", "spaces");
+        open("f.txt");
+        onEdt(() -> Blame.of(file).addListener(listener));
+        until(this::read);
+        assertEquals("Bob", at(0).author());
+        onEdt(() -> DiffWhitespace.choose(Whitespace.ALL));
+        until(() -> read() && "Ann".equals(at(0).author()));
+        onEdt(() -> DiffWhitespace.choose(Whitespace.NONE));
+        until(() -> read() && "Bob".equals(at(0).author()));
+    }
+
+    private BlameData failure() throws Exception {
+        final BlameData[] d = new BlameData[1];
+        onEdt(() -> d[0] = Blame.of(file).failure());
+        return d[0];
+    }
+
+    private BlameData data() throws Exception {
+        final BlameData[] d = new BlameData[1];
+        onEdt(() -> d[0] = Blame.of(file).data());
+        return d[0];
     }
 
     private static void onEdt(ThrowingRunnable r) throws Exception {

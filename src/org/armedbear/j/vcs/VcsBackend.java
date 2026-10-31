@@ -180,12 +180,22 @@ public interface VcsBackend {
     }
 
     /**
-     * Blames contents, path's text in the working tree or as edited, in the
-     * background: sink told of each run of lines as it is read. A line not
-     * as committed, and every line of a path with no history, has a commit
-     * whose isUncommitted() is true. Null if the backend can't.
+     * Blames path in the background: sink told of each run of lines as it
+     * is read. With revision null, its text in the working tree or as
+     * edited, given as contents on stdin; with one, the file as that
+     * revision has it, contents ignored. A line not as committed, and
+     * every line of a path with no history, has a commit whose
+     * isUncommitted() is true. A change only to the whitespace ignored, as
+     * near as the backend can, leaves the line its older commit's. Null if
+     * the backend can't.
      */
-    default VcsResult blame(VcsRepository repository, String path, byte[] contents, BlameCommit.Sink sink) {
+    default VcsResult blame(
+            VcsRepository repository,
+            String path,
+            String revision,
+            byte[] contents,
+            Whitespace ignored,
+            BlameCommit.Sink sink) {
         return null;
     }
 

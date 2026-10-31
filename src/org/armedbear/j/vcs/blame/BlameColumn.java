@@ -30,10 +30,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import javax.swing.JPopupMenu;
+import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.DefaultTheme;
+import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.GutterColumn;
@@ -55,6 +60,8 @@ final class BlameColumn implements GutterColumn {
             DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withZone(ZoneId.systemDefault());
     private static final DateTimeFormatter DATE =
             DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter TIMESTAMP =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
     static final int STEPS = 8;
 
     private final Buffer buffer;
@@ -72,6 +79,8 @@ final class BlameColumn implements GutterColumn {
     private Color colorsBackground;
     private boolean told;
     private BlameData toldFailure;
+    // The hashes whose messages a tool tip is waiting for.
+    private final Set<String> asking = new HashSet<>();
 
     BlameColumn(Buffer buffer, Blame blame) {
         this.buffer = buffer;
@@ -154,6 +163,85 @@ final class BlameColumn implements GutterColumn {
     // Where an entry starts: after the bar and a gap.
     static int textLeft() {
         return 1 + bar() + Display.getCharWidth() / 2;
+    }
+
+    @Override
+    public String getToolTipText(Line line, int x, int y) {
+        final BlameData data = blame.data();
+        final BlameCommit commit = data == null ? null : committed(data, line);
+        if (commit == null)
+            return null;
+        final String message = blame.message(commit.hash());
+        if (message == null)
+            readMessage(commit.hash());
+        final StringBuilder tip = new StringBuilder();
+        tip.append(commit.hash()).append('\n');
+        tip.append(commit.author()).append(" <").append(commit.authorMail()).append(">\n");
+        tip.append(TIMESTAMP.format(Instant.ofEpochSecond(commit.authorTime())));
+        if (commit.committerTime() != commit.authorTime())
+            tip.append("  (committed ")
+                    .append(TIMESTAMP.format(Instant.ofEpochSecond(commit.committerTime())))
+                    .append(')');
+        tip.append("\n\n");
+        tip.append(message != null ? message.strip() : commit.summary());
+        return tip.toString();
+    }
+
+    @Override
+    public boolean isClickable(Line line, int x, int y) {
+        final BlameData data = blame.data();
+        return data != null && committed(data, line) != null;
+    }
+
+    @Override
+    public boolean clicked(Editor editor, Line line, int x, int y) {
+        final BlameData data = blame.data();
+        final BlameCommit commit = data == null ? null : committed(data, line);
+        if (commit == null)
+            return false;
+        BlameCommands.showCommit(editor, blame, commit);
+        return true;
+    }
+
+    @Override
+    public JPopupMenu contextMenu(Editor editor, Line line, int x, int y) {
+        final BlameData data = blame.data();
+        final BlameCommit commit = data == null ? null : committed(data, line);
+        final JPopupMenu menu = new JPopupMenu();
+        final Dispatcher d = editor.getDispatcher();
+        if (commit != null) {
+            AbstractMode.addContextMenuItem("Show Diff", "vcsBlameDiff", menu, d);
+            AbstractMode.addContextMenuItem("Show Commit in Log", "vcsBlameShowCommit", menu, d);
+            AbstractMode.addContextMenuItem("Blame This Revision", "vcsBlameRevision", menu, d);
+            AbstractMode.addContextMenuItem("Blame Parent Revision", "vcsBlameParent", menu, d)
+                    .setEnabled(commit.previous() != null);
+            menu.addSeparator();
+            AbstractMode.addContextMenuItem("Copy Hash", "vcsBlameCopyHash", menu, d);
+            AbstractMode.addContextMenuItem("Copy Message", "vcsBlameCopyMessage", menu, d);
+            menu.addSeparator();
+        }
+        AbstractMode.addContextMenuItem("Hide Blame", "vcsBlame", menu, d);
+        return menu;
+    }
+
+    // The commit at line, or null if it is not committed or not known.
+    private static BlameCommit committed(BlameData data, Line line) {
+        final BlameCommit c = data.commit(line);
+        return c == null || c.isUncommitted() ? null : c;
+    }
+
+    // The whole message read in the background, the tool tip showing the
+    // summary until it comes, then shown again; asked again if it failed.
+    private void readMessage(String hash) {
+        if (!asking.add(hash))
+            return;
+        blame.readMessage(hash, m -> {
+            asking.remove(hash);
+            if (m != null)
+                for (Editor ed : Editor.getEditorList())
+                    if (ed.getBuffer() == buffer)
+                        ed.getDisplay().refreshToolTip();
+        });
     }
 
     @Override

@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Log;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.blame.BlameCommit;
@@ -47,27 +48,44 @@ final class GitBlame {
 
     private GitBlame() {}
 
-    static VcsResult blame(VcsRepository repository, String path, byte[] contents, BlameCommit.Sink sink) {
+    static VcsResult blame(
+            VcsRepository repository,
+            String path,
+            String revision,
+            byte[] contents,
+            Whitespace ignored,
+            BlameCommit.Sink sink) {
         final List<String> args = new ArrayList<>(List.of("blame", "--incremental"));
+        // git blame ignores all whitespace or none: -w for any.
+        if (ignored != Whitespace.NONE)
+            args.add("-w");
         // git reads the file only when blame.ignoreRevsFile names it.
         if (Files.isRegularFile(repository.root().resolve(IGNORE_REVS))
                 && GitCli.versionAtLeast(IGNORE_REVS_FILE)
                 && !ignoreRevsFileSet(repository))
             args.addAll(List.of("--ignore-revs-file", IGNORE_REVS));
-        args.addAll(List.of("--contents", "-", "--", path));
+        // A revision is blamed as it is; the working tree, as it would be saved.
+        if (revision != null)
+            args.addAll(List.of(revision, "--", path));
+        else
+            args.addAll(List.of("--contents", "-", "--", path));
         final Parser parser = new Parser(sink);
-        final VcsResult r = GitCli.run(GitCli.read(repository.root(), contents, args.toArray(new String[0])), chunk -> {
-            try {
-                parser.feed(chunk);
-            }
-            catch (RuntimeException e) {
-                Log.error(e);
-            }
-        });
+        final VcsResult r = GitCli.run(
+            revision != null
+                    ? GitCli.read(repository.root(), args.toArray(new String[0]))
+                    : GitCli.read(repository.root(), contents, args.toArray(new String[0])),
+            chunk -> {
+                try {
+                    parser.feed(chunk);
+                }
+                catch (RuntimeException e) {
+                    Log.error(e);
+                }
+            });
         parser.finish();
         // Not in HEAD, as a file not committed yet: none of it is.
-        if (!r.succeeded() && r.stderr().contains("no such path")) {
-            sink.lines(0, Integer.MAX_VALUE, BlameCommit.uncommitted(path));
+        if (revision == null && !r.succeeded() && r.stderr().contains("no such path")) {
+            sink.lines(0, Integer.MAX_VALUE, BlameCommit.uncommitted(path), 0);
             return new VcsResult(r.command(), 0, r.stdout(), "", r.millis());
         }
         return r;
@@ -91,7 +109,7 @@ final class GitBlame {
 
     /** Reads --incremental's output a chunk at a time, telling sink of each group as it ends. */
     static final class Parser {
-        private static final Pattern HEADER = Pattern.compile("^([0-9a-f]{40,64}) \\d+ (\\d+) (\\d+)$");
+        private static final Pattern HEADER = Pattern.compile("^([0-9a-f]{40,64}) (\\d+) (\\d+) (\\d+)$");
 
         private final BlameCommit.Sink sink;
         private final ByteArrayOutputStream pending = new ByteArrayOutputStream();
@@ -100,6 +118,7 @@ final class GitBlame {
         private final Map<String, BlameCommit> commits = new HashMap<>();
         private String hash;
         private int first;
+        private int source;
         private int count;
         private String previous;
         private boolean boundary;
@@ -115,7 +134,7 @@ final class GitBlame {
                 pending.reset();
             }
             if (hash != null) {
-                sink.lines(first, count, commit(""));
+                sink.lines(first, count, commit(""), source);
                 hash = null;
             }
         }
@@ -137,8 +156,10 @@ final class GitBlame {
             final Matcher m = HEADER.matcher(line);
             if (m.matches()) {
                 hash = m.group(1);
-                first = Integer.parseInt(m.group(2)) - 1;
-                count = Integer.parseInt(m.group(3));
+                // The line's number in the commit's own version of the file.
+                source = Integer.parseInt(m.group(2)) - 1;
+                first = Integer.parseInt(m.group(3)) - 1;
+                count = Integer.parseInt(m.group(4));
                 previous = null;
                 boundary = false;
                 fields.computeIfAbsent(hash, h -> new HashMap<>());
@@ -153,7 +174,7 @@ final class GitBlame {
                 case "previous" -> previous = value;
                 case "boundary" -> boundary = true;
                 case "filename" -> {
-                    sink.lines(first, count, commit(value));
+                    sink.lines(first, count, commit(value), source);
                     hash = null;
                 }
                 default -> fields.get(hash).putIfAbsent(key, value);
@@ -180,11 +201,19 @@ final class GitBlame {
             catch (NumberFormatException e) {
                 // Left at 0.
             }
+            long committed = 0;
+            try {
+                committed = Long.parseLong(f.getOrDefault("committer-time", "0"));
+            }
+            catch (NumberFormatException e) {
+                // Left at 0.
+            }
             final String mail = f.getOrDefault("author-mail", "");
             final BlameCommit made = new BlameCommit(hash,
                     f.getOrDefault("author", ""),
                     mail.startsWith("<") && mail.endsWith(">") ? mail.substring(1, mail.length() - 1) : mail,
                     time,
+                    committed,
                     f.getOrDefault("summary", ""),
                     path,
                     previousHash,

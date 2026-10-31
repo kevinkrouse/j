@@ -55,6 +55,7 @@ import javax.swing.JLayeredPane;
 import javax.swing.JRootPane;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import javax.swing.ToolTipManager;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.util.Utilities;
@@ -3460,12 +3461,53 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     public String getToolTipText(MouseEvent e) {
         final VirtualText.Run run = virtualRunAt(e.getX(), e.getY());
         if (run != null && run.tooltip() != null)
-            return run.tooltip();
+            return multiline(run.tooltip());
         if (inGutterColumn(e.getX())) {
             final GutterColumn.At at = gutterColumnAt(e.getX(), e.getY());
-            return at == null ? null : at.column().getToolTipText(at.line(), at.x(), at.y());
+            return at == null ? null : multiline(at.column().getToolTipText(at.line(), at.x(), at.y()));
         }
-        return editor.getMode().getToolTipText(editor, e);
+        return multiline(editor.getMode().getToolTipText(editor, e));
+    }
+
+    /**
+     * tip as Swing shows several lines, HTML, when it has them; its spaces
+     * kept, tabs to every 8th column.
+     */
+    static String multiline(String tip) {
+        if (tip == null || tip.indexOf('\n') < 0 || tip.regionMatches(true, 0, "<html>", 0, 6))
+            return tip;
+        final StringBuilder html = new StringBuilder("<html>");
+        int column = 0;
+        for (int i = 0; i < tip.length(); i++) {
+            final char c = tip.charAt(i);
+            switch (c) {
+                case '\n' -> html.append("<br>");
+                case '\t' -> html.append("&nbsp;".repeat(8 - column % 8));
+                case ' ' -> html.append("&nbsp;");
+                case '&' -> html.append("&amp;");
+                case '<' -> html.append("&lt;");
+                case '>' -> html.append("&gt;");
+                default -> html.append(c);
+            }
+            column = c == '\n' ? 0 : c == '\t' ? column + 8 - column % 8 : column + 1;
+        }
+        return html.append("</html>").toString();
+    }
+
+    /** The tool tip under the pointer, if it shows, asked for again: its text may have changed. */
+    public void refreshToolTip() {
+        final Point p = isShowing() ? getMousePosition() : null;
+        if (p != null)
+            ToolTipManager.sharedInstance()
+                    .mouseMoved(
+                        new MouseEvent(this,
+                                MouseEvent.MOUSE_MOVED,
+                                System.currentTimeMillis(),
+                                0,
+                                p.x,
+                                p.y,
+                                0,
+                                false));
     }
 
     /** Whether x is in one of the buffer's gutter columns. */

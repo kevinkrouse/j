@@ -133,8 +133,14 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public VcsResult blame(VcsRepository repository, String path, byte[] contents, BlameCommit.Sink sink) {
-        return GitBlame.blame(repository, path, contents, sink);
+    public VcsResult blame(
+            VcsRepository repository,
+            String path,
+            String revision,
+            byte[] contents,
+            Whitespace ignored,
+            BlameCommit.Sink sink) {
+        return GitBlame.blame(repository, path, revision, contents, ignored, sink);
     }
 
     @Override

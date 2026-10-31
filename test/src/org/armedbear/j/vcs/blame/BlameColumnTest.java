@@ -70,7 +70,7 @@ public class BlameColumnTest {
 
     private static BlameCommit commit(String hash, String author, long time, String summary) {
         final String mail = author.toLowerCase().replace(' ', '.') + "@example.com";
-        return new BlameCommit(hash, author, mail, time, summary, "f.txt", null, null, false);
+        return new BlameCommit(hash, author, mail, time, time, summary, "f.txt", null, null, false);
     }
 
     // format for commit alone.
@@ -126,9 +126,9 @@ public class BlameColumnTest {
         final BlameCommit b = commit("b".repeat(40), "Bob", 200, "B");
         final List<Line> ls = lines("a0", "a1", "b2", "a3");
         final BlameData d = data(ls);
-        d.lines(0, 2, a);
-        d.lines(2, 1, b);
-        d.lines(3, 1, a);
+        d.lines(0, 2, a, 0);
+        d.lines(2, 1, b, 2);
+        d.lines(3, 1, a, 3);
         assertTrue(BlameColumn.isRunHead(d, ls.get(0)), "first line");
         assertFalse(BlameColumn.isRunHead(d, ls.get(1)), "same as before");
         assertTrue(BlameColumn.isRunHead(d, ls.get(2)), "a new commit");
@@ -140,7 +140,7 @@ public class BlameColumnTest {
         final BlameCommit a = commit("a".repeat(40), "Ann", 300, "A");
         final List<Line> ls = lines("a0", "a1");
         final BlameData d = data(ls);
-        d.lines(0, 2, a);
+        d.lines(0, 2, a, 0);
         ls.get(1).setText("changed");
         assertEquals(BlameData.NOT_COMMITTED, d.commit(ls.get(1)));
         assertTrue(BlameColumn.isRunHead(d, ls.get(1)), "a changed line starts a run");
@@ -151,7 +151,7 @@ public class BlameColumnTest {
         final BlameCommit a = commit("a".repeat(40), "Ann", 300, "A");
         final List<Line> ls = lines("a0", "new");
         final BlameData d = data(ls);
-        d.lines(0, 1, a);
+        d.lines(0, 1, a, 0);
         assertNull(d.commit(ls.get(1)));
         assertTrue(BlameColumn.isRunHead(d, ls.get(1)));
     }
@@ -210,10 +210,10 @@ public class BlameColumnTest {
         final BlameCommit middle = commit("b".repeat(40), "B", 200, "middle");
         final BlameCommit oldest = commit("a".repeat(40), "A", 100, "oldest");
         final BlameData d = data(lines("0", "1", "2", "3"));
-        d.lines(0, 1, oldest);
-        d.lines(1, 1, newest);
-        d.lines(2, 1, middle);
-        d.lines(3, 1, BlameData.NOT_COMMITTED);
+        d.lines(0, 1, oldest, 0);
+        d.lines(1, 1, newest, 1);
+        d.lines(2, 1, middle, 2);
+        d.lines(3, 1, BlameData.NOT_COMMITTED, 3);
         final Map<BlameCommit, Integer> steps = BlameColumn.ageSteps(d);
         assertEquals(3, steps.size(), "uncommitted not ranked");
         assertEquals(0, steps.get(newest).intValue());
@@ -300,6 +300,53 @@ public class BlameColumnTest {
             file.load();
             h.showBuffer(file);
         });
+    }
+
+    @Test
+    public void theToolTipGivesTheCommitAndItsMessageOnceRead() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\nb\n");
+        git.git("add", "-A");
+        git.git("commit", "-q", "--author=Ann Lee <ann@example.com>", "-m", "First\n\nThe whole body.");
+        open("f.txt");
+        onEdt(() -> BlameCommands.vcsBlame(h.editor()));
+        until(() -> column() != null && column().width() > 0);
+        final Line first = file.getLine(0);
+        final String[] tip = new String[1];
+        onEdt(() -> tip[0] = column().getToolTipText(first, 0, 0));
+        // The summary shows at once; the whole message when it arrives.
+        assertTrue(tip[0].contains("Ann Lee <ann@example.com>"), tip[0]);
+        assertTrue(tip[0].contains("First"), tip[0]);
+        until(() -> {
+            onEdt(() -> tip[0] = column().getToolTipText(first, 0, 0));
+            return tip[0].contains("The whole body.");
+        });
+        assertTrue(tip[0].contains(git.git("rev-parse", "HEAD").strip()), "the full hash");
+    }
+
+    @Test
+    public void theToolTipOnAnUncommittedLineIsNoneAndItIsNotClickable() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\n");
+        git.git("add", "-A");
+        git.git("commit", "-q", "-m", "first");
+        open("f.txt");
+        onEdt(() -> BlameCommands.vcsBlame(h.editor()));
+        until(() -> column() != null && column().width() > 0);
+        final Line committed = file.getLine(0);
+        final boolean[] clickable = new boolean[1];
+        onEdt(() -> clickable[0] = column().isClickable(committed, 0, 0));
+        assertTrue(clickable[0], "committed is clickable");
+        // A changed line reads as not committed.
+        onEdt(() -> file.getLine(0).setText("changed"));
+        final String[] tip = new String[1];
+        final boolean[] nowClickable = new boolean[1];
+        onEdt(() -> {
+            tip[0] = column().getToolTipText(file.getLine(0), 0, 0);
+            nowClickable[0] = column().isClickable(file.getLine(0), 0, 0);
+        });
+        assertNull(tip[0], "no tool tip on an uncommitted line");
+        assertFalse(nowClickable[0], "not clickable");
     }
 
     private static void onEdt(ThrowingRunnable r) throws Exception {

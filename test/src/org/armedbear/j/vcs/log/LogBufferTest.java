@@ -145,6 +145,74 @@ public class LogBufferTest {
         until(() -> !log.isLoading());
     }
 
+    @Test
+    public void aPreferredFileIsPickedOutInTheDetails() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "a\n");
+        git.write("b.txt", "b\n");
+        git.commitAll("first");
+        git.write("a.txt", "A\n");
+        git.write("b.txt", "B\n");
+        git.commitAll("second");
+        repository = Repositories.forDirectory(git.root);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        until(() -> log.details.files.commit() != null && log.details.diff.change() != null);
+        final LogCommit second = log.commits().get(0);
+        assertEquals("second", second.subject());
+        // Without a preference, the first file is shown.
+        assertEquals("a.txt", log.details.diff.change().path());
+        // With one on the second file, that file's line gets the caret and
+        // its diff shows.
+        final EditorHarness files = EditorHarness.create();
+        try {
+            onEdt(() -> {
+                files.showBuffer(log.details.files);
+                log.details.prefer(second.id(), "b.txt");
+                log.details.forgetShown();
+                log.details.show(second);
+            });
+            until(() -> "b.txt".equals(log.details.diff.change().path()));
+            assertTrue(
+                log.details.files.getLine(files.editor().getDotLineNumber()).getText().endsWith("b.txt"),
+                "the caret on the preferred file");
+            // Once taken, it is gone: the next showing is the first file again.
+            onEdt(() -> {
+                log.details.forgetShown();
+                log.details.show(second);
+            });
+            until(() -> "a.txt".equals(log.details.diff.change().path()));
+        }
+        finally {
+            onEdt(() -> {
+                files.showBuffer(files.buffer());
+                files.close();
+            });
+        }
+    }
+
+    @Test
+    public void aPreferredPathBeforeARenameStillMatches() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("old.txt", "a\n");
+        git.commitAll("first");
+        git.git("mv", "old.txt", "new.txt");
+        git.write("new.txt", "a\nb\n");
+        git.commitAll("rename");
+        repository = Repositories.forDirectory(git.root);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        until(() -> log.details.files.commit() != null && log.details.diff.change() != null);
+        final LogCommit rename = log.commits().get(0);
+        onEdt(() -> {
+            log.details.prefer(rename.id(), "old.txt");
+            log.details.forgetShown();
+            log.details.show(rename);
+        });
+        until(() -> "new.txt".equals(log.details.diff.change().path()));
+        assertEquals("new.txt", log.details.files.shownChange().path(), "matched by its old name");
+    }
+
     private void onEdt(Runnable r) throws Exception {
         SwingUtilities.invokeAndWait(r);
     }
@@ -1565,6 +1633,58 @@ public class LogBufferTest {
         onEdt(() -> log.refresh());
         until(() -> !log.isLoading() && log.commits().size() == 4);
         assertEquals(3, h.editor().getDotLineNumber());
+    }
+
+    @Test
+    public void aJumpAsTheLogOpensIsMadeWhenItsFirstPageIs() throws Exception {
+        repo(5);
+        final String second = git.git("rev-parse", "HEAD~3").strip();
+        h = EditorHarness.create();
+        onEdt(() -> {
+            log = LogBuffer.open(repository, LogQuery.ALL, 2);
+            log.setWidth(60);
+            h.showBuffer(log);
+            // Before any page is read, as LogCommands.showCommit reveals.
+            log.jump(h.editor(), repository.root() + "\0" + second);
+        });
+        until(() -> !log.isLoading() && h.editor().getDotLine() instanceof LogLine l && l.commit().id().equals(second));
+        assertEquals(3, h.editor().getDotLineNumber(), "read on past the first page");
+    }
+
+    @Test
+    public void aCommitShownFromBlameIsntNarrowedByTheOpeningFilters() throws Exception {
+        repo(3);
+        final String id = git.git("rev-parse", "HEAD~").strip();
+        h = EditorHarness.create();
+        onEdt(() -> {
+            // A filter the log popup kept that would leave the commit out.
+            Transients.args(h.editor(), LogFilters.openingId(LogScope.of(repository))).set("--author", "Nobody");
+            LogCommands.showCommit(h.editor(), repository, "a.txt", "HEAD", id, "a.txt");
+            for (Buffer b : Editor.getBufferList())
+                if (b instanceof LogBuffer l)
+                    log = l;
+        });
+        assertNull(log.getQuery().author(), "no filter but the file");
+        assertEquals("a.txt", log.getQuery().path());
+        assertEquals(List.of("HEAD"), log.getQuery().revisions(), "from the blamed revision");
+    }
+
+    @Test
+    public void aPreferredFileIsDroppedWhenAnotherCommitIsJumpedTo() throws Exception {
+        repo(3);
+        open(100);
+        onEdt(() -> LogCommands.showFull(h.editor(), log));
+        final LogCommit first = log.commits().get(0);
+        final LogCommit second = log.commits().get(1);
+        onEdt(() -> {
+            log.details.prefer(second.id(), "a.txt");
+            log.jump(h.editor(), LogGraph.key(second, second.id()));
+        });
+        onEdt(() -> {
+            log.details.prefer(second.id(), "a.txt");
+            log.jump(h.editor(), LogGraph.key(first, first.id()));
+            assertNull(log.details.takePreferred(second), "dropped");
+        });
     }
 
     @Test

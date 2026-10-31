@@ -895,14 +895,15 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             showAt(editor, buffer, lineNumber);
     }
 
-    /** Shows buffer in editor's window at its line lineNumber, from 1; 0 for where it was. */
-    public static void showAt(Editor editor, Buffer buffer, int lineNumber) {
+    /** Shows buffer in editor's window at its line lineNumber, from 1; 0 for where it was. Returns the editor showing it. */
+    public static Editor showAt(Editor editor, Buffer buffer, int lineNumber) {
         final Editor ed = editor.show(buffer);
         if (lineNumber > 0) {
             ed.jumpToLine(lineNumber - 1);
             ed.getDisplay().setUpdateFlag(REFRAME);
         }
         ed.updateDisplay();
+        return ed;
     }
 
     // The log of the commits of line's section.

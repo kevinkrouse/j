@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.compare;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Property;
@@ -29,7 +31,7 @@ import org.armedbear.j.util.Whitespace;
  * The whitespace diffs ignore: ignoring on or off, and which, as the
  * diffIgnoreWhitespace preference sets them to begin with, until j exits.
  * Read from any thread; changed on the event thread, each open
- * {@link Listener} told.
+ * {@link Listener} buffer told, and each one added.
  */
 public final class DiffWhitespace {
     /** A buffer that shows diffs. */
@@ -41,6 +43,8 @@ public final class DiffWhitespace {
     // Null: diffIgnoreWhitespace's.
     private static volatile Boolean on;
     private static volatile Whitespace chosen;
+    // Listeners not buffers, as a blame.
+    private static final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
     private DiffWhitespace() {}
 
@@ -86,11 +90,22 @@ public final class DiffWhitespace {
         changed();
     }
 
+    /** l told of changes, as a buffer that is a Listener is, until removed. */
+    public static void addListener(Listener l) {
+        listeners.add(l);
+    }
+
+    public static void removeListener(Listener l) {
+        listeners.remove(l);
+    }
+
     // Each buffer showing a diff shows it again.
     private static void changed() {
         for (Buffer b : Editor.getBufferList())
             if (b instanceof Listener l)
                 l.diffWhitespaceChanged();
+        for (Listener l : listeners)
+            l.diffWhitespaceChanged();
     }
 
     /** Toggled and chosen forgotten: diffIgnoreWhitespace's again. For tests. */

@@ -442,6 +442,12 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#up">up</a></li>
     <li><a href="commands.html#upperCaseRegion">upperCaseRegion</a></li>
     <li><a href="commands.html#vcsBlame">vcsBlame</a></li>
+    <li><a href="commands.html#vcsBlameCopyHash">vcsBlameCopyHash</a></li>
+    <li><a href="commands.html#vcsBlameCopyMessage">vcsBlameCopyMessage</a></li>
+    <li><a href="commands.html#vcsBlameDiff">vcsBlameDiff</a></li>
+    <li><a href="commands.html#vcsBlameParent">vcsBlameParent</a></li>
+    <li><a href="commands.html#vcsBlameRevision">vcsBlameRevision</a></li>
+    <li><a href="commands.html#vcsBlameShowCommit">vcsBlameShowCommit</a></li>
     <li><a href="commands.html#vcsBranchCheckout">vcsBranchCheckout</a></li>
     <li><a href="commands.html#vcsBranchCheckoutLocal">vcsBranchCheckoutLocal</a></li>
     <li><a href="commands.html#vcsBranchCheckoutNew">vcsBranchCheckoutNew</a></li>
@@ -6069,9 +6075,86 @@ widest entry, capped at
 <a href="preferences.html#vcsBlameMaxWidth">vcsBlameMaxWidth</a>
 characters. It says <code>Reading blame…</code> until the first lines
 arrive, and reads again after a save or a change of HEAD or the refs; a
-read that fails is said, and leaves the last one shown.
+read that fails is said, and leaves the last one shown. While diffs
+<a href="git.html#whitespace">ignore whitespace</a>, blame does too
+(<code>git blame -w</code>): a line changed only in its whitespace is its
+older commit's.
+<br><br>
+Hovering a line's bar shows its commit in full: hash, author, date, and
+the whole message, read the first time it is wanted. Clicking it opens the
+commit in the <a href="#vcsLog">log</a>, with the file picked out in the
+commit's files. A right click on the column offers the line's commit's
+change, the commit in the log, the file at that commit or its parent
+blamed, and its hash or message copied; the editor's own right-click
+menu shows or hides the column.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;gb in vim edit mode
+<br><br>
+<b>See also:</b> <a href="#vcsBlameParent">vcsBlameParent</a>,
+<a href="#vcsBlameRevision">vcsBlameRevision</a>,
+<a href="#vcsBlameShowCommit">vcsBlameShowCommit</a>,
+<a href="#vcsBlameDiff">vcsBlameDiff</a>,
+<a href="#vcsBlameCopyHash">vcsBlameCopyHash</a>,
+<a href="#vcsBlameCopyMessage">vcsBlameCopyMessage</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBlameCopyHash">vcsBlameCopyHash</a><dl><dd>
+<p>
+Copies the caret line's commit's hash, from its blame, to the clipboard.
+<br><br>
+<b>See also:</b> <a href="#vcsBlame">vcsBlame</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBlameCopyMessage">vcsBlameCopyMessage</a><dl><dd>
+<p>
+Copies the caret line's commit's whole message, from its blame, to the clipboard.
+<br><br>
+<b>See also:</b> <a href="#vcsBlame">vcsBlame</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBlameDiff">vcsBlameDiff</a><dl><dd>
+<p>
+Shows the caret line's commit's change to the file, side by side.
+The file as the commit's parent had it, renames followed, and as the
+commit has it, the caret on the line; a root commit adds the file whole.
+<br><br>
+<b>See also:</b> <a href="#vcsBlame">vcsBlame</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBlameParent">vcsBlameParent</a><dl><dd>
+<p>
+Opens the file as the caret line's commit's parent had it, blamed.
+The buffer is read-only, blamed at that revision, the caret on the
+nearest line; a rename between the commits is followed, and the buffer
+opens under the old path. Run again in that buffer to dig further back;
+the buffer list goes back as for any buffer. Says so when the line is
+not committed yet, or its commit has no parent.
+<br><br>
+<b>See also:</b> <a href="#vcsBlame">vcsBlame</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBlameRevision">vcsBlameRevision</a><dl><dd>
+<p>
+Opens the file as the caret line's commit has it, blamed.
+The buffer is read-only, under the file's path in that commit, the caret
+on the same line there. Its blame shows what came before the commit.
+<br><br>
+<b>See also:</b> <a href="#vcsBlame">vcsBlame</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsBlameShowCommit">vcsBlameShowCommit</a><dl><dd>
+<p>
+Opens the caret line's commit in the log, with the file picked out.
+The log is the file's, through its renames, taking the frame with its
+details; the same as clicking the line in the blame column.
+<br><br>
+<b>See also:</b> <a href="#vcsBlame">vcsBlame</a>
 <br><br>
 </dl><!--<hr>-->
 

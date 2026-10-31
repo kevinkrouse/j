@@ -153,8 +153,22 @@ final class LogFilesBuffer extends ViewPane<Buffer> {
             lines.add(StatusLine.of(Kind.MESSAGE, "  Its files couldn't be read: see vcsCommandLog", "none"));
         else if (files.isEmpty())
             lines.add(StatusLine.of(Kind.MESSAGE, "  No files changed", "none"));
-        replace(lines, fileLines.isEmpty() ? null : fileLines.get(0));
+        replace(lines, selectPreferred(c, fileLines));
         showDiff();
+    }
+
+    // The line of the file preferred for c, by its path then or before a
+    // rename; the first file when none is preferred or it isn't in the
+    // commit.
+    private StatusLine selectPreferred(LogCommit c, List<StatusLine> fileLines) {
+        final String p = details.takePreferred(c);
+        if (p != null)
+            for (CommitChange ch : changes)
+                if (p.equals(ch.path()) || p.equals(ch.origPath()))
+                    for (StatusLine l : fileLines)
+                        if (l.file() != null && l.file().change().path().equals(ch.path()))
+                            return l;
+        return fileLines.isEmpty() ? null : fileLines.get(0);
     }
 
     // In the log's time style; its age with the date in full.

@@ -479,14 +479,17 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
             return;
         final LogQuery q = scope.queryFor(repository, query);
         if (q == null) {
+            unprefer(null);
             ed.status("Not in the log: its repository is filtered out");
             return;
         }
         if (stash) {
             if (q.showsStashes())
                 jump(ed, repository.root() + "\0" + id);
-            else
+            else {
+                unprefer(null);
                 ed.status(q.stashes() ? "Not in the log with its filters" : "Not in the log (-z shows the stashes)");
+            }
             return;
         }
         Background.start("vcs log reveal", () -> {
@@ -505,10 +508,12 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
                     return;
                 if (listed)
                     jump(ed, repository.root() + "\0" + id);
-                else
+                else {
+                    unprefer(null);
                     ed.status(
                         "Not in the log with its filters"
                                 + (query.tags() ? "" : " (-T shows the commits only tags reach)"));
+                }
             });
         });
     }
@@ -521,7 +526,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
         select = at;
         merge = newMerge();
         fresh = true;
-        jumping = null;
+        giveUpJump();
         failed = false;
         commits.clear();
         graph = new LogGraph();
@@ -586,7 +591,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
             if (jumping.stands(this))
                 jump(jumping.editor(), jumping.key());
             else
-                jumping = null;
+                giveUpJump();
         }
     }
 
@@ -938,7 +943,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
             return;
         // A command that moved the caret: a jump still reading on gives up.
         if (jumping != null && !jumping.stands(this))
-            jumping = null;
+            giveUpJump();
         // A run shown by the caret's landing in it, as by a search, is open.
         syncRuns();
         if (nearTheEnd(editor.getDotLine()))
@@ -953,6 +958,7 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
      */
     void jump(Editor editor, String key) {
         jumping = null;
+        unprefer(key.substring(key.indexOf('\0') + 1));
         // In a run folded, shown as the caret lands there, as a search's is.
         for (Line l = getFirstLine(); l != null; l = l.next())
             if (l instanceof LogLine ll && key(ll).equals(key)) {
@@ -962,7 +968,14 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
                 afterCommand(editor);
                 return;
             }
+        // Nothing listed yet, as a log just opened at a commit: made when
+        // the first page is, which puts the caret on its first row.
+        if (fresh) {
+            jumping = new Jump(editor, key, null);
+            return;
+        }
         if (!merge.hasMore()) {
+            unprefer(null);
             editor.status("Not in the log");
             return;
         }
@@ -972,15 +985,28 @@ public final class LogBuffer extends ViewBuffer implements FrameView, DiffWhites
     }
 
     // A jump to a commit not read yet, made when its page is, unless the
-    // caret has moved from where it was asked or its window shows another
-    // buffer by then.
+    // caret has moved from where it was asked (from null: before the first
+    // page, nowhere yet) or its window shows another buffer by then.
     private record Jump(Editor editor, String key, Line from) {
         boolean stands(LogBuffer log) {
-            return editor.getBuffer() == log && editor.getDot() != null && editor.getDotLine() == from;
+            return editor.getBuffer() == log
+                    && editor.getDot() != null
+                    && (from == null || editor.getDotLine() == from);
         }
     }
 
     private Jump jumping;
+
+    private void giveUpJump() {
+        jumping = null;
+        unprefer(null);
+    }
+
+    // The details' preferred file dropped unless it is commit id's.
+    private void unprefer(String id) {
+        if (details != null)
+            details.unprefer(id);
+    }
 
     /** The commit at editor's caret, or null. */
     public static LogCommit commitAt(Editor editor) {

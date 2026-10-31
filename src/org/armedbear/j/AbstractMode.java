@@ -199,6 +199,13 @@ public abstract class AbstractMode implements Mode {
         addedMenus.add(menu);
     }
 
+    private static final List<BiConsumer<Editor, JPopupMenu>> addedContextMenuItems = new CopyOnWriteArrayList<>();
+
+    /** Adds items to every buffer's default context menu, after folding, as blame's Show Blame. */
+    public static void registerContextMenuItems(BiConsumer<Editor, JPopupMenu> add) {
+        addedContextMenuItems.add(add);
+    }
+
     private static void populateFileMenu(Editor editor, Menu menu) {
         final boolean isNotReadOnly = !editor.getBuffer().isReadOnly();
         menu.add(editor, "New", 'N', "newBuffer");
@@ -441,6 +448,10 @@ public abstract class AbstractMode implements Mode {
         addContextMenuItem("Unfold", "unfold", popup, dispatcher);
         addContextMenuItem("Unfold all", "unfoldAll", popup, dispatcher);
 
+        // A feature's own, as blame's.
+        for (BiConsumer<Editor, JPopupMenu> add : addedContextMenuItems)
+            add.accept(editor, popup);
+
         // Properties.
         if (buffer.getFile() != null && !(buffer instanceof DirectoryBuffer)) {
             popup.addSeparator();
@@ -448,7 +459,7 @@ public abstract class AbstractMode implements Mode {
         }
     }
 
-    protected JMenuItem addContextMenuItem(String text, String command, JPopupMenu popup, Dispatcher dispatcher) {
+    public static JMenuItem addContextMenuItem(String text, String command, JPopupMenu popup, Dispatcher dispatcher) {
         JMenuItem menuItem = new JMenuItem(text);
         menuItem.setActionCommand(command);
         menuItem.addActionListener(dispatcher);

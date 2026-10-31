@@ -91,6 +91,10 @@ public final class CommitDetails {
     // The diff's side-by-side form while it shows side by side.
     SideBySide sides;
     private LogCommit shown;
+    // The file to pick out in the files list of commit id, once: a blame
+    // click's file, which may be an older name after a rename.
+    private String preferred;
+    private String preferredFor;
 
     /** Its panes, owned by host; side by side to begin with or not. */
     public <H extends Buffer & Host> CommitDetails(H host, boolean sideBySide) {
@@ -100,6 +104,30 @@ public final class CommitDetails {
         diff = new LogDiffBuffer(owner, this);
         if (sideBySide)
             sides = newSides();
+    }
+
+    /** The next showing of commit id picks path in its files list, once. */
+    public void prefer(String id, String path) {
+        preferredFor = id;
+        preferred = path;
+    }
+
+    /** The file preferred for commit id dropped, unless id is null or that commit's: a jump to it given up or another made. */
+    void unprefer(String id) {
+        if (id == null || !id.equals(preferredFor)) {
+            preferred = null;
+            preferredFor = null;
+        }
+    }
+
+    // The file preferred for c, if it was and is taken now.
+    String takePreferred(LogCommit c) {
+        if (preferred == null || !c.id().equals(preferredFor))
+            return null;
+        final String p = preferred;
+        preferred = null;
+        preferredFor = null;
+        return p;
     }
 
     Host host() {

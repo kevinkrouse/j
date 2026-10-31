@@ -22,7 +22,6 @@ package org.armedbear.j.vcs.log;
 
 import static org.armedbear.j.Constants.*;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -121,6 +120,31 @@ public final class LogCommands {
         }
         final LogScope scope = LogScope.of(r);
         showFull(editor, LogBuffer.open(scope, startingQuery(editor, LogQuery.file(r.relativePath(file)), scope)));
+    }
+
+    /**
+     * The log of path in repository, at commit id: the whole frame with
+     * its details, the caret on the commit and filePath, the file's path
+     * in that commit, picked out in the files list. From revision when
+     * path is as it has it, an older name than the branches' maybe; null
+     * for every branch.
+     */
+    public static void showCommit(
+            Editor editor,
+            VcsRepository repository,
+            String path,
+            String revision,
+            String id,
+            String filePath) {
+        final LogScope scope = LogScope.of(repository);
+        final LogQuery file =
+                revision == null ? LogQuery.file(path) : LogQuery.file(path).withRevisions(List.of(revision));
+        // Not narrowed by the popup's filters, which could leave the commit out.
+        final LogBuffer log = LogBuffer.open(scope, file);
+        showFull(editor, log);
+        if (log.details != null)
+            log.details.prefer(id, filePath);
+        log.reveal(repository, id, false);
     }
 
     // The repositories a log opens from editor, or says there are none.
@@ -506,15 +530,10 @@ public final class LogCommands {
         final VcsRepository r = host.repositoryOf(commit);
         final String id = commit.id();
         final String path = change.path();
-        Background.then("vcs log revision", () -> r.backend().readFileAt(r, id, path), text -> {
+        RevisionBuffer.read(editor, r, path, id, buffer -> {
             if (host.isDisposed())
                 return;
-            if (text == null) {
-                editor.status("Can't read " + path + " at " + id);
-                return;
-            }
             host.leave(editor.getFrame());
-            final RevisionBuffer buffer = new RevisionBuffer(path, id, new String(text, StandardCharsets.UTF_8));
             VcsStatusMode.showAt(Editor.currentEditor(), buffer, n);
         });
     }

@@ -1635,26 +1635,30 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     public void mouseShowContextMenu() {
         AWTEvent e = dispatcher.getLastEvent();
-        if (e instanceof MouseEvent mouseEvent) {
-            int x = mouseEvent.getX();
-            int y = mouseEvent.getY();
-            popup = buffer.getMode().getContextMenu(this);
-            if (popup != null) {
-                Dimension dimPopup = popup.getPreferredSize();
-                Dimension dimDisplay = display.getSize();
-                int xMax = dimDisplay.width - dimPopup.width - 5;
-                int yMax = dimDisplay.height - dimPopup.height - 5;
-                if (x > xMax)
-                    x = xMax;
-                else
-                    ++x;
-                if (y > yMax)
-                    y = yMax;
-                else
-                    ++y;
-                popup.show(mouseEvent.getComponent(), x, y);
-            }
-        }
+        if (e instanceof MouseEvent mouseEvent)
+            showContextMenu(buffer.getMode().getContextMenu(this), mouseEvent);
+    }
+
+    /** Shows menu at the mouse, kept within the display; nothing for null. */
+    public void showContextMenu(JPopupMenu menu, MouseEvent mouseEvent) {
+        popup = menu;
+        if (popup == null)
+            return;
+        int x = mouseEvent.getX();
+        int y = mouseEvent.getY();
+        Dimension dimPopup = popup.getPreferredSize();
+        Dimension dimDisplay = display.getSize();
+        int xMax = dimDisplay.width - dimPopup.width - 5;
+        int yMax = dimDisplay.height - dimPopup.height - 5;
+        if (x > xMax)
+            x = xMax;
+        else
+            ++x;
+        if (y > yMax)
+            y = yMax;
+        else
+            ++y;
+        popup.show(mouseEvent.getComponent(), x, y);
     }
 
     public final JPopupMenu getPopup() {

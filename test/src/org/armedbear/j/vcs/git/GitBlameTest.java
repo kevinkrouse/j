@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
@@ -49,16 +50,32 @@ public class GitBlameTest {
         return git.git("rev-parse", rev).strip();
     }
 
-    // Each line's commit, blaming text as path.
+    // The whitespace blame ignores.
+    private Whitespace ignored = Whitespace.NONE;
+
+    // Each line's commit, blaming text as path in the working tree.
     private BlameCommit[] blame(String path, String text) {
+        return blame(path, null, text);
+    }
+
+    // Each line's commit, blaming path at revision (null for the working
+    // tree, where text is what is there).
+    private BlameCommit[] blame(String path, String revision, String text) {
         final VcsRepository r = Repositories.forDirectory(git.root);
-        final int n = (int) text.chars().filter(c -> c == '\n').count();
+        final String content = text != null ? text : git.git("show", revision + ":" + path);
+        final int n = (int) content.chars().filter(c -> c == '\n').count();
         final BlameCommit[] commits = new BlameCommit[n];
-        final VcsResult result =
-                r.backend().blame(r, path, text.getBytes(StandardCharsets.UTF_8), (first, count, c) -> {
-                    for (int i = first; i < Math.min((long) first + count, n); i++)
-                        commits[i] = c;
-                });
+        final VcsResult result = r.backend()
+                .blame(
+                    r,
+                    path,
+                    revision,
+                    text == null ? null : text.getBytes(StandardCharsets.UTF_8),
+                    ignored,
+                    (first, count, c, source) -> {
+                        for (int i = first; i < Math.min((long) first + count, n); i++)
+                            commits[i] = c;
+                    });
         assertTrue(result.succeeded(), result.stderr());
         return commits;
     }
@@ -81,6 +98,20 @@ public class GitBlameTest {
         assertEquals(hash("HEAD~"), c[1].previous());
         assertEquals("f.txt", c[1].previousPath());
         assertEquals(1767225600L, c[1].authorTime(), "2026-01-01");
+    }
+
+    @Test
+    public void aWhitespaceChangeIsPassedOverWhenWhitespaceIsIgnored() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a b\nc\n");
+        commitAs("Ann", "first");
+        git.write("f.txt", "a  b\nc\n");
+        commitAs("Bob", "spaces");
+        assertEquals("Bob", blame("f.txt", "a  b\nc\n")[0].author());
+        // git ignores all of it or none: any kind is all.
+        ignored = Whitespace.AMOUNT;
+        assertEquals("Ann", blame("f.txt", "a  b\nc\n")[0].author());
+        assertEquals("Ann", blame("f.txt", "HEAD", null)[0].author(), "a revision too");
     }
 
     @Test
@@ -135,6 +166,71 @@ public class GitBlameTest {
     }
 
     @Test
+    public void aRevisionIsBlamedAsItIs() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\nb\nc\n");
+        commitAs("Ann", "first");
+        git.write("f.txt", "a\nB\nc\n");
+        commitAs("Bob", "second");
+        // HEAD~ is the file as the first commit had it: every line Ann's.
+        final BlameCommit[] c = blame("f.txt", "HEAD~", null);
+        assertEquals(3, c.length);
+        assertEquals("Ann", c[0].author());
+        assertEquals("Ann", c[1].author());
+        assertEquals("Ann", c[2].author());
+        assertEquals(hash("HEAD~"), c[0].hash());
+    }
+
+    @Test
+    public void theSourceLineIsWhereTheCommitHadIt() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\nb\nc\n");
+        commitAs("Ann", "first");
+        // A line pushed down by an insertion above it: 'a' is line 1 now,
+        // line 0 in the first commit's version.
+        git.write("f.txt", "new\na\nb\nc\n");
+        commitAs("Bob", "insert");
+        final int[] sources = new int[4];
+        final VcsRepository r = Repositories.forDirectory(git.root);
+        final VcsResult result = r.backend()
+                .blame(
+                    r,
+                    "f.txt",
+                    null,
+                    "new\na\nb\nc\n".getBytes(StandardCharsets.UTF_8),
+                    Whitespace.NONE,
+                    (first, count, c, source) -> {
+                        for (int i = first; i < Math.min((long) first + count, sources.length); i++)
+                            sources[i] = source + (i - first);
+                    });
+        assertTrue(result.succeeded(), result.stderr());
+        assertEquals(0, sources[1], "'a' was line 0 in its commit");
+        assertEquals(1, sources[2], "'b' was line 1");
+        assertEquals(2, sources[3], "'c' was line 2");
+        assertEquals(0, sources[0], "the new line is its commit's line 0");
+    }
+
+    @Test
+    public void theCommitterTimeIsRead() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\n");
+        // Authored a day before it was committed.
+        final java.util.Map<String, String> env = new java.util.HashMap<>(GitFixture.ENV);
+        env.put("GIT_AUTHOR_DATE", "@1767225600 +0000"); // 2026-01-01
+        env.put("GIT_COMMITTER_DATE", "@1767312000 +0000"); // 2026-01-02
+        GitCli.testEnvironment = env;
+        try {
+            git.commitAll("first");
+        }
+        finally {
+            GitCli.testEnvironment = GitFixture.ENV;
+        }
+        final BlameCommit[] c = blame("f.txt", "a\n");
+        assertEquals(1767225600L, c[0].authorTime(), "2026-01-01");
+        assertEquals(1767312000L, c[0].committerTime(), "committed a day later");
+    }
+
+    @Test
     public void groupsSplitAcrossChunksAnywhereAreReadTheSame() {
         final String out = """
                            1111111111111111111111111111111111111111 1 1 2
@@ -154,14 +250,14 @@ public class GitBlameTest {
         for (int split = 1; split < bytes.length; split += 7) {
             final List<String> runs = new ArrayList<>();
             final GitBlame.Parser p = new GitBlame.Parser(
-                    (first, count, c) -> runs.add(first + "+" + count + " " + c.author() + " " + c.previous()));
+                    (first, count, c, source) -> runs.add(first + "+" + count + " " + c.author() + " " + c.previous()));
             p.feed(Arrays.copyOfRange(bytes, 0, split));
             p.feed(Arrays.copyOfRange(bytes, split, bytes.length));
             assertEquals(List.of("0+2 Ann null", "2+1 Bob 1111111111111111111111111111111111111111"), runs);
         }
         // Cut short: the last group told at the end.
         final List<String> runs = new ArrayList<>();
-        final GitBlame.Parser p = new GitBlame.Parser((first, count, c) -> runs.add(first + "+" + count));
+        final GitBlame.Parser p = new GitBlame.Parser((first, count, c, source) -> runs.add(first + "+" + count));
         p.feed("1111111111111111111111111111111111111111 1 4 2\nauthor Ann".getBytes(StandardCharsets.UTF_8));
         p.finish();
         assertEquals(List.of("3+2"), runs);

@@ -554,6 +554,12 @@ public class CommandTable {
             add("vcsLogFile", LogCommands::vcsLogFile);
             add("vcsLogQuick", LogCommands::vcsLogQuick);
             add("vcsBlame", BlameCommands::vcsBlame);
+            add("vcsBlameCopyHash", BlameCommands::vcsBlameCopyHash);
+            add("vcsBlameCopyMessage", BlameCommands::vcsBlameCopyMessage);
+            add("vcsBlameDiff", BlameCommands::vcsBlameDiff);
+            add("vcsBlameParent", BlameCommands::vcsBlameParent);
+            add("vcsBlameRevision", BlameCommands::vcsBlameRevision);
+            add("vcsBlameShowCommit", BlameCommands::vcsBlameShowCommit);
             add("vcsStatus", VcsStatusMode::vcsStatus);
             add("google", e -> WebMode.google(), (e, s) -> WebMode.google(s));
             add("gotoFile", e -> GotoFile.gotoFile());

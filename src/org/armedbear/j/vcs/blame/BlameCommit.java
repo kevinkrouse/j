@@ -24,19 +24,20 @@ package org.armedbear.j.vcs.blame;
  * The commit a run of lines was last changed in, as blame says, shared by
  * every line of it.
  *
- * @param hash         the commit; all zeros for lines not committed yet
- * @param authorTime   seconds since the epoch
- * @param path         the file's path in the commit, as a rename left it
- * @param previous     the commit before it that changed the file, or null
- * @param previousPath the file's path there, or null
- * @param boundary     whether it is where the history blame read ends
+ * @param hash          the commit; all zeros for lines not committed yet
+ * @param authorTime    the author date, seconds since the epoch
+ * @param committerTime the commit date, seconds since the epoch
+ * @param path          the file's path in the commit, as a rename left it
+ * @param previous      the commit before it that changed the file, or null
+ * @param previousPath  the file's path there, or null
+ * @param boundary      whether it is where the history blame read ends
  */
-public record BlameCommit(String hash, String author, String authorMail, long authorTime, String summary, String path,
-        String previous, String previousPath, boolean boundary) {
+public record BlameCommit(String hash, String author, String authorMail, long authorTime, long committerTime,
+        String summary, String path, String previous, String previousPath, boolean boundary) {
 
     /** The commit of lines not committed yet, of path in the working tree. */
     public static BlameCommit uncommitted(String path) {
-        return new BlameCommit("0".repeat(40), "Not Committed Yet", "", 0, "", path, null, null, false);
+        return new BlameCommit("0".repeat(40), "Not Committed Yet", "", 0, 0, "", path, null, null, false);
     }
 
     /** Whether its lines are not committed yet. */
@@ -46,7 +47,11 @@ public record BlameCommit(String hash, String author, String authorMail, long au
 
     /** Told of each run of lines blame reads, as it reads them. */
     public interface Sink {
-        /** count lines from first, counted from 0, were last changed in commit; count may run past the last. */
-        void lines(int first, int count, BlameCommit commit);
+        /**
+         * count lines from first, counted from 0, were last changed in
+         * commit; count may run past the last. source is first's line in
+         * commit's version of the file, counted from 0.
+         */
+        void lines(int first, int count, BlameCommit commit, int source);
     }
 }

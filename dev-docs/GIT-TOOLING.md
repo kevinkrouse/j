@@ -1936,6 +1936,20 @@ plan with why it is left, before the next phase starts.
      blamed at that revision (`git blame <rev> -- <path>`), the caret on
      the line nearest; going back is the buffer list's. A boundary
      commit has no parent, said.
+     Built: the tool tip is `Display`'s multi-line one (spaces kept, tabs
+     to the next 8th column), refreshed in place when the message
+     arrives (`Display.refreshToolTip`); `Blame.readMessage` caches by
+     hash. The column's right-click menu: Show Commit, Diff (side by
+     side), Copy Hash, Copy Message, Blame Revision, Blame Parent
+     (disabled with no parent), Hide Blame, each a `vcsBlame…` command;
+     the editor's menu offers Show/Hide Blame through
+     `AbstractMode.registerContextMenuItems`, so core imports no blame.
+     What a buffer blames is `vcs/FileRevision` (repository, path,
+     revision), which `RevisionBuffer` implements; `RevisionBuffer.read`
+     is the log's and blame's. A commit shown from blame opens the log
+     without the opening filters' narrowing. Blame follows
+     `diffIgnoreWhitespace`: git blame honors only `-w`, so any value but
+     `none` passes it, and a change of it reads again.
    - **f. The current line's blame.** `vcsLineBlame`, on by default: `EOL`
      virtual text (`vcs.blame.line`) on the caret's line after the caret
      rests 500 ms, `kkrouse, 2 days ago · summary`, dimmed; "Not committed
@@ -1944,6 +1958,89 @@ plan with why it is left, before the next phase starts.
      in the background once per buffer shown, so a file never blamed
      pays one `git blame` when it is first looked at; files over
      `vcsBlameMaxLines` (10,000) get none.
+     Detailed plan:
+     - *Preferences* (`Property`, next to `VCS_BLAME_FORMAT`):
+       `vcsLineBlame` (true) and `vcsBlameMaxLines` (10000; (g) shares
+       it). Both read per buffer (`buffer.getBooleanProperty`), so a mode
+       or file can turn it off.
+     - *Where it lives:* `vcs/blame/LineBlame`, one for the app
+       (static, as `DiffWhitespace`), following the current editor. One
+       non-repeating Swing `Timer` of `Blame.DELAY_MILLIS`. It keeps the
+       `Editor` and `Line` it last showed on, and the `Blame` it listens
+       to with its own `Runnable`.
+     - *The hook:* core must not import blame (the review's #10). Add a
+       registry as `AbstractMode.registerContextMenuItems` did:
+       `Editor.registerAfterCommand(Consumer<Editor>)`, a
+       `CopyOnWriteArrayList` run at the end of `Editor.commandRan()`,
+       registered in the `BuiltinModes` constructor next to the context
+       menu's. Check first that a mouse click that moves the caret, a
+       scroll wheel, and a window switch by mouse all reach
+       `commandRan` (`Dispatcher` line ~205); whatever does not needs the
+       same call, or the text goes stale. `Buffer.afterCommand` is not
+       the hook: it is a subclass's, and file buffers are plain `Buffer`.
+     - *After each command:* if the caret's line (or editor, or buffer)
+       differs from what is shown, clear `vcs.blame.line` from the old
+       buffer's layer at once (`getVirtualText().clear(owner)`) and
+       restart the timer; same line, leave it (typing on it is
+       handled below). Cheap: no git, no allocation beyond the check;
+       this runs on every key.
+     - *When the timer fires* (on the EDT): give up unless the editor is
+       still current, its buffer qualifies, and `vcsLineBlame` is on.
+       Qualifies: `Blame.canBlame(buffer)` (a file in a repository that
+       blames, or a `FileRevision`), not a `WebBuffer`, line count ≤
+       `vcsBlameMaxLines`. Then `Blame.of(buffer)`, add the listener if
+       it is not this buffer's already (moving off a buffer removes it
+       from the old one, so its blame stops being read and is dropped
+       when the column is off too), and show from `data()`; when the
+       data is not there yet the listener shows it on arrival, if the
+       caret is still on that line.
+     - *The text:* `BlameData.commit(line)`. Committed:
+       `author, age · summary`, the author as the column's `%A`, the age
+       `TimeStyle.age` spelled out (`2 days ago`, `now` as `just now`;
+       add `TimeStyle.ageWords` beside `age` rather than parsing it).
+       `isUncommitted()` or `NOT_COMMITTED`: `Not committed yet`. No
+       commit for the line yet (still streaming): nothing. One `Run`,
+       color null (dimmed), as `VirtualText.eol(line, runs)`. Give the
+       run an action that runs `vcsBlameShowCommit` and a tooltip of the
+       hash, so it is clickable as the column is; check `Display` draws
+       EOL runs' actions and tooltips, else leave both null.
+     - *Skipped when the column says it:* the buffer has a `BlameColumn`
+       and the line is the first of its commit's run (or the window's top
+       row, where the column also writes it). Expose that from
+       `BlameColumn` (it already decides it to paint) rather than
+       recomputing.
+     - *Kept fresh:* the blame listener re-shows on each read (the
+       line's commit may change after a save or a commit). An edit on
+       the shown line makes `commit(line)` `NOT_COMMITTED`; re-show it
+       from a `Buffer.Follower.textChanged` only once the caret rests
+       again (restart the timer, don't redraw on each key). Turning
+       `vcsLineBlame` off (preferences reload) clears it everywhere.
+     - *Cost:* every buffer shown and rested in pays one `git blame`,
+       and one more after each save or HEAD/refs change while it stays
+       the current buffer. Measure with this repository's `Editor.java`
+       (`bb drive`, `CommandLog`); if a save's re-read is noticeable, have
+       a line-blame-only listener skip the save's re-read (the text sent
+       is the buffer's, so only NOT_COMMITTED lines differ), and say so
+       here.
+     - *Several repositories:* nothing new: `Blame.of` already blames a
+       file in its own repository, nested ones included.
+     - *Tests* (`LineBlameTest`, `EditorHarness` and `GitFixture` as
+       `BlameColumnTest`; drive the timer by calling its action, not by
+       sleeping): the text after resting on a committed line; cleared on
+       moving to another line and shown there after; `Not committed yet`
+       on an edited line; none on a run's first line with the column on,
+       shown on its second; none over `vcsBlameMaxLines`; none with the
+       preference off; none for an untracked file and outside a
+       repository; the listener moves with the buffer (the old buffer's
+       `getBlame()` null after switching away when the column is off);
+       a `RevisionBuffer` shows its revision's blame.
+     - *Docs:* `doc/preferences.html` (`vcsLineBlame`, `vcsBlameMaxLines`,
+       in the style of `vcsSigns`), `doc/git.html`'s Blame section, and
+       the screenshot check under Xvfb (`bb drive`): rest on a line of
+       `src/org/armedbear/j/Editor.java`, shot; move, shot.
+     - *Not in f:* a key or command to toggle it (the preference is
+       enough until asked; a command would be `vcsToggleLineBlame`, and
+       vim only binds it), and (g)'s authors.
    - **g. Authors of a method.** `vcsCodeAuthors`, off by default (a
      line over every method is noisy): an
      `ABOVE` line (`vcs.blame.authors`) over each method and class the

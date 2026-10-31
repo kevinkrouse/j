@@ -503,6 +503,16 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
                     at.column().clicked(editor, at.line(), at.x(), at.y());
                 return true;
             }
+            if (at != null && button == MouseEvent.BUTTON3 && modifiers == 0 && e.getClickCount() == 1) {
+                final JPopupMenu menu = at.column().contextMenu(editor, at.line(), at.x(), at.y());
+                if (menu != null) {
+                    // Its items act on the caret's line.
+                    editor.moveDotTo(at.line(), 0);
+                    editor.updateDisplay();
+                    editor.showContextMenu(menu, e);
+                    return true;
+                }
+            }
             Position pos = display.positionFromPoint(x, y);
             if (button == MouseEvent.BUTTON1 && modifiers == 0 && display.isChangeMarkAt(x, pos.getLine())) {
                 editor.moveDotTo(pos.getLine(), 0);

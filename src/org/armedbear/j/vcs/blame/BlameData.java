@@ -39,6 +39,7 @@ public final class BlameData implements BlameCommit.Sink {
     private final List<String> texts = new ArrayList<>();
     private final Map<Line, BlameCommit> commits = new IdentityHashMap<>();
     private final Map<Line, String> blamed = new IdentityHashMap<>();
+    private final Map<Line, Integer> sources = new IdentityHashMap<>();
     private volatile boolean done;
     private volatile String error;
 
@@ -50,11 +51,12 @@ public final class BlameData implements BlameCommit.Sink {
     }
 
     @Override
-    public synchronized void lines(int first, int count, BlameCommit commit) {
+    public synchronized void lines(int first, int count, BlameCommit commit, int source) {
         final long end = Math.min((long) first + count, lines.size());
         for (int i = first; i < end; i++) {
             commits.put(lines.get(i), commit);
             blamed.put(lines.get(i), texts.get(i));
+            sources.put(lines.get(i), source + (i - first));
         }
     }
 
@@ -69,6 +71,15 @@ public final class BlameData implements BlameCommit.Sink {
 
     /** A line's commit when it has changed since it was blamed. */
     public static final BlameCommit NOT_COMMITTED = BlameCommit.uncommitted(null);
+
+    /**
+     * The line's number in its commit's own version of the file, counted
+     * from 0; -1 when the line is unknown or has changed.
+     */
+    public synchronized int sourceLine(Line line) {
+        final BlameCommit c = commit(line);
+        return c == null || c.isUncommitted() ? -1 : sources.getOrDefault(line, -1);
+    }
 
     /** The commits read so far, each once, in the order first read. */
     public synchronized Set<BlameCommit> commits() {

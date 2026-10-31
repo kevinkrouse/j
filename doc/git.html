@@ -246,7 +246,10 @@ holds until j exits, starting from
 <a href="preferences.html#diffIgnoreWhitespace">diffIgnoreWhitespace</a>.
 While whitespace is ignored, a hunk's lines are git's with it ignored, which
 can't be applied: whole files are staged, unstaged and discarded, and a hunk
-or lines are not.
+or lines are not. <a href="commands.html#vcsBlame">Blame</a> ignores it too,
+read again as it changes: a line whose last change was only whitespace is
+its older commit's. git blame ignores all whitespace or none, so any choice
+blames with <code>-w</code>.
 
 <h2><a name="staging">Staging and discarding</a></h2>
 
