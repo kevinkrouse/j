@@ -1,7 +1,7 @@
 /*
  * RemoteShellBuffer.java
  *
- * Copyright (C) 2013 Kevin Krouse
+ * Copyright (C) 2013-2026 Kevin Krouse
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

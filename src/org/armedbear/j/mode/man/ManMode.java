@@ -1,6 +1,7 @@
 // ManMode.java
 //
 // Copyright (C) 2000-2006 Peter Graves <peter@armedbear.org>
+// Copyright (C) 2013-2026 Kevin Krouse
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License

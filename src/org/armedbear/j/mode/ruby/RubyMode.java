@@ -2,6 +2,7 @@
  * RubyMode.java
  *
  * Copyright (C) 2002 Jens Luedicke <jens@irs-net.com>
+ * Copyright (C) 2012-2026 Kevin Krouse
  * based on PythonMode.java
  *
  * This program is free software; you can redistribute it and/or

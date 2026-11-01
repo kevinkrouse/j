@@ -2,6 +2,7 @@
  * BufferList.java
  *
  * Copyright (C) 1998-2004 Peter Graves, Mike Rutter
+ * Copyright (C) 2013-2026 Kevin Krouse
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
