@@ -2369,12 +2369,22 @@ Completes the version control checkin, with the buffer as the comment. This comm
 
 <a name="fold">fold</a><dl><dd>
 <p>
-Creates a fold at (or near) the current location of the caret.
+Folds the innermost open fold around the caret's line, as vim's
+<code>zc</code> does: on a fold's first line, that fold; on one already
+closed, the fold around it. The caret goes to the fold's first line,
+which stays in sight, followed by how many lines the fold hides
+(<code>… 12 lines</code>, after <a href="preferences.html#foldSymbol">foldSymbol</a>);
+a click on the count opens the fold. With a selection of whole lines, folds those; on
+an explicit fold's marker, the lines between its markers.
 <p>
-What a fold takes in is the mode's to say. In Markdown mode it is the
-code in a fence or an indented code block, the lines under a list item, or
-the section under a heading down to the next heading as high; folding where
-that is already folded folds the one around it.
+What a fold takes in is the mode's to say, as the gutter's chevrons
+show. In Java, C, JavaScript and PHP modes it is a block in braces,
+from the line its statement starts on, so a wrapped signature folds
+from its first line; a comment of several lines; or a run of imports.
+In Markdown mode it is the code in a fence or an indented code block,
+the lines under a list item, or the section under a heading down to the
+next heading as high. Other modes fold the lines indented under a
+line.
 <br><br>
 <b>Default key mapping:</b> Ctrl [ in Java, C, C++ and Perl modes
 <br><br>
@@ -2409,7 +2419,8 @@ before the first heading is left alone.
 
 <a name="foldMethods">foldMethods</a><dl><dd>
 <p>
-Folds all the methods in the current buffer.
+Folds the body of each method in the current buffer, in Java and Perl
+modes, as <a href="#fold">fold</a> would at the method's first line.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -5565,8 +5576,8 @@ Swaps the case of every letter in the selection.
 
 <a name="toggleFold">toggleFold</a><dl><dd>
 <p>
-Unfolds the fold just below the caret's line if there is one, else
-<a href="#fold">folds</a> there.
+Unfolds the fold the caret's line heads if it is closed, else
+<a href="#fold">folds</a> the one around the caret.
 <br><br>
 <b>Default key mapping:</b> <code>za</code> in
 <a href="editmodes.html">vim edit mode</a>
@@ -6000,7 +6011,8 @@ Unfolds all the folds in the current buffer.
 
 <a name="unfoldHere">unfoldHere</a><dl><dd>
 <p>
-Unfolds the fold just below the caret's line, and only that one. Where
+Unfolds the fold the caret's line heads, and only that one, as vim's
+<code>zo</code> does; a fold inside it stays as it was. Where
 <a href="#unfold">unfold</a> opens the next fold wherever it is.
 <br><br>
 <b>Default key mapping:</b> <code>zo</code> in

@@ -24,24 +24,127 @@ package org.armedbear.j;
 import static org.armedbear.j.Constants.*;
 
 import java.util.List;
-import java.util.regex.Pattern;
-import org.armedbear.j.mode.c.CMode;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.perl.PerlMode;
 
 /** Folding: hiding and showing runs of lines. */
 public final class FoldCommands {
-    private static final Pattern LABEL = Pattern.compile("^\\s*\\w+:");
-
     private FoldCommands() {}
 
+    /**
+     * Folds the selection, an explicit fold's markers, or the innermost
+     * open fold around the caret's line, as vim's zc: on a fold's first
+     * line, that fold; on one already closed, the fold around it.
+     */
     public static void fold(Editor editor) {
         if (editor.getDot() == null)
             return;
         if (editor.getBuffer().getFolds().setFoldAt(editor, editor.getDotLine(), false))
             return;
         if (!foldRegionInternal(editor) && !foldExplicit(editor) && !foldByMode(editor))
-            foldNearLine(editor, editor.getDotLine());
+            foldAt(editor, editor.getDotLine());
+    }
+
+    /** Folds the innermost open fold around line, past one it heads that is closed; says if there is none. */
+    public static void foldAt(Editor editor, Line line) {
+        final Buffer buffer = editor.getBuffer();
+        final Folds folds = buffer.getFolds();
+        // Folds of the buffer's own, as a status's.
+        if (folds.setFoldAt(editor, line, false))
+            return;
+        final Line[] around = foldAround(buffer, line, true, Integer.MAX_VALUE, l -> folds.isFoldStart(buffer, l));
+        final Line[] below = around == null ? null : folds.getFoldBelow(buffer, around[0]);
+        if (below == null) {
+            editor.status("No fold here");
+            return;
+        }
+        hideLines(editor, below[0], below[1].next());
+    }
+
+    /**
+     * Closes the folds a file opens with, as the preferences say: its
+     * header comment, its imports, its class's documentation; not one the
+     * caret is in.
+     */
+    public static void foldOnOpen(Editor editor) {
+        final Buffer buffer = editor.getBuffer();
+        if (ownFolds(editor) || buffer.getType() != Buffer.TYPE_NORMAL || editor.getDot() == null)
+            return;
+        final Folds folds = buffer.getFolds();
+        final int dot = editor.getDotLineNumber();
+        boolean hid = false;
+        for (Folds.Initial kind : Folds.Initial.values()) {
+            if (!buffer.getBooleanProperty(kind.property()))
+                continue;
+            final Line head = folds.initialFold(buffer, kind);
+            final Line[] below = head == null ? null : folds.getFoldBelow(buffer, head);
+            if (below == null || below.length != 2 || dot >= below[0].lineNumber() && dot <= below[1].lineNumber())
+                continue;
+            for (Line l = below[0]; l != below[1].next(); l = l.next())
+                l.hide();
+            hid = true;
+        }
+        if (hid)
+            buffer.renumber();
+    }
+
+    /**
+     * The lines after line in the run of lines member takes that line
+     * starts, blank lines among them but not after; null if line starts
+     * none, follows another of the run, or is alone.
+     */
+    public static Line[] runBelow(Line line, java.util.function.Predicate<Line> member) {
+        if (!member.test(line))
+            return null;
+        Line previous = line.previous();
+        while (previous != null && previous.isBlank())
+            previous = previous.previous();
+        if (previous != null && member.test(previous))
+            return null;
+        Line last = line;
+        for (Line l = line.next(); l != null && (l.isBlank() || member.test(l)); l = l.next())
+            if (!l.isBlank())
+                last = l;
+        return last == line ? null : new Line[] { line.next(), last };
+    }
+
+    /** Whether line is its buffer's first that isn't blank. */
+    public static boolean isFirst(Line line) {
+        for (Line l = line.previous(); l != null; l = l.previous())
+            if (!l.isBlank())
+                return false;
+        return true;
+    }
+
+    /**
+     * The first and last lines of the innermost open fold around line, a
+     * closing brace after it included; null if there is none within reach
+     * lines above. A fold line heads that is closed is passed over to the
+     * one around it when pastClosed, else there is none.
+     */
+    public static Line[] foldAround(
+            Buffer buffer,
+            Line line,
+            boolean pastClosed,
+            int reach,
+            java.util.function.Predicate<Line> isFoldStart) {
+        final Folds folds = buffer.getFolds();
+        for (Line start = line; start != null && reach-- >= 0; start = start.previous()) {
+            if (start.isHidden() || !isFoldStart.test(start))
+                continue;
+            if (folds.isFolded(start)) {
+                if (start == line && !pastClosed)
+                    return null;
+                continue;
+            }
+            final Line[] below = folds.getFoldBelow(buffer, start);
+            if (below == null || below.length != 2)
+                continue;
+            final Line last = throughClosing(buffer, start, below[1]);
+            if (last.lineNumber() >= line.lineNumber())
+                return new Line[] { start, last };
+        }
+        return null;
     }
 
     /** Unfolds the fold just below the caret's line, else folds there. */
@@ -260,135 +363,6 @@ public final class FoldCommands {
         return true;
     }
 
-    public static void foldNearLine(Editor editor, Line line) {
-        while (line != null && line.isBlank())
-            line = line.previous();
-        if (line == null)
-            return;
-        if (editor.getBuffer().getFolds().setFoldAt(editor, line, false))
-            return;
-        editor.setWaitCursor();
-        Line next = line.next();
-        while (next != null && next.isBlank())
-            next = next.next();
-        if (next != null) {
-            final String trim = line.trim();
-            final Mode mode = editor.getMode();
-            if (mode.foldsAtBraces()) {
-                if (trim.endsWith("{")) {
-                    if (!next.isHidden()) {
-                        fold(editor, next);
-                        return;
-                    }
-                }
-                if (trim.startsWith("}")) {
-                    // We're at the end of a code block. Find the start of
-                    // the block and fold from there.
-                    Position end = new Position(line, line.getText().indexOf('}'));
-                    Position start = CaretCommands.findMatchInternal(editor, end, 0);
-                    if (start != null) {
-                        foldNearLine(editor, start.getLine());
-                        return;
-                    }
-                }
-                if (next.trim().startsWith("}")) {
-                    // Fold block containing current line.
-                    Position end = new Position(next, next.getText().indexOf('}'));
-                    Position start = CaretCommands.findMatchInternal(editor, end, 0);
-                    if (start != null) {
-                        foldNearLine(editor, start.getLine());
-                        return;
-                    }
-                } else if (next.trim().endsWith("{")) {
-                    Line nextNext = next.next();
-                    while (nextNext != null && nextNext.isBlank())
-                        nextNext = nextNext.next();
-                    if (nextNext != null && !nextNext.isHidden()) {
-                        fold(editor, nextNext);
-                        return;
-                    }
-                }
-            } else if (mode.foldsAtTags()) {
-                if (trim.startsWith("/>") || trim.startsWith("</")) {
-                    Line prev = line.previous();
-                    while (prev != null && prev.isBlank())
-                        prev = prev.previous();
-                    if (prev != null) {
-                        int indent = editor.getBuffer().getCol(line, line.getIndentation());
-                        int prevIndent = editor.getBuffer().getCol(prev, prev.getIndentation());
-                        if (indent < prevIndent) {
-                            fold(editor, prev);
-                            return;
-                        }
-                    }
-                } else if (trim.startsWith("<")) {
-                    int indent = editor.getBuffer().getCol(line, line.getIndentation());
-                    int nextIndent = editor.getBuffer().getCol(next, next.getIndentation());
-                    if (indent < nextIndent) {
-                        fold(editor, next);
-                        return;
-                    }
-                }
-            }
-        }
-        fold(editor, line);
-    }
-
-    private static void fold(Editor editor, Line target) {
-        if (target == null)
-            return;
-        int indent = editor.getBuffer().getCol(target, target.getIndentation());
-        if (indent == 0)
-            return;
-        Line begin = target;
-        while (true) {
-            Line prev = begin.previous();
-            if (prev == null)
-                break;
-            if (prev.isBlank()
-                    || editor.getMode().isCommentLine(prev)
-                    || isLabelLine(editor, prev)
-                    || isPreprocessorLine(editor, prev)) {
-                begin = prev;
-                continue;
-            }
-            if (editor.getBuffer().getCol(prev, prev.getIndentation()) < indent)
-                break;
-            if (prev.getText().endsWith("{"))
-                break;
-            begin = prev;
-        }
-        Line end = target.next();
-        while (end != null) {
-            if (end.isBlank()
-                    || editor.getMode().isCommentLine(end)
-                    || isLabelLine(editor, end)
-                    || isPreprocessorLine(editor, end)) {
-                end = end.next();
-                continue;
-            }
-            if (editor.getBuffer().getCol(end, end.getIndentation()) < indent)
-                break;
-            end = end.next();
-        }
-        hideLines(editor, begin, end);
-    }
-
-    private static boolean isLabelLine(Editor editor, Line line) {
-        Mode mode = editor.getMode();
-        if (mode instanceof JavaMode || mode instanceof PerlMode)
-            return LABEL.matcher(line.getText()).find();
-        return false;
-    }
-
-    private static boolean isPreprocessorLine(Editor editor, Line line) {
-        if (editor.getMode() instanceof CMode)
-            if (line.trim().startsWith("#"))
-                return true;
-
-        return false;
-    }
-
     // Whether the buffer's folds are its own, not its mode's, as a
     // comparison's unchanged runs: not lines hidden by structure.
     private static boolean ownFolds(Editor editor) {
@@ -532,68 +506,32 @@ public final class FoldCommands {
                 editor.addUndo(SimpleEdit.FOLD);
                 for (Line line = editor.getBuffer().getFirstLine(); line != null; line = line.next())
                     line.show();
-                for (int i = 0; i < tags.size(); i++) {
-                    LocalTag tag = tags.get(i);
-                    if (tag.getType() == TAG_METHOD)
-                        foldMethod(editor, tag.getLine());
+                final Buffer buffer = editor.getBuffer();
+                final Folds folds = buffer.getFolds();
+                for (LocalTag tag : tags) {
+                    if (tag.getType() != TAG_METHOD)
+                        continue;
+                    final Line[] below = folds.getFoldBelow(buffer, tag.getLine());
+                    if (below != null && below.length == 2)
+                        for (Line l = below[0]; l != below[1].next(); l = l.next())
+                            l.hide();
                 }
+                buffer.renumber();
                 unhideDotInAllFrames(editor.getBuffer());
             }
         }
     }
 
-    private static void foldMethod(Editor editor, Line line) {
-        foldOrUnfoldMethod(editor, line, true);
-    }
-
+    /** Shows what the method whose tag is on line hides, nested folds too, as going to it wants. */
     public static void unfoldMethod(Editor editor, Line line) {
-        foldOrUnfoldMethod(editor, line, false);
-    }
-
-    private static void foldOrUnfoldMethod(Editor editor, Line line, boolean fold) {
         if (ownFolds(editor))
             return;
-        Mode mode = editor.getMode();
-        while (line != null) {
-            String s = line.trim();
-            s = mode.trimSyntacticWhitespace(s);
-            if (s.endsWith("{"))
-                break;
-            line = line.next();
-        }
-        if (line == null)
+        final Buffer buffer = editor.getBuffer();
+        final Line[] below = buffer.getFolds().getFoldBelow(buffer, line);
+        if (below == null || below.length != 2)
             return;
-        if (line.next() == null)
-            return; // Nothing to fold.
-        Position start = new Position(line, line.length());
-        Line begin = line.next();
-        final SyntaxIterator it = mode.getSyntaxIterator(start);
-        Position match = null;
-        int count = 1;
-        while (true) {
-            char c = it.nextChar();
-            if (c == SyntaxIterator.DONE)
-                break;
-            if (c == '{')
-                ++count;
-            else if (c == '}')
-                --count;
-            if (count == 0) {
-                // Found it!
-                match = it.getPosition();
-                break;
-            }
-        }
-        if (match == null)
-            return;
-        Line end = match.getLine();
-        if (fold) {
-            for (Line toBeHidden = begin; toBeHidden != end && toBeHidden != null; toBeHidden = toBeHidden.next())
-                toBeHidden.hide();
-        } else {
-            for (Line toBeShown = begin; toBeShown != end && toBeShown != null; toBeShown = toBeShown.next())
-                toBeShown.show();
-        }
-        editor.getBuffer().needsRenumbering = true;
+        for (Line l = below[0]; l != below[1].next(); l = l.next())
+            l.show();
+        buffer.renumber();
     }
 }

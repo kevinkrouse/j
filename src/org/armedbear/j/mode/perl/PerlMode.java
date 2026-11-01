@@ -338,9 +338,4 @@ public final class PerlMode extends AbstractMode implements Mode {
         return true;
     }
 
-    @Override
-    public boolean foldsAtBraces() {
-        return true;
-    }
-
 }

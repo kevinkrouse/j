@@ -206,6 +206,11 @@ public final class Property implements Comparable<Property> {
     public static final Property FOLD_MARKERS = createProperty("foldMarkers", "hover");
     // What comes before a closed fold's count, as "… 12 lines".
     public static final Property FOLD_SYMBOL = createProperty("foldSymbol", "\u2026");
+    // The folds a file opens with closed: the comment at its top, its
+    // imports, its class's documentation.
+    public static final Property FOLD_HEADER_COMMENT = createProperty("foldHeaderComment", true);
+    public static final Property FOLD_IMPORTS = createProperty("foldImports", true);
+    public static final Property FOLD_CLASS_DOC = createProperty("foldClassDoc", false);
     public static final Property FONT_NAME = createProperty("fontName", "Monospaced");
     // "auto/true/false" See Display.resolveLigatures().
     public static final Property LIGATURES = createProperty("ligatures", "auto");

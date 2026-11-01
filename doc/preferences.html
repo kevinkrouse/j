@@ -1048,6 +1048,39 @@ in the background. The old list is used until the new one is ready.
 <b>Default value:</b> 30
 </dl>
 
+<code><a name="foldClassDoc">foldClassDoc</a></code>
+<dl>
+<dd>
+If true, a file opens with the documentation comment of its class, the
+first one after the imports, folded. Java, C, JavaScript and PHP modes.
+<p>
+<b>Default value:</b> false
+</dl>
+
+<code><a name="foldHeaderComment">foldHeaderComment</a></code>
+<dl>
+<dd>
+If true, a file opens with the comment at its top, as a license, folded
+under its first line: a block comment, or a run of line comments. A
+documentation comment there is the class's unless a package or imports
+follow it. Java, C, JavaScript, PHP and Python modes. The fold the caret
+opens in stays open.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="foldImports">foldImports</a></code>
+<dl>
+<dd>
+If true, a file opens with its imports folded under the first: Java's
+and JavaScript's <code>import</code>s, C's <code>#include</code>s,
+Python's <code>import</code> and <code>from</code> lines. Each of these
+folds can be set for one mode alone, as
+<code>PythonMode.foldImports=false</code>.
+<p>
+<b>Default value:</b> true
+</dl>
+
 <code><a name="foldMarkers">foldMarkers</a></code>
 <dl>
 <dd>
@@ -1060,7 +1093,8 @@ When the gutter shows the chevron where an open fold begins: <code>hover</code> 
 <dl>
 <dd>
 What comes before the count of lines a closed fold hides, as in
-<code>… 12 lines</code>, in a comparison and the log's collapsed runs: any
+<code>… 12 lines</code>, after the line over a fold in the editor, in a
+comparison and in the log's collapsed runs: any
 text, such as <code>⋯</code> or a Nerd Font glyph, which the font must have.
 <p>
 <b>Default value:</b> …

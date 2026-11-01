@@ -2658,15 +2658,63 @@ public class Buffer extends SystemBuffer {
         folded = false;
         lineCount = 0;
         visibleLineCount = 0;
+        final List<Fold> closed = new ArrayList<>();
+        Line shown = null;
+        int hidden = 0;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             line.setLineNumber(lineCount++);
-            if (line.isHidden())
+            if (line.isHidden()) {
                 folded = true;
-            else
-                ++visibleLineCount;
+                hidden++;
+                continue;
+            }
+            if (hidden > 0 && shown != null)
+                closed.add(new Fold(shown, hidden));
+            hidden = 0;
+            shown = line;
+            ++visibleLineCount;
         }
+        if (hidden > 0 && shown != null)
+            closed.add(new Fold(shown, hidden));
         needsRenumbering = false;
+        if (labelsFolds())
+            labelFolds(closed);
     }
+
+    // A closed fold: the line shown over it and how many lines it hides.
+    private record Fold(Line over, int count) {}
+
+    // The closed folds labeled last.
+    private List<Fold> foldsLabeled = List.of();
+
+    /** Whether its closed folds get a count, as the editor's do; not a view's, which labels its own. */
+    protected boolean labelsFolds() {
+        return getFolds() == mode;
+    }
+
+    // Each closed fold's count after the line over it, "… 12 lines", nearest
+    // the text; a click opens it.
+    private void labelFolds(List<Fold> closed) {
+        if (closed.equals(foldsLabeled))
+            return;
+        foldsLabeled = closed;
+        final List<VirtualText> labels = new ArrayList<>();
+        for (Fold f : closed) {
+            final Line next = f.over().next();
+            final VirtualText.Run run =
+                    VirtualText.Run.of(Folds.label(f.count() + (f.count() == 1 ? " line" : " lines")))
+                            .withAction(() -> {
+                                final Editor editor = Editor.currentEditor();
+                                if (editor != null && editor.getBuffer() == this)
+                                    FoldCommands.unfold(editor, next);
+                            }, "Show them");
+            labels.add(VirtualText.eol(f.over(), List.of(run)).withPriority(-1));
+        }
+        getVirtualText().set(FOLD_LABELS, labels);
+    }
+
+    /** The virtual text owner of the closed folds' counts. */
+    public static final String FOLD_LABELS = "fold.count";
 
     /** What its folds are: its mode's, unless it has its own. */
     public Folds getFolds() {

@@ -38,6 +38,7 @@ import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expression;
 import org.armedbear.j.FoldCommands;
+import org.armedbear.j.Folds;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.IndentCommands;
 import org.armedbear.j.KeyMap;
@@ -247,6 +248,21 @@ public class JavaMode extends AbstractMode implements Mode {
     @Override
     public void foldAll(Editor editor) {
         FoldCommands.foldMethods(editor);
+    }
+
+    @Override
+    public boolean isFoldStart(Buffer buffer, Line line) {
+        return BraceFolds.isFoldStart(buffer, line);
+    }
+
+    @Override
+    public Line[] getFoldBelow(Buffer buffer, Line line) {
+        return BraceFolds.getFoldBelow(buffer, line);
+    }
+
+    @Override
+    public Line initialFold(Buffer buffer, Folds.Initial kind) {
+        return BraceFolds.initialFold(buffer, kind);
     }
 
     @Override
@@ -1301,11 +1317,6 @@ public class JavaMode extends AbstractMode implements Mode {
 
     @Override
     public boolean supportsIndentBeforeBrace() {
-        return true;
-    }
-
-    @Override
-    public boolean foldsAtBraces() {
         return true;
     }
 

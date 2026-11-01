@@ -1030,9 +1030,4 @@ public final class XmlMode extends AbstractMode implements Mode {
 
     // Scan backward for "<!--".
 
-    @Override
-    public boolean foldsAtTags() {
-        return true;
-    }
-
 }

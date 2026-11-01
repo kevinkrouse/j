@@ -2782,8 +2782,10 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
             // If the buffer has already been loaded, the caret position will
             // be restored correctly.
-            if (firstTime)
+            if (firstTime) {
                 moveCaretToDotCol();
+                FoldCommands.foldOnOpen(this);
+            }
         }
 
         if (dot != null && dot.getOffset() > dot.getLineLength()) {

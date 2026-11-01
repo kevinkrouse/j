@@ -55,6 +55,12 @@ public abstract class ViewBuffer extends Buffer {
         setLoaded(true);
     }
 
+    // A view labels its folds itself, if it has any.
+    @Override
+    protected boolean labelsFolds() {
+        return false;
+    }
+
     /** The buffer it is a part of, or null for none. */
     public Buffer getOwner() {
         return owner;

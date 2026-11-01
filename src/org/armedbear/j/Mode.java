@@ -360,16 +360,6 @@ public interface Mode extends Folds {
         return false;
     }
 
-    /** Whether folding near a line folds the brace block around it. */
-    default boolean foldsAtBraces() {
-        return false;
-    }
-
-    /** Whether folding near a line folds the markup element around it. */
-    default boolean foldsAtTags() {
-        return false;
-    }
-
     /**
      * Returns a string that signifies the end of a comment for the
      * given mode, or <code>null</code> if the concept of comments is

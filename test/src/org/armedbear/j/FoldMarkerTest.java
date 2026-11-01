@@ -113,9 +113,9 @@ public class FoldMarkerTest {
 
     @Test
     public void anEditForgetsTheAnswers() {
-        on("a\nb\n", JavaMode.getMode());
+        on("a\n    b;\n}\n", JavaMode.getMode());
         assertFalse(starts(0));
-        h.buffer().insertString(new Position(line(1), 0), "    ");
+        h.buffer().insertString(new Position(line(0), 1), " {");
         assertTrue(starts(0));
     }
 

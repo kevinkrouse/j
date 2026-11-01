@@ -1891,27 +1891,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final Line[] known = foldsAround.get(line);
         if (known != null)
             return known == NO_FOLD ? null : known;
-        final Buffer buffer = editor.getBuffer();
-        final Folds folds = buffer.getFolds();
-        Line[] found = null;
-        int reach = FOLD_AROUND_REACH;
-        for (Line start = line; start != null && reach-- >= 0; start = start.previous()) {
-            if (start.isHidden() || !isFoldStart(start))
-                continue;
-            if (folds.isFolded(start)) {
-                if (start == line)
-                    break;
-                continue;
-            }
-            final Line[] below = folds.getFoldBelow(buffer, start);
-            if (below == null || below.length != 2)
-                continue;
-            final Line last = FoldCommands.throughClosing(buffer, start, below[1]);
-            if (last.lineNumber() >= line.lineNumber()) {
-                found = new Line[] { start, last };
-                break;
-            }
-        }
+        final Line[] found =
+                FoldCommands.foldAround(editor.getBuffer(), line, false, FOLD_AROUND_REACH, this::isFoldStart);
         foldsAround.put(line, found != null ? found : NO_FOLD);
         return found;
     }

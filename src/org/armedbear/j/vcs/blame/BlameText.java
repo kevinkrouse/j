@@ -389,22 +389,12 @@ public final class BlameText {
 
     // The last line of the run the tag heads: its fold through a closing
     // brace at the tag's indent, as the gutter's fold extent; the tag's
-    // line alone when there is nothing to fold. An opening brace on a line
-    // of its own, at the tag's indent, heads the fold in its place.
+    // line alone when there is nothing to fold.
     private static Line rangeLast(Buffer buffer, Line first) {
-        Line head = first;
-        Line[] below = buffer.getFolds().getFoldBelow(buffer, head);
-        final Line next = first.next();
-        if (below == null
-                && next != null
-                && next.getText().strip().equals("{")
-                && buffer.getIndentation(next) == buffer.getIndentation(first)) {
-            head = next;
-            below = buffer.getFolds().getFoldBelow(buffer, head);
-        }
+        final Line[] below = buffer.getFolds().getFoldBelow(buffer, first);
         if (below == null || below.length != 2)
-            return head;
-        return FoldCommands.throughClosing(buffer, head, below[1]);
+            return first;
+        return FoldCommands.throughClosing(buffer, first, below[1]);
     }
 
     // The click: the column on, the caret on the method's first line, the

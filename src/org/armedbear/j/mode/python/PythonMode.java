@@ -25,6 +25,8 @@ import static org.armedbear.j.Constants.*;
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.FoldCommands;
+import org.armedbear.j.Folds;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -55,6 +57,69 @@ public final class PythonMode extends AbstractMode implements Mode {
     @Override
     public boolean canIndentPaste() {
         return false;
+    }
+
+    // Besides what is indented under a line: the comments at the top, as a
+    // license, and a run of imports.
+    @Override
+    public boolean isFoldStart(Buffer buffer, Line line) {
+        return topFold(line) != null || FoldCommands.isIndentedBelow(buffer, line);
+    }
+
+    @Override
+    public Line[] getFoldBelow(Buffer buffer, Line line) {
+        final Line[] top = topFold(line);
+        return top != null ? top : FoldCommands.indentedBelow(buffer, line);
+    }
+
+    @Override
+    public Line initialFold(Buffer buffer, Folds.Initial kind) {
+        for (Line l = buffer.getFirstLine(); l != null; l = l.next()) {
+            if (l.isBlank())
+                continue;
+            switch (kind) {
+                case HEADER:
+                    return comments(l) != null ? l : null;
+                case IMPORTS:
+                    if (imports(l) != null)
+                        return l;
+                    // Past the imports once a definition starts.
+                    final String text = l.getText();
+                    if (text.startsWith("def ") || text.startsWith("class ") || text.startsWith("async def "))
+                        return null;
+                    break;
+                default:
+                    return null;
+            }
+        }
+        return null;
+    }
+
+    private static Line[] topFold(Line line) {
+        final Line[] comments = comments(line);
+        return comments != null ? comments : imports(line);
+    }
+
+    // The comments line starts at the top of its buffer, a #! line's too.
+    private static Line[] comments(Line line) {
+        if (!line.trim().startsWith("#") || !FoldCommands.isFirst(line))
+            return null;
+        return FoldCommands.runBelow(line, l -> l.trim().startsWith("#"));
+    }
+
+    // The imports line starts, with the lines a parenthesized one wraps onto.
+    private static Line[] imports(Line line) {
+        if (!isImport(line))
+            return null;
+        return FoldCommands.runBelow(line, l -> {
+            final String text = l.getText();
+            return isImport(l) || text.startsWith(" ") || text.startsWith("\t") || text.startsWith(")");
+        });
+    }
+
+    private static boolean isImport(Line line) {
+        final String text = line.getText();
+        return text.startsWith("import ") || text.startsWith("from ");
     }
 
     @Override

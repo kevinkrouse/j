@@ -530,7 +530,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
                 return true;
             } else if (button == MouseEvent.BUTTON2 && modifiers == 0) {
                 // Middle button.
-                FoldCommands.foldNearLine(editor, pos.getLine());
+                FoldCommands.foldAt(editor, pos.getLine());
                 return true;
             }
             // else fall through...
@@ -542,16 +542,10 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
                     if (next.isHidden()) {
                         FoldCommands.unfold(editor, next);
                         return true;
-                    } else if (next.trim().endsWith("{")) {
-                        next = next.next();
-                        if (next != null && next.isHidden()) {
-                            FoldCommands.unfold(editor, next);
-                            return true;
-                        }
                     }
                 }
-                // Couldn't find a fold to expand.
-                FoldCommands.foldNearLine(editor, pos.getLine());
+                // No fold to open: the one around the line closed.
+                FoldCommands.foldAt(editor, pos.getLine());
                 return true;
             }
             // else fall through...

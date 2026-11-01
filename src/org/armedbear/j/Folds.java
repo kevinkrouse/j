@@ -64,6 +64,34 @@ public interface Folds {
         return FoldCommands.indentedBelow(buffer, line);
     }
 
+    /** The folds a file opens with closed, each as its preference says. */
+    public enum Initial {
+        /** The comment at the top, as a license. */
+        HEADER(Property.FOLD_HEADER_COMMENT),
+        /** The imports. */
+        IMPORTS(Property.FOLD_IMPORTS),
+        /** The documentation of the file's class, after the imports. */
+        CLASS_DOC(Property.FOLD_CLASS_DOC);
+
+        private final Property property;
+
+        Initial(Property property) {
+            this.property = property;
+        }
+
+        public Property property() {
+            return property;
+        }
+    }
+
+    /**
+     * The line heading buffer's fold of kind, near its top, which a file
+     * opens with closed; null if the mode knows none.
+     */
+    public default Line initialFold(Buffer buffer, Initial kind) {
+        return null;
+    }
+
     /** Whether what line heads is folded away. */
     public default boolean isFolded(Line line) {
         return line.next() != null && line.next().isHidden();
