@@ -97,6 +97,11 @@ final class BlameColumn implements GutterColumn {
         return changed;
     }
 
+    @Override
+    public void removed() {
+        blame.removeListener(changed);
+    }
+
     /** The blame read for the column. */
     Blame blame() {
         return blame;
@@ -150,6 +155,11 @@ final class BlameColumn implements GutterColumn {
             return;
         }
         final BlameData data = blame.data();
+        if (!told && data != null && data.isDone() && data.hasNoHistory()) {
+            told = true;
+            status("No blame: not committed yet");
+            return;
+        }
         if (!told && data != null && (!steps.isEmpty() || data.isDone())) {
             told = true;
             status("Blamed");
@@ -328,7 +338,7 @@ final class BlameColumn implements GutterColumn {
     static int step(int rank, int n) {
         if (rank == 0)
             return 0;
-        return Math.min(STEPS - 1, 1 + (rank - 1) * (STEPS - 1) / Math.max(1, n - 1));
+        return Math.min(STEPS - 1, 1 + (rank - 1) * (STEPS - 2) / Math.max(1, n - 2));
     }
 
     /**

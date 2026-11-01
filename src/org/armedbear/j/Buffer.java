@@ -1274,6 +1274,8 @@ public class Buffer extends SystemBuffer {
         }
         deleteAutosaveFile();
         bufferList.remove(this);
+        for (GutterColumn c : gutterColumns)
+            removeGutterColumn(c);
         dispose();
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED | SIDEBAR_MODIFIED_BUFFER_COUNT);
     }
@@ -2051,9 +2053,12 @@ public class Buffer extends SystemBuffer {
         }
     }
 
+    /** Removes column, telling it, and repaints. */
     public final void removeGutterColumn(GutterColumn column) {
-        if (gutterColumns.remove(column))
+        if (gutterColumns.remove(column)) {
+            column.removed();
             repaint();
+        }
     }
 
     // The text changed: its followers told, the change marks among them.
@@ -3141,7 +3146,7 @@ public class Buffer extends SystemBuffer {
         this.signs = signs;
     }
 
-    // Its blame, while something wants it.
+    // Its blame, once something wanted it.
     private Blame blame;
 
     public final Blame getBlame() {

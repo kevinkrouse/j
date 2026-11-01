@@ -60,6 +60,7 @@ import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.log.RevisionBuffer;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -275,7 +276,7 @@ public class VcsStatusBufferTest {
                 if (c instanceof JMenuItem item)
                     items.add(item.getText() + (item.isEnabled() ? "" : " (off)"));
             assertEquals(
-                List.of("Status", "Log", "Diff with What Is Staged (off)", "Commit...", "Command Log"),
+                List.of("Status", "Log", "Diff with What Is Staged (off)", "Blame (off)", "Commit...", "Command Log"),
                 items,
                 "the status is no file to diff");
         });
@@ -630,6 +631,13 @@ public class VcsStatusBufferTest {
             assertEquals(2, h.editor().getDotLineNumber());
             Editor.getBufferList().remove(visited);
         });
+    }
+
+    @Test
+    public void aFileAtACommitIsItsRepositorys() throws Exception {
+        repository();
+        final RevisionBuffer revision = new RevisionBuffer(repo(), "a.txt", "HEAD", "one\n");
+        assertEquals(List.of(repo()), VcsStatusMode.repositoriesFor(revision));
     }
 
     // a.txt of sixty numbered lines, line 50 changed.

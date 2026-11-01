@@ -107,6 +107,12 @@ public final class VcsRunner {
             }
             outReader.join(1000);
             errReader.join(1000);
+            // A stream still being read, as when a child holds the pipe:
+            // what was told is not all of it.
+            if (stdout != null && outReader.isAlive() && failure == null) {
+                exitCode = -1;
+                failure = "its output was not all read";
+            }
         }
         catch (InterruptedException e) {
             ProcessRunner.destroy(process);

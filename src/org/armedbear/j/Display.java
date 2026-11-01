@@ -1836,6 +1836,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private final Map<Line, Boolean> foldStarts = new IdentityHashMap<>();
     private final Map<Line, Line[]> foldsAround = new IdentityHashMap<>();
     private static final Line[] NO_FOLD = new Line[0];
+    // How far above a line foldAround looks for the fold around it: after
+    // an edit it looks again at each paint.
+    static final int FOLD_AROUND_REACH = 2000;
 
     private Buffer foldStartsBuffer;
     private int foldStartsModCount;
@@ -1880,8 +1883,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     /**
      * The first and last lines of the innermost open fold around line, a
-     * closing brace after it included; null if none, or line heads a closed
-     * one.
+     * closing brace after it included; null if none, line heads a closed
+     * one, or the fold starts more than FOLD_AROUND_REACH lines above.
      */
     Line[] foldAround(Line line) {
         forgetFoldsIfChanged();
@@ -1891,7 +1894,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final Buffer buffer = editor.getBuffer();
         final Folds folds = buffer.getFolds();
         Line[] found = null;
-        for (Line start = line; start != null; start = start.previous()) {
+        int reach = FOLD_AROUND_REACH;
+        for (Line start = line; start != null && reach-- >= 0; start = start.previous()) {
             if (start.isHidden() || !isFoldStart(start))
                 continue;
             if (folds.isFolded(start)) {
@@ -3686,7 +3690,12 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * as HTML if it began with <html>.
      */
     public static String toHtml(String text) {
-        final StringBuilder html = new StringBuilder("<html>");
+        return "<html>" + escapeHtml(text) + "</html>";
+    }
+
+    /** text as toHtml gives it, without the html around it: for a part of a tool tip's HTML. */
+    public static String escapeHtml(String text) {
+        final StringBuilder html = new StringBuilder();
         int column = 0;
         for (int i = 0; i < text.length(); i++) {
             final char c = text.charAt(i);
@@ -3701,7 +3710,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             }
             column = c == '\n' ? 0 : c == '\t' ? column + 8 - column % 8 : column + 1;
         }
-        return html.append("</html>").toString();
+        return html.toString();
     }
 
     /** The tool tip under the pointer, if it shows, asked for again: its text may have changed. */

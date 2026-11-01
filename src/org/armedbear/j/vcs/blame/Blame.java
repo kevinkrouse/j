@@ -53,9 +53,10 @@ import org.armedbear.j.vcs.VcsResult;
  * current line's. A FileRevision's blame is its file at its revision,
  * read once it succeeds. It is read again 500 ms after a save or a change
  * of HEAD or the refs, the last one shown until the new one has finished,
- * and kept if it fails; a failed one is tried again then even with nothing
- * changed. Whitespace is ignored as diffs ignore it, and read again when
- * that changes. On the event thread.
+ * and kept if it fails; a failed one is tried again when the refs change.
+ * Whitespace is ignored as diffs ignore it, and read again when that
+ * changes. Kept with its buffer when no one wants it, so coming back reads
+ * nothing unless one of those changed meanwhile. On the event thread.
  */
 public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
     static final int DELAY_MILLIS = 500;
@@ -68,11 +69,13 @@ public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
     private BlameData reading;
     private BlameData failed;
     private boolean again;
-    // The repository's refs and the file as the last read started; null after one failed.
+    // The repository's refs and the file as the last read started, and the
+    // refs then.
     private String readFor;
+    private long readRefs;
     // What the last read blamed: the file, or the revision, and its repository.
     private Target target;
-    // A revision's repository's changes, while it is read: a failed read tried again.
+    // A revision's repository's changes, while it is wanted: a failed read tried again.
     private final Consumer<VcsRepository> repositoryChanged = r -> vcsChecked();
     // Each commit's whole message, by hash, once read.
     private final Map<String, String> messages = new HashMap<>();
@@ -167,11 +170,16 @@ public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
             if (target.revision() != null)
                 target.repository().addListener(repositoryChanged);
             DiffWhitespace.addListener(this);
-            read();
+            // What was read before, if nothing it read changed since: told at once.
+            final Target t = target(buffer);
+            if (t == null || stale(t))
+                read();
+            else
+                tell();
         }
     }
 
-    /** The last one gone, it is no longer read nor kept. */
+    /** The last one gone, it is no longer read again; what was read stays with the buffer. */
     public void removeListener(Runnable listener) {
         listeners.remove(listener);
         if (listeners.isEmpty()) {
@@ -179,9 +187,17 @@ public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
             target.repository().removeListener(repositoryChanged);
             DiffWhitespace.removeListener(this);
             timer.stop();
-            if (buffer.getBlame() == this)
-                buffer.setBlame(null);
         }
+    }
+
+    /** Whether anything listens: it is read again as things change. */
+    boolean isWanted() {
+        return !listeners.isEmpty();
+    }
+
+    /** Whether a read waits to start or is under way. */
+    boolean readPending() {
+        return timer.isRunning() || reading != null && !reading.isDone();
     }
 
     /** The blame shown: the last read that succeeded, or the first while it streams; null before any. */
@@ -203,15 +219,20 @@ public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
     }
 
     // A save, the repository read again, or the whitespace ignored changed:
-    // blamed again if the file, the refs or the whitespace changed, or the
-    // last read failed.
+    // blamed again if stale.
     @Override
     public void vcsChecked() {
         SwingUtilities.invokeLater(() -> {
             final Target t = target(buffer);
-            if (t != null && !listeners.isEmpty() && !key(t).equals(readFor))
+            if (t != null && !listeners.isEmpty() && stale(t))
                 timer.restart();
         });
+    }
+
+    // Whether t is to be read again: never read, the file, the refs or the
+    // whitespace changed since, or it failed and the refs changed since.
+    private boolean stale(Target t) {
+        return !key(t).equals(readFor) || failed != null && t.repository().refsGeneration() != readRefs;
     }
 
     private static String key(Target t) {
@@ -259,6 +280,7 @@ public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
             buffer.unlockRead();
         }
         readFor = key(t);
+        readRefs = t.repository().refsGeneration();
         final BlameData data = new BlameData(lines);
         reading = data;
         if (shown == null)
@@ -288,12 +310,11 @@ public final class Blame implements Buffer.Follower, DiffWhitespace.Listener {
     private void done(BlameData data, VcsResult r) {
         data.finished(r == null ? "can't blame" : r.succeeded() ? null : r.lastError());
         failed = data.error() != null ? data : null;
-        // Tried again at the next save or change, though nothing it reads changed.
-        if (failed != null)
-            readFor = null;
-        // A failed read again leaves the last good one shown.
+        // A failed read again leaves the last good one shown; a first one, none.
         if (reading == data && failed == null)
             shown = data;
+        else if (failed != null && shown == data)
+            shown = null;
         tell();
         if (again) {
             again = false;

@@ -181,7 +181,9 @@ public class BlameColumnTest {
         assertEquals(0, BlameColumn.step(0, 3));
         assertEquals(1, BlameColumn.step(1, 2));
         assertEquals(1, BlameColumn.step(1, 3));
-        assertEquals(4, BlameColumn.step(2, 3));
+        assertEquals(7, BlameColumn.step(2, 3), "the oldest of three the dimmest");
+        assertEquals(4, BlameColumn.step(2, 4));
+        assertEquals(7, BlameColumn.step(3, 4));
         assertEquals(7, BlameColumn.step(7, 8));
         assertEquals(1, BlameColumn.step(1, 100));
         assertEquals(7, BlameColumn.step(99, 100));
@@ -218,7 +220,7 @@ public class BlameColumnTest {
         assertEquals(3, steps.size(), "uncommitted not ranked");
         assertEquals(0, steps.get(newest).intValue());
         assertEquals(1, steps.get(middle).intValue());
-        assertEquals(4, steps.get(oldest).intValue());
+        assertEquals(7, steps.get(oldest).intValue());
     }
 
     @Test
@@ -234,7 +236,37 @@ public class BlameColumnTest {
         assertTrue(Display.getGutterWidth(file) > before, "the gutter grew");
         onEdt(() -> BlameCommands.vcsBlame(h.editor()));
         assertNull(column());
-        assertNull(file.getBlame(), "the blame dropped");
+        assertFalse(file.getBlame().isWanted(), "the blame no longer read");
+    }
+
+    @Test
+    public void closingTheBufferLetsItsBlameGo() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\n");
+        git.git("add", "-A");
+        git.git("commit", "-q", "--author=Ann <a@example.com>", "-m", "first");
+        open("f.txt");
+        onEdt(() -> BlameCommands.vcsBlame(h.editor()));
+        until(() -> column() != null && column().width() > 0);
+        onEdt(() -> {
+            final Blame blame = file.getBlame();
+            file.kill();
+            assertTrue(file.getGutterColumns().isEmpty(), "its columns removed");
+            assertFalse(blame.isWanted(), "no longer read, nor listening to what changes");
+        });
+    }
+
+    @Test
+    public void aFileNotCommittedSaysSo() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "a\n");
+        git.git("add", "-A");
+        git.git("commit", "-q", "--author=Ann <a@example.com>", "-m", "first");
+        git.write("new.txt", "b\n");
+        open("new.txt");
+        onEdt(() -> BlameCommands.vcsBlame(h.editor()));
+        until(() -> h.status() != null && h.status().startsWith("No blame"));
+        assertEquals("No blame: not committed yet", h.status());
     }
 
     @Test

@@ -62,6 +62,9 @@ public interface GutterColumn {
         return null;
     }
 
+    /** It was taken off its buffer, or the buffer closed: what it listens to let go. */
+    default void removed() {}
+
     /** A point in a column: the column, the line, and x and y from the column's left and the row's top. */
     record At(GutterColumn column, Line line, int x, int y) {}
 }

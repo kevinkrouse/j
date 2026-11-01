@@ -27,6 +27,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
+import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.compare.DiffAlignment;
@@ -57,13 +58,18 @@ public final class BlameCommands {
             editor.getDispatcher());
     }
 
+    /** Blame in the VCS menu, checked while the column is on. */
+    public static void addMenuItem(Editor editor, Menu menu) {
+        final Buffer buffer = editor.getBuffer();
+        menu.addCheckBox(editor, "Blame", 'B', "vcsBlame", column(buffer) != null).setEnabled(Blame.canBlame(buffer));
+    }
+
     /** Toggles the blame column on the editor's buffer. */
     public static void vcsBlame(Editor editor) {
         final Buffer buffer = editor.getBuffer();
         final BlameColumn on = column(buffer);
         if (on != null) {
             buffer.removeGutterColumn(on);
-            on.blame().removeListener(on.changed());
             return;
         }
         turnOn(editor);

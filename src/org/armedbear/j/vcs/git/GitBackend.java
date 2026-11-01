@@ -117,22 +117,19 @@ public final class GitBackend implements VcsBackend {
 
     private final Map<VcsRepository, Kept> kept = new ConcurrentHashMap<>();
 
-    // The user's identity as last read, good while the repository's config
-    // (its refs generation), the global config and the mailmap are as they
-    // were then.
-    private record KeptIdentity(long refs, long stamp, Identity identity) {}
+    // The user's identity as last read, good while its identityStamp is.
+    private record KeptIdentity(long stamp, Identity identity) {}
 
     private final Map<VcsRepository, KeptIdentity> identities = new ConcurrentHashMap<>();
 
     @Override
     public Identity identity(VcsRepository repository) {
-        final long refs = repository.refsGeneration();
         final long stamp = identityStamp(repository);
         final KeptIdentity k = identities.get(repository);
-        if (k != null && k.refs() == refs && k.stamp() == stamp)
+        if (k != null && k.stamp() == stamp)
             return k.identity();
         final Identity identity = readIdentity(repository);
-        identities.put(repository, new KeptIdentity(refs, stamp, identity));
+        identities.put(repository, new KeptIdentity(stamp, identity));
         return identity;
     }
 
@@ -167,13 +164,15 @@ public final class GitBackend implements VcsBackend {
         return value.isEmpty() ? null : value;
     }
 
-    // What else an identity is read from: the global config files and the
-    // mailmap, by when each was last changed.
-    private static long identityStamp(VcsRepository repository) {
+    // What an identity is read from: the repository's config (its refs
+    // generation), the global config files and the mailmap, by when each
+    // was last changed.
+    @Override
+    public long identityStamp(VcsRepository repository) {
         final String home = System.getProperty("user.home");
         final String xdg = System.getenv("XDG_CONFIG_HOME");
         final String global = System.getenv("GIT_CONFIG_GLOBAL");
-        long stamp = 0;
+        long stamp = repository.refsGeneration();
         for (Path p : List.of(
             global != null ? Path.of(global) : Path.of(home, ".gitconfig"),
             xdg != null ? Path.of(xdg, "git", "config") : Path.of(home, ".config", "git", "config"),

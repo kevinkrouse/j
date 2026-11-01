@@ -122,13 +122,18 @@ final class GitBlame {
         private int count;
         private String previous;
         private boolean boundary;
+        // Finished: what the reader feeds after is dropped.
+        private boolean finished;
 
         Parser(BlameCommit.Sink sink) {
             this.sink = sink;
         }
 
         // The output's end: a last line without its newline read, and a group it cut short told.
-        void finish() {
+        synchronized void finish() {
+            if (finished)
+                return;
+            finished = true;
             if (pending.size() > 0) {
                 line(pending.toString(StandardCharsets.UTF_8));
                 pending.reset();
@@ -139,7 +144,9 @@ final class GitBlame {
             }
         }
 
-        void feed(byte[] chunk) {
+        synchronized void feed(byte[] chunk) {
+            if (finished)
+                return;
             int start = 0;
             for (int i = 0; i < chunk.length; i++) {
                 if (chunk[i] != '\n')

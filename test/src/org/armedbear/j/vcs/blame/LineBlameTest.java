@@ -12,8 +12,10 @@
 package org.armedbear.j.vcs.blame;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
@@ -255,7 +257,39 @@ public class LineBlameTest {
             BlameText.viewChanged(h.editor());
             BlameText.show();
         });
-        assertNull(a.getBlame(), "the old buffer's blame dropped when the caret left it");
+        final Blame blame = a.getBlame();
+        final BlameData read = blame.data();
+        assertFalse(blame.isWanted(), "the old buffer no longer read again");
+        assertNotNull(read, "what it read kept");
+        // Back to it: what was read shows, with no read again.
+        onEdt(() -> {
+            h.showBuffer(a);
+            h.editor().moveDotTo(a.getLine(0), 0);
+            BlameText.viewChanged(h.editor());
+            BlameText.show();
+        });
+        onEdt(() -> {
+            assertSame(blame, a.getBlame());
+            assertSame(read, blame.data(), "not read again");
+            assertFalse(blame.readPending());
+        });
+        assertNotNull(eolText(0), "shown at once");
+    }
+
+    @Test
+    public void thePreferenceTurnedOffClearsWhatIsShown() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("f.txt", "one\n");
+        commitAs("Ann", "first");
+        open("f.txt");
+        rest(0);
+        untilDone();
+        rest(0);
+        assertNotNull(eolText(0));
+        file.setProperty(Property.VCS_LINE_BLAME, false);
+        onEdt(BlameText::preferencesChanged);
+        onEdt(() -> {});
+        assertNull(eolText(0), "cleared with no move");
     }
 
     @Test

@@ -1897,7 +1897,8 @@ plan with why it is left, before the next phase starts.
      `previous`, an ignored revision, a file not committed, a binary
      file.
      Built: `vcs/blame`'s `Blame` is the buffer's (a `Buffer.Follower`
-     kept on the buffer, as its signs are, read while it has listeners),
+     kept on the buffer, as its signs are, read while it has listeners
+     and kept after, so coming back reads nothing unchanged),
      `BlameData` its lines'. The text sent is what a save writes
      (`SystemBuffer.write`: a byte order mark, UTF-16's separators). A line whose
      text changed since it was blamed reads as `NOT_COMMITTED` (an
@@ -1995,8 +1996,8 @@ plan with why it is left, before the next phase starts.
        blames, or a `FileRevision`), not a `WebBuffer`, line count ≤
        `vcsBlameMaxLines`. Then `Blame.of(buffer)`, add the listener if
        it is not this buffer's already (moving off a buffer removes it
-       from the old one, so its blame stops being read and is dropped
-       when the column is off too), and show from `data()`; when the
+       from the old one, so its blame stops being read when the column
+       is off too, what it read kept), and show from `data()`; when the
        data is not there yet the listener shows it on arrival, if the
        caret is still on that line.
      - *The text:* `BlameData.commit(line)`. Committed:
@@ -2104,10 +2105,12 @@ plan with why it is left, before the next phase starts.
      `VcsBackend.identity` gives them: user.name and user.email (the
      environment's first) through `git check-mailmap`, so a commit is
      the user's by mail address, as blame maps it; with no identity they
-     name no one. Git keeps the identity until the refs generation, the
-     global config files or the mailmap change. The hover lists every
-     author newest first with its line count and age, the uncommitted
-     lines last, as escaped HTML: an author's name is anyone's to choose.
+     name no one. `VcsBackend.identityStamp` (git's: the refs generation
+     and when the global config files and the mailmap changed) is asked
+     at each rest, and the identity read again when it moved. The hover
+     lists every author newest first with its line count and age, the
+     uncommitted lines last, as an escaped HTML table, so they line up:
+     an author's name is anyone's to choose.
      The click is `vcsBlame`, and with the column turned on the caret on
      the method's first line, its range found again at the click; the
      bright-and-dim highlight is left out. Under the mouse the entry, as
@@ -2128,13 +2131,20 @@ plan with why it is left, before the next phase starts.
      same `vcsBlameMaxLines` limit covers both, in `common()`.
      The entries are built only once the blame is done: `BlameData`
      fills in as git streams, and a count from part of it is wrong; until
-     then what is shown stays, as on coming back to a buffer whose blame
-     was let go.
+     then what is shown stays, as while a saved file is read again.
    - **h. Docs, keys, review.** `doc/git.html` gains Blame; commands and
      preferences documented; the status's and editor's `?` popups list
      `vcsBlame`; vim `<leader>gb`. Checked in the app under Xvfb: a file
      of this repository blamed, a hover, a click into the log, the parent.
      The adversarial review closes the phase.
+     Built: `doc/git.html`'s Blame opens with the column and its
+     commands; the VCS menu has Blame, checked while the column is on
+     (`BlameCommands.addMenuItem`). An editor's mode has no `?` popup, and
+     the status needs no blame key, so no popup lists it. Vim's
+     `<leader>gb` was bound in (d).
+     Found in the app: a `FileRevision`, as blaming a parent opens, had no
+     repository for the status, the log or the VCS menu;
+     `repositoriesFor` gives it its own.
    - **Decided:** the line's blame on and the authors off by default;
      the column's age ranks the buffer's commits, so a line's shade stays
      as it scrolls.
@@ -2501,3 +2511,43 @@ Left open:
   five `git log` runs and `stash list` a repository a refresh; the change
   marks pay for the relations on each save and focus return. Read them
   lazily in the status reader, or cache them by HEAD and refs, in phase 8.
+
+### Phase 8 review
+
+Fixed:
+
+- A buffer closed with the blame column on was kept by the column's
+  listeners, read again as the repository changed. `Buffer.kill` removes
+  its gutter columns, and `GutterColumn.removed` lets the column's blame
+  go.
+- Leaving a buffer dropped its blame, so coming back ran `git blame`
+  again, overlapping the last. The blame stays with the buffer, and a
+  listener added reads only if the file, the refs or the whitespace
+  ignored changed.
+- A failed read was tried again at every save or check in the
+  repository. It is tried again when the refs change; a first read
+  that failed shows nothing, not its partial data.
+- The fold around the caret was looked for up to the top of the file at
+  every paint after an edit; it looks `FOLD_AROUND_REACH` (2000) lines
+  up.
+- A stream still open a second after git exited, held by a child, ran
+  the parser's finish beside the reader's feed. `VcsRunner` fails it,
+  and the parser drops what comes after finishing.
+- `vcsLineBlame` turned off in the preferences left the caret line's
+  text until the caret moved.
+- A file not committed said "Blamed" over an empty column; it says
+  there is no blame.
+- The age's shades reached the dimmest only with many commits: the
+  rest spread over 1 to 7 whatever their number.
+- The authors' hover padded names with spaces in a proportional font; a
+  table lines them up.
+- A change to the global config or the mailmap waited for an edit to
+  reach the authors.
+- The revision's "never read again" test slept; it checks that no read
+  is pending.
+
+Left open:
+
+- A read under way when its buffer closes or is left runs to its end;
+  `Background.then` has no handle to stop it. With the blame kept, a
+  buffer has at most one.

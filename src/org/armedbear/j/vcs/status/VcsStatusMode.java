@@ -61,8 +61,10 @@ import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Capability;
+import org.armedbear.j.vcs.FileRevision;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.blame.BlameCommands;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
@@ -536,7 +538,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     /**
-     * The VCS menu: the status, the log, the file's diff and committing, of
+     * The VCS menu: the status, the log, the file's diff and blame and committing, of
      * editor's buffer's repository, as each applies to it.
      */
     public static void populateVcsMenu(Editor editor, Menu menu) {
@@ -551,6 +553,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         menu.add(editor, "Status", 'S', "vcsStatus", inRepository);
         menu.add(editor, "Log", 'L', "vcsLog", inRepository);
         menu.add(editor, "Diff with What Is Staged", 'D', "vcsDiff", tracked);
+        BlameCommands.addMenuItem(editor, menu);
         menu.add(
             editor,
             "Commit...",
@@ -576,6 +579,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final Buffer view = buffer instanceof ViewPane<?> pane ? pane.getOwner() : buffer;
         if (view instanceof LogBuffer log)
             return log.getScope().repositories();
+        // A file at a commit, as blaming a parent opens.
+        if (buffer instanceof FileRevision r)
+            return List.of(r.repository());
         final File file = buffer.getFile();
         final VcsRepository own = file != null ? Repositories.forFile(file) : null;
         final File root = ProjectRoot.find(buffer);

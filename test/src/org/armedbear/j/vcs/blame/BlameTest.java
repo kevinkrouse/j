@@ -13,6 +13,7 @@ package org.armedbear.j.vcs.blame;
 
 import static org.armedbear.j.Constants.BINARY_MODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -222,10 +223,9 @@ public class BlameTest {
         assertEquals(first, at(0).hash());
         final BlameData read = data();
         // The revision is fixed: checking the repository reads nothing new.
-        told.set(0);
         onEdt(() -> file.checkVCS());
-        Thread.sleep(2L * Blame.DELAY_MILLIS);
-        assertEquals(0, told.get(), "not read again");
+        onEdt(() -> {}); // vcsChecked's own invokeLater run.
+        onEdt(() -> assertFalse(file.getBlame().readPending(), "not read again"));
         assertSame(read, data(), "the same blame");
     }
 
@@ -245,6 +245,11 @@ public class BlameTest {
             Blame.of(file).addListener(listener);
         });
         until(() -> failure() != null);
+        onEdt(() -> assertNull(file.getBlame().data(), "nothing from a first read that failed"));
+        // Nothing changed: not tried again.
+        onEdt(() -> file.checkVCS());
+        onEdt(() -> {});
+        onEdt(() -> assertFalse(file.getBlame().readPending(), "not tried again with nothing changed"));
         git.git("branch", "later");
         r.invalidate();
         r.refresh();

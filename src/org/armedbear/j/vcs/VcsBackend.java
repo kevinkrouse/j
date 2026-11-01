@@ -151,6 +151,14 @@ public interface VcsBackend {
     }
 
     /**
+     * A number that changes whenever identity's answer may, as its config
+     * changes; cheap, so the event thread can ask. 0 if it never does.
+     */
+    default long identityStamp(VcsRepository repository) {
+        return 0;
+    }
+
+    /**
      * The diff a commit made with options would make, as patch text, for
      * the message's verbose view; null if it can't be read. Off the event
      * thread.

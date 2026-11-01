@@ -172,6 +172,15 @@ public class FoldMarkerTest {
     }
 
     @Test
+    public void aFoldStartingPastTheReachIsNotLookedFor() {
+        final int fields = Display.FOLD_AROUND_REACH + 10;
+        on("class A {\n" + "    int x;\n".repeat(fields) + "}\n", JavaMode.getMode());
+        final Display display = h.editor().getDisplay();
+        assertArrayEquals(new Line[] { line(0), line(fields + 1) }, display.foldAround(line(5)), "near its start");
+        assertNull(display.foldAround(line(fields)), "too far below it");
+    }
+
+    @Test
     public void aClosedFoldsMarkerBrightensBesideTheMouse() {
         on(JAVA, JavaMode.getMode());
         h.editor().setDot(line(6), 0);

@@ -75,6 +75,16 @@ public class VcsRunnerTest {
     }
 
     @Test
+    public void aStreamStillOpenAfterTheProgramExitsIsAFailure() {
+        // A child left behind holds the pipe: what was streamed is not all of it.
+        final VcsResult r = VcsRunner.run(
+            new VcsCommand(tmp, List.of("sh", "-c", "echo one; sleep 3 &"), List.of(), Map.of(), null, false, null),
+            chunk -> {});
+        assertFalse(r.succeeded());
+        assertTrue(r.stderr().contains("not all read"), r.stderr());
+    }
+
+    @Test
     public void reportsAProgramThatWillNotStart() {
         VcsResult r = VcsRunner
                 .run(new VcsCommand(tmp, List.of("no-such-program-j-vcs"), List.of(), Map.of(), null, false, null));

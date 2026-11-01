@@ -325,6 +325,23 @@ public class CodeAuthorsTest {
     }
 
     @Test
+    public void aMailmapAddedIsFollowedAtTheNextRestWithNoEdit() throws Exception {
+        git = GitFixture.init(tmp);
+        git.git("config", "user.name", "Kevin Krouse");
+        git.git("config", "user.email", "kk@example.com");
+        git.write("A.java", JAVA);
+        commitAs("Ann", "all");
+        openAuthors("A.java");
+        editLines(2);
+        rest(1);
+        until(() -> "Ann* +1".equals(authorsText(1)));
+        // Ann's address mapped to be the user's: her lines are theirs now.
+        git.write(".mailmap", "Kevin Krouse <a@example.com> <kk@example.com>\n");
+        rest(1);
+        until(() -> "Krouse*".equals(authorsText(1)));
+    }
+
+    @Test
     public void theIdentityIsReadMappedAndDroppedWhenTheConfigOrMailmapChanges() throws Exception {
         git = GitFixture.init(tmp);
         final VcsRepository repo = Repositories.forDirectory(git.root);
@@ -372,7 +389,8 @@ public class CodeAuthorsTest {
             new BlameCommit("1234", "<html><img src=x>", "e@example.com", 0, 0, "s", "f", null, null, false),
             0);
         final String tip = BlameText.authors(d, a, b, null, 0).tooltip();
-        assertTrue(tip.startsWith("<html>&lt;html&gt;&lt;img"), tip);
+        assertTrue(tip.contains("<td>&lt;html&gt;&lt;img"), tip);
+        assertFalse(tip.contains("<img"), tip);
     }
 
     @Test
@@ -484,10 +502,11 @@ public class CodeAuthorsTest {
 
     // The entry's tool tip as its text reads, its HTML undone.
     private String tip(int line) throws Exception {
+        // The table's rows as lines, its cells apart.
         return authorsRun(line).tooltip()
-                .replace("<html>", "")
-                .replace("</html>", "")
-                .replace("<br>", "\n")
+                .replace("</tr>", "\n")
+                .replace("</td>", " ")
+                .replaceAll("<[^>]*>", "")
                 .replace("&nbsp;", " ")
                 .replace("&lt;", "<")
                 .replace("&gt;", ">")
@@ -539,7 +558,7 @@ public class CodeAuthorsTest {
         for (String row : tooltip.split("\n")) {
             final String t = row.strip();
             if (t.startsWith(name + " ")) {
-                final String rest = t.substring(name.length() + 1);
+                final String rest = t.substring(name.length() + 1).strip();
                 final int sp = rest.indexOf(' ');
                 try {
                     return Integer.parseInt(rest.substring(0, sp < 0 ? rest.length() : sp));

@@ -24,7 +24,7 @@ inline. j runs the <code>git</code> on your path for it, version 2.16 or
 later. To see the commands it runs, use
 <a href="commands.html#vcsCommandLog">vcsCommandLog</a> (<b>$</b> in the status
 buffer). The VCS menu, after the Mode menu, opens the status, the log, the
-current file's diff with what is staged, and the commit popup, from any
+current file's diff with what is staged, its blame, and the commit popup, from any
 buffer in a repository, and the command log.
 
 <h2><a name="status">The status buffer</a></h2>
@@ -746,6 +746,24 @@ On the change at the caret, or the lines of the selection, too:
 The preview's bar and the popup a click on a mark opens have these too.
 
 <h2><a name="blame">Blame</a></h2>
+
+<p>
+<a href="commands.html#vcsBlame">vcsBlame</a> (<code>&lt;leader&gt;gb</code>
+in vim, Blame in the VCS menu, Show Blame in the editor's right-click menu)
+shows each line's commit in a column in
+the gutter: its date and author on the first line of each run of one
+commit, in <a href="preferences.html#vcsBlameFormat">vcsBlameFormat</a>,
+brighter the newer. Hovering a line there shows the commit's whole message;
+clicking it opens the commit in the <a href="#log">log</a> with the file
+picked out. A right click offers the commit's change side by side, the
+file at the commit or at its parent, blamed, to dig past a reformat, and
+its hash or message copied. Each is a command too:
+<a href="commands.html#vcsBlameDiff">vcsBlameDiff</a>,
+<a href="commands.html#vcsBlameRevision">vcsBlameRevision</a>,
+<a href="commands.html#vcsBlameParent">vcsBlameParent</a>,
+<a href="commands.html#vcsBlameShowCommit">vcsBlameShowCommit</a>,
+<a href="commands.html#vcsBlameCopyHash">vcsBlameCopyHash</a> and
+<a href="commands.html#vcsBlameCopyMessage">vcsBlameCopyMessage</a>.
 
 <p>
 Once the caret has rested on a line for a moment, dimmed text after its end

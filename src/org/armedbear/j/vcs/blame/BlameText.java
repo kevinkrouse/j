@@ -214,7 +214,7 @@ public final class BlameText {
         final VcsRepository repo = blame.repository();
         final List<LocalTag> tags = buffer.getTags();
         final Prepared p = prepared.get(buffer);
-        if (p != null && p.refs() == repo.refsGeneration() && tags != null) {
+        if (p != null && p.stamp() == repo.backend().identityStamp(repo) && tags != null) {
             applyAuthors(editor, buffer, data, tags, p.identity());
             return;
         }
@@ -222,10 +222,9 @@ public final class BlameText {
             prepareAuthors(buffer, repo);
     }
 
-    // The user's identity as read for a buffer, and the refs it was good
-    // for; kept so a rest that changed nothing runs no thread. An edit reads
-    // it again with the tags, so the global config is followed too.
-    private record Prepared(VcsBackend.Identity identity, long refs) {}
+    // The user's identity as read for a buffer, and the backend's stamp it
+    // was good for; kept so a rest that changed nothing runs no thread.
+    private record Prepared(VcsBackend.Identity identity, long stamp) {}
 
     // What the background read: the identity, and the modCount the tags
     // were read at.
@@ -235,7 +234,7 @@ public final class BlameText {
     // built if this buffer is still the one looked at and the caret rests.
     private static void prepareAuthors(Buffer buffer, VcsRepository repo) {
         preparingFor = buffer;
-        final long refs = repo.refsGeneration();
+        final long stamp = repo.backend().identityStamp(repo);
         Background.then("vcs blame authors", () -> {
             buffer.readTags();
             return new Read(repo.backend().identity(repo), buffer.getModCount());
@@ -245,7 +244,7 @@ public final class BlameText {
             final Editor cur = Editor.currentEditor();
             if (read == null || cur == null || cur.getBuffer() != buffer || !authorsWanted(buffer))
                 return;
-            prepared.put(buffer, new Prepared(read.identity(), refs));
+            prepared.put(buffer, new Prepared(read.identity(), stamp));
             // Still being edited: the next rest builds.
             if (buffer.getModCount() != restedModCount)
                 return;
@@ -365,30 +364,27 @@ public final class BlameText {
         return user != null && user.email() != null && user.email().equalsIgnoreCase(commit.authorMail());
     }
 
-    // Every author newest first, then the uncommitted lines; names padded
-    // to the widest, each with its count and, for committed ones, its age.
-    // HTML, escaped: an author's name is anyone's to choose.
+    // Every author newest first, then the uncommitted lines: a table of
+    // names, counts and, for committed ones, ages, so they line up. HTML,
+    // escaped: an author's name is anyone's to choose.
     private static String hover(Map<String, long[]> byName, int uncommitted, long now) {
         final List<Map.Entry<String, long[]>> sorted = new ArrayList<>(byName.entrySet());
         sorted.sort(Comparator.comparingLong((Map.Entry<String, long[]> e) -> e.getValue()[1]).reversed());
-        int width = uncommitted > 0 ? NOT_COMMITTED.length() : 0;
-        for (String name : byName.keySet())
-            width = Math.max(width, name.length());
-        final StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder("<html><table cellspacing=0 cellpadding=0>");
         for (Map.Entry<String, long[]> e : sorted)
-            append(sb, e.getKey(), e.getValue()[0], width, TimeStyle.ago(e.getValue()[1], now));
+            row(sb, e.getKey(), e.getValue()[0], TimeStyle.ago(e.getValue()[1], now));
         if (uncommitted > 0)
-            append(sb, NOT_COMMITTED, uncommitted, width, null);
-        return Display.toHtml(sb.toString());
+            row(sb, NOT_COMMITTED, uncommitted, null);
+        return sb.append("</table></html>").toString();
     }
 
-    private static void append(StringBuilder sb, String name, long lines, int width, String ago) {
-        if (sb.length() > 0)
-            sb.append('\n');
-        sb.append(String.format("%-" + width + "s", name));
-        sb.append(' ').append(lines).append(lines == 1 ? " line" : " lines");
+    private static void row(StringBuilder sb, String name, long lines, String ago) {
+        sb.append("<tr><td>").append(Display.escapeHtml(name));
+        sb.append("</td><td align=right>&nbsp;&nbsp;").append(lines);
+        sb.append("</td><td>&nbsp;").append(lines == 1 ? "line" : "lines");
         if (ago != null)
-            sb.append(", ").append(ago);
+            sb.append(", ").append(Display.escapeHtml(ago));
+        sb.append("</td></tr>");
     }
 
     // The last line of the run the tag heads: its fold through a closing
@@ -490,10 +486,12 @@ public final class BlameText {
         built.remove(buffer);
     }
 
-    // The preferences changed: every buffer no longer wanting its authors
-    // loses them now, not when the caret next rests in it.
-    private static void preferencesChanged() {
+    // The preferences changed: the line's blame and every buffer's authors
+    // no longer wanted go now, not when the caret next rests.
+    static void preferencesChanged() {
         SwingUtilities.invokeLater(() -> {
+            if (shown != null && !lineBlameWanted(shown))
+                clearText();
             for (Buffer b : List.copyOf(built.keySet()))
                 if (!authorsWanted(b))
                     clearAuthorsOn(b);
