@@ -83,9 +83,9 @@ import org.armedbear.j.vcs.svn.SVN;
 import org.armedbear.j.vim.VimInputHandler;
 
 public class CommandTable {
-    // The default load factor is 0.75, so an initial capacity of 600 will
-    // accommodate 450 entries without rehashing.
-    private static final int INITIAL_CAPACITY = 600;
+    // The default load factor is 0.75, so an initial capacity of 800 will
+    // accommodate 600 entries without rehashing.
+    private static final int INITIAL_CAPACITY = 800;
 
     // Concurrent because extensions register into it at startup while a lazy
     // init() may be running on another thread.

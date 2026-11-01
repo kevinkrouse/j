@@ -105,8 +105,8 @@ public final class JdbCommands implements JdbConstants
                 Log.error("classpath = " + classpath);
                 Help.help("jdb.html");
                 MessageDialog.showMessageDialog(
-                    "Unable to find tools.jar. " +
-                    "See doc/jdb.html for installation instructions.",
+                    "The debugger needs the jdk.jdi module, which this " +
+                    "Java runtime lacks. See doc/jdb.html.",
                     "Jdb");
                 return;
             }

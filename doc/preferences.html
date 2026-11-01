@@ -1487,7 +1487,8 @@ you do end up with better-looking code.
 <code><a name="jdkDocPath">jdkDocPath</a></code>
 <dl>
 <dd>
-The full pathname of the directory containing the JDK HTML documentation.
+The directories of the JDK's HTML documentation that <a href="commands.html#jdkHelp">jdkHelp</a>
+searches, one for each module, as <code>docs/api/java.base</code>.
 <p>
 <b>See also:</b> <a href="commands.html#jdkHelp">jdkHelp</a>
 <p>
@@ -1497,7 +1498,8 @@ The full pathname of the directory containing the JDK HTML documentation.
 <code><a name="jdkSourcePath">jdkSourcePath</a></code>
 <dl>
 <dd>
-The full pathname of the directory containing the JDK Java class source tree.
+The directories of the JDK's Java source, one for each module of its
+<code>lib/src.zip</code>, unzipped, as <code>java.base</code>.
 <p>
 <b>See also:</b> <a href="commands.html#source">source</a>
 <p>
@@ -2074,7 +2076,7 @@ from the element's content one level in.
 Controls the format of the date/time string inserted by the
 <a href="commands.html#stamp">stamp</a> command. The specified pattern is used
 to construct a
-<a href="http://java.sun.com/javase/6/docs/api/java/text/SimpleDateFormat.html">
+<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/text/SimpleDateFormat.html">
 SimpleDateFormat</a> object that formats the output string.
 <p>
 <b>Default value:</b> "MMM d yyyy h:mm a"

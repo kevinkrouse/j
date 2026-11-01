@@ -19,7 +19,9 @@
 
 <p>
 J provides commands to perform a few common version control operations that it makes sense
-to do from within an editor.  J supports CVS, Subversion, Perforce, Git, and Darcs.
+to do from within an editor. J supports <a href="git.html">Git</a> and
+Subversion; CVS, Perforce and Darcs come from the <code>vcs-legacy</code>
+<a href="extensions.html">extension</a>.
 <p>
 For these commands to work, the version control command line tool must be set up
 correctly outside of j first. A
@@ -28,7 +30,7 @@ a shell command prompt in the parent directory of the current buffer.
 <p>
 Most VCS-related commands are not mapped to any keystrokes by default, but you
 can use <a href="commands.html#executeCommand">executeCommand</a>, mapped by
-default to Alt X, and then type in the name of the command (or just type "cvs"
+default to Alt X, and then type in the name of the command (or just type "svn"
 and then keep hitting Tab until you see the command you want; completion is
 your friend).
 <p>
@@ -150,7 +152,7 @@ The following commands are specifically relevant for version control:
             <li><a href="commands.html#p4Submit">p4Submit</a></li>
         </ul>
     </li>
-    <li>Git (and see <a href="git.html">Git</a>, for the status buffer):
+    <li><a href="git.html">Git</a>:
         <ul>
             <li><a href="commands.html#git">git</a></li>
             <li><a href="commands.html#vcsStatus">vcsStatus</a></li>

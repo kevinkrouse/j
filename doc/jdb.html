@@ -11,30 +11,19 @@
 <hr>
 <p>
 J includes a lightweight JPDA-based Java debugger whose main advantage is its
-integration with j. If you need a more powerful debugger, consider
-<a href="http://www.bluemarsh.com/java/jswat/index.html">JSwat</a>.
+integration with j. If you need a more powerful debugger, use an IDE's.
 <p>
 <b>Installation</b>
 <p>
-For the debugger to work, j must be able to load classes from tools.jar, which
-is normally found in the lib directory of your JDK installation. The simplest
-way to make this possible is to use a startup script that looks like this:
-<pre>
-    java -Djava.ext.dirs=[path to dir containing tools.jar] -jar j.jar</pre>
-<p>
-There are several other ways to accomplish the same thing. I'll just mention
-one more:
-<pre>
-    java -classpath [path to tools.jar]:[path to j.jar] Main</pre>
-(On Windows, the ':' should be a ';', of course.)
-<p>
-Currently this second approach is used when you build j from source and do
-"make install" or "ant install".
+The debugger needs the Java Debug Interface, the <code>jdk.jdi</code> module,
+which every JDK has, as does the runtime the Windows and macOS installers
+bring. Nothing needs setting up unless j runs on a runtime built without that
+module.
 <p>
 <b>The startup dialog</b>
 <p>
 The command <a href="commands.html#jdb">jdb</a> (Alt X, "jdb") brings up the
-debugger's statup dialog.
+debugger's startup dialog.
 <p>
 "Main class" is the fully qualified name of the main class of your
 application. For example:
@@ -73,7 +62,9 @@ Java source of the code being debugged. You should specify the root directory
 of each package tree that you care about. Use the platform-specific path
 delimiter character (':' for Unix, ';' for Windows). For example:
 <pre>
-    /home/peter/j/src:/home/peter/sun/j2sdk1.4.1_02/src</pre>
+    /home/peter/j/src:/home/peter/jdk-src/java.base</pre>
+The JDK's own source is in <code>lib/src.zip</code> in the JDK, a directory
+for each module once unzipped.
 <p>
 All of the textfields in this dialog remember their most recent contents, and,
 like most textfields in j, they have persistent history that can be navigated

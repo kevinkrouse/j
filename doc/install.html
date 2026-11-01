@@ -20,50 +20,31 @@
 <p>
 To compile from source, refer to the <a href="building.html">building</a> documentation.
 <p>
-Java 1.6 or later is required,
-but <a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Oracle Java 1.6</a>
-is recommended.
-<p>
-Support for platforms other than Linux and Windows is purely accidental.
+J runs on Linux, macOS and Windows.
 
-<h2>Windows</h2>
+<h2>Windows and macOS</h2>
 <p>
-Download the j-0.23.0-win.zip archive, unzip, and double-click the J.exe.
+Run the installer, J-1.0.0.exe or J-1.0.0.dmg. It brings its own Java runtime.
 
-<h2>Mac OS X</h2>
+<h2>The binary archive</h2>
 <p>
-Download the j-0.23.0-mac.zip archive, unzip, and double-click the J.app.
-
-<h2>Other platforms</h2>
-<p>
-Simply untar or unzip the binary distribution, cd into the j directory, and
-execute the jar file using java:
+On any platform with Java 25 or later, unpack the binary distribution into a
+directory of its own and run the jar:
 <pre>
-    $ tar xvfz j-0.23.0-bin.tar.gz
-    $ cd j-0.23.0
-    $ java -jar j.jar
+    $ mkdir j
+    $ tar -xzf j-1.0.0-bin.tar.gz -C j
+    $ java -jar j/j.jar
 </pre>
-Or on Windows:
-<pre>
-    c:\&gt; unzip j-0.23.0-bin.zip
-    c:\&gt; cd j-0.23.0
-    c:\j-0.23.0&gt; java -jar j.jar
-</pre>
-You should be able to bring up j's help from within the editor by pressing F1.
-If this doesn't work right out of the box, you may need to create a
-<a href="preferences.html">preferences</a> file and add a line to it to tell j
-where the documentation is located:
+The zip, j-1.0.0-bin.zip, holds the same files.
+<p>
+F1 brings up this guide, which j finds beside j.jar. If you move it, set
+<code><a href="preferences.html#docPath">docPath</a></code> in your
+<a href="preferences.html">preferences</a> file to the directory it is in:
 <pre>
     docPath=C:\\j\\doc
 </pre>
-<code><a href="preferences.html#docPath">docPath</a></code> should point to
-the directory containing j's HTML documentation (including the file you're
-reading now). On Windows, you'll need to use double backslashes in your
-filenames, as shown.
-<p>
-To use the <a href="jdb.html">jdb debugger</a>, you'll need to include
-<code>tools.jar</code> from the JDK on the classpath.  Read the
-<a href="jdb.html">debugger</a> documentation for more information.
+On Windows, use double backslashes, as shown. Start j with
+<code>--print-directories</code> to see where the preferences file lives.
 </p>
 
 </body>

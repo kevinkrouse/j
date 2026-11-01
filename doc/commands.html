@@ -896,8 +896,7 @@ toolbar's lock button and the Mode menu's Scroll Lock
 <a name="compile">compile</a><dl><dd>
 <p>
 Compiles the source file in the current buffer. You will be prompted for the
-compile command. (On Windows, this command is only supported for Windows NT 4,
-Windows 2000 and Windows XP.)
+compile command.
 <p>
 <b>Default key mapping:</b>
 <p>
@@ -1643,10 +1642,8 @@ command. The contents of the selected region are replaced by the
 output of the command. If an error occurs, you can use
 <a href="commands.html#undo">undo</a> to restore the previous contents.
 <br><br>
-<code>doShellCommandOnRegion</code> is an experimental command, not enabled by
-default. On Windows, you need to have the
-<a href="http://sources.redhat.com/cygwin/">Cygwin</a> tools installed, and
-sh.exe must be in your path.
+The command runs under <code>/bin/sh</code>, or <code>cmd.exe</code> on
+Windows.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -3045,9 +3042,9 @@ necessary. The help buffer can subsequently be dismissed using
 <p>
 For this to work, you need to add a line to your
 <a href="preferences.html">preferences</a> file specifying the location of the
-JDK documentation:
+JDK documentation, a directory for each module whose classes you want:
 <pre>
-        jdkDocPath=/home/peter/sun/jdk1.3/docs</pre>
+        jdkDocPath=/home/peter/jdk-docs/api/java.base:/home/peter/jdk-docs/api/java.desktop</pre>
 <p>
 <b>Default key mapping:</b> Alt F1 in Java mode
 <p>
@@ -4486,8 +4483,7 @@ Inserts the last killed or copied column at the current location of the caret.
 <a name="pastePrimarySelection">pastePrimarySelection</a><dl><dd>
 <p>
 Inserts the primary X selection at the current location of the caret or mouse
-click. This command requires Java 1.4 or later and only works on platforms
-that support a primary X selection (e.g. Linux).
+click. It only works on platforms that have a primary X selection (e.g. Linux).
 <p>
 <b>Default key mapping:</b> Mouse-2 (on supported platforms)
 <br><br>
@@ -4654,8 +4650,7 @@ nothing typed, the most recent come first. Enter opens it where you left it.
 <a name="recompile">recompile</a><dl><dd>
 <p>
 Compiles the source file in the current buffer, using the last specified
-compile command. (On Windows, this command is only supported for Windows NT 4,
-Windows 2000 and Windows XP.)
+compile command.
 <p>
 <b>Default key mapping:</b> Ctrl F9
 <p>
@@ -5217,12 +5212,8 @@ encoding name that you specify (e.g. "ISO-8859-1", "UTF-8", "UTF-16",
 "UnicodeBig", etc.) must be supported by the version of Java that you're
 using; the string is not case-sensitive.
 <p>
-Java recognizes both canonical names and aliases for a variety of encodings,
-and to make things more interesting, there are significant variations in this
-area among the different versions of Java. More information from the
-perspective of Java 1.4 is available here:
-<pre>
-        http://java.sun.com/j2se/1.4/docs/guide/intl/encoding.doc.html</pre>
+Java recognizes both canonical names and aliases; see
+<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/nio/charset/Charset.html">Charset</a>.
 <p>
 <b>Default key mapping:</b> None
 <br><br>
@@ -5658,9 +5649,10 @@ enough:
 <p>
 For this command to work properly, you need to specify the location of the JDK
 source on your system by adding a line like this to your
-<a href="preferences.html">preferences</a> file:
+<a href="preferences.html">preferences</a> file, a directory for each module of
+the JDK's <code>lib/src.zip</code>, unzipped:
 <pre>
-        jdkSourcePath = /home/peter/sun/j2sdk1.4.0/src</pre>
+        jdkSourcePath = /home/peter/jdk-src/java.base:/home/peter/jdk-src/java.desktop</pre>
 <b>Default key mapping:</b> Ctrl F1 in Java mode
 <p>
 <b>See also:</b> <a href="preferences.html#jdkSourcePath">jdkSourcePath</a>
