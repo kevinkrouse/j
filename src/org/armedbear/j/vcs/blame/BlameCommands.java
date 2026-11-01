@@ -236,6 +236,10 @@ public final class BlameCommands {
         return hash.substring(0, Math.min(7, hash.length()));
     }
 
+    static boolean hasColumn(Buffer buffer) {
+        return column(buffer) != null;
+    }
+
     // The column on buffer, or null.
     private static BlameColumn column(Buffer buffer) {
         for (GutterColumn c : buffer.getGutterColumns())

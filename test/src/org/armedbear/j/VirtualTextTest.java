@@ -21,6 +21,7 @@
 package org.armedbear.j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -261,6 +262,43 @@ public class VirtualTextTest {
         final Run blame = display.virtualRunAt(gutter + 3 * cw, 3 * ch + 1);
         assertEquals("blame", blame.text());
         assertNull(display.virtualRunAt(gutter + cw / 2, 3 * ch + 1), "the line's own text");
+    }
+
+    @Test
+    public void aClickableRunUnderTheMouseIsDrawnAsALink() {
+        lines(5);
+        final Run link = Run.of("[link]").withAction(() -> {}, null);
+        set("top", List.of(VirtualText.top(List.of(List.of(link)))));
+        final int blue = h.editor().getFormatter().getHoverLinkColor().getRGB();
+        assertFalse(hasColor(paint(), blue), "drawn plain");
+        display.setHoverRun(link, Display.getGutterWidth(h.buffer()) + Display.getCharWidth(), ch / 2);
+        assertTrue(hasColor(paint(), blue), "in the link color");
+        display.setHoverRun(null, -1, -1);
+        assertFalse(hasColor(paint(), blue), "plain again");
+    }
+
+    @Test
+    public void theLinkGoesWhenItsTextMovesFromUnderTheMouse() {
+        lines(5);
+        final Run link = Run.of("[link]").withAction(() -> {}, null);
+        set("top", List.of(VirtualText.top(List.of(List.of(link)))));
+        final int blue = h.editor().getFormatter().getHoverLinkColor().getRGB();
+        display.setHoverRun(link, Display.getGutterWidth(h.buffer()) + Display.getCharWidth(), ch / 2);
+        assertTrue(hasColor(paint(), blue), "hovered");
+        // The row goes and comes back, the mouse not moved: no link until it moves.
+        set("top", List.of());
+        paint();
+        set("top", List.of(VirtualText.top(List.of(List.of(link)))));
+        assertFalse(hasColor(paint(), blue), "found again as the paint began");
+    }
+
+    // Whether the top row has a pixel of color rgb.
+    private boolean hasColor(BufferedImage image, int rgb) {
+        for (int y = 0; y < ch; y++)
+            for (int x = 0; x < image.getWidth(); x++)
+                if (image.getRGB(x, y) == rgb)
+                    return true;
+        return false;
     }
 
     @Test

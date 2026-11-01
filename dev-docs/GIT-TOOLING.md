@@ -2097,6 +2097,39 @@ plan with why it is left, before the next phase starts.
      of its own; on the caret's line the line blame follows the entry (to
      be tried; it may give way to the entry instead); the highlight on a
      click may be left out if it grows.
+     Built: in `BlameText`, no class of its own. Each global tag
+     (`LocalTag.isGlobal`) gets an entry: the top author's last name, as
+     the column's `%a` has it, plus ` +N` for the others; `*` when the
+     range has lines not committed yet. Those count for the user, as
+     `VcsBackend.identity` gives them: user.name and user.email (the
+     environment's first) through `git check-mailmap`, so a commit is
+     the user's by mail address, as blame maps it; with no identity they
+     name no one. Git keeps the identity until the refs generation, the
+     global config files or the mailmap change. The hover lists every
+     author newest first with its line count and age, the uncommitted
+     lines last, as escaped HTML: an author's name is anyone's to choose.
+     The click is `vcsBlame`, and with the column turned on the caret on
+     the method's first line, its range found again at the click; the
+     bright-and-dim highlight is left out. Under the mouse the entry, as
+     any clickable virtual text, is drawn as a Ctrl-hovered link is,
+     found again as each paint starts. The range is the tag's line, or
+     an opening brace on its own line below it, through
+     `FoldCommands.throughClosing` on `Folds.getFoldBelow`'s closing
+     line; the tag's line alone when there is nothing to fold. The tags
+     (`Buffer.readTags`, shared with the sidebar) and the identity are
+     read off the event thread with `Background.then`, and the entries
+     built when they come back, if the caret still rests on the same
+     buffer; a mode with no tagger gets none. What each buffer's entries
+     were built from is kept weakly, so a closed buffer is let go.
+     `BlameText` listens on either preference, so the authors show with
+     the line blame off and the reverse; turned off in the preferences,
+     every buffer's entries go. On the caret's line both are drawn, the
+     authors nearer the text (priority 0 to the line blame's 1). The
+     same `vcsBlameMaxLines` limit covers both, in `common()`.
+     The entries are built only once the blame is done: `BlameData`
+     fills in as git streams, and a count from part of it is wrong; until
+     then what is shown stays, as on coming back to a buffer whose blame
+     was let go.
    - **h. Docs, keys, review.** `doc/git.html` gains Blame; commands and
      preferences documented; the status's and editor's `?` popups list
      `vcsBlame`; vim `<leader>gb`. Checked in the app under Xvfb: a file

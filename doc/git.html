@@ -756,6 +756,19 @@ href="preferences.html#vcsLineBlame">vcsLineBlame</a> turns it off, and
 <a href="preferences.html#vcsBlameMaxLines">vcsBlameMaxLines</a> keeps it
 from reading a file too long to blame quickly.
 
+<p>
+With <a href="preferences.html#vcsCodeAuthors">vcsCodeAuthors</a> on,
+each method and class shows, dimmed after its first line, who wrote most
+of it: the author of the most lines, plus how many others touched it, as
+<code>Smith +4</code>. A star after the name means the method has
+lines not committed yet, counted for you. Its tool tip lists every
+author with how many lines each has and when they last changed one.
+Under the mouse the entry shows as a link; clicking it turns on the
+blame column and moves the caret to the method's first line, or, with
+the column on, turns it off. The same <a
+href="preferences.html#vcsBlameMaxLines">vcsBlameMaxLines</a> limit
+applies.
+
 <h2><a name="bufferlist">The buffer list</a></h2>
 
 <p>

@@ -638,6 +638,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             posMatch = flashMatch != null ? new PairMatcher.Delimiter(flashMatch, 1) : null;
         }
         updateFoldExtents();
+        updateHoverRun();
     }
 
     private void repaintIfMoved(PairMatcher.Delimiter old, PairMatcher.Delimiter now) {
@@ -884,6 +885,38 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         hoverBegin = begin;
         hoverEnd = end;
         repaint();
+    }
+
+    // The clickable run of virtual text the mouse is over, drawn as a link,
+    // and where the mouse is.
+    private VirtualText.Run hoverRun;
+    private int hoverX;
+    private int hoverY;
+
+    /**
+     * Shows run, clickable, under the mouse at (x, y), as a link, as a
+     * Ctrl-hovered link is; or nothing, with null.
+     */
+    public synchronized void setHoverRun(VirtualText.Run run, int x, int y) {
+        hoverX = x;
+        hoverY = y;
+        if (run == hoverRun)
+            return;
+        hoverRun = run;
+        repaint();
+    }
+
+    // The link under the mouse found again as a paint starts: a scroll, an
+    // edit or another buffer may have moved it from under a mouse not moved.
+    private void updateHoverRun() {
+        if (hoverRun == null)
+            return;
+        final VirtualText.Run run = virtualRunAt(hoverX, hoverY);
+        final VirtualText.Run now = run != null && run.action() != null ? run : null;
+        if (now != hoverRun) {
+            hoverRun = now;
+            repaint();
+        }
     }
 
     /** The line of the link a Ctrl-hovered mouse is over, or null. */
@@ -1555,11 +1588,12 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final Color dim = DefaultTheme.blend(formatter.getBackgroundColor(), formatter.getColor(0), 0.5);
             for (Placed p : placed) {
                 final VirtualText.Run run = p.run();
+                final boolean link = run == hoverRun;
                 g2d.setFont(fontFor(run.style()));
-                g2d.setColor(run.color() != null ? run.color() : dim);
+                g2d.setColor(link ? formatter.getHoverLinkColor() : run.color() != null ? run.color() : dim);
                 final int base = baseline(y, run.style());
                 g2d.drawString(run.text(), p.x(), base);
-                if ((run.style() & TextStyle.UNDERLINE) != 0)
+                if (link || (run.style() & TextStyle.UNDERLINE) != 0)
                     g2d.drawLine(p.x(), base + 1, p.x() + p.width(), base + 1);
                 if ((run.style() & TextStyle.STRIKETHROUGH) != 0) {
                     final int strikeY = base - strikethroughRise(run.style());
@@ -3643,10 +3677,19 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     static String multiline(String tip) {
         if (tip == null || tip.indexOf('\n') < 0 || tip.regionMatches(true, 0, "<html>", 0, 6))
             return tip;
+        return toHtml(tip);
+    }
+
+    /**
+     * text as a tool tip shows it, escaped: its lines, spaces and tabs
+     * kept. For text that isn't the caller's: multiline would pass it on
+     * as HTML if it began with <html>.
+     */
+    public static String toHtml(String text) {
         final StringBuilder html = new StringBuilder("<html>");
         int column = 0;
-        for (int i = 0; i < tip.length(); i++) {
-            final char c = tip.charAt(i);
+        for (int i = 0; i < text.length(); i++) {
+            final char c = text.charAt(i);
             switch (c) {
                 case '\n' -> html.append("<br>");
                 case '\t' -> html.append("&nbsp;".repeat(8 - column % 8));

@@ -2415,8 +2415,9 @@ commits, so the next lines up. See
 <code><a name="vcsBlameMaxLines">vcsBlameMaxLines</a></code>
 <dl>
 <dd>
-The most lines a buffer may have and still show the caret line's blame.
-The blame column, turned on by hand, reads a file of any length.
+The most lines a buffer may have and still show the caret line's blame or
+its methods' authors. The blame column, turned on by hand, reads a file
+of any length.
 <p>
 <b>Default value:</b> 10000
 </dl>
@@ -2428,6 +2429,21 @@ The most characters a blame column's entry is wide; a longer one ends in
 an ellipsis.
 <p>
 <b>Default value:</b> 30
+</dl>
+
+<code><a name="vcsCodeAuthors">vcsCodeAuthors</a></code>
+<dl>
+<dd>
+Whether each method and class shows, dimmed after its first line, who
+wrote most of it, as <code>Smith +4</code>: the author of the most
+lines, and how many others touched it. A star after the name means the
+method has lines not committed yet, counted for you. Hovering lists
+every author with their lines and when they last changed one; clicking
+turns on the <a href="commands.html#vcsBlame">vcsBlame</a> column and
+moves the caret to the method, or turns the column off. Off by default: an entry on every method
+is noisy. See <a href="git.html#blame">Blame</a>.
+<p>
+<b>Default value:</b> false
 </dl>
 
 <code><a name="vcsHints">vcsHints</a></code>

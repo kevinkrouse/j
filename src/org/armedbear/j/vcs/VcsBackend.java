@@ -138,6 +138,18 @@ public interface VcsBackend {
         return false;
     }
 
+    /** Who commits: a name and a mail address, either null if not set. */
+    record Identity(String name, String email) {}
+
+    /**
+     * Who the user commits as in repository, as its blame names them (git's
+     * user.name and user.email through the mailmap), or null if neither is
+     * set. Off the event thread.
+     */
+    default Identity identity(VcsRepository repository) {
+        return null;
+    }
+
     /**
      * The diff a commit made with options would make, as patch text, for
      * the message's verbose view; null if it can't be read. Off the event

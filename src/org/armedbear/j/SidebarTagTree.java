@@ -103,22 +103,8 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
 
     void refreshInternal(Buffer buffer, List<LocalTag> bufferTags) {
         List<LocalTag> newTags = bufferTags;
-        if (newTags == null) {
-            // The tagger reads the lines: not while they change.
-            try {
-                buffer.lockRead();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
-                newTags = buffer.getTags(true); // Runs the tagger.
-            }
-            finally {
-                buffer.unlockRead();
-            }
-        }
+        if (newTags == null)
+            newTags = buffer.readTags();
         if (newTags == null)
             return;
         final List<LocalTag> finalTags = newTags;

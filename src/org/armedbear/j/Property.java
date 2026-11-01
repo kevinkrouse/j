@@ -74,6 +74,8 @@ public final class Property implements Comparable<Property> {
     // buffer may have and still be blamed for it, or a method's authors.
     public static final Property VCS_LINE_BLAME = createProperty("vcsLineBlame", true);
     public static final Property VCS_BLAME_MAX_LINES = createProperty("vcsBlameMaxLines", 10000);
+    // The authors of each method and class after its first line.
+    public static final Property VCS_CODE_AUTHORS = createProperty("vcsCodeAuthors", false);
     public static final Property VCS_LOG_COLLAPSE_RUNS = createProperty("vcsLogCollapseRuns", false);
     public static final Property VCS_LOG_TIME_STYLE = createProperty("vcsLogTimeStyle", "age");
     public static final Property VCS_LOG_REFS_ORDER = createProperty("vcsLogRefsOrder", "name");

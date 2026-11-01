@@ -461,6 +461,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     public void mouseExited(MouseEvent e) {
         lastMousePoint = null;
         display.setMouseInGutter(false, -1);
+        display.setHoverRun(null, -1, -1);
         forgetLink();
         hideLink();
     }
@@ -643,13 +644,16 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         lastMousePoint = e.getPoint();
         display.setMouseInGutter(e.getX() < Display.getGutterWidth(editor.getBuffer()), e.getY());
         if (e.isControlDown()) {
-            if (showLinkAt(lastMousePoint))
+            if (showLinkAt(lastMousePoint)) {
+                display.setHoverRun(null, -1, -1);
                 return;
+            }
         } else {
             hideLink();
         }
         final Buffer buffer = editor.getBuffer();
         final VirtualText.Run run = display.virtualRunAt(e.getX(), e.getY());
+        display.setHoverRun(run != null && run.action() != null ? run : null, e.getX(), e.getY());
         if (run != null && run.action() != null) {
             editor.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             return;

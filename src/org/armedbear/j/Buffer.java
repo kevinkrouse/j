@@ -1322,6 +1322,34 @@ public class Buffer extends SystemBuffer {
         return getTags();
     }
 
+    // Held while readTags runs the tagger, so two threads wanting the tags
+    // run it once.
+    private final Object tagging = new Object();
+
+    /**
+     * The tags, the tagger run under the read lock if there are none: for a
+     * thread off the event thread. Null if the mode has no tagger or the
+     * wait for the lock was interrupted.
+     */
+    public List<LocalTag> readTags() {
+        try {
+            lockRead();
+        }
+        catch (InterruptedException e) {
+            Log.error(e);
+            Thread.currentThread().interrupt();
+            return null;
+        }
+        try {
+            synchronized (tagging) {
+                return getTags(true);
+            }
+        }
+        finally {
+            unlockRead();
+        }
+    }
+
     public boolean saveToCache() {
         if (lineSeparator == null)
             lineSeparator = System.getProperty("line.separator");

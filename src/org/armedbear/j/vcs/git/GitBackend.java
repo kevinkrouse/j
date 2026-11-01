@@ -117,6 +117,71 @@ public final class GitBackend implements VcsBackend {
 
     private final Map<VcsRepository, Kept> kept = new ConcurrentHashMap<>();
 
+    // The user's identity as last read, good while the repository's config
+    // (its refs generation), the global config and the mailmap are as they
+    // were then.
+    private record KeptIdentity(long refs, long stamp, Identity identity) {}
+
+    private final Map<VcsRepository, KeptIdentity> identities = new ConcurrentHashMap<>();
+
+    @Override
+    public Identity identity(VcsRepository repository) {
+        final long refs = repository.refsGeneration();
+        final long stamp = identityStamp(repository);
+        final KeptIdentity k = identities.get(repository);
+        if (k != null && k.refs() == refs && k.stamp() == stamp)
+            return k.identity();
+        final Identity identity = readIdentity(repository);
+        identities.put(repository, new KeptIdentity(refs, stamp, identity));
+        return identity;
+    }
+
+    // As a commit takes it: the environment over the config, then mapped
+    // as blame maps its authors.
+    private static Identity readIdentity(VcsRepository repository) {
+        String name = System.getenv("GIT_AUTHOR_NAME");
+        String email = System.getenv("GIT_AUTHOR_EMAIL");
+        if (name == null)
+            name = configValue(repository, "user.name");
+        if (email == null)
+            email = configValue(repository, "user.email");
+        if (name == null && email == null)
+            return null;
+        if (email != null) {
+            final String ident = (name != null ? name + " " : "") + "<" + email + ">";
+            final VcsResult r = GitCli.run(GitCli.read(repository.root(), "check-mailmap", ident));
+            final String mapped = r.succeeded() ? r.out().strip() : "";
+            final int lt = mapped.lastIndexOf('<');
+            if (lt >= 0 && mapped.endsWith(">")) {
+                final String n = mapped.substring(0, lt).strip();
+                name = n.isEmpty() ? name : n;
+                email = mapped.substring(lt + 1, mapped.length() - 1);
+            }
+        }
+        return new Identity(name, email);
+    }
+
+    private static String configValue(VcsRepository repository, String key) {
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "config", "--get", key));
+        final String value = r.succeeded() ? r.out().strip() : "";
+        return value.isEmpty() ? null : value;
+    }
+
+    // What else an identity is read from: the global config files and the
+    // mailmap, by when each was last changed.
+    private static long identityStamp(VcsRepository repository) {
+        final String home = System.getProperty("user.home");
+        final String xdg = System.getenv("XDG_CONFIG_HOME");
+        final String global = System.getenv("GIT_CONFIG_GLOBAL");
+        long stamp = 0;
+        for (Path p : List.of(
+            global != null ? Path.of(global) : Path.of(home, ".gitconfig"),
+            xdg != null ? Path.of(xdg, "git", "config") : Path.of(home, ".config", "git", "config"),
+            repository.root().resolve(".mailmap")))
+            stamp = stamp * 31 + p.toFile().lastModified();
+        return stamp;
+    }
+
     // So a save's change marks run no more git than the status.
     private GitSnapshot withRelations(VcsRepository repository, GitDirs dirs, GitSnapshot s) {
         final long refs = repository.refsGeneration();
