@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.Desktop;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -32,9 +33,11 @@ import java.util.EnumSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
@@ -213,30 +216,59 @@ public final class StatusActions {
             editor.status(why);
             return;
         }
+        if (op == Op.DISCARD && allUnmerged(targets)) {
+            ConflictCommands.open(editor, targets);
+            return;
+        }
         if (op == Op.DISCARD && !confirm.test(editor, discardQuestion(targets)))
             return;
-        if (targets.stream().anyMatch(t -> t.section().equals("unmerged") && op == Op.STAGE)
-                && !confirm.test(editor, "Mark " + names(targets) + " resolved?"))
-            return;
+        if (op == Op.STAGE) {
+            final List<Target> unmerged = targets.stream().filter(StatusActions::isUnmerged).toList();
+            if (!unmerged.isEmpty()) {
+                final int conflicts = conflictsLeft(unmerged);
+                final String left = conflicts == 0 ? ""
+                        : conflicts == 1 ? " 1 conflict is left."
+                        : " " + conflicts + " conflicts are left.";
+                if (!confirm.test(editor, "Mark " + names(unmerged) + " resolved?" + left))
+                    return;
+            }
+        }
+        start(editor, buffer, switch (op) {
+            case STAGE -> "Staging";
+            case UNSTAGE -> "Unstaging";
+            case DISCARD -> "Discarding";
+        }, targets, () -> {
+            if (op == Op.DISCARD)
+                return discard(targets);
+            for (Target t : targets) {
+                final String failed = perform(op, t);
+                if (failed != null)
+                    return failed;
+            }
+            return null;
+        });
+    }
+
+    // Says what is being done to targets and does work, as write does.
+    static void start(
+            Editor editor,
+            VcsStatusBuffer buffer,
+            String doing,
+            List<Target> targets,
+            Supplier<String> work) {
         editor.setMark(null);
-        editor.status(switch (op) {
-            case STAGE -> "Staging ";
-            case UNSTAGE -> "Unstaging ";
-            case DISCARD -> "Discarding ";
-        } + names(targets) + "…");
+        editor.status(doing + " " + names(targets) + "…");
+        write(editor, buffer, "vcs " + doing.toLowerCase(Locale.ROOT), work);
+    }
+
+    // Runs work, what went wrong or null, off the event thread, then reads the buffer again.
+    static void write(Editor editor, VcsStatusBuffer buffer, String name, Supplier<String> work) {
         buffer.startWriting();
-        Background.start("vcs " + verb(op), () -> {
+        Background.start(name, () -> {
             String failed = null;
             // Whatever happens, the buffer is read again and takes keys again.
             try {
-                if (op == Op.DISCARD)
-                    failed = discard(targets);
-                else
-                    for (Target t : targets) {
-                        failed = perform(op, t);
-                        if (failed != null)
-                            break;
-                    }
+                failed = work.get();
             }
             catch (RuntimeException e) {
                 Log.error(e);
@@ -244,6 +276,40 @@ public final class StatusActions {
             }
             finish(editor, buffer, failed);
         });
+    }
+
+    // Whether t is files of the unmerged section.
+    static boolean isUnmerged(Target t) {
+        return t instanceof Files && t.section().equals(StatusData.UNMERGED);
+    }
+
+    // Whether every target is files of the unmerged section.
+    static boolean allUnmerged(List<Target> targets) {
+        return !targets.isEmpty() && targets.stream().allMatch(StatusActions::isUnmerged);
+    }
+
+    // Conflict markers left in the unmerged files on disk; a missing file counts none.
+    private static int conflictsLeft(List<Target> unmerged) {
+        int n = 0;
+        for (Target t : unmerged)
+            if (t instanceof Files f)
+                for (FileItem i : f.files()) {
+                    try {
+                        // Latin-1 reads any bytes, and the markers are ASCII.
+                        final Path p = f.repository().root().resolve(i.path());
+                        for (String line : java.nio.file.Files.readAllLines(p, StandardCharsets.ISO_8859_1)) {
+                            int lt = 0;
+                            while (lt < line.length() && line.charAt(lt) == '<')
+                                lt++;
+                            if (lt >= 7 && (lt == line.length() || line.charAt(lt) == ' '))
+                                n++;
+                        }
+                    }
+                    catch (IOException e) {
+                        // A file gone counts none.
+                    }
+                }
+        return n;
     }
 
     /** Whether op would do something to what the caret or selection is on, as its menu item is enabled. */
@@ -276,7 +342,7 @@ public final class StatusActions {
     }
 
     // Why op can't be done to targets in editor, or null.
-    private static String refusal(Editor editor, VcsStatusBuffer buffer, Op op, List<Target> targets) {
+    static String refusal(Editor editor, VcsStatusBuffer buffer, Op op, List<Target> targets) {
         // The diff beside shows what was there before the last write until it is read again.
         if (editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale())
             return "Wait: the diff is being read again";
@@ -289,6 +355,14 @@ public final class StatusActions {
             final String why = refuse(op, t);
             if (why != null)
                 return why;
+        }
+        // x on unmerged files opens the resolve popup, which takes them all
+        // the same way; a mix of kinds has no single answer.
+        if (op == Op.DISCARD && targets.stream().anyMatch(StatusActions::isUnmerged)) {
+            if (!allUnmerged(targets))
+                return "Resolve the conflicts on their own";
+            if (ConflictCommands.offered(targets).isEmpty())
+                return "Those conflicts differ: resolve them one at a time";
         }
         if (hunksIgnoreWhitespace(buffer, targets))
             return "Not a hunk while whitespace is ignored: a file is " + switch (op) {
@@ -318,30 +392,23 @@ public final class StatusActions {
             editor.status("Nothing here stages");
             return;
         }
-        // git reset ends a merge, or a rebase's step, keeping its conflict markers.
+        // git reset ends a merge, a rebase's step, or a stash pop's
+        // conflicts, keeping their conflict markers.
         if (!stage && buffer.getRepositories().stream().anyMatch(r -> {
             final StatusData d = buffer.getData(r);
             return d != null && d.inProgress() != null;
         })) {
-            editor.status("Not while a merge or rebase is in progress: it would end it. u unstages a file");
+            editor.status("Not while a merge, rebase or stash pop is in progress: it would end it. u unstages a file");
             return;
         }
-        buffer.startWriting();
-        Background.start("vcs " + (stage ? "stage" : "unstage") + " all", () -> {
-            String failed = null;
-            try {
-                for (VcsRepository r : buffer.getRepositories()) {
-                    final VcsBackend b = r.backend();
-                    failed = failure(b, stage ? b.stageAll(r) : b.unstageAll(r));
-                    if (failed != null)
-                        break;
-                }
+        write(editor, buffer, "vcs " + (stage ? "stage" : "unstage") + " all", () -> {
+            for (VcsRepository r : buffer.getRepositories()) {
+                final VcsBackend b = r.backend();
+                final String failed = failure(b, stage ? b.stageAll(r) : b.unstageAll(r));
+                if (failed != null)
+                    return failed;
             }
-            catch (RuntimeException e) {
-                Log.error(e);
-                failed = "Failed: " + e;
-            }
-            finish(editor, buffer, failed);
+            return null;
         });
     }
 
@@ -373,7 +440,7 @@ public final class StatusActions {
                     : t instanceof Part && !section.equals("unstaged") ? "Only an unstaged hunk is staged in part"
                     : null;
             case UNSTAGE -> section.equals("staged") ? null : "Not staged";
-            case DISCARD -> isHistory(section) || section.equals("unmerged") ? "Nothing to discard here" : null;
+            case DISCARD -> isHistory(section) ? "Nothing to discard here" : null;
         };
     }
 
@@ -553,7 +620,7 @@ public final class StatusActions {
     }
 
     // Untracked files to the desktop's trash, where there is one; deleted where not.
-    private static String trash(VcsRepository r, List<String> paths) {
+    static String trash(VcsRepository r, List<String> paths) {
         final boolean trash = canTrash();
         for (String path : paths) {
             final Path p = r.root().resolve(path);
@@ -581,7 +648,7 @@ public final class StatusActions {
         }
     }
 
-    private static String failure(VcsBackend backend, VcsResult result) {
+    static String failure(VcsBackend backend, VcsResult result) {
         if (result == null)
             return backend.name() + " can't do that";
         if (result.succeeded())
@@ -642,7 +709,7 @@ public final class StatusActions {
         return list(names);
     }
 
-    private static String list(List<String> names) {
+    static String list(List<String> names) {
         if (names.size() <= 3)
             return String.join(", ", names);
         return String.join(", ", names.subList(0, 2)) + " and " + (names.size() - 2) + " more";

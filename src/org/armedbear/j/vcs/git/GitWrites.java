@@ -205,6 +205,22 @@ final class GitWrites {
         return run(repository, args);
     }
 
+    static VcsResult checkoutSide(VcsRepository repository, List<String> paths, boolean ours) {
+        final List<String> args = args("--literal-pathspecs", "checkout", ours ? "--ours" : "--theirs", "--");
+        args.addAll(paths);
+        return run(repository, args);
+    }
+
+    // zdiff3 keeps the base between the sides; older gits know only diff3.
+    static VcsResult restoreConflict(VcsRepository repository, List<String> paths) {
+        final String style = GitCli.versionAtLeast(RESTORE_CONFLICT_STYLE) ? "zdiff3" : "diff3";
+        final List<String> args = args("--literal-pathspecs", "checkout", "-m", "--conflict=" + style, "--");
+        args.addAll(paths);
+        return run(repository, args);
+    }
+
+    private static final int[] RESTORE_CONFLICT_STYLE = { 2, 35 };
+
     static VcsResult apply(
             VcsRepository repository,
             byte[] patch,

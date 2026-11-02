@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -318,6 +319,100 @@ public class StatusActionsTest {
         until(() -> !text().contains("  ?  c.txt"));
         assertFalse(Files.exists(git.root.resolve("c.txt")));
         assertTrue(asked.get(0).contains("c.txt"), asked.toString());
+    }
+
+    // a.txt with a both-modified conflict, plus an unstaged b.txt to mix with.
+    private void conflicted() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "base\n");
+        git.write("b.txt", "b\n");
+        git.commitAll("first");
+        git.git("checkout", "-q", "-b", "other");
+        git.write("a.txt", "theirs\n");
+        git.commitAll("theirs");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "ours\n");
+        git.commitAll("ours");
+        git.run("merge", "other");
+        git.write("b.txt", "b changed\n");
+    }
+
+    @Test
+    public void xOnAnUnmergedFileOpensTheResolvePopup() throws Exception {
+        conflicted();
+        open();
+        act("  U  a.txt (both modified)", Op.DISCARD);
+        assertTrue(asked.isEmpty(), "no discard question: " + asked);
+        final TransientPopup popup = TransientPopup.getOpen();
+        assertNotNull(popup, "the resolve popup opened");
+        assertNotNull(popup.getTransient().item("o"), "offers ours");
+        onEdt(() -> TransientPopup.getOpen().close(false));
+    }
+
+    @Test
+    public void sOnAnUnmergedFileCountsTheMarkersLeft() throws Exception {
+        conflicted();
+        open();
+        answer = false;
+        act("  U  a.txt (both modified)", Op.STAGE);
+        assertEquals(1, asked.size(), asked.toString());
+        assertEquals("Mark a.txt resolved? 1 conflict is left.", asked.get(0));
+        // With the markers gone, the count drops off.
+        asked.clear();
+        git.write("a.txt", "resolved\n");
+        act("  U  a.txt (both modified)", Op.STAGE);
+        assertEquals("Mark a.txt resolved?", asked.get(0));
+    }
+
+    @Test
+    public void xOnAMixOfUnmergedAndOtherIsRefused() throws Exception {
+        conflicted();
+        open();
+        onEdt(() -> {
+            h.editor().setDot(line("  U  a.txt (both modified)"), 0);
+            h.editor().setMark(new Position(line("  M  b.txt"), 0));
+            StatusActions.run(h.editor(), Op.DISCARD);
+        });
+        assertEquals("Resolve the conflicts on their own", h.status());
+        assertTrue(asked.isEmpty(), "no discard question: " + asked);
+    }
+
+    @Test
+    public void sCountsTheMarkersInAFileNotUtf8() throws Exception {
+        conflicted();
+        Files.write(
+            git.root.resolve("a.txt"),
+            "<<<<<<< HEAD\ncaf\u00e9\n=======\nx\n>>>>>>> other\n".getBytes(StandardCharsets.ISO_8859_1));
+        open();
+        answer = false;
+        act("  U  a.txt (both modified)", Op.STAGE);
+        assertEquals("Mark a.txt resolved? 1 conflict is left.", asked.get(0));
+    }
+
+    @Test
+    public void sOnAConflictAndAnotherFileNamesOnlyTheConflict() throws Exception {
+        conflicted();
+        open();
+        answer = false;
+        onEdt(() -> {
+            h.editor().setDot(line("  U  a.txt (both modified)"), 0);
+            h.editor().setMark(new Position(line("  M  b.txt"), 0));
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        assertEquals(List.of("Mark a.txt resolved? 1 conflict is left."), asked);
+    }
+
+    @Test
+    public void aConflictCommandRefusesAMixAsXDoes() throws Exception {
+        conflicted();
+        open();
+        onEdt(() -> {
+            h.editor().setDot(line("  U  a.txt (both modified)"), 0);
+            h.editor().setMark(new Position(line("  M  b.txt"), 0));
+            ConflictCommands.vcsResolveOurs(h.editor());
+        });
+        assertEquals("Resolve the conflicts on their own", h.status());
+        assertTrue(git.read("a.txt").contains("<<<<<<<"), "a.txt left as it was");
     }
 
     @Test

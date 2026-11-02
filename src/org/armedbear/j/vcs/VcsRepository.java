@@ -47,6 +47,12 @@ public final class VcsRepository {
     // Bumped by invalidate, not invalidateFiles.
     private final AtomicLong refsGeneration = new AtomicLong(1);
     private volatile long readGeneration;
+    private volatile StashConflict stashConflict;
+    // The generation when it was noted: a read begun before can't tell it is over.
+    private volatile long stashConflictAt;
+
+    /** A stash j applied or popped that conflicted. */
+    public record StashConflict(String name, String hash, boolean pop) {}
 
     private boolean refreshing;
     private boolean refreshAgain;
@@ -80,6 +86,17 @@ public final class VcsRepository {
     /** The latest snapshot, stale or not; null if none has been read. */
     public Snapshot snapshot() {
         return snapshot;
+    }
+
+    /** The stash whose apply or pop left this repository's conflicts; null if none. */
+    public StashConflict stashConflict() {
+        return stashConflict;
+    }
+
+    /** Notes that applying or popping a stash conflicted, until no conflict is left. */
+    public void stashConflicted(StashConflict conflict) {
+        stashConflictAt = generation.get();
+        stashConflict = conflict;
     }
 
     public boolean isStale() {
@@ -172,6 +189,15 @@ public final class VcsRepository {
         }
         snapshot = s != null ? s : Snapshot.failed(backend.name() + " has no repository model");
         readGeneration = started;
+        // The note ends with the conflicts, but only a read begun after it
+        // can tell: one begun before git wrote the conflicts would drop it
+        // too early.
+        if (stashConflict != null
+                && started > stashConflictAt
+                && s != null
+                && s.error() == null
+                && s.changes().stream().noneMatch(FileChange::isConflicted))
+            stashConflict = null;
     }
 
     /**

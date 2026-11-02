@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.armedbear.j.File;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.FileChange.Conflict;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.Snapshot;
@@ -82,6 +83,19 @@ public class GitSnapshotTest {
     }
 
     @Test
+    public void namesEachKindOfConflict() {
+        assertEquals(Conflict.BOTH_MODIFIED, GitStatusParser.conflict("UU"));
+        assertEquals(Conflict.BOTH_ADDED, GitStatusParser.conflict("AA"));
+        assertEquals(Conflict.BOTH_DELETED, GitStatusParser.conflict("DD"));
+        assertEquals(Conflict.ADDED_BY_US, GitStatusParser.conflict("AU"));
+        assertEquals(Conflict.ADDED_BY_THEM, GitStatusParser.conflict("UA"));
+        assertEquals(Conflict.DELETED_BY_US, GitStatusParser.conflict("DU"));
+        assertEquals(Conflict.DELETED_BY_THEM, GitStatusParser.conflict("UD"));
+        assertNull(GitStatusParser.conflict("M "));
+        assertNull(GitStatusParser.conflict("??"));
+    }
+
+    @Test
     public void readsAnEmptyRepositoryAndADetachedHead() {
         GitSnapshot s = parse("# branch.oid (initial)\0# branch.head (detached)\0");
         assertNull(s.head());
@@ -108,6 +122,8 @@ public class GitSnapshotTest {
         assertEquals(Kind.RENAMED, renamed.staged());
         assertTrue(s.change("both.txt").isConflicted());
         assertEquals("UU", s.change("both.txt").code());
+        assertEquals(Conflict.BOTH_MODIFIED, s.change("both.txt").conflict());
+        assertNull(staged.conflict());
         assertTrue(s.change("untracked.txt").isUntracked());
         assertTrue(s.change("build/").isIgnored());
         assertEquals(Kind.ADDED, s.change("intent.txt").unstaged());

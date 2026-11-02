@@ -194,8 +194,9 @@ public final class StatusRenderer {
         final String fk = sk + "|" + f.path();
         final String orig = f.change().origPath();
         final String name = orig != null && f.staged() ? orig + " -> " + f.path() : f.path();
+        final String shown = f.change().conflict() == null ? name : name + " (" + f.change().conflict().words() + ")";
         add(
-            new StatusLine(Kind.FILE, INDENT + f.letter() + "  " + name, fk, fk, repository, section).file(f)
+            new StatusLine(Kind.FILE, INDENT + f.letter() + "  " + shown, fk, fk, repository, section).file(f)
                     .expandable(f.hasDiff())
                     .open(f.hasDiff() && expanded.test(fk, Kind.FILE)));
         if (!f.hasDiff() || !expanded.test(fk, Kind.FILE))

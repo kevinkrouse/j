@@ -599,8 +599,24 @@ public class VcsStatusBufferTest {
         git.run("merge", "other");
         open();
         assertTrue(text().contains("Merge in progress (1 conflict)"), text().toString());
-        assertTrue(text().contains("  U  a.txt"), text().toString());
-        assertFalse(line("  U  a.txt").isExpandable());
+        assertTrue(text().contains("  U  a.txt (both modified)"), text().toString());
+        assertFalse(line("  U  a.txt (both modified)").isExpandable());
+    }
+
+    @Test
+    public void aFileDeletedByThemSaysSo() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "a\n");
+        git.commitAll("first");
+        git.git("checkout", "-q", "-b", "other");
+        git.git("rm", "-q", "a.txt");
+        git.commitAll("gone");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "ours\n");
+        git.commitAll("ours");
+        git.run("merge", "other");
+        open();
+        assertTrue(text().contains("  U  a.txt (deleted by them)"), text().toString());
     }
 
     @Test

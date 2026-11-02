@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.FileChange.Conflict;
 import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Snapshot.Relation;
 
@@ -34,6 +35,20 @@ import org.armedbear.j.vcs.Snapshot.Relation;
  */
 final class GitStatusParser {
     private GitStatusParser() {}
+
+    /** An unmerged file's kind from its XY; null if xy is no conflict's. */
+    static Conflict conflict(String xy) {
+        return switch (xy) {
+            case "UU" -> Conflict.BOTH_MODIFIED;
+            case "AA" -> Conflict.BOTH_ADDED;
+            case "DD" -> Conflict.BOTH_DELETED;
+            case "AU" -> Conflict.ADDED_BY_US;
+            case "UA" -> Conflict.ADDED_BY_THEM;
+            case "DU" -> Conflict.DELETED_BY_US;
+            case "UD" -> Conflict.DELETED_BY_THEM;
+            default -> null;
+        };
+    }
 
     /** stashHeader: whether this git writes "# stash"; if not, the count is unknown (-1). */
     static GitSnapshot parse(byte[] output, GitSnapshot.Operation operation, boolean stashHeader) {
@@ -77,7 +92,7 @@ final class GitStatusParser {
             } else if (r.startsWith("u ")) {
                 String[] f = r.split(" ", 11);
                 if (f.length == 11)
-                    changes.add(new FileChange(f[10], null, Kind.CONFLICTED, Kind.CONFLICTED, f[1]));
+                    changes.add(new FileChange(f[10], null, Kind.CONFLICTED, Kind.CONFLICTED, f[1], conflict(f[1])));
             } else if (r.startsWith("? ")) {
                 changes.add(new FileChange(r.substring(2), null, null, Kind.UNTRACKED, "??"));
             } else if (r.startsWith("! ")) {

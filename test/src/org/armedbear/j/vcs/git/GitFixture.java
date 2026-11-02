@@ -40,23 +40,19 @@ import org.armedbear.j.vcs.diff.FileDiff;
  * config out of the way and fixed names and dates, so runs are repeatable.
  */
 public final class GitFixture {
-    static final Map<String, String> ENV = Map.of(
-        "GIT_CONFIG_GLOBAL",
-        "/dev/null",
-        "GIT_CONFIG_NOSYSTEM",
-        "1",
-        "GIT_AUTHOR_NAME",
-        "Tester",
-        "GIT_AUTHOR_EMAIL",
-        "tester@example.com",
-        "GIT_COMMITTER_NAME",
-        "Tester",
-        "GIT_COMMITTER_EMAIL",
-        "tester@example.com",
-        "GIT_AUTHOR_DATE",
-        "2026-01-01T00:00:00Z",
-        "GIT_COMMITTER_DATE",
-        "2026-01-01T00:00:00Z");
+    static final Map<String, String> ENV = Map.ofEntries(
+        Map.entry("GIT_CONFIG_GLOBAL", "/dev/null"),
+        Map.entry("GIT_CONFIG_NOSYSTEM", "1"),
+        // Config given in the environment, as an agent's identity, would
+        // beat the repository's own.
+        Map.entry("GIT_CONFIG_COUNT", "0"),
+        Map.entry("GIT_CONFIG_PARAMETERS", ""),
+        Map.entry("GIT_AUTHOR_NAME", "Tester"),
+        Map.entry("GIT_AUTHOR_EMAIL", "tester@example.com"),
+        Map.entry("GIT_COMMITTER_NAME", "Tester"),
+        Map.entry("GIT_COMMITTER_EMAIL", "tester@example.com"),
+        Map.entry("GIT_AUTHOR_DATE", "2026-01-01T00:00:00Z"),
+        Map.entry("GIT_COMMITTER_DATE", "2026-01-01T00:00:00Z"));
 
     public final Path root;
 
@@ -93,6 +89,13 @@ public final class GitFixture {
         VcsResult r = run(args);
         assertEquals(0, r.exitCode(), () -> "git " + List.of(args) + ": " + r.stderr());
         return r.out();
+    }
+
+    /** Feeds git update-index --index-info, to build an index state by hand. */
+    public void updateIndex(String info) {
+        VcsResult r =
+                GitCli.run(GitCli.write(root, info.getBytes(StandardCharsets.UTF_8), "update-index", "--index-info"));
+        assertEquals(0, r.exitCode(), () -> "git update-index: " + r.stderr());
     }
 
     byte[] gitBytes(String... args) {

@@ -231,8 +231,16 @@ public final class StashCommands {
             editor,
             r,
             (pop ? "Popping " : "Applying ") + st.name(),
-            () -> r.backend().stashApply(r, st.name(), st.hash(), pop),
+            () -> applyStash(r, st, pop),
             result -> (pop ? "Popped " : "Applied ") + st.name());
+    }
+
+    // Applies or pops st, noting on r a conflict it leaves.
+    static VcsResult applyStash(VcsRepository r, StashItem st, boolean pop) {
+        final VcsResult result = r.backend().stashApply(r, st.name(), st.hash(), pop);
+        if (result != null && StatusWrites.conflicted(result))
+            r.stashConflicted(new VcsRepository.StashConflict(st.name(), st.hash(), pop));
+        return result;
     }
 
     private static void write(

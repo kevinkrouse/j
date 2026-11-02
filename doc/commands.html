@@ -503,6 +503,11 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsMergeAbort">vcsMergeAbort</a></li>
     <li><a href="commands.html#vcsMergeCommit">vcsMergeCommit</a></li>
     <li><a href="commands.html#vcsMergePopup">vcsMergePopup</a></li>
+    <li><a href="commands.html#vcsResolveDelete">vcsResolveDelete</a></li>
+    <li><a href="commands.html#vcsResolveKeep">vcsResolveKeep</a></li>
+    <li><a href="commands.html#vcsResolveOurs">vcsResolveOurs</a></li>
+    <li><a href="commands.html#vcsResolveRestore">vcsResolveRestore</a></li>
+    <li><a href="commands.html#vcsResolveTheirs">vcsResolveTheirs</a></li>
     <li><a href="commands.html#vcsStage">vcsStage</a></li>
     <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
     <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a></li>
@@ -6741,6 +6746,56 @@ Opens the merge popup, after Neogit's. It has its switches and merging, or durin
 <b>Default key mapping:</b> m in status buffers and the log's list
 <br><br>
 <b>See also:</b> <a href="git.html#merging">Merging</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsResolveDelete">vcsResolveDelete</a><dl><dd>
+<p>
+In a status buffer, resolves the unmerged files at the caret by moving them to the trash, and stages the deletion. It fits a file one side deleted, or both.
+<br><br>
+<b>Default key mapping:</b> d in the resolve popup
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsResolveKeep">vcsResolveKeep</a><dl><dd>
+<p>
+In a status buffer, resolves the unmerged files at the caret by keeping the version the working tree has, and staging it. It fits a file one side deleted and the other changed.
+<br><br>
+<b>Default key mapping:</b> k in the resolve popup
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsResolveOurs">vcsResolveOurs</a><dl><dd>
+<p>
+In a status buffer, resolves the unmerged files at the caret by taking our side, HEAD's, and staging it. The file as it was goes to the trash. It fits a file both sides changed or both added.
+<br><br>
+<b>Default key mapping:</b> o in the resolve popup
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsResolveRestore">vcsResolveRestore</a><dl><dd>
+<p>
+In a status buffer, puts the conflict markers back in the unmerged files at the caret, with the base between the sides, and leaves them unmerged. The file as it was goes to the trash. It fits a file both sides changed or both added.
+<br><br>
+<b>Default key mapping:</b> c in the resolve popup
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsResolveTheirs">vcsResolveTheirs</a><dl><dd>
+<p>
+In a status buffer, resolves the unmerged files at the caret by taking their side, and staging it. The file as it was goes to the trash. It fits a file both sides changed or both added.
+<br><br>
+<b>Default key mapping:</b> t in the resolve popup
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
 <br><br>
 </dl><!--<hr>-->
 

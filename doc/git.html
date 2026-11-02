@@ -75,7 +75,8 @@ A Stashes line says when git has stashes but can't list them.
 
 <p>
 The sections are those that have something in them: unmerged files during a
-merge, untracked files, unstaged changes, staged changes, the stashes
+merge (each saying its kind, as <i>both modified</i> or <i>deleted by
+them</i>), untracked files, unstaged changes, staged changes, the stashes
 (see <a href="#stashing">Stashing</a>), then the commits
 between the branch and its upstream, push target and parent each way
 (unpulled, unpushed, unmerged from the parent, and not in it), closed to
@@ -83,7 +84,8 @@ begin with, as of the last fetch; and the recent commits, when no commit is on
 the branch alone. A section of commits between two branches shows the
 newest ten, then how many more, whose Enter opens the log of them all. A line under the header says when
 a merge, a rebase or a cherry-pick is in progress, and how many conflicts it
-has.
+has; the same for a stash apply or pop that conflicted, until its conflicts
+are resolved.
 
 <p>
 A dimmed row over the first line shows the main keys, in the notation of the
@@ -443,6 +445,39 @@ out; a conflict in one stops that one alone, and the status bar says where
 it merged, where not, and where it failed. Committing or aborting a merge in
 progress is the repository at the caret's.
 
+<h2><a name="conflicts">Conflicts</a></h2>
+
+<p>
+A merge, or a stash apply or pop, that conflicts leaves the files in the
+Unmerged section, each saying its kind: <code>U a.txt (both modified)</code>,
+<code>U b.txt (deleted by them)</code>. The line under the header names the
+operation and how many conflicts there are, until they are resolved.
+
+<p>
+<b>x</b> on an unmerged file opens the resolve popup, which offers what
+fits that file's kind:
+
+<ul>
+    <li>both modified or both added: <b>o</b> ours (HEAD's), <b>t</b> theirs, <b>c</b> conflict again;</li>
+    <li>deleted or added by one side: <b>k</b> keep it, <b>d</b> delete it;</li>
+    <li>both deleted: <b>d</b> delete it.</li>
+</ul>
+
+<p>
+Ours, theirs, keep and delete take that version and stage the file, one
+step. "Conflict again" puts the markers back, with the base between the
+sides, and leaves the file unmerged. The file as it was, with any edits
+made to it by hand, goes to the trash first, as a deleted one does. A
+selection that mixes unmerged files with anything else is refused, as is
+one of conflicts of different kinds: the popup takes them all the same
+way, so resolve them on their own. Each choice is a command too,
+<code>vcsResolveOurs</code> and the like.
+
+<p>
+<b>s</b> on an unmerged file still asks "Mark a.txt resolved?". When the
+file on disk still has conflict markers, the question says how many:
+"Mark a.txt resolved? 2 conflicts are left."
+
 <h2><a name="stashing">Stashing</a></h2>
 
 <p>
@@ -484,8 +519,10 @@ Applying takes the stash the status showed, by its hash. Popping and dropping
 leave alone a stash that no longer has the name the status showed it with, as
 after another stash is made, and the status bar says to refresh. An
 apply or a pop that conflicts leaves the stash, and the conflicts are in the
-Unmerged section. A dropped stash's hash is in the status bar and the command
-log, so <code>git stash apply &lt;hash&gt;</code> brings it back.
+Unmerged section; the line under the header says
+<code>Stash pop in progress</code> or <code>Stash apply in progress</code>,
+with how many conflicts, until they are resolved. A dropped stash's hash is
+in the status bar and the command log, so <code>git stash apply &lt;hash&gt;</code> brings it back.
 
 <h3>Keys</h3>
 
@@ -501,7 +538,7 @@ log, so <code>git stash apply &lt;hash&gt;</code> brings it back.
 <tr><td>=</td><td>=</td><td><a href="commands.html#vcsStatusDiffView">vcsStatusDiffView</a></td><td>the diff unified or side by side</td></tr>
 <tr><td>Space, Shift Space</td><td>Space, Shift Space</td><td><a href="commands.html#vcsStatusScrollDiff">vcsStatusScrollDiff</a>, <a href="commands.html#vcsStatusScrollDiffBack">vcsStatusScrollDiffBack</a></td><td>scroll the diff beside it</td></tr>
 <tr><td>Ctrl R</td><td>Ctrl R</td><td><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></td><td>read it again</td></tr>
-<tr><td>s u x</td><td>s u x</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard</td></tr>
+<tr><td>s u x</td><td>s u x</td><td><a href="commands.html#vcsStage">vcsStage</a>, <a href="commands.html#vcsUnstage">vcsUnstage</a>, <a href="commands.html#vcsDiscard">vcsDiscard</a></td><td>stage, unstage, discard; on an unmerged file, <a href="#conflicts">resolve</a></td></tr>
 <tr><td>S U</td><td>S U</td><td><a href="commands.html#vcsStageAll">vcsStageAll</a>, <a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></td><td>stage or unstage everything</td></tr>
 <tr><td>c</td><td>c</td><td><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></td><td>the commit popup</td></tr>
 <tr><td>b</td><td>b</td><td><a href="commands.html#vcsBranchPopup">vcsBranchPopup</a></td><td>the branch popup</td></tr>

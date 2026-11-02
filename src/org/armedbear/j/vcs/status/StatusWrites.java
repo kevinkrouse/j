@@ -71,12 +71,17 @@ final class StatusWrites {
         });
     }
 
+    /** Whether a write failed for the conflicts git's output says it left. */
+    static boolean conflicted(VcsResult result) {
+        return !result.succeeded() && (result.out() + result.stderr()).contains("CONFLICT");
+    }
+
     /**
      * What went wrong: a conflict, conflicted saying where it left things,
      * or git's error, as changes in the way of a checkout.
      */
     static String failed(String doing, VcsResult result, String conflicted) {
-        if ((result.out() + result.stderr()).contains("CONFLICT"))
+        if (conflicted(result))
             return doing + " conflicted: " + conflicted;
         String why = "";
         for (String line : result.stderr().strip().split("\n"))

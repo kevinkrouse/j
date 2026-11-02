@@ -807,13 +807,13 @@ snapshot changes, not on a timer.
   and IntelliJ's inline ones are. The links are a virtual line above
   `<<<<<<<`, so the conflict's own text is left alone. The commands are
   `vcsConflictNext`/`Previous` (`]x`/`[x` in vim) and
-  `vcsConflictOurs`/`Theirs`/`Both`/`Base` (`u`/`l`/`a`, as smerge has them,
-  after the simple-mode prefix, and `<leader>co`, `ct`, `cb` in vim).
-  `merge.conflictStyle=diff3` (or `zdiff3`) is suggested so there is a base
-  to show.
-- After the last conflict is resolved and the file is saved, the status bar
-  offers `s` to mark it resolved (`git add`). Deleted-by-them and the like
-  get `vcsConflictKeep`/`vcsConflictDelete`.
+  `vcsConflictOurs`/`Theirs`/`Both`/`Base`, in the context menu and a
+  toolbar group shown while the buffer has conflicts; the keys are phase
+  9's (d). j's own merges and the like ask for `zdiff3` markers, so there
+  is a base to show.
+- After the last conflict is resolved and the file is saved, a virtual
+  line at the top offers "Mark resolved" (`git add`). Deleted by them and
+  the like are kept or deleted from the status's `x`.
 - The finish line (`git commit` for a merge, `git stash drop` after a
   conflicted pop) is in the popup.
 - Later: IntelliJ's three panes. Out of the first cut.
@@ -1854,7 +1854,7 @@ plan with why it is left, before the next phase starts.
    - **Decided:** `f` fetches from a popup; `x` on a stash drops it after
      asking; `b` is the branch popup; "Not in <parent>" shows, collapsed,
      in place of Recent commits when it has any.
-8. **Next. Blame.** Streaming blame, aging, hovers, to the log, blame at the
+8. **Done. Blame.** Streaming blame, aging, hovers, to the log, blame at the
    parent, the current line's blame, and the authors of each method, as
    [Blame in the gutter](#blame-in-the-gutter-vcsblame-toggles) has them.
    Draft plan, in the order it lands:
@@ -2148,8 +2148,141 @@ plan with why it is left, before the next phase starts.
    - **Decided:** the line's blame on and the authors off by default;
      the column's age ranks the buffer's commits, so a line's shade stays
      as it scrolls.
-9. **Conflicts.** Markers, inline actions, navigation, marking resolved,
-   and finishing.
+9. **Next. Conflicts.** Markers, inline actions, navigation, marking
+   resolved, and finishing, as [Conflicts](#conflicts) has them.
+   Already built: the Unmerged section, with each file's `XY` kept in its
+   `FileChange`; the header's "Merge in progress (2 conflicts)"; `s` on an
+   unmerged file marking it resolved after asking; `vcsMergeCommit` and
+   `vcsMergeAbort`; a merge or a stash's pop that conflicts saying the
+   conflicts are in Unmerged. Draft plan, in the order it lands:
+   - **a. What each conflict is.** The Unmerged section names each file's
+     kind from its `XY`, as `git status` does: both modified (`UU`), both
+     added (`AA`), deleted by us (`DU`) or them (`UD`), added by us (`AU`)
+     or them (`UA`), both deleted (`DD`). A stash's apply or pop that
+     conflicts leaves no state in git, so the repository keeps a note of
+     the stash (dropped once no conflict is left), and the header says
+     "Stash pop in progress" or "Stash apply in progress" for it as for a
+     merge. Several repositories: each repository's header line and
+     Unmerged section are its own, as now. Tests: each `XY`, a pop's note
+     kept and dropped.
+     Built: `FileChange.Conflict`, the seven kinds with git's words, set
+     by `GitStatusParser.conflict(xy)` as the status is parsed; the
+     renderer shows its words after the name, and `GitEntry.getEntry`
+     returns "unmerged, …" from it before its switch, which lost its own
+     unmerged arms. `VcsRepository` keeps the `StashConflict` note, set by
+     `StashCommands.applyStash` (which `apply` now calls) and dropped by a
+     read begun after it that finds no conflicts; `inProgress` reads it for
+     `Operation.NONE`. `StatusWrites.conflicted` is the shared test. The
+     unstage-all refusal now says "a merge, rebase or stash pop".
+     Found: the clear-on-read check needs `s != null`, as the snapshot can
+     be null before the fallback is set.
+   - **b. Taking a side, in the status.** `x` on an unmerged file asks
+     as magit's discard does: ours, theirs, or the conflict again (`git
+     checkout --ours`/`--theirs`/`-m --conflict=zdiff3 -- <path>`, so a
+     conflict made without a base gets one). For deleted by us or them,
+     keep it or delete it (to the trash). Ours, theirs, keep and delete
+     stage the file; the conflict again leaves it unmerged. `s` on a file
+     whose text still has markers says how many, in its question. Two
+     `VcsBackend` writes, null where a backend can't. Tests: each choice
+     on a real conflict, a delete/modify, the markers counted.
+     Built: `ConflictCommands` (vcs/status), with the `Take` enum of the
+     five choices and the `Conflict` kinds each fits, `popup(targets,
+     several)` and `open(editor, targets)`, the five `vcsResolve*`
+     commands (`vcsConflict*` is left to the editor's, in (d)), and
+     `resolve(targets, take)` for the tests. `VcsBackend.checkoutSide` and
+     `restoreConflict` default to null; `GitWrites` runs them and
+     `GitBackend` delegates. `StatusActions.start` and `write` are the
+     shared runner `run`, `all` and the commands use, and its `refusal`
+     their shared gate: a selection mixing unmerged with anything else,
+     or conflicts no one choice fits, is refused, and Discard disabled.
+     Ours, theirs and conflict again move the file to the trash before
+     git writes over it, so hand edits can be had back. With several
+     repositories the popup names each file's, and a failure in one
+     doesn't stop the others. `s`'s question counts the markers left on
+     disk.
+     Left: once ours, theirs, keep or delete has staged a file it leaves
+     Unmerged, so conflict again can't reach it, though `git checkout -m`
+     could bring the conflict back from git's resolve-undo record.
+   - **c. The conflicts in the editor.** A `Conflicts` kept on the buffer
+     (a `Buffer.Follower`, as `Blame` is) while its file is unmerged, as
+     the repository says (`VCS_CONFLICT`), not wherever markers appear,
+     since a file may hold them as text. It finds the regions again on
+     each change, by the buffer's version: `<<<<<<<`, `|||||||` (`diff3`
+     and `zdiff3`), `=======` and `>>>>>>>`, of seven or more, as
+     `conflict-marker-size` allows. A `ConflictFormatter` wraps the mode's
+     formatter, as `SideFormatter` does, shading ours, base and theirs
+     through `getLineBackground` (theme keys `ConflictOurs`,
+     `ConflictBase`, `ConflictTheirs`). Above each `<<<<<<<` an `ABOVE`
+     virtual line of clickable runs: "Keep HEAD · Keep feature · Both ·
+     Base", named from the markers' own labels rather than ours and
+     theirs, which a rebase swaps. The marker parser is the one helper
+     (b)'s `s` question counts with too; that count, now
+     `StatusActions.conflictsLeft` reading each file whole on the event
+     thread, moves to the background before the question. Tests:
+     two-way and three-way regions, a longer marker, markers in a file
+     not unmerged left alone, the shading following edits.
+   - **d. Commands, keys, menu and toolbar.** `vcsConflictNext`/
+     `vcsConflictPrevious` and, for the conflict at the caret,
+     `vcsConflictOurs`, `vcsConflictTheirs`, `vcsConflictBoth`,
+     `vcsConflictBase`, each one edit, undone whole, and run by the links
+     too.
+     - Keys: in an unmerged file `nextChange`/`previousChange` (`Ctrl Alt
+       N`/`P`, `]c`/`[c`) go by conflict, as it has no change marks; vim
+       also has `]x`/`[x`. Ours and theirs are `Alt Shift Left`/`Right`
+       in simple mode, as IntelliJ's merge dialog accepts left and right;
+       `<leader>co`, `ct`, `cb`, `cB` in vim, under the leader so `c0`
+       and the like stay vim's. Both and base have no simple-mode key, as
+       VS Code binds none of its accepts.
+     - The editor's context menu has the four, and next and previous,
+       when the caret is in a conflict.
+     - The default toolbar gets a group, shown only while the current
+       buffer has conflicts (`ToolBarButton.visibleWhen`): previous and
+       next (the change icons) and ours, theirs, both and base, with new
+       icons of j's own (`conflict-ours.svg` and so on).
+     Tests: each choice, undo, next and previous wrapping, a conflict
+     with no base refusing Base, the toolbar group shown and hidden.
+   - **e. Marking it resolved.** Once the buffer has no conflict left and
+     is saved, the virtual line above its first line says "No conflicts
+     left · Mark resolved", whose click (and `vcsConflictResolved`) stages
+     it; the shading and links go when the repository no longer reports
+     it unmerged. Tests: the last conflict resolved and saved offers it,
+     staging drops the `Conflicts`.
+   - **f. Finishing.** `vcsContinue`, `vcsSkip` and `vcsAbort` act on the
+     operation in progress: merge (`vcsMergeCommit` and `vcsMergeAbort`,
+     as now), cherry-pick, revert, rebase and am (`--continue`, `--skip`,
+     `--abort`, with `GIT_EDITOR=true`, as the merge's commit is run),
+     and the stash pop of (a) (continue drops its stash; abort is
+     `git reset --merge`, the stash kept). They refuse while files are
+     unmerged, naming them, except abort. The stash note of (a) is
+     dropped now as its last conflict goes, when continue needs it, and
+     is lost if j restarts: keep it until continue or abort, and perhaps
+     in git's own state (a file in the git directory) so it outlives j. The merge popup lists them when something is in
+     progress, and the header line gets them as links. `-a` runs them in
+     each repository with something in progress, as phase 7's merge
+     does. Tests: each operation continued and aborted on a real repo.
+   - **g. Ours and theirs side by side.** Enter on an unmerged file in
+     the status visits it; `=` (the diff view) on one opens the compare
+     of ours and theirs (stages `:2:` and `:3:`, as `FileRevision`s) in
+     phase 6's side-by-side view, read only. Tests: the revisions read,
+     a side deleted.
+   - **h. Docs, the driver and the review.** `doc/git.html`'s Conflicts,
+     the keys in both edit modes, the theme keys; a drive through a merge
+     that conflicts, resolved in the editor and continued; the
+     adversarial review.
+   - **Decided:** no `Ctrl Alt G` prefix; the conflict commands are
+     reached by the links, the context menu, the toolbar and the keys of
+     (d). j's own merges, pops, cherry-picks, reverts and continues pass
+     `-c merge.conflictStyle=zdiff3` (`diff3` before git 2.35) when the
+     user has set no style, so a conflict always has its base.
+   - **What others bind:** VS Code's merge-conflict extension binds no
+     keys, only commands and its CodeLens links (accept current,
+     incoming, both, and all of one side). IntelliJ's merge dialog: F7
+     and Shift F7 to the next and previous difference, Alt Shift Left and
+     Right to accept a side. Emacs' smerge: `C-c ^` then `n`/`p`, `u`
+     upper, `l` lower, `b` base, `a` all, `RET` the one at point, `E`
+     ediff. Neovim's git-conflict.nvim: `co`, `ct`, `cb`, `c0` (none),
+     and `]x`/`[x`, buffer-local in conflicted files; vim-unimpaired
+     moves by marker with `]n`/`[n`.
 10. **Changelists.** The store, ranges as markers, re-anchoring, the status
    section, moving, outlined marks, committing with a private index, and
    drag and drop.

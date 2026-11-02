@@ -40,7 +40,7 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
 
     /**
      * @param id stable across refreshes: "untracked", "unstaged", "staged",
-     *     "unmerged", STASHES, "recent", or one of RANGES
+     *     UNMERGED, STASHES, "recent", or one of RANGES
      * @param total how many it has, of which items are the first
      * @param range the revisions its commits are, for the log; or null
      */
@@ -57,6 +57,9 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
      */
     public static final Set<String> RANGES =
             Set.of("unpulled", "unpushed", "unpushed-push", "unmerged-parent", "not-in-parent");
+
+    /** The section of files in a conflict. */
+    public static final String UNMERGED = "unmerged";
 
     /** The section of stashes, each a StashItem. */
     public static final String STASHES = "stashes";

@@ -105,6 +105,16 @@ public interface VcsBackend {
         return null;
     }
 
+    /** Puts files in a conflict as one side has them, ours (HEAD's) or theirs; they stay unmerged. */
+    default VcsResult checkoutSide(VcsRepository repository, List<String> paths, boolean ours) {
+        return null;
+    }
+
+    /** Puts a conflict's markers back in files, with the base between them. */
+    default VcsResult restoreConflict(VcsRepository repository, List<String> paths) {
+        return null;
+    }
+
     /**
      * Applies a patch (see Patch) to the index, the working tree, or both,
      * or with reverse takes it back out.

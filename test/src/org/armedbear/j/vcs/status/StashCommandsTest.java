@@ -30,6 +30,7 @@ import java.util.EnumSet;
 import java.util.List;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
@@ -154,6 +155,63 @@ public class StashCommandsTest {
         assertEquals(
             "Popping stash@{0} conflicted: the stash is kept, and the conflicts are in Unmerged",
             StashCommands.failed("Popping stash@{0}", r));
+    }
+
+    // The conflicted pop of a stash, noted on the repository until its
+    // conflicts are resolved.
+    private void conflicted(boolean pop) throws Exception {
+        repository();
+        stash(null);
+        final String id = hash("stash@{0}");
+        git.write("b.txt", "b otherwise\n");
+        git.commitAll("second");
+        final VcsResult r = StashCommands.applyStash(repo(), new StashItem("stash@{0}", id, "", List.of()), pop);
+        assertFalse(r.succeeded());
+        assertEquals(new VcsRepository.StashConflict("stash@{0}", id, pop), repo().stashConflict());
+        repo().invalidate();
+        final StatusData d = repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE);
+        assertEquals((pop ? "Stash pop" : "Stash apply") + " in progress (1 conflict)", d.inProgress());
+        // Resolving the conflict ends the note.
+        git.git("checkout", "--theirs", "b.txt");
+        git.git("add", "b.txt");
+        repo().invalidate();
+        repo().snapshotNow();
+        assertNull(repo().stashConflict());
+        assertNull(repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE).inProgress());
+    }
+
+    @Test
+    public void aConflictingPopIsNotedUntilItsConflictsAreGone() throws Exception {
+        conflicted(true);
+    }
+
+    @Test
+    public void aConflictingApplyIsNotedAsAnApply() throws Exception {
+        conflicted(false);
+    }
+
+    @Test
+    public void aCleanPopNotesNothing() throws Exception {
+        repository();
+        stash(null);
+        final String id = hash("stash@{0}");
+        final VcsResult r = StashCommands.applyStash(repo(), new StashItem("stash@{0}", id, "", List.of()), true);
+        assertTrue(r.succeeded());
+        assertNull(repo().stashConflict());
+    }
+
+    @Test
+    public void aCleanApplyOfAFileNamedConflictNotesNothing() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("CONFLICTS.md", "a\n");
+        git.commitAll("first");
+        git.write("CONFLICTS.md", "b\n");
+        stash(null);
+        final String id = hash("stash@{0}");
+        final VcsResult r = StashCommands.applyStash(repo(), new StashItem("stash@{0}", id, "", List.of()), false);
+        assertTrue(r.succeeded());
+        assertTrue(r.out().contains("CONFLICTS.md"), r.out());
+        assertNull(repo().stashConflict());
     }
 
     @Test

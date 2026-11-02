@@ -29,8 +29,35 @@ package org.armedbear.j.vcs;
  *                 with no staging area leaves this null
  * @param unstaged the change in the working tree, or null
  * @param code     the system's own short status ("M ", "??", "UU"), as shown
+ * @param conflict  what each side did, for a conflicted file; else null
  */
-public record FileChange(String path, String origPath, Kind staged, Kind unstaged, String code) {
+public record FileChange(String path, String origPath, Kind staged, Kind unstaged, String code, Conflict conflict) {
+    public FileChange(String path, String origPath, Kind staged, Kind unstaged, String code) {
+        this(path, origPath, staged, unstaged, code, null);
+    }
+
+    /** A conflicted file's kind, by what ours and theirs did to it. */
+    public enum Conflict {
+        BOTH_MODIFIED("both modified"),
+        BOTH_ADDED("both added"),
+        BOTH_DELETED("both deleted"),
+        ADDED_BY_US("added by us"),
+        ADDED_BY_THEM("added by them"),
+        DELETED_BY_US("deleted by us"),
+        DELETED_BY_THEM("deleted by them");
+
+        private final String words;
+
+        Conflict(String words) {
+            this.words = words;
+        }
+
+        /** As git status words it: "both modified". */
+        public String words() {
+            return words;
+        }
+    }
+
     public enum Kind {
         MODIFIED, ADDED, DELETED, RENAMED, COPIED, TYPE_CHANGED, UNTRACKED, IGNORED, CONFLICTED;
 

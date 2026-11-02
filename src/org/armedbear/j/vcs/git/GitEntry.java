@@ -24,6 +24,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
+import org.armedbear.j.vcs.FileChange.Conflict;
 import org.armedbear.j.vcs.VersionControlEntry;
 
 public class GitEntry extends VersionControlEntry {
@@ -108,6 +109,9 @@ public class GitEntry extends VersionControlEntry {
         final char x = xy.charAt(0);
         final char y = xy.charAt(1);
 
+        final Conflict conflict = GitStatusParser.conflict(xy);
+        if (conflict != null)
+            return new GitEntry(buffer, xy, "unmerged, " + conflict.words());
         String status;
         switch (x) {
             case ' ':
@@ -117,8 +121,6 @@ public class GitEntry extends VersionControlEntry {
                     status = "deleted";
                 else if (y == 'T')
                     status = "type changed";
-                else if (y == 'U')
-                    status = "conflict";
                 else {
                     Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
@@ -152,10 +154,6 @@ public class GitEntry extends VersionControlEntry {
                     status = "added";
                 else if (y == 'D')
                     status = "added+deleted"; // no change?
-                else if (y == 'U')
-                    status = "unmerged, added by us";
-                else if (y == 'A')
-                    status = "unmerged, both added";
                 else {
                     Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
@@ -165,19 +163,6 @@ public class GitEntry extends VersionControlEntry {
             case 'D':
                 if (y == ' ' || y == 'M' || y == 'T')
                     status = "deleted";
-                else if (y == 'U')
-                    status = "unmerged, deleted by us";
-                else if (y == 'D')
-                    status = "unmerged, both deleted";
-                else {
-                    Log.debug("Unexpected git xy status = |" + xy + "|");
-                    return null;
-                }
-                break;
-
-            case 'U':
-                if (y == 'U' || y == 'A' || y == 'D' || y == 'T')
-                    status = "conflict";
                 else {
                     Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;

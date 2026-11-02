@@ -890,7 +890,7 @@ public final class VcsStatusBuffer extends ViewBuffer
      */
     private static Buffer followed(VcsRepository r, String section, FileItem item) {
         if ("staged".equals(section)
-                || "unmerged".equals(section)
+                || StatusData.UNMERGED.equals(section)
                 || item.change().unstaged() == FileChange.Kind.DELETED)
             return null;
         final File f = File.getInstance(r.root().resolve(item.path()).toString());
@@ -985,7 +985,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         }
         final Mode mode = SideBySide.modeFor(f.getName());
         final Charset charset = SideBySide.charset();
-        final boolean conflicted = "unmerged".equals(section);
+        final boolean conflicted = StatusData.UNMERGED.equals(section);
         final Whitespace ignored = DiffWhitespace.ignored();
         Background.start("vcs status compare", () -> {
             String oldTitle;

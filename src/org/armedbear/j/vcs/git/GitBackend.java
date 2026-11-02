@@ -245,6 +245,16 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
+    public VcsResult checkoutSide(VcsRepository repository, List<String> paths, boolean ours) {
+        return GitWrites.checkoutSide(repository, paths, ours);
+    }
+
+    @Override
+    public VcsResult restoreConflict(VcsRepository repository, List<String> paths) {
+        return GitWrites.restoreConflict(repository, paths);
+    }
+
+    @Override
     public VcsResult apply(
             VcsRepository repository,
             byte[] patch,

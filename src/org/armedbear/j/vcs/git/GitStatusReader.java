@@ -90,7 +90,7 @@ final class GitStatusReader {
 
         final List<Section> sections = new ArrayList<>();
         if (!unmerged.isEmpty())
-            sections.add(new Section("unmerged", "Unmerged", unmerged));
+            sections.add(new Section(StatusData.UNMERGED, "Unmerged", unmerged));
         if (!untracked.isEmpty())
             sections.add(new Section("untracked", "Untracked files", untracked));
         if (!unstaged.isEmpty())
@@ -114,7 +114,7 @@ final class GitStatusReader {
         final List<Field> header = header(repository, git);
         if (stashes == null)
             header.add(new Field("Stashes", "can't be read: see vcsCommandLog"));
-        return new StatusData(header, inProgress(git, unmerged.size()), sections, null);
+        return new StatusData(header, inProgress(repository, git, unmerged.size()), sections, null);
     }
 
     private static List<Field> header(VcsRepository repository, GitSnapshot git) {
@@ -149,17 +149,24 @@ final class GitStatusReader {
         return "  ↑" + r.ahead() + " ↓" + r.behind();
     }
 
-    private static String inProgress(GitSnapshot git, int conflicts) {
-        if (git.operation() == GitSnapshot.Operation.NONE)
-            return null;
-        final String what = switch (git.operation()) {
-            case CHERRY_PICK -> "Cherry-pick";
-            case AM -> "Applying patches";
-            default -> {
-                final String s = git.operation().name().toLowerCase(Locale.ROOT);
-                yield Character.toUpperCase(s.charAt(0)) + s.substring(1);
-            }
-        };
+    private static String inProgress(VcsRepository repository, GitSnapshot git, int conflicts) {
+        final String what;
+        if (git.operation() == GitSnapshot.Operation.NONE) {
+            // A conflicted stash apply or pop leaves no state in git; j's note says so.
+            final VcsRepository.StashConflict stash = repository.stashConflict();
+            if (stash == null || conflicts == 0)
+                return null;
+            what = stash.pop() ? "Stash pop" : "Stash apply";
+        } else {
+            what = switch (git.operation()) {
+                case CHERRY_PICK -> "Cherry-pick";
+                case AM -> "Applying patches";
+                default -> {
+                    final String s = git.operation().name().toLowerCase(Locale.ROOT);
+                    yield Character.toUpperCase(s.charAt(0)) + s.substring(1);
+                }
+            };
+        }
         final String s = what + " in progress";
         return conflicts == 0 ? s : s + " (" + conflicts + (conflicts == 1 ? " conflict)" : " conflicts)");
     }
