@@ -55,6 +55,7 @@ import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
+import org.armedbear.j.vcs.conflicts.ConflictMarkers;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.diff.Patch;
@@ -217,7 +218,7 @@ public final class StatusActions {
             return;
         }
         if (op == Op.DISCARD && allUnmerged(targets)) {
-            ConflictCommands.open(editor, targets);
+            ResolveCommands.open(editor, targets);
             return;
         }
         if (op == Op.DISCARD && !confirm.test(editor, discardQuestion(targets)))
@@ -225,28 +226,38 @@ public final class StatusActions {
         if (op == Op.STAGE) {
             final List<Target> unmerged = targets.stream().filter(StatusActions::isUnmerged).toList();
             if (!unmerged.isEmpty()) {
-                final int conflicts = conflictsLeft(unmerged);
-                final String left = conflicts == 0 ? ""
-                        : conflicts == 1 ? " 1 conflict is left."
-                        : " " + conflicts + " conflicts are left.";
-                if (!confirm.test(editor, "Mark " + names(unmerged) + " resolved?" + left))
-                    return;
+                // Read and counted off the event thread; the question and
+                // the write in the callback, if the status is still ours.
+                Background.then("vcs count conflicts", () -> conflictsLeft(unmerged), conflicts -> {
+                    if (buffer.isWriting()) {
+                        editor.status("Wait: the last change is still being made");
+                        return;
+                    }
+                    final int left = conflicts == null ? 0 : conflicts;
+                    final String still =
+                            left == 0 ? "" : left == 1 ? " 1 conflict is left." : " " + left + " conflicts are left.";
+                    if (!confirm.test(editor, "Mark " + names(unmerged) + " resolved?" + still))
+                        return;
+                    start(editor, buffer, "Staging", targets, () -> performAll(op, targets));
+                });
+                return;
             }
         }
         start(editor, buffer, switch (op) {
             case STAGE -> "Staging";
             case UNSTAGE -> "Unstaging";
             case DISCARD -> "Discarding";
-        }, targets, () -> {
-            if (op == Op.DISCARD)
-                return discard(targets);
-            for (Target t : targets) {
-                final String failed = perform(op, t);
-                if (failed != null)
-                    return failed;
-            }
-            return null;
-        });
+        }, targets, () -> op == Op.DISCARD ? discard(targets) : performAll(op, targets));
+    }
+
+    // Does op to every target; the first thing that went wrong, or null.
+    private static String performAll(Op op, List<Target> targets) {
+        for (Target t : targets) {
+            final String failed = perform(op, t);
+            if (failed != null)
+                return failed;
+        }
+        return null;
     }
 
     // Says what is being done to targets and does work, as write does.
@@ -297,13 +308,7 @@ public final class StatusActions {
                     try {
                         // Latin-1 reads any bytes, and the markers are ASCII.
                         final Path p = f.repository().root().resolve(i.path());
-                        for (String line : java.nio.file.Files.readAllLines(p, StandardCharsets.ISO_8859_1)) {
-                            int lt = 0;
-                            while (lt < line.length() && line.charAt(lt) == '<')
-                                lt++;
-                            if (lt >= 7 && (lt == line.length() || line.charAt(lt) == ' '))
-                                n++;
-                        }
+                        n += ConflictMarkers.count(java.nio.file.Files.readAllLines(p, StandardCharsets.ISO_8859_1));
                     }
                     catch (IOException e) {
                         // A file gone counts none.
@@ -361,7 +366,7 @@ public final class StatusActions {
         if (op == Op.DISCARD && targets.stream().anyMatch(StatusActions::isUnmerged)) {
             if (!allUnmerged(targets))
                 return "Resolve the conflicts on their own";
-            if (ConflictCommands.offered(targets).isEmpty())
+            if (ResolveCommands.offered(targets).isEmpty())
                 return "Those conflicts differ: resolve them one at a time";
         }
         if (hunksIgnoreWhitespace(buffer, targets))

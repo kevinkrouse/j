@@ -181,6 +181,9 @@ public final class KeyMap {
         mapKey(KeyEvent.VK_KP_RIGHT, ALT_MASK, "nextBuffer");
         mapKey(KeyEvent.VK_LEFT, ALT_MASK, "prevBuffer");
         mapKey(KeyEvent.VK_KP_LEFT, ALT_MASK, "prevBuffer");
+        // A conflict's sides, as IntelliJ's merge dialog accepts left and right.
+        mapKey(KeyEvent.VK_LEFT, ALT_MASK | SHIFT_MASK, "vcsConflictOurs");
+        mapKey(KeyEvent.VK_RIGHT, ALT_MASK | SHIFT_MASK, "vcsConflictTheirs");
         mapKey(KeyEvent.VK_N, CTRL_MASK | SHIFT_MASK, "newFrame");
         mapKey(KeyEvent.VK_X, ALT_MASK, "executeCommand");
         mapKey(KeyEvent.VK_P, CTRL_MASK, "findFileInProject");

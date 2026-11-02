@@ -468,6 +468,10 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></li>
     <li><a href="commands.html#vcsCommitPreviousMessage">vcsCommitPreviousMessage</a></li>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
+    <li><a href="commands.html#vcsConflictBase">vcsConflictBase</a></li>
+    <li><a href="commands.html#vcsConflictBoth">vcsConflictBoth</a></li>
+    <li><a href="commands.html#vcsConflictOurs">vcsConflictOurs</a></li>
+    <li><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a></li>
     <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsFetchAll">vcsFetchAll</a></li>
@@ -6369,6 +6373,46 @@ In a status buffer, opens the last commit's message, to change only its message.
 <b>Default key mapping:</b> c w in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsConflictBase">vcsConflictBase</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, takes the base of the conflict at the caret: the region's lines are replaced by the common ancestor's, as one edit, undone whole. Refused when the conflict has no base, a two-way one.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;cB in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsConflictBoth">vcsConflictBoth</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, takes both sides of the conflict at the caret: the region's lines are replaced by ours then theirs, as one edit, undone whole.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;cb in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsConflictOurs">vcsConflictOurs</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, takes our side of the conflict at the caret: the region's lines are replaced by the lines between the opener and the base or separator, as one edit, undone whole.
+<br><br>
+<b>Default key mapping:</b> Alt Shift Left; &lt;leader&gt;co in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsConflictTheirs">vcsConflictTheirs</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, takes their side of the conflict at the caret: the region's lines are replaced by the lines between the separator and the closer, as one edit, undone whole.
+<br><br>
+<b>Default key mapping:</b> Alt Shift Right; &lt;leader&gt;ct in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
 <br><br>
 </dl><!--<hr>-->
 

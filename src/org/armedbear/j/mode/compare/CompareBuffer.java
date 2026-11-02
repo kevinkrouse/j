@@ -559,7 +559,8 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
                         rows,
                         0,
                         f.fillerBackground(),
-                        true));
+                        true,
+                        null));
         }
         side.getVirtualText().set("diff", fillers);
     }

@@ -65,6 +65,7 @@ import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.VersionControlEntry;
 import org.armedbear.j.vcs.blame.Blame;
+import org.armedbear.j.vcs.conflicts.Conflicts;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 
 public class Buffer extends SystemBuffer {
@@ -3177,6 +3178,7 @@ public class Buffer extends SystemBuffer {
         vcsChecked = true;
         // Change marks for its file, or none; then each follower told, the marks among them.
         VersionControl.attachSigns(this);
+        Conflicts.attach(this);
         for (Follower f : followers)
             f.vcsChecked();
     }
@@ -3204,6 +3206,17 @@ public class Buffer extends SystemBuffer {
 
     public final void setBlame(Blame blame) {
         this.blame = blame;
+    }
+
+    // Its conflicts, while its file is unmerged.
+    private Conflicts conflicts;
+
+    public final Conflicts getConflicts() {
+        return conflicts;
+    }
+
+    public final void setConflicts(Conflicts conflicts) {
+        this.conflicts = conflicts;
     }
 
     public final SignsUpdater getSignsUpdater() {

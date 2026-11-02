@@ -144,7 +144,8 @@ line and its virtual lines as one step.
 |---|---|---|
 | The key hint over a listing (dir mode, VCS buffers) | `TOP` | the mode, from `getHints` |
 | The caret line's blame | `EOL` | `vcs.blame` |
-| "accept ours · theirs · both · base" | `ABOVE` the `<<<<<<<` | `vcs.conflict` |
+| "accept ours · theirs · both · base" | `ABOVE` the `<<<<<<<` | `vcs.conflicts` |
+| A conflict's sides shaded, its markers dimmed or lit | `BACKGROUND`, a foreground on markers | `vcs.conflicts` |
 | The commit message's 50/72 length notes | `EOL` | checkin mode |
 | Later: diagnostics, compile errors under a line | `BELOW` | compilation |
 | Later: parameter names, inferred types | `INLINE` | an LSP client |

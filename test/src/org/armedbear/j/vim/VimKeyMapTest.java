@@ -256,6 +256,9 @@ public class VimKeyMapTest {
     @Test
     public void theDefaultMapBindsLeaderRowsToABackslash() {
         assertEquals("\\gg", VimKeyMap.getDefault().keysFor("vcsStatus"));
+        // A conflict's takes, the base's capital B apart from both's b.
+        assertEquals("\\cb", VimKeyMap.getDefault().keysFor("vcsConflictBoth"));
+        assertEquals("\\cB", VimKeyMap.getDefault().keysFor("vcsConflictBase"));
     }
 
     @Test

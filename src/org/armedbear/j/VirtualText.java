@@ -35,9 +35,10 @@ import java.util.List;
  * @param priority lower first: nearer the text for EOL, higher for ABOVE
  * @param background the rows' background, or null for the window's
  * @param scrolls whether ABOVE and BELOW rows scroll sideways with the text
+ * @param foreground for BACKGROUND, the line's text color, or null for its own
  */
 public record VirtualText(Line line, Placement placement, List<List<Run>> rows, int priority, Color background,
-        boolean scrolls) {
+        boolean scrolls, Color foreground) {
 
     public enum Placement {
         /** After the end of the line, a space from it. */
@@ -49,7 +50,9 @@ public record VirtualText(Line line, Placement placement, List<List<Run>> rows, 
         /** Whole rows under the line. */
         BELOW,
         /** Whole rows over the buffer's first line, which scroll away with it. */
-        TOP
+        TOP,
+        /** The line's background, behind its text, and maybe its text's color; no rows. */
+        BACKGROUND
     }
 
     /**
@@ -90,35 +93,48 @@ public record VirtualText(Line line, Placement placement, List<List<Run>> rows, 
             throw new IllegalArgumentException(placement + (line == null ? " needs a line" : " takes no line"));
         if ((placement == Placement.EOL || placement == Placement.RIGHT) && rows.size() != 1)
             throw new IllegalArgumentException(placement + " is one row");
+        if (placement == Placement.BACKGROUND && (!rows.isEmpty() || background == null))
+            throw new IllegalArgumentException(placement + " takes no rows and a color");
+        if (placement != Placement.BACKGROUND && foreground != null)
+            throw new IllegalArgumentException(placement + " takes no foreground");
         rows = rows.stream().map(List::copyOf).toList();
     }
 
     public static VirtualText eol(Line line, List<Run> runs) {
-        return new VirtualText(line, Placement.EOL, List.of(runs), 0, null, false);
+        return new VirtualText(line, Placement.EOL, List.of(runs), 0, null, false, null);
     }
 
     public static VirtualText right(Line line, List<Run> runs) {
-        return new VirtualText(line, Placement.RIGHT, List.of(runs), 0, null, false);
+        return new VirtualText(line, Placement.RIGHT, List.of(runs), 0, null, false, null);
     }
 
     public static VirtualText above(Line line, List<List<Run>> rows) {
-        return new VirtualText(line, Placement.ABOVE, rows, 0, null, true);
+        return new VirtualText(line, Placement.ABOVE, rows, 0, null, true, null);
     }
 
     public static VirtualText below(Line line, List<List<Run>> rows) {
-        return new VirtualText(line, Placement.BELOW, rows, 0, null, true);
+        return new VirtualText(line, Placement.BELOW, rows, 0, null, true, null);
     }
 
     public static VirtualText top(List<List<Run>> rows) {
-        return new VirtualText(null, Placement.TOP, rows, 0, null, false);
+        return new VirtualText(null, Placement.TOP, rows, 0, null, false, null);
+    }
+
+    public static VirtualText background(Line line, Color color) {
+        return background(line, color, null);
+    }
+
+    /** line's background, and its text in foreground. */
+    public static VirtualText background(Line line, Color color, Color foreground) {
+        return new VirtualText(line, Placement.BACKGROUND, List.of(), 0, color, false, foreground);
     }
 
     public VirtualText withPriority(int priority) {
-        return new VirtualText(line, placement, rows, priority, background, scrolls);
+        return new VirtualText(line, placement, rows, priority, background, scrolls, foreground);
     }
 
     public VirtualText withBackground(Color background) {
-        return new VirtualText(line, placement, rows, priority, background, scrolls);
+        return new VirtualText(line, placement, rows, priority, background, scrolls, foreground);
     }
 
     /** The rows it adds to the window's height. */

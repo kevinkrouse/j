@@ -355,12 +355,14 @@ public class StatusActionsTest {
         open();
         answer = false;
         act("  U  a.txt (both modified)", Op.STAGE);
+        until(() -> !asked.isEmpty());
         assertEquals(1, asked.size(), asked.toString());
         assertEquals("Mark a.txt resolved? 1 conflict is left.", asked.get(0));
         // With the markers gone, the count drops off.
         asked.clear();
         git.write("a.txt", "resolved\n");
         act("  U  a.txt (both modified)", Op.STAGE);
+        until(() -> !asked.isEmpty());
         assertEquals("Mark a.txt resolved?", asked.get(0));
     }
 
@@ -386,6 +388,7 @@ public class StatusActionsTest {
         open();
         answer = false;
         act("  U  a.txt (both modified)", Op.STAGE);
+        until(() -> !asked.isEmpty());
         assertEquals("Mark a.txt resolved? 1 conflict is left.", asked.get(0));
     }
 
@@ -399,6 +402,7 @@ public class StatusActionsTest {
             h.editor().setMark(new Position(line("  M  b.txt"), 0));
             StatusActions.run(h.editor(), Op.STAGE);
         });
+        until(() -> !asked.isEmpty());
         assertEquals(List.of("Mark a.txt resolved? 1 conflict is left."), asked);
     }
 
@@ -409,7 +413,7 @@ public class StatusActionsTest {
         onEdt(() -> {
             h.editor().setDot(line("  U  a.txt (both modified)"), 0);
             h.editor().setMark(new Position(line("  M  b.txt"), 0));
-            ConflictCommands.vcsResolveOurs(h.editor());
+            ResolveCommands.vcsResolveOurs(h.editor());
         });
         assertEquals("Resolve the conflicts on their own", h.status());
         assertTrue(git.read("a.txt").contains("<<<<<<<"), "a.txt left as it was");

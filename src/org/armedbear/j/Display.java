@@ -1395,6 +1395,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
     // y is the top of line's row.
     private final void paintLine(Line line, Graphics2D g2d, int y) {
+        // A component's own Graphics, as the line-at-a-time paths fetch,
+        // has none of the hints: its virtual rows would be drawn jagged.
+        setRenderingHints(g2d);
         y = paintRowsAbove(line, g2d, y);
         if (line instanceof ImageLine imageLine)
             paintImageLine(imageLine, g2d, y);
@@ -1436,7 +1439,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (showLineNumbers && editor.getDot() != null)
             drawGutterBorder(paintLineGraphics, 0, line.getHeight());
         drawVerticalRule(paintLineGraphics, 0, line.getHeight());
-        drawText(paintLineGraphics, textArray, totalChars, formatArray, 0, caretBreakCol(line, totalChars));
+        drawText(
+            paintLineGraphics,
+            textArray,
+            totalChars,
+            formatArray,
+            0,
+            caretBreakCol(line, totalChars),
+            shadeOf(line, true));
         drawEndOfLine(paintLineGraphics, line, totalChars, 0);
         drawLineRules(paintLineGraphics, line, 0);
         changedLines.remove(line);
@@ -1706,7 +1716,26 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 g2d.setColor(shade);
                 g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, line.getHeight());
             }
+            // A line a layer shades, the conflicts': the last owner's,
+            // painted the same way, and with the same rule as above.
+            final Color layered = shadeOf(line, false);
+            if (layered != null) {
+                g2d.setColor(layered);
+                g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, line.getHeight());
+            }
         }
+    }
+
+    // The background a layer gives line, or its text's color; null for none.
+    private Color shadeOf(Line line, boolean foreground) {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer == null)
+            return null;
+        final List<VirtualText> shades = layer.on(line, VirtualText.Placement.BACKGROUND);
+        if (shades.isEmpty())
+            return null;
+        final VirtualText last = shades.get(shades.size() - 1);
+        return foreground ? last.foreground() : last.background();
     }
 
     // The formatter's rules across line's top and bottom, over its text.
@@ -2156,8 +2185,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * @param breakCol a column at which to end a run even though the format
      *     has not changed, so that a ligature straddling it comes apart, or -1
      *     for none. Used to show the caret's own character inside a ligature.
+     * @param textColor the whole line's color in place of its formats', or null
      */
-    private void drawText(Graphics2D g2d, char[] textArray, int length, int[] formatArray, int y, int breakCol) {
+    private void drawText(
+            Graphics2D g2d,
+            char[] textArray,
+            int length,
+            int[] formatArray,
+            int y,
+            int breakCol,
+            Color textColor) {
         int i = 0;
         double x = gutterWidth;
         final Formatter formatter = editor.getFormatter();
@@ -2177,7 +2214,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             }
             if ((format & (HIDDEN | BAR)) == HIDDEN)
                 continue; // No room at all.
-            g2d.setColor(colorOf(formatter, format));
+            // A layer's color for the whole line, but for a link under the mouse.
+            g2d.setColor(textColor != null && (format & HOVER) == 0 ? textColor : colorOf(formatter, format));
             final int style = formatter.getStyle(formatterFormat(format));
             final Font font = fontFor(style);
             GlyphVector gv = glyphs(font, g2d.getFontRenderContext(), textArray, start, i);
@@ -2384,7 +2422,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 if (totalChars > 0) {
                     // Draw vertical rule first so it will be behind the text.
                     drawVerticalRule(g2d, y, line.getHeight());
-                    drawText(g2d, textArray, totalChars, formatArray, y, caretBreakCol(line, totalChars));
+                    drawText(
+                        g2d,
+                        textArray,
+                        totalChars,
+                        formatArray,
+                        y,
+                        caretBreakCol(line, totalChars),
+                        shadeOf(line, true));
                 } else
                     drawVerticalRule(g2d, y, line.getHeight());
                 drawEndOfLine(g2d, line, totalChars, y);

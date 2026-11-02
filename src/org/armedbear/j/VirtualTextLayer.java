@@ -107,6 +107,8 @@ public final class VirtualTextLayer {
     }
 
     private static boolean hasRows(List<VirtualText> list) {
+        if (list == null)
+            return false;
         for (VirtualText v : list)
             if (v.height() > 0)
                 return true;
@@ -214,7 +216,7 @@ public final class VirtualTextLayer {
         }
     }
 
-    // The lines with rows, dropping the text of lines no longer in the
+    // The lines with rows, dropping the text of any line no longer in the
     // buffer: one walk of the buffer, outside this layer's lock, and only
     // after a change.
     private List<Line> rowLines() {
@@ -226,9 +228,7 @@ public final class VirtualTextLayer {
             if (rowLines != null && rowLinesModCount == modCount && rowLinesFirstLine == first)
                 return rowLines;
             seen = version;
-            for (Map.Entry<Line, List<VirtualText>> e : byLine.entrySet())
-                if (hasRows(e.getValue()))
-                    candidates.add(e.getKey());
+            candidates.addAll(byLine.keySet());
         }
         final List<Line> lines = new ArrayList<>();
         for (Line l = first; l != null && !candidates.isEmpty(); l = l.next())
@@ -237,7 +237,7 @@ public final class VirtualTextLayer {
         synchronized (this) {
             for (Line gone : candidates)
                 drop(gone);
-            lines.removeIf(l -> !byLine.containsKey(l));
+            lines.removeIf(l -> !hasRows(byLine.get(l)));
             // Rows given meanwhile are looked for next time.
             if (version == seen) {
                 rowLines = lines;

@@ -2185,10 +2185,10 @@ plan with why it is left, before the next phase starts.
      whose text still has markers says how many, in its question. Two
      `VcsBackend` writes, null where a backend can't. Tests: each choice
      on a real conflict, a delete/modify, the markers counted.
-     Built: `ConflictCommands` (vcs/status), with the `Take` enum of the
+     Built: `ResolveCommands` (vcs/status), with the `Take` enum of the
      five choices and the `Conflict` kinds each fits, `popup(targets,
      several)` and `open(editor, targets)`, the five `vcsResolve*`
-     commands (`vcsConflict*` is left to the editor's, in (d)), and
+     commands (`vcsConflict*` is the editor's, in (c)), and
      `resolve(targets, take)` for the tests. `VcsBackend.checkoutSide` and
      `restoreConflict` default to null; `GitWrites` runs them and
      `GitBackend` delegates. `StatusActions.start` and `write` are the
@@ -2221,18 +2221,65 @@ plan with why it is left, before the next phase starts.
      thread, moves to the background before the question. Tests:
      two-way and three-way regions, a longer marker, markers in a file
      not unmerged left alone, the shading following edits.
+     Built: `vcs/conflicts`, three classes. `ConflictMarkers` is the
+     parser, `Region` and `regions`/`count`; the status's `s` question
+     now counts with it, off the event thread, the read and the question
+     in a `Background.then` callback that checks the status is not
+     writing. `Conflicts` is the `Buffer.Follower`, attached at the end
+     of `Buffer.checkVCS`, kept on the buffer as `Blame` is; it scans on
+     each change, coalesced, and shows the shades and the link row under
+     one owner. `ConflictCommands` has the four takes and the link
+     handler.
+     Two departures from the text above. There is no `ConflictFormatter`:
+     wrapping a mode's formatter suits the compare's read-only sides, but
+     an edited buffer's formatter is replaced when its mode changes and
+     has many methods to delegate. Instead `VirtualText` gained a
+     `BACKGROUND` placement, a line's shade kept by owner in the layer
+     like any other virtual text, which `Display.drawBackgroundForLine`
+     paints where it paints the formatter's `getLineBackground`, with the
+     same rule of leaving the caret's line alone. And the four take
+     commands moved here from (d), as the links need them and new behavior
+     is a j command; (d) keeps navigation, keys, menu and toolbar.
+     After review: a `BACKGROUND` may carry a foreground, the line's text
+     color, with which the markers are dimmed, but for the caret's side's
+     (a view watcher); a scan that finds the same regions shows nothing
+     again; the takes refuse a read-only buffer; no static list of
+     buffers, the theme's change walking the buffer list; the layer drops
+     any text of a line deleted, not only rows. Then: the two markers
+     around the caret's side lit (ours ends at the base's marker, or the
+     separator with none); the takes' keys bound here, ahead of (d), and
+     shown dimmed after each link; a line painted alone sets the
+     rendering hints, its rows above were drawn jagged.
    - **d. Commands, keys, menu and toolbar.** `vcsConflictNext`/
-     `vcsConflictPrevious` and, for the conflict at the caret,
-     `vcsConflictOurs`, `vcsConflictTheirs`, `vcsConflictBoth`,
-     `vcsConflictBase`, each one edit, undone whole, and run by the links
-     too.
+     `vcsConflictPrevious`, and the four takes of (c) for the conflict at
+     the caret, run by the links too.
      - Keys: in an unmerged file `nextChange`/`previousChange` (`Ctrl Alt
        N`/`P`, `]c`/`[c`) go by conflict, as it has no change marks; vim
-       also has `]x`/`[x`. Ours and theirs are `Alt Shift Left`/`Right`
-       in simple mode, as IntelliJ's merge dialog accepts left and right;
-       `<leader>co`, `ct`, `cb`, `cB` in vim, under the leader so `c0`
-       and the like stay vim's. Both and base have no simple-mode key, as
-       VS Code binds none of its accepts.
+       also has `]x`/`[x`. The takes' keys came with (c): ours and theirs
+       are `Alt Shift Left`/`Right` in simple mode, as IntelliJ's merge
+       dialog accepts left and right; `<leader>co`, `ct`, `cb`, `cB` in
+       vim, under the leader so `c0` and the like stay vim's. Both and
+       base have no simple-mode key, as VS Code binds none of its accepts.
+     - The conflicts' line (a design; not built). While the buffer has
+       conflicts, a `TOP` row of the `vcs.conflicts` owner, over the
+       first line, as the status's hint is: "2 of 3 conflicts · ]x next
+       · [x previous · All: ours · theirs · both". The count is the
+       caret's conflict, or "3 conflicts" outside one; the keys are
+       dimmed and written as the links' are (vim's in vim edit mode, j's
+       otherwise, a command with neither shown without one); "ours",
+       "theirs" and "both" are links. They run three new commands,
+       `vcsConflictAllOurs`, `vcsConflictAllTheirs` and
+       `vcsConflictAllBoth`, each every region of the buffer as one edit,
+       undone whole, with no key in simple mode and `<leader>cao`, `cat`,
+       `cab` in vim. They differ from the status's `vcsResolveOurs`, which
+       is `checkout --ours` of the whole file: theirs' changes merged
+       cleanly elsewhere in the file are kept, and nothing is staged. The
+       row is the one (e) needs: with no conflict left it becomes "No
+       conflicts left · Mark resolved". `vcsHints`, as for the status,
+       turns the hints off but keeps the count and the links. Hidden
+       while the buffer has no conflicts. Tests: the count following the
+       caret, each take-all as one undo, the row's keys in each edit
+       mode, the row gone as the file is staged.
      - The editor's context menu has the four, and next and previous,
        when the caret is in a conflict.
      - The default toolbar gets a group, shown only while the current

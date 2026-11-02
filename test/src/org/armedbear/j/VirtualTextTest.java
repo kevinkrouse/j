@@ -120,10 +120,10 @@ public class VirtualTextTest {
         lines(2);
         assertThrows(
             IllegalArgumentException.class,
-            () -> new VirtualText(line(0), Placement.TOP, rows("x"), 0, null, false));
+            () -> new VirtualText(line(0), Placement.TOP, rows("x"), 0, null, false, null));
         assertThrows(
             IllegalArgumentException.class,
-            () -> new VirtualText(line(0), Placement.EOL, rows("x", "y"), 0, null, false));
+            () -> new VirtualText(line(0), Placement.EOL, rows("x", "y"), 0, null, false, null));
         assertThrows(IllegalArgumentException.class, () -> VirtualText.above(null, rows("x")));
     }
 
@@ -414,6 +414,119 @@ public class VirtualTextTest {
         display.setTopLine(line(12));
         // Line 12's rows and text are three rows; seven more lines fill the window.
         assertSame(line(5), display.pageAbove());
+    }
+
+    @Test
+    public void aBackgroundIsDrawnForItsLine() {
+        lines(5);
+        h.cursor(0, 0);
+        final java.awt.Color shade = new java.awt.Color(0x33, 0x44, 0x55);
+        set("bg", List.of(VirtualText.background(line(2), shade)));
+        final BufferedImage image = paint();
+        final int gutter = Display.getGutterWidth(h.buffer());
+        final int cw = Display.getCharWidth();
+        // Line 2 is the third row; its text area is shaded.
+        final int y = 2 * ch + ch / 2;
+        assertEquals(shade.getRGB(), image.getRGB(gutter + cw, y), "the line is shaded");
+        // Left of the gutter, the sign area, is not.
+        assertTrue(image.getRGB(gutter / 2, y) != shade.getRGB(), "the gutter is not");
+    }
+
+    @Test
+    public void theCaretsLineKeepsItsOwnBackground() {
+        lines(5);
+        h.cursor(2, 0);
+        final java.awt.Color shade = new java.awt.Color(0x33, 0x44, 0x55);
+        set("bg", List.of(VirtualText.background(line(2), shade)));
+        final BufferedImage image = paint();
+        final int gutter = Display.getGutterWidth(h.buffer());
+        final int cw = Display.getCharWidth();
+        assertTrue(image.getRGB(gutter + cw, 2 * ch + ch / 2) != shade.getRGB(), "the caret's line is not shaded");
+    }
+
+    @Test
+    public void theLastOwnerOnALineWins() {
+        lines(5);
+        h.cursor(0, 0);
+        final java.awt.Color first = new java.awt.Color(0x11, 0x22, 0x33);
+        final java.awt.Color last = new java.awt.Color(0x44, 0x55, 0x66);
+        set("a", List.of(VirtualText.background(line(1), first)));
+        set("b", List.of(VirtualText.background(line(1), last)));
+        final BufferedImage image = paint();
+        final int gutter = Display.getGutterWidth(h.buffer());
+        assertEquals(last.getRGB(), image.getRGB(gutter + Display.getCharWidth(), ch + ch / 2), "not blended");
+    }
+
+    @Test
+    public void aBackgroundIsNotARow() {
+        lines(5);
+        set("bg", List.of(VirtualText.background(line(2), java.awt.Color.RED)));
+        assertEquals(0, layer.totalRows(), "it adds no rows");
+        assertEquals(0, layer.rowsAbove(line(2)));
+        assertEquals(0, layer.rowsBelow(line(2)));
+        assertEquals(5 * ch, h.buffer().getDisplayHeight(), "the height is the lines'");
+    }
+
+    @Test
+    public void aBackgroundGoesWithItsOwnerAndItsLine() {
+        lines(6);
+        final Line four = line(4);
+        set("bg", List.of(VirtualText.background(four, java.awt.Color.RED)));
+        assertEquals(1, layer.on(four, Placement.BACKGROUND).size());
+        layer.clear("bg");
+        assertTrue(layer.on(four, Placement.BACKGROUND).isEmpty());
+        // And with the line: joining 3 and 4 takes line 4 out.
+        set("bg", List.of(VirtualText.background(four, java.awt.Color.RED)));
+        h.editor().setDot(line(3), line(3).length());
+        h.editor().setMark(new Position(four, four.length()));
+        h.editor().deleteRegion();
+        h.buffer().renumber();
+        assertTrue(!h.buffer().contains(four));
+        layer.totalRows();
+        assertTrue(layer.get("bg").isEmpty(), "gone with the line");
+    }
+
+    @Test
+    public void aBackgroundNeedsALineAndAColor() {
+        lines(2);
+        assertThrows(IllegalArgumentException.class, () -> VirtualText.background(null, java.awt.Color.RED));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> new VirtualText(line(0), Placement.BACKGROUND, rows("x"), 0, java.awt.Color.RED, false, null));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> new VirtualText(line(0), Placement.BACKGROUND, List.of(), 0, null, false, null));
+    }
+
+    @Test
+    public void aBackgroundsForegroundColorsTheLinesText() {
+        lines(5);
+        h.cursor(0, 0);
+        final java.awt.Color shade = java.awt.Color.BLACK;
+        final java.awt.Color green = new java.awt.Color(0, 255, 0);
+        set("bg", List.of(VirtualText.background(line(2), shade, green)));
+        final BufferedImage image = paint();
+        assertTrue(hasGreen(image, 2), "the text in its color");
+        assertFalse(hasGreen(image, 1), "another line's in its own");
+    }
+
+    @Test
+    public void onlyABackgroundTakesAForeground() {
+        lines(2);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> new VirtualText(line(0), Placement.EOL, rows("x"), 0, null, false, java.awt.Color.RED));
+    }
+
+    // Whether the nth line's row has a pixel mostly green.
+    private boolean hasGreen(BufferedImage image, int n) {
+        for (int y = n * ch; y < (n + 1) * ch; y++)
+            for (int x = Display.getGutterWidth(h.buffer()); x < image.getWidth(); x++) {
+                final java.awt.Color c = new java.awt.Color(image.getRGB(x, y));
+                if (c.getGreen() > 150 && c.getRed() < 80 && c.getBlue() < 80)
+                    return true;
+            }
+        return false;
     }
 
     private BufferedImage paint() {

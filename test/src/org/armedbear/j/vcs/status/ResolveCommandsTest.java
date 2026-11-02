@@ -1,5 +1,5 @@
 /*
- * ConflictCommandsTest.java
+ * ResolveCommandsTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -35,7 +35,7 @@ import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.git.GitFixture;
-import org.armedbear.j.vcs.status.ConflictCommands.Take;
+import org.armedbear.j.vcs.status.ResolveCommands.Take;
 import org.armedbear.j.vcs.status.StatusActions.Files;
 import org.armedbear.j.vcs.status.StatusActions.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
@@ -43,7 +43,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-public class ConflictCommandsTest {
+public class ResolveCommandsTest {
     @TempDir
     Path tmp;
 
@@ -78,7 +78,7 @@ public class ConflictCommandsTest {
 
     @Test
     public void bothModifiedOffersOursTheirsAndAgain() {
-        final Transient p = ConflictCommands.popup(unmerged(item("a.txt", Conflict.BOTH_MODIFIED)), false);
+        final Transient p = ResolveCommands.popup(unmerged(item("a.txt", Conflict.BOTH_MODIFIED)), false);
         assertNotNull(p);
         assertNotNull(p.item("o"));
         assertNotNull(p.item("t"));
@@ -89,7 +89,7 @@ public class ConflictCommandsTest {
 
     @Test
     public void bothAddedOffersOursTheirsAndAgain() {
-        final Transient p = ConflictCommands.popup(unmerged(item("a.txt", Conflict.BOTH_ADDED)), false);
+        final Transient p = ResolveCommands.popup(unmerged(item("a.txt", Conflict.BOTH_ADDED)), false);
         assertNotNull(p.item("o"));
         assertNotNull(p.item("t"));
         assertNotNull(p.item("c"));
@@ -97,7 +97,7 @@ public class ConflictCommandsTest {
 
     @Test
     public void deletedByThemOffersKeepAndDelete() {
-        final Transient p = ConflictCommands.popup(unmerged(item("a.txt", Conflict.DELETED_BY_THEM)), false);
+        final Transient p = ResolveCommands.popup(unmerged(item("a.txt", Conflict.DELETED_BY_THEM)), false);
         assertNotNull(p.item("k"));
         assertNotNull(p.item("d"));
         assertNull(p.item("o"));
@@ -106,7 +106,7 @@ public class ConflictCommandsTest {
 
     @Test
     public void bothDeletedOffersOnlyDelete() {
-        final Transient p = ConflictCommands.popup(unmerged(item("a.txt", Conflict.BOTH_DELETED)), false);
+        final Transient p = ResolveCommands.popup(unmerged(item("a.txt", Conflict.BOTH_DELETED)), false);
         assertNotNull(p.item("d"));
         assertNull(p.item("k"));
         assertNull(p.item("o"));
@@ -115,7 +115,7 @@ public class ConflictCommandsTest {
     @Test
     public void aMixOfKindsHasNoPopup() {
         assertNull(
-            ConflictCommands.popup(
+            ResolveCommands.popup(
                 unmerged(item("a.txt", Conflict.BOTH_MODIFIED), item("b.txt", Conflict.DELETED_BY_THEM)),
                 false));
     }
@@ -123,7 +123,7 @@ public class ConflictCommandsTest {
     @Test
     public void withSeveralRepositoriesThePopupNamesEachFilesRepository() throws Exception {
         bothModified();
-        final Transient p = ConflictCommands.popup(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), true);
+        final Transient p = ResolveCommands.popup(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), true);
         assertEquals("Resolve a.txt in " + repo().name(), p.title());
     }
 
@@ -179,7 +179,7 @@ public class ConflictCommandsTest {
     @Test
     public void resolveOursTakesOurTextAndStagesIt() throws Exception {
         bothModified();
-        assertNull(ConflictCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.OURS));
+        assertNull(ResolveCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.OURS));
         assertEquals("ours\n", git.read("a.txt"));
         assertFalse(unmerged(), "no unmerged path left");
         assertEquals("ours\n", git.index("a.txt"), "our version staged");
@@ -188,7 +188,7 @@ public class ConflictCommandsTest {
     @Test
     public void resolveTheirsTakesTheirTextAndStagesIt() throws Exception {
         bothModified();
-        assertNull(ConflictCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.THEIRS));
+        assertNull(ResolveCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.THEIRS));
         assertEquals("theirs\n", git.read("a.txt"));
         assertFalse(unmerged());
         assertEquals("theirs\n", git.index("a.txt"), "their version staged");
@@ -197,7 +197,7 @@ public class ConflictCommandsTest {
     @Test
     public void resolveKeepOnDeletedByThemKeepsItStaged() throws Exception {
         deletedByThem();
-        assertNull(ConflictCommands.resolve(List.of(files("a.txt", Conflict.DELETED_BY_THEM)), Take.KEEP));
+        assertNull(ResolveCommands.resolve(List.of(files("a.txt", Conflict.DELETED_BY_THEM)), Take.KEEP));
         assertEquals("ours\n", git.read("a.txt"));
         assertFalse(unmerged());
         assertEquals("ours\n", git.index("a.txt"), "our version kept, staged");
@@ -206,7 +206,7 @@ public class ConflictCommandsTest {
     @Test
     public void resolveDeleteOnDeletedByThemGoesAndStagesDeletion() throws Exception {
         deletedByThem();
-        assertNull(ConflictCommands.resolve(List.of(files("a.txt", Conflict.DELETED_BY_THEM)), Take.DELETE));
+        assertNull(ResolveCommands.resolve(List.of(files("a.txt", Conflict.DELETED_BY_THEM)), Take.DELETE));
         assertFalse(java.nio.file.Files.exists(git.root.resolve("a.txt")), "gone");
         assertFalse(unmerged());
         assertTrue(git.git("status", "--porcelain").contains("D  a.txt"), "deletion staged");
@@ -215,7 +215,7 @@ public class ConflictCommandsTest {
     @Test
     public void resolveDeleteOnBothDeletedStagesDeletion() throws Exception {
         bothDeleted();
-        assertNull(ConflictCommands.resolve(List.of(files("a.txt", Conflict.BOTH_DELETED)), Take.DELETE));
+        assertNull(ResolveCommands.resolve(List.of(files("a.txt", Conflict.BOTH_DELETED)), Take.DELETE));
         assertFalse(unmerged());
         assertTrue(git.git("status", "--porcelain").contains("D  a.txt"), "deletion staged");
     }
@@ -223,8 +223,8 @@ public class ConflictCommandsTest {
     @Test
     public void resolveConflictPutsMarkersBackAndStaysUnmerged() throws Exception {
         bothModified();
-        ConflictCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.OURS);
-        assertNull(ConflictCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.CONFLICT));
+        ResolveCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.OURS);
+        assertNull(ResolveCommands.resolve(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), Take.CONFLICT));
         final String text = git.read("a.txt");
         assertTrue(text.contains("<<<<<<<"), text);
         assertTrue(text.contains("|||||||"), "with a base: " + text);

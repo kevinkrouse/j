@@ -1,5 +1,5 @@
 /*
- * ConflictCommands.java
+ * ResolveCommands.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -45,8 +45,8 @@ import org.armedbear.j.vcs.status.StatusData.FileItem;
  * markers back and leaves it unmerged. What ours, theirs and conflict again
  * write over goes to the trash first, hand edits and all.
  */
-public final class ConflictCommands {
-    private ConflictCommands() {}
+public final class ResolveCommands {
+    private ResolveCommands() {}
 
     static final String ID = "vcs.resolve";
 

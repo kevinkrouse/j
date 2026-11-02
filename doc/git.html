@@ -478,6 +478,33 @@ way, so resolve them on their own. Each choice is a command too,
 file on disk still has conflict markers, the question says how many:
 "Mark a.txt resolved? 2 conflicts are left."
 
+<p>
+Open the file itself, and its conflicts show: each region's lines are
+shaded, ours, the base (when there is one) and theirs, and its marker
+lines are dimmed but for the two around the side the caret is in. Above
+each <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> line is a row of links to
+take a side, each with its key, named from the markers' own labels rather
+than "ours" and "theirs", which a rebase swaps: the branch or commit git
+wrote after the marker. Each link runs a command on that region, one
+edit, undone whole:
+
+<ul>
+    <li><a href="commands.html#vcsConflictOurs">vcsConflictOurs</a> takes our side;</li>
+    <li><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a> takes theirs;</li>
+    <li><a href="commands.html#vcsConflictBoth">vcsConflictBoth</a> keeps both, ours then theirs;</li>
+    <li><a href="commands.html#vcsConflictBase">vcsConflictBase</a> takes the base, refused when the region has none.</li>
+</ul>
+
+<p>
+Run by name, they act on the region at the caret. The shading and the
+links follow your edits, and go when the file is no longer unmerged, as
+when you stage it from the status. Markers in a file the repository does
+not report unmerged are left alone: a file may hold them as text. The
+shades are the theme's <code>color.ConflictOurs</code>,
+<code>color.ConflictBase</code> and <code>color.ConflictTheirs</code>;
+unset, they are blends of the background with the change colors, green
+for ours, blue for theirs, a faint gray for the base.
+
 <h2><a name="stashing">Stashing</a></h2>
 
 <p>
