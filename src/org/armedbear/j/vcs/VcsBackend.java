@@ -85,6 +85,20 @@ public interface VcsBackend {
         return null;
     }
 
+    /**
+     * Of paths, those whose conflict git can put back as it was before
+     * they were staged resolved; empty if none, or the backend can't.
+     * Off the event thread.
+     */
+    default Set<String> resolvedConflicts(VcsRepository repository, List<String> paths) {
+        return Set.of();
+    }
+
+    /** Puts paths' conflicts back in the index as resolvedConflicts has them, the working tree as it is. */
+    default VcsResult unresolve(VcsRepository repository, List<String> paths) {
+        return null;
+    }
+
     /** Stages every change to a tracked file. */
     default VcsResult stageAll(VcsRepository repository) {
         return null;

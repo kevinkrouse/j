@@ -188,7 +188,7 @@ public final class MergeCommands {
     /** Gives up the merge in progress, after asking, putting back what was there before it. */
     public static void vcsMergeAbort(Editor editor, String arg) {
         BranchCommands.context(editor, arg, c -> {
-            if (!BranchCommands.confirm.test(editor, "Abort the merge, losing its resolutions?", "Abort Merge"))
+            if (!StatusActions.confirm.test(editor, "Abort the merge, losing its resolutions?", "Abort Merge"))
                 return;
             final VcsRepository r = c.repository();
             BranchCommands.write(

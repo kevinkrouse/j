@@ -178,6 +178,19 @@ final class GitWrites {
         return new VcsResult(r.command(), 1, r.stdout(), name + " is no longer the stash shown: refresh", r.millis());
     }
 
+    // In batches, as the reads that find paths are.
+    static VcsResult unresolve(VcsRepository repository, List<String> paths) {
+        VcsResult r = null;
+        for (int i = 0; i < paths.size(); i += GitStatusReader.BATCH) {
+            final List<String> args = args("update-index", "--unresolve", "--");
+            args.addAll(paths.subList(i, Math.min(paths.size(), i + GitStatusReader.BATCH)));
+            r = run(repository, args);
+            if (!r.succeeded())
+                return r;
+        }
+        return r;
+    }
+
     static VcsResult stageAll(VcsRepository repository) {
         return run(repository, args("add", "-u"));
     }

@@ -468,12 +468,17 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></li>
     <li><a href="commands.html#vcsCommitPreviousMessage">vcsCommitPreviousMessage</a></li>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
+    <li><a href="commands.html#vcsConflictAllBoth">vcsConflictAllBoth</a></li>
+    <li><a href="commands.html#vcsConflictAllOurs">vcsConflictAllOurs</a></li>
+    <li><a href="commands.html#vcsConflictAllTheirs">vcsConflictAllTheirs</a></li>
     <li><a href="commands.html#vcsConflictBase">vcsConflictBase</a></li>
     <li><a href="commands.html#vcsConflictBoth">vcsConflictBoth</a></li>
     <li><a href="commands.html#vcsConflictNext">vcsConflictNext</a></li>
     <li><a href="commands.html#vcsConflictOurs">vcsConflictOurs</a></li>
     <li><a href="commands.html#vcsConflictPrevious">vcsConflictPrevious</a></li>
+    <li><a href="commands.html#vcsConflictResolved">vcsConflictResolved</a></li>
     <li><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a></li>
+    <li><a href="commands.html#vcsConflictUnresolved">vcsConflictUnresolved</a></li>
     <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsFetchAll">vcsFetchAll</a></li>
@@ -6380,6 +6385,36 @@ In a status buffer, opens the last commit's message, to change only its message.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsConflictAllBoth">vcsConflictAllBoth</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, takes both sides of every conflict in it: each region's lines are replaced by ours then theirs, all of it as one edit, undone whole. Unlike <a href="#vcsResolveOurs">vcsResolveOurs</a>, which is <code>git checkout --ours</code> of the whole file, this keeps theirs' changes that merged cleanly elsewhere in the file, and stages nothing. The caret goes to the first region's first line. Says "No conflicts here" when the buffer has none.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;cab in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>, <a href="#vcsConflictAllOurs">vcsConflictAllOurs</a>, <a href="#vcsConflictAllTheirs">vcsConflictAllTheirs</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsConflictAllOurs">vcsConflictAllOurs</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, takes our side of every conflict in it: each region's lines are replaced by ours, all of it as one edit, undone whole. Unlike <a href="#vcsResolveOurs">vcsResolveOurs</a>, which is <code>git checkout --ours</code> of the whole file, this keeps theirs' changes that merged cleanly elsewhere in the file, and stages nothing. The caret goes to the first region's first line. Says "No conflicts here" when the buffer has none.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;cao in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>, <a href="#vcsConflictAllTheirs">vcsConflictAllTheirs</a>, <a href="#vcsConflictOurs">vcsConflictOurs</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsConflictAllTheirs">vcsConflictAllTheirs</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, takes their side of every conflict in it: each region's lines are replaced by theirs, all of it as one edit, undone whole. Unlike <a href="#vcsResolveOurs">vcsResolveOurs</a>, which is <code>git checkout --ours</code> of the whole file, this keeps theirs' changes that merged cleanly elsewhere in the file, and stages nothing. The caret goes to the first region's first line. Says "No conflicts here" when the buffer has none.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;cat in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>, <a href="#vcsConflictAllOurs">vcsConflictAllOurs</a>, <a href="#vcsConflictTheirs">vcsConflictTheirs</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsConflictBase">vcsConflictBase</a><dl><dd>
 <p>
 In a buffer whose file is unmerged, takes the base of the conflict at the caret: the region's lines are replaced by the common ancestor's, as one edit, undone whole. Refused when the conflict has no base, a two-way one. Then the caret goes on to the next conflict, around past the last.
@@ -6430,11 +6465,31 @@ In a buffer whose file is unmerged, moves the caret to the previous conflict's o
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsConflictResolved">vcsConflictResolved</a><dl><dd>
+<p>
+In a buffer whose file is unmerged and has no conflict left, marks it resolved: the file is saved if it needs it, then staged in its own repository, off the event thread. The row over the first line offers it as "Mark resolved", or "Save and mark resolved" while the buffer is modified. Refused while conflicts are left, naming how many; with a stray marker left on disk, it asks first, as staging from the status does. Says "Not an unmerged file" when the buffer has no conflicts attached.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;cr in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>, <a href="#vcsConflictAllOurs">vcsConflictAllOurs</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsConflictTheirs">vcsConflictTheirs</a><dl><dd>
 <p>
 In a buffer whose file is unmerged, takes their side of the conflict at the caret: the region's lines are replaced by the lines between the separator and the closer, as one edit, undone whole. Then the caret goes on to the next conflict, around past the last.
 <br><br>
 <b>Default key mapping:</b> Alt Shift Right; &lt;leader&gt;ct in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsConflictUnresolved">vcsConflictUnresolved</a><dl><dd>
+<p>
+In a buffer whose file was marked resolved while its merge or rebase goes on, puts the conflict back: git reports the file unmerged again, as it was before it was staged, and the file is left as it is, so markers an undo brought back, and edits since, stay. The row over the first line offers it as "Mark unresolved" when the buffer has conflicts again. Says so when no merge or rebase is in progress, or git has no conflict of the file to put back.
+<br><br>
+<b>Default key mapping:</b> &lt;leader&gt;cu in vim edit mode
 <br><br>
 <b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
 <br><br>
@@ -6869,7 +6924,7 @@ In a status buffer, resolves the unmerged files at the caret by taking their sid
 
 <a name="vcsStage">vcsStage</a><dl><dd>
 <p>
-In a status buffer or its diff, stages the thing at the caret. It stages what the selection covers too, down to single lines of a hunk.
+In a status buffer or its diff, stages the thing at the caret. It stages what the selection covers too, down to single lines of a hunk. Asks first when what it stages adds conflict markers, and always for an unmerged file.
 <br><br>
 <b>Default key mapping:</b> s in status buffers
 <br><br>
@@ -6879,7 +6934,7 @@ In a status buffer or its diff, stages the thing at the caret. It stages what th
 
 <a name="vcsStageAll">vcsStageAll</a><dl><dd>
 <p>
-In a status buffer, stages every change to a tracked file.
+In a status buffer, stages every change to a tracked file. Asks first when the changes add conflict markers.
 <br><br>
 <b>Default key mapping:</b> S in status buffers
 <br><br>
@@ -6889,7 +6944,7 @@ In a status buffer, stages every change to a tracked file.
 
 <a name="vcsStageHunk">vcsStageHunk</a><dl><dd>
 <p>
-Stages the change at the caret, or the selected lines. In a file the version control tracks, they are staged as the buffer has them, saved or not. In the diff beside a status buffer, stages the hunk at the caret or the lines selected, as <a href="#vcsStage">vcsStage</a> does there.
+Stages the change at the caret, or the selected lines. In a file the version control tracks, they are staged as the buffer has them, saved or not, after asking when they add conflict markers. In the diff beside a status buffer, stages the hunk at the caret or the lines selected, as <a href="#vcsStage">vcsStage</a> does there.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;hs in vim edit mode
 <br><br>
@@ -7119,7 +7174,7 @@ In a status buffer, visits the file, commit or stash at the caret. A file opens 
 
 <a name="vcsUnstage">vcsUnstage</a><dl><dd>
 <p>
-In a status buffer or its diff, unstages the thing at the caret. It unstages what the selection covers too, down to single lines of a hunk.
+In a status buffer or its diff, unstages the thing at the caret. It unstages what the selection covers too, down to single lines of a hunk. A file whose conflict was staged resolved while its merge or rebase goes on is unmerged again instead, its file as it is.
 <br><br>
 <b>Default key mapping:</b> u in status buffers
 <br><br>

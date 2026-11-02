@@ -99,6 +99,16 @@ public final class VcsRepository {
         stashConflict = conflict;
     }
 
+    /**
+     * Whether something conflicts come from is going on, as the latest
+     * snapshot has it: the system's merge or rebase, say, or a stash's
+     * apply or pop that conflicted.
+     */
+    public boolean inProgress() {
+        final Snapshot s = snapshot;
+        return stashConflict != null || s != null && s.inProgress();
+    }
+
     public boolean isStale() {
         return snapshot == null || readGeneration != generation.get();
     }

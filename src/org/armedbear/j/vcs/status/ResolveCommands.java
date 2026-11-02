@@ -192,6 +192,23 @@ public final class ResolveCommands {
         return StatusActions.failure(b, b.stage(r, paths));
     }
 
+    /**
+     * Puts paths' conflicts back in the index as they were before they
+     * were staged, the files as they are, while the merge or rebase they
+     * came from goes on; what went wrong, or null. Off the event thread.
+     */
+    public static String unresolve(VcsRepository r, List<String> paths) {
+        r.snapshotNow();
+        if (!r.inProgress())
+            return "No merge, rebase or stash pop in progress to put a conflict back in";
+        final VcsBackend b = r.backend();
+        final Set<String> back = b.resolvedConflicts(r, paths);
+        final List<String> missing = paths.stream().filter(p -> !back.contains(p)).toList();
+        if (!missing.isEmpty())
+            return "No conflict of " + StatusActions.list(missing) + " to put back";
+        return StatusActions.failure(b, b.unresolve(r, paths));
+    }
+
     // The files of targets, unmerged or not.
     private static List<FileItem> files(List<Target> targets) {
         final List<FileItem> files = new ArrayList<>();

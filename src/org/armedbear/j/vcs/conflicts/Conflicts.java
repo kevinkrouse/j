@@ -24,6 +24,7 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ChangeColors;
@@ -35,8 +36,11 @@ import org.armedbear.j.FormatTable;
 import org.armedbear.j.KeyMapping;
 import org.armedbear.j.Line;
 import org.armedbear.j.Preferences;
+import org.armedbear.j.Property;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.VirtualText;
+import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vim.VimInputHandler;
 import org.armedbear.j.vim.VimKeyMap;
 
@@ -47,8 +51,10 @@ import org.armedbear.j.vim.VimKeyMap;
  * is, by the repository's word, not wherever markers appear, since a file
  * may hold them as text. Scanned again on each change, coalesced; the
  * links hold the region's own lines, so they follow edits. The markers
- * are dimmed, but for those of the side the caret is in. On the event
- * thread.
+ * are dimmed, but for those of the side the caret is in. Kept on once
+ * the file is staged while the merge or rebase it came from goes on, so
+ * markers an undo brings back show, with the conflict offered back. On
+ * the event thread.
  */
 public final class Conflicts implements Buffer.Follower {
     /** The owner of all of it in the buffer's layer. */
@@ -80,6 +86,12 @@ public final class Conflicts implements Buffer.Follower {
     // The caret's line when last seen, and the markers shown bright for it.
     private Line caret;
     private List<Line> lit = List.of();
+    // The caret's region, and whether the buffer was modified, as last
+    // shown: the row's count and its "Save and mark resolved" follow them.
+    private int caretRegion = -1;
+    private boolean modified;
+    // Staged since, its operation still going on.
+    private boolean resolved;
 
     private Conflicts(Buffer buffer) {
         this.buffer = buffer;
@@ -95,13 +107,18 @@ public final class Conflicts implements Buffer.Follower {
             return;
         }
         final Conflicts c = buffer.getConflicts();
-        if (wants(buffer)) {
+        final boolean unmerged = wants(buffer);
+        if (unmerged || c != null && inProgress(buffer)) {
+            final Conflicts made = c != null ? c : new Conflicts(buffer);
             if (c == null) {
-                final Conflicts made = new Conflicts(buffer);
                 buffer.setConflicts(made);
                 buffer.addFollower(made);
             }
-            buffer.getConflicts().scan();
+            if (made.resolved == unmerged) {
+                made.resolved = !unmerged;
+                made.show();
+            }
+            made.scan();
         } else if (c != null) {
             buffer.removeFollower(c);
             buffer.getVirtualText().clear(OWNER);
@@ -119,8 +136,25 @@ public final class Conflicts implements Buffer.Follower {
                 && buffer.getVCStatusKind() == Constants.VCS_CONFLICT;
     }
 
+    // Whether the file's repository is in the middle of the merge, rebase
+    // or the like its conflicts came from.
+    private static boolean inProgress(Buffer buffer) {
+        final VcsRepository r = Repositories.forFile(buffer.getFile());
+        return r != null && r.inProgress();
+    }
+
     Buffer buffer() {
         return buffer;
+    }
+
+    /** Whether the file has been staged resolved since its conflicts were shown. */
+    public boolean resolved() {
+        return resolved;
+    }
+
+    // The kept regions, in buffer order: for take-all and the tests.
+    List<Kept> kept() {
+        return kept;
     }
 
     /** The region whose opener-to-closer holds line; null if none. */
@@ -151,6 +185,11 @@ public final class Conflicts implements Buffer.Follower {
         return null;
     }
 
+    // The index of the region holding line, or -1 outside every one.
+    private int regionIndex(Line line) {
+        return kept.indexOf(keptAt(line));
+    }
+
     // The kept region whose opener is this very line; null if it is gone.
     Kept byOpener(Line opener) {
         for (Kept k : kept)
@@ -174,7 +213,7 @@ public final class Conflicts implements Buffer.Follower {
         // Buffer.checkVCS attaches, and so scans, before telling followers.
     }
 
-    /** A view watcher: the caret's side of a conflict lights its markers. */
+    /** A view watcher: the caret's side of a conflict lights its markers, and the row's count follows it. */
     public static void viewChanged(Editor editor) {
         if (editor == null || editor.getDot() == null)
             return;
@@ -182,7 +221,10 @@ public final class Conflicts implements Buffer.Follower {
         if (c == null)
             return;
         c.caret = editor.getDotLine();
-        if (!c.litFor(c.caret).equals(c.lit))
+        final int region = c.regionIndex(c.caret);
+        if (!c.litFor(c.caret).equals(c.lit)
+                || region != c.caretRegion
+                || (c.kept.isEmpty() && c.buffer.isModified() != c.modified))
             c.show();
     }
 
@@ -200,7 +242,10 @@ public final class Conflicts implements Buffer.Follower {
         final List<Kept> found = new ArrayList<>();
         for (ConflictMarkers.Region r : ConflictMarkers.regions(texts))
             found.add(keep(r, lines));
-        if (found.equals(kept) && litFor(caret).equals(lit))
+        // The row's modified-dependent text ("Save and mark resolved")
+        // shows only with no regions left; with regions, the row is the
+        // count and links, so a modified flip alone need not rebuild.
+        if (found.equals(kept) && litFor(caret).equals(lit) && (!found.isEmpty() || buffer.isModified() == modified))
             return;
         kept = found;
         openers = found.stream().map(Kept::opener).toList();
@@ -246,12 +291,16 @@ public final class Conflicts implements Buffer.Follower {
                 List.copyOf(lines.subList(r.separator() + 1, r.end())));
     }
 
-    // The shades, the markers dim or lit, and the link rows, in the
-    // theme's colors now.
+    // The shades, the markers dim or lit, the link rows, and the row
+    // over the first line, in the theme's colors now.
     private void show() {
         lit = litFor(caret);
+        caretRegion = caret == null ? -1 : regionIndex(caret);
+        modified = buffer.isModified();
         final Colors colors = colors();
         final List<VirtualText> texts = new ArrayList<>();
+        if (!resolved || !kept.isEmpty())
+            texts.add(VirtualText.top(List.of(hintRow())));
         for (Kept k : kept) {
             texts.add(marker(k.opener(), colors.ours, colors));
             for (Line l : k.ours())
@@ -288,20 +337,111 @@ public final class Conflicts implements Buffer.Follower {
         return row;
     }
 
+    // The row over the first line: the count, next and previous, the
+    // take-all links, or "Mark resolved" with none left. The keys, as
+    // the mode's hint writes them, bold before each action; vcsHints off
+    // drops the keyboard items but keeps the count and the links.
+    private List<VirtualText.Run> hintRow() {
+        final Editor editor = Editor.currentEditor();
+        final boolean hints = buffer.getBooleanProperty(Property.VCS_HINTS);
+        final List<VirtualText.Run> row = new ArrayList<>();
+        final int total = kept.size();
+        if (resolved) {
+            // Markers back in a file staged resolved: an undo, say.
+            row.add(
+                VirtualText.Run.of(total + (total == 1 ? " conflict" : " conflicts") + " in a file marked resolved"));
+            sep(row);
+            row.add(
+                linkRun(
+                    "Mark unresolved",
+                    () -> ConflictCommands.vcsConflictUnresolved(Editor.currentEditor()),
+                    "vcsConflictUnresolved"));
+            return row;
+        }
+        row.add(VirtualText.Run.of(countText(total)));
+        if (total > 0) {
+            if (hints) {
+                sep(row);
+                keyAction(row, editor, "vcsConflictNext", "next");
+                sep(row);
+                keyAction(row, editor, "vcsConflictPrevious", "previous");
+            }
+            row.add(VirtualText.Run.of(" \u00b7 All: "));
+            allLink(row, "ours", "vcsConflictAllOurs", ConflictCommands::vcsConflictAllOurs, editor, hints);
+            sep(row);
+            allLink(row, "theirs", "vcsConflictAllTheirs", ConflictCommands::vcsConflictAllTheirs, editor, hints);
+            sep(row);
+            allLink(row, "both", "vcsConflictAllBoth", ConflictCommands::vcsConflictAllBoth, editor, hints);
+        } else {
+            sep(row);
+            row.add(
+                linkRun(
+                    modified ? "Save and mark resolved" : "Mark resolved",
+                    () -> ConflictCommands.vcsConflictResolved(Editor.currentEditor()),
+                    "vcsConflictResolved"));
+        }
+        return row;
+    }
+
+    // The count: "2 of 3 conflicts" in the second, "3 conflicts" outside
+    // one, "1 conflict" for a single one, "No conflicts left" with none.
+    private String countText(int total) {
+        if (total == 0)
+            return "No conflicts left";
+        if (total == 1)
+            return "1 conflict";
+        return caretRegion >= 0 ? (caretRegion + 1) + " of " + total + " conflicts" : total + " conflicts";
+    }
+
+    // A keyboard item: the key bold, then the word; the word alone with no key.
+    private void keyAction(List<VirtualText.Run> row, Editor editor, String command, String word) {
+        final String key = keyFor(editor, command);
+        if (key != null)
+            row.add(VirtualText.Run.bold(key));
+        row.add(VirtualText.Run.of((key != null ? " " : "") + word));
+    }
+
+    // A take-all link running command, its key, if it has one and hints
+    // are on, after it in parentheses as the link row writes its keys.
+    private void allLink(
+            List<VirtualText.Run> row,
+            String word,
+            String command,
+            Consumer<Editor> run,
+            Editor editor,
+            boolean hints) {
+        row.add(linkRun(word, () -> run.accept(Editor.currentEditor()), command));
+        if (hints)
+            keyAfter(row, editor, command);
+    }
+
+    // command's key, if it has one, after a link in parentheses.
+    private static void keyAfter(List<VirtualText.Run> row, Editor editor, String command) {
+        final String key = keyFor(editor, command);
+        if (key != null)
+            row.add(VirtualText.Run.of(" (" + key + ")"));
+    }
+
+    // A link run in the link color, running action, tooltip the command.
+    private VirtualText.Run linkRun(String text, Runnable action, String command) {
+        final Color color = buffer.getFormatter().getFormatTable().resolveColor("link", true);
+        return new VirtualText.Run(text, color, 0, action, command);
+    }
+
+    private static void sep(List<VirtualText.Run> row) {
+        row.add(VirtualText.Run.of(" \u00b7 "));
+    }
+
     // A link added to row after a dot, and its key, dimmed in parentheses, if it has one.
     private void link(List<VirtualText.Run> row, String text, ConflictCommands.Take take, Kept k, Editor editor) {
         if (!row.isEmpty())
-            row.add(VirtualText.Run.of(" \u00b7 "));
-        final Color color = buffer.getFormatter().getFormatTable().resolveColor("link", true);
+            sep(row);
         row.add(
-            new VirtualText.Run(text,
-                    color,
-                    0,
-                    () -> ConflictCommands.takeLink(Editor.currentEditor(), this, k.opener(), take),
-                    take.command));
-        final String key = keyFor(editor, take.command);
-        if (key != null)
-            row.add(VirtualText.Run.of(" (" + key + ")"));
+            linkRun(
+                text,
+                () -> ConflictCommands.takeLink(Editor.currentEditor(), this, k.opener(), take),
+                take.command));
+        keyAfter(row, editor, take.command);
     }
 
     // The key that runs command in editor: vim's in vim edit mode, else

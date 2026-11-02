@@ -32,16 +32,25 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ChangeMarks;
 import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Editor;
+import org.armedbear.j.File;
+import org.armedbear.j.FileCommands;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
+import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.ToolBar;
+import org.armedbear.j.util.Background;
+import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.conflicts.Conflicts.Kept;
+import org.armedbear.j.vcs.status.ResolveCommands;
+import org.armedbear.j.vcs.status.StatusActions;
 
 /**
  * Taking a side of a conflict in the editor: the four commands, and what
@@ -87,6 +96,162 @@ public final class ConflictCommands {
 
     public static void vcsConflictPrevious(Editor editor) {
         go(editor, false);
+    }
+
+    /**
+     * Every region of the buffer taken as one edit, undone whole: the
+     * take-all links' command. Unlike the status's vcsResolveOurs, which
+     * is checkout --ours of the whole file, theirs' changes that merged
+     * cleanly elsewhere are kept, and nothing is staged.
+     */
+    public static void vcsConflictAllOurs(Editor editor) {
+        takeAll(editor, Take.OURS);
+    }
+
+    public static void vcsConflictAllTheirs(Editor editor) {
+        takeAll(editor, Take.THEIRS);
+    }
+
+    public static void vcsConflictAllBoth(Editor editor) {
+        takeAll(editor, Take.BOTH);
+    }
+
+    // Every kept region replaced by take's side, one compound edit.
+    private static void takeAll(Editor editor, Take take) {
+        final Buffer buffer = editor.getBuffer();
+        final Conflicts conflicts = buffer == null ? null : buffer.getConflicts();
+        if (conflicts == null || conflicts.kept().isEmpty()) {
+            editor.status("No conflicts here");
+            return;
+        }
+        if (!editor.checkReadOnly())
+            return;
+        final Line last = buffer.getLastLine();
+        final Line first = conflicts.kept().get(0).opener();
+        final int firstLine = first.lineNumber();
+        editor.setMark(null);
+        final CompoundEdit compound = editor.beginCompoundEdit();
+        // The caret's place first, so the undo puts it back.
+        editor.addUndo(SimpleEdit.MOVE);
+        // Last to first, so an edit never disturbs the lines of a region
+        // still to come.
+        for (int i = conflicts.kept().size() - 1; i >= 0; i--)
+            replace(editor, conflicts.kept().get(i), take, last);
+        editor.moveDotTo(buffer.getLine(firstLine), 0);
+        editor.endCompoundEdit(compound);
+    }
+
+    // One region's opener-to-closer lines replaced by take's side. An edit
+    // here can split or join lines below it, so take-all goes last to
+    // first, leaving the Lines of the regions still to come untouched.
+    private static void replace(Editor editor, Kept k, Take take, Line last) {
+        final Buffer buffer = editor.getBuffer();
+        final boolean closerIsLast = k.closer() == last;
+        final Position from = new Position(k.opener(), 0);
+        final Position to = closerIsLast ? new Position(last, last.length()) : new Position(k.closer().next(), 0);
+        final List<String> text = switch (take) {
+            case OURS -> texts(k.ours());
+            case THEIRS -> texts(k.theirs());
+            case BOTH -> {
+                final List<String> all = new ArrayList<>(texts(k.ours()));
+                all.addAll(texts(k.theirs()));
+                yield all;
+            }
+            case BASE -> texts(k.base());
+        };
+        editor.deleteRegion(from, to);
+        if (!text.isEmpty()) {
+            final StringBuilder sb = new StringBuilder(String.join("\n", text));
+            if (!closerIsLast)
+                sb.append('\n');
+            // The caret is at from after the delete; insert there.
+            editor.insertString(sb.toString());
+        }
+    }
+
+    /**
+     * Marks the buffer's file resolved: saved if it needs it, then
+     * staged in its own repository, off the event thread. The row's
+     * "Mark resolved" link runs it. The shading and links go when the
+     * repository no longer reports the file unmerged.
+     */
+    public static void vcsConflictResolved(Editor editor) {
+        final Buffer buffer = editor.getBuffer();
+        final Conflicts conflicts = buffer == null ? null : buffer.getConflicts();
+        if (conflicts == null) {
+            editor.status("Not an unmerged file");
+            return;
+        }
+        if (conflicts.resolved()) {
+            editor.status("Already marked resolved");
+            return;
+        }
+        if (!conflicts.kept().isEmpty()) {
+            final int n = conflicts.kept().size();
+            editor.status(n + (n == 1 ? " conflict is left" : " conflicts are left"));
+            return;
+        }
+        final File file = buffer.getFile();
+        final VcsRepository r = file != null && file.isLocal() ? Repositories.forFile(file) : null;
+        if (r == null) {
+            editor.status("Not a file in a repository");
+            return;
+        }
+        if (buffer.isModified()) {
+            FileCommands.save(editor);
+            if (buffer.isModified()) {
+                editor.status("Save failed");
+                return;
+            }
+        }
+        final String path = r.relativePath(file);
+        // Read and counted off the event thread, as s's question is; the
+        // question and the write in the callback.
+        Background.then("vcs count conflicts", () -> ConflictMarkers.count(r.root().resolve(path)), left -> {
+            if (left != null
+                    && left > 0
+                    && !StatusActions.confirm.test(
+                        editor,
+                        StatusActions.leftQuestion("Mark " + file.getName() + " resolved?", left),
+                        "Mark Resolved"))
+                return;
+            Background.start("vcs mark resolved", () -> {
+                final String failed = StatusActions.failure(r.backend(), r.backend().stage(r, List.of(path)));
+                r.invalidate();
+                r.refresh(); // Tells the buffers, which drop the Conflicts.
+                SwingUtilities.invokeLater(
+                    () -> editor.status(failed == null ? "Marked " + file.getName() + " resolved" : failed));
+            });
+        });
+    }
+
+    /**
+     * Puts the conflict of the buffer's file back as it was before it was
+     * marked resolved, while the merge or rebase it came from goes on: git
+     * reports it unmerged again, and the file is left as it is, so the
+     * markers an undo brought back, and edits since, stay. The row's
+     * "Mark unresolved" link runs it.
+     */
+    public static void vcsConflictUnresolved(Editor editor) {
+        final Buffer buffer = editor.getBuffer();
+        final File file = buffer == null ? null : buffer.getFile();
+        final VcsRepository r = file != null && file.isLocal() ? Repositories.forFile(file) : null;
+        if (r == null) {
+            editor.status("Not a file in a repository");
+            return;
+        }
+        if (buffer.getConflicts() != null && !buffer.getConflicts().resolved()) {
+            editor.status("Not marked resolved");
+            return;
+        }
+        final String path = r.relativePath(file);
+        Background.start("vcs mark unresolved", () -> {
+            final String failed = ResolveCommands.unresolve(r, List.of(path));
+            r.invalidate();
+            r.refresh(); // Tells the buffers, which show the conflicts again.
+            SwingUtilities.invokeLater(
+                () -> editor.status(failed == null ? "Marked " + file.getName() + " unresolved" : failed));
+        });
     }
 
     /**
@@ -203,42 +368,19 @@ public final class ConflictCommands {
             return;
         final Buffer buffer = editor.getBuffer();
         final Line last = buffer.getLastLine();
-        final Position from = new Position(k.opener(), 0);
-        // The closer's line goes whole: up to the next line's start, or,
-        // the last line, its end, which has no newline after it.
-        final boolean closerIsLast = k.closer() == last;
-        final Position to = closerIsLast ? new Position(last, last.length()) : new Position(k.closer().next(), 0);
-        final List<String> text = switch (take) {
-            case OURS -> texts(k.ours());
-            case THEIRS -> texts(k.theirs());
-            case BOTH -> {
-                final List<String> all = new ArrayList<>(texts(k.ours()));
-                all.addAll(texts(k.theirs()));
-                yield all;
-            }
-            case BASE -> texts(k.base());
-        };
         // Where the caret goes after: the next conflict, read before the
         // edit, as the scan that follows it comes later.
         final Line next = buffer.getConflicts() == null ? null : buffer.getConflicts().nextOpener(k);
         editor.setMark(null);
         final int first = k.opener().lineNumber();
         final CompoundEdit compound = editor.beginCompoundEdit();
-        editor.deleteRegion(from, to);
-        if (!text.isEmpty()) {
-            final StringBuilder sb = new StringBuilder(String.join("\n", text));
-            if (!closerIsLast)
-                sb.append('\n');
-            // The caret is at from after the delete; insert there.
-            editor.insertString(sb.toString());
-            editor.endCompoundEdit(compound);
-            // The caret at the first line put back, if no conflict is left.
-            editor.setDot(buffer.getLine(first), 0);
-        } else {
-            editor.endCompoundEdit(compound);
-        }
-        if (next != null)
-            editor.moveDotTo(next, 0);
+        // The caret's place first, and its move after inside the edit, so
+        // one undo puts back the region and the caret both.
+        editor.addUndo(SimpleEdit.MOVE);
+        replace(editor, k, take, last);
+        // On to the next conflict, or the first line put back if none is left.
+        editor.moveDotTo(next != null ? next : buffer.getLine(first), 0);
+        editor.endCompoundEdit(compound);
     }
 
     private static List<String> texts(List<Line> lines) {

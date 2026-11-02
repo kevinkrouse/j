@@ -135,7 +135,8 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
             editor.status("Committing: it closes when the commit is made");
             return false;
         }
-        if (!StatusActions.confirm.test(editor, "Give up this commit message? Ctrl P brings it back next time."))
+        if (!StatusActions.confirm
+                .test(editor, "Give up this commit message? Ctrl P brings it back next time.", "Discard"))
             return false;
         CommentRing.getInstance().appendNew(b.getMessage());
         b.setClosing();

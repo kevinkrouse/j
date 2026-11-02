@@ -31,6 +31,7 @@ import java.awt.Component;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -43,6 +44,7 @@ import org.armedbear.j.ToolBar;
 import org.armedbear.j.ToolBarButton;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.status.StatusActions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -52,12 +54,15 @@ public class ConflictCommandsTest {
     @TempDir
     Path tmp;
 
+    private static final StatusActions.Confirm CONFLICT_CONFIRM = StatusActions.confirm;
+
     private GitFixture git;
     private EditorHarness h;
     private Buffer file;
 
     @AfterEach
     public void tearDown() throws Exception {
+        StatusActions.confirm = CONFLICT_CONFIRM;
         onEdt(() -> {
             if (h != null) {
                 h.showBuffer(h.buffer());
@@ -129,6 +134,365 @@ public class ConflictCommandsTest {
                 return c == null || c.openers().isEmpty() || c.openers().get(0).lineNumber() != first[0];
             });
         }
+    }
+
+    // ---- take-all
+
+    @Test
+    public void takeAllOursTakesEveryRegionAsOneUndo() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        dot(20);
+        onEdt(() -> ConflictCommands.vcsConflictAllOurs(h.editor()));
+        // Both regions gone, ours everywhere.
+        assertFalse(text().contains("<<<<<<<"), text());
+        assertTrue(text().contains("Y2"), text());
+        assertTrue(text().contains("Y11"), text());
+        assertFalse(text().contains("X2"), text());
+        assertFalse(text().contains("X11"), text());
+        // One undo restores both regions whole, and the caret.
+        onEdt(() -> org.armedbear.j.EditCommands.undo(h.editor()));
+        assertTrue(text().contains("<<<<<<<"), "markers back");
+        assertFalse(file.isModified(), "unmodified");
+        assertEquals(20, h.editor().getDotLineNumber());
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().size() == 2);
+    }
+
+    @Test
+    public void oneUndoRestoresATakeAndTheCaretMovedOn() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        dot(2);
+        onEdt(() -> ConflictCommands.vcsConflictOurs(h.editor()));
+        assertTrue(h.editor().getDotLineNumber() > 2, "on to the next conflict");
+        onEdt(() -> org.armedbear.j.EditCommands.undo(h.editor()));
+        assertEquals(2, text().split("<<<<<<<", -1).length - 1, "both regions back");
+        assertFalse(file.isModified(), "unmodified");
+        assertEquals(2, h.editor().getDotLineNumber());
+    }
+
+    @Test
+    public void takeAllTheirsTakesEveryRegion() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        dot(3);
+        onEdt(() -> ConflictCommands.vcsConflictAllTheirs(h.editor()));
+        assertFalse(text().contains("<<<<<<<"), text());
+        assertTrue(text().contains("X2"), text());
+        assertTrue(text().contains("X11"), text());
+        assertFalse(text().contains("Y2"), text());
+    }
+
+    @Test
+    public void takeAllBothKeepsOursThenTheirs() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        dot(3);
+        onEdt(() -> ConflictCommands.vcsConflictAllBoth(h.editor()));
+        assertFalse(text().contains("<<<<<<<"), text());
+        // Each region: ours then theirs, no base.
+        assertTrue(text().contains("Y2\nX2"), text());
+        assertTrue(text().contains("Y11\nX11"), text());
+    }
+
+    @Test
+    public void takeAllKeepsCleanlyMergedLinesElsewhere() throws Exception {
+        // A file where theirs also changed a line that merges cleanly: the
+        // take-all keeps it, unlike the status's checkout --ours.
+        git = GitFixture.init(tmp);
+        git.git("config", "merge.conflictStyle", "zdiff3");
+        git.write("a.txt", "a\nb\nc\n");
+        git.commitAll("base");
+        git.git("checkout", "-q", "-b", "other");
+        git.write("a.txt", "a\nTHEIRS\nc\nCHANGED BY THEM\n");
+        git.commitAll("theirs");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "a\nOURS\nc\n");
+        git.commitAll("ours");
+        git.run("merge", "other");
+        open("a.txt");
+        dot(3);
+        onEdt(() -> ConflictCommands.vcsConflictAllOurs(h.editor()));
+        assertTrue(text().contains("CHANGED BY THEM"), "theirs' clean change kept: " + text());
+        assertTrue(text().contains("OURS"), text());
+    }
+
+    @Test
+    public void takeAllIsRefusedInAReadOnlyBuffer() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        dot(3);
+        onEdt(() -> {
+            file.setForceReadOnly(true);
+            ConflictCommands.vcsConflictAllOurs(h.editor());
+        });
+        assertTrue(text().contains("<<<<<<<"), "nothing changed");
+        assertTrue(h.status().contains("read only"), h.status());
+    }
+
+    @Test
+    public void takeAllWithNoConflictSaysSo() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "clean\n");
+        git.commitAll("clean");
+        open("a.txt");
+        dot(0);
+        onEdt(() -> ConflictCommands.vcsConflictAllOurs(h.editor()));
+        assertEquals("No conflicts here", h.status());
+    }
+
+    // ---- marking resolved
+
+    @Test
+    public void resolvedRefusesWithRegionsLeft() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        dot(3);
+        onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+        assertEquals("2 conflicts are left", h.status());
+        assertFalse(staged("a.txt"), "nothing staged");
+    }
+
+    @Test
+    public void resolvedStagesTheFileAndDropsTheConflicts() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        takeAllOurs();
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().isEmpty());
+        onEdt(() -> file.save());
+        onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+        until(() -> resolvedNow());
+        assertTrue(staged("a.txt"), "staged");
+        assertTrue(file.getVirtualText().get(Conflicts.OWNER).isEmpty(), "nothing shown");
+        assertEquals("Marked a.txt resolved", h.status());
+    }
+
+    @Test
+    public void resolvedSavesAModifiedBufferFirst() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        takeAllOurs();
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().isEmpty());
+        // Modified, not saved: the command saves, then stages.
+        assertTrue(file.isModified(), "modified before");
+        onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+        until(() -> resolvedNow());
+        assertFalse(file.isModified(), "saved");
+        assertTrue(staged("a.txt"), "staged");
+    }
+
+    @Test
+    public void resolvedAsksWithAStrayMarkerLeft() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        takeAllOurs();
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().isEmpty());
+        onEdt(() -> file.save());
+        // A stray opener with no closer on disk: no region, but a marker.
+        git.write("a.txt", text() + "<<<<<<< HEAD\n");
+        final List<String> asked = new ArrayList<>();
+        StatusActions.confirm = (e, q, title) -> {
+            asked.add(title + ": " + q);
+            return true;
+        };
+        try {
+            onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+            until(() -> resolvedNow());
+            assertEquals(List.of("Mark Resolved: Mark a.txt resolved? 1 conflict is left."), asked);
+            assertTrue(staged("a.txt"), "staged after yes");
+        }
+        finally {
+            StatusActions.confirm = CONFLICT_CONFIRM;
+        }
+    }
+
+    @Test
+    public void resolvedDoesNotStageWhenTheStrayAskIsRefused() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        takeAllOurs();
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().isEmpty());
+        onEdt(() -> file.save());
+        git.write("a.txt", text() + "<<<<<<< HEAD\n");
+        final AtomicBoolean asked = new AtomicBoolean();
+        StatusActions.confirm = (e, q, title) -> {
+            asked.set(true);
+            return false;
+        };
+        try {
+            onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+            until(asked::get);
+            assertFalse(staged("a.txt"), "not staged when refused");
+            assertNotNull(file.getConflicts(), "still unmerged");
+        }
+        finally {
+            StatusActions.confirm = CONFLICT_CONFIRM;
+        }
+    }
+
+    @Test
+    public void resolvedSaysSoForAFileNotUnmerged() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "clean\n");
+        git.commitAll("clean");
+        open("a.txt");
+        dot(0);
+        onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+        assertEquals("Not an unmerged file", h.status());
+    }
+
+    // ---- a two-repository project stages in the file's own repository
+
+    @Test
+    public void resolvedStagesInOwnRepositoryOfAProject() throws Exception {
+        // A .j-project with two repositories; the conflicted file is in
+        // the second. It stages there, not the first.
+        Path ws = tmp.resolve("ws");
+        java.nio.file.Files.createDirectories(ws.resolve(".j-project"));
+        java.nio.file.Files.createDirectories(ws.resolve("a-repo"));
+        java.nio.file.Files.createDirectories(ws.resolve("b-repo"));
+        GitFixture a = GitFixture.init(ws.resolve("a-repo"));
+        GitFixture b = GitFixture.init(ws.resolve("b-repo"));
+        // An a.txt in a-repo too, changed: staged there, the stage went astray.
+        a.write("a.txt", "a\n");
+        a.commitAll("a");
+        a.write("a.txt", "changed\n");
+        b.git("config", "merge.conflictStyle", "zdiff3");
+        b.write("a.txt", "one\ntwo\nthree\n");
+        b.commitAll("base");
+        b.git("checkout", "-q", "-b", "other");
+        b.write("a.txt", "one\nTHEIRS\nthree\n");
+        b.commitAll("theirs");
+        b.git("checkout", "-q", "main");
+        b.write("a.txt", "one\nOURS\nthree\n");
+        b.commitAll("ours");
+        b.run("merge", "other");
+        Repositories.invalidateAll();
+        openAt(ws.resolve("b-repo/a.txt"));
+        assertNotNull(file.getConflicts(), "attached in b-repo");
+        takeAllOurs();
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().isEmpty());
+        onEdt(() -> file.save());
+        onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+        until(() -> resolvedNow());
+        assertTrue(b.run("ls-files", "--", "a.txt").out().contains("a.txt"), "tracked in b-repo");
+        assertFalse(b.run("ls-files", "-u", "--", "a.txt").out().contains("a.txt"), "no unmerged in b-repo");
+        assertTrue(a.run("diff", "--cached", "--name-only").out().isEmpty(), "nothing staged in a-repo");
+    }
+
+    // ---- marking unresolved
+
+    @Test
+    public void undoAfterResolvedOffersTheConflictBackAndUnresolvedPutsItBack() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        dot(20);
+        onEdt(() -> ConflictCommands.vcsConflictAllOurs(h.editor()));
+        onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+        until(() -> resolvedNow());
+        assertTrue(staged("a.txt"), "staged");
+        final String saved = git.read("a.txt");
+        // The undo brings the markers back into the buffer: shaded, with the conflict offered back.
+        onEdt(() -> org.armedbear.j.EditCommands.undo(h.editor()));
+        until(() -> file.getConflicts().openers().size() == 2);
+        assertEquals("2 conflicts in a file marked resolved · Mark unresolved", topRow());
+        onEdt(() -> ConflictCommands.vcsConflictResolved(h.editor()));
+        assertEquals("Already marked resolved", h.status());
+        onEdt(() -> ConflictCommands.vcsConflictUnresolved(h.editor()));
+        until(() -> file.getConflicts() != null && !file.getConflicts().resolved());
+        assertTrue(unmerged(git, "a.txt"), "unmerged again");
+        assertEquals(saved, git.read("a.txt"), "the file as it was");
+        assertTrue(text().contains("<<<<<<<"), "the buffer's markers kept");
+        assertTrue(file.isModified(), "the undo still to save");
+        assertTrue(topRow().startsWith("2 conflicts"), topRow());
+        assertEquals("Marked a.txt unresolved", h.status());
+    }
+
+    @Test
+    public void unresolvedRefusesAFileNotMarkedResolved() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        onEdt(() -> ConflictCommands.vcsConflictUnresolved(h.editor()));
+        assertEquals("Not marked resolved", h.status());
+    }
+
+    @Test
+    public void unresolvedRefusesWithNoConflictToPutBack() throws Exception {
+        twoConflicts();
+        git.write("b.txt", "b\n"); // not in the merge's conflicts
+        open("b.txt");
+        onEdt(() -> ConflictCommands.vcsConflictUnresolved(h.editor()));
+        until(() -> h.status().startsWith("No conflict"));
+        assertEquals("No conflict of b.txt to put back", h.status());
+    }
+
+    @Test
+    public void unresolvedRefusesOnceTheMergeIsCommitted() throws Exception {
+        twoConflicts();
+        open("a.txt");
+        takeAllOurs();
+        onEdt(() -> file.save());
+        git.git("add", "a.txt");
+        git.git("commit", "-q", "--no-edit");
+        final org.armedbear.j.vcs.VcsRepository r = Repositories.forFile(file.getFile());
+        r.invalidate();
+        r.refresh();
+        until(() -> file.getConflicts() == null);
+        onEdt(() -> ConflictCommands.vcsConflictUnresolved(h.editor()));
+        until(() -> h.status().startsWith("No merge"));
+        assertEquals("No merge, rebase or stash pop in progress to put a conflict back in", h.status());
+        assertFalse(unmerged(git, "a.txt"), "left resolved");
+    }
+
+    // ---- helpers
+
+    // The file staged, its Conflicts kept on, marked resolved, while the merge goes on.
+    private boolean resolvedNow() {
+        return file.getConflicts() != null && file.getConflicts().resolved();
+    }
+
+    private String topRow() throws Exception {
+        final String[] out = new String[1];
+        onEdt(
+            () -> out[0] = file.getVirtualText()
+                    .get(Conflicts.OWNER)
+                    .stream()
+                    .filter(v -> v.placement() == org.armedbear.j.VirtualText.Placement.TOP)
+                    .map(v -> org.armedbear.j.VirtualText.text(v.rows().get(0)))
+                    .findFirst()
+                    .orElse(""));
+        return out[0];
+    }
+
+    // Whether a.txt is resolved: no unmerged entries in the index. The
+    // content may equal HEAD after take-all, so porcelain can be clean;
+    // what matters is the unmerged stage entries are gone.
+    private boolean staged(String path) {
+        return !unmerged(git, path);
+    }
+
+    private static boolean unmerged(GitFixture f, String path) {
+        return !f.run("ls-files", "-u", "--", path).out().isEmpty();
+    }
+
+    // Opens a file outside the harness's own git fixture.
+    private void openAt(Path path) throws Exception {
+        onEdt(() -> {
+            h = EditorHarness.create();
+            Editor.setCurrentEditor(h.editor());
+            file = Editor.getBuffer(File.getInstance(path.toString()));
+            if (!file.initialized())
+                file.initialize();
+            file.load();
+            h.showBuffer(file);
+        });
+    }
+
+    private String text() {
+        final List<String> lines = new ArrayList<>();
+        for (Line l = file.getFirstLine(); l != null; l = l.next())
+            lines.add(l.getText());
+        return String.join("\n", lines);
     }
 
     // ---- after a take
@@ -286,7 +650,7 @@ public class ConflictCommandsTest {
         until(() -> file.getConflicts() != null && file.getConflicts().openers().isEmpty());
         git.git("add", "a.txt");
         refresh();
-        until(() -> file.getConflicts() == null);
+        until(() -> resolvedNow());
         final List<Line> starts = new ArrayList<>();
         onEdt(() -> starts.addAll(ChangeMarks.hunkStarts(h.editor())));
         // No conflicts left: the buffer's own change starts (lines taken

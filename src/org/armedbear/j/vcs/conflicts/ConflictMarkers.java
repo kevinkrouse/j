@@ -20,8 +20,14 @@
 
 package org.armedbear.j.vcs.conflicts;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Git's conflict markers, as git writes them: a marker is its character
@@ -95,7 +101,7 @@ public final class ConflictMarkers {
     }
 
     /** Lines that open a conflict, complete or not: what s's question counts. */
-    public static int count(List<String> lines) {
+    public static int count(Iterable<String> lines) {
         int n = 0;
         int len = 0;
         boolean open = false;
@@ -113,6 +119,24 @@ public final class ConflictMarkers {
             }
         }
         return n;
+    }
+
+    // Bigger than anything resolved by hand: not read.
+    private static final long MAX_SIZE = 16 << 20;
+
+    /** The same of the file at path, read a line at a time; a file gone, or too big, counts none. */
+    public static int count(Path path) {
+        try {
+            if (Files.size(path) > MAX_SIZE)
+                return 0;
+            // Latin-1 reads any bytes, and the markers are ASCII.
+            try (Stream<String> lines = Files.lines(path, StandardCharsets.ISO_8859_1)) {
+                return count(lines::iterator);
+            }
+        }
+        catch (IOException | UncheckedIOException e) {
+            return 0;
+        }
     }
 
     // The length of line's opener, or 0.

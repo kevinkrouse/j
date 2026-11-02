@@ -42,6 +42,7 @@ import org.armedbear.j.vcs.FileChange.Kind;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
+import org.armedbear.j.vcs.conflicts.ConflictMarkers;
 import org.armedbear.j.vcs.status.StatusActions;
 
 /**
@@ -132,29 +133,69 @@ public final class HunkCommands {
             return;
         final Snapshot s = snapshot(editor);
         editor.setMark(null);
-        run(editor, u, "Staging…", () -> {
-            final Sides sides = sides(u, s);
-            if (sides == null)
-                return "Not in the index";
-            if (!sides.patchable())
-                return UTF16;
-            final List<Edit> edits = EditorHunks.edits(sides.index(), sides.now());
-            final List<Edit> taken = taken(edits, s);
-            if (taken.isEmpty())
-                return "No unstaged change here";
-            // From the bottom, so each patch still finds its lines.
-            for (Edit e : taken) {
-                final byte[] patch = EditorHunks
-                        .patch(u.getPath(), sides.index(), sides.now(), edits, e, s.first(), s.last(), false);
-                if (patch != null) {
+        // The patches, and the conflict markers they add, worked out off
+        // the event thread; a question first if they add any, as s asks.
+        editor.status("Staging…");
+        Background.then("vcs stage hunk", () -> patches(u, s), staging -> {
+            if (staging == null) {
+                editor.status("Can't stage it: see the log");
+                return;
+            }
+            if (staging.failed() == null && staging.markers() > 0) {
+                final String what = s.first() < 0 ? "a hunk of " : "lines of ";
+                if (!StatusActions.confirm.test(
+                    editor,
+                    StatusActions.leftQuestion("Stage " + what + u.getPath() + "?", staging.markers()),
+                    "Stage")) {
+                    editor.status("");
+                    return;
+                }
+            }
+            run(editor, u, "Staging…", () -> {
+                if (staging.failed() != null)
+                    return staging.failed();
+                for (byte[] patch : staging.patches()) {
                     final String failed =
                             failure(u, u.getRepository().backend().apply(u.getRepository(), patch, true, false, false));
                     if (failed != null)
                         return failed;
                 }
-            }
-            return null;
+                return null;
+            });
         });
+    }
+
+    // The patches staging takes, from the bottom; the conflict markers in
+    // the lines they add; or why there are none.
+    private record Staging(List<byte[]> patches, int markers, String failed) {
+        static Staging failed(String why) {
+            return new Staging(List.of(), 0, why);
+        }
+    }
+
+    private static Staging patches(SignsUpdater u, Snapshot s) {
+        final Sides sides = sides(u, s);
+        if (sides == null)
+            return Staging.failed("Not in the index");
+        if (!sides.patchable())
+            return Staging.failed(UTF16);
+        final List<Edit> edits = EditorHunks.edits(sides.index(), sides.now());
+        final List<Edit> taken = taken(edits, s);
+        if (taken.isEmpty())
+            return Staging.failed("No unstaged change here");
+        final List<byte[]> patches = new ArrayList<>();
+        final List<String> added = new ArrayList<>();
+        for (Edit e : taken) {
+            final byte[] patch =
+                    EditorHunks.patch(u.getPath(), sides.index(), sides.now(), edits, e, s.first(), s.last(), false);
+            if (patch != null)
+                patches.add(patch);
+            // The buffer's lines it adds, those of the selection alone if one.
+            for (int i = e.newStart(); i < Math.min(e.newStart() + e.newCount(), s.lines().size()); i++)
+                if (s.first() < 0 || i >= s.first() && i <= s.last())
+                    added.add(s.lines().get(i));
+        }
+        return new Staging(patches, ConflictMarkers.count(added), null);
     }
 
     /**

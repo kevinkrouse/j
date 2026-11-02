@@ -81,4 +81,9 @@ public final class GitSnapshot extends Snapshot {
     public Operation operation() {
         return operation;
     }
+
+    @Override
+    public boolean inProgress() {
+        return operation != Operation.NONE && operation != Operation.BISECT;
+    }
 }

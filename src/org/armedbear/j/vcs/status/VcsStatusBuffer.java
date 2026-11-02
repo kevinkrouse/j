@@ -293,9 +293,21 @@ public final class VcsStatusBuffer extends ViewBuffer
      * one already running, whose data may be from before it.
      */
     void startWriting() {
+        wroteBefore = wroteAt;
         wroteAt = Long.MAX_VALUE;
         writing = true;
         ++writes;
+    }
+
+    // wroteAt before the write started, for one given up.
+    private long wroteBefore;
+
+    /** A write started is not made after all: as before it, with no read to wait for. */
+    void gaveUpWriting() {
+        wroteAt = wroteBefore;
+        writing = false;
+        --writes;
+        updateToolbars();
     }
 
     // How many writes have started: the diff beside is stale until it has

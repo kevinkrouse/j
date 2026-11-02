@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import org.armedbear.j.util.Whitespace;
@@ -49,7 +50,7 @@ import org.armedbear.j.vcs.status.StatusData.StashItem;
 /** What git's status buffer shows: the snapshot, the diffs asked for, and the recent commits. */
 final class GitStatusReader {
     static final int RECENT = 10;
-    private static final int BATCH = 100;
+    static final int BATCH = 100;
     // Commits' "abbreviated-hash subject", by hash, which a commit never
     // changes: HEAD's is asked for on every refresh.
     private static final Map<String, String> SUBJECTS =
@@ -149,6 +150,53 @@ final class GitStatusReader {
         return "  ↑" + r.ahead() + " ↓" + r.behind();
     }
 
+    // git keeps a staged conflict's stages, "resolve undo", until the
+    // index is next read from a tree, as a rebase's next step does; a
+    // commit keeps them, so they may be an earlier merge's. Only those
+    // whose ours, stage 2, is HEAD's are this operation's. Records are
+    // "mode id stage\tpath".
+    static Set<String> resolvedConflicts(VcsRepository repository, List<String> paths) {
+        final Set<String> out = new HashSet<>();
+        for (int i = 0; i < paths.size(); i += BATCH) {
+            final List<String> batch = paths.subList(i, Math.min(paths.size(), i + BATCH));
+            final Map<String, String> ours = new HashMap<>();
+            for (String e : records(repository, "ls-files", "--resolve-undo", batch)) {
+                final String[] f = e.split("[ \t]", 4);
+                if (f.length < 4)
+                    continue;
+                ours.putIfAbsent(f[3], null);
+                if (f[2].equals("2"))
+                    ours.put(f[3], f[1]);
+            }
+            if (ours.isEmpty())
+                continue;
+            // "mode type id\tpath"
+            final Map<String, String> head = new HashMap<>();
+            for (String e : records(repository, "ls-tree", "HEAD", List.copyOf(ours.keySet()))) {
+                final String[] f = e.split("[ \t]", 4);
+                if (f.length == 4)
+                    head.put(f[3], f[2]);
+            }
+            for (Map.Entry<String, String> e : ours.entrySet())
+                if (Objects.equals(e.getValue(), head.get(e.getKey())))
+                    out.add(e.getKey());
+        }
+        return out;
+    }
+
+    // The NUL-separated records git's command gives for paths; none if it fails.
+    private static List<String> records(VcsRepository repository, String command, String option, List<String> paths) {
+        final List<String> args = new ArrayList<>(List.of("--literal-pathspecs", command, "-z", option, "--"));
+        args.addAll(paths);
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        final List<String> out = new ArrayList<>();
+        if (r.succeeded())
+            for (String e : r.out().split("\0"))
+                if (!e.isEmpty())
+                    out.add(e);
+        return out;
+    }
+
     private static String inProgress(VcsRepository repository, GitSnapshot git, int conflicts) {
         final String what;
         if (git.operation() == GitSnapshot.Operation.NONE) {
@@ -207,6 +255,21 @@ final class GitStatusReader {
             items.add(new FileItem(c, kind == null ? ' ' : kind.letter(), staged, diffs.get(c.path())));
         }
         return items;
+    }
+
+    /** The same in batches, as files reads them; null if git fails on any. */
+    static List<FileDiff> diffs(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
+        if (paths.size() <= BATCH)
+            return diff(repository, staged, paths, ignored);
+        final List<FileDiff> out = new ArrayList<>();
+        for (int i = 0; i < paths.size(); i += BATCH) {
+            final List<FileDiff> read =
+                    diff(repository, staged, paths.subList(i, Math.min(paths.size(), i + BATCH)), ignored);
+            if (read == null)
+                return null;
+            out.addAll(read);
+        }
+        return out;
     }
 
     /**

@@ -398,12 +398,17 @@ public class CommandTable {
             add("vcsCommitPopup", CommitCommands::vcsCommitPopup);
             add("vcsCommitPreviousMessage", CommitCommands::vcsCommitPreviousMessage);
             add("vcsCommitReword", CommitCommands::vcsCommitReword);
+            add("vcsConflictAllBoth", ConflictCommands::vcsConflictAllBoth);
+            add("vcsConflictAllOurs", ConflictCommands::vcsConflictAllOurs);
+            add("vcsConflictAllTheirs", ConflictCommands::vcsConflictAllTheirs);
             add("vcsConflictBase", ConflictCommands::vcsConflictBase);
             add("vcsConflictBoth", ConflictCommands::vcsConflictBoth);
             add("vcsConflictNext", ConflictCommands::vcsConflictNext);
             add("vcsConflictOurs", ConflictCommands::vcsConflictOurs);
             add("vcsConflictPrevious", ConflictCommands::vcsConflictPrevious);
+            add("vcsConflictResolved", ConflictCommands::vcsConflictResolved);
             add("vcsConflictTheirs", ConflictCommands::vcsConflictTheirs);
+            add("vcsConflictUnresolved", ConflictCommands::vcsConflictUnresolved);
             add("vcsResolveDelete", ResolveCommands::vcsResolveDelete);
             add("vcsResolveKeep", ResolveCommands::vcsResolveKeep);
             add("vcsResolveOurs", ResolveCommands::vcsResolveOurs);

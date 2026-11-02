@@ -2260,7 +2260,7 @@ plan with why it is left, before the next phase starts.
        dialog accepts left and right; `<leader>co`, `ct`, `cb`, `cB` in
        vim, under the leader so `c0` and the like stay vim's. Both and
        base have no simple-mode key, as VS Code binds none of its accepts.
-     - The conflicts' line (a design; not built). While the buffer has
+     - The conflicts' line (built in (e)). While the buffer has
        conflicts, a `TOP` row of the `vcs.conflicts` owner, over the
        first line, as the status's hint is: "2 of 3 conflicts · ]x next
        · [x previous · All: ours · theirs · both". The count is the
@@ -2315,13 +2315,71 @@ plan with why it is left, before the next phase starts.
      the background shows the group by the next command or switch.
      Not built here, as the 9D handoff says: the conflicts' hint line over
      the first line and the three take-all commands (`vcsConflictAll*`);
-     they wait for the user's word.
+     they wait for the user's word, and were built in (e).
    - **e. Marking it resolved.** Once the buffer has no conflict left and
      is saved, the virtual line above its first line says "No conflicts
      left · Mark resolved", whose click (and `vcsConflictResolved`) stages
      it; the shading and links go when the repository no longer reports
      it unmerged. Tests: the last conflict resolved and saved offers it,
      staging drops the `Conflicts`.
+     Built: the row is a `TOP` `VirtualText` of `Conflicts.OWNER`, built
+     in `show()` with the rest, so it comes and goes with the `Conflicts`
+     and scrolls with the first line. `hintRow()` holds the count
+     (`countText`: "2 of 3 conflicts" in the second, "3 conflicts"
+     outside, "1 conflict" for one, "No conflicts left" with none), next
+     and previous as key items (`keyAction`, the key bold before the word,
+     from `keyFor`), and "All: ours · theirs · both" as links
+     (`allLink`, each with its key in parentheses as the link row writes
+     its). With no region left the row is "No conflicts left · Mark
+     resolved", or "Save and mark resolved" while the buffer is modified.
+     `vcsHints` off drops the key items and the take-all keys but keeps
+     the count and the links. `viewChanged` and `scan`'s skip now follow
+     the caret's region index and, only with no regions left, the modified
+     flag: with regions the row is the count and links, so a modified flip
+     alone need not rebuild it, and typing in a side still shows nothing
+     again. The take-all is `vcsConflictAllOurs`/`Theirs`/`Both` in
+     `ConflictCommands`, `takeAll(editor, take)`: every kept region
+     replaced by the side, last to first so an edit never disturbs a
+     region still to come, inside one `CompoundEdit`, the caret at the
+     first region's line put back. A take and a take-all each record the
+     caret first and move it inside the compound edit, so one undo puts
+     back the text and the caret both (`moveDotTo` records an undo of its
+     own, which outside the edit took a second undo); the replacement is `replace(editor, k,
+     take, last)`, shared with `takeRegion`. Refused in a read-only
+     buffer, "No conflicts here" with none. `vcsConflictResolved`: refuses
+     with regions left ("N conflicts are left"), counts stray markers in the file
+     off the event thread (`ConflictMarkers.count(Path)`, shared with the
+     status) and asks through `StatusActions.confirm` when markers are
+     left, saves a modified
+     buffer first through `FileCommands.save`, then stages in the file's
+     own repository (`Repositories.forFile`, `backend().stage`) off the
+     event thread, and `invalidate`/`refresh` so the `Conflicts` and the
+     row go. "Marked a.txt resolved", or what went wrong. Keys:
+     `<leader>cao`/`cat`/`cab`/`cr` in vim, none in simple mode.
+     Undo after marking resolved brings the markers back into a file git
+     has staged, with no shading: `s` and `S` now ask before staging
+     markers into any file, counting the lines a change adds (the whole
+     file when untracked or unmerged), "Stage a.txt? 1 conflict is
+     left.", the count holding the status's write gate; `StatusActions.
+     confirm` takes the dialog's title ("Discard", "Mark Resolved",
+     "Stage"); `vcsStageHunk` in a file buffer asks the same, its
+     patches and the markers they add worked out off the event thread
+     first. Marking unresolved: `Conflicts` stays on a buffer once its
+     file is staged while `VcsRepository.inProgress()` (an operation of
+     git's but bisect, or the stash note of (a)), `resolved()` then; it
+     shows its regions as before, and with any the row "N conflicts in a
+     file marked resolved · Mark unresolved", nothing with none.
+     `vcsConflictUnresolved` (`<leader>cu` in vim) and `u` in the status
+     on such a file put the conflict back through
+     `VcsBackend.resolvedConflicts` (`ls-files --resolve-undo`) and
+     `unresolve` (`update-index --unresolve`), which leave the working
+     file as it is. git keeps those records until the index is next read
+     from a tree, as a rebase's next step does; a commit keeps them, so
+     they may be an earlier merge's, and only those whose stage 2 is
+     HEAD's are taken. `--unresolve` of a path with none does nothing and
+     exits 0, so it is checked first, and outside an operation it is
+     refused. Not built: after a stash pop's last conflict, whose note
+     goes with it, so nothing is in progress to put it back in.
    - **f. Finishing.** `vcsContinue`, `vcsSkip` and `vcsAbort` act on the
      operation in progress: merge (`vcsMergeCommit` and `vcsMergeAbort`,
      as now), cherry-pick, revert, rebase and am (`--continue`, `--skip`,

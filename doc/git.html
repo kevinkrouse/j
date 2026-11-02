@@ -476,7 +476,9 @@ way, so resolve them on their own. Each choice is a command too,
 <p>
 <b>s</b> on an unmerged file still asks "Mark a.txt resolved?". When the
 file on disk still has conflict markers, the question says how many:
-"Mark a.txt resolved? 2 conflicts are left."
+"Mark a.txt resolved? 2 conflicts are left." Staging any other file, a
+hunk or lines with <b>s</b>, or everything with <b>S</b>, asks only when
+what it stages adds conflict markers: "Stage a.txt? 1 conflict is left."
 
 <p>
 Open the file itself, and its conflicts show: each region's lines are
@@ -519,6 +521,46 @@ The default toolbar gets a group, shown only while the current buffer
 has conflicts: previous and next, and ours, theirs, both and base. The
 takes are disabled, not hidden, when the caret is outside a conflict, and
 base when its region has none, so the toolbar does not shift as you move.
+
+<p>
+Over the file's first line is a row that follows the caret: the count
+("2 of 3 conflicts" in the second, "3 conflicts" outside one, "1
+conflict" for a single one), next and previous, and take-all links —
+"All: ours · theirs · both" — that take every conflict in the buffer at
+once. The keys are written bold before each action, as the status's hint
+line writes them; <code>vcsHints</code> off drops the keyboard items but
+keeps the count and the links. The take-all runs
+<a href="commands.html#vcsConflictAllOurs">vcsConflictAllOurs</a>,
+<a href="commands.html#vcsConflictAllTheirs">vcsConflictAllTheirs</a>
+and <a href="commands.html#vcsConflictAllBoth">vcsConflictAllBoth</a>
+(<b>&lt;leader&gt;cao</b>, <b>cat</b>, <b>cab</b> in vim), each every
+region as one edit, undone whole. They differ from the status's
+<code>vcsResolveOurs</code>, which is <code>git checkout --ours</code>
+of the whole file: the take-all keeps theirs' changes that merged cleanly
+elsewhere in the file, and stages nothing.
+
+<p>
+When the last conflict is taken, the row becomes "No conflicts left ·
+Mark resolved", or "Save and mark resolved" while the buffer is still
+modified. Its click, or <a
+href="commands.html#vcsConflictResolved">vcsConflictResolved</a>
+(<b>&lt;leader&gt;cr</b> in vim), saves the file if it needs it and
+stages it in its own repository; the shading and the links go when the
+repository no longer reports the file unmerged. It refuses while
+conflicts are left, naming how many, and with a stray marker left on disk
+it asks first, as staging from the status does.
+
+<p>
+While the merge or rebase goes on, a file marked resolved can be marked
+unresolved again. An undo after marking it resolved brings the markers
+back into the buffer, shaded, and the row says "2 conflicts in a file
+marked resolved · Mark unresolved". Its click, or <a
+href="commands.html#vcsConflictUnresolved">vcsConflictUnresolved</a>
+(<b>&lt;leader&gt;cu</b> in vim), puts the conflict back as git had it
+before it was staged, leaving the file as it is: the undo's markers and
+any edits since stay. <b>u</b> on such a file in the status does the same,
+so <b>u</b> undoes <b>s</b>. Once the merge is committed, or the rebase
+goes on to its next step, git keeps no conflict to put back.
 
 <h2><a name="stashing">Stashing</a></h2>
 

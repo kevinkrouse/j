@@ -216,12 +216,22 @@ public final class GitBackend implements VcsBackend {
 
     @Override
     public List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
-        return GitStatusReader.diff(repository, staged, paths, ignored);
+        return GitStatusReader.diffs(repository, staged, paths, ignored);
     }
 
     @Override
     public VcsResult stage(VcsRepository repository, List<String> paths) {
         return GitWrites.stage(repository, paths);
+    }
+
+    @Override
+    public Set<String> resolvedConflicts(VcsRepository repository, List<String> paths) {
+        return GitStatusReader.resolvedConflicts(repository, paths);
+    }
+
+    @Override
+    public VcsResult unresolve(VcsRepository repository, List<String> paths) {
+        return GitWrites.unresolve(repository, paths);
     }
 
     @Override

@@ -101,6 +101,11 @@ public class Snapshot {
         return error;
     }
 
+    /** Whether the system is in the middle of something conflicts come from: a merge or a rebase, say. */
+    public boolean inProgress() {
+        return false;
+    }
+
     /** The branch this one pulls from, or null. */
     public Relation upstream() {
         return upstream;

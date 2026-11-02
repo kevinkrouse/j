@@ -70,11 +70,11 @@ public class StatusActionsTest {
         SIXTY = sb.toString();
     }
 
-    private static final java.util.function.BiPredicate<Editor, String> SAVED_CONFIRM = StatusActions.confirm;
+    private static final StatusActions.Confirm SAVED_CONFIRM = StatusActions.confirm;
 
     @BeforeEach
     public void setUp() {
-        StatusActions.confirm = (editor, text) -> {
+        StatusActions.confirm = (editor, text, title) -> {
             asked.add(text);
             return answer;
         };
@@ -335,6 +335,57 @@ public class StatusActionsTest {
         git.commitAll("ours");
         git.run("merge", "other");
         git.write("b.txt", "b changed\n");
+    }
+
+    @Test
+    public void uOnAConflictStagedResolvedPutsTheConflictBack() throws Exception {
+        conflicted();
+        git.write("a.txt", "resolved\n");
+        git.git("add", "a.txt");
+        open();
+        act("  M  a.txt", Op.UNSTAGE);
+        until(() -> text().contains("  U  a.txt (both modified)"));
+        assertEquals("resolved\n", git.read("a.txt"), "the file as it was");
+    }
+
+    @Test
+    public void uLeavesAnEarlierMergesConflictBehind() throws Exception {
+        // git keeps the committed merge's record of a.txt's conflict; an
+        // am stopped since is in progress, but it is not this one's.
+        conflicted();
+        git.write("a.txt", "resolved\n");
+        git.git("add", "a.txt");
+        git.git("commit", "-q", "--no-edit");
+        git.write("bad.patch", """
+                From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+                From: T <t@example.com>
+                Subject: [PATCH] bad
+
+                ---
+                diff --git a/c.txt b/c.txt
+                --- a/c.txt
+                +++ b/c.txt
+                @@ -1 +1 @@
+                -not there
+                +x
+                """);
+        assertFalse(git.run("am", "bad.patch").succeeded(), "am stops");
+        git.write("a.txt", "edited\n");
+        git.git("add", "a.txt");
+        open();
+        act("  M  a.txt", Op.UNSTAGE);
+        until(() -> git.run("diff", "--cached", "--name-only").out().isEmpty());
+        assertTrue(git.run("ls-files", "-u").out().isEmpty(), "no conflict brought back");
+    }
+
+    @Test
+    public void uOnAnotherFileInAMergeStillUnstagesIt() throws Exception {
+        conflicted();
+        git.git("add", "b.txt");
+        open();
+        act("  M  b.txt", Op.UNSTAGE);
+        until(() -> text().contains("Unstaged changes (1)"));
+        assertTrue(text().contains("  U  a.txt (both modified)"), "the conflict as it was");
     }
 
     @Test
@@ -609,6 +660,82 @@ public class StatusActionsTest {
         assertTrue(text().contains("  ?  c.txt"), "untracked files stay out");
         onEdt(() -> StatusActions.all(h.editor(), false));
         until(() -> !text().stream().anyMatch(s -> s.startsWith("Staged changes")));
+    }
+
+    // ---- markers in what s stages, the file not unmerged
+
+    private static final String MARKERS = "<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> other\n";
+
+    private boolean staged(String path) {
+        return git.run("diff", "--cached", "--name-only").out().lines().anyMatch(path::equals);
+    }
+
+    @Test
+    public void sAsksBeforeStagingAddedMarkers() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY + MARKERS);
+        open();
+        answer = false;
+        act("  M  a.txt", Op.STAGE);
+        until(() -> !asked.isEmpty());
+        assertEquals(List.of("Stage a.txt? 1 conflict is left."), asked);
+        assertFalse(staged("a.txt"), "not without a yes");
+        answer = true;
+        asked.clear();
+        act("  M  a.txt", Op.STAGE);
+        until(() -> staged("a.txt"));
+    }
+
+    @Test
+    public void sStagesMarkersAlreadyCommittedWithoutAsking() throws Exception {
+        // A file that holds markers as its content: the change adds none.
+        git = GitFixture.init(tmp);
+        git.write("a.txt", MARKERS);
+        git.commitAll("first");
+        git.write("a.txt", MARKERS + "more\n");
+        open();
+        act("  M  a.txt", Op.STAGE);
+        until(() -> staged("a.txt"));
+        assertTrue(asked.isEmpty(), asked.toString());
+    }
+
+    @Test
+    public void sAsksBeforeStagingANewFileWithMarkers() throws Exception {
+        repository();
+        git.write("c.txt", MARKERS);
+        open();
+        answer = false;
+        act("  ?  c.txt", Op.STAGE);
+        until(() -> !asked.isEmpty());
+        assertEquals(List.of("Stage c.txt? 1 conflict is left."), asked);
+    }
+
+    @Test
+    public void sAsksBeforeStagingAHunkThatAddsMarkers() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 50\n", MARKERS));
+        open();
+        openFile("  M  a.txt", "  +theirs");
+        answer = false;
+        onEdt(() -> {
+            h.editor().setDot(after(line("  M  a.txt"), "  @@ -47"), 0);
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        until(() -> !asked.isEmpty());
+        assertEquals(List.of("Stage a hunk of a.txt? 1 conflict is left."), asked);
+        assertFalse(staged("a.txt"), "not without a yes");
+    }
+
+    @Test
+    public void stageAllAsksWithAddedMarkers() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY + MARKERS);
+        open();
+        answer = false;
+        onEdt(() -> StatusActions.all(h.editor(), true));
+        until(() -> !asked.isEmpty());
+        assertEquals(List.of("Stage every change? 1 conflict is left."), asked);
+        assertFalse(staged("a.txt"), "not without a yes");
     }
 
     @Test

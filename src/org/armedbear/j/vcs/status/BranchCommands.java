@@ -20,8 +20,6 @@
 
 package org.armedbear.j.vcs.status;
 
-import static org.armedbear.j.Constants.RESPONSE_YES;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -31,7 +29,6 @@ import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Finders;
 import org.armedbear.j.InputDialog;
@@ -65,14 +62,6 @@ public final class BranchCommands {
 
     // The unmerged commits a delete names at most.
     private static final int SHOWN = 10;
-
-    /** Asks yes or no; replaced in tests. */
-    interface Confirm {
-        boolean test(Editor editor, String text, String title);
-    }
-
-    static Confirm confirm =
-            (editor, text, title) -> ConfirmDialog.showConfirmDialog(editor, text, title) == RESPONSE_YES;
 
     /** Asks for a name, offering one; null for none. Replaced in tests. */
     interface Ask {
@@ -355,13 +344,15 @@ public final class BranchCommands {
                 tip = LogCommit.shortId(t.id());
         final String id = tip;
         Background.then("vcs branch unmerged", () -> r.backend().readOnlyOn(r, branch), only -> {
-            if (!confirm.test(editor, "Delete branch " + branch + "?", "Delete Branch"))
+            if (!StatusActions.confirm.test(editor, "Delete branch " + branch + "?", "Delete Branch"))
                 return;
             // Read: -D, the commits it alone has asked about; none lost
             // otherwise, as -d would refuse one merged elsewhere but not
             // into HEAD. Unread: -d, git's own check deciding.
             final boolean force = only != null;
-            if (only != null && !only.isEmpty() && !confirm.test(editor, lost(branch, only), "Delete Branch"))
+            if (only != null
+                    && !only.isEmpty()
+                    && !StatusActions.confirm.test(editor, lost(branch, only), "Delete Branch"))
                 return;
             write(
                 editor,

@@ -24,7 +24,6 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.Desktop;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -36,7 +35,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -88,9 +86,14 @@ public final class StatusActions {
     /** lines: indexes into the hunk's lines, or null for all of it. */
     record Part(VcsRepository repository, String section, FileItem file, Hunk hunk, BitSet lines) implements Target {}
 
-    /** Asks before something is lost; tests answer it themselves. */
-    static BiPredicate<Editor, String> confirm =
-            (editor, text) -> ConfirmDialog.showConfirmDialog(editor, text, "Discard") == RESPONSE_YES;
+    /** A yes-or-no question under a title. */
+    public interface Confirm {
+        boolean test(Editor editor, String text, String title);
+    }
+
+    /** Asks before something is lost or staged; tests answer it themselves. */
+    public static Confirm confirm =
+            (editor, text, title) -> ConfirmDialog.showConfirmDialog(editor, text, title) == RESPONSE_YES;
 
     /**
      * What the selection takes in, or with none what the caret is on, in
@@ -221,27 +224,33 @@ public final class StatusActions {
             ResolveCommands.open(editor, targets);
             return;
         }
-        if (op == Op.DISCARD && !confirm.test(editor, discardQuestion(targets)))
+        if (op == Op.DISCARD && !confirm.test(editor, discardQuestion(targets), "Discard"))
             return;
         if (op == Op.STAGE) {
             final List<Target> unmerged = targets.stream().filter(StatusActions::isUnmerged).toList();
-            if (!unmerged.isEmpty()) {
-                // Read and counted off the event thread; the question and
-                // the write in the callback, if the status is still ours.
-                Background.then("vcs count conflicts", () -> conflictsLeft(unmerged), conflicts -> {
-                    if (buffer.isWriting()) {
-                        editor.status("Wait: the last change is still being made");
-                        return;
-                    }
-                    final int left = conflicts == null ? 0 : conflicts;
-                    final String still =
-                            left == 0 ? "" : left == 1 ? " 1 conflict is left." : " " + left + " conflicts are left.";
-                    if (!confirm.test(editor, "Mark " + names(unmerged) + " resolved?" + still))
-                        return;
-                    start(editor, buffer, "Staging", targets, () -> performAll(op, targets));
-                });
-                return;
-            }
+            // Read and counted off the event thread; the question and the
+            // write in the callback, if the status is still ours. An
+            // unmerged file is always asked about, another only with
+            // markers in what it stages. The count holds the gate, as the
+            // write after it does; a no gives it back.
+            final boolean shownWhole = buffer.readIgnoring() == Whitespace.NONE;
+            buffer.startWriting();
+            Background.then("vcs count conflicts", () -> markersStaged(targets, shownWhole), conflicts -> {
+                final int left = conflicts == null ? 0 : conflicts;
+                if (!unmerged.isEmpty()
+                        ? !confirm.test(
+                            editor,
+                            leftQuestion("Mark " + names(unmerged) + " resolved?", left),
+                            "Mark Resolved")
+                        : left > 0
+                                && !confirm
+                                        .test(editor, leftQuestion("Stage " + names(targets) + "?", left), "Stage")) {
+                    buffer.gaveUpWriting();
+                    return;
+                }
+                start(editor, buffer, "Staging", targets, () -> performAll(op, targets));
+            });
+            return;
         }
         start(editor, buffer, switch (op) {
             case STAGE -> "Staging";
@@ -299,22 +308,60 @@ public final class StatusActions {
         return !targets.isEmpty() && targets.stream().allMatch(StatusActions::isUnmerged);
     }
 
-    // Conflict markers left in the unmerged files on disk; a missing file counts none.
-    private static int conflictsLeft(List<Target> unmerged) {
+    /** question, then how many conflicts are left, if any. */
+    public static String leftQuestion(String question, int left) {
+        return question + (left == 0 ? "" : left == 1 ? " 1 conflict is left." : " " + left + " conflicts are left.");
+    }
+
+    // Conflict markers staging targets would put in the index: an
+    // unmerged or untracked file's whole, else the lines it adds, from
+    // the diff shown when it shows all of it.
+    private static int markersStaged(List<Target> targets, boolean shownWhole) {
         int n = 0;
-        for (Target t : unmerged)
-            if (t instanceof Files f)
-                for (FileItem i : f.files()) {
-                    try {
-                        // Latin-1 reads any bytes, and the markers are ASCII.
-                        final Path p = f.repository().root().resolve(i.path());
-                        n += ConflictMarkers.count(java.nio.file.Files.readAllLines(p, StandardCharsets.ISO_8859_1));
-                    }
-                    catch (IOException e) {
-                        // A file gone counts none.
-                    }
-                }
+        final Map<VcsRepository, List<String>> changed = new LinkedHashMap<>();
+        for (Target t : targets)
+            if (t instanceof Files f) {
+                for (FileItem i : f.files())
+                    if (i.change().isConflicted() || i.change().isUntracked())
+                        n += ConflictMarkers.count(f.repository().root().resolve(i.path()));
+                    else if (shownWhole && i.diff() != null && !i.diff().isCombined())
+                        n += markersAdded(i.diff());
+                    else
+                        changed.computeIfAbsent(f.repository(), r -> new ArrayList<>()).add(i.path());
+            } else if (t instanceof Part p) {
+                n += markersAdded(p.hunk(), p.lines());
+            }
+        for (Map.Entry<VcsRepository, List<String>> e : changed.entrySet())
+            n += markersAdded(e.getKey(), e.getValue());
         return n;
+    }
+
+    // Markers in the lines the working tree adds to paths, or with none
+    // to every tracked file; an unmerged file's combined diff is skipped.
+    private static int markersAdded(VcsRepository r, List<String> paths) {
+        final List<FileDiff> diffs = r.backend().readDiff(r, false, paths, Whitespace.NONE);
+        int n = 0;
+        if (diffs != null)
+            for (FileDiff d : diffs)
+                if (!d.isCombined())
+                    n += markersAdded(d);
+        return n;
+    }
+
+    private static int markersAdded(FileDiff d) {
+        int n = 0;
+        for (Hunk h : d.hunks())
+            n += markersAdded(h, null);
+        return n;
+    }
+
+    // Markers in hunk's added lines, those of lines alone if not null.
+    private static int markersAdded(Hunk hunk, BitSet lines) {
+        final List<String> added = new ArrayList<>();
+        for (int i = 0; i < hunk.lines().size(); i++)
+            if (hunk.lines().get(i).kind() == '+' && (lines == null || lines.get(i)))
+                added.add(hunk.lines().get(i).text());
+        return ConflictMarkers.count(added);
     }
 
     /** Whether op would do something to what the caret or selection is on, as its menu item is enabled. */
@@ -406,7 +453,7 @@ public final class StatusActions {
             editor.status("Not while a merge, rebase or stash pop is in progress: it would end it. u unstages a file");
             return;
         }
-        write(editor, buffer, "vcs " + (stage ? "stage" : "unstage") + " all", () -> {
+        final Runnable all = () -> write(editor, buffer, "vcs " + (stage ? "stage" : "unstage") + " all", () -> {
             for (VcsRepository r : buffer.getRepositories()) {
                 final VcsBackend b = r.backend();
                 final String failed = failure(b, stage ? b.stageAll(r) : b.unstageAll(r));
@@ -414,6 +461,40 @@ public final class StatusActions {
                     return failed;
             }
             return null;
+        });
+        if (!stage) {
+            all.run();
+            return;
+        }
+        // Asked first with conflict markers in what it stages, as s asks;
+        // the count holds the gate, as below.
+        final List<Target> targets = new ArrayList<>();
+        for (VcsRepository r : buffer.getRepositories()) {
+            final StatusData d = buffer.getData(r);
+            if (d != null)
+                for (StatusData.Section section : d.sections())
+                    if (section.id().equals(StatusData.UNMERGED))
+                        targets.add(
+                            new Files(r,
+                                    section.id(),
+                                    section.items()
+                                            .stream()
+                                            .filter(i -> i instanceof FileItem)
+                                            .map(i -> (FileItem) i)
+                                            .toList()));
+        }
+        buffer.startWriting();
+        Background.then("vcs count conflicts", () -> {
+            int n = markersStaged(targets, false);
+            for (VcsRepository r : buffer.getRepositories())
+                n += markersAdded(r, List.of());
+            return n;
+        }, left -> {
+            if (left != null && left > 0 && !confirm.test(editor, leftQuestion("Stage every change?", left), "Stage")) {
+                buffer.gaveUpWriting();
+                return;
+            }
+            all.run();
         });
     }
 
@@ -454,6 +535,22 @@ public final class StatusActions {
         return StatusData.isCommits(section) || section.equals(StatusData.STASHES);
     }
 
+    // files out of the index. A conflict staged resolved while its merge
+    // or rebase goes on is put back instead, its file as it is: u undoes s.
+    private static String unstage(VcsRepository r, List<FileItem> files) {
+        final VcsBackend b = r.backend();
+        final Set<String> back =
+                r.inProgress() ? b.resolvedConflicts(r, files.stream().map(FileItem::path).toList()) : Set.of();
+        if (!back.isEmpty()) {
+            final String failed = failure(b, b.unresolve(r, List.copyOf(back)));
+            if (failed != null)
+                return failed;
+        }
+        final List<FileChange> rest =
+                files.stream().filter(i -> !back.contains(i.path())).map(FileItem::change).toList();
+        return rest.isEmpty() ? null : failure(b, b.unstage(r, rest));
+    }
+
     // Does it, off the event thread; what went wrong, or null.
     static String perform(Op op, Target t) {
         final VcsRepository r = t.repository();
@@ -462,7 +559,7 @@ public final class StatusActions {
             final List<String> paths = f.files().stream().map(FileItem::path).toList();
             return switch (op) {
                 case STAGE -> failure(b, b.stage(r, paths));
-                case UNSTAGE -> failure(b, b.unstage(r, f.files().stream().map(FileItem::change).toList()));
+                case UNSTAGE -> unstage(r, f.files());
                 case DISCARD -> discard(List.of(t));
             };
         }
@@ -653,7 +750,7 @@ public final class StatusActions {
         }
     }
 
-    static String failure(VcsBackend backend, VcsResult result) {
+    public static String failure(VcsBackend backend, VcsResult result) {
         if (result == null)
             return backend.name() + " can't do that";
         if (result.succeeded())

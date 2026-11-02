@@ -52,7 +52,7 @@ public class BranchCommandsTest {
     @TempDir
     Path tmp;
 
-    private static final BranchCommands.Confirm CONFIRM = BranchCommands.confirm;
+    private static final StatusActions.Confirm CONFIRM = StatusActions.confirm;
     private static final BranchCommands.Ask ASK = BranchCommands.ask;
     private static final BranchCommands.Choose CHOOSE = BranchCommands.choose;
 
@@ -65,7 +65,7 @@ public class BranchCommandsTest {
     @AfterEach
     public void reset() {
         GitFixture.reset();
-        BranchCommands.confirm = CONFIRM;
+        StatusActions.confirm = CONFIRM;
         BranchCommands.ask = ASK;
         BranchCommands.choose = CHOOSE;
     }
@@ -266,7 +266,7 @@ public class BranchCommandsTest {
         cloned();
         final List<String> asked = new ArrayList<>();
         final boolean[] answers = { true, false };
-        BranchCommands.confirm = (editor, text, title) -> {
+        StatusActions.confirm = (editor, text, title) -> {
             asked.add(text);
             return answers[asked.size() - 1];
         };
@@ -482,7 +482,7 @@ public class BranchCommandsTest {
         final Editor editor = statusOf(fs);
         BranchCommands.choose = (e, q, history, names, chosen) -> chosen.accept("feature (2 of 3)");
         final List<String> asked = new ArrayList<>();
-        BranchCommands.confirm = (e, text, title) -> asked.add(text);
+        StatusActions.confirm = (e, text, title) -> asked.add(text);
         onEdt(() -> BranchCommands.vcsBranchDelete(editor, null));
         until(
             () -> !fs.get(0).run("rev-parse", "-q", "--verify", "refs/heads/feature").succeeded()

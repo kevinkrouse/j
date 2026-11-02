@@ -206,13 +206,13 @@ final class AllBranchCommands {
                     final List<String> in = new ArrayList<>();
                     for (Context c : only.keySet())
                         in.add(c.repository().name());
-                    if (!BranchCommands.confirm.test(
+                    if (!StatusActions.confirm.test(
                         editor,
                         "Delete branch " + branch + " in " + String.join(", ", in) + "?",
                         "Delete Branch"))
                         return;
                     final String lost = lost(branch, only);
-                    if (lost != null && !BranchCommands.confirm.test(editor, lost, "Delete Branch"))
+                    if (lost != null && !StatusActions.confirm.test(editor, lost, "Delete Branch"))
                         return;
                     EachRepository
                             .write(editor, cs, Context::repository, "Deleting " + branch, "Deleted " + branch, c -> {

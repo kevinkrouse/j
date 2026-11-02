@@ -96,6 +96,21 @@ public class ConflictsTest {
         git.run("merge", "other");
     }
 
+    // Two conflicts, each with a base: openers on lines 1 and 16.
+    private void twoRegions() throws Exception {
+        git = GitFixture.init(tmp);
+        git.git("config", "merge.conflictStyle", "zdiff3");
+        git.write("a.txt", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n");
+        git.commitAll("base");
+        git.git("checkout", "-q", "-b", "other");
+        git.write("a.txt", "1\nX2\n3\n4\n5\n6\n7\n8\n9\n10\nX11\n12\n13\n14\n15\n");
+        git.commitAll("theirs");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "1\nY2\n3\n4\n5\n6\n7\n8\n9\n10\nY11\n12\n13\n14\n15\n");
+        git.commitAll("ours");
+        git.run("merge", "other");
+    }
+
     private void open(String path) throws Exception {
         onEdt(() -> {
             h = EditorHarness.create();
@@ -204,12 +219,26 @@ public class ConflictsTest {
     }
 
     @Test
-    public void stagingTheFileDropsItAll() throws Exception {
+    public void stagingTheFileWithItsMarkersOffersTheConflictBack() throws Exception {
         conflict();
         open("a.txt");
         assertNotNull(file.getConflicts());
         git.git("add", "a.txt");
         refresh();
+        until(() -> file.getConflicts() != null && file.getConflicts().resolved());
+        assertFalse(shades().isEmpty(), "still shaded while the merge goes on");
+        assertEquals("1 conflict in a file marked resolved · Mark unresolved", topRow());
+    }
+
+    @Test
+    public void theMergeCommittedDropsItAll() throws Exception {
+        conflict();
+        open("a.txt");
+        git.git("add", "a.txt");
+        git.git("commit", "-q", "--no-edit");
+        final org.armedbear.j.vcs.VcsRepository r = Repositories.forFile(file.getFile());
+        r.invalidate();
+        r.refresh();
         until(() -> file.getConflicts() == null);
         assertTrue(shades().isEmpty(), "cleared");
     }
@@ -258,7 +287,8 @@ public class ConflictsTest {
         onEdt(() -> ConflictCommands.vcsConflictOurs(h.editor()));
         onEdt(() -> org.armedbear.j.EditCommands.undo(h.editor()));
         assertTrue(text().contains("<<<<<<<"), "the markers back");
-        assertNotNull(file.getConflicts().regionAt(line(1)));
+        // The scan comes after, on the event thread.
+        until(() -> file.getConflicts().regionAt(line(1)) != null);
     }
 
     @Test
@@ -404,6 +434,122 @@ public class ConflictsTest {
         final VirtualText row =
                 shades().stream().filter(v -> v.placement() == Placement.ABOVE).findFirst().orElseThrow();
         return row.rows().get(0).stream().filter(r -> r.action() != null).toList();
+    }
+
+    // The row over the first line, as text.
+    private String topRow() throws Exception {
+        final List<VirtualText> all = shades();
+        final VirtualText top = all.stream().filter(v -> v.placement() == Placement.TOP).findFirst().orElseThrow();
+        return VirtualText.text(top.rows().get(0));
+    }
+
+    // ---- the row over the first line
+
+    @Test
+    public void theRowCountsOutsideAndInEachRegion() throws Exception {
+        twoRegions();
+        open("a.txt");
+        caret(0); // outside any region
+        assertTrue(topRow().startsWith("2 conflicts ·"), topRow());
+        caret(3); // inside the first
+        assertTrue(topRow().startsWith("1 of 2 conflicts ·"), topRow());
+        caret(20); // inside the second
+        assertTrue(topRow().startsWith("2 of 2 conflicts ·"), topRow());
+    }
+
+    @Test
+    public void theRowSaysOneConflictForOne() throws Exception {
+        conflict();
+        open("a.txt");
+        caret(0);
+        assertTrue(topRow().startsWith("1 conflict ·"), topRow());
+        caret(2);
+        assertTrue(topRow().startsWith("1 conflict ·"), "the same for one, in or out: " + topRow());
+    }
+
+    @Test
+    public void theRowHasNextAndPreviousWithKeysInVim() throws Exception {
+        twoRegions();
+        open("a.txt");
+        onEdt(() -> {
+            h.vim();
+            file.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+        });
+        caret(3);
+        final String row = topRow();
+        assertTrue(row.contains("]x next"), row);
+        assertTrue(row.contains("[x previous"), row);
+        assertTrue(row.contains("All: ours"), row);
+        assertTrue(row.contains("theirs"), row);
+        assertTrue(row.contains("both"), row);
+    }
+
+    @Test
+    public void theRowShowsTakeAllKeysInVim() throws Exception {
+        twoRegions();
+        open("a.txt");
+        onEdt(() -> {
+            h.vim();
+            file.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+        });
+        caret(3);
+        final String row = topRow();
+        assertTrue(row.contains("ours (\\cao)"), row);
+        assertTrue(row.contains("theirs (\\cat)"), row);
+        assertTrue(row.contains("both (\\cab)"), row);
+    }
+
+    @Test
+    public void theRowDropsKeysWithVcsHintsOff() throws Exception {
+        twoRegions();
+        open("a.txt");
+        onEdt(() -> {
+            h.vim();
+            file.setProperty(org.armedbear.j.Property.EDIT_MODE, "vim");
+        });
+        caret(3);
+        assertTrue(topRow().contains("]x next"), "keys shown with hints on");
+        onEdt(() -> file.setProperty(org.armedbear.j.Property.VCS_HINTS, false));
+        caret(20); // a different region, so the row is built again
+        final String row = topRow();
+        assertFalse(row.contains("next"), "no next/previous: " + row);
+        assertFalse(row.contains("\\cao"), "no take-all keys: " + row);
+        assertTrue(row.contains("2 of 2 conflicts"), "the count kept: " + row);
+        assertTrue(row.contains("All: ours"), "the links kept: " + row);
+    }
+
+    @Test
+    public void theRowSaysMarkResolvedWithNoneLeft() throws Exception {
+        twoRegions();
+        open("a.txt");
+        takeAllOurs();
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().isEmpty());
+        // Modified: the row offers to save first.
+        assertTrue(topRow().contains("No conflicts left"), topRow());
+        assertTrue(topRow().contains("Save and mark resolved"), topRow());
+        onEdt(() -> file.save());
+        caret(0); // force a show on the modified flag changing
+        assertTrue(topRow().contains("Mark resolved"), topRow());
+        assertFalse(topRow().contains("Save and"), topRow());
+    }
+
+    // Take every region ours, one at a time, until none is left.
+    private void takeAllOurs() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            final int[] first = new int[1];
+            onEdt(() -> {
+                final Conflicts c = file.getConflicts();
+                first[0] = c == null || c.openers().isEmpty() ? -1 : c.openers().get(0).lineNumber();
+            });
+            if (first[0] < 0)
+                return;
+            dot(first[0] + 1); // inside the region
+            onEdt(() -> ConflictCommands.vcsConflictOurs(h.editor()));
+            until(() -> {
+                final Conflicts c = file.getConflicts();
+                return c == null || c.openers().isEmpty() || c.openers().get(0).lineNumber() != first[0];
+            });
+        }
     }
 
     private void dot(int n) throws Exception {

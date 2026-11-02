@@ -41,6 +41,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 import org.armedbear.j.Signs;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.status.StatusActions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -174,6 +175,34 @@ public class EditorHunksTest {
         onEdt(() -> HunkCommands.vcsUnstageHunk(h.editor()));
         until(() -> TEN.equals(git.index("a.txt")));
         until(() -> sign(2) != null && !sign(2).staged());
+    }
+
+    @Test
+    public void stagingAHunkThatAddsAConflictMarkerAsks() throws Exception {
+        open(TEN);
+        change(2, "<<<<<<< HEAD");
+        until(() -> sign(2) != null);
+        final List<String> asked = new java.util.ArrayList<>();
+        final StatusActions.Confirm saved = StatusActions.confirm;
+        StatusActions.confirm = (editor, text, title) -> {
+            asked.add(text);
+            return false;
+        };
+        try {
+            onEdt(() -> {
+                h.editor().setDot(line(2), 0);
+                HunkCommands.vcsStageHunk(h.editor());
+            });
+            until(() -> !asked.isEmpty());
+            assertEquals(List.of("Stage a hunk of a.txt? 1 conflict is left."), asked);
+            assertEquals(TEN, git.index("a.txt"), "not without a yes");
+            StatusActions.confirm = (editor, text, title) -> true;
+            onEdt(() -> HunkCommands.vcsStageHunk(h.editor()));
+            until(() -> TEN.replace("line 3\n", "<<<<<<< HEAD\n").equals(git.index("a.txt")));
+        }
+        finally {
+            StatusActions.confirm = saved;
+        }
     }
 
     @Test
