@@ -262,6 +262,12 @@ public class VimKeyMapTest {
     }
 
     @Test
+    public void theDefaultMapBindsNextAndPreviousConflict() {
+        assertEquals("]x", VimKeyMap.getDefault().keysFor("vcsConflictNext"));
+        assertEquals("[x", VimKeyMap.getDefault().keysFor("vcsConflictPrevious"));
+    }
+
+    @Test
     public void theLeaderIsTheQuotedStringOrFirstWordWithoutAComment() {
         assertEquals("\\", VimKeyMap.leaderOf("set nu\n"));
         assertEquals(",", VimKeyMap.leaderOf("let mapleader = \",\"  \" which-key\n"));

@@ -400,7 +400,9 @@ public class CommandTable {
             add("vcsCommitReword", CommitCommands::vcsCommitReword);
             add("vcsConflictBase", ConflictCommands::vcsConflictBase);
             add("vcsConflictBoth", ConflictCommands::vcsConflictBoth);
+            add("vcsConflictNext", ConflictCommands::vcsConflictNext);
             add("vcsConflictOurs", ConflictCommands::vcsConflictOurs);
+            add("vcsConflictPrevious", ConflictCommands::vcsConflictPrevious);
             add("vcsConflictTheirs", ConflictCommands::vcsConflictTheirs);
             add("vcsResolveDelete", ResolveCommands::vcsResolveDelete);
             add("vcsResolveKeep", ResolveCommands::vcsResolveKeep);

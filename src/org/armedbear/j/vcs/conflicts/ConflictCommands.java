@@ -20,19 +20,34 @@
 
 package org.armedbear.j.vcs.conflicts;
 
+import static org.armedbear.j.ToolBarIcon.ICON_CHANGE_NEXT;
+import static org.armedbear.j.ToolBarIcon.ICON_CHANGE_PREVIOUS;
+import static org.armedbear.j.ToolBarIcon.ICON_CONFLICT_BASE;
+import static org.armedbear.j.ToolBarIcon.ICON_CONFLICT_BOTH;
+import static org.armedbear.j.ToolBarIcon.ICON_CONFLICT_OURS;
+import static org.armedbear.j.ToolBarIcon.ICON_CONFLICT_THEIRS;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
+import javax.swing.JPopupMenu;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.ChangeMarks;
+import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
+import org.armedbear.j.ToolBar;
 import org.armedbear.j.vcs.conflicts.Conflicts.Kept;
 
 /**
  * Taking a side of a conflict in the editor: the four commands, and what
  * the links over each opener run. Each replaces the region's lines with
- * the side's, as one edit, undone whole; the caret is left at the first
+ * the side's, as one edit, undone whole; the caret goes on to the next
+ * conflict, around past the last, or with none left stays at the first
  * line put back.
  */
 public final class ConflictCommands {
@@ -64,6 +79,88 @@ public final class ConflictCommands {
 
     public static void vcsConflictBase(Editor editor) {
         takeAt(editor, Take.BASE);
+    }
+
+    public static void vcsConflictNext(Editor editor) {
+        go(editor, true);
+    }
+
+    public static void vcsConflictPrevious(Editor editor) {
+        go(editor, false);
+    }
+
+    /**
+     * The conflict group for tb: previous and next, and the four takes,
+     * the whole group shown only while the buffer at() has conflicts.
+     * Within it the takes are disabled, not hidden, so the toolbar does
+     * not shift as the caret moves: ours, theirs and both only with the
+     * caret in a region, base only in one that has a base.
+     */
+    public static void addToolBarGroup(ToolBar tb, Supplier<Editor> at) {
+        final Supplier<Conflicts> here = tb.perUpdate(() -> {
+            final Editor editor = at.get();
+            return editor == null || editor.getBuffer() == null ? null : editor.getBuffer().getConflicts();
+        });
+        final BooleanSupplier shown = () -> {
+            final Conflicts c = here.get();
+            return c != null && !c.openers().isEmpty();
+        };
+        final BooleanSupplier inRegion = () -> {
+            final Conflicts c = here.get();
+            final Editor editor = at.get();
+            return c != null && editor != null && editor.getDot() != null && c.regionAt(editor.getDotLine()) != null;
+        };
+        final BooleanSupplier inBase = () -> {
+            final Conflicts c = here.get();
+            final Editor editor = at.get();
+            if (c == null || editor == null || editor.getDot() == null)
+                return false;
+            final ConflictMarkers.Region r = c.regionAt(editor.getDotLine());
+            return r != null && r.hasBase();
+        };
+        tb.addSeparator(shown);
+        tb.addButton("Previous Conflict", ICON_CHANGE_PREVIOUS, "vcsConflictPrevious").visibleWhen(shown);
+        tb.addButton("Next Conflict", ICON_CHANGE_NEXT, "vcsConflictNext").visibleWhen(shown);
+        tb.addButton("Keep Ours", ICON_CONFLICT_OURS, "vcsConflictOurs").visibleWhen(shown).enabledWhen(inRegion);
+        tb.addButton("Keep Theirs", ICON_CONFLICT_THEIRS, "vcsConflictTheirs").visibleWhen(shown).enabledWhen(inRegion);
+        tb.addButton("Keep Both", ICON_CONFLICT_BOTH, "vcsConflictBoth").visibleWhen(shown).enabledWhen(inRegion);
+        tb.addButton("Keep Base", ICON_CONFLICT_BASE, "vcsConflictBase").visibleWhen(shown).enabledWhen(inBase);
+    }
+
+    /**
+     * The conflict at the caret in editor's context menu: the four takes,
+     * named from the region's own labels as the links are, and next and
+     * previous. Nothing when the caret is outside a conflict.
+     */
+    public static void addContextMenuItems(Editor editor, JPopupMenu popup) {
+        final Conflicts conflicts = editor.getBuffer() == null ? null : editor.getBuffer().getConflicts();
+        if (conflicts == null || editor.getDot() == null)
+            return;
+        final Kept k = conflicts.keptAt(editor.getDotLine());
+        if (k == null)
+            return;
+        popup.addSeparator();
+        final Dispatcher d = editor.getDispatcher();
+        AbstractMode
+                .addContextMenuItem("Keep " + Conflicts.label(k.region().ours(), "ours"), Take.OURS.command, popup, d);
+        AbstractMode.addContextMenuItem(
+            "Keep " + Conflicts.label(k.region().theirs(), "theirs"),
+            Take.THEIRS.command,
+            popup,
+            d);
+        AbstractMode.addContextMenuItem("Keep Both", Take.BOTH.command, popup, d);
+        if (k.region().hasBase())
+            AbstractMode.addContextMenuItem("Keep Base", Take.BASE.command, popup, d);
+        AbstractMode.addContextMenuItem("Next Conflict", "vcsConflictNext", popup, d);
+        AbstractMode.addContextMenuItem("Previous Conflict", "vcsConflictPrevious", popup, d);
+    }
+
+    // To the next or previous conflict's opener, around at the ends. The
+    // caret inside a region is past its opener, so next from inside goes
+    // to the region after it.
+    private static void go(Editor editor, boolean forward) {
+        final Conflicts conflicts = editor.getBuffer() == null ? null : editor.getBuffer().getConflicts();
+        ChangeMarks.goAround(editor, conflicts == null ? List.of() : conflicts.openers(), forward, "conflict");
     }
 
     // The region at the caret, taken.
@@ -121,6 +218,9 @@ public final class ConflictCommands {
             }
             case BASE -> texts(k.base());
         };
+        // Where the caret goes after: the next conflict, read before the
+        // edit, as the scan that follows it comes later.
+        final Line next = buffer.getConflicts() == null ? null : buffer.getConflicts().nextOpener(k);
         editor.setMark(null);
         final int first = k.opener().lineNumber();
         final CompoundEdit compound = editor.beginCompoundEdit();
@@ -132,11 +232,13 @@ public final class ConflictCommands {
             // The caret is at from after the delete; insert there.
             editor.insertString(sb.toString());
             editor.endCompoundEdit(compound);
-            // The caret at the first line put back.
+            // The caret at the first line put back, if no conflict is left.
             editor.setDot(buffer.getLine(first), 0);
         } else {
             editor.endCompoundEdit(compound);
         }
+        if (next != null)
+            editor.moveDotTo(next, 0);
     }
 
     private static List<String> texts(List<Line> lines) {

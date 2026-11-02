@@ -73,6 +73,8 @@ public final class Conflicts implements Buffer.Follower {
 
     private final Buffer buffer;
     private List<Kept> kept = List.of();
+    // The kept regions' openers, made once per scan.
+    private List<Line> openers = List.of();
     // Followers are told on whatever thread changes the text.
     private final AtomicBoolean pending = new AtomicBoolean();
     // The caret's line when last seen, and the markers shown bright for it.
@@ -125,6 +127,20 @@ public final class Conflicts implements Buffer.Follower {
     public ConflictMarkers.Region regionAt(Line line) {
         final Kept k = keptAt(line);
         return k == null ? null : k.region();
+    }
+
+    /** The regions' opener lines, in buffer order: where next and previous go. */
+    public List<Line> openers() {
+        return openers;
+    }
+
+    // The opener of the region after k, or of the first if k is the last;
+    // null when k is the only one.
+    Line nextOpener(Kept k) {
+        final int i = kept.indexOf(k);
+        if (i < 0 || kept.size() < 2)
+            return null;
+        return kept.get(i + 1 < kept.size() ? i + 1 : 0).opener();
     }
 
     // The kept region holding line, by its lines' numbers.
@@ -187,6 +203,7 @@ public final class Conflicts implements Buffer.Follower {
         if (found.equals(kept) && litFor(caret).equals(lit))
             return;
         kept = found;
+        openers = found.stream().map(Kept::opener).toList();
         show();
     }
 
@@ -298,7 +315,7 @@ public final class Conflicts implements Buffer.Follower {
     }
 
     // The label cut short with an ellipsis; the fallback when empty.
-    private static String label(String s, String fallback) {
+    static String label(String s, String fallback) {
         if (s.isEmpty())
             return fallback;
         return s.length() > LABEL_MAX ? s.substring(0, LABEL_MAX - 1) + "\u2026" : s;

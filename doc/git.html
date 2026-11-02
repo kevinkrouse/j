@@ -486,7 +486,7 @@ each <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> line is a row of links to
 take a side, each with its key, named from the markers' own labels rather
 than "ours" and "theirs", which a rebase swaps: the branch or commit git
 wrote after the marker. Each link runs a command on that region, one
-edit, undone whole:
+edit, undone whole, and the caret goes on to the next conflict:
 
 <ul>
     <li><a href="commands.html#vcsConflictOurs">vcsConflictOurs</a> takes our side;</li>
@@ -504,6 +504,21 @@ shades are the theme's <code>color.ConflictOurs</code>,
 <code>color.ConflictBase</code> and <code>color.ConflictTheirs</code>;
 unset, they are blends of the background with the change colors, green
 for ours, blue for theirs, a faint gray for the base.
+
+<p>
+To get from one conflict to the next without the mouse:
+<a href="commands.html#vcsConflictNext">vcsConflictNext</a> and
+<a href="commands.html#vcsConflictPrevious">vcsConflictPrevious</a>
+(<b>]x</b> and <b>[x</b> in vim) go to the next and previous conflict's
+opener, around at the ends. In an unmerged file the change keys go by
+conflict too, so <b>Ctrl Alt N</b>/<b>P</b> and <b>]c</b>/<b>[c</b>
+land on the conflicts, and the compare's <b>n</b>/<b>p</b> as well; once
+the file is staged they go by change again. The editor's context menu has
+the four takes and next and previous when the caret is in a conflict.
+The default toolbar gets a group, shown only while the current buffer
+has conflicts: previous and next, and ours, theirs, both and base. The
+takes are disabled, not hidden, when the caret is outside a conflict, and
+base when its region has none, so the toolbar does not shift as you move.
 
 <h2><a name="stashing">Stashing</a></h2>
 

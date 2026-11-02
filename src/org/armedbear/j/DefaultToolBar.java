@@ -23,6 +23,8 @@ package org.armedbear.j;
 
 import static org.armedbear.j.ToolBarIcon.*;
 
+import org.armedbear.j.vcs.conflicts.ConflictCommands;
+
 public final class DefaultToolBar extends ToolBar {
     public DefaultToolBar(Frame frame) {
         super(frame);
@@ -40,6 +42,7 @@ public final class DefaultToolBar extends ToolBar {
         addSeparator();
         addButton("Find", ICON_FIND, "find");
         addButton("Replace", ICON_REPLACE, "replace");
+        ConflictCommands.addToolBarGroup(this, () -> frame.getCurrentEditor());
         addSeparator();
         addButton("Directory", ICON_DIRECTORY, "dir");
         addButton("Home", ICON_HOME, "dirHomeDir");

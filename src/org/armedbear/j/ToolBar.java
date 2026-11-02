@@ -30,7 +30,9 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -175,9 +177,22 @@ public class ToolBar extends JToolBar implements ActionListener {
     /** Its buttons enabled and pressed as they say, as after a command. */
     public void update() {
         ++updates;
-        for (Component c : getComponents())
+        for (Component c : getComponents()) {
             if (c instanceof ToolBarButton b)
                 b.update();
+            else if (c instanceof JToolBar.Separator s && shownSeparators.get(s) != null)
+                s.setVisible(shownSeparators.get(s).getAsBoolean());
+        }
+    }
+
+    private final Map<JToolBar.Separator, BooleanSupplier> shownSeparators = new HashMap<>();
+
+    /** A separator shown while shown() is true, as its group's buttons are; JToolBar's own never hides. */
+    public void addSeparator(BooleanSupplier shown) {
+        addSeparator();
+        final JToolBar.Separator s = (JToolBar.Separator) getComponent(getComponentCount() - 1);
+        shownSeparators.put(s, shown);
+        s.setVisible(shown.getAsBoolean());
     }
 
     /** A button an extension adds to the standard toolbars, shown while shown() is true. */

@@ -2288,6 +2288,34 @@ plan with why it is left, before the next phase starts.
        icons of j's own (`conflict-ours.svg` and so on).
      Tests: each choice, undo, next and previous wrapping, a conflict
      with no base refusing Base, the toolbar group shown and hidden.
+     Built: `vcsConflictNext`/`vcsConflictPrevious` in `ConflictCommands`,
+     `go(editor, forward)`, wrapping with `byHunk`'s wording ("Wrapped to
+     the first/last conflict"), "No conflicts" with none; the caret inside
+     a region is past its opener, so next from inside goes to the next.
+     `Conflicts.openers()` hands them out, and `ChangeMarks.hunkStarts`
+     asks it first: an unmerged file with regions answers with the openers,
+     so `nextChange`/`previousChange`, the compare's `n`/`p` and the
+     change popup all go by conflict there, and by change again once the
+     file is staged and the `Conflicts` is gone. `]x`/`[x` bound in vim.
+     The context menu is `ConflictCommands.addContextMenuItems`, registered
+     in `BuiltinModes` as blame's is, the four takes named from the
+     region's own labels via `Conflicts.label` (made package-visible),
+     nothing outside a region. The toolbar group is
+     `ConflictCommands.addToolBarGroup(tb, Supplier<Editor>)` — a supplier
+     of the current editor, not a `Frame`, so it is testable off a frame;
+     `DefaultToolBar` passes `() -> frame.getCurrentEditor()`. The whole
+     group `visibleWhen` the buffer at() has conflicts; the takes
+     `enabledWhen` the caret is in a region, base only with a base, so the
+     bar does not shift. `ToolBar.addSeparator(BooleanSupplier)` added:
+     `JToolBar`'s own separator never hides, so the group's would dangle;
+     the new one is updated in `update()` with the buttons. The state is
+     read once per update through `tb.perUpdate`. The buttons update after
+     each command (`Frame.updateToolbar` from `Editor.commandRan`) and on a
+     buffer switch (`Frame.setToolbar`); a file that becomes unmerged in
+     the background shows the group by the next command or switch.
+     Not built here, as the 9D handoff says: the conflicts' hint line over
+     the first line and the three take-all commands (`vcsConflictAll*`);
+     they wait for the user's word.
    - **e. Marking it resolved.** Once the buffer has no conflict left and
      is saved, the virtual line above its first line says "No conflicts
      left · Mark resolved", whose click (and `vcsConflictResolved`) stages

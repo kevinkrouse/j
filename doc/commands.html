@@ -470,7 +470,9 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
     <li><a href="commands.html#vcsConflictBase">vcsConflictBase</a></li>
     <li><a href="commands.html#vcsConflictBoth">vcsConflictBoth</a></li>
+    <li><a href="commands.html#vcsConflictNext">vcsConflictNext</a></li>
     <li><a href="commands.html#vcsConflictOurs">vcsConflictOurs</a></li>
+    <li><a href="commands.html#vcsConflictPrevious">vcsConflictPrevious</a></li>
     <li><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a></li>
     <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
@@ -4123,7 +4125,8 @@ Switches to the next buffer.
 <p>
 Moves to the next group of changed lines, around past the last. They are
 changes since the file was loaded, or in a file the version control tracks,
-the changes it sees. In the status buffer and
+the changes it sees. In a file with merge conflicts, the next conflict
+instead. In the status buffer and
 the log's diff, the next hunk. See
 <a href="changes.html">Change marks</a>.
 <p>
@@ -4548,7 +4551,8 @@ Shows the change at the caret in a window under it. The removed and added lines 
 <p>
 Moves to the previous group of changed lines, around past the first. They
 are changes since the file was loaded, or in a file the version control
-tracks, the changes it sees.
+tracks, the changes it sees. In a file with merge conflicts, the previous
+conflict instead.
 <p>
 <b>Default key mapping:</b> Ctrl Alt P; [c in vim edit mode
 <p>
@@ -6378,7 +6382,7 @@ In a status buffer, opens the last commit's message, to change only its message.
 
 <a name="vcsConflictBase">vcsConflictBase</a><dl><dd>
 <p>
-In a buffer whose file is unmerged, takes the base of the conflict at the caret: the region's lines are replaced by the common ancestor's, as one edit, undone whole. Refused when the conflict has no base, a two-way one.
+In a buffer whose file is unmerged, takes the base of the conflict at the caret: the region's lines are replaced by the common ancestor's, as one edit, undone whole. Refused when the conflict has no base, a two-way one. Then the caret goes on to the next conflict, around past the last.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;cB in vim edit mode
 <br><br>
@@ -6388,7 +6392,7 @@ In a buffer whose file is unmerged, takes the base of the conflict at the caret:
 
 <a name="vcsConflictBoth">vcsConflictBoth</a><dl><dd>
 <p>
-In a buffer whose file is unmerged, takes both sides of the conflict at the caret: the region's lines are replaced by ours then theirs, as one edit, undone whole.
+In a buffer whose file is unmerged, takes both sides of the conflict at the caret: the region's lines are replaced by ours then theirs, as one edit, undone whole. Then the caret goes on to the next conflict, around past the last.
 <br><br>
 <b>Default key mapping:</b> &lt;leader&gt;cb in vim edit mode
 <br><br>
@@ -6396,9 +6400,19 @@ In a buffer whose file is unmerged, takes both sides of the conflict at the care
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsConflictNext">vcsConflictNext</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, moves the caret to the next conflict's opener, around to the first past the last. The caret inside a conflict counts as past its opener, so next from inside goes to the one after it. Says "No conflicts" when the buffer has none.
+<br><br>
+<b>Default key mapping:</b> ]x in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>, <a href="#vcsConflictPrevious">vcsConflictPrevious</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsConflictOurs">vcsConflictOurs</a><dl><dd>
 <p>
-In a buffer whose file is unmerged, takes our side of the conflict at the caret: the region's lines are replaced by the lines between the opener and the base or separator, as one edit, undone whole.
+In a buffer whose file is unmerged, takes our side of the conflict at the caret: the region's lines are replaced by the lines between the opener and the base or separator, as one edit, undone whole. Then the caret goes on to the next conflict, around past the last.
 <br><br>
 <b>Default key mapping:</b> Alt Shift Left; &lt;leader&gt;co in vim edit mode
 <br><br>
@@ -6406,9 +6420,19 @@ In a buffer whose file is unmerged, takes our side of the conflict at the caret:
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsConflictPrevious">vcsConflictPrevious</a><dl><dd>
+<p>
+In a buffer whose file is unmerged, moves the caret to the previous conflict's opener, around to the last before the first. The caret inside a conflict counts as past its opener, so previous from inside goes to that conflict's own opener. Says "No conflicts" when the buffer has none.
+<br><br>
+<b>Default key mapping:</b> [x in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#conflicts">Conflicts</a>, <a href="#vcsConflictNext">vcsConflictNext</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsConflictTheirs">vcsConflictTheirs</a><dl><dd>
 <p>
-In a buffer whose file is unmerged, takes their side of the conflict at the caret: the region's lines are replaced by the lines between the separator and the closer, as one edit, undone whole.
+In a buffer whose file is unmerged, takes their side of the conflict at the caret: the region's lines are replaced by the lines between the separator and the closer, as one edit, undone whole. Then the caret goes on to the next conflict, around past the last.
 <br><br>
 <b>Default key mapping:</b> Alt Shift Right; &lt;leader&gt;ct in vim edit mode
 <br><br>

@@ -61,6 +61,11 @@ public final class ChangeMarks {
         // Line numbers are stale after a split until renumbered.
         if (buffer.needsRenumbering())
             buffer.renumber();
+        // An unmerged file has no change marks worth going by: its
+        // conflicts are what next and previous mean there.
+        final List<Line> openers = buffer.getConflicts() == null ? List.of() : buffer.getConflicts().openers();
+        if (!openers.isEmpty())
+            return openers;
         final List<Line> own = buffer.getChangeStarts();
         if (own != null)
             return own;
@@ -86,11 +91,29 @@ public final class ChangeMarks {
 
     // To the first line of the next or previous hunk, around at the ends.
     private static void byHunk(Editor editor, boolean forward) {
-        final List<Line> starts = hunkStarts(editor);
-        if (starts.isEmpty()) {
-            editor.status("No changes");
-            return;
+        // An open preview shows the hunk gone to in its place.
+        if (goAround(editor, hunkStarts(editor), forward, "change") && HunkPreview.showing(editor)) {
+            editor.replacingCaretPopup();
+            previewChange(editor);
         }
+    }
+
+    /**
+     * To the next or previous of starts, lines in buffer order, around at
+     * the ends, saying so as "Wrapped to the first change" for noun
+     * "change", or "No changes" with none. Whether the caret moved.
+     */
+    public static boolean goAround(Editor editor, List<Line> starts, boolean forward, String noun) {
+        if (editor.getDot() == null)
+            return false;
+        if (starts.isEmpty()) {
+            editor.status("No " + noun + "s");
+            return false;
+        }
+        // Line numbers are stale after a split until renumbered.
+        final Buffer buffer = editor.getBuffer();
+        if (buffer.needsRenumbering())
+            buffer.renumber();
         final int at = editor.getDotLineNumber();
         Line found = null;
         for (Line l : starts) {
@@ -105,14 +128,10 @@ public final class ChangeMarks {
         // Past the last or first, around to the other end.
         if (found == null) {
             found = forward ? starts.get(0) : starts.get(starts.size() - 1);
-            editor.status(forward ? "Wrapped to the first change" : "Wrapped to the last change");
+            editor.status("Wrapped to the " + (forward ? "first " : "last ") + noun);
         }
         editor.moveDotTo(found, 0);
-        // An open preview shows the hunk gone to in its place.
-        if (HunkPreview.showing(editor)) {
-            editor.replacingCaretPopup();
-            previewChange(editor);
-        }
+        return true;
     }
 
     // Whether the version control's hunks are the buffer's, to stage and reset.
