@@ -39,10 +39,10 @@ import org.armedbear.j.vcs.log.LogBuffer;
 /**
  * Continuing, skipping or aborting what is in progress: a merge, rebase,
  * patch series, cherry-pick or revert stopped at a conflict, or a stash's
- * pop or apply that conflicted. A pop's continue drops its stash; a
- * stash's abort takes its changes back, the stash kept, only while its
- * conflicts are, as after them it would take back other staged work too.
- * The merge popup's actions while one is, and the status header's links;
+ * pop or apply that conflicted. A pop's continue drops its stash. git
+ * has no abort of a stash's, so its abort forgets it: the stash kept, no
+ * file touched, what it wrote discarded in the status as any change. The
+ * merge popup's actions while one is, and the status header's links;
  * with the popup's -a, in each repository with one.
  */
 public final class FinishCommands {
@@ -79,30 +79,28 @@ public final class FinishCommands {
     }
 
     /**
-     * What can be done to doing, with or without files unmerged, in
-     * order: continue but for an apply, over with its last conflict; skip
-     * where there are steps; abort but for a stash's whose conflicts are
-     * resolved. Continue is offered while files are unmerged, to say so.
+     * What can be done to doing, in order: continue but for an apply,
+     * which is over with its last conflict; skip where there are steps;
+     * abort, which forgets a stash's. Continue is offered while files are
+     * unmerged, to say so.
      */
-    static List<Finish> offered(InProgress doing, boolean unmerged) {
+    static List<Finish> offered(InProgress doing) {
         final List<Finish> out = new ArrayList<>();
         if (doing != InProgress.STASH_APPLY)
             out.add(Finish.CONTINUE);
         if (doing.steps)
             out.add(Finish.SKIP);
-        if (!doing.isStash() || unmerged)
-            out.add(Finish.ABORT);
+        out.add(Finish.ABORT);
         return out;
     }
 
     // Why how can't be done to doing, with those files unmerged, or null.
     private static String refusal(InProgress doing, Finish how, List<String> unmerged) {
-        if (!offered(doing, !unmerged.isEmpty()).contains(how))
+        if (!offered(doing).contains(how))
             return switch (how) {
-                case CONTINUE -> "A " + doing.label + " is over with its last conflict";
+                case CONTINUE -> "A " + doing.label + " ends with its last conflict: there is nothing to continue";
                 case SKIP -> "A " + doing.label + " has no step to skip";
-                case ABORT -> "The " + doing.label
-                        + "'s conflicts are resolved: continue it, or take its changes back by hand";
+                case ABORT -> null;
             };
         if (how == Finish.CONTINUE && !unmerged.isEmpty())
             return "Not while " + StatusActions.list(unmerged)
@@ -147,9 +145,12 @@ public final class FinishCommands {
                 return;
             }
             final InProgress doing = state.doing();
-            if (how == Finish.ABORT && !StatusActions.confirm.test(editor, abortQuestion(doing), "Abort"))
+            final String where = EachRepository.several(editor) ? r.name() : null;
+            final String question = question(how, doing, where);
+            if (question != null && !StatusActions.confirm.test(editor, question, title(how, doing)))
                 return;
             final String doingIt = verb(how, doing) + " the " + doing.label;
+            final VcsRepository.StashConflict note = r.stashConflict();
             StatusWrites.write(
                 editor,
                 r,
@@ -158,6 +159,10 @@ public final class FinishCommands {
                 () -> perform(r, doing, how),
                 result -> {
                     LogBuffer.refreshAll(r);
+                    // The stash dropped, by its id, so it can be had back.
+                    if (doing == InProgress.STASH_POP && how == Finish.CONTINUE && note != null)
+                        return "Continued the stash pop, dropping its stash " + note.hash() + ": git stash apply "
+                                + note.hash() + " brings it back";
                     return past(how, doing) + " the " + doing.label;
                 },
                 result -> BranchCommands.failed(doingIt, result));
@@ -187,11 +192,11 @@ public final class FinishCommands {
         final Color color = buffer.getFormatter().getFormatTable().resolveColor("link", true);
         final List<VirtualText.Run> row = new ArrayList<>();
         row.add(VirtualText.Run.of("   "));
-        for (Finish how : offered(doing, !unmerged(r.snapshot()).isEmpty())) {
+        for (Finish how : offered(doing)) {
             if (row.size() > 1)
                 row.add(VirtualText.Run.of(" \u00b7 "));
-            final String word = how == Finish.CONTINUE && doing == InProgress.MERGE
-                    ? "commit"
+            final String word = how == Finish.CONTINUE && doing == InProgress.MERGE ? "commit"
+                    : how == Finish.ABORT && doing.isStash() ? "forget"
                     : how.name().toLowerCase(Locale.ROOT);
             row.add(
                 new VirtualText.Run(word,
@@ -205,38 +210,114 @@ public final class FinishCommands {
 
     // In each repository with something in progress, after asking once to abort.
     private static void finishEach(Editor editor, List<VcsRepository> rs, Finish how, InProgress only) {
-        if (how == Finish.ABORT
-                && !StatusActions.confirm
-                        .test(editor, "Abort what is in progress in each repository, losing its resolutions?", "Abort"))
-            return;
-        EachRepository.write(editor, rs, r -> r, verb(how, only), past(how, only), r -> {
-            final State state = state(r);
-            final String why = refusal(state, how, only);
-            if (why != null)
-                return new EachRepository.Done(r, null, Character.toLowerCase(why.charAt(0)) + why.substring(1));
-            return new EachRepository.Done(r, perform(r, state.doing(), how), null);
+        // Read first, to ask with what each will lose; done in each as it
+        // is then, which says why any is left alone.
+        Background.then("vcs in progress", () -> rs.stream().map(FinishCommands::state).toList(), states -> {
+            if (states == null) {
+                editor.status("Can't read the repositories: see the log");
+                return;
+            }
+            // Those it will act on, aborted or, a stash's, forgotten.
+            final List<String> doing = new ArrayList<>();
+            final List<String> forgotten = new ArrayList<>();
+            boolean pops = false;
+            boolean rebase = false;
+            String first = null;
+            for (int i = 0; i < rs.size(); i++) {
+                final State state = states.get(i);
+                final String why = refusal(state, how, only);
+                if (why == null) {
+                    final String named = rs.get(i).name() + " (" + state.doing().label + ")";
+                    if (how == Finish.ABORT && state.doing().isStash())
+                        forgotten.add(named);
+                    else
+                        doing.add(named);
+                    pops |= state.doing() == InProgress.STASH_POP;
+                    rebase |= state.doing() == InProgress.REBASE;
+                } else if (first == null && state.doing() != null)
+                    first = rs.get(i).name() + ": " + why;
+            }
+            // None to do: why, as the first that has something in progress says.
+            if (doing.isEmpty() && forgotten.isEmpty()) {
+                editor.status(
+                    "Nothing to " + how.name().toLowerCase(Locale.ROOT) + " in any repository"
+                            + (first == null ? "" : "; " + first));
+                return;
+            }
+            final String in = StatusActions.list(doing);
+            final String others = rebase ? resets(InProgress.REBASE) : "";
+            final String question = switch (how) {
+                case CONTINUE -> pops ? "Continue in " + in + ", dropping each stash popped? Its changes stay." : null;
+                case SKIP -> "Skip the step in " + in + ", dropping its changes and your resolutions" + others + "?";
+                case ABORT -> (doing.isEmpty() ? "" : "Abort in " + in + ", losing their resolutions" + others + "?")
+                        + (doing.isEmpty() || forgotten.isEmpty() ? "" : " ")
+                        + (forgotten.isEmpty()
+                                ? ""
+                                : "Forget in " + StatusActions.list(forgotten)
+                                        + "? Its stash is kept, and no file is touched.");
+            };
+            if (question != null && !StatusActions.confirm.test(editor, question, title(how, null)))
+                return;
+            EachRepository.write(editor, rs, r -> r, verb(how, only), past(how, only), r -> {
+                final State state = state(r);
+                final String why = refusal(state, how, only);
+                if (why != null)
+                    return new EachRepository.Done(r, null, Character.toLowerCase(why.charAt(0)) + why.substring(1));
+                return new EachRepository.Done(r, perform(r, state.doing(), how), null);
+            });
         });
     }
 
-    // Off the event thread: a stash's by j, the rest by the backend.
+    // Off the event thread: a stash pop's continue by j, dropping its
+    // stash wherever it is now; the rest by the backend.
     static VcsResult perform(VcsRepository r, InProgress doing, Finish how) {
         if (!doing.isStash())
             return r.backend().finish(r, how);
         final VcsRepository.StashConflict note = r.stashConflict();
         if (note == null)
             return null;
-        // A pop's continue drops its stash wherever it is now.
-        final VcsResult result =
-                how == Finish.ABORT ? r.backend().resetMerge(r) : r.backend().stashDrop(r, null, note.hash());
+        // A stash's abort forgets it: git has no abort of a stash's apply
+        // or pop, and what it wrote is discarded in the status as any
+        // change; the stash is kept.
+        final VcsResult result = how == Finish.CONTINUE
+                ? r.backend().stashDrop(r, null, note.hash())
+                : new VcsResult(null, 0, new byte[0], "", 0);
         if (result != null && result.succeeded())
             r.stashConflicted(null);
         return result;
     }
 
-    private static String abortQuestion(InProgress doing) {
-        return doing.isStash()
-                ? "Abort the " + doing.label + ", taking its changes back? The stash is kept."
-                : "Abort the " + doing.label + ", losing its resolutions?";
+    // What to ask before how, which loses work, in the repository named
+    // where among several, else null; null for continue, which loses none
+    // but a stash pop's stash.
+    private static String question(Finish how, InProgress doing, String where) {
+        final String in = where == null ? "" : " in " + where;
+        return switch (how) {
+            // Dropping a stash loses it, if what it wrote is gone: asked always.
+            case CONTINUE -> doing == InProgress.STASH_POP
+                    ? "Continue the stash pop" + in + ", dropping its stash? Its changes stay in the working tree."
+                    : null;
+            case SKIP -> "Skip the " + doing.label + "'s step" + in + ", dropping its changes and your resolutions"
+                    + resets(doing) + "?";
+            case ABORT -> doing.isStash()
+                    ? "Forget the " + doing.label + in + "? Its stash is kept, and nothing in the working tree is"
+                            + " touched: discard what it wrote in the status."
+                    : "Abort the " + doing.label + in + ", losing its resolutions" + resets(doing) + "?";
+        };
+    }
+
+    // A rebase's skip and abort reset the working tree: other edits go too.
+    private static String resets(InProgress doing) {
+        return doing == InProgress.REBASE ? " and any other uncommitted change to a tracked file" : "";
+    }
+
+    // The question's title.
+    private static String title(Finish how, InProgress doing) {
+        return switch (how) {
+            case CONTINUE -> "Drop Stash";
+            case SKIP -> "Skip";
+            case ABORT -> doing != null && doing.isStash() ? "Forget" : "Abort";
+        };
     }
 
     // What doing is called, as "Committing" a merge; with doing null, in
@@ -245,7 +326,7 @@ public final class FinishCommands {
         return switch (how) {
             case CONTINUE -> doing == InProgress.MERGE ? "Committing" : "Continuing";
             case SKIP -> doing == null ? "Skipping a step" : "Skipping a step of";
-            case ABORT -> "Aborting";
+            case ABORT -> doing != null && doing.isStash() ? "Forgetting" : "Aborting";
         };
     }
 
@@ -253,7 +334,7 @@ public final class FinishCommands {
         return switch (how) {
             case CONTINUE -> doing == InProgress.MERGE ? "Committed" : "Continued";
             case SKIP -> doing == null ? "Skipped a step" : "Skipped a step of";
-            case ABORT -> "Aborted";
+            case ABORT -> doing != null && doing.isStash() ? "Forgot" : "Aborted";
         };
     }
 }

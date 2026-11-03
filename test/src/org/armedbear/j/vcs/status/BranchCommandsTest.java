@@ -353,7 +353,7 @@ public class BranchCommandsTest {
         assertEquals(2, git.git("log", "-1", "--format=%p").strip().split(" ").length, "--no-ff: a merge commit");
         assertFalse(
             repo().backend().merge(repo(), "refs/remotes/origin/feature", EnumSet.of(MergeOption.FF_ONLY)).succeeded());
-        assertEquals("vcsMerge", ((Command) MergeCommands.popup(context(null), null, false).item("m")).name());
+        assertEquals("vcsMerge", ((Command) MergeCommands.popup(context(null), null).item("m")).name());
     }
 
     @Test
@@ -372,7 +372,7 @@ public class BranchCommandsTest {
             "Merged a in none; failed in work: conflicted: the conflicts are in Unmerged",
             EachRepository.said("Merging a", "Merged a", List.of(new EachRepository.Done(repo(), r, null))));
         assertEquals(InProgress.MERGE, repo().snapshotNow().inProgress());
-        final Transient merging = MergeCommands.popup(context(null), InProgress.MERGE, true);
+        final Transient merging = MergeCommands.popup(context(null), InProgress.MERGE);
         assertEquals("vcsMergeCommit", ((Command) merging.item("m")).name());
         assertEquals("vcsMergeAbort", ((Command) merging.item("a")).name());
         assertTrue(repo().backend().finish(repo(), Finish.ABORT).succeeded());

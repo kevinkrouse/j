@@ -92,6 +92,8 @@ public final class Conflicts implements Buffer.Follower {
     private boolean modified;
     // Staged since, its operation still going on.
     private boolean resolved;
+    // Whether show has run: the first scan shows even what matches the start.
+    private boolean shown;
 
     private Conflicts(Buffer buffer) {
         this.buffer = buffer;
@@ -187,7 +189,9 @@ public final class Conflicts implements Buffer.Follower {
 
     // The index of the region holding line, or -1 outside every one.
     private int regionIndex(Line line) {
-        return kept.indexOf(keptAt(line));
+        // Not indexOf(null): kept may be an immutable list, which throws.
+        final Kept k = keptAt(line);
+        return k == null ? -1 : kept.indexOf(k);
     }
 
     // The kept region whose opener is this very line; null if it is gone.
@@ -228,6 +232,18 @@ public final class Conflicts implements Buffer.Follower {
             c.show();
     }
 
+    /**
+     * The regions as the buffer has them now, before a take: the scan an
+     * edit asked for comes later, after the command, and a second take
+     * in the same event, as a macro's, would find the first's. Line
+     * numbers renumbered, as an edit leaves them stale.
+     */
+    void current() {
+        if (buffer.needsRenumbering())
+            buffer.renumber();
+        scan();
+    }
+
     // The buffer's lines, parsed, kept with their Line objects, shown if
     // anything shown changed.
     void scan() {
@@ -245,7 +261,10 @@ public final class Conflicts implements Buffer.Follower {
         // The row's modified-dependent text ("Save and mark resolved")
         // shows only with no regions left; with regions, the row is the
         // count and links, so a modified flip alone need not rebuild.
-        if (found.equals(kept) && litFor(caret).equals(lit) && (!found.isEmpty() || buffer.isModified() == modified))
+        if (shown
+                && found.equals(kept)
+                && litFor(caret).equals(lit)
+                && (!found.isEmpty() || buffer.isModified() == modified))
             return;
         kept = found;
         openers = found.stream().map(Kept::opener).toList();
@@ -294,6 +313,7 @@ public final class Conflicts implements Buffer.Follower {
     // The shades, the markers dim or lit, the link rows, and the row
     // over the first line, in the theme's colors now.
     private void show() {
+        shown = true;
         lit = litFor(caret);
         caretRegion = caret == null ? -1 : regionIndex(caret);
         modified = buffer.isModified();
@@ -416,7 +436,7 @@ public final class Conflicts implements Buffer.Follower {
     }
 
     // command's key, if it has one, after a link in parentheses.
-    private static void keyAfter(List<VirtualText.Run> row, Editor editor, String command) {
+    private void keyAfter(List<VirtualText.Run> row, Editor editor, String command) {
         final String key = keyFor(editor, command);
         if (key != null)
             row.add(VirtualText.Run.of(" (" + key + ")"));
@@ -444,14 +464,14 @@ public final class Conflicts implements Buffer.Follower {
         keyAfter(row, editor, take.command);
     }
 
-    // The key that runs command in editor: vim's in vim edit mode, else
-    // j's; null for none.
-    private static String keyFor(Editor editor, String command) {
-        if (editor == null)
-            return null;
-        if (editor.getInputHandler() instanceof VimInputHandler)
+    // The key that runs command: vim's in vim edit mode, else j's; null for none.
+    private String keyFor(Editor editor, String command) {
+        if (editor != null && editor.getInputHandler() instanceof VimInputHandler)
             return VimKeyMap.getShared().keysFor(command);
-        return editor.getKeyMapping(command)[0] instanceof KeyMapping m ? m.getKeyText() : null;
+        // This buffer's mode's: the editor may show another, or, as j
+        // starts, none yet.
+        final KeyMapping m = Editor.getKeyMapping(buffer, command);
+        return m != null ? m.getKeyText() : null;
     }
 
     // The label cut short with an ellipsis; the fallback when empty.

@@ -120,6 +120,8 @@ public final class ConflictCommands {
     private static void takeAll(Editor editor, Take take) {
         final Buffer buffer = editor.getBuffer();
         final Conflicts conflicts = buffer == null ? null : buffer.getConflicts();
+        if (conflicts != null)
+            conflicts.current();
         if (conflicts == null || conflicts.kept().isEmpty()) {
             editor.status("No conflicts here");
             return;
@@ -137,7 +139,7 @@ public final class ConflictCommands {
         // still to come.
         for (int i = conflicts.kept().size() - 1; i >= 0; i--)
             replace(editor, conflicts.kept().get(i), take, last);
-        editor.moveDotTo(buffer.getLine(firstLine), 0);
+        editor.moveDotTo(lineOr(buffer, firstLine), 0);
         editor.endCompoundEdit(compound);
     }
 
@@ -147,7 +149,6 @@ public final class ConflictCommands {
     private static void replace(Editor editor, Kept k, Take take, Line last) {
         final Buffer buffer = editor.getBuffer();
         final boolean closerIsLast = k.closer() == last;
-        final Position from = new Position(k.opener(), 0);
         final Position to = closerIsLast ? new Position(last, last.length()) : new Position(k.closer().next(), 0);
         final List<String> text = switch (take) {
             case OURS -> texts(k.ours());
@@ -159,6 +160,7 @@ public final class ConflictCommands {
             }
             case BASE -> texts(k.base());
         };
+        final Position from = new Position(k.opener(), 0);
         editor.deleteRegion(from, to);
         if (!text.isEmpty()) {
             final StringBuilder sb = new StringBuilder(String.join("\n", text));
@@ -336,6 +338,7 @@ public final class ConflictCommands {
             editor.status("No conflict here");
             return;
         }
+        conflicts.current();
         final Kept k = conflicts.keptAt(editor.getDotLine());
         if (k == null) {
             editor.status("No conflict here");
@@ -349,9 +352,9 @@ public final class ConflictCommands {
     static void takeLink(Editor editor, Conflicts conflicts, Line opener, Take take) {
         if (editor == null || editor.getBuffer() != conflicts.buffer())
             return;
+        conflicts.current();
         final Kept k = conflicts.byOpener(opener);
         if (k == null) {
-            conflicts.scan();
             editor.status("That conflict changed");
             return;
         }
@@ -379,8 +382,14 @@ public final class ConflictCommands {
         editor.addUndo(SimpleEdit.MOVE);
         replace(editor, k, take, last);
         // On to the next conflict, or the first line put back if none is left.
-        editor.moveDotTo(next != null ? next : buffer.getLine(first), 0);
+        editor.moveDotTo(next != null ? next : lineOr(buffer, first), 0);
         editor.endCompoundEdit(compound);
+    }
+
+    // Line n, or the last if a take left fewer.
+    private static Line lineOr(Buffer buffer, int n) {
+        final Line l = buffer.getLine(n);
+        return l != null ? l : buffer.getLastLine();
     }
 
     private static List<String> texts(List<Line> lines) {

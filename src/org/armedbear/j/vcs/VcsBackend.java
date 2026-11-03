@@ -390,11 +390,6 @@ public interface VcsBackend {
         return null;
     }
 
-    /** Takes back a stash's conflicted apply or pop, the stash kept: the changes it made undone, others kept. */
-    default VcsResult resetMerge(VcsRepository repository) {
-        return null;
-    }
-
     /** Whether the stash id is still a stash. Off the event thread. */
     default boolean hasStash(VcsRepository repository, String id) {
         return true;

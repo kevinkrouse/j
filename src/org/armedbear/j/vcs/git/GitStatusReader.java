@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -33,6 +32,7 @@ import java.util.function.BiPredicate;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.FileChange.Kind;
+import org.armedbear.j.vcs.InProgress;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.Snapshot.Relation;
 import org.armedbear.j.vcs.VcsRepository;
@@ -204,26 +204,20 @@ final class GitStatusReader {
         return out;
     }
 
+    // "Rebase in progress (2 conflicts)", in InProgress's words, or a
+    // bisect's; a conflicted stash apply or pop, which leaves no state in
+    // git, as j's note says.
     private static String inProgress(VcsRepository repository, GitSnapshot git, int conflicts) {
-        final String what;
-        if (git.operation() == GitSnapshot.Operation.NONE) {
-            // A conflicted stash apply or pop leaves no state in git; j's
-            // note says so, a pop's until it is continued or aborted.
-            final VcsRepository.StashConflict stash = repository.stashConflict();
-            if (stash == null)
-                return null;
-            what = stash.pop() ? "Stash pop" : "Stash apply";
-        } else {
-            what = switch (git.operation()) {
-                case CHERRY_PICK -> "Cherry-pick";
-                case AM -> "Applying patches";
-                default -> {
-                    final String s = git.operation().name().toLowerCase(Locale.ROOT);
-                    yield Character.toUpperCase(s.charAt(0)) + s.substring(1);
-                }
-            };
-        }
-        final String s = what + " in progress";
+        final VcsRepository.StashConflict stash = repository.stashConflict();
+        // As VcsRepository.inProgress has it, which the line's links act on:
+        // a stash's before a bisect.
+        final String what = git.inProgress() != null ? git.inProgress().label
+                : stash != null ? (stash.pop() ? InProgress.STASH_POP : InProgress.STASH_APPLY).label
+                : git.operation() == GitSnapshot.Operation.BISECT ? "bisect"
+                : null;
+        if (what == null)
+            return null;
+        final String s = Character.toUpperCase(what.charAt(0)) + what.substring(1) + " in progress";
         return conflicts == 0 ? s : s + " (" + conflicts + (conflicts == 1 ? " conflict)" : " conflicts)");
     }
 

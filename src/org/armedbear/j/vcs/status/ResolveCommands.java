@@ -20,17 +20,28 @@
 
 package org.armedbear.j.vcs.status;
 
+import java.awt.Desktop;
+import java.io.IOException;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Log;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.vcs.FileChange.Conflict;
+import org.armedbear.j.vcs.InProgress;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.status.StatusActions.Files;
@@ -43,7 +54,9 @@ import org.armedbear.j.vcs.status.StatusData.FileItem;
  * (x on an unmerged file) and its commands. Ours, theirs, keep and delete
  * take that version and stage the file, one step; "conflict again" puts the
  * markers back and leaves it unmerged. What ours, theirs and conflict again
- * write over goes to the trash first, hand edits and all.
+ * write over, and delete deletes, is copied aside first, hand edits and
+ * all: to the desktop's trash, or where it has none to j's state
+ * directory's resolved folder.
  */
 public final class ResolveCommands {
     private ResolveCommands() {}
@@ -89,9 +102,19 @@ public final class ResolveCommands {
      * each file says which it is in.
      */
     static Transient popup(List<Target> targets, boolean several) {
+        // In a rebase, ours is what it rebases onto and theirs your commit.
+        final VcsRepository r = targets.isEmpty() ? null : targets.get(0).repository();
+        final boolean rebase = r != null && r.inProgress() == InProgress.REBASE;
         final List<Transient.Item> offers = new ArrayList<>();
         for (Take t : offered(targets))
-            offers.add(Command.of(t.key, t.command, t.description));
+            offers.add(
+                Command.of(
+                    t.key,
+                    t.command,
+                    !rebase ? t.description
+                            : t == Take.OURS ? "take ours (the branch rebased onto)"
+                            : t == Take.THEIRS ? "take theirs (your commit)"
+                            : t.description));
         if (offers.isEmpty())
             return null;
         final List<String> names = new ArrayList<>();
@@ -176,20 +199,85 @@ public final class ResolveCommands {
         final VcsRepository r = f.repository();
         final VcsBackend b = r.backend();
         final List<String> paths = f.files().stream().map(FileItem::path).toList();
-        // What git writes over, or deletes, can be had back from the trash.
-        final List<String> present =
-                paths.stream().filter(p -> java.nio.file.Files.exists(r.root().resolve(p))).toList();
-        final String trashed = take == Take.KEEP ? null : StatusActions.trash(r, present);
-        if (trashed != null)
-            return trashed;
+        // What git writes over, or is deleted, is copied aside first, all
+        // of it before any is touched.
+        final List<String> present = present(r, paths);
+        final String kept = take == Take.KEEP ? null : keepAside(r, present);
+        if (kept != null)
+            return kept;
         final String failed = switch (take) {
             case OURS, THEIRS -> StatusActions.failure(b, b.checkoutSide(r, paths, take == Take.OURS));
             case CONFLICT -> StatusActions.failure(b, b.restoreConflict(r, paths));
-            case KEEP, DELETE -> null;
+            case DELETE -> delete(r, present);
+            case KEEP -> null;
         };
         if (failed != null || take == Take.CONFLICT)
             return failed;
         return StatusActions.failure(b, b.stage(r, paths));
+    }
+
+    /** Where keepAside copies files, by the time it did, under j's state directory. */
+    static Path keptDirectory() {
+        return Path.of(Directories.getStateDirectory().canonicalPath(), "resolved");
+    }
+
+    // Those of paths there are in r's working tree, a link as itself, dangling or not.
+    private static List<String> present(VcsRepository r, List<String> paths) {
+        return paths.stream()
+                .filter(p -> java.nio.file.Files.exists(r.root().resolve(p), LinkOption.NOFOLLOW_LINKS))
+                .toList();
+    }
+
+    // Copies paths, there, aside, as they are before a choice writes over
+    // them, a link as itself: to the desktop's trash where it has one, else
+    // to keptDirectory's folder of now. What went wrong, or null; nothing
+    // is touched if a copy fails.
+    private static String keepAside(VcsRepository r, List<String> paths) {
+        if (paths.isEmpty())
+            return null;
+        final Path dir =
+                keptDirectory().resolve(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")))
+                        .resolve(r.name());
+        final boolean trash = StatusActions.canTrash();
+        try {
+            for (String path : paths) {
+                final Path copy = dir.resolve(path);
+                java.nio.file.Files.createDirectories(copy.getParent());
+                java.nio.file.Files.copy(
+                    r.root().resolve(path),
+                    copy,
+                    StandardCopyOption.COPY_ATTRIBUTES,
+                    LinkOption.NOFOLLOW_LINKS);
+                if (trash && !Desktop.getDesktop().moveToTrash(copy.toFile()))
+                    return "Couldn't move a copy of " + path + " to the trash";
+            }
+        }
+        catch (IOException | RuntimeException e) {
+            Log.debug(e);
+            return "Couldn't copy aside before resolving: " + e.getMessage();
+        }
+        // In the trash, the copies leave their folders empty.
+        if (trash)
+            try (Stream<Path> all = java.nio.file.Files.walk(dir.getParent())) {
+                for (Path p : all.sorted(Comparator.reverseOrder()).toList())
+                    java.nio.file.Files.deleteIfExists(p);
+            }
+            catch (IOException e) {
+                Log.debug(e);
+            }
+        return null;
+    }
+
+    // Deletes paths, kept aside already; what went wrong, or null.
+    private static String delete(VcsRepository r, List<String> paths) {
+        for (String path : paths)
+            try {
+                java.nio.file.Files.deleteIfExists(r.root().resolve(path));
+            }
+            catch (IOException e) {
+                return "Couldn't delete " + path + ": " + e.getMessage();
+            }
+        return null;
     }
 
     /**

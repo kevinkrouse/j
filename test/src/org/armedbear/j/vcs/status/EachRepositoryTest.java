@@ -298,7 +298,7 @@ public class EachRepositoryTest {
             chosen.accept("feature (2 of 3)");
         };
         final Command m = (Command) MergeCommands
-                .popup(new BranchCommands.Context(rs.get(0), null, "main", List.of()), null, false, "x", true)
+                .popup(new BranchCommands.Context(rs.get(0), null, "main", List.of()), null, "x", true)
                 .item("m");
         assertEquals("merge into each repository", m.description());
         onEdt(() -> MergeCommands.vcsMerge(h.editor(), null));
@@ -328,6 +328,87 @@ public class EachRepositoryTest {
         until(() -> h.status().startsWith("Continued"));
         assertEquals("Continued in x, y; not in z (nothing is in progress)", h.status());
         assertEquals("one", subject(fs.get(2)));
+    }
+
+    @Test
+    public void skipInEachAsksNamingWhereAndNotWithNothingToSkip() throws Exception {
+        three();
+        open();
+        final List<String> asked = new ArrayList<>();
+        final StatusActions.Confirm saved = StatusActions.confirm;
+        StatusActions.confirm = (editor, text, title) -> {
+            asked.add(text);
+            return false;
+        };
+        try {
+            onEdt(() -> FinishCommands.vcsSkip(h.editor(), null));
+            until(() -> h.status().startsWith("Nothing to skip"));
+            assertTrue(asked.isEmpty(), "nothing to skip anywhere: no question");
+        }
+        finally {
+            StatusActions.confirm = saved;
+        }
+    }
+
+    @Test
+    public void continueInEachWithNothingToDoSaysWhy() throws Exception {
+        three();
+        // x stops at a conflict not yet resolved; y and z have nothing in progress.
+        final GitFixture x = fs.get(0);
+        x.git("checkout", "-q", "-b", "other");
+        x.write("f.txt", "theirs\n");
+        x.commitAll("theirs");
+        x.git("checkout", "-q", "main");
+        x.write("f.txt", "ours\n");
+        x.commitAll("ours");
+        assertFalse(x.run("merge", "other").succeeded());
+        open();
+        onEdt(() -> FinishCommands.vcsContinue(h.editor(), null));
+        until(() -> h.status().startsWith("Nothing to continue"));
+        assertEquals("Nothing to continue in any repository; x: Not while f.txt is unmerged", h.status());
+    }
+
+    @Test
+    public void abortInEachWarnsOfARebaseAndForgetsAStashPop() throws Exception {
+        three();
+        // x stops a rebase; y pops a stash that conflicts.
+        final GitFixture x = fs.get(0);
+        x.git("checkout", "-q", "-b", "topic");
+        x.write("f.txt", "topic\n");
+        x.commitAll("topic");
+        x.git("checkout", "-q", "main");
+        x.write("f.txt", "main\n");
+        x.commitAll("main");
+        x.git("checkout", "-q", "topic");
+        assertFalse(x.run("rebase", "main").succeeded());
+        final GitFixture y = fs.get(1);
+        y.write("f.txt", "stashed\n");
+        y.git("stash", "-q");
+        final String id = y.git("rev-parse", "stash@{0}").strip();
+        y.write("f.txt", "since\n");
+        y.commitAll("since");
+        final VcsRepository yr = Repositories.forDirectory(y.root);
+        assertFalse(
+            StashCommands.applyStash(yr, new StatusData.StashItem("stash@{0}", id, "", List.of()), true).succeeded());
+        open();
+        final List<String> asked = new ArrayList<>();
+        final StatusActions.Confirm saved = StatusActions.confirm;
+        StatusActions.confirm = (editor, text, title) -> {
+            asked.add(text);
+            return false;
+        };
+        try {
+            onEdt(() -> FinishCommands.vcsAbort(h.editor(), null));
+            until(() -> !asked.isEmpty());
+            assertEquals(
+                List.of(
+                    "Abort in x (rebase), losing their resolutions and any other uncommitted change to a tracked"
+                            + " file? Forget in y (stash pop)? Its stash is kept, and no file is touched."),
+                asked);
+        }
+        finally {
+            StatusActions.confirm = saved;
+        }
     }
 
     private static void onEdt(Runnable r) throws Exception {

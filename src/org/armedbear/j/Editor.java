@@ -1461,25 +1461,30 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     // Returns multiple values: mapping, mode.
     // mode == null means it's a global mapping.
     public Object[] getKeyMapping(String command) {
-        Mode mode = null;
-        // Look in buffer-local keymap first.
-        KeyMapping mapping = buffer.getKeyMapForMode().getKeyMapping(command);
-        // If not found there, try global keymap.
-        if (mapping == null) {
-            mapping = KeyMap.getGlobalKeyMap().getKeyMapping(command);
-            // Don't let a global mapping hide a different mapping of the same
-            // keystroke in the buffer-local keymap!
-            if (mapping != null) {
-                KeyStroke keyStroke = KeyStroke.getKeyStroke(mapping.getKeyCode(), mapping.getModifiers());
-                if (buffer.getKeyMapForMode().lookup(keyStroke) != null)
-                    mapping = null;
-            }
-        } else
-            mode = getMode();
+        final KeyMapping mapping = getKeyMapping(buffer, command);
         Object[] values = new Object[2];
         values[0] = mapping;
-        values[1] = mode;
+        // Null for a global mapping.
+        values[1] = mapping != null && buffer.getKeyMapForMode().getKeyMapping(command) == mapping ? getMode() : null;
         return values;
+    }
+
+    /** The mapping that runs command in buffer: its mode's, else a global one its mode doesn't hide; null for none. */
+    public static KeyMapping getKeyMapping(Buffer buffer, String command) {
+        // Look in buffer-local keymap first.
+        KeyMapping mapping = buffer.getKeyMapForMode().getKeyMapping(command);
+        if (mapping != null)
+            return mapping;
+        // If not found there, try global keymap.
+        mapping = KeyMap.getGlobalKeyMap().getKeyMapping(command);
+        // Don't let a global mapping hide a different mapping of the same
+        // keystroke in the buffer-local keymap!
+        if (mapping != null) {
+            KeyStroke keyStroke = KeyStroke.getKeyStroke(mapping.getKeyCode(), mapping.getModifiers());
+            if (buffer.getKeyMapForMode().lookup(keyStroke) != null)
+                mapping = null;
+        }
+        return mapping;
     }
 
     public final int getAbsoluteCaretCol() {

@@ -27,9 +27,12 @@ public enum InProgress {
     PATCH_SERIES("patch series", true),
     CHERRY_PICK("cherry-pick", true),
     REVERT("revert", true),
-    /** A stash pop j made that conflicted: continued, it drops the stash. */
+    /**
+     * A stash pop j made that conflicted: continued, it drops the stash;
+     * aborted, it is forgotten, the stash kept.
+     */
     STASH_POP("stash pop", false),
-    /** A stash apply j made that conflicted: over with its last conflict, so only aborted. */
+    /** A stash apply j made that conflicted: over with its last conflict, or forgotten. */
     STASH_APPLY("stash apply", false);
 
     /** Its name in messages: "the rebase". */

@@ -84,8 +84,8 @@ begin with, as of the last fetch; and the recent commits, when no commit is on
 the branch alone. A section of commits between two branches shows the
 newest ten, then how many more, whose Enter opens the log of them all. A line under the header says when
 a merge, a rebase or a cherry-pick is in progress, and how many conflicts it
-has; the same for a stash apply or pop that conflicted, until its conflicts
-are resolved.
+has; the same for a stash apply or pop that conflicted: an apply's until
+its conflicts are resolved, a pop's until it is <a href="#finishing">continued</a>.
 
 <p>
 A dimmed row over the first line shows the main keys, in the notation of the
@@ -451,7 +451,8 @@ A merge, rebase, patch series (<code>git am</code>), cherry-pick or revert
 that stops at a conflict, or a stash pop or apply that conflicts, is in
 progress until it is finished, and the line under the status's header says
 so, followed by links: <i>continue</i> (<i>commit</i> for a merge),
-<i>skip</i> where there are steps to skip, and <i>abort</i>. The merge
+<i>skip</i> where there are steps to skip, and <i>abort</i>, which for a
+stash pop or apply is <i>forget</i>. The merge
 popup has them too while something is in progress: <b>m</b> and <b>a</b>
 to commit or abort a merge, else <b>c</b>, <b>s</b> and <b>a</b>, running
 <a href="commands.html#vcsContinue">vcsContinue</a>,
@@ -460,18 +461,23 @@ to commit or abort a merge, else <b>c</b>, <b>s</b> and <b>a</b>, running
 
 <p>
 Continue refuses while files are unmerged, naming them; it keeps git's
-messages, and a step after it that conflicts too stops again, its
-conflicts with their base when no conflict style is set. Skip drops the
-step it stopped at. Abort asks first, then puts back what was there
-before. A stash pop is continued once its conflicts are resolved, which
-drops its stash, as a clean pop would have, wherever it is in the list
-by then. Aborting a stash pop or apply takes its changes back with
-<code>git reset --merge</code>, keeping the stash, and is offered only
-while its conflicts are: after them it would take back other staged
-work too. The pop is noted in git's directory, so it outlives j, until
-it is continued or aborted, a commit or checkout moves HEAD, or its
-stash is dropped some other way. A stash apply's note ends with its last
-conflict.
+messages, a merge's without its <code># Conflicts:</code> comments, and a step after it that conflicts too stops again, its
+conflicts with their base when no conflict style is set. Skip asks
+first, then drops the step it stopped at, its changes and your
+resolutions; a rebase's skip and abort reset the working tree, so other
+uncommitted changes to tracked files go too, and the question says so. Abort asks first, then puts back what was there before;
+the question names the repository when there are several. From a file,
+they act in the file's own repository. A stash pop is continued once its
+conflicts are resolved, which drops its stash, as a clean pop would
+have, wherever it is in the list by then, after asking: its changes stay
+in the working tree, but if they were discarded since, the stash was the
+last of them; the status bar gives its hash, which <code>git stash
+apply</code> brings back. git has no abort of a stash pop or apply, so
+abort forgets it: the stash is kept and no file is touched; discard what
+it wrote in the status, as any change. The pop is noted in git's
+directory, so it outlives j, until it is continued or forgotten, a
+commit or checkout moves HEAD, or its stash is dropped. A stash apply's
+note ends with its last conflict.
 
 <p>
 With several repositories, the popup's <b>-a</b> runs them in each
@@ -513,11 +519,15 @@ fits that file's kind:
 Ours, theirs, keep and delete take that version and stage the file, one
 step. "Conflict again" puts the markers back, with the base between the
 sides, and leaves the file unmerged. The file as it was, with any edits
-made to it by hand, goes to the trash first, as a deleted one does. A
+made to it by hand, is copied aside first, as a deleted one is, before
+git touches any: to the desktop's trash, or where it has none, to the
+<code>resolved</code> folder of j's state directory
+(<code>~/.local/state/j/resolved</code>), by the time it was done. A
 selection that mixes unmerged files with anything else is refused, as is
 one of conflicts of different kinds: the popup takes them all the same
-way, so resolve them on their own. Each choice is a command too,
-<code>vcsResolveOurs</code> and the like.
+way, so resolve them on their own. In a rebase, ours is the branch
+rebased onto and theirs your commit, and the popup says so. Each choice
+is a command too, <code>vcsResolveOurs</code> and the like.
 
 <p>
 <b>s</b> on an unmerged file still asks "Mark a.txt resolved?". When the
@@ -546,7 +556,8 @@ edit, undone whole, and the caret goes on to the next conflict:
 <p>
 Run by name, they act on the region at the caret. The shading and the
 links follow your edits, and go when the file is no longer unmerged, as
-when you stage it from the status. Markers in a file the repository does
+when you stage it from the status, unless an undo brings the markers back
+while its merge goes on (below). Markers in a file the repository does
 not report unmerged are left alone: a file may hold them as text. The
 shades are the theme's <code>color.ConflictOurs</code>,
 <code>color.ConflictBase</code> and <code>color.ConflictTheirs</code>;
@@ -608,6 +619,25 @@ any edits since stay. <b>u</b> on such a file in the status does the same,
 so <b>u</b> undoes <b>s</b>. Once the merge is committed, or the rebase
 goes on to its next step, git keeps no conflict to put back.
 
+<h3>Keys</h3>
+
+<p>
+In a buffer whose file is unmerged. The change keys go by conflict there
+while it has any; the rest have no key in simple mode, only their links,
+the context menu and the toolbar.
+
+<table>
+<tr><th>Key</th><th>Vim</th><th>Command</th><th></th></tr>
+<tr><td>Ctrl Alt N, Ctrl Alt P</td><td>]x [x, ]c [c</td><td><a href="commands.html#vcsConflictNext">vcsConflictNext</a>, <a href="commands.html#vcsConflictPrevious">vcsConflictPrevious</a></td><td>the next or previous conflict</td></tr>
+<tr><td>Alt Shift Left</td><td>&lt;leader&gt;co</td><td><a href="commands.html#vcsConflictOurs">vcsConflictOurs</a></td><td>take ours</td></tr>
+<tr><td>Alt Shift Right</td><td>&lt;leader&gt;ct</td><td><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a></td><td>take theirs</td></tr>
+<tr><td></td><td>&lt;leader&gt;cb</td><td><a href="commands.html#vcsConflictBoth">vcsConflictBoth</a></td><td>take both</td></tr>
+<tr><td></td><td>&lt;leader&gt;cB</td><td><a href="commands.html#vcsConflictBase">vcsConflictBase</a></td><td>take the base</td></tr>
+<tr><td></td><td>&lt;leader&gt;cao cat cab</td><td><a href="commands.html#vcsConflictAllOurs">vcsConflictAllOurs</a>, <a href="commands.html#vcsConflictAllTheirs">vcsConflictAllTheirs</a>, <a href="commands.html#vcsConflictAllBoth">vcsConflictAllBoth</a></td><td>take a side of every conflict</td></tr>
+<tr><td></td><td>&lt;leader&gt;cr</td><td><a href="commands.html#vcsConflictResolved">vcsConflictResolved</a></td><td>mark resolved</td></tr>
+<tr><td></td><td>&lt;leader&gt;cu</td><td><a href="commands.html#vcsConflictUnresolved">vcsConflictUnresolved</a></td><td>mark unresolved</td></tr>
+</table>
+
 <h2><a name="stashing">Stashing</a></h2>
 
 <p>
@@ -651,7 +681,8 @@ after another stash is made, and the status bar says to refresh. An
 apply or a pop that conflicts leaves the stash, and the conflicts are in the
 Unmerged section; the line under the header says
 <code>Stash pop in progress</code> or <code>Stash apply in progress</code>,
-with how many conflicts, until they are resolved. A dropped stash's hash is
+with how many conflicts: an apply's until they are resolved, a pop's
+until it is <a href="#finishing">continued</a>, which drops its stash. A dropped stash's hash is
 in the status bar and the command log, so <code>git stash apply &lt;hash&gt;</code> brings it back.
 
 <h3>Keys</h3>

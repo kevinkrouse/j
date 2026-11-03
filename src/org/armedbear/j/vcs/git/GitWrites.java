@@ -199,7 +199,17 @@ final class GitWrites {
         if (operation.inProgress == null || how == Finish.SKIP && !operation.inProgress.steps)
             return null;
         if (operation == GitSnapshot.Operation.MERGE && how == Finish.CONTINUE)
-            return commit(repository, null, Set.of());
+            // git's message, its "# Conflicts:" comments stripped, as an
+            // editor would: --no-edit alone keeps them.
+            return GitCli.run(
+                GitCli.write(
+                    repository.root(),
+                    null,
+                    COMMIT_TIMEOUT,
+                    Map.of("GIT_EDITOR", "true"),
+                    "commit",
+                    "--no-edit",
+                    "--cleanup=strip"));
         final List<String> args = how == Finish.ABORT ? args() : conflictStyle(repository);
         args.addAll(List.of(operation.command, switch (how) {
             case CONTINUE -> "--continue";
@@ -227,10 +237,6 @@ final class GitWrites {
     // zdiff3 keeps the base between the sides; older gits know only diff3.
     private static String baseStyle() {
         return GitCli.versionAtLeast(ZDIFF3) ? "zdiff3" : "diff3";
-    }
-
-    static VcsResult resetMerge(VcsRepository repository) {
-        return run(repository, args("reset", "--merge"));
     }
 
     // A failure if name is no longer the stash id, as after a stash made

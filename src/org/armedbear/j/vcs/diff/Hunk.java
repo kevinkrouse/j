@@ -51,13 +51,6 @@ public record Hunk(int oldStart, int oldCount, int newStart, int newCount, Strin
         return Integer.parseInt(comma < 0 ? range : range.substring(0, comma));
     }
 
-    /** A combined hunk's parent p's count, from its header. */
-    public int parentCount(int p) {
-        final String range = combinedRanges.split(" ")[p];
-        final int comma = range.indexOf(',');
-        return comma < 0 ? 1 : Integer.parseInt(range.substring(comma + 1));
-    }
-
     /**
      * The line of a combined hunk's line at index in parent p, from 1;
      * for a line not in it, the parent's next line's.

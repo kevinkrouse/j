@@ -52,6 +52,7 @@ import org.armedbear.j.ViewBuffer;
 import org.armedbear.j.ViewPane;
 import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.compare.CompareCommands;
+import org.armedbear.j.mode.compare.DiffAlignment;
 import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.transients.Transient;
@@ -828,9 +829,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     // Side by side: the file at the new side's line at the caret's row.
     private static void visitCompared(Editor editor) {
         final VcsStatusBuffer b = owner(editor);
-        final int n = b == null ? -1 : b.comparedLineAt(editor);
-        if (n >= 0)
-            visit(editor, b.getDiff().repository(), b.getDiff().item(), n);
+        if (b != null)
+            b.comparedLineAt(editor, n -> {
+                if (b.getDiff() != null)
+                    visit(editor, b.getDiff().repository(), b.getDiff().item(), n);
+            });
     }
 
     // The working tree's file at the line, from 1, of its diff: a staged
@@ -887,7 +890,6 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
      * the hunks before it, at the start of the hunk it is in.
      */
     public static int throughHunks(List<Hunk> hunks, int n) {
-        // A two-way diff's: a combined diff's are parentToResult's.
         int shift = 0;
         for (Hunk h : hunks) {
             // A side with no lines starts after the line its start names.
@@ -903,31 +905,14 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     /**
-     * Line n, from 1, of parent p, ours 0 or theirs 1, of an unmerged
-     * file's combined hunks, as the working tree's line: a line the
-     * working tree has not, the next it has.
+     * Line n, from 0, of side, ours or theirs, as the working tree's line,
+     * from 1, by a diff of the two: a line the working tree has not, the
+     * nearest before it there.
      */
-    public static int parentToResult(List<Hunk> hunks, int p, int n) {
-        int shift = 0;
-        for (Hunk h : hunks) {
-            final int start = h.parentCount(p) == 0 ? h.parentStart(p) + 1 : h.parentStart(p);
-            if (n < start)
-                break;
-            if (n < start + h.parentCount(p)) {
-                int parent = start;
-                int result = h.newCount() == 0 ? h.newStart() + 1 : h.newStart();
-                for (DiffLine d : h.lines()) {
-                    if (d.inParent(p) && parent++ == n)
-                        return Math.max(1, result);
-                    if (d.isNew())
-                        result++;
-                }
-                return Math.max(1, result);
-            }
-            final int newStart = h.newCount() == 0 ? h.newStart() + 1 : h.newStart();
-            shift = newStart + h.newCount() - (start + h.parentCount(p));
-        }
-        return Math.max(1, n + shift);
+    public static int sideToWorking(List<String> side, List<String> working, int n) {
+        if (side.isEmpty() || n >= side.size())
+            return 1;
+        return Math.max(0, DiffAlignment.of(side, working).otherLine(n, true)) + 1;
     }
 
     private static void visit(Editor editor, File file, int lineNumber) {

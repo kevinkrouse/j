@@ -6088,9 +6088,9 @@ Converts all upper case characters in the selected region to lower case.
 
 <a name="vcsAbort">vcsAbort</a><dl><dd>
 <p>
-Gives up what the repository at the caret has in progress, after asking, putting back what was there before it: a merge, rebase, patch series (<code>git am</code>), cherry-pick or revert, or a stash pop or apply that conflicted, whose changes are taken back with <code>git reset --merge</code>, the stash kept, only while its conflicts are. With the merge popup's <b>-a</b>, in each repository with something in progress.
+Gives up what the repository at the caret has in progress, after asking, putting back what was there before it: a merge, rebase, patch series (<code>git am</code>), cherry-pick or revert; a stash pop or apply that conflicted, which git has no abort of, forgotten: its stash kept and no file touched. From a file, in its own repository. With the merge popup's <b>-a</b>, in each repository with something in progress.
 <br><br>
-<b>Default key mapping:</b> a in the merge popup, while something is in progress; the abort link after the status's in-progress line
+<b>Default key mapping:</b> a in the merge popup, while something is in progress; the abort or forget link after the status's in-progress line
 <br><br>
 <b>See also:</b> <a href="git.html#finishing">Finishing</a>
 <br><br>
@@ -6510,7 +6510,7 @@ In a buffer whose file was marked resolved while its merge or rebase goes on, pu
 
 <a name="vcsContinue">vcsContinue</a><dl><dd>
 <p>
-Goes on with what the repository at the caret has in progress, once its conflicts are resolved and staged: a merge's commit, with git's message; a rebase's, patch series', cherry-pick's or revert's next step, its message kept; a stash pop's drop of its stash, wherever it is in the list by then. Refused while files are unmerged, naming them. A step after that conflicts too stops again, its conflicts with their base when no conflict style is set. With the merge popup's <b>-a</b>, in each repository with something in progress.
+Goes on with what the repository at the caret has in progress, once its conflicts are resolved and staged: a merge's commit, with git's message; a rebase's, patch series', cherry-pick's or revert's next step, its message kept; a stash pop's drop of its stash, after asking, wherever it is in the list by then, its changes left in the working tree, its hash in the status bar. Refused while files are unmerged, naming them. A step after that conflicts too stops again, its conflicts with their base when no conflict style is set. With the merge popup's <b>-a</b>, in each repository with something in progress.
 <br><br>
 <b>Default key mapping:</b> c in the merge popup, while something other than a merge is in progress; the continue or commit link after the status's in-progress line
 <br><br>
@@ -6897,7 +6897,7 @@ Opens the merge popup, after Neogit's. It has its switches and merging, or while
 
 <a name="vcsResolveDelete">vcsResolveDelete</a><dl><dd>
 <p>
-In a status buffer, resolves the unmerged files at the caret by moving them to the trash, and stages the deletion. It fits a file one side deleted, or both.
+In a status buffer, resolves the unmerged files at the caret by deleting them, a copy kept aside, and stages the deletion. It fits a file one side deleted, or both.
 <br><br>
 <b>Default key mapping:</b> d in the resolve popup
 <br><br>
@@ -6917,7 +6917,7 @@ In a status buffer, resolves the unmerged files at the caret by keeping the vers
 
 <a name="vcsResolveOurs">vcsResolveOurs</a><dl><dd>
 <p>
-In a status buffer, resolves the unmerged files at the caret by taking our side, HEAD's, and staging it. The file as it was goes to the trash. It fits a file both sides changed or both added.
+In a status buffer, resolves the unmerged files at the caret by taking our side, HEAD's, and staging it. The file as it was is copied aside first, to the trash, or where there is none to j's state directory. It fits a file both sides changed or both added.
 <br><br>
 <b>Default key mapping:</b> o in the resolve popup
 <br><br>
@@ -6927,7 +6927,7 @@ In a status buffer, resolves the unmerged files at the caret by taking our side,
 
 <a name="vcsResolveRestore">vcsResolveRestore</a><dl><dd>
 <p>
-In a status buffer, puts the conflict markers back in the unmerged files at the caret, with the base between the sides, and leaves them unmerged. The file as it was goes to the trash. It fits a file both sides changed or both added.
+In a status buffer, puts the conflict markers back in the unmerged files at the caret, with the base between the sides, and leaves them unmerged. The file as it was is copied aside first, to the trash, or where there is none to j's state directory. It fits a file both sides changed or both added.
 <br><br>
 <b>Default key mapping:</b> c in the resolve popup
 <br><br>
@@ -6937,7 +6937,7 @@ In a status buffer, puts the conflict markers back in the unmerged files at the 
 
 <a name="vcsResolveTheirs">vcsResolveTheirs</a><dl><dd>
 <p>
-In a status buffer, resolves the unmerged files at the caret by taking their side, and staging it. The file as it was goes to the trash. It fits a file both sides changed or both added.
+In a status buffer, resolves the unmerged files at the caret by taking their side, and staging it. The file as it was is copied aside first, to the trash, or where there is none to j's state directory. It fits a file both sides changed or both added.
 <br><br>
 <b>Default key mapping:</b> t in the resolve popup
 <br><br>
@@ -6947,7 +6947,7 @@ In a status buffer, resolves the unmerged files at the caret by taking their sid
 
 <a name="vcsSkip">vcsSkip</a><dl><dd>
 <p>
-Skips the step a rebase, patch series, cherry-pick or revert stopped at, dropping it, and goes on. A merge, or a stash's pop or apply, is one step and has none to skip. With the merge popup's <b>-a</b>, in each repository with something in progress.
+Skips the step a rebase, patch series, cherry-pick or revert stopped at, after asking, dropping it and your resolutions, and goes on. A merge, or a stash's pop or apply, is one step and has none to skip. With the merge popup's <b>-a</b>, in each repository with something in progress.
 <br><br>
 <b>Default key mapping:</b> s in the merge popup, while a rebase, patch series, cherry-pick or revert is in progress; the skip link after the status's in-progress line
 <br><br>

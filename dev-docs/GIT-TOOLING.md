@@ -2385,7 +2385,8 @@ plan with why it is left, before the next phase starts.
      as now), cherry-pick, revert, rebase and am (`--continue`, `--skip`,
      `--abort`, with `GIT_EDITOR=true`, as the merge's commit is run),
      and the stash pop of (a) (continue drops its stash; abort is
-     `git reset --merge`, the stash kept). They refuse while files are
+     `git reset --merge`, the stash kept: as planned; built with no abort
+     of a stash's, see (h)). They refuse while files are
      unmerged, naming them, except abort. The stash note of (a) is
      dropped now as its last conflict goes, when continue needs it, and
      is lost if j restarts: keep it until continue or abort, and perhaps
@@ -2405,8 +2406,8 @@ plan with why it is left, before the next phase starts.
      apply. It is read fresh (`invalidateFiles`, `snapshotNow`) before
      each. `FinishCommands.offered` says what each can have: continue but
      for an apply, which is over with its last conflict; skip where there
-     are steps; abort but for a stash's whose conflicts are resolved, as
-     `git reset --merge` would then take back other staged work too.
+     are steps; abort but for a stash's, which git has none of (see
+     (h)).
      Continue refuses while files are unmerged, naming them; skip is not
      refused for unmerged files, as skipping is the way out of a step
      that conflicts (a departure); abort asks. `VcsBackend.finish` runs
@@ -2418,13 +2419,15 @@ plan with why it is left, before the next phase starts.
      `isMerging` are gone. A pop's continue drops its stash by id,
      wherever it is in the list by then (`stashDrop` with no name).
      The stash note holds HEAD's commit at the pop: a pop's lasts until
-     continued or aborted, HEAD moves, or `hasStash` (looked for only
+     continued, HEAD moves, or `hasStash` (looked for only
      when the refs generation changes) says its stash is gone; an
      apply's still ends with its last conflict; kept by
      `writeStashNote` in `.git/j-stash-conflict` and read back on the
      first read, so it outlives j. The merge popup takes what is in
-     progress and whether files are unmerged: a merge's `m`/`a`, else
-     `c`, `s` and `a` as offered, with `-a` among several. The status's
+     progress: a merge's `m`/`a`, else `c`, `s` and `a` as offered, with
+     `-a` among several; a stash pop or apply's abort is "forget", and with
+     `-a` the item says "abort or forget", the question naming which each
+     repository gets. The status's
      in-progress line has links after it (`FinishCommands.links`, EOL
      virtual text set in `render`), in that repository alone; `-a` runs
      them in each with something in progress (`EachRepository`). Logs
@@ -2443,10 +2446,10 @@ plan with why it is left, before the next phase starts.
      the titles "a.txt (ours)" and "a.txt (theirs)", or "(deleted by
      us)", "(deleted by them)", "(not in ours)" for a side with none, or
      "(not read)", read again as the status next is; binary as the
-     others. Enter in it, and `=` from it and to it, go through the
-     combined diff: a side's line is the working tree's by
-     `VcsStatusMode.parentToResult`, and a combined line's place in a
-     parent `Hunk.parentLine`, `DiffLine.inParent`. Not as
+     others. Enter in it takes a side's line to the working tree's by an
+     in-memory diff of the two (`VcsStatusMode.sideToWorking`); `=` from
+     it and to it go by a combined line's place in a parent
+     (`Hunk.parentLine`, `DiffLine.inParent`). Not as
      `FileRevision`s, which are a file at a commit for blame: a stage is
      no commit, and the comparison's sides are read only already. Unified,
      an unmerged file is git's combined diff (`git diff`, "diff --cc"),
@@ -2467,6 +2470,60 @@ plan with why it is left, before the next phase starts.
      the keys in both edit modes, the theme keys; a drive through a merge
      that conflicts, resolved in the editor and continued; the
      adversarial review.
+
+     Built: `doc/git.html`'s Conflicts has a table of its keys in both
+     edit modes; the theme keys were there; Stashing says a pop's note
+     lasts until continued. Driven under Xvfb (`bb drive`), a merge of
+     two conflicts with a base, opened from the command line: the shading,
+     the rows and their keys, a take moving on, take-all, "Save and mark
+     resolved", the status's "Merge in progress commit · abort", and the
+     commit; then in vim edit mode by `]x`, `\co`, `\cat`, `\cr` alone.
+     It found two bugs, fixed with tests: j did not start with an
+     unmerged file named on its command line, the row's keys read from
+     the current editor's buffer, none yet (`Editor.getKeyMapping(Buffer,
+     String)` now, the conflicted buffer's own mode's keys); and an
+     unmerged file with no markers, as rerere leaves it, threw after each
+     command (`indexOf(null)` of an immutable list) and never showed its
+     row, as the first scan skipped what matched its start.
+     The adversarial reviews found, and these fix: a stash's abort ran
+     `git reset --merge`, which took back work staged before the pop or
+     after it; two redesigns, taking back the stash's own files, then the
+     paths the pop changed over the index saved as a tree, each lost work
+     again in cases the next review found (a file staged before that the
+     stash touches too, renames, an untracked file of the same name,
+     file and folder swapped, folders there before). git has no abort of
+     a stash's apply or pop, so j has none: its changes are discarded in
+     the status as any are, the stash kept (`FinishCommands.offered`,
+     `refusal` saying so). The note is the four lines it was, written
+     whole (a temporary file moved over it) and ended only if a read
+     finds it still the one it read (`VcsRepository.endStashConflict`).
+     A pop's continue always asks before it drops the stash: a check of
+     whether the pop's changes were still there, against HEAD, missed
+     some (a file edited since, an untracked file, a rename since), so
+     the question is asked of each; the status bar gives the dropped
+     stash's hash. A stash's abort forgets it: the note ends, the stash
+     is kept, no file is touched, so a pop given up can be let go. `-a`
+     with nothing to do says why, as the first repository with something
+     in progress refuses. A merge's continue strips git's `# Conflicts:`
+     comments (`--cleanup=strip`). A rebase's skip and abort questions
+     say other uncommitted changes to tracked files go too. Enter from
+     the ours/theirs comparison maps the side's line to the working
+     tree's by an in-memory diff of the two (`VcsStatusMode.sideToWorking`),
+     as git's dense combined diff leaves out what merged cleanly. The
+     resolve popup names ours and theirs in a rebase. The status line of
+     a stash pop during a bisect names the pop, which its links act on.
+     From a file, finishing acted in the project's first
+     repository: `BranchCommands.repository` takes the file's own first;
+     questions name the repository among several; `-a` reads each first
+     and asks naming where, and not at all with nothing to do. Skip
+     asks, as abort does. The resolve popup deleted hand edits where the
+     desktop has no trash, and before git ran: each file is copied aside
+     first (`ResolveCommands.keepAside`, a link as itself), all before
+     any is touched, to the trash or else to
+     `~/.local/state/j/resolved/<time>/<repository>`, then git runs. Two
+     takes in one event, as a macro's, took the first region again: a
+     take scans first (`Conflicts.current`). The status line says what
+     is in progress in `InProgress`'s words.
    - **Decided:** no `Ctrl Alt G` prefix; the conflict commands are
      reached by the links, the context menu, the toolbar and the keys of
      (d). j's own merges, pops, cherry-picks, reverts and continues pass

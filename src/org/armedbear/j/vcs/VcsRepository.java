@@ -102,14 +102,21 @@ public final class VcsRepository {
      * Notes that applying or popping a stash conflicted, or with null that
      * it is over; kept by the backend, so it outlives j. An apply's ends
      * as its last conflict goes; a pop's lasts until it is continued,
-     * dropping the stash, or aborted, or the stash is gone. Off the event
-     * thread.
+     * dropping the stash, or forgotten, HEAD moves, or the stash is gone.
+     * Off the event thread.
      */
-    public void stashConflicted(StashConflict conflict) {
+    public synchronized void stashConflicted(StashConflict conflict) {
         stashConflictAt = generation.get();
         stashConflict = conflict;
         stashNoteRead = true;
         backend.writeStashNote(this, conflict);
+    }
+
+    // Ends the note if it is still stash's: a newer one, noted since the
+    // read began, stays.
+    private synchronized void endStashConflict(StashConflict stash) {
+        if (stashConflict == stash)
+            stashConflicted(null);
     }
 
     /**
@@ -221,8 +228,8 @@ public final class VcsRepository {
         // An apply's note ends with the conflicts; a pop's when HEAD moves,
         // as a commit of its resolution moves it, or its stash is gone,
         // looked for only when the refs have changed. Only a read begun
-        // after it can tell: one begun before git wrote the conflicts
-        // would drop it too early.
+        // after it can tell: one begun before git wrote the conflicts would
+        // drop it too early.
         final StashConflict stash = stashConflict;
         if (stash != null && started > stashConflictAt && s != null && s.error() == null) {
             final boolean over;
@@ -236,7 +243,7 @@ public final class VcsRepository {
                 stashLookedFor = refs;
             }
             if (over)
-                stashConflicted(null);
+                endStashConflict(stash);
         }
         snapshot = s != null ? s : Snapshot.failed(backend.name() + " has no repository model");
         readGeneration = started;

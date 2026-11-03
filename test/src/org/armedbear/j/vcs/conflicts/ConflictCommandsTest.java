@@ -159,6 +159,55 @@ public class ConflictCommandsTest {
     }
 
     @Test
+    public void twoTakesInOneEventTakeEachRegion() throws Exception {
+        // As a macro plays them: no scan between, so the second would find
+        // the first's region, gone, at the caret's line number. Ours
+        // changes seven lines, theirs one: the first region is long.
+        git = GitFixture.init(tmp);
+        git.git("config", "merge.conflictStyle", "zdiff3");
+        git.write("a.txt", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n");
+        git.commitAll("base");
+        git.git("checkout", "-q", "-b", "other");
+        git.write("a.txt", "1\nX2\n3\n4\n5\n6\n7\n8\n9\n10\nX11\n12\n13\n14\n15\n");
+        git.commitAll("theirs");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "1\nY2\nY3\nY4\nY5\nY6\nY7\nY8\n9\n10\nY11\n12\n13\n14\n15\n");
+        git.commitAll("ours");
+        git.run("merge", "other");
+        open("a.txt");
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().size() == 2);
+        dot(2);
+        onEdt(() -> {
+            ConflictCommands.vcsConflictTheirs(h.editor());
+            ConflictCommands.vcsConflictTheirs(h.editor());
+        });
+        assertFalse(text().contains("<<<<<<<"), text());
+        assertTrue(text().contains("X2") && text().contains("X11"), text());
+    }
+
+    @Test
+    public void takingAnEmptySideAtTheEndWritesWhatGitsSideHas() throws Exception {
+        // Ours deleted the last line, theirs changed it: as git checkout --ours,
+        // the buffer's empty last line its final newline.
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "1\n2\n3\n");
+        git.commitAll("first");
+        git.git("checkout", "-q", "-b", "other");
+        git.write("a.txt", "1\n2\nX\n");
+        git.commitAll("theirs");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "1\n2\n");
+        git.commitAll("ours");
+        git.run("merge", "other");
+        open("a.txt");
+        until(() -> file.getConflicts() != null && file.getConflicts().openers().size() == 1);
+        dot(3);
+        onEdt(() -> ConflictCommands.vcsConflictOurs(h.editor()));
+        onEdt(() -> file.save());
+        assertEquals("1\n2\n", git.read("a.txt"), "as git's ours");
+    }
+
+    @Test
     public void oneUndoRestoresATakeAndTheCaretMovedOn() throws Exception {
         twoConflicts();
         open("a.txt");

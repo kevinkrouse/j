@@ -25,6 +25,7 @@ import static org.armedbear.j.Constants.*;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -897,19 +899,53 @@ public final class VcsStatusBuffer extends ViewBuffer
         closeDiffToStatus(frame);
     }
 
-    /** Side by side, the new side's line, from 1, at editor's caret to visit; -1, saying why, for none. */
-    int comparedLineAt(Editor editor) {
+    /**
+     * The new side's line, from 1, at the caret of editor in a side, to
+     * visit, given to then; nothing, saying why, for none. An unmerged
+     * file's sides are ours and theirs: a side's line is the working
+     * tree's by a diff of the two, off the event thread, as git's combined
+     * diff leaves out what merged cleanly.
+     */
+    void comparedLineAt(Editor editor, IntConsumer then) {
         if (sides == null)
-            return -1;
-        // An unmerged file's sides are ours and theirs: their lines through
-        // its combined diff, as read, to the working tree's.
+            return;
         final FileItem item = diff == null ? null : diff.item();
-        if (item != null && item.diff() != null && item.diff().isCombined() && sides.shows(diffFile()))
-            return VcsStatusMode.parentToResult(
-                item.diff().hunks(),
-                editor.getBuffer() == sides.comparison().getOld() ? 0 : 1,
-                editor.getDotLineNumber() + 1);
-        return sides.lineAt(editor, diffFile());
+        if (item == null || !item.change().isConflicted() || !sides.shows(diffFile())) {
+            final int n = sides.lineAt(editor, diffFile());
+            if (n >= 0)
+                then.accept(n);
+            return;
+        }
+        final List<String> side = lines(editor.getBuffer());
+        final int at = editor.getDotLineNumber();
+        final Path path = diff.repository().root().resolve(item.path());
+        final File f = File.getInstance(path.toString());
+        final Buffer open = f == null ? null : Editor.getBufferList().findBuffer(f);
+        final List<String> buffered = open != null && open.isLoaded() ? lines(open) : null;
+        Background.then("vcs compared line", () -> {
+            List<String> working = buffered;
+            if (working == null)
+                try {
+                    // Malformed bytes replaced, not refused: a line is a line.
+                    working = new String(java.nio.file.Files.readAllBytes(path), SideBySide.charset()).lines().toList();
+                }
+                catch (IOException e) {
+                    return -1;
+                }
+            return VcsStatusMode.sideToWorking(side, working, at);
+        }, n -> {
+            if (n == null || n < 0)
+                editor.status("Can't read " + item.path());
+            else
+                then.accept(n);
+        });
+    }
+
+    private static List<String> lines(Buffer b) {
+        final List<String> out = new ArrayList<>();
+        for (Line l = b.getFirstLine(); l != null; l = l.next())
+            out.add(l.getText());
+        return out;
     }
 
     /**

@@ -231,6 +231,7 @@ public class FinishCommandsTest {
         assertTrue(finish(Finish.CONTINUE).succeeded());
         assertNull(doing());
         assertTrue(subject().startsWith("Merge branch 'topic'"), subject());
+        assertFalse(git.git("log", "-1", "--format=%B").contains("#"), "git's comments stripped");
     }
 
     // ---- in the status
@@ -310,16 +311,147 @@ public class FinishCommandsTest {
     }
 
     @Test
+    public void skipAsksFirst() throws Exception {
+        rebase();
+        open();
+        final List<String> asked = new ArrayList<>();
+        final StatusActions.Confirm saved = StatusActions.confirm;
+        StatusActions.confirm = (editor, text, title) -> {
+            asked.add(title + ": " + text);
+            return false;
+        };
+        try {
+            SwingUtilities.invokeAndWait(() -> FinishCommands.vcsSkip(h.editor(), null));
+            until(() -> !asked.isEmpty());
+            assertEquals(
+                List.of(
+                    "Skip: Skip the rebase's step, dropping its changes and your resolutions and any other"
+                            + " uncommitted change to a tracked file?"),
+                asked);
+            assertEquals(InProgress.REBASE, doing(), "not without a yes");
+        }
+        finally {
+            StatusActions.confirm = saved;
+        }
+    }
+
+    // A stash of f.txt "S" popped over a commit of f.txt since: it conflicts.
+    private void poppedOverAConflict() throws Exception {
+        diverged();
+        git.write("f.txt", "S\n");
+        git.git("stash", "-q");
+        final String id = git.git("rev-parse", "stash@{0}").strip();
+        git.write("f.txt", "M2\n");
+        git.commitAll("m2");
+        assertFalse(
+            StashCommands.applyStash(repo(), new StatusData.StashItem("stash@{0}", id, "", List.of()), true)
+                    .succeeded());
+    }
+
+    @Test
+    public void abortingAStashPopForgetsItKeepingTheStashAndTheFiles() throws Exception {
+        poppedOverAConflict();
+        final String before = git.read("f.txt");
+        open();
+        until(() -> "   continue \u00b7 forget".equals(links("Stash pop in progress")));
+        final List<String> asked = new ArrayList<>();
+        final StatusActions.Confirm saved = StatusActions.confirm;
+        StatusActions.confirm = (editor, text, title) -> {
+            asked.add(title + ": " + text);
+            return true;
+        };
+        try {
+            SwingUtilities.invokeAndWait(() -> FinishCommands.vcsAbort(h.editor(), null));
+            until(() -> h.status().equals("Forgot the stash pop"));
+            assertEquals(
+                List.of(
+                    "Forget: Forget the stash pop? Its stash is kept, and nothing in the working tree is touched:"
+                            + " discard what it wrote in the status."),
+                asked);
+            assertNull(repo().stashConflict());
+            assertFalse(git.run("stash", "list").out().isEmpty(), "the stash kept");
+            assertEquals(before, git.read("f.txt"), "the file untouched");
+        }
+        finally {
+            StatusActions.confirm = saved;
+        }
+    }
+
+    @Test
+    public void continuingAPopAsksBeforeDroppingItsStash() throws Exception {
+        // Its changes may have been discarded since: the stash is their last.
+        poppedOverAConflict();
+        git.write("f.txt", "R\n");
+        git.git("add", "f.txt");
+        open();
+        final List<String> asked = new ArrayList<>();
+        final StatusActions.Confirm saved = StatusActions.confirm;
+        StatusActions.confirm = (editor, text, title) -> {
+            asked.add(title + ": " + text);
+            return false;
+        };
+        try {
+            SwingUtilities.invokeAndWait(() -> FinishCommands.vcsContinue(h.editor(), null));
+            until(() -> !asked.isEmpty());
+            assertEquals(
+                List.of(
+                    "Drop Stash: Continue the stash pop, dropping its stash? Its changes stay in the working tree."),
+                asked);
+            assertFalse(git.run("stash", "list").out().isEmpty(), "not without a yes");
+            StatusActions.confirm = (editor, text, title) -> true;
+            SwingUtilities.invokeAndWait(() -> FinishCommands.vcsContinue(h.editor(), null));
+            until(() -> git.run("stash", "list").out().isEmpty());
+            until(() -> h.status().startsWith("Continued the stash pop, dropping its stash "));
+            assertTrue(h.status().contains("git stash apply "), h.status());
+        }
+        finally {
+            StatusActions.confirm = saved;
+        }
+    }
+
+    @Test
+    public void theStatusLineSaysWhatIsInProgressInItsOwnWords() throws Exception {
+        diverged();
+        git.write("t.patch", git.git("format-patch", "-1", "topic", "--stdout"));
+        stopped(InProgress.PATCH_SERIES, "am", "-3", "t.patch");
+        open();
+        until(() -> links("Patch series in progress") != null);
+    }
+
+    @Test
+    public void fromAFileItActsInTheFilesOwnRepository() throws Exception {
+        // A project of two repositories, a and b: a file of b's is b's.
+        final Path ws = tmp.resolve("ws");
+        java.nio.file.Files.createDirectories(ws.resolve(".j-project"));
+        GitFixture.init(java.nio.file.Files.createDirectories(ws.resolve("a")));
+        final GitFixture b = GitFixture.init(java.nio.file.Files.createDirectories(ws.resolve("b")));
+        b.write("y.txt", "y\n");
+        b.commitAll("y");
+        final VcsRepository[] at = new VcsRepository[1];
+        SwingUtilities.invokeAndWait(() -> {
+            h = EditorHarness.create();
+            Editor.setCurrentEditor(h.editor());
+            final Buffer y = Editor.getBuffer(org.armedbear.j.File.getInstance(ws.resolve("b/y.txt").toString()));
+            if (!y.initialized())
+                y.initialize();
+            y.load();
+            h.showBuffer(y);
+            at[0] = BranchCommands.repository(h.editor());
+        });
+        assertEquals(Repositories.forDirectory(ws.resolve("b")), at[0]);
+    }
+
+    @Test
     public void thePopupFinishesWhatIsInProgress() throws Exception {
         diverged();
         final BranchCommands.Context c = new BranchCommands.Context(repo(), null, "main", List.of());
-        final Transient rebase = MergeCommands.popup(c, InProgress.REBASE, true);
+        final Transient rebase = MergeCommands.popup(c, InProgress.REBASE);
         assertEquals("vcsContinue", ((Command) rebase.item("c")).name());
         assertEquals("vcsSkip", ((Command) rebase.item("s")).name());
         assertEquals("vcsAbort", ((Command) rebase.item("a")).name());
-        final Transient pop = MergeCommands.popup(c, InProgress.STASH_POP, false);
+        final Transient pop = MergeCommands.popup(c, InProgress.STASH_POP);
         assertNull(pop.item("s"), "a pop has no step to skip");
-        assertNull(pop.item("a"), "nor, its conflicts resolved, an abort");
+        assertEquals("forget", ((Command) pop.item("a")).description(), "a stash's abort forgets it");
         assertEquals("vcsContinue", ((Command) pop.item("c")).name());
     }
 }

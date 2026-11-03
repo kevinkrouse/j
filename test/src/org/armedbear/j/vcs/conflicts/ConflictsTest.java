@@ -219,6 +219,18 @@ public class ConflictsTest {
     }
 
     @Test
+    public void anUnmergedFileWithNoMarkersTakesCommandsAfterAll() throws Exception {
+        // Unmerged, its markers gone by hand or by rerere: no regions.
+        conflict();
+        git.write("a.txt", "one\nmine\nthree\n");
+        open("a.txt");
+        assertNotNull(file.getConflicts());
+        caret(1);
+        onEdt(() -> Conflicts.viewChanged(h.editor()));
+        assertTrue(topRow().startsWith("No conflicts left"), topRow());
+    }
+
+    @Test
     public void stagingTheFileWithItsMarkersOffersTheConflictBack() throws Exception {
         conflict();
         open("a.txt");

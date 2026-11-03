@@ -15,8 +15,10 @@ import static org.armedbear.j.Constants.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -364,11 +366,6 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public VcsResult resetMerge(VcsRepository repository) {
-        return GitWrites.resetMerge(repository);
-    }
-
-    @Override
     public boolean hasStash(VcsRepository repository, String id) {
         // A failure to read them keeps the note.
         final Map<String, String> names = GitWrites.stashNames(repository);
@@ -376,7 +373,7 @@ public final class GitBackend implements VcsBackend {
     }
 
     // j's stash note, in the git directory: "pop" or "apply", the name,
-    // the id, HEAD's commit then.
+    // the id, HEAD's commit then, each a line.
     private static final String STASH_NOTE = "j-stash-conflict";
 
     @Override
@@ -407,12 +404,28 @@ public final class GitBackend implements VcsBackend {
         try {
             if (note == null)
                 Files.deleteIfExists(file);
-            else
-                Files.writeString(
-                    file,
-                    (note.pop() ? "pop" : "apply") + "\n" + note.name() + "\n" + note.hash() + "\n"
-                            + (note.head() == null ? "" : note.head()) + "\n",
-                    StandardCharsets.UTF_8);
+            else {
+                // Whole or not at all: written aside, then moved over it,
+                // atomically where the file system can; what is left aside
+                // removed if it isn't.
+                final Path written = Files.createTempFile(file.getParent(), STASH_NOTE, ".new");
+                try {
+                    Files.writeString(
+                        written,
+                        (note.pop() ? "pop" : "apply") + "\n" + note.name() + "\n" + note.hash() + "\n"
+                                + (note.head() == null ? "" : note.head()) + "\n",
+                        StandardCharsets.UTF_8);
+                    try {
+                        Files.move(written, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                    }
+                    catch (AtomicMoveNotSupportedException e) {
+                        Files.move(written, file, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
+                finally {
+                    Files.deleteIfExists(written);
+                }
+            }
         }
         catch (IOException e) {
             Log.error(e);

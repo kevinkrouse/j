@@ -55,17 +55,16 @@ public final class MergeCommands {
     private static final String NO_FF = "--no-ff";
 
     /** The popup: with something in progress, finishing it; else the switches and merging. */
-    static Transient popup(Context c, InProgress doing, boolean unmerged) {
-        return popup(c, doing, unmerged, null, false);
+    static Transient popup(Context c, InProgress doing) {
+        return popup(c, doing, null, false);
     }
 
     /**
      * The popup in a status or log of several repositories, here the
      * caret's, or null for one: -a, and where m merges, or what is in
-     * progress is finished, with -a in each. unmerged: whether files are,
-     * which a stash's abort needs.
+     * progress is finished, with -a in each.
      */
-    static Transient popup(Context c, InProgress doing, boolean unmerged, String here, boolean each) {
+    static Transient popup(Context c, InProgress doing, String here, boolean each) {
         final String arg = " " + c.argument();
         final List<Transient.Item> arguments = new ArrayList<>();
         if (here != null)
@@ -73,7 +72,7 @@ public final class MergeCommands {
         if (doing != null) {
             final String where = each ? ", in each repository" : here == null ? "" : ", in " + here;
             final List<Transient.Item> actions = new ArrayList<>();
-            for (Finish how : FinishCommands.offered(doing, unmerged))
+            for (Finish how : FinishCommands.offered(doing))
                 actions.add(
                     doing == InProgress.MERGE
                             ? how == Finish.CONTINUE
@@ -82,7 +81,9 @@ public final class MergeCommands {
                             : Command.of(
                                 how.name().substring(0, 1).toLowerCase(Locale.ROOT),
                                 FinishCommands.command(how) + arg,
-                                how.name().toLowerCase(Locale.ROOT)));
+                                how == Finish.ABORT && each ? "abort or forget"
+                                        : how == Finish.ABORT && doing.isStash() ? "forget"
+                                        : how.name().toLowerCase(Locale.ROOT)));
             final List<Group> groups = new ArrayList<>();
             if (!arguments.isEmpty())
                 groups.add(new Group("Arguments", arguments));
@@ -114,7 +115,6 @@ public final class MergeCommands {
                     () -> popup(
                         c,
                         state == null ? null : state.doing(),
-                        state != null && !state.unmerged().isEmpty(),
                         EachRepository.several(editor) ? r.name() : null,
                         EachRepository.of(editor, ID) != null));
             });

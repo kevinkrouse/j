@@ -296,7 +296,6 @@ public class DiffParserTest {
                                   \\ No newline at end of file
                                   """).get(0).hunks().get(0);
         assertEquals(1, h.parentStart(1));
-        assertEquals(3, h.parentCount(1));
         DiffLine y = h.lines().get(2);
         assertTrue(y.inParent(0) && !y.inParent(1), "Y is ours alone");
         assertTrue(y.isOld(), "ours is the old side");

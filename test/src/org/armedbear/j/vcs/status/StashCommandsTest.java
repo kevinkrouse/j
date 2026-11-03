@@ -170,7 +170,7 @@ public class StashCommandsTest {
         git.commitAll("second");
         final VcsResult r = StashCommands.applyStash(repo(), new StashItem("stash@{0}", id, "", List.of()), pop);
         assertFalse(r.succeeded());
-        assertEquals(new VcsRepository.StashConflict("stash@{0}", id, pop, hash("HEAD")), repo().stashConflict());
+        assertNote(id, pop);
         repo().invalidate();
         final StatusData d = repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE);
         assertEquals((pop ? "Stash pop" : "Stash apply") + " in progress (1 conflict)", d.inProgress());
@@ -180,7 +180,7 @@ public class StashCommandsTest {
         repo().invalidate();
         repo().snapshotNow();
         if (pop) {
-            assertEquals(new VcsRepository.StashConflict("stash@{0}", id, true, hash("HEAD")), repo().stashConflict());
+            assertNote(id, true);
             assertEquals(
                 "Stash pop in progress",
                 repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE).inProgress());
@@ -210,19 +210,19 @@ public class StashCommandsTest {
         assertTrue(git.run("stash", "list").out().isEmpty(), "the stash dropped");
     }
 
+    // The note of a conflicted apply or pop of the stash id at HEAD.
+    private void assertNote(String id, boolean pop) {
+        assertEquals(new VcsRepository.StashConflict("stash@{0}", id, pop, hash("HEAD")), repo().stashConflict());
+    }
+
     @Test
-    public void abortingAPopTakesItsChangesBackAndKeepsTheStash() throws Exception {
-        repository();
-        stash(null);
-        final String id = hash("stash@{0}");
-        git.write("b.txt", "b otherwise\n");
-        git.commitAll("second");
-        StashCommands.applyStash(repo(), new StashItem("stash@{0}", id, "", List.of()), true);
-        assertTrue(FinishCommands.perform(repo(), InProgress.STASH_POP, Finish.ABORT).succeeded());
-        assertNull(repo().stashConflict());
-        assertEquals("b otherwise\n", git.read("b.txt"));
-        assertTrue(git.run("ls-files", "-u").out().isEmpty(), "no conflict left");
-        assertFalse(git.run("stash", "list").out().isEmpty(), "the stash kept");
+    public void aPopsNoteLastsWhenItsChangesAreTakenBackElsewhere() throws Exception {
+        // Continue asks then before it drops the stash: FinishCommandsTest.
+        conflicted(true);
+        git.git("reset", "-q", "--hard");
+        repo().invalidate();
+        repo().snapshotNow();
+        assertTrue(repo().stashConflict() != null);
     }
 
     @Test
@@ -257,10 +257,10 @@ public class StashCommandsTest {
     }
 
     @Test
-    public void aStashIsAbortedOnlyWhileItsConflictsAre() {
-        assertEquals(List.of(Finish.CONTINUE, Finish.ABORT), FinishCommands.offered(InProgress.STASH_POP, true));
-        assertEquals(List.of(Finish.CONTINUE), FinishCommands.offered(InProgress.STASH_POP, false));
-        assertEquals(List.of(Finish.ABORT), FinishCommands.offered(InProgress.STASH_APPLY, true));
+    public void aStashPopIsContinuedOrForgotten() {
+        // git has no abort of a stash's: an abort forgets it.
+        assertEquals(List.of(Finish.CONTINUE, Finish.ABORT), FinishCommands.offered(InProgress.STASH_POP));
+        assertEquals(List.of(Finish.ABORT), FinishCommands.offered(InProgress.STASH_APPLY));
     }
 
     @Test

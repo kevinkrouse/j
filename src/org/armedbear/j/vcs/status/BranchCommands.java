@@ -30,6 +30,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.armedbear.j.Editor;
+import org.armedbear.j.File;
 import org.armedbear.j.Finders;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.LocationBar;
@@ -574,6 +575,11 @@ public final class BranchCommands {
         final VcsRepository at = VcsStatusMode.repositoryAt(editor);
         if (at != null)
             return at;
+        // A file's own, not its project's first.
+        final File file = editor.getBuffer().getFile();
+        final VcsRepository own = file != null && file.isLocal() ? Repositories.forFile(file) : null;
+        if (own != null)
+            return own;
         final List<VcsRepository> rs = VcsStatusMode.repositoriesFor(editor.getBuffer());
         return rs.isEmpty() ? null : rs.get(0);
     }

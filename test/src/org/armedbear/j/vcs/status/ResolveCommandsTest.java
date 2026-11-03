@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.List;
+import org.armedbear.j.EditorHarness;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.FileChange.Conflict;
@@ -40,6 +41,7 @@ import org.armedbear.j.vcs.status.StatusActions.Files;
 import org.armedbear.j.vcs.status.StatusActions.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -48,6 +50,12 @@ public class ResolveCommandsTest {
     Path tmp;
 
     private GitFixture git;
+
+    // j's directories at a scratch home: a choice copies aside into it.
+    @BeforeEach
+    public void scratchHome() {
+        EditorHarness.useScratchHome();
+    }
 
     @AfterEach
     public void resetGit() {
@@ -161,6 +169,51 @@ public class ResolveCommandsTest {
     // a.txt deleted on both sides. A merge resolves that on its own, so the
     // index is built by hand: stage 1 (the base) and nothing else, with the
     // file gone from the worktree. HEAD keeps its copy, so the deletion shows.
+    // link, a symbolic link to nothing, changed by us, deleted by them.
+    private void danglingLinkDeletedByThem() throws Exception {
+        git = GitFixture.init(tmp);
+        java.nio.file.Files.createSymbolicLink(git.root.resolve("link"), Path.of("t1"));
+        git.commitAll("first");
+        git.git("checkout", "-q", "-b", "other");
+        git.git("rm", "-q", "link");
+        git.commitAll("gone");
+        git.git("checkout", "-q", "main");
+        java.nio.file.Files.delete(git.root.resolve("link"));
+        java.nio.file.Files.createSymbolicLink(git.root.resolve("link"), Path.of("t2"));
+        git.commitAll("ours");
+        git.run("merge", "other");
+    }
+
+    @Test
+    public void deleteOnADanglingLinkDeletesTheLinkAndStagesThat() throws Exception {
+        danglingLinkDeletedByThem();
+        assertNull(ResolveCommands.resolve(List.of(files("link", Conflict.DELETED_BY_THEM)), Take.DELETE));
+        assertFalse(
+            java.nio.file.Files.exists(git.root.resolve("link"), java.nio.file.LinkOption.NOFOLLOW_LINKS),
+            "the link itself gone");
+        assertTrue(git.run("ls-files", "--", "link").out().isEmpty(), "its deletion staged");
+    }
+
+    @Test
+    public void inARebaseThePopupSaysWhichSideIsWhich() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "base\n");
+        git.commitAll("first");
+        git.git("checkout", "-q", "-b", "topic");
+        git.write("a.txt", "mine\n");
+        git.commitAll("mine");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "upstream\n");
+        git.commitAll("upstream");
+        git.git("checkout", "-q", "topic");
+        assertFalse(git.run("rebase", "main").succeeded());
+        Repositories.forDirectory(git.root).invalidate();
+        Repositories.forDirectory(git.root).snapshotNow();
+        final Transient p = ResolveCommands.popup(List.of(files("a.txt", Conflict.BOTH_MODIFIED)), false);
+        assertEquals("take ours (the branch rebased onto)", ((Transient.Command) p.item("o")).description());
+        assertEquals("take theirs (your commit)", ((Transient.Command) p.item("t")).description());
+    }
+
     private void bothDeleted() throws Exception {
         git = GitFixture.init(tmp);
         git.write("a.txt", "base\n");

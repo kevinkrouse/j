@@ -56,7 +56,6 @@ import org.armedbear.j.transients.TransientKeys;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.diff.DiffParser;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.log.CommitDetails;
@@ -709,24 +708,15 @@ public class VcsStatusBufferTest {
     }
 
     @Test
-    public void aSidesLineOfAConflictIsTheWorkingTreesThroughItsCombinedDiff() {
-        // Ours "1 Y 3 4", theirs "1 X 3 4": the working tree's markers
-        // put theirs' X at 5, and 4 at 8.
-        final List<Hunk> hunks = DiffParser.parse("""
-                                                  diff --cc a.txt
-                                                  @@@ -1,3 -1,3 +1,7 @@@
-                                                    1
-                                                  ++<<<<<<< ours
-                                                   +Y
-                                                  ++=======
-                                                  + X
-                                                  ++>>>>>>> theirs
-                                                    3
-                                                  """).get(0).hunks();
-        assertEquals(3, VcsStatusMode.parentToResult(hunks, 0, 2), "ours' Y");
-        assertEquals(5, VcsStatusMode.parentToResult(hunks, 1, 2), "theirs' X");
-        assertEquals(7, VcsStatusMode.parentToResult(hunks, 1, 3));
-        assertEquals(8, VcsStatusMode.parentToResult(hunks, 1, 4), "past the hunk, shifted");
+    public void aSidesLineOfAConflictIsTheWorkingTreesThroughADiffOfThem() {
+        // Ours "1 Y 3 4 5"; the working tree with the markers, theirs' 4
+        // deleted cleanly below: git's combined diff leaves that out.
+        final List<String> ours = List.of("1", "Y", "3", "4", "5");
+        final List<String> working = List.of("1", "<<<<<<< ours", "Y", "=======", "X", ">>>>>>> theirs", "3", "5");
+        assertEquals(3, VcsStatusMode.sideToWorking(ours, working, 1), "Y");
+        assertEquals(7, VcsStatusMode.sideToWorking(ours, working, 2), "3");
+        assertEquals(7, VcsStatusMode.sideToWorking(ours, working, 3), "4, gone: the line before");
+        assertEquals(8, VcsStatusMode.sideToWorking(ours, working, 4), "5, past the clean deletion");
     }
 
     @Test
