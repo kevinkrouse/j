@@ -442,8 +442,41 @@ With several repositories, the popup has <b>-a</b>, all repositories: then
 <b>m</b> lists the names any repository has, each saying how many have it,
 and merges the one picked into what each repository that has it has checked
 out; a conflict in one stops that one alone, and the status bar says where
-it merged, where not, and where it failed. Committing or aborting a merge in
-progress is the repository at the caret's.
+it merged, where not, and where it failed.
+
+<h2><a name="finishing">Finishing</a></h2>
+
+<p>
+A merge, rebase, patch series (<code>git am</code>), cherry-pick or revert
+that stops at a conflict, or a stash pop or apply that conflicts, is in
+progress until it is finished, and the line under the status's header says
+so, followed by links: <i>continue</i> (<i>commit</i> for a merge),
+<i>skip</i> where there are steps to skip, and <i>abort</i>. The merge
+popup has them too while something is in progress: <b>m</b> and <b>a</b>
+to commit or abort a merge, else <b>c</b>, <b>s</b> and <b>a</b>, running
+<a href="commands.html#vcsContinue">vcsContinue</a>,
+<a href="commands.html#vcsSkip">vcsSkip</a> and
+<a href="commands.html#vcsAbort">vcsAbort</a>.
+
+<p>
+Continue refuses while files are unmerged, naming them; it keeps git's
+messages, and a step after it that conflicts too stops again, its
+conflicts with their base when no conflict style is set. Skip drops the
+step it stopped at. Abort asks first, then puts back what was there
+before. A stash pop is continued once its conflicts are resolved, which
+drops its stash, as a clean pop would have, wherever it is in the list
+by then. Aborting a stash pop or apply takes its changes back with
+<code>git reset --merge</code>, keeping the stash, and is offered only
+while its conflicts are: after them it would take back other staged
+work too. The pop is noted in git's directory, so it outlives j, until
+it is continued or aborted, a commit or checkout moves HEAD, or its
+stash is dropped some other way. A stash apply's note ends with its last
+conflict.
+
+<p>
+With several repositories, the popup's <b>-a</b> runs them in each
+repository with something in progress, the status bar saying where it
+was done and where not. The links act in their own repository alone.
 
 <h2><a name="conflicts">Conflicts</a></h2>
 
@@ -451,7 +484,8 @@ progress is the repository at the caret's.
 A merge, or a stash apply or pop, that conflicts leaves the files in the
 Unmerged section, each saying its kind: <code>U a.txt (both modified)</code>,
 <code>U b.txt (deleted by them)</code>. The line under the header names the
-operation and how many conflicts there are, until they are resolved.
+operation and how many conflicts there are, until it is
+<a href="#finishing">finished</a>.
 
 <p>
 <b>x</b> on an unmerged file opens the resolve popup, which offers what

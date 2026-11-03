@@ -140,7 +140,7 @@ public final class Conflicts implements Buffer.Follower {
     // or the like its conflicts came from.
     private static boolean inProgress(Buffer buffer) {
         final VcsRepository r = Repositories.forFile(buffer.getFile());
-        return r != null && r.inProgress();
+        return r != null && r.inProgress() != null;
     }
 
     Buffer buffer() {

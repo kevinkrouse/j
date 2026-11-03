@@ -23,6 +23,7 @@ package org.armedbear.j.vcs.status;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.armedbear.j.Editor;
@@ -34,7 +35,8 @@ import org.armedbear.j.transients.TransientArgs;
 import org.armedbear.j.transients.TransientPopup;
 import org.armedbear.j.transients.Transients;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.vcs.CommitOption;
+import org.armedbear.j.vcs.Finish;
+import org.armedbear.j.vcs.InProgress;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.status.BranchCommands.Context;
@@ -52,31 +54,47 @@ public final class MergeCommands {
     private static final String FF_ONLY = "--ff-only";
     private static final String NO_FF = "--no-ff";
 
-    /** The popup: with merging, finishing or giving up the merge; else the switches and merging. */
-    static Transient popup(Context c, boolean merging) {
-        return popup(c, merging, null, false);
+    /** The popup: with something in progress, finishing it; else the switches and merging. */
+    static Transient popup(Context c, InProgress doing, boolean unmerged) {
+        return popup(c, doing, unmerged, null, false);
     }
 
     /**
      * The popup in a status or log of several repositories, here the
-     * caret's, or null for one: -a, and where m merges, with -a in each;
-     * a merge in progress is here's alone.
+     * caret's, or null for one: -a, and where m merges, or what is in
+     * progress is finished, with -a in each. unmerged: whether files are,
+     * which a stash's abort needs.
      */
-    static Transient popup(Context c, boolean merging, String here, boolean each) {
+    static Transient popup(Context c, InProgress doing, boolean unmerged, String here, boolean each) {
         final String arg = " " + c.argument();
-        if (merging)
-            return new Transient(ID,
-                    "Merge",
-                    "git.html#merging",
-                    List.of(
-                        Group.of(
-                            here == null ? "Actions" : "Actions, in " + here,
-                            Command.of("m", "vcsMergeCommit" + arg, "commit merge"),
-                            Command.of("a", "vcsMergeAbort" + arg, "abort merge"))));
-        final List<Transient.Item> arguments = new ArrayList<>(
-                List.of(Switch.of("-f", FF_ONLY, "fast-forward only"), Switch.of("-n", NO_FF, "no fast-forward")));
+        final List<Transient.Item> arguments = new ArrayList<>();
         if (here != null)
             arguments.add(Switch.of("-a", EachRepository.ALL, "all repositories"));
+        if (doing != null) {
+            final String where = each ? ", in each repository" : here == null ? "" : ", in " + here;
+            final List<Transient.Item> actions = new ArrayList<>();
+            for (Finish how : FinishCommands.offered(doing, unmerged))
+                actions.add(
+                    doing == InProgress.MERGE
+                            ? how == Finish.CONTINUE
+                                    ? Command.of("m", "vcsMergeCommit" + arg, "commit merge")
+                                    : Command.of("a", "vcsMergeAbort" + arg, "abort merge")
+                            : Command.of(
+                                how.name().substring(0, 1).toLowerCase(Locale.ROOT),
+                                FinishCommands.command(how) + arg,
+                                how.name().toLowerCase(Locale.ROOT)));
+            final List<Group> groups = new ArrayList<>();
+            if (!arguments.isEmpty())
+                groups.add(new Group("Arguments", arguments));
+            groups.add(
+                new Group(
+                        Character.toUpperCase(doing.label.charAt(0)) + doing.label.substring(1) + " in progress"
+                                + where,
+                        actions));
+            return new Transient(ID, "Merge", "git.html#finishing", groups);
+        }
+        arguments.add(0, Switch.of("-f", FF_ONLY, "fast-forward only"));
+        arguments.add(1, Switch.of("-n", NO_FF, "no fast-forward"));
         final String merge = each ? "merge into each repository" : here != null ? "merge into " + here : "merge";
         return new Transient(ID,
                 "Merge",
@@ -86,16 +104,17 @@ public final class MergeCommands {
                     Group.of("Actions", Command.of("m", "vcsMerge" + arg, merge))));
     }
 
-    /** The merge popup, the ref named or at the caret first in its list. */
+    /** The merge popup, the ref named or at the caret first in its list; with something in progress, its finishing. */
     public static void vcsMergePopup(Editor editor, String arg) {
         BranchCommands.context(editor, arg, c -> {
             final VcsRepository r = c.repository();
-            Background.then("vcs merging", () -> r.backend().isMerging(r), merging -> {
+            Background.then("vcs in progress", () -> FinishCommands.state(r), state -> {
                 TransientPopup.open(
                     editor,
                     () -> popup(
                         c,
-                        Boolean.TRUE.equals(merging),
+                        state == null ? null : state.doing(),
+                        state != null && !state.unmerged().isEmpty(),
                         EachRepository.several(editor) ? r.name() : null,
                         EachRepository.of(editor, ID) != null));
             });
@@ -168,36 +187,11 @@ public final class MergeCommands {
 
     /** Makes the merge's commit, with git's message, its conflicts resolved and staged. */
     public static void vcsMergeCommit(Editor editor, String arg) {
-        BranchCommands.context(editor, arg, c -> {
-            final VcsRepository r = c.repository();
-            Background.then("vcs merging", () -> r.backend().isMerging(r), merging -> {
-                if (!Boolean.TRUE.equals(merging))
-                    editor.status("No merge is in progress");
-                else
-                    BranchCommands.write(
-                        editor,
-                        c,
-                        "Committing the merge",
-                        "commit",
-                        () -> r.backend().commit(r, null, EnumSet.noneOf(CommitOption.class)),
-                        result -> "Committed the merge");
-            });
-        });
+        FinishCommands.finish(editor, Finish.CONTINUE, InProgress.MERGE, BranchCommands.repository(editor, arg));
     }
 
     /** Gives up the merge in progress, after asking, putting back what was there before it. */
     public static void vcsMergeAbort(Editor editor, String arg) {
-        BranchCommands.context(editor, arg, c -> {
-            if (!StatusActions.confirm.test(editor, "Abort the merge, losing its resolutions?", "Abort Merge"))
-                return;
-            final VcsRepository r = c.repository();
-            BranchCommands.write(
-                editor,
-                c,
-                "Aborting the merge",
-                "merge",
-                () -> r.backend().mergeAbort(r),
-                result -> "Aborted the merge");
-        });
+        FinishCommands.finish(editor, Finish.ABORT, InProgress.MERGE, BranchCommands.repository(editor, arg));
     }
 }

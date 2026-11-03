@@ -441,6 +441,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#unwrapParagraph">unwrapParagraph</a></li>
     <li><a href="commands.html#up">up</a></li>
     <li><a href="commands.html#upperCaseRegion">upperCaseRegion</a></li>
+    <li><a href="commands.html#vcsAbort">vcsAbort</a></li>
     <li><a href="commands.html#vcsBlame">vcsBlame</a></li>
     <li><a href="commands.html#vcsBlameCopyHash">vcsBlameCopyHash</a></li>
     <li><a href="commands.html#vcsBlameCopyMessage">vcsBlameCopyMessage</a></li>
@@ -479,6 +480,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsConflictResolved">vcsConflictResolved</a></li>
     <li><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a></li>
     <li><a href="commands.html#vcsConflictUnresolved">vcsConflictUnresolved</a></li>
+    <li><a href="commands.html#vcsContinue">vcsContinue</a></li>
     <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsFetchAll">vcsFetchAll</a></li>
@@ -519,6 +521,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsResolveOurs">vcsResolveOurs</a></li>
     <li><a href="commands.html#vcsResolveRestore">vcsResolveRestore</a></li>
     <li><a href="commands.html#vcsResolveTheirs">vcsResolveTheirs</a></li>
+    <li><a href="commands.html#vcsSkip">vcsSkip</a></li>
     <li><a href="commands.html#vcsStage">vcsStage</a></li>
     <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
     <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a></li>
@@ -6083,6 +6086,16 @@ Converts all upper case characters in the selected region to lower case.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsAbort">vcsAbort</a><dl><dd>
+<p>
+Gives up what the repository at the caret has in progress, after asking, putting back what was there before it: a merge, rebase, patch series (<code>git am</code>), cherry-pick or revert, or a stash pop or apply that conflicted, whose changes are taken back with <code>git reset --merge</code>, the stash kept, only while its conflicts are. With the merge popup's <b>-a</b>, in each repository with something in progress.
+<br><br>
+<b>Default key mapping:</b> a in the merge popup, while something is in progress; the abort link after the status's in-progress line
+<br><br>
+<b>See also:</b> <a href="git.html#finishing">Finishing</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsBlame">vcsBlame</a><dl><dd>
 <p>
 Shows or hides the blame column: each line's commit, date and author.
@@ -6495,6 +6508,16 @@ In a buffer whose file was marked resolved while its merge or rebase goes on, pu
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsContinue">vcsContinue</a><dl><dd>
+<p>
+Goes on with what the repository at the caret has in progress, once its conflicts are resolved and staged: a merge's commit, with git's message; a rebase's, patch series', cherry-pick's or revert's next step, its message kept; a stash pop's drop of its stash, wherever it is in the list by then. Refused while files are unmerged, naming them. A step after that conflicts too stops again, its conflicts with their base when no conflict style is set. With the merge popup's <b>-a</b>, in each repository with something in progress.
+<br><br>
+<b>Default key mapping:</b> c in the merge popup, while something other than a merge is in progress; the continue or commit link after the status's in-progress line
+<br><br>
+<b>See also:</b> <a href="git.html#finishing">Finishing</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsDiff">vcsDiff</a><dl><dd>
 <p>
 Compares the file with what is staged of it, side by side. The staged text is at the left, the buffer's at the right, saved or not.
@@ -6844,7 +6867,7 @@ Merges a branch, tag or revision into what is checked out. It is from a list, th
 
 <a name="vcsMergeAbort">vcsMergeAbort</a><dl><dd>
 <p>
-Gives up the merge in progress, after asking, putting back what was there before it. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Gives up the merge in progress, after asking, putting back what was there before it, as <a href="#vcsAbort">vcsAbort</a> does. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> a in the merge popup, during a merge
 <br><br>
@@ -6854,7 +6877,7 @@ Gives up the merge in progress, after asking, putting back what was there before
 
 <a name="vcsMergeCommit">vcsMergeCommit</a><dl><dd>
 <p>
-Commits the merge in progress, with git's message. Its conflicts must be resolved and staged. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Commits the merge in progress, with git's message, as <a href="#vcsContinue">vcsContinue</a> does. Its conflicts must be resolved and staged. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> m in the merge popup, during a merge
 <br><br>
@@ -6864,7 +6887,7 @@ Commits the merge in progress, with git's message. Its conflicts must be resolve
 
 <a name="vcsMergePopup">vcsMergePopup</a><dl><dd>
 <p>
-Opens the merge popup, after Neogit's. It has its switches and merging, or during a merge, committing or aborting it. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
+Opens the merge popup, after Neogit's. It has its switches and merging, or while something is in progress, finishing it: committing or aborting a merge, continuing, skipping or aborting anything else. With an argument, the ref put first in the list and the repository's root, as <code>main /path/to/repo</code>, <code>-</code> for no ref; with none, the ref at the caret.
 <br><br>
 <b>Default key mapping:</b> m in status buffers and the log's list
 <br><br>
@@ -6919,6 +6942,16 @@ In a status buffer, resolves the unmerged files at the caret by taking their sid
 <b>Default key mapping:</b> t in the resolve popup
 <br><br>
 <b>See also:</b> <a href="git.html#conflicts">Conflicts</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsSkip">vcsSkip</a><dl><dd>
+<p>
+Skips the step a rebase, patch series, cherry-pick or revert stopped at, dropping it, and goes on. A merge, or a stash's pop or apply, is one step and has none to skip. With the merge popup's <b>-a</b>, in each repository with something in progress.
+<br><br>
+<b>Default key mapping:</b> s in the merge popup, while a rebase, patch series, cherry-pick or revert is in progress; the skip link after the status's in-progress line
+<br><br>
+<b>See also:</b> <a href="git.html#finishing">Finishing</a>
 <br><br>
 </dl><!--<hr>-->
 

@@ -46,6 +46,8 @@ public final class StatusRenderer {
 
     /** After a section's key, its line saying how many more it has than it shows. */
     static final String MORE = "|more";
+    /** The key's end of a repository's line of what it has in progress. */
+    static final String PROGRESS = "|progress";
 
     /** A repository and what was read of it; colorIndex is -1 when it is the only one. */
     record Part(VcsRepository repository, StatusData data, int colorIndex) {}
@@ -123,7 +125,7 @@ public final class StatusRenderer {
                         null));
         if (data.inProgress() != null) {
             blank(rk);
-            add(new StatusLine(Kind.MESSAGE, data.inProgress(), rk + "|progress", null, repository, null));
+            add(new StatusLine(Kind.MESSAGE, data.inProgress(), rk + PROGRESS, null, repository, null));
         }
         if (data.sections().stream().noneMatch(s -> s.items().stream().anyMatch(i -> i instanceof FileItem))) {
             blank(rk);

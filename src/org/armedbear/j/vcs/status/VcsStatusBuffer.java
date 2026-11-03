@@ -50,6 +50,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.ViewBuffer;
+import org.armedbear.j.VirtualText;
 import org.armedbear.j.WindowCommands;
 import org.armedbear.j.WindowLayout;
 import org.armedbear.j.WindowLayout.Split;
@@ -478,6 +479,12 @@ public final class VcsStatusBuffer extends ViewBuffer
             renumber();
         });
         invalidate();
+        // What each repository has in progress, finished by links after its line.
+        final List<VirtualText> finishing = new ArrayList<>();
+        for (StatusLine l : lines)
+            if (l.kind() == StatusLine.Kind.MESSAGE && l.key().endsWith(StatusRenderer.PROGRESS))
+                finishing.add(VirtualText.eol(l, FinishCommands.links(this, l.repository())));
+        getVirtualText().set(FinishCommands.OWNER, finishing);
 
         final Map<String, StatusLine> byKey = new HashMap<>();
         for (StatusLine l : lines)

@@ -25,12 +25,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.util.Whitespace;
+import org.armedbear.j.vcs.Finish;
+import org.armedbear.j.vcs.InProgress;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
@@ -167,27 +170,104 @@ public class StashCommandsTest {
         git.commitAll("second");
         final VcsResult r = StashCommands.applyStash(repo(), new StashItem("stash@{0}", id, "", List.of()), pop);
         assertFalse(r.succeeded());
-        assertEquals(new VcsRepository.StashConflict("stash@{0}", id, pop), repo().stashConflict());
+        assertEquals(new VcsRepository.StashConflict("stash@{0}", id, pop, hash("HEAD")), repo().stashConflict());
         repo().invalidate();
         final StatusData d = repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE);
         assertEquals((pop ? "Stash pop" : "Stash apply") + " in progress (1 conflict)", d.inProgress());
-        // Resolving the conflict ends the note.
+        // Resolving the conflict ends an apply's note; a pop's lasts, to be continued.
         git.git("checkout", "--theirs", "b.txt");
         git.git("add", "b.txt");
         repo().invalidate();
         repo().snapshotNow();
-        assertNull(repo().stashConflict());
-        assertNull(repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE).inProgress());
+        if (pop) {
+            assertEquals(new VcsRepository.StashConflict("stash@{0}", id, true, hash("HEAD")), repo().stashConflict());
+            assertEquals(
+                "Stash pop in progress",
+                repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE).inProgress());
+        } else {
+            assertNull(repo().stashConflict());
+            assertNull(repo().backend().readStatus(repo(), (a, b) -> false, Whitespace.NONE).inProgress());
+        }
     }
 
     @Test
-    public void aConflictingPopIsNotedUntilItsConflictsAreGone() throws Exception {
+    public void aConflictingPopIsNotedUntilContinued() throws Exception {
         conflicted(true);
     }
 
     @Test
-    public void aConflictingApplyIsNotedAsAnApply() throws Exception {
+    public void aConflictingApplyIsNotedUntilItsConflictsAreGone() throws Exception {
         conflicted(false);
+    }
+
+    @Test
+    public void continuingAPopDropsItsStash() throws Exception {
+        conflicted(true);
+        assertTrue(Files.exists(git.root.resolve(".git/j-stash-conflict")), "kept in git's directory");
+        assertTrue(FinishCommands.perform(repo(), InProgress.STASH_POP, Finish.CONTINUE).succeeded());
+        assertNull(repo().stashConflict());
+        assertFalse(Files.exists(git.root.resolve(".git/j-stash-conflict")), "the note gone");
+        assertTrue(git.run("stash", "list").out().isEmpty(), "the stash dropped");
+    }
+
+    @Test
+    public void abortingAPopTakesItsChangesBackAndKeepsTheStash() throws Exception {
+        repository();
+        stash(null);
+        final String id = hash("stash@{0}");
+        git.write("b.txt", "b otherwise\n");
+        git.commitAll("second");
+        StashCommands.applyStash(repo(), new StashItem("stash@{0}", id, "", List.of()), true);
+        assertTrue(FinishCommands.perform(repo(), InProgress.STASH_POP, Finish.ABORT).succeeded());
+        assertNull(repo().stashConflict());
+        assertEquals("b otherwise\n", git.read("b.txt"));
+        assertTrue(git.run("ls-files", "-u").out().isEmpty(), "no conflict left");
+        assertFalse(git.run("stash", "list").out().isEmpty(), "the stash kept");
+    }
+
+    @Test
+    public void aPopsNoteGoesWithItsStashDroppedElsewhere() throws Exception {
+        conflicted(true);
+        git.git("stash", "drop", "-q");
+        repo().invalidate();
+        repo().snapshotNow();
+        assertNull(repo().stashConflict());
+    }
+
+    @Test
+    public void aPopsNoteEndsWhenItsResolutionIsCommitted() throws Exception {
+        conflicted(true);
+        git.git("commit", "-q", "-m", "resolved");
+        repo().invalidate();
+        repo().snapshotNow();
+        assertNull(repo().stashConflict());
+    }
+
+    @Test
+    public void continuingAPopFindsItsStashMovedByAnother() throws Exception {
+        conflicted(true);
+        final String id = hash("stash@{0}");
+        // Another stash, made without touching the working tree, on top.
+        final String other = git.git("stash", "create").strip();
+        git.git("stash", "store", "-m", "another", other);
+        assertEquals(id, hash("stash@{1}"));
+        assertTrue(FinishCommands.perform(repo(), InProgress.STASH_POP, Finish.CONTINUE).succeeded());
+        assertEquals(1, git.run("stash", "list").out().lines().count(), "the other kept");
+        assertEquals(other, hash("stash@{0}"));
+    }
+
+    @Test
+    public void aStashIsAbortedOnlyWhileItsConflictsAre() {
+        assertEquals(List.of(Finish.CONTINUE, Finish.ABORT), FinishCommands.offered(InProgress.STASH_POP, true));
+        assertEquals(List.of(Finish.CONTINUE), FinishCommands.offered(InProgress.STASH_POP, false));
+        assertEquals(List.of(Finish.ABORT), FinishCommands.offered(InProgress.STASH_APPLY, true));
+    }
+
+    @Test
+    public void aPopsNoteOutlivesJ() throws Exception {
+        conflicted(true);
+        final VcsRepository.StashConflict kept = repo().backend().readStashNote(repo());
+        assertEquals(repo().stashConflict(), kept);
     }
 
     @Test

@@ -2378,8 +2378,8 @@ plan with why it is left, before the next phase starts.
      they may be an earlier merge's, and only those whose stage 2 is
      HEAD's are taken. `--unresolve` of a path with none does nothing and
      exits 0, so it is checked first, and outside an operation it is
-     refused. Not built: after a stash pop's last conflict, whose note
-     goes with it, so nothing is in progress to put it back in.
+     refused. After a stash pop too, its note lasting until it is
+     continued (f).
    - **f. Finishing.** `vcsContinue`, `vcsSkip` and `vcsAbort` act on the
      operation in progress: merge (`vcsMergeCommit` and `vcsMergeAbort`,
      as now), cherry-pick, revert, rebase and am (`--continue`, `--skip`,
@@ -2393,6 +2393,42 @@ plan with why it is left, before the next phase starts.
      progress, and the header line gets them as links. `-a` runs them in
      each repository with something in progress, as phase 7's merge
      does. Tests: each operation continued and aborted on a real repo.
+
+     Built: `FinishCommands` (vcs/status), `vcsContinue`, `vcsSkip` and
+     `vcsAbort` on a `Finish` (vcs), each with the merge popup's
+     repository argument; `vcsMergeCommit` and `vcsMergeAbort` are the
+     same, only for a merge. What is in progress is
+     `VcsRepository.inProgress()`, an `InProgress` (vcs) with its label
+     and whether it has steps: `Snapshot.inProgress()`, git's from
+     `GitSnapshot.Operation`, which also holds git's command for it (am
+     is a "patch series"; bisect is none), or the stash note's pop or
+     apply. It is read fresh (`invalidateFiles`, `snapshotNow`) before
+     each. `FinishCommands.offered` says what each can have: continue but
+     for an apply, which is over with its last conflict; skip where there
+     are steps; abort but for a stash's whose conflicts are resolved, as
+     `git reset --merge` would then take back other staged work too.
+     Continue refuses while files are unmerged, naming them; skip is not
+     refused for unmerged files, as skipping is the way out of a step
+     that conflicts (a departure); abort asks. `VcsBackend.finish` runs
+     git's `--continue`/`--skip`/`--abort`, a merge's continue its
+     `commit --no-edit`, with `GIT_EDITOR=true`, and a continue or skip
+     with `-c merge.conflictStyle=` zdiff3 (diff3 before 2.35) when none
+     is set, shared with restoring a conflict; the style for j's merges
+     and pops of the Decided note is not built. `mergeAbort` and
+     `isMerging` are gone. A pop's continue drops its stash by id,
+     wherever it is in the list by then (`stashDrop` with no name).
+     The stash note holds HEAD's commit at the pop: a pop's lasts until
+     continued or aborted, HEAD moves, or `hasStash` (looked for only
+     when the refs generation changes) says its stash is gone; an
+     apply's still ends with its last conflict; kept by
+     `writeStashNote` in `.git/j-stash-conflict` and read back on the
+     first read, so it outlives j. The merge popup takes what is in
+     progress and whether files are unmerged: a merge's `m`/`a`, else
+     `c`, `s` and `a` as offered, with `-a` among several. The status's
+     in-progress line has links after it (`FinishCommands.links`, EOL
+     virtual text set in `render`), in that repository alone; `-a` runs
+     them in each with something in progress (`EachRepository`). Logs
+     are refreshed after each.
    - **g. Ours and theirs side by side.** Enter on an unmerged file in
      the status visits it; `=` (the diff view) on one opens the compare
      of ours and theirs (stages `:2:` and `:3:`, as `FileRevision`s) in

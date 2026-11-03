@@ -75,6 +75,7 @@ import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.BranchCommands;
 import org.armedbear.j.vcs.status.CommitCommands;
 import org.armedbear.j.vcs.status.FetchCommands;
+import org.armedbear.j.vcs.status.FinishCommands;
 import org.armedbear.j.vcs.status.MergeCommands;
 import org.armedbear.j.vcs.status.ParentCommands;
 import org.armedbear.j.vcs.status.ResolveCommands;
@@ -445,6 +446,9 @@ public class CommandTable {
             add("vcsLogToggleAll", LogCommands::vcsLogToggleAll);
             add("vcsLogVisit", LogCommands::vcsLogVisit);
             add("vcsMerge", e -> MergeCommands.vcsMerge(e, null), MergeCommands::vcsMerge);
+            add("vcsContinue", e -> FinishCommands.vcsContinue(e, null), FinishCommands::vcsContinue);
+            add("vcsSkip", e -> FinishCommands.vcsSkip(e, null), FinishCommands::vcsSkip);
+            add("vcsAbort", e -> FinishCommands.vcsAbort(e, null), FinishCommands::vcsAbort);
             add("vcsMergeAbort", e -> MergeCommands.vcsMergeAbort(e, null), MergeCommands::vcsMergeAbort);
             add("vcsMergeCommit", e -> MergeCommands.vcsMergeCommit(e, null), MergeCommands::vcsMergeCommit);
             add("vcsMergePopup", e -> MergeCommands.vcsMergePopup(e, null), MergeCommands::vcsMergePopup);

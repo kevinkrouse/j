@@ -101,9 +101,14 @@ public class Snapshot {
         return error;
     }
 
-    /** Whether the system is in the middle of something conflicts come from: a merge or a rebase, say. */
-    public boolean inProgress() {
-        return false;
+    /** What the system is in the middle of that conflicts come from, a merge or a rebase, say; null if nothing. */
+    public InProgress inProgress() {
+        return null;
+    }
+
+    /** HEAD's commit, or null if not known. */
+    public String head() {
+        return null;
     }
 
     /** The branch this one pulls from, or null. */

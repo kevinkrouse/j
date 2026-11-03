@@ -13,6 +13,9 @@ package org.armedbear.j.vcs.git;
 
 import static org.armedbear.j.Constants.*;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -25,6 +28,7 @@ import java.util.function.BiPredicate;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
+import org.armedbear.j.Log;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Whitespace;
@@ -33,6 +37,7 @@ import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.Finish;
 import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.RepositoryWatcher;
@@ -352,13 +357,66 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
-    public VcsResult mergeAbort(VcsRepository repository) {
-        return GitWrites.mergeAbort(repository);
+    public VcsResult finish(VcsRepository repository, Finish how) {
+        return repository.snapshotNow() instanceof GitSnapshot g
+                ? GitWrites.finish(repository, g.operation(), how)
+                : null;
     }
 
     @Override
-    public boolean isMerging(VcsRepository repository) {
-        return repository.snapshotNow() instanceof GitSnapshot g && g.operation() == GitSnapshot.Operation.MERGE;
+    public VcsResult resetMerge(VcsRepository repository) {
+        return GitWrites.resetMerge(repository);
+    }
+
+    @Override
+    public boolean hasStash(VcsRepository repository, String id) {
+        // A failure to read them keeps the note.
+        final Map<String, String> names = GitWrites.stashNames(repository);
+        return names == null || names.containsKey(id);
+    }
+
+    // j's stash note, in the git directory: "pop" or "apply", the name,
+    // the id, HEAD's commit then.
+    private static final String STASH_NOTE = "j-stash-conflict";
+
+    @Override
+    public VcsRepository.StashConflict readStashNote(VcsRepository repository) {
+        final GitDirs dirs = GitDirs.of(repository.root());
+        if (dirs == null)
+            return null;
+        try {
+            final List<String> lines = Files.readAllLines(dirs.gitDir().resolve(STASH_NOTE), StandardCharsets.UTF_8);
+            return lines.size() < 4
+                    ? null
+                    : new VcsRepository.StashConflict(lines.get(1),
+                            lines.get(2),
+                            lines.get(0).equals("pop"),
+                            lines.get(3).isEmpty() ? null : lines.get(3));
+        }
+        catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public void writeStashNote(VcsRepository repository, VcsRepository.StashConflict note) {
+        final GitDirs dirs = GitDirs.of(repository.root());
+        if (dirs == null)
+            return;
+        final Path file = dirs.gitDir().resolve(STASH_NOTE);
+        try {
+            if (note == null)
+                Files.deleteIfExists(file);
+            else
+                Files.writeString(
+                    file,
+                    (note.pop() ? "pop" : "apply") + "\n" + note.name() + "\n" + note.hash() + "\n"
+                            + (note.head() == null ? "" : note.head()) + "\n",
+                    StandardCharsets.UTF_8);
+        }
+        catch (IOException e) {
+            Log.error(e);
+        }
     }
 
     @Override

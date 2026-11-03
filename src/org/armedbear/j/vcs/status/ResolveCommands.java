@@ -199,7 +199,7 @@ public final class ResolveCommands {
      */
     public static String unresolve(VcsRepository r, List<String> paths) {
         r.snapshotNow();
-        if (!r.inProgress())
+        if (r.inProgress() == null)
             return "No merge, rebase or stash pop in progress to put a conflict back in";
         final VcsBackend b = r.backend();
         final Set<String> back = b.resolvedConflicts(r, paths);

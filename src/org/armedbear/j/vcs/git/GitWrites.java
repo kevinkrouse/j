@@ -23,12 +23,14 @@ package org.armedbear.j.vcs.git;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.Finish;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
@@ -130,8 +132,28 @@ final class GitWrites {
     }
 
     static VcsResult stashDrop(VcsRepository repository, String name, String id) {
+        if (name == null) {
+            final Map<String, String> names = stashNames(repository);
+            name = names == null ? null : names.get(id);
+            if (name == null)
+                return new VcsResult(null, 1, new byte[0], "The stash is gone", 0);
+        }
         final VcsResult moved = moved(repository, name, id);
         return moved != null ? moved : run(repository, args("stash", "drop", name));
+    }
+
+    /** Each stash's name now, as "stash@{1}", by its id; null if git fails. */
+    static Map<String, String> stashNames(VcsRepository repository) {
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "stash", "list", "--format=%gd %H"));
+        if (!r.succeeded())
+            return null;
+        final Map<String, String> names = new HashMap<>();
+        for (String line : r.out().split("\n")) {
+            final int space = line.indexOf(' ');
+            if (space > 0)
+                names.put(line.substring(space + 1), line.substring(0, space));
+        }
+        return names;
     }
 
     static VcsResult switchTo(VcsRepository repository, LogRef ref) {
@@ -165,8 +187,50 @@ final class GitWrites {
         return run(repository, args);
     }
 
-    static VcsResult mergeAbort(VcsRepository repository) {
-        return run(repository, args("merge", "--abort"));
+    /**
+     * Continues, skips or aborts operation: a merge's continue is its
+     * commit, git's message kept; null for nothing in progress, or a
+     * skip of what has no steps. No editor: the messages are
+     * kept. A continue or skip can stop at the next step's conflict, so
+     * as the merges before it they keep the base with the conflict style
+     * when the user has set none.
+     */
+    static VcsResult finish(VcsRepository repository, GitSnapshot.Operation operation, Finish how) {
+        if (operation.inProgress == null || how == Finish.SKIP && !operation.inProgress.steps)
+            return null;
+        if (operation == GitSnapshot.Operation.MERGE && how == Finish.CONTINUE)
+            return commit(repository, null, Set.of());
+        final List<String> args = how == Finish.ABORT ? args() : conflictStyle(repository);
+        args.addAll(List.of(operation.command, switch (how) {
+            case CONTINUE -> "--continue";
+            case SKIP -> "--skip";
+            case ABORT -> "--abort";
+        }));
+        return GitCli.run(
+            GitCli.write(
+                repository.root(),
+                null,
+                COMMIT_TIMEOUT,
+                Map.of("GIT_EDITOR", "true"),
+                args.toArray(new String[0])));
+    }
+
+    // "-c merge.conflictStyle=" the base style when the user has set
+    // none: a conflict with its base.
+    private static List<String> conflictStyle(VcsRepository repository) {
+        final VcsResult set = GitCli.run(GitCli.read(repository.root(), "config", "--get", "merge.conflictStyle"));
+        if (set.succeeded() && !set.out().isBlank())
+            return args();
+        return args("-c", "merge.conflictStyle=" + baseStyle());
+    }
+
+    // zdiff3 keeps the base between the sides; older gits know only diff3.
+    private static String baseStyle() {
+        return GitCli.versionAtLeast(ZDIFF3) ? "zdiff3" : "diff3";
+    }
+
+    static VcsResult resetMerge(VcsRepository repository) {
+        return run(repository, args("reset", "--merge"));
     }
 
     // A failure if name is no longer the stash id, as after a stash made
@@ -224,15 +288,13 @@ final class GitWrites {
         return run(repository, args);
     }
 
-    // zdiff3 keeps the base between the sides; older gits know only diff3.
     static VcsResult restoreConflict(VcsRepository repository, List<String> paths) {
-        final String style = GitCli.versionAtLeast(RESTORE_CONFLICT_STYLE) ? "zdiff3" : "diff3";
-        final List<String> args = args("--literal-pathspecs", "checkout", "-m", "--conflict=" + style, "--");
+        final List<String> args = args("--literal-pathspecs", "checkout", "-m", "--conflict=" + baseStyle(), "--");
         args.addAll(paths);
         return run(repository, args);
     }
 
-    private static final int[] RESTORE_CONFLICT_STYLE = { 2, 35 };
+    private static final int[] ZDIFF3 = { 2, 35 };
 
     static VcsResult apply(
             VcsRepository repository,

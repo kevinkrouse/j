@@ -473,6 +473,12 @@ public final class BranchCommands {
 
     private record At(VcsRepository repository, String ref) {}
 
+    // The repository arg names, as "ref /path/to/root", else the caret's; null for none.
+    static VcsRepository repository(Editor editor, String arg) {
+        final At at = arg == null || arg.isBlank() ? atCaret(editor) : named(editor, arg.strip());
+        return at == null ? null : at.repository();
+    }
+
     // The ref arg names, else the one at the caret; null for none.
     static String at(Editor editor, String arg) {
         final At at = arg == null || arg.isBlank() ? atCaret(editor) : named(editor, arg.strip());
@@ -564,7 +570,7 @@ public final class BranchCommands {
     }
 
     // The status's repository at the caret, or the log's, or the buffer's.
-    private static VcsRepository repository(Editor editor) {
+    static VcsRepository repository(Editor editor) {
         final VcsRepository at = VcsStatusMode.repositoryAt(editor);
         if (at != null)
             return at;

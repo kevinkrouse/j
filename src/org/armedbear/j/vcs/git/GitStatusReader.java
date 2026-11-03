@@ -200,9 +200,10 @@ final class GitStatusReader {
     private static String inProgress(VcsRepository repository, GitSnapshot git, int conflicts) {
         final String what;
         if (git.operation() == GitSnapshot.Operation.NONE) {
-            // A conflicted stash apply or pop leaves no state in git; j's note says so.
+            // A conflicted stash apply or pop leaves no state in git; j's
+            // note says so, a pop's until it is continued or aborted.
             final VcsRepository.StashConflict stash = repository.stashConflict();
-            if (stash == null || conflicts == 0)
+            if (stash == null)
                 return null;
             what = stash.pop() ? "Stash pop" : "Stash apply";
         } else {

@@ -237,9 +237,11 @@ public final class StashCommands {
 
     // Applies or pops st, noting on r a conflict it leaves.
     static VcsResult applyStash(VcsRepository r, StashItem st, boolean pop) {
+        // HEAD as the note has it: moved, by a commit of the resolution, say, it ends.
+        final String head = r.snapshotNow().head();
         final VcsResult result = r.backend().stashApply(r, st.name(), st.hash(), pop);
         if (result != null && StatusWrites.conflicted(result))
-            r.stashConflicted(new VcsRepository.StashConflict(st.name(), st.hash(), pop));
+            r.stashConflicted(new VcsRepository.StashConflict(st.name(), st.hash(), pop, head));
         return result;
     }
 

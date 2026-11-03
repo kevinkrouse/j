@@ -540,7 +540,7 @@ public final class StatusActions {
     private static String unstage(VcsRepository r, List<FileItem> files) {
         final VcsBackend b = r.backend();
         final Set<String> back =
-                r.inProgress() ? b.resolvedConflicts(r, files.stream().map(FileItem::path).toList()) : Set.of();
+                r.inProgress() != null ? b.resolvedConflicts(r, files.stream().map(FileItem::path).toList()) : Set.of();
         if (!back.isEmpty()) {
             final String failed = failure(b, b.unresolve(r, List.copyOf(back)));
             if (failed != null)

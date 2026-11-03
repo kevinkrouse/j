@@ -38,6 +38,8 @@ import org.armedbear.j.EditorHarness;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transients;
+import org.armedbear.j.vcs.Finish;
+import org.armedbear.j.vcs.InProgress;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
@@ -351,7 +353,7 @@ public class BranchCommandsTest {
         assertEquals(2, git.git("log", "-1", "--format=%p").strip().split(" ").length, "--no-ff: a merge commit");
         assertFalse(
             repo().backend().merge(repo(), "refs/remotes/origin/feature", EnumSet.of(MergeOption.FF_ONLY)).succeeded());
-        assertEquals("vcsMerge", ((Command) MergeCommands.popup(context(null), false).item("m")).name());
+        assertEquals("vcsMerge", ((Command) MergeCommands.popup(context(null), null, false).item("m")).name());
     }
 
     @Test
@@ -369,12 +371,13 @@ public class BranchCommandsTest {
         assertEquals(
             "Merged a in none; failed in work: conflicted: the conflicts are in Unmerged",
             EachRepository.said("Merging a", "Merged a", List.of(new EachRepository.Done(repo(), r, null))));
-        assertTrue(repo().backend().isMerging(repo()));
-        final Transient merging = MergeCommands.popup(context(null), true);
+        assertEquals(InProgress.MERGE, repo().snapshotNow().inProgress());
+        final Transient merging = MergeCommands.popup(context(null), InProgress.MERGE, true);
         assertEquals("vcsMergeCommit", ((Command) merging.item("m")).name());
         assertEquals("vcsMergeAbort", ((Command) merging.item("a")).name());
-        assertTrue(repo().backend().mergeAbort(repo()).succeeded());
-        assertFalse(repo().backend().isMerging(repo()));
+        assertTrue(repo().backend().finish(repo(), Finish.ABORT).succeeded());
+        repo().invalidate();
+        assertNull(repo().snapshotNow().inProgress());
         assertEquals("main's\n", git.read("f.txt"));
     }
 

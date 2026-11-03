@@ -50,9 +50,14 @@ public final class VcsRepository {
     private volatile StashConflict stashConflict;
     // The generation when it was noted: a read begun before can't tell it is over.
     private volatile long stashConflictAt;
+    // Whether the note kept by the backend, from before j started, has been read.
+    private volatile boolean stashNoteRead;
 
-    /** A stash j applied or popped that conflicted. */
-    public record StashConflict(String name, String hash, boolean pop) {}
+    /** A stash j applied or popped that conflicted, on HEAD's commit head. */
+    public record StashConflict(String name, String hash, boolean pop, String head) {}
+
+    // The refs generation a pop's stash was last looked for at.
+    private long stashLookedFor;
 
     private boolean refreshing;
     private boolean refreshAgain;
@@ -93,20 +98,32 @@ public final class VcsRepository {
         return stashConflict;
     }
 
-    /** Notes that applying or popping a stash conflicted, until no conflict is left. */
+    /**
+     * Notes that applying or popping a stash conflicted, or with null that
+     * it is over; kept by the backend, so it outlives j. An apply's ends
+     * as its last conflict goes; a pop's lasts until it is continued,
+     * dropping the stash, or aborted, or the stash is gone. Off the event
+     * thread.
+     */
     public void stashConflicted(StashConflict conflict) {
         stashConflictAt = generation.get();
         stashConflict = conflict;
+        stashNoteRead = true;
+        backend.writeStashNote(this, conflict);
     }
 
     /**
-     * Whether something conflicts come from is going on, as the latest
-     * snapshot has it: the system's merge or rebase, say, or a stash's
-     * apply or pop that conflicted.
+     * What conflicts come from that is going on, as the latest snapshot
+     * has it: the system's merge or rebase, say, or a stash's pop or apply
+     * that conflicted; null if nothing.
      */
-    public boolean inProgress() {
+    public InProgress inProgress() {
         final Snapshot s = snapshot;
-        return stashConflict != null || s != null && s.inProgress();
+        final InProgress doing = s == null ? null : s.inProgress();
+        if (doing != null)
+            return doing;
+        final StashConflict stash = stashConflict;
+        return stash == null ? null : stash.pop() ? InProgress.STASH_POP : InProgress.STASH_APPLY;
     }
 
     public boolean isStale() {
@@ -197,17 +214,32 @@ public final class VcsRepository {
             Log.error(e);
             s = Snapshot.failed(e.toString());
         }
+        if (!stashNoteRead) {
+            stashConflict = backend.readStashNote(this);
+            stashNoteRead = true;
+        }
+        // An apply's note ends with the conflicts; a pop's when HEAD moves,
+        // as a commit of its resolution moves it, or its stash is gone,
+        // looked for only when the refs have changed. Only a read begun
+        // after it can tell: one begun before git wrote the conflicts
+        // would drop it too early.
+        final StashConflict stash = stashConflict;
+        if (stash != null && started > stashConflictAt && s != null && s.error() == null) {
+            final boolean over;
+            if (!stash.pop())
+                over = s.changes().stream().noneMatch(FileChange::isConflicted);
+            else if (stash.head() != null && !stash.head().equals(s.head()))
+                over = true;
+            else {
+                final long refs = refsGeneration.get();
+                over = refs != stashLookedFor && !backend.hasStash(this, stash.hash());
+                stashLookedFor = refs;
+            }
+            if (over)
+                stashConflicted(null);
+        }
         snapshot = s != null ? s : Snapshot.failed(backend.name() + " has no repository model");
         readGeneration = started;
-        // The note ends with the conflicts, but only a read begun after it
-        // can tell: one begun before git wrote the conflicts would drop it
-        // too early.
-        if (stashConflict != null
-                && started > stashConflictAt
-                && s != null
-                && s.error() == null
-                && s.changes().stream().noneMatch(FileChange::isConflicted))
-            stashConflict = null;
     }
 
     /**

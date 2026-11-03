@@ -330,7 +330,10 @@ public interface VcsBackend {
         return null;
     }
 
-    /** Drops the stash named name; fails without it if name is no longer the stash id. */
+    /**
+     * Drops the stash named name; fails without it if name is no longer
+     * the stash id. With no name, the stash id wherever it is now.
+     */
     default VcsResult stashDrop(VcsRepository repository, String name, String id) {
         return null;
     }
@@ -370,15 +373,32 @@ public interface VcsBackend {
         return null;
     }
 
-    /** Gives up the merge in progress, putting back what was there before it. */
-    default VcsResult mergeAbort(VcsRepository repository) {
+    /**
+     * Continues, skips or aborts what the system has in progress, as
+     * Snapshot.inProgress names it: a merge's continue its commit, with
+     * git's message; null if it can't, or nothing is in progress.
+     */
+    default VcsResult finish(VcsRepository repository, Finish how) {
         return null;
     }
 
-    /** Whether a merge is in progress, its commit not yet made. */
-    default boolean isMerging(VcsRepository repository) {
-        return false;
+    /** Takes back a stash's conflicted apply or pop, the stash kept: the changes it made undone, others kept. */
+    default VcsResult resetMerge(VcsRepository repository) {
+        return null;
     }
+
+    /** Whether the stash id is still a stash. Off the event thread. */
+    default boolean hasStash(VcsRepository repository, String id) {
+        return true;
+    }
+
+    /** j's note of a stash's conflicted apply or pop, as writeStashNote kept it; null for none. */
+    default VcsRepository.StashConflict readStashNote(VcsRepository repository) {
+        return null;
+    }
+
+    /** Keeps note where it outlives j, or with null drops it. */
+    default void writeStashNote(VcsRepository repository, VcsRepository.StashConflict note) {}
 
     /** The local branches checked out, the latest first, each once; some may be gone. */
     default List<String> readRecentBranches(VcsRepository repository) {

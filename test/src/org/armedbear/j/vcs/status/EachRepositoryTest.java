@@ -298,12 +298,35 @@ public class EachRepositoryTest {
             chosen.accept("feature (2 of 3)");
         };
         final Command m = (Command) MergeCommands
-                .popup(new BranchCommands.Context(rs.get(0), null, "main", List.of()), false, "x", true)
+                .popup(new BranchCommands.Context(rs.get(0), null, "main", List.of()), null, false, "x", true)
                 .item("m");
         assertEquals("merge into each repository", m.description());
         onEdt(() -> MergeCommands.vcsMerge(h.editor(), null));
         until(() -> fs.subList(0, 2).stream().allMatch(f -> subject(f).equals("on feature")));
         assertEquals(List.of("feature (2 of 3)"), offered.get(0), "main checked out in each");
+        assertEquals("one", subject(fs.get(2)));
+    }
+
+    @Test
+    public void continueGoesOnInEachRepositoryWithSomethingInProgress() throws Exception {
+        three();
+        // x and y stop merging a branch that conflicts, resolved; z has nothing in progress.
+        for (GitFixture f : fs.subList(0, 2)) {
+            f.git("checkout", "-q", "-b", "other");
+            f.write("f.txt", "theirs\n");
+            f.commitAll("theirs");
+            f.git("checkout", "-q", "main");
+            f.write("f.txt", "ours\n");
+            f.commitAll("ours");
+            assertFalse(f.run("merge", "other").succeeded());
+            f.write("f.txt", "resolved\n");
+            f.git("add", "f.txt");
+        }
+        open();
+        onEdt(() -> FinishCommands.vcsContinue(h.editor(), null));
+        until(() -> fs.subList(0, 2).stream().allMatch(f -> subject(f).startsWith("Merge branch 'other'")));
+        until(() -> h.status().startsWith("Continued"));
+        assertEquals("Continued in x, y; not in z (nothing is in progress)", h.status());
         assertEquals("one", subject(fs.get(2)));
     }
 

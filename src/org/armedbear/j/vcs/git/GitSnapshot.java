@@ -22,13 +22,30 @@ package org.armedbear.j.vcs.git;
 
 import java.util.List;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.InProgress;
 import org.armedbear.j.vcs.Snapshot;
 
 /** A git repository's state: its changed files, branch, upstream and stash. */
 public final class GitSnapshot extends Snapshot {
     /** What git is in the middle of. */
     public enum Operation {
-        NONE, MERGE, REBASE, AM, CHERRY_PICK, REVERT, BISECT
+        NONE(null, null),
+        MERGE("merge", InProgress.MERGE),
+        REBASE("rebase", InProgress.REBASE),
+        AM("am", InProgress.PATCH_SERIES),
+        CHERRY_PICK("cherry-pick", InProgress.CHERRY_PICK),
+        REVERT("revert", InProgress.REVERT),
+        BISECT("bisect", null);
+
+        /** git's command for it. */
+        public final String command;
+        /** What it is to j, null for none that conflicts stop. */
+        public final InProgress inProgress;
+
+        Operation(String command, InProgress inProgress) {
+            this.command = command;
+            this.inProgress = inProgress;
+        }
     }
 
     private final String head;
@@ -61,6 +78,7 @@ public final class GitSnapshot extends Snapshot {
         return new GitSnapshot(changes(), head, branch, upstream, push, parent, stashes, operation);
     }
 
+    @Override
     public String head() {
         return head;
     }
@@ -83,7 +101,7 @@ public final class GitSnapshot extends Snapshot {
     }
 
     @Override
-    public boolean inProgress() {
-        return operation != Operation.NONE && operation != Operation.BISECT;
+    public InProgress inProgress() {
+        return operation.inProgress;
     }
 }
