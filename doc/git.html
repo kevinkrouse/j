@@ -488,6 +488,18 @@ operation and how many conflicts there are, until it is
 <a href="#finishing">finished</a>.
 
 <p>
+Enter on an unmerged file visits it, its conflicts shown as below.
+Opened with Tab, or in the diff beside, an unmerged file shows git's
+combined diff: the working tree against ours and theirs, a column of
+markers for each, so <code>++</code> marks a line in neither, as a
+conflict marker, and <code>&nbsp;+</code> one from ours alone. It says
+what is still in conflict, and how far a hand edit has gone. Side by
+side (<b>=</b>) it is ours on the left against theirs on the right, as
+the index holds them, the titles saying which, or that a side deleted
+it, as <code>d.txt (deleted by them)</code>. Both are read only: no
+hunk of a conflict stages or discards; the file is resolved whole.
+
+<p>
 <b>x</b> on an unmerged file opens the resolve popup, which offers what
 fits that file's kind:
 

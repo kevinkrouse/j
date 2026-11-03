@@ -193,7 +193,14 @@ public final class SideBySide {
         final Editor ed = Editor.windowShowing(pane);
         if (ed == null || ed.getDot() == null || !(ed.getDotLine() instanceof StatusLine at) || at.hunk() == null)
             return;
-        if (at.diffLine() != null) {
+        if (at.hunk().isCombined()) {
+            // Ours and theirs: ours where the line is, or the line it is
+            // before, else theirs.
+            placeOnOld = at.diffLine() == null || !at.diffLine().inParent(1) || at.diffLine().inParent(0);
+            placeLine = (at.diffLine() == null
+                    ? at.hunk().parentStart(0)
+                    : at.hunk().parentLine(at.diffIndex(), placeOnOld ? 0 : 1)) - 1;
+        } else if (at.diffLine() != null) {
             placeOnOld = at.diffLine().isRemoved();
             placeLine = (placeOnOld ? at.oldLine() : at.newLine()) - 1;
         } else

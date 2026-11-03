@@ -114,6 +114,7 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
             // Not read: none kept, so that it says so and is read again.
             return diffs == null ? null
                     : !diffs.isEmpty() ? diffs.get(0)
+                    : f.change().isConflicted() ? FileDiff.NO_COMBINED
                     : ignored != Whitespace.NONE ? FileDiff.ONLY_WHITESPACE
                     : FileDiff.EMPTY;
         }, d -> {

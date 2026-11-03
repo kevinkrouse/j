@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import org.armedbear.j.mode.compare.WordDiff;
+import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
@@ -211,6 +212,7 @@ public final class StatusRenderer {
         }
         final String none = diff.isBinary() ? "Binary file"
                 : !diff.hunks().isEmpty() ? null
+                : diff.isCombined() ? noCombined(f.change().conflict())
                 : diff.onlyWhitespace() ? "Only whitespace changed, which is ignored"
                 : diff.isRename() ? "Renamed, with no change to its content"
                 : "No change to its content";
@@ -226,6 +228,15 @@ public final class StatusRenderer {
             final int n = seen.merge(id, 1, Integer::sum);
             hunk(repository, fk, section, f, h, id + "#" + n);
         }
+    }
+
+    // Why an unmerged file has no combined diff.
+    private static String noCombined(FileChange.Conflict kind) {
+        if (kind == FileChange.Conflict.BOTH_DELETED)
+            return "Deleted by both: nothing to show";
+        if (kind == FileChange.Conflict.BOTH_MODIFIED || kind == FileChange.Conflict.BOTH_ADDED)
+            return "No line differs from both sides";
+        return "A side has no file: = shows the other";
     }
 
     // What a hunk removes and adds, as a short key.
@@ -253,21 +264,19 @@ public final class StatusRenderer {
         for (int i = 0; i < diffLines.size(); i++) {
             final DiffLine d = diffLines.get(i);
             final StatusLine line = new StatusLine(Kind.DIFF,
-                    INDENT + d.kind() + detab(stripCr(FileDiff.decode(d.text()))),
+                    INDENT + d.prefix() + detab(stripCr(FileDiff.decode(d.text()))),
                     hk + "|" + i,
                     hk,
                     repository,
                     section).file(f).hunk(hunk);
-            if (d.isContext())
-                line.diff(d, i, oldLine++, newLine++);
-            else if (d.isRemoved())
-                line.diff(d, i, oldLine++, newLine);
-            else
-                line.diff(d, i, 0, newLine++);
+            // On the old side, or a combined diff's first parent, ours.
+            line.diff(d, i, d.isOld() ? oldLine++ : 0, d.isNew() ? newLine++ : newLine);
             shown.add(line);
             add(line);
         }
-        words(shown);
+        // A combined diff's two columns of markers: no words to pair.
+        if (!hunk.isCombined())
+            words(shown);
     }
 
     // Pairs each run of removed lines with the run of added lines after it,

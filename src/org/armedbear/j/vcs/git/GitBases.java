@@ -20,11 +20,14 @@
 
 package org.armedbear.j.vcs.git;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Snapshot;
+import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 
@@ -90,5 +93,45 @@ final class GitBases {
             blobs.put(id, r.stdout());
         }
         return r.stdout();
+    }
+
+    /**
+     * The index's stages 2 and 3 of path, ours and theirs, in one cat-file:
+     * for each, "id blob size", the bytes and a newline, or "name missing";
+     * null if git fails or says otherwise.
+     */
+    static VcsBackend.ConflictSides conflictSides(VcsRepository repository, String path) {
+        final byte[] in = (":2:" + path + "\n:3:" + path + "\n").getBytes(StandardCharsets.UTF_8);
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), in, "cat-file", "--batch"));
+        if (!r.succeeded())
+            return null;
+        final byte[] out = r.stdout();
+        final byte[][] sides = new byte[2][];
+        int at = 0;
+        for (int i = 0; i < 2; i++) {
+            final int nl = indexOf(out, (byte) '\n', at);
+            if (nl < 0)
+                return null;
+            final String head = new String(out, at, nl - at, StandardCharsets.UTF_8);
+            at = nl + 1;
+            if (head.endsWith(" missing"))
+                continue;
+            final String[] f = head.split(" ");
+            if (f.length != 3 || !f[1].equals("blob"))
+                return null;
+            final int size = Integer.parseInt(f[2]);
+            if (at + size > out.length)
+                return null;
+            sides[i] = Arrays.copyOfRange(out, at, at + size);
+            at += size + 1;
+        }
+        return new VcsBackend.ConflictSides(sides[0], sides[1]);
+    }
+
+    private static int indexOf(byte[] bytes, byte b, int from) {
+        for (int i = from; i < bytes.length; i++)
+            if (bytes[i] == b)
+                return i;
+        return -1;
     }
 }

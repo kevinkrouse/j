@@ -2434,6 +2434,35 @@ plan with why it is left, before the next phase starts.
      of ours and theirs (stages `:2:` and `:3:`, as `FileRevision`s) in
      phase 6's side-by-side view, read only. Tests: the revisions read,
      a side deleted.
+
+     Built: Enter already visited an unmerged file; a test says so. The
+     status's comparison (`VcsStatusBuffer.diffShown`) shows an unmerged
+     file as ours against theirs, read at once by
+     `VcsBackend.readConflictSides` (git: one `cat-file --batch` of
+     `:2:path` and `:3:path`, which says "missing" of a side with none),
+     the titles "a.txt (ours)" and "a.txt (theirs)", or "(deleted by
+     us)", "(deleted by them)", "(not in ours)" for a side with none, or
+     "(not read)", read again as the status next is; binary as the
+     others. Enter in it, and `=` from it and to it, go through the
+     combined diff: a side's line is the working tree's by
+     `VcsStatusMode.parentToResult`, and a combined line's place in a
+     parent `Hunk.parentLine`, `DiffLine.inParent`. Not as
+     `FileRevision`s, which are a file at a commit for blame: a stage is
+     no commit, and the comparison's sides are read only already. Unified,
+     an unmerged file is git's combined diff (`git diff`, "diff --cc"),
+     the working tree against ours and theirs, read when the file is
+     opened, in the same `git diff` as the unstaged files'
+     (`GitStatusReader.readDiffs`; `StatusData.FileItem.hasDiff` now true
+     for one): `DiffParser` keeps a combined diff's hunks of two parents,
+     each `DiffLine` its two columns (`marks`, `prefix()`), its kind
+     removed if any column is, else added if any is, on the old side when
+     in the first parent; a `Hunk` its ranges (`combinedRanges`, "@@@ …
+     @@@"), its old side the first parent's; binary as git says. The status draws both columns and pairs no words; a part
+     of one is refused (`StatusActions.refuse`), the file resolved whole.
+     A side with no file has no combined diff: `FileDiff.NO_COMBINED`,
+     "A side has no file: = shows the other", or for both deleted
+     "Deleted by both: nothing to show". Logs read a merge against
+     a parent, never combined.
    - **h. Docs, the driver and the review.** `doc/git.html`'s Conflicts,
      the keys in both edit modes, the theme keys; a drive through a merge
      that conflicts, resolved in the editor and continued; the

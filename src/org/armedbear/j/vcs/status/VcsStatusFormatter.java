@@ -22,6 +22,7 @@ package org.armedbear.j.vcs.status;
 
 import java.awt.Color;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.ChangeColors;
 import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -29,7 +30,6 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.TextStyle;
 import org.armedbear.j.vcs.RepositoryColors;
-import org.armedbear.j.ChangeColors;
 
 /**
  * A status buffer's colors: headings bold, a file's letter by what
@@ -103,10 +103,12 @@ public class VcsStatusFormatter extends Formatter {
                 addSegment(text, letter + 1, TEXT);
             }
             case HUNK -> {
-                final int end = text.indexOf("@@", StatusRenderer.INDENT.length() + 2);
-                addSegment(text, 0, end < 0 ? text.length() : end + 2, HUNK_HEADER);
+                // "@@ … @@", or a combined hunk's "@@@ … @@@".
+                final String marks = s.hunk() != null && s.hunk().isCombined() ? "@@@" : "@@";
+                final int end = text.indexOf(marks, StatusRenderer.INDENT.length() + marks.length());
+                addSegment(text, 0, end < 0 ? text.length() : end + marks.length(), HUNK_HEADER);
                 if (end >= 0)
-                    addSegment(text, end + 2, TEXT);
+                    addSegment(text, end + marks.length(), TEXT);
             }
             case DIFF -> diff(s, text);
             case COMMIT -> {

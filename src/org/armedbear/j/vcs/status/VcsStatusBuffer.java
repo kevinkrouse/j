@@ -68,6 +68,7 @@ import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.log.CommitDetails;
@@ -898,7 +899,17 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     /** Side by side, the new side's line, from 1, at editor's caret to visit; -1, saying why, for none. */
     int comparedLineAt(Editor editor) {
-        return sides == null ? -1 : sides.lineAt(editor, diffFile());
+        if (sides == null)
+            return -1;
+        // An unmerged file's sides are ours and theirs: their lines through
+        // its combined diff, as read, to the working tree's.
+        final FileItem item = diff == null ? null : diff.item();
+        if (item != null && item.diff() != null && item.diff().isCombined() && sides.shows(diffFile()))
+            return VcsStatusMode.parentToResult(
+                item.diff().hunks(),
+                editor.getBuffer() == sides.comparison().getOld() ? 0 : 1,
+                editor.getDotLineNumber() + 1);
+        return sides.lineAt(editor, diffFile());
     }
 
     /**
@@ -949,7 +960,8 @@ public final class VcsStatusBuffer extends ViewBuffer
     /**
      * The diff beside shows item, of r's section, for why, or nothing for
      * null: side by side, the comparison shows it too. What is staged is
-     * against HEAD; else, the file's buffer if it is open, followed as
+     * against HEAD; an unmerged file, ours against theirs, as the index
+     * holds them; else, the file's buffer if it is open, followed as
      * vcsDiff follows it, or else the file, against what is staged.
      */
     void diffShown(VcsRepository r, String section, FileItem item, StatusDiffBuffer.Follow why) {
@@ -1011,47 +1023,82 @@ public final class VcsStatusBuffer extends ViewBuffer
             Side oldSide = Side.NONE;
             String newTitle;
             Side newSide = Side.NONE;
+            boolean notRead = false;
             try {
-                final Bases bases = r.backend().readBases(r, path);
-                final byte[] head = bases == null ? null : bases.head();
-                final byte[] index = bases == null ? null : bases.index();
-                final byte[] base = staged ? head : index;
-                oldTitle = path + baseNote(bases != null, base != null, staged, conflicted);
-                newTitle = staged ? path + " (staged)" : path;
-                final boolean binary = staged
-                        ? head != null && Side.isBinary(head) || index != null && Side.isBinary(index)
-                        : base != null && Side.isBinary(base) || isBinary(f);
-                if (binary) {
-                    oldTitle = path + " (binary)";
-                    newTitle = path + " (binary)";
+                if (conflicted) {
+                    // Ours against theirs, as the index holds them.
+                    final FileChange.Conflict kind = item.change().conflict();
+                    final VcsBackend.ConflictSides read = r.backend().readConflictSides(r, path);
+                    final byte[] ours = read == null ? null : read.ours();
+                    final byte[] theirs = read == null ? null : read.theirs();
+                    oldTitle = path + (read == null ? " (not read)" : sideNote(ours != null, true, kind));
+                    newTitle = path + (read == null ? " (not read)" : sideNote(theirs != null, false, kind));
+                    notRead = read == null;
+                    if (ours != null && Side.isBinary(ours) || theirs != null && Side.isBinary(theirs)) {
+                        oldTitle = path + " (binary)";
+                        newTitle = path + " (binary)";
+                    } else {
+                        oldSide = ours == null ? Side.NONE : Side.ofFile(ours, charset);
+                        newSide = theirs == null ? Side.NONE : Side.ofFile(theirs, charset);
+                    }
                 } else {
-                    oldSide = base == null ? Side.NONE : Side.ofFile(base, charset);
-                    newSide = staged ? index == null ? Side.NONE : Side.ofFile(index, charset) : read(f, charset);
+                    final Bases bases = r.backend().readBases(r, path);
+                    final byte[] head = bases == null ? null : bases.head();
+                    final byte[] index = bases == null ? null : bases.index();
+                    final byte[] base = staged ? head : index;
+                    oldTitle = path + baseNote(bases != null, base != null, staged);
+                    newTitle = staged ? path + " (staged)" : path;
+                    final boolean binary = staged
+                            ? head != null && Side.isBinary(head) || index != null && Side.isBinary(index)
+                            : base != null && Side.isBinary(base) || isBinary(f);
+                    if (binary) {
+                        oldTitle = path + " (binary)";
+                        newTitle = path + " (binary)";
+                    } else {
+                        oldSide = base == null ? Side.NONE : Side.ofFile(base, charset);
+                        newSide = staged ? index == null ? Side.NONE : Side.ofFile(index, charset) : read(f, charset);
+                    }
                 }
             }
             catch (RuntimeException e) {
                 Log.error(e);
                 oldTitle = path + " (not read)";
                 newTitle = path;
+                notRead = true;
             }
             final DiffAlignment alignment = DiffAlignment.of(oldSide, newSide, ignored);
             final String ot = oldTitle;
             final Side os = oldSide;
             final String nt = newTitle;
             final Side ns = newSide;
+            final boolean again = notRead;
             SwingUtilities.invokeLater(() -> {
                 if (!ss.isCurrent(asked))
                     return;
                 c.follow(null);
+                // Not read, as while another git holds the index's lock:
+                // read again when the status next is.
+                if (again)
+                    ss.forget();
                 ss.show(asked, mode, ot, os, nt, ns, alignment);
             });
         });
     }
 
+    // Which side of a conflict, or why it has nothing.
+    private static String sideNote(boolean there, boolean ours, FileChange.Conflict kind) {
+        if (there)
+            return ours ? " (ours)" : " (theirs)";
+        if (kind == (ours ? FileChange.Conflict.DELETED_BY_US : FileChange.Conflict.DELETED_BY_THEM)
+                || kind == FileChange.Conflict.BOTH_DELETED)
+            return ours ? " (deleted by us)" : " (deleted by them)";
+        return ours ? " (not in ours)" : " (not in theirs)";
+    }
+
     // What the old side is, or why it has nothing.
-    private static String baseNote(boolean read, boolean there, boolean staged, boolean conflicted) {
+    private static String baseNote(boolean read, boolean there, boolean staged) {
         if (!read)
-            return conflicted ? " (in a conflict)" : " (not read)";
+            return " (not read)";
         if (!there)
             return staged ? " (not in HEAD)" : " (not in the index)";
         return staged ? " (HEAD)" : " (staged)";

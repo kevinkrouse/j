@@ -85,7 +85,7 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
 
         /** Whether it has a diff to show when expanded. */
         public boolean hasDiff() {
-            return !change.isUntracked() && !change.isIgnored() && !change.isConflicted();
+            return !change.isUntracked() && !change.isIgnored();
         }
     }
 

@@ -518,6 +518,8 @@ public final class StatusActions {
     // Why op can't be done to t, or null.
     static String refuse(Op op, Target t) {
         final String section = t.section();
+        if (t instanceof Part p && p.hunk().isCombined())
+            return "Not in part: x on the unmerged file resolves it";
         if (op != Op.DISCARD && !t.repository().backend().capabilities().contains(Capability.STAGING))
             return t.repository().backend().name() + " has no index to stage to";
         return switch (op) {

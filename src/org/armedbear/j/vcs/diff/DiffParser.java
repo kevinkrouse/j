@@ -32,6 +32,9 @@ import java.util.regex.Pattern;
  */
 public final class DiffParser {
     private static final Pattern HUNK = Pattern.compile("^@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@(.*)$");
+    // A combined diff's of two parents: "@@@ -a,b -c,d +e,f @@@".
+    private static final Pattern COMBINED_HUNK =
+            Pattern.compile("^@@@ (-(\\d+)(?:,(\\d+))? -\\d+(?:,\\d+)? \\+(\\d+)(?:,(\\d+))?) @@@(.*)$");
 
     private final String[] lines;
     private int i;
@@ -72,16 +75,48 @@ public final class DiffParser {
         return line.startsWith("diff --cc ") || line.startsWith("diff --combined ");
     }
 
-    // A merge's diff against both parents: its path, and no hunks.
+    // A diff against two parents, as a merge's or an unmerged file's: its
+    // path, and its hunks of two parents, each line's two columns of
+    // markers kept; a hunk of more parents than two is skipped.
     private FileDiff combined() {
         List<String> header = new ArrayList<>();
         String line = lines[i++];
         header.add(line);
         String path = unquote(line.substring(line.indexOf(' ', "diff --".length()) + 1));
-        // Its body's lines start with two columns of markers, never "diff ".
-        while (i < lines.length && !lines[i].startsWith("diff ") && !lines[i].startsWith("Index: "))
-            i++;
-        return new FileDiff(header, path, path, false, false, false, true, List.of(), false);
+        while (i < lines.length && !lines[i].startsWith("@@@") && !startsNext(lines[i]))
+            header.add(lines[i++]);
+        List<Hunk> hunks = new ArrayList<>();
+        while (i < lines.length && !startsNext(lines[i])) {
+            Matcher m = COMBINED_HUNK.matcher(lines[i++]);
+            if (!m.matches())
+                continue; // more parents than two
+            List<DiffLine> body = new ArrayList<>();
+            while (i < lines.length && !lines[i].startsWith("@@@") && !startsNext(lines[i])) {
+                String l = lines[i++];
+                if (l.startsWith("\\")) {
+                    markNoNewline(body);
+                    continue;
+                }
+                if (l.length() < 2 || " +-".indexOf(l.charAt(0)) < 0 || " +-".indexOf(l.charAt(1)) < 0)
+                    break;
+                body.add(DiffLine.combined(l.substring(0, 2), l.substring(2)));
+            }
+            hunks.add(
+                new Hunk(Integer.parseInt(m.group(2)),
+                        m.group(3) == null ? 1 : Integer.parseInt(m.group(3)),
+                        Integer.parseInt(m.group(4)),
+                        m.group(5) == null ? 1 : Integer.parseInt(m.group(5)),
+                        m.group(6),
+                        body,
+                        m.group(1)));
+        }
+        final boolean binary = header.stream().anyMatch(l -> l.startsWith("Binary files "));
+        return new FileDiff(header, path, path, false, false, binary, true, hunks, false);
+    }
+
+    // Whether line starts the next file, or git's "* Unmerged path" note.
+    private static boolean startsNext(String line) {
+        return line.startsWith("diff ") || line.startsWith("Index: ") || line.startsWith("* Unmerged path ");
     }
 
     private boolean startsFile(int at) {

@@ -887,6 +887,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
      * the hunks before it, at the start of the hunk it is in.
      */
     public static int throughHunks(List<Hunk> hunks, int n) {
+        // A two-way diff's: a combined diff's are parentToResult's.
         int shift = 0;
         for (Hunk h : hunks) {
             // A side with no lines starts after the line its start names.
@@ -897,6 +898,34 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             if (n < oldStart + h.oldCount())
                 return Math.max(1, newStart);
             shift = newStart + h.newCount() - (oldStart + h.oldCount());
+        }
+        return Math.max(1, n + shift);
+    }
+
+    /**
+     * Line n, from 1, of parent p, ours 0 or theirs 1, of an unmerged
+     * file's combined hunks, as the working tree's line: a line the
+     * working tree has not, the next it has.
+     */
+    public static int parentToResult(List<Hunk> hunks, int p, int n) {
+        int shift = 0;
+        for (Hunk h : hunks) {
+            final int start = h.parentCount(p) == 0 ? h.parentStart(p) + 1 : h.parentStart(p);
+            if (n < start)
+                break;
+            if (n < start + h.parentCount(p)) {
+                int parent = start;
+                int result = h.newCount() == 0 ? h.newStart() + 1 : h.newStart();
+                for (DiffLine d : h.lines()) {
+                    if (d.inParent(p) && parent++ == n)
+                        return Math.max(1, result);
+                    if (d.isNew())
+                        result++;
+                }
+                return Math.max(1, result);
+            }
+            final int newStart = h.newCount() == 0 ? h.newStart() + 1 : h.newStart();
+            shift = newStart + h.newCount() - (start + h.parentCount(p));
         }
         return Math.max(1, n + shift);
     }

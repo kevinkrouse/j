@@ -198,7 +198,8 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
 
     /**
      * The caret on the diff line of the old file's line, by number, if old,
-     * else of the new file's, or on the nearest there is.
+     * else of the new file's, or on the nearest there is. A combined
+     * diff's sides are ours and theirs, its parents.
      */
     public void placeAt(boolean old, int line) {
         StatusLine best = null;
@@ -206,9 +207,11 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         for (Line l = getFirstLine(); l != null; l = l.next()) {
             if (!(l instanceof StatusLine s) || s.diffLine() == null)
                 continue;
-            if (old ? !s.diffLine().isOld() : !s.diffLine().isNew())
+            final boolean combined = s.hunk() != null && s.hunk().isCombined();
+            if (combined ? !s.diffLine().inParent(old ? 0 : 1) : old ? !s.diffLine().isOld() : !s.diffLine().isNew())
                 continue;
-            final int d = Math.abs((old ? s.oldLine() : s.newLine()) - line);
+            final int at = combined ? s.hunk().parentLine(s.diffIndex(), old ? 0 : 1) : old ? s.oldLine() : s.newLine();
+            final int d = Math.abs(at - line);
             if (d < distance) {
                 best = s;
                 distance = d;

@@ -70,7 +70,7 @@ final class GitStatusReader {
         if (!(snapshot instanceof GitSnapshot git))
             return StatusData.failed("not a git snapshot");
 
-        final List<Item> unmerged = new ArrayList<>();
+        final List<FileChange> unmerged = new ArrayList<>();
         final List<Item> untracked = new ArrayList<>();
         final List<FileChange> unstaged = new ArrayList<>();
         final List<FileChange> staged = new ArrayList<>();
@@ -78,7 +78,7 @@ final class GitStatusReader {
             if (c.isIgnored())
                 continue;
             if (c.isConflicted())
-                unmerged.add(new FileItem(c, 'U', false, null));
+                unmerged.add(c);
             else if (c.isUntracked())
                 untracked.add(new FileItem(c, '?', false, null));
             else {
@@ -89,16 +89,23 @@ final class GitStatusReader {
             }
         }
 
+        // The working tree's diffs, an unmerged file's combined, in one
+        // git diff; the staged ones' in another.
+        final List<String> conflicted = wanted(StatusData.UNMERGED, unmerged, false, wantsDiff);
+        final List<String> worktree = new ArrayList<>(conflicted);
+        worktree.addAll(wanted("unstaged", unstaged, false, wantsDiff));
+        final Map<String, FileDiff> diffs = readDiffs(repository, false, worktree, Set.copyOf(conflicted), ignored);
+        final Map<String, FileDiff> stagedDiffs =
+                readDiffs(repository, true, wanted("staged", staged, true, wantsDiff), Set.of(), ignored);
         final List<Section> sections = new ArrayList<>();
         if (!unmerged.isEmpty())
-            sections.add(new Section(StatusData.UNMERGED, "Unmerged", unmerged));
+            sections.add(new Section(StatusData.UNMERGED, "Unmerged", items(unmerged, false, diffs)));
         if (!untracked.isEmpty())
             sections.add(new Section("untracked", "Untracked files", untracked));
         if (!unstaged.isEmpty())
-            sections.add(
-                new Section("unstaged", "Unstaged changes", files(repository, unstaged, false, wantsDiff, ignored)));
+            sections.add(new Section("unstaged", "Unstaged changes", items(unstaged, false, diffs)));
         if (!staged.isEmpty())
-            sections.add(new Section("staged", "Staged changes", files(repository, staged, true, wantsDiff, ignored)));
+            sections.add(new Section("staged", "Staged changes", items(staged, true, stagedDiffs)));
         // The count says whether to list them, where this git gives one.
         final List<Item> stashes = git.stashes() == 0 ? List.of() : stashes(repository, wantsDiff, ignored);
         if (stashes != null && !stashes.isEmpty())
@@ -220,14 +227,12 @@ final class GitStatusReader {
         return conflicts == 0 ? s : s + " (" + conflicts + (conflicts == 1 ? " conflict)" : " conflicts)");
     }
 
-    // A section's files, each with its diff if it is wanted: one git diff for them all.
-    private static List<Item> files(
-            VcsRepository repository,
+    // The paths of changes whose diffs section wants, a staged rename's old one too.
+    private static List<String> wanted(
+            String section,
             List<FileChange> changes,
             boolean staged,
-            BiPredicate<String, String> wantsDiff,
-            Whitespace ignored) {
-        final String section = staged ? "staged" : "unstaged";
+            BiPredicate<String, String> wantsDiff) {
         final List<String> paths = new ArrayList<>();
         for (FileChange c : changes) {
             if (wantsDiff.test(section, c.path())) {
@@ -236,8 +241,21 @@ final class GitStatusReader {
                 paths.add(c.path());
             }
         }
+        return paths;
+    }
+
+    // The diffs of paths, by path, in batches, as a command line has a
+    // limit (32k characters on Windows); a batch git fails on, none. A
+    // path git leaves out: an unmerged one, of which git gives no combined
+    // diff, as for a side that deleted it, an empty combined one; else,
+    // ignoring whitespace, changed only in that.
+    private static Map<String, FileDiff> readDiffs(
+            VcsRepository repository,
+            boolean staged,
+            List<String> paths,
+            Set<String> unmerged,
+            Whitespace ignored) {
         final Map<String, FileDiff> diffs = new HashMap<>();
-        // In batches, as a command line has a limit (32k characters on Windows).
         for (int i = 0; i < paths.size(); i += BATCH) {
             final List<String> batch = paths.subList(i, Math.min(paths.size(), i + BATCH));
             final List<FileDiff> read = diff(repository, staged, batch, ignored);
@@ -245,15 +263,22 @@ final class GitStatusReader {
                 continue;
             for (FileDiff d : read)
                 diffs.put(d.path(), d);
-            // What git left out, ignoring whitespace, changed only in that.
-            if (ignored != Whitespace.NONE)
-                for (String p : batch)
+            for (String p : batch)
+                if (unmerged.contains(p))
+                    diffs.putIfAbsent(p, FileDiff.NO_COMBINED);
+                else if (ignored != Whitespace.NONE)
                     diffs.putIfAbsent(p, FileDiff.ONLY_WHITESPACE);
         }
+        return diffs;
+    }
+
+    // A section's files, each with its diff, if read: an unmerged one's 'U'.
+    private static List<Item> items(List<FileChange> changes, boolean staged, Map<String, FileDiff> diffs) {
         final List<Item> items = new ArrayList<>();
         for (FileChange c : changes) {
             final Kind kind = staged ? c.staged() : c.unstaged();
-            items.add(new FileItem(c, kind == null ? ' ' : kind.letter(), staged, diffs.get(c.path())));
+            final char letter = c.isConflicted() ? 'U' : kind == null ? ' ' : kind.letter();
+            items.add(new FileItem(c, letter, staged, diffs.get(c.path())));
         }
         return items;
     }

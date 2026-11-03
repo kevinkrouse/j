@@ -498,6 +498,11 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
+    public ConflictSides readConflictSides(VcsRepository repository, String path) {
+        return GitBases.conflictSides(repository, path);
+    }
+
+    @Override
     public byte[] readFileAt(VcsRepository repository, String id, String path) {
         return GitLog.fileAt(repository, id, path);
     }

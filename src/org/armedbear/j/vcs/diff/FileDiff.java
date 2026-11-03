@@ -30,8 +30,9 @@ import java.util.List;
  * @param header   the lines before the first hunk ("diff --git", "---", ...)
  * @param oldPath  the old path as the diff spells it, or null if the file is new
  * @param newPath  the new path, or null if the file is deleted
- * @param isCombined a merge's combined diff ("diff --cc"), whose body is not
- *                 read: it has no hunks
+ * @param isCombined a combined diff ("diff --cc") of two parents, as an
+ *                 unmerged file's against ours and theirs: its hunks
+ *                 combined, read only
  * @param onlyWhitespace read ignoring whitespace, none but in whitespace
  */
 public record FileDiff(List<String> header, String oldPath, String newPath, boolean isNew, boolean isDeleted,
@@ -39,6 +40,10 @@ public record FileDiff(List<String> header, String oldPath, String newPath, bool
     /** A diff with no hunks: no change to the file's content. */
     public static final FileDiff EMPTY =
             new FileDiff(List.of(), null, null, false, false, false, false, List.of(), false);
+
+    /** An unmerged file's combined diff that git gave none of, as for a side that deleted it. */
+    public static final FileDiff NO_COMBINED =
+            new FileDiff(List.of(), null, null, false, false, false, true, List.of(), false);
 
     /** Read ignoring whitespace, a diff with no hunks: no change but to whitespace. */
     public static final FileDiff ONLY_WHITESPACE =

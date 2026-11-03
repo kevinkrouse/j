@@ -229,7 +229,7 @@ public class DiffParserTest {
     }
 
     @Test
-    public void readsACombinedDiffAsAFileWithoutHunks() {
+    public void readsACombinedDiffsHunksWithTheirTwoColumns() {
         List<FileDiff> files = DiffParser.parse("""
                                                 diff --cc both.txt
                                                 index 1111111,2222222..0000000
@@ -252,9 +252,79 @@ public class DiffParserTest {
         assertEquals(2, files.size(), files::toString);
         assertTrue(files.get(0).isCombined());
         assertEquals("both.txt", files.get(0).path());
-        assertTrue(files.get(0).hunks().isEmpty());
+        assertEquals(1, files.get(0).hunks().size());
+        final Hunk h = files.get(0).hunks().get(0);
+        assertTrue(h.isCombined());
+        assertEquals("@@@ -1,1 -1,1 +1,5 @@@", h.header());
+        assertEquals(1, h.newStart());
+        assertEquals(5, h.newCount());
+        assertEquals(6, h.lines().size(), h.lines()::toString);
+        assertEquals("++", h.lines().get(0).prefix());
+        assertEquals('+', h.lines().get(0).kind());
+        assertEquals("<<<<<<< HEAD", h.lines().get(0).text());
+        assertEquals("--", h.lines().get(2).prefix(), "a line starting --- is a body line");
+        assertEquals('-', h.lines().get(2).kind());
+        assertEquals("+ ", h.lines().get(4).prefix());
         assertEquals("next.txt", files.get(1).path());
         assertEquals(1, files.get(1).hunks().size());
+    }
+
+    @Test
+    public void readsACombinedBinaryDiffAsBinary() {
+        List<FileDiff> files = DiffParser.parse("""
+                                                diff --cc img.png
+                                                index 1111111,2222222..0000000
+                                                Binary files differ
+                                                """);
+        assertTrue(files.get(0).isCombined());
+        assertTrue(files.get(0).isBinary());
+    }
+
+    @Test
+    public void aCombinedLineKnowsItsParentsAndItsNumberInEach() {
+        // Ours "1 Y 3", theirs "1 X 3", the working tree with the markers.
+        Hunk h = DiffParser.parse("""
+                                  diff --cc a.txt
+                                  @@@ -1,3 -1,3 +1,7 @@@
+                                    1
+                                  ++<<<<<<< ours
+                                   +Y
+                                  ++=======
+                                  + X
+                                  ++>>>>>>> theirs
+                                    3
+                                  \\ No newline at end of file
+                                  """).get(0).hunks().get(0);
+        assertEquals(1, h.parentStart(1));
+        assertEquals(3, h.parentCount(1));
+        DiffLine y = h.lines().get(2);
+        assertTrue(y.inParent(0) && !y.inParent(1), "Y is ours alone");
+        assertTrue(y.isOld(), "ours is the old side");
+        DiffLine x = h.lines().get(4);
+        assertTrue(!x.inParent(0) && x.inParent(1), "X is theirs alone");
+        assertFalse(x.isOld());
+        DiffLine marker = h.lines().get(1);
+        assertTrue(!marker.inParent(0) && !marker.inParent(1), "a marker is in neither");
+        assertEquals(2, h.parentLine(2, 0), "Y is ours' line 2");
+        assertEquals(2, h.parentLine(4, 1), "X is theirs' line 2");
+        assertEquals(3, h.parentLine(6, 1));
+        assertTrue(h.lines().get(6).noNewline(), "the last line's note kept");
+        assertEquals("  ", h.lines().get(6).prefix());
+    }
+
+    @Test
+    public void readsAnUnmergedPathNoteAsTheEndOfAFile() {
+        List<FileDiff> files = DiffParser.parse("""
+                                                * Unmerged path d.txt
+                                                diff --cc a.txt
+                                                @@@ -1,1 -1,1 +1,1 @@@
+                                                - a
+                                                 -b
+                                                ++c
+                                                * Unmerged path e.txt
+                                                """);
+        assertEquals(1, files.size(), files::toString);
+        assertEquals(3, files.get(0).hunks().get(0).lines().size());
     }
 
     @Test

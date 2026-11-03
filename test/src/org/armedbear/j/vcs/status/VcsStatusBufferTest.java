@@ -56,6 +56,7 @@ import org.armedbear.j.transients.TransientKeys;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.diff.DiffParser;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.log.CommitDetails;
@@ -600,7 +601,7 @@ public class VcsStatusBufferTest {
         open();
         assertTrue(text().contains("Merge in progress (1 conflict)"), text().toString());
         assertTrue(text().contains("  U  a.txt (both modified)"), text().toString());
-        assertFalse(line("  U  a.txt (both modified)").isExpandable());
+        assertTrue(line("  U  a.txt (both modified)").isExpandable(), "its combined diff");
     }
 
     @Test
@@ -646,6 +647,111 @@ public class VcsStatusBufferTest {
             assertEquals(File.getInstance(git.root.resolve("a.txt").toString()), visited.getFile());
             assertEquals(2, h.editor().getDotLineNumber());
             Editor.getBufferList().remove(visited);
+        });
+    }
+
+    // a.txt both modified; d.txt deleted by them, changed by us.
+    private void conflicted() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "base\n");
+        git.write("d.txt", "d\n");
+        git.commitAll("first");
+        git.git("checkout", "-q", "-b", "other");
+        git.write("a.txt", "theirs\n");
+        git.git("rm", "-q", "d.txt");
+        git.commitAll("theirs");
+        git.git("checkout", "-q", "main");
+        git.write("a.txt", "ours\n");
+        git.write("d.txt", "d ours\n");
+        git.commitAll("ours");
+        git.run("merge", "other");
+    }
+
+    @Test
+    public void visitingAnUnmergedFileOpensIt() throws Exception {
+        conflicted();
+        open();
+        onEdt(() -> {
+            h.editor().setDot(line("  U  a.txt (both modified)"), 0);
+            VcsStatusMode.vcsStatusVisit(h.editor());
+        });
+        onEdt(() -> {
+            final Buffer visited = h.editor().getBuffer();
+            assertEquals(File.getInstance(git.root.resolve("a.txt").toString()), visited.getFile());
+            Editor.getBufferList().remove(visited);
+        });
+    }
+
+    @Test
+    public void anUnmergedFileShowsItsCombinedDiffReadOnly() throws Exception {
+        conflicted();
+        open();
+        onEdt(() -> status.toggle(line("  U  a.txt (both modified)")));
+        // The working tree against ours and theirs, a column for each.
+        until(() -> text().contains("  ++<<<<<<< HEAD"));
+        assertTrue(text().contains("   +ours"), text().toString());
+        assertTrue(text().contains("  + theirs"), text().toString());
+        assertTrue(text().stream().anyMatch(t -> t.startsWith("  @@@ ")), text().toString());
+        // Ours' numbers from the first column: its line, and theirs' none in ours.
+        onEdt(() -> {
+            assertEquals(1, line("   +ours").oldLine());
+            assertEquals(0, line("  + theirs").oldLine());
+        });
+        // No part of it stages: the file is resolved whole.
+        onEdt(() -> {
+            h.editor().setDot(line("   +ours"), 0);
+            StatusActions.run(h.editor(), StatusActions.Op.STAGE);
+        });
+        assertEquals("Not in part: x on the unmerged file resolves it", h.status());
+        // A side that deleted it: no combined diff, and why.
+        onEdt(() -> status.toggle(line("  U  d.txt (deleted by them)")));
+        until(() -> text().contains("  A side has no file: = shows the other"));
+    }
+
+    @Test
+    public void aSidesLineOfAConflictIsTheWorkingTreesThroughItsCombinedDiff() {
+        // Ours "1 Y 3 4", theirs "1 X 3 4": the working tree's markers
+        // put theirs' X at 5, and 4 at 8.
+        final List<Hunk> hunks = DiffParser.parse("""
+                                                  diff --cc a.txt
+                                                  @@@ -1,3 -1,3 +1,7 @@@
+                                                    1
+                                                  ++<<<<<<< ours
+                                                   +Y
+                                                  ++=======
+                                                  + X
+                                                  ++>>>>>>> theirs
+                                                    3
+                                                  """).get(0).hunks();
+        assertEquals(3, VcsStatusMode.parentToResult(hunks, 0, 2), "ours' Y");
+        assertEquals(5, VcsStatusMode.parentToResult(hunks, 1, 2), "theirs' X");
+        assertEquals(7, VcsStatusMode.parentToResult(hunks, 1, 3));
+        assertEquals(8, VcsStatusMode.parentToResult(hunks, 1, 4), "past the hunk, shifted");
+    }
+
+    @Test
+    public void sideBySideAnUnmergedFileIsOursAgainstTheirs() throws Exception {
+        conflicted();
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  U  a.txt (both modified)"));
+        until(() -> "a.txt (ours)".equals(c.getOld().getTitle()));
+        onEdt(() -> {
+            assertEquals(List.of("ours"), lines(c.getOld()));
+            assertEquals("a.txt (theirs)", c.getTitle());
+            assertEquals(List.of("theirs"), lines(c));
+            assertTrue(c.isReadOnly() && c.getOld().isReadOnly(), "read only");
+        });
+        // A side deleted: nothing there, and the title says why.
+        caretOn(line("  U  d.txt (deleted by them)"));
+        until(() -> "d.txt (deleted by them)".equals(c.getTitle()));
+        onEdt(() -> {
+            assertEquals("d.txt (ours)", c.getOld().getTitle());
+            assertEquals(List.of("d ours"), lines(c.getOld()));
         });
     }
 

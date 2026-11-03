@@ -281,6 +281,14 @@ public interface VcsBackend {
         return null;
     }
 
+    /** A conflicted file's two sides as the index holds them; a side null where it has none, as one that deleted it. */
+    record ConflictSides(byte[] ours, byte[] theirs) {}
+
+    /** path's conflict's sides, read at once; null if they can't be read. Off the event thread. */
+    default ConflictSides readConflictSides(VcsRepository repository, String path) {
+        return null;
+    }
+
     /** A file as a commit has it, or null. */
     default byte[] readFileAt(VcsRepository repository, String id, String path) {
         return null;
