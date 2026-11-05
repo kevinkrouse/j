@@ -37,8 +37,11 @@ work on either.
     caret, its removed and added lines with the characters that differ
     marked, in a window under the caret until the next command. Its bar has
     buttons for the previous and next change and to revert it, and in a file
-    git tracks to stage or unstage it; going to another change while it is
-    open shows that one;</li>
+    git tracks to stage or unstage it and to pick it in the git status;
+    going to another change while it is open shows that one. While it shows,
+    each button's key, <b>p</b>, <b>n</b>, <b>r</b>, <b>s</b>, <b>u</b> and
+    <b>;</b>, does what it does, where keys don't type text: in vim's normal
+    mode, not its insert mode, nor in an edit mode without one;</li>
     <li><a href="commands.html#revertLines">revertLines</a>
     (<code>&lt;leader&gt;hr</code>) puts the change at the caret, or the
     changes under the selection, back, an edit undo takes back;</li>

@@ -41,4 +41,17 @@ public final class ChangeColors {
     public static Color removed(boolean dark) {
         return new Color(dark ? 0xf08080 : 0xc0262d);
     }
+
+    /**
+     * A picked change's line's background on bg, of its kind's color c:
+     * brighter than a line's shade, short of a changed word's.
+     */
+    public static Color picked(Color bg, Color c) {
+        return DefaultTheme.blend(bg, c, 0.2);
+    }
+
+    /** A deletion's rule on bg, of its kind's color c. */
+    public static Color rule(Color bg, Color c) {
+        return DefaultTheme.blend(bg, c, DefaultTheme.isDark(bg) ? 0.55 : 0.45);
+    }
 }

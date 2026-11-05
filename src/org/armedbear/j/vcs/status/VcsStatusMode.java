@@ -47,6 +47,7 @@ import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
 import org.armedbear.j.Region;
+import org.armedbear.j.Sidebar;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 import org.armedbear.j.ViewBuffer;
@@ -544,6 +545,27 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     /** Opens the status of the current buffer's repository, or of the project's repositories. */
     public static void vcsStatus(Editor editor) {
         openStatus(editor);
+    }
+
+    /**
+     * Picks the unstaged changes of the file editor shows, r's, as it is
+     * saved, in the status vcsStatus opens from editor's buffer, opened if
+     * it isn't, but not shown, the file staying as it is shown: the change at
+     * row from, from 0, or the nearest in its hunk, or with lines, the
+     * changed lines of rows from to to; or, each picked, unpicks them; then
+     * runs then.
+     */
+    public static void pickUnstagedAt(Editor editor, VcsRepository r, int from, int to, boolean lines, Runnable then) {
+        final List<VcsRepository> repositories = repositoriesFor(editor.getBuffer());
+        final List<VcsRepository> rs = repositories.contains(r) ? repositories : List.of(r);
+        final boolean opening = VcsStatusBuffer.find(rs) == null;
+        final VcsStatusBuffer status = VcsStatusBuffer.of(rs);
+        // Not shown, the sidebar's buffer list has it at once.
+        if (opening) {
+            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_ALL);
+            Sidebar.refreshSidebarInAllFrames();
+        }
+        status.pickUnstagedAt(editor, from, to, lines, then);
     }
 
     /** vcsStatus: the window it shows the status in, or null if there is none. */

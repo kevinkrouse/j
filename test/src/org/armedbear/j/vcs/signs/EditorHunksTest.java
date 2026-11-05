@@ -23,7 +23,9 @@ package org.armedbear.j.vcs.signs;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -564,8 +566,24 @@ public class EditorHunksTest {
         until(() -> HunkPreview.showing(h.editor()));
         assertEquals("Hunk 2 of 3", HunkPreview.title(h.editor()));
         assertEquals(
-            List.of("previousChange", "nextChange", "vcsStageHunk", "revertLines"),
+            List.of("previousChange", "nextChange", "vcsStageHunk", "vcsPickHunk", "revertLines"),
             HunkPreview.buttons(h.editor()));
+        // While it shows, its buttons' keys do what they do.
+        onEdt(() -> {
+            final org.armedbear.j.KeyMap km = h.editor().getCaretPopup().getKeyMap();
+            assertEquals("previousChange", km.lookup('p', 0, 0).getCommand());
+            assertEquals("nextChange", km.lookup('n', 0, 0).getCommand());
+            assertEquals("vcsStageHunk", km.lookup('s', 0, 0).getCommand());
+            assertEquals("vcsPickHunk", km.lookup(';', 0, 0).getCommand());
+            assertEquals("revertLines", km.lookup('r', 0, 0).getCommand());
+            assertNull(km.lookup('u', 0, 0), "nothing staged to unstage");
+        });
+        // n and p go on to the next hunk and back, the preview with them,
+        // over vim's own n and p.
+        onEdt(() -> h.keys("n"));
+        until(() -> "Hunk 3 of 3".equals(HunkPreview.title(h.editor())));
+        onEdt(() -> h.keys("p"));
+        until(() -> "Hunk 2 of 3".equals(HunkPreview.title(h.editor())));
         onEdt(() -> {
             h.keys("]");
             assertTrue(HunkPreview.showing(h.editor()), "[ or ] begins a key sequence: no command yet");
@@ -579,6 +597,11 @@ public class EditorHunksTest {
         until(() -> "Hunk 1 of 3".equals(HunkPreview.title(h.editor())));
         onEdt(() -> h.keys("[c"));
         until(() -> "Hunk 3 of 3".equals(HunkPreview.title(h.editor())));
+        // A key a vim command waits on is the command's: f then n finds
+        // an n, not the next hunk.
+        onEdt(() -> h.keys("fn"));
+        settle();
+        onEdt(() -> assertNotEquals("Hunk 1 of 3", HunkPreview.title(h.editor())));
         onEdt(() -> h.keys("j"));
         assertFalse(HunkPreview.showing(h.editor()), "another command closes it");
     }

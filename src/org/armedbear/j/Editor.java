@@ -775,22 +775,46 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     // The buffer's own there, or none.
     private void updateBeside() {
         final JComponent c = buffer.besideDisplay(this);
-        if (c == beside)
+        final boolean changed = c != beside;
+        if (changed) {
+            if (beside != null)
+                remove(beside);
+            beside = c;
+            if (c != null)
+                add(c, BorderLayout.WEST);
+        }
+        final boolean left = scrollBarsLeft();
+        if (!changed && left == scrollBarsLeft)
             return;
-        if (beside != null)
-            remove(beside);
-        beside = c;
-        if (c != null)
-            add(c, BorderLayout.WEST);
+        scrollBarsLeft = left;
+        if (verticalScrollBar != null)
+            add(verticalScrollBar, left ? BorderLayout.WEST : BorderLayout.EAST);
+        placeHorizontalScrollBar();
         revalidate();
         repaint();
+    }
+
+    // Whether the vertical scroll bar is at the left, away from the gutter
+    // at the right, the corner below it with it.
+    private boolean scrollBarsLeft;
+
+    private boolean scrollBarsLeft() {
+        return buffer != null && buffer.isGutterOnRight() && beside == null;
+    }
+
+    // The horizontal scroll bar beside the corner, at the vertical's side.
+    private void placeHorizontalScrollBar() {
+        if (horizontalScrollBar != null && horizontalScrollBar.getParent() instanceof JPanel panel) {
+            panel.remove(horizontalScrollBar);
+            panel.add(horizontalScrollBar, scrollBarsLeft ? 1 : 0);
+        }
     }
 
     public void addVerticalScrollBar() {
         if (verticalScrollBar == null) {
             verticalScrollBar = new VerticalScrollBar(this);
             verticalScrollBar.setMinimum(0);
-            add(verticalScrollBar, BorderLayout.EAST);
+            add(verticalScrollBar, scrollBarsLeft ? BorderLayout.WEST : BorderLayout.EAST);
             verticalScrollBarListener = new VerticalScrollBarListener(this);
             verticalScrollBar.addAdjustmentListener(verticalScrollBarListener);
         }
@@ -826,6 +850,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 final int height = horizontalScrollBar.getPreferredSize().height;
                 panel.add(Box.createRigidArea(new Dimension(height, height)));
                 add(panel, BorderLayout.SOUTH);
+                placeHorizontalScrollBar();
                 horizontalScrollBarListener = new HorizontalScrollBarListener(this);
                 horizontalScrollBar.addAdjustmentListener(horizontalScrollBarListener);
             }
@@ -1263,6 +1288,13 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         viewWatchers.add(watcher);
     }
 
+    // Whether a plain key types its character: no modal edit mode, or one
+    // inserting or replacing, its caret not a block.
+    private boolean typesText() {
+        final InputHandler handler = getInputHandler();
+        return handler == null || handler.getCaretShape() != InputHandler.CaretShape.BLOCK;
+    }
+
     /** Whether a key sequence is begun and waits for its next key. */
     public boolean isKeySequencePending() {
         if (requestedKeyMap != null)
@@ -1279,6 +1311,15 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             EditCommands.insertKeyTextInternal(this, keyChar, keyCode, modifiers);
             return true;
         }
+        // A caret popup's own keys come first while it shows, but not
+        // within a key sequence begun, nor where keys type text: in
+        // vim's insert mode, or an edit mode with no other.
+        if (caretPopup != null
+                && caretPopup.getKeyMap() != null
+                && !isKeySequencePending()
+                && !typesText()
+                && runKeyMap(caretPopup.getKeyMap(), event))
+            return true;
         // Modal editing gets first refusal, but stays out of a key sequence
         // that is already in progress so that Emacs-style prefix keys and
         // keyboardQuit keep working.
@@ -1669,7 +1710,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         popup = menu;
         if (popup == null)
             return;
-        int x = mouseEvent.getX();
+        int x = display.toScreenX(mouseEvent.getX());
         int y = mouseEvent.getY();
         Dimension dimPopup = popup.getPreferredSize();
         Dimension dimDisplay = display.getSize();

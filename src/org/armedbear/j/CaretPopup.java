@@ -31,4 +31,9 @@ public interface CaretPopup {
 
     /** Takes it off the screen. Called only by the editor. */
     void removed();
+
+    /** The keys it takes while it shows, before the editor's; null for none. */
+    default KeyMap getKeyMap() {
+        return null;
+    }
 }

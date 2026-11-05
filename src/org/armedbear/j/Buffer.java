@@ -1122,6 +1122,7 @@ public class Buffer extends SystemBuffer {
         final File file = getFile();
         if (file == null)
             return;
+        fileChangedAt = System.currentTimeMillis();
         switch (file.getProtocol()) {
             case File.PROTOCOL_FTP:
                 reloadFtp((FtpFile) file);
@@ -2047,6 +2048,11 @@ public class Buffer extends SystemBuffer {
 
     private final List<GutterColumn> gutterColumns = new CopyOnWriteArrayList<>();
 
+    /** Whether its gutter is drawn at the right of its text, as a comparison's old side's, beside the new. */
+    public boolean isGutterOnRight() {
+        return false;
+    }
+
     /** The columns it paints in the gutter before its text, left to right, as the log's graph. */
     public final List<GutterColumn> getGutterColumns() {
         return Collections.unmodifiableList(gutterColumns);
@@ -2113,7 +2119,19 @@ public class Buffer extends SystemBuffer {
         Sidebar.repaintBufferListInAllFrames();
     }
 
+    // When, by j's clock, its file last changed under it.
+    private long fileChangedAt;
+
+    /**
+     * When, by j's clock, not the file system's, its file last changed
+     * under it: saved, or reloaded; 0 for never since loaded.
+     */
+    public final long getFileChangedAt() {
+        return fileChangedAt;
+    }
+
     public void saved() {
+        fileChangedAt = System.currentTimeMillis();
         saveModCount = modCount;
         autosaveModCount = modCount;
         ProjectFiles.fileSaved(getFile());

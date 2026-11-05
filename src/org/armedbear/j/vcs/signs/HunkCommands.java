@@ -44,6 +44,7 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.conflicts.ConflictMarkers;
 import org.armedbear.j.vcs.status.StatusActions;
+import org.armedbear.j.vcs.status.VcsStatusMode;
 
 /**
  * The editor's hunks: staging, resetting and previewing the hunk at the
@@ -54,8 +55,10 @@ public final class HunkCommands {
     private HunkCommands() {}
 
     // The buffer as it is now, and what of it the command takes: the
-    // caret's line, or the lines of the selection (first > -1).
-    private record Snapshot(Buffer buffer, List<String> lines, int modCount, int caret, int first, int last) {
+    // caret's line, or the lines of the selection (first > -1); and git's
+    // edits of it, as the status's picks have them, or null.
+    private record Snapshot(Buffer buffer, List<String> lines, int modCount, int caret, int first, int last,
+            List<Edit> git) {
         boolean takes(Edit e) {
             return first < 0 ? covers(e, caret, caret) : covers(e, first, last);
         }
@@ -91,7 +94,10 @@ public final class HunkCommands {
         final List<Line> selected = Region.selectedLines(editor);
         final int first = selected.isEmpty() ? -1 : selected.get(0).lineNumber();
         final int last = selected.isEmpty() ? -1 : selected.get(selected.size() - 1).lineNumber();
-        return new Snapshot(buffer, lines, buffer.getModCount(), editor.getDotLineNumber(), first, last);
+        final SignsUpdater u = buffer.getSignsUpdater();
+        final StatusView view = u == null ? null : u.view();
+        final List<Edit> git = view == null ? null : view.edits();
+        return new Snapshot(buffer, lines, buffer.getModCount(), editor.getDotLineNumber(), first, last, git);
     }
 
     // The bases as they are now, and the buffer's side against the index;
@@ -111,6 +117,47 @@ public final class HunkCommands {
         // Written back with the mark its file has, as a patch must have it.
         final Side now = Side.ofBuffer(s.lines(), cs, index.crlf()).withMarkOf(index);
         return new Sides(head, index, now, !Side.isUtf16(bases.index(), cs));
+    }
+
+    /**
+     * Picks the change at the caret in the git status, as git's diff of the
+     * saved file has it, or the changed lines a selection covers; or, each
+     * picked, unpicks them: for a command there to take. An open preview
+     * shows it.
+     */
+    public static void vcsPickHunk(Editor editor) {
+        final SignsUpdater u = updater(editor);
+        if (u == null)
+            return;
+        if (editor.getBuffer().isModified()) {
+            editor.status("Save " + editor.getBuffer().getFile().getName() + " to pick its changes");
+            return;
+        }
+        final List<Line> selected = Region.selectedLines(editor);
+        final boolean lines = !selected.isEmpty();
+        final int from = lines ? selected.get(0).lineNumber() : editor.getDotLineNumber();
+        final int to = lines ? selected.get(selected.size() - 1).lineNumber() : from;
+        if (u.isGitsRefused()) {
+            editor.status(
+                "The git status's diff of " + u.getPath()
+                        + " isn't the file's now (whitespace ignored?): pick it there");
+            return;
+        }
+        if (lines)
+            editor.setMark(null);
+        // Shown again, picked, in place of the one open.
+        final boolean preview = HunkPreview.showing(editor);
+        if (preview)
+            editor.replacingCaretPopup();
+        final Runnable then = () -> {
+            if (preview)
+                previewHunk(editor);
+        };
+        final StatusView view = u.view();
+        if (view != null)
+            view.pick(editor, from, to, lines, then);
+        else
+            VcsStatusMode.pickUnstagedAt(editor, u.getRepository(), from, to, lines, then);
     }
 
     /**
@@ -173,7 +220,7 @@ public final class HunkCommands {
             return Staging.failed("Not in the index");
         if (!sides.patchable())
             return Staging.failed(UTF16);
-        final List<Edit> edits = EditorHunks.edits(sides.index(), sides.now());
+        final List<Edit> edits = EditorHunks.edits(sides.index(), sides.now(), s.git());
         final List<Edit> taken = taken(edits, s);
         if (taken.isEmpty())
             return Staging.failed("No unstaged change here");
@@ -218,7 +265,7 @@ public final class HunkCommands {
                     r.backend().unstage(r, List.of(new FileChange(u.getPath(), null, Kind.ADDED, null, "A "))));
             if (!sides.patchable())
                 return UTF16;
-            final List<Edit> unstaged = EditorHunks.edits(sides.index(), sides.now());
+            final List<Edit> unstaged = EditorHunks.edits(sides.index(), sides.now(), s.git());
             final int[] map = SignsMath.indexToBuffer(sides.index().lines().size(), unstaged);
             final List<Edit> staged = EditorHunks.edits(sides.head(), sides.index());
             final List<Edit> taken = new ArrayList<>();
@@ -290,7 +337,7 @@ public final class HunkCommands {
                 editor.status("The buffer changed; try again");
                 return;
             }
-            final List<Edit> taken = taken(EditorHunks.edits(sides.index(), sides.now()), s);
+            final List<Edit> taken = taken(EditorHunks.edits(sides.index(), sides.now(), s.git()), s);
             if (taken.isEmpty()) {
                 editor.status("No unstaged change here");
                 return;
@@ -347,7 +394,7 @@ public final class HunkCommands {
             // Moved on meanwhile: a later preview's, or none.
             if (!s.current(editor) || editor.getDotLineNumber() != s.caret())
                 return;
-            if (sides == null || !preview(editor, sides, s.caret())) {
+            if (sides == null || !preview(editor, sides, s)) {
                 HunkPreview.close(editor);
                 editor.status("No change here");
             }
@@ -355,8 +402,9 @@ public final class HunkCommands {
     }
 
     // Shows the unstaged hunk at line, else the staged one there; false if neither.
-    private static boolean preview(Editor editor, Sides sides, int line) {
-        final List<Edit> unstaged = EditorHunks.edits(sides.index(), sides.now());
+    private static boolean preview(Editor editor, Sides sides, Snapshot s) {
+        final int line = s.caret();
+        final List<Edit> unstaged = EditorHunks.edits(sides.index(), sides.now(), s.git());
         for (Edit e : unstaged) {
             if (covers(e, line, line)) {
                 HunkPreview.show(

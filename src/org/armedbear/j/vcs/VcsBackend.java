@@ -330,6 +330,11 @@ public interface VcsBackend {
         return null;
     }
 
+    /** Stashes the changes to paths, whole, as stash does all of them; null where it can't. */
+    default VcsResult stash(VcsRepository repository, String message, Set<StashOption> options, List<String> paths) {
+        return paths.isEmpty() ? stash(repository, message, options) : null;
+    }
+
     /**
      * Applies the stash id, named name; with pop drops it too if it applied
      * cleanly, failing without either if name is no longer id.

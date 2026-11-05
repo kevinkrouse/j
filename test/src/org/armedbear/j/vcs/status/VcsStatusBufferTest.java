@@ -22,6 +22,7 @@ package org.armedbear.j.vcs.status;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -1290,10 +1291,6 @@ public class VcsStatusBufferTest {
             onEdt(() -> status.setExpanded(line("  M  a.txt"), true));
         until(() -> status.getDiff().item() != null && status.getDiff().item().diff() != null);
         until(() -> addedRows(c).equals(gitsAddedRows()));
-        onEdt(
-            () -> assertTrue(
-                c.getOld().getGutterColumns().stream().noneMatch(col -> col instanceof ComparedPickColumn),
-                "picks on the new side alone"));
     }
 
     // The rows, from 0, git's diff of the file the diff beside shows adds.
@@ -1337,7 +1334,7 @@ public class VcsStatusBufferTest {
         until(() -> lines(c).contains("three"));
         onEdt(() -> {
             assertNotNull(status.comparedPicks().boxAt(false, 0));
-            assertEquals(status.comparedPicks().hunkAt(false, 0), status.comparedPicks().boxAt(false, 0).id());
+            assertFalse(status.comparedPicks().boxAt(false, 0).line());
             assertNull(status.comparedPicks().boxAt(false, 2));
         });
     }
@@ -1371,11 +1368,10 @@ public class VcsStatusBufferTest {
             h.showBuffer(c);
             h.editor().setDot(c.getLine(row), 0);
             VcsStatusMode.vcsStatusPick(h.editor());
-            final String id = status.comparedPicks().hunkAt(false, row);
-            assertNotNull(id, "the row is a hunk's");
-            // Its box at the change on each side, not at its context above.
-            assertEquals(id, status.comparedPicks().boxAt(false, row).id());
-            assertEquals(id, status.comparedPicks().boxAt(true, lines(c.getOld()).indexOf("three blind mice")).id());
+            // Its box at the change, not at its context above; on the new
+            // side alone, the change adding a line.
+            assertNotNull(status.comparedPicks().boxAt(false, row));
+            assertNull(status.comparedPicks().boxAt(true, lines(c.getOld()).indexOf("three blind mice")));
             assertNull(status.comparedPicks().boxAt(false, 0));
             assertEquals(org.armedbear.j.util.PickState.ALL, status.comparedPicks().boxAt(false, row).state());
             assertFalse(status.picks().isEmpty());
@@ -1391,7 +1387,7 @@ public class VcsStatusBufferTest {
         git = GitFixture.init(tmp);
         git.write("a.txt", TEN);
         git.commitAll("first");
-        git.write("a.txt", TEN.replace("two\n", "two\nTWO\n").replace("four\n", "four\nFOUR\n"));
+        git.write("a.txt", TEN.replace("two\n", "two\nTWO\nTOO\n").replace("four\n", "four\nFOUR\n"));
         open();
         onEdt(() -> {
             status.openDiff(null);
@@ -1402,39 +1398,125 @@ public class VcsStatusBufferTest {
         until(() -> lines(c).contains("FOUR"));
         onEdt(() -> {
             h.showBuffer(c);
+            final RowPicks picks = status.comparedPicks();
             final int two = lines(c).indexOf("TWO");
+            final int too = lines(c).indexOf("TOO");
             final int four = lines(c).indexOf("FOUR");
-            final String id = status.comparedPicks().hunkAt(false, two);
-            assertEquals(id, status.comparedPicks().hunkAt(false, four), "one hunk");
-            // A selection over TWO alone picks that line, not the hunk.
+            // One hunk of git's, two changes, each with its box.
+            assertEquals(picks.boxAt(false, two).id(), picks.boxAt(false, four).id(), "one hunk");
+            assertFalse(picks.boxAt(false, four).line());
+            assertNull(picks.boxAt(false, too));
+            // A selection over TWO alone picks that line, not its change.
             h.editor().setMark(new Position(c.getLine(two), 0));
             h.editor().setDot(c.getLine(two), 3);
             VcsStatusMode.vcsStatusPick(h.editor());
             assertNull(h.editor().getMark());
-            assertEquals(
-                new ComparedPicks.Box(id,
-                        status.comparedPicks().boxAt(false, two).i(),
-                        org.armedbear.j.util.PickState.ALL),
-                status.comparedPicks().boxAt(false, two));
+            assertTrue(picks.boxAt(false, two).line());
+            assertEquals(org.armedbear.j.util.PickState.ALL, picks.boxAt(false, two).state());
             assertEquals(
                 org.armedbear.j.util.PickState.NONE,
-                status.comparedPicks().boxAt(false, four).state(),
-                "a box at each changed row while the hunk is picked in part");
-            // A Shift click on FOUR, none before it a click: every change
-            // picked, the hunk is.
+                picks.boxAt(false, too).state(),
+                "a box at each changed row while the change is picked in part");
+            assertFalse(picks.boxAt(false, four).line(), "the other change's box its own");
+            // A changed row's gutter shaded, a picked one's brighter.
+            final java.awt.Color picked = c.getFormatter().getGutterBackground(c.getLine(two));
+            final java.awt.Color not = c.getFormatter().getGutterBackground(c.getLine(four));
+            assertNotNull(not);
+            assertNotEquals(not, picked);
+            assertNull(c.getFormatter().getGutterBackground(c.getLine(0)), "an unchanged row's is the display's");
+            // A click on TOO: the change picked whole, its box one again,
+            // with a line from it down through its changes.
             final org.armedbear.j.GutterColumn col = c.getGutterColumns()
                     .stream()
                     .filter(g -> g instanceof ComparedPickColumn)
                     .findFirst()
                     .orElseThrow();
+            picks.toggle(picks.boxAt(false, too));
+            assertFalse(picks.boxAt(false, two).line());
+            assertEquals(org.armedbear.j.util.PickState.ALL, picks.boxAt(false, two).state());
+            assertNull(picks.boxAt(false, too));
+            assertEquals(org.armedbear.j.util.PickColumn.Trail.FROM, picks.trailAt(false, false, two));
+            assertEquals(org.armedbear.j.util.PickColumn.Trail.TO, picks.trailAt(false, false, too));
+            assertNull(picks.trailAt(false, false, too + 1));
+            assertNull(picks.trailAt(false, false, four), "the other change unpicked");
+            // A Shift click on FOUR: every change picked, the hunk is.
             col.shiftClicked(h.editor(), c.getLine(four), 0, 0);
-            assertEquals(-1, status.comparedPicks().boxAt(false, two).i());
-            assertEquals(org.armedbear.j.util.PickState.ALL, status.comparedPicks().boxAt(false, two).state());
+            assertEquals(org.armedbear.j.util.PickState.ALL, picks.boxAt(false, four).state());
             h.showBuffer(status);
         });
         // The file closed in the status: its diff read for the pick.
         until(() -> !status.picks().unread(status));
         onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(StatusActions.targets(status, h.editor()))));
+    }
+
+    @Test
+    public void aModifiedLineIsPickedWithItsRemovalAndADeletionOnTheOldSide() throws Exception {
+        git = GitFixture.init(tmp);
+        final StringBuilder thirty = new StringBuilder();
+        for (int i = 1; i <= 30; i++)
+            thirty.append('l').append(i).append('\n');
+        git.write("a.txt", thirty.toString());
+        git.commitAll("first");
+        git.write("a.txt", thirty.toString().replace("l2\nl3\n", "TWO\n").replace("l20\n", ""));
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  M  a.txt"));
+        until(() -> lines(c).contains("TWO"));
+        onEdt(() -> {
+            h.showBuffer(c);
+            final RowPicks picks = status.comparedPicks();
+            final int two = lines(c).indexOf("TWO");
+            final int l2 = lines(c.getOld()).indexOf("l2");
+            final int l3 = lines(c.getOld()).indexOf("l3");
+            final int l20 = lines(c.getOld()).indexOf("l20");
+            // A change adding lines has its box on the new side; one that
+            // adds none, on the old.
+            final String modified = picks.boxAt(false, two).id();
+            assertFalse(picks.boxAt(false, two).line());
+            assertNull(picks.boxAt(true, l2));
+            final String deleted = picks.boxAt(true, l20).id();
+            assertFalse(picks.boxAt(true, l20).line());
+            assertNull(picks.boxAt(false, lines(c).indexOf("l21")));
+            // The change picked, then TWO unpicked: l2, removed for it, with it.
+            h.editor().setDot(c.getLine(two), 0);
+            VcsStatusMode.vcsStatusPick(h.editor());
+            assertTrue(picks.isPicked(true, l2));
+            h.editor().setMark(new Position(c.getLine(two), 0));
+            h.editor().setDot(c.getLine(two), 3);
+            VcsStatusMode.vcsStatusPick(h.editor());
+            assertFalse(picks.isPicked(false, two));
+            assertFalse(picks.isPicked(true, l2), "a modified line's removal unpicked with it");
+            assertTrue(picks.isPicked(true, l3));
+            // l3, with no line added for it, has its box on the old side.
+            assertNull(picks.boxAt(true, l2));
+            assertEquals(org.armedbear.j.util.PickState.ALL, picks.boxAt(true, l3).state());
+            assertEquals(modified, picks.boxAt(true, l3).id());
+            picks.toggle(picks.boxAt(true, l3));
+            assertTrue(status.picks().isEmpty());
+            // The deletion's box picks it.
+            picks.toggle(picks.boxAt(true, l20));
+            assertTrue(picks.isPicked(true, l20));
+            assertEquals(org.armedbear.j.util.PickState.ALL, picks.boxAt(true, l20).state());
+            assertEquals(deleted, picks.boxAt(true, l20).id());
+            // The signs' rows: a modified line's removals on its addition's
+            // row, past it the last's; a deletion's, the row above.
+            final java.util.Map<String, org.armedbear.j.vcs.diff.Hunk> ids =
+                    status.picks().ids(status.getDiff().item().diff());
+            final org.armedbear.j.vcs.diff.Hunk m = ids.get(modified);
+            final int[] rows = StatusPicks.signRows(m);
+            for (int i = 0; i < m.lines().size(); i++)
+                if (!m.lines().get(i).isContext())
+                    assertEquals(two, rows[i], m.lines().get(i).text());
+            final org.armedbear.j.vcs.diff.Hunk d = ids.get(deleted);
+            for (int i = 0; i < d.lines().size(); i++)
+                if (d.lines().get(i).isRemoved())
+                    assertEquals(lines(c).indexOf("l19"), StatusPicks.signRows(d)[i]);
+            h.showBuffer(status);
+        });
     }
 
     @Test

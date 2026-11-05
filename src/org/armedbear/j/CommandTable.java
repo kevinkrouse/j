@@ -457,6 +457,7 @@ public class CommandTable {
             add("vcsStage", e -> StatusActions.run(e, StatusActions.Op.STAGE));
             add("vcsStageAll", e -> StatusActions.all(e, true));
             add("vcsStageHunk", HunkCommands::vcsStageHunk);
+            add("vcsPickHunk", HunkCommands::vcsPickHunk);
             add("vcsStashApply", StashCommands::vcsStashApply);
             add("vcsStashDrop", StashCommands::vcsStashDrop);
             add("vcsStashKeepIndex", StashCommands::vcsStashKeepIndex);

@@ -24,6 +24,7 @@ import java.awt.Color;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntPredicate;
 
 /**
  * A buffer's change marks as its version control sees them: each line
@@ -40,8 +41,13 @@ public final class Signs {
      * @param staged whether the change is in the index, not only in the file
      * @param above for DELETED on the first line: the lines went above it,
      *     not below
+     * @param picked whether the change is picked, as in the git status
      */
-    public record Sign(Kind kind, boolean staged, boolean above) {}
+    public record Sign(Kind kind, boolean staged, boolean above, boolean picked) {
+        public Sign(Kind kind, boolean staged, boolean above) {
+            this(kind, staged, above, false);
+        }
+    }
 
     /** A kind's color, from its preference or the default for a light or dark background. */
     public static Color color(Kind kind, Color background) {
@@ -82,5 +88,17 @@ public final class Signs {
 
     public boolean isEmpty() {
         return signs.isEmpty();
+    }
+
+    /** These signs, those of lines not staged whose number picked takes picked. */
+    public Signs picked(IntPredicate picked) {
+        final Map<Line, Sign> out = new IdentityHashMap<>();
+        for (Map.Entry<Line, Sign> e : signs.entrySet()) {
+            final Sign s = e.getValue();
+            out.put(
+                e.getKey(),
+                new Sign(s.kind(), s.staged(), s.above(), !s.staged() && picked.test(e.getKey().lineNumber())));
+        }
+        return new Signs(out, starts);
     }
 }

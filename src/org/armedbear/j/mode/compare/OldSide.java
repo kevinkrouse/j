@@ -56,6 +56,12 @@ public final class OldSide extends ViewPane<CompareBuffer> {
         return getOwner().keys().visual(super.getVisualKeyMapForMode());
     }
 
+    // Its gutter beside the new side's, as IntelliJ's diff viewer has it.
+    @Override
+    public boolean isGutterOnRight() {
+        return true;
+    }
+
     @Override
     public Line jumpTarget(Line line) {
         return getOwner() != null ? getOwner().jumpTarget(this, line) : line;

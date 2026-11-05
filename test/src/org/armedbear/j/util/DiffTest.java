@@ -21,6 +21,7 @@
 package org.armedbear.j.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -162,5 +163,19 @@ public class DiffTest {
         final List<String> b = new ArrayList<>(a);
         b.set(12345, "changed");
         assertEquals(List.of(new Edit(12345, 1, 12345, 1)), Diff.diff(a, b));
+    }
+
+    @Test
+    public void anotherDiffsEditsAreTakenOnlyIfTheyTurnOneIntoTheOther() {
+        final List<String> a = List.of("  y", "{", "{", "{", "  y");
+        final List<String> b = List.of("  y", "{", "{", "  y");
+        // git's: the second { removed, where j's removes the third.
+        assertTrue(Diff.isDiffOf(a, b, List.of(new Edit(2, 1, 2, 0))));
+        assertTrue(Diff.isDiffOf(a, b, Diff.diff(a, b)));
+        assertFalse(Diff.isDiffOf(a, b, List.of(new Edit(4, 1, 3, 0))), "the lines left differ");
+        assertFalse(Diff.isDiffOf(a, b, List.of()), "the lengths differ");
+        assertFalse(Diff.isDiffOf(a, b, List.of(new Edit(2, 1, 2, 0), new Edit(1, 0, 1, 0))), "out of order");
+        assertFalse(Diff.isDiffOf(a, a, List.of(new Edit(2, 1, 2, 1))), "changes nothing: staged since");
+        assertFalse(Diff.isDiffOf(a, b, List.of(new Edit(5, 1, 5, 0))), "past the end");
     }
 }

@@ -47,18 +47,22 @@ import org.armedbear.j.ChangeMarks;
 import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
+import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Signs;
 import org.armedbear.j.UIScale;
 import org.armedbear.j.mode.compare.WordDiff;
 import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.PickState;
 import org.armedbear.j.util.Utilities;
 
 /**
  * A hunk's removed and added lines in a popup under the caret, the
- * characters that differ between paired lines marked, under a bar with its
- * number and buttons to go to the previous or next hunk, around at the
- * ends, stage or unstage it where there is version control, or revert it.
+ * characters that differ between paired lines marked, under a bar with
+ * buttons to go to the previous or next hunk, around at the ends, stage or
+ * unstage it and pick it where there is version control, or revert it, and
+ * its number. While it shows, each enabled button's key, as the change
+ * popup's, does what it does: p, n, s, u, ; and r.
  * The editor closes it after the next command; going to another hunk shows
  * that one in its place.
  */
@@ -91,7 +95,7 @@ public final class HunkPreview extends JPanel implements CaretPopup {
         final JLabel label = new JLabel(title);
         label.setFont(Display.getPlainFont());
         label.setForeground(text);
-        label.setBorder(BorderFactory.createEmptyBorder(0, PAD, 0, 2 * PAD));
+        label.setBorder(BorderFactory.createEmptyBorder(0, 2 * PAD, 0, PAD));
         bar.setFloatable(false);
         bar.setRollover(true);
         bar.setOpaque(false);
@@ -99,20 +103,22 @@ public final class HunkPreview extends JPanel implements CaretPopup {
         final JPanel top = new JPanel(new BorderLayout());
         top.setBackground(DefaultTheme.blend(bg, text, 0.06));
         top.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, DefaultTheme.blend(bg, text, 0.2)));
-        top.add(label, BorderLayout.CENTER);
-        top.add(bar, BorderLayout.EAST);
+        top.add(bar, BorderLayout.WEST);
+        top.add(label, BorderLayout.EAST);
         add(top, BorderLayout.NORTH);
         add(new Lines(), BorderLayout.CENTER);
     }
 
     // A button on the bar, in the text color, dimmed when disabled.
-    private void button(String icon, String command, String tip, boolean enabled) {
+    private void button(String icon, String command, char key, String tip, boolean enabled) {
         final Color bg = editor.getFormatter().getBackgroundColor();
         final Color text = editor.getFormatter().getColor(0);
         final int size = UIScale.scale(Icons.ICON_SIZE);
         final JButton b = new JButton(Icons.getIconFromFile(icon, size, text));
         b.setDisabledIcon(Icons.getIconFromFile(icon, size, DefaultTheme.blend(bg, text, 0.3)));
-        b.setToolTipText(tip);
+        b.setToolTipText(tip + " (" + key + ")");
+        if (enabled)
+            keys.mapKey(key, command);
         b.setActionCommand(command);
         b.setEnabled(enabled);
         // The keys stay with the editor.
@@ -159,15 +165,35 @@ public final class HunkPreview extends JPanel implements CaretPopup {
         final String title =
                 "Hunk " + Math.max(1, number) + " of " + Math.max(1, starts.size()) + (staged ? " (staged)" : "");
         final HunkPreview p = new HunkPreview(editor, title, rows);
-        p.button("up", "previousChange", "Previous hunk", others);
-        p.button("down", "nextChange", "Next hunk", others);
+        p.button("up", "previousChange", 'p', "Previous hunk", others);
+        p.button("down", "nextChange", 'n', "Next hunk", others);
         if (staged)
-            p.button("minus", "vcsUnstageHunk", "Unstage hunk", true);
-        else if (vcs)
-            p.button("plus", "vcsStageHunk", "Stage hunk", true);
-        p.button("undo", "revertLines", "Revert hunk", !staged);
+            p.button("minus", "vcsUnstageHunk", 'u', "Unstage hunk", true);
+        else if (vcs) {
+            p.button("plus", "vcsStageHunk", 's', "Stage hunk", true);
+            final SignsUpdater u = editor.getBuffer().getSignsUpdater();
+            final PickState picked = u == null ? PickState.NONE : u.pickStateAt(editor.getDotLineNumber());
+            p.button(switch (picked) {
+                case ALL -> "pick-button-on";
+                case SOME -> "pick-button-some";
+                case NONE -> "pick-button-off";
+            },
+                "vcsPickHunk",
+                ';',
+                picked == PickState.ALL ? "Unpick hunk in the status" : "Pick hunk in the status",
+                true);
+        }
+        p.button("undo", "revertLines", 'r', "Revert hunk", !staged);
         editor.showCaretPopup(p);
         p.attach();
+    }
+
+    // Its enabled buttons' keys.
+    private final KeyMap keys = new KeyMap();
+
+    @Override
+    public KeyMap getKeyMap() {
+        return keys;
     }
 
     /** Closes editor's preview, if it shows one. */

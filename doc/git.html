@@ -191,7 +191,9 @@ file or line it was on.
 <a href="commands.html#vcsDiff">vcsDiff</a> shows the file
 being edited side by side with what is staged of it, across the frame: the
 staged text at the left and the buffer's at the right, saved or not, each in
-the file's mode and encoding, and read-only. A file not in the index, new or
+the file's mode and encoding, and read-only. The left side's gutter, its line
+numbers and boxes, is at its right, beside the band, as the right side's is
+beside it. A file not in the index, new or
 in a conflict, is all added. A changed line is shaded blue on both sides,
 the words that differ in it a stronger blue, an added one green at the right
 and a removed one red at the left. Between the two, each change is a band
@@ -286,17 +288,27 @@ files, sections and repositories. While anything is picked, a column at the
 left draws a box at each thing that can be picked, filled and checked when it
 is, with a dash on a file some of whose hunks are, which also says how many
 after its name, <code>2/5</code>; a file all of whose hunks are picked is
-picked. A click on a box toggles it, and a Shift click sets the boxes from the
+picked. A hunk picked whole has its box alone, on its <code>@@</code> line,
+with a thin line from it down through its changes, as side by side and the
+editor draw one. A click on a box toggles it, and a Shift click sets the boxes from the
 last one clicked to it the same way: files from a file, hunks from a hunk,
 lines from a line. The diff beside does the same, except that in vim
 <b>;</b> there is vim's own, repeating an <b>f</b> or <b>t</b>, and picks only
 on a selection. Side by side, the changes are git's, as the diff beside shows
-them, and the boxes are on the right: each hunk's at its first changed row, or
-the row after a removal, and while a hunk is picked in part, one at each line it
-adds. The same keys pick on either side, a selection picking the changed lines
-it covers, <b>;</b> in vim as in the diff beside; a removed line is picked with
-the line added for it. While the file's buffer has unsaved edits, the boxes
-are hidden until it is saved. <b>s</b>, <b>u</b>, <b>x</b>
+them, but a box picks a change, a run of lines changed together, as the
+editor's hunk commands take one, not git's hunk, which may hold several close
+together. The boxes are on the right: each change's at its first changed row,
+and while a change is picked in part, one at each line it adds. A changed line's
+removal is picked with the line added for it, always, wherever it is picked,
+so its box is the added line's. What has no row on the right has its box on the
+left: a change that only removes lines, and while a change is picked in part, a
+removed line with no line added for it. A change picked whole has a thin line from
+its box down through its lines, ending in a tick at the last, so that the one
+box is seen to pick them all. The same keys pick on either side, the caret
+picking the change it is on, or the nearest it in its hunk, and a
+selection the changed lines it covers, <b>;</b> in vim as in the diff
+beside. While the file's buffer has unsaved edits, the boxes
+are hidden until it is saved, and once saved, until the status has read it again. <b>s</b>, <b>u</b>, <b>x</b>
 and the resolve popup then take a selection if there is one, else what is
 picked, not the caret, the resolve popup only the picked conflicts,
 and unpick it once done; Enter on a picked file or hunk opens each picked file; a double click visits the line clicked. A stash's files are not picked, and <b>x</b> on a stash's line drops it
@@ -304,6 +316,38 @@ whatever is picked; the resolve popup with no conflict picked says so. A pick la
 refresh; one whose change is gone, or has changed, is dropped, and the status
 bar says so, unless one of j's own commands took the change. <b>Ctrl ;</b> unpicks everything, as in a directory. Picks are kept in
 memory, not saved.
+
+<p>
+In a file's own buffer, the change popup and the hunk preview have
+<b>pick</b> (<code>&lt;leader&gt;h;</code> in vim edit mode,
+<a href="commands.html#vcsPickHunk">vcsPickHunk</a>): it picks the change at
+the caret, as git's diff of the saved file has it, in the status, opening the
+status if it isn't, or unpicks it; with a selection, vim's visual one too, it
+picks the changed lines the selection covers. While the preview shows,
+<b>;</b> picks too, where keys don't type text, and its box shows whether
+the change is picked. If no status is open, one opens, in the buffer list,
+not shown: the file's window stays as it is, and <b>vcsStatus</b> shows it.
+
+<p>
+While an open status has read the file's diff, as it does of each file open
+in j, the file's change marks are
+git's diff's, not j's own, which can place a change a line apart where lines
+repeat, so that the marks, the boxes and the hunk commands agree; editing the
+file, the marks are j's own again until it is saved and read. While anything
+of the file is picked, its buffer has the status's column of boxes, by the
+change marks: a change's at its first mark, or, picked in part, one at each mark,
+picking the lines it marks, and on
+a collapsed fold's line a box for the changes it hides, a click picking or
+unpicking them all. A change picked whole has the same line down from its box. A
+picked change's lines are a brighter shade of its color; where lines were only
+deleted, a rule in the deletion's color marks the place, as side by side,
+the line beside it being unchanged.
+
+<p>
+A picked change is drawn brighter than one not picked: its lines in the
+diff beside, side by side and the file's buffer, and side by side's gutter,
+where each changed row is a dimmer shade of its line's color. A staged
+change's sign in a file's buffer is faded.
 
 <p>
 While one change is being made, and until the buffer shows it, another waits:
@@ -692,6 +736,15 @@ next stash alone. Then:
     <li><b>p</b> pops it: applies it, and drops it if it applied cleanly;</li>
     <li><b>k</b> drops it, after asking.</li>
 </ul>
+
+<p>
+With files selected, or else picked, <b>z</b>, <b>i</b>, <b>u</b> and
+<b>s</b> stash those files alone, in each repository they are in, an
+untracked one with the untracked files, and unpick those picked once
+stashed; the popup's title says which, and how many picked, and it has no
+<b>-a</b>. A repository with nothing of them to stash is left as it is, its
+files still picked. A stash takes whole files, so with hunks or lines
+selected or picked it does nothing, its stash commands dimmed, and says so.
 
 <p>
 With several repositories, the popup has <b>-a</b>, all repositories: then

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -37,6 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.Predicate;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import org.armedbear.j.Buffer;
@@ -64,6 +66,8 @@ import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.compare.Following;
 import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Diff;
+import org.armedbear.j.util.PickState;
 import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.util.Whitespace;
@@ -74,10 +78,13 @@ import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
 import org.armedbear.j.vcs.log.LogScope;
+import org.armedbear.j.vcs.signs.SignsUpdater;
+import org.armedbear.j.vcs.signs.StatusView;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -93,7 +100,7 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
  * or side by side under it.
  */
 public final class VcsStatusBuffer extends ViewBuffer
-        implements FrameView, DiffWhitespace.Listener, CommitDetails.Host {
+        implements FrameView, DiffWhitespace.Listener, CommitDetails.Host, StatusView.Source {
     // How long the caret rests on a file before the diff beside follows it.
     private static final int FOLLOW_DELAY = 100;
 
@@ -145,6 +152,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         follow.setRepeats(false);
         for (VcsRepository r : repositories)
             r.addListener(listener);
+        SignsUpdater.addSource(this);
     }
 
     private static String title(List<VcsRepository> repositories) {
@@ -180,6 +188,11 @@ public final class VcsStatusBuffer extends ViewBuffer
     public void dispose() {
         disposed = true;
         follow.stop();
+        // Its picks gone from its files' buffers, their boxes and marks,
+        // and its diffs from their signs.
+        SignsUpdater.removeSource(this);
+        picks.clear();
+        signsChanged(u -> true);
         for (VcsRepository r : repositories)
             r.removeListener(listener);
         trees.forget();
@@ -214,6 +227,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         try {
             while (true) {
                 final long startedAt = clock.incrementAndGet();
+                final long wallAt = System.currentTimeMillis();
                 final Whitespace ignored = DiffWhitespace.ignored();
                 final Map<VcsRepository, StatusData> read = new LinkedHashMap<>();
                 final Set<String> diffs = ConcurrentHashMap.newKeySet();
@@ -222,7 +236,10 @@ public final class VcsStatusBuffer extends ViewBuffer
                     try {
                         d = r.backend().readStatus(r, (section, path) -> {
                             final String key = StatusRenderer.fileKey(r, section, path);
-                            if (!isExpanded(key, Kind.FILE) && !partlyPicked.contains(key))
+                            if (!isExpanded(key, Kind.FILE)
+                                    && !partlyPicked.contains(key)
+                                    && !wanted.contains(key)
+                                    && !viewed.contains(key))
                                 return false;
                             diffs.add(key);
                             return true;
@@ -234,7 +251,7 @@ public final class VcsStatusBuffer extends ViewBuffer
                     }
                     read.put(r, d != null ? d : StatusData.failed(r.backend().name() + " has no status"));
                 }
-                SwingUtilities.invokeLater(() -> show(read, diffs, startedAt, ignored));
+                SwingUtilities.invokeLater(() -> show(read, diffs, startedAt, wallAt, ignored));
                 synchronized (this) {
                     if (!readAgain || disposed) {
                         reading = false;
@@ -253,9 +270,36 @@ public final class VcsStatusBuffer extends ViewBuffer
         }
     }
 
-    private void show(Map<VcsRepository, StatusData> read, Set<String> diffs, long startedAt, Whitespace ignored) {
+    private void show(
+            Map<VcsRepository, StatusData> read,
+            Set<String> diffs,
+            long startedAt,
+            long wallAt,
+            Whitespace ignored) {
         if (disposed)
             return;
+        final long before = shownReadAt;
+        shownReadAt = wallAt;
+        // Its files' signs, which its diffs place, and what of them is
+        // picked, as read now: all, or with nothing new read, those saved
+        // since the read before, whose picks were hidden till this one.
+        if (showRead(read, diffs, startedAt, ignored))
+            signsChanged(u -> true);
+        else
+            signsChanged(u -> u.getBuffer().getFileChangedAt() >= before);
+        // The picks from files waiting on this read.
+        final List<PendingPick> waiting = List.copyOf(pendingPicks);
+        pendingPicks.clear();
+        for (PendingPick p : waiting)
+            pickUnstagedAt(p, diffs);
+    }
+
+    // Whether it found anything new, and showed it.
+    private boolean showRead(
+            Map<VcsRepository, StatusData> read,
+            Set<String> diffs,
+            long startedAt,
+            Whitespace ignored) {
         final boolean newWhitespace = ignored != readIgnoring;
         readIgnoring = ignored;
         // A file the status has closed may have changed with nothing it shows.
@@ -272,12 +316,13 @@ public final class VcsStatusBuffer extends ViewBuffer
                 && diffsRead.containsAll(diffs)
                 && !picks.unread(this)
                 && read.entrySet().stream().allMatch(e -> e.getValue().equals(data.get(e.getKey()))))
-            return;
+            return false;
         data.putAll(read);
         diffsRead.addAll(diffs);
         // j's own write takes the changes picks were of whichever way they
         // were chosen: a pick it drops is not news.
         render(diffs, wrote ? null : newWhitespace ? Drop.WHITESPACE : Drop.GONE);
+        return true;
     }
 
     // Why picks a render drops went, as the status bar says it.
@@ -801,7 +846,7 @@ public final class VcsStatusBuffer extends ViewBuffer
     // Picking.
 
     private final StatusPicks picks = new StatusPicks();
-    private final ComparedPicks comparedPicks = new ComparedPicks(this);
+    private final RowPicks comparedPicks = new RowPicks(this, this::comparedOf);
     // Whether picks were last shown, to repaint once when the last goes.
     private boolean picksShown;
     // The files partly picked, for a refresh to read their diffs, open or not.
@@ -816,7 +861,7 @@ public final class VcsStatusBuffer extends ViewBuffer
     }
 
     /** Its picks in the side-by-side comparison. */
-    ComparedPicks comparedPicks() {
+    RowPicks comparedPicks() {
         return comparedPicks;
     }
 
@@ -881,6 +926,238 @@ public final class VcsStatusBuffer extends ViewBuffer
             sides.comparison().repaint();
             sides.comparison().getOld().repaint();
         }
+        // The signs of the files picked now or before, in their buffers.
+        final List<StatusPicks.Pick> now = picks.paths();
+        final List<StatusPicks.Pick> touched = new ArrayList<>(signsPicked);
+        touched.addAll(now);
+        signsPicked = now;
+        signsChanged(
+            u -> touched.stream().anyMatch(f -> f.repository() == u.getRepository() && f.path().equals(u.getPath())));
+    }
+
+    // The files picked as their signs last showed.
+    private List<StatusPicks.Pick> signsPicked = List.of();
+
+    // The signs of those of its files in their buffers which shows again.
+    private void signsChanged(Predicate<SignsUpdater> which) {
+        // The views of buffers closed, gone.
+        final org.armedbear.j.BufferList open = Editor.getBufferList();
+        for (var it = views.entrySet().iterator(); it.hasNext();) {
+            final Map.Entry<Buffer, FileView> e = it.next();
+            if (!open.contains(e.getKey())) {
+                viewed.remove(e.getValue().key);
+                it.remove();
+            }
+        }
+        for (Buffer b : open) {
+            final SignsUpdater u = b.getSignsUpdater();
+            if (u != null && repositories.contains(u.getRepository()) && which.test(u))
+                u.statusChanged();
+        }
+    }
+
+    // When the read shown began, by j's clock.
+    private long shownReadAt;
+
+    /**
+     * Whether buffer's file was saved, or reloaded, since the read shown
+     * began: its diff, as read, may not be the file's now.
+     */
+    boolean savedSinceRead(Buffer buffer) {
+        final long at = buffer == null ? 0 : buffer.getFileChangedAt();
+        return at != 0 && at >= shownReadAt;
+    }
+
+    /**
+     * Of r's file at path, the rows, from 0, as the working tree has them,
+     * of its unstaged changes picked; null for none.
+     */
+    StatusView.Picked pickedRows(VcsRepository r, String path) {
+        final FileItem item = unstaged(r, path);
+        return item == null ? null : picks.rows(StatusRenderer.fileKey(r, UNSTAGED, path), item);
+    }
+
+    /** r's file at path, as its unstaged changes' picks are of it; null with none, or none read. */
+    RowPicks.Of unstagedOf(VcsRepository r, String path) {
+        final FileItem item = unstaged(r, path);
+        if (item == null || item.diff() == null)
+            return null;
+        // The last asked for, kept: a file's column asks as it paints.
+        if (lastUnstaged == null || lastUnstaged.item() != item || lastUnstaged.repository() != r)
+            lastUnstaged = new RowPicks.Of(r, UNSTAGED, item, StatusRenderer.fileKey(r, UNSTAGED, path));
+        return lastUnstaged;
+    }
+
+    private RowPicks.Of lastUnstaged;
+
+    // Its views of its files' buffers, those closed dropped as it tells
+    // the signs; and the keys of their files' lines, whose diffs each read
+    // takes, so that their signs are by git's diff.
+    private final Map<Buffer, FileView> views = new HashMap<>();
+    private final Set<String> viewed = ConcurrentHashMap.newKeySet();
+
+    @Override
+    public StatusView viewOf(SignsUpdater u) {
+        if (disposed || !repositories.contains(u.getRepository()))
+            return null;
+        final FileView v = views.get(u.getBuffer());
+        if (v != null && v.r == u.getRepository() && v.path.equals(u.getPath()))
+            return v;
+        if (v != null)
+            viewed.remove(v.key);
+        final FileView made = new FileView(u.getBuffer(), u.getRepository(), u.getPath());
+        views.put(u.getBuffer(), made);
+        // Its diff read, if the status has the file and hasn't.
+        if (viewed.add(made.key)) {
+            final FileItem item = unstaged(made.r, made.path);
+            if (item != null && item.diff() == null)
+                refresh();
+        }
+        return made;
+    }
+
+    /**
+     * Its view of r's file at path, shown in buffer: git's diff of its
+     * unstaged changes, as read, its picks, and its boxes. The diff and the
+     * picks none while the buffer is edited, or saved since the read.
+     */
+    private final class FileView implements StatusView {
+        final Buffer buffer;
+        final VcsRepository r;
+        final String path;
+        // Its line's key in the status.
+        final String key;
+        final RowPicks rows;
+        private EditorPickColumn column;
+
+        FileView(Buffer buffer, VcsRepository r, String path) {
+            this.buffer = buffer;
+            this.r = r;
+            this.path = path;
+            key = StatusRenderer.fileKey(r, UNSTAGED, path);
+            rows = new RowPicks(VcsStatusBuffer.this, () -> current() ? unstagedOf(r, path) : null);
+        }
+
+        // Whether its diff, as read, may be the buffer's.
+        private boolean current() {
+            return !disposed && !buffer.isModified() && !savedSinceRead(buffer);
+        }
+
+        @Override
+        public List<Diff.Edit> edits() {
+            final RowPicks.Of of = current() ? unstagedOf(r, path) : null;
+            if (of == null)
+                return null;
+            final List<Diff.Edit> out = new ArrayList<>();
+            for (Hunk h : of.item().diff().hunks())
+                out.addAll(h.edits());
+            return out;
+        }
+
+        @Override
+        public StatusView.Picked picked() {
+            return current() ? pickedRows(r, path) : null;
+        }
+
+        @Override
+        public boolean hasPicks() {
+            return !disposed && picks.has(key);
+        }
+
+        @Override
+        public org.armedbear.j.GutterColumn column() {
+            if (column == null)
+                column = new EditorPickColumn(buffer, rows);
+            return column;
+        }
+
+        @Override
+        public PickState stateAt(int row) {
+            return rows.changeState(row);
+        }
+
+        @Override
+        public void pick(Editor editor, int from, int to, boolean lines, Runnable then) {
+            pickUnstagedAt(new PendingPick(editor, this, editor.getDotLineNumber(), from, to, lines, then), null);
+        }
+    }
+
+    // The section of the work tree's changes, as git's backend names it.
+    private static final String UNSTAGED = "unstaged";
+
+    // r's file at path as the unstaged section has it, or null.
+    private FileItem unstaged(VcsRepository r, String path) {
+        return picks.item(this, new StatusPicks.Pick(r, UNSTAGED, path));
+    }
+
+    // A pick from a file's buffer, view's, the caret at row caret: of the
+    // change at row from, or of the changed lines in rows from to to if
+    // lines; waiting on a read of the status or the file's diff, said in
+    // editor, then then run if editor still shows the file there.
+    private record PendingPick(Editor editor, FileView view, int caret, int from, int to, boolean lines,
+            Runnable then) {}
+
+    private final List<PendingPick> pendingPicks = new ArrayList<>();
+    // The keys of files whose diffs a read takes for a pick waiting on them.
+    private final Set<String> wanted = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Picks the unstaged changes of the file editor shows, as it is saved,
+     * at rows from to to, as its view picks them; its diff read first if
+     * the status hasn't, and the status itself.
+     */
+    void pickUnstagedAt(Editor editor, int from, int to, boolean lines, Runnable then) {
+        final SignsUpdater u = editor.getBuffer().getSignsUpdater();
+        final StatusView v = u == null ? null : viewOf(u);
+        if (v != null)
+            v.pick(editor, from, to, lines, then);
+    }
+
+    // p picked, or left waiting on a read, read the read just shown, whose
+    // diffs it took; null for none yet. A file saved since the read waits
+    // for the next, its diff then the file's.
+    private void pickUnstagedAt(PendingPick p, Set<String> read) {
+        final FileView v = p.view();
+        final String fk = StatusRenderer.fileKey(v.r, UNSTAGED, v.path);
+        if (data.get(v.r) == null || savedSinceRead(v.buffer)) {
+            pendingPicks.add(p);
+            refresh();
+            return;
+        }
+        final FileItem item = unstaged(v.r, v.path);
+        if (item != null && item.diff() == null) {
+            if (read == null || !read.contains(fk)) {
+                wanted.add(fk);
+                pendingPicks.add(p);
+                refresh();
+                return;
+            }
+            wanted.remove(fk);
+            done(p, "Couldn't read " + v.path + "'s diff");
+            return;
+        }
+        wanted.remove(fk);
+        done(p, item == null ? "No unstaged change here to pick" : pick(p, fk, item));
+    }
+
+    // p done, said; its then run if its editor is still where it was.
+    private void done(PendingPick p, String said) {
+        if (p.editor().getBuffer() != p.view().buffer || p.editor().getDotLineNumber() != p.caret())
+            return;
+        p.editor().status(said);
+        p.then().run();
+    }
+
+    // p's change or lines of item, fk its line's key, picked or unpicked: what is said.
+    private String pick(PendingPick p, String fk, FileItem item) {
+        final FileView v = p.view();
+        final Map<String, BitSet> idx = p.lines() ? v.rows.signs(p.from(), p.to()) : v.rows.changeAt(p.from());
+        if (idx == null)
+            return "No unstaged change here to pick";
+        picks.toggleLines(fk, v.r, UNSTAGED, item, idx);
+        showPicks();
+        final String what = p.lines() ? " lines of " : " a change of ";
+        return (picks.linesState(fk, idx) == PickState.NONE ? "Unpicked" : "Picked") + what + v.path + " in the status";
     }
 
     /**
@@ -892,15 +1169,33 @@ public final class VcsStatusBuffer extends ViewBuffer
         final FileItem item = sides == null || diff == null ? null : diff.item();
         if (item == null || item.diff() == null || item.change().isConflicted() || !sides.shows(diffFile()))
             return null;
-        return comparedEdited() ? null : item;
+        return comparedEdited() || compared != null && savedSinceRead(compared) ? null : item;
     }
 
     // The buffer the comparison's new side follows, or null.
     private Buffer compared;
 
+    // The compared file, as its picks are of it, or null; the last kept,
+    // as side by side asks as it paints each row.
+    private RowPicks.Of comparedOf() {
+        final FileItem item = comparedItem();
+        if (item == null)
+            return null;
+        if (lastCompared == null || lastCompared.item() != item || !lastCompared.key().equals(diffFile()))
+            lastCompared = new RowPicks.Of(diff.repository(), diff.section(), item, diffFile());
+        return lastCompared;
+    }
+
+    private RowPicks.Of lastCompared;
+
     /** Whether the new side is a buffer's with edits unsaved. */
     boolean comparedEdited() {
         return sides != null && compared != null && sides.comparison().isFollowing() && compared.isModified();
+    }
+
+    /** Whether the new side is a buffer's saved since the read shown, its diff then not yet read. */
+    boolean comparedSaved() {
+        return sides != null && compared != null && savedSinceRead(compared);
     }
 
     // A commit's details.
@@ -1146,11 +1441,13 @@ public final class VcsStatusBuffer extends ViewBuffer
             VcsStatusMode.pickKeys(km);
         });
         ss.comparison().alignBy(this::gitAlignment);
+        ss.comparison().markPickedBy(comparedPicks::isPicked);
         // In vim, ; repeats an f or t in the source shown; on a selection it picks.
         ss.comparison().embedModal(km -> km.unmapKey(';'));
         ss.comparison().embedVisual(VcsStatusMode::pickKeys);
-        // On the new side alone, as IntelliJ has them.
-        ss.comparison().addGutterColumn(new ComparedPickColumn(this));
+        // On the new side, as IntelliJ has them, but for what it can't show.
+        ss.comparison().addGutterColumn(new ComparedPickColumn(this, false));
+        ss.comparison().getOld().addGutterColumn(new ComparedPickColumn(this, true));
         return ss;
     }
 

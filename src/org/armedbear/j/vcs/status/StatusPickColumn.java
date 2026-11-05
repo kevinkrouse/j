@@ -25,8 +25,14 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.util.PickColumn;
 import org.armedbear.j.util.PickState;
+import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.status.StatusLine.Kind;
 
-/** A status's picks in the gutter, as IntelliJ's checkboxes: files, hunks and changed lines. */
+/**
+ * A status's picks in the gutter, as IntelliJ's checkboxes: files, hunks
+ * and changed lines; a hunk picked whole its box alone, with a line from it
+ * down through its changes, as side by side and the editor draw one.
+ */
 final class StatusPickColumn extends PickColumn {
     private final VcsStatusBuffer status;
 
@@ -42,7 +48,41 @@ final class StatusPickColumn extends PickColumn {
 
     @Override
     protected PickState state(Line line) {
-        return line instanceof StatusLine s && StatusPicks.pickable(s) ? status.picks().state(s) : null;
+        if (!(line instanceof StatusLine s) || !StatusPicks.pickable(s))
+            return null;
+        // A hunk picked whole: its lines' boxes its own.
+        if (s.kind() == Kind.DIFF && wholeHunk(s))
+            return null;
+        return status.picks().state(s);
+    }
+
+    @Override
+    protected Trail trail(Line line) {
+        if (!(line instanceof StatusLine s) || s.hunk() == null || s.hunk().isCombined())
+            return null;
+        if (s.kind() == Kind.HUNK)
+            return status.picks().state(s) == PickState.ALL
+                    && line.next() instanceof StatusLine n
+                    && n.kind() == Kind.DIFF
+                    && s.key().equals(n.node()) ? Trail.FROM : null;
+        if (s.kind() != Kind.DIFF || !wholeHunk(s))
+            return null;
+        final int last = lastChange(s.hunk());
+        return s.diffIndex() < last ? Trail.THROUGH : s.diffIndex() == last ? Trail.TO : null;
+    }
+
+    // Whether the hunk a diff's line is of is picked whole.
+    private boolean wholeHunk(StatusLine diff) {
+        return status.picks()
+                .hunkState(StatusRenderer.fileKeyOf(diff.node()), StatusRenderer.hunkId(diff.node())) == PickState.ALL;
+    }
+
+    // The index of h's last changed line.
+    private static int lastChange(Hunk h) {
+        for (int i = h.lines().size() - 1; i >= 0; i--)
+            if (!h.lines().get(i).isContext())
+                return i;
+        return -1;
     }
 
     @Override

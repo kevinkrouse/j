@@ -22,6 +22,7 @@ package org.armedbear.j.mode.compare;
 
 import java.awt.Color;
 import java.util.List;
+import java.util.function.IntPredicate;
 import org.armedbear.j.ChangeColors;
 import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.FormatTable;
@@ -56,6 +57,12 @@ final class SideFormatter extends Formatter {
     private Color addedEdge;
     private Color removedEdge;
     private Color changedEdge;
+    // A changed row's gutter, dimmer than its line, and a picked row's line
+    // and gutter, brighter, by kind.
+    private Color[] gutters;
+    private Color[] pickedShades;
+    // Whether the side's line, by number, is picked, as the view it is part of says.
+    private IntPredicate picked = n -> false;
     // Run when the colors are made again, as for a new theme: the fillers
     // take the new filler color.
     private Runnable onReset;
@@ -101,7 +108,23 @@ final class SideFormatter extends Formatter {
         if (past(line) && alignment.rows().size() > 0)
             return filler;
         final Kind kind = kindOf(line);
-        return kind == Kind.SAME ? own.getLineBackground(line) : shade(kind);
+        if (kind == Kind.SAME)
+            return own.getLineBackground(line);
+        return picked.test(line.lineNumber()) ? pickedShades[kind.ordinal()] : shade(kind);
+    }
+
+    @Override
+    public Color getGutterBackground(Line line) {
+        shades();
+        final Kind kind = past(line) ? Kind.SAME : kindOf(line);
+        if (kind == Kind.SAME)
+            return own.getGutterBackground(line);
+        return picked.test(line.lineNumber()) ? pickedShades[kind.ordinal()] : gutters[kind.ordinal()];
+    }
+
+    /** picked says which of its lines, by number, are picked: drawn brighter. */
+    void pickedBy(IntPredicate picked) {
+        this.picked = picked;
     }
 
     @Override
@@ -111,6 +134,12 @@ final class SideFormatter extends Formatter {
         // last for lines after it.
         final int at = !bottom ? n : n == rules.length - 2 ? n + 1 : -1;
         return n >= 0 && at >= 0 && at < rules.length && rules[at] != null ? edge(rules[at]) : null;
+    }
+
+    // Across the gutter too, as a changed line's shade is.
+    @Override
+    public boolean isLineRuleThroughGutter() {
+        return true;
     }
 
     @Override
@@ -181,10 +210,18 @@ final class SideFormatter extends Formatter {
         changedWords = DefaultTheme.blend(bg, ChangeColors.modified(dark), dark ? 0.38 : 0.30);
         filler = DefaultTheme.blend(bg, getColor(0), 0.05);
         fold = DefaultTheme.blend(bg, getColor(0), 0.55);
-        final double edge = dark ? 0.55 : 0.45;
-        addedEdge = DefaultTheme.blend(bg, ChangeColors.added(dark), edge);
-        removedEdge = DefaultTheme.blend(bg, ChangeColors.removed(dark), edge);
-        changedEdge = DefaultTheme.blend(bg, ChangeColors.modified(dark), edge);
+        addedEdge = ChangeColors.rule(bg, ChangeColors.added(dark));
+        removedEdge = ChangeColors.rule(bg, ChangeColors.removed(dark));
+        changedEdge = ChangeColors.rule(bg, ChangeColors.modified(dark));
+        gutters = new Color[Kind.values().length];
+        pickedShades = new Color[Kind.values().length];
+        for (Kind k : Kind.values()) {
+            final Color c = k == Kind.ADDED ? ChangeColors.added(dark)
+                    : k == Kind.REMOVED ? ChangeColors.removed(dark)
+                    : ChangeColors.modified(dark);
+            gutters[k.ordinal()] = DefaultTheme.blend(bg, c, amount * 0.6);
+            pickedShades[k.ordinal()] = ChangeColors.picked(bg, c);
+        }
     }
 
     // The rest is the file's formatter's.

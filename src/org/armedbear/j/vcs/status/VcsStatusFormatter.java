@@ -29,6 +29,7 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.TextStyle;
+import org.armedbear.j.util.PickState;
 import org.armedbear.j.vcs.RepositoryColors;
 
 /**
@@ -62,6 +63,9 @@ public class VcsStatusFormatter extends Formatter {
     private Color addedWordBackground;
     private Color removedWordBackground;
     private Color hunkBackground;
+    // A picked line's, brighter.
+    private Color addedPicked;
+    private Color removedPicked;
 
     public VcsStatusFormatter(Buffer buffer) {
         this.buffer = buffer;
@@ -216,7 +220,16 @@ public class VcsStatusFormatter extends Formatter {
         if (s.kind() != StatusLine.Kind.DIFF || s.diffLine().isContext())
             return null;
         shades();
+        if (picked(s))
+            return s.diffLine().isAdded() ? addedPicked : removedPicked;
         return s.diffLine().isAdded() ? addedBackground : removedBackground;
+    }
+
+    // Whether the status that s is a line of, or of the diff beside it, has it picked.
+    private boolean picked(StatusLine s) {
+        final VcsStatusBuffer status =
+                buffer instanceof VcsStatusBuffer b ? b : buffer instanceof StatusDiffBuffer d ? d.getOwner() : null;
+        return status != null && !status.picks().isEmpty() && status.picks().state(s) == PickState.ALL;
     }
 
     @Override
@@ -242,6 +255,8 @@ public class VcsStatusFormatter extends Formatter {
         removedBackground = DefaultTheme.blend(bg, removedHue(), dark ? 0.16 : 0.12);
         addedWordBackground = DefaultTheme.blend(bg, addedHue(), dark ? 0.38 : 0.30);
         removedWordBackground = DefaultTheme.blend(bg, removedHue(), dark ? 0.38 : 0.30);
+        addedPicked = ChangeColors.picked(bg, addedHue());
+        removedPicked = ChangeColors.picked(bg, removedHue());
     }
 
     @Override

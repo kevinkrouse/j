@@ -47,6 +47,37 @@ public final class Diff {
      */
     public record Edit(int oldStart, int oldCount, int newStart, int newCount) {}
 
+    /**
+     * Whether edits, as another diff gave them, turn a into b: in order,
+     * within both, the lines between them the same in each, and each
+     * changing something, not lines the same on both sides.
+     */
+    public static boolean isDiffOf(List<String> a, List<String> b, List<Edit> edits) {
+        int i = 0;
+        int j = 0;
+        for (Edit e : edits) {
+            final int oldEnd = e.oldStart() + e.oldCount();
+            final int newEnd = e.newStart() + e.newCount();
+            if (e.oldStart() < i || e.oldStart() - i != e.newStart() - j || oldEnd > a.size() || newEnd > b.size())
+                return false;
+            if (!same(a, b, i, j, e.oldStart() - i))
+                return false;
+            if (e.oldCount() == e.newCount() && same(a, b, e.oldStart(), e.newStart(), e.oldCount()))
+                return false;
+            i = oldEnd;
+            j = newEnd;
+        }
+        return a.size() - i == b.size() - j && same(a, b, i, j, a.size() - i);
+    }
+
+    // Whether n lines of a from i are b's from j.
+    private static boolean same(List<String> a, List<String> b, int i, int j, int n) {
+        for (int k = 0; k < n; k++)
+            if (!a.get(i + k).equals(b.get(j + k)))
+                return false;
+        return true;
+    }
+
     public static List<Edit> diff(List<String> a, List<String> b) {
         // The ends they share.
         int start = 0;

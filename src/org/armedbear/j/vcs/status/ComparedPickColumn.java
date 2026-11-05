@@ -27,17 +27,20 @@ import org.armedbear.j.util.PickColumn;
 import org.armedbear.j.util.PickState;
 
 /**
- * A status's picks in the new side of its comparison: a box at each hunk's
- * first changed row there, or the row after a removal, or, while it is
- * picked in part, at each of its added rows. A removed line is picked with
- * the line added for it, or by a selection on the old side.
+ * A status's picks in a side of its comparison: on the new side, a box at
+ * each change's first changed row, or, while it is picked in part, at each
+ * of its added rows; on the old, those of changes that add no line, and of
+ * removed lines with no line added for them. A removed line with one is
+ * picked with it.
  */
 final class ComparedPickColumn extends PickColumn {
     private final VcsStatusBuffer status;
+    private final boolean old;
 
-    ComparedPickColumn(VcsStatusBuffer status) {
+    ComparedPickColumn(VcsStatusBuffer status, boolean old) {
         super(status);
         this.status = status;
+        this.old = old;
     }
 
     @Override
@@ -47,7 +50,7 @@ final class ComparedPickColumn extends PickColumn {
 
     @Override
     protected PickState state(Line line) {
-        final ComparedPicks.Box box = box(line);
+        final RowPicks.Box box = box(line);
         return box == null ? null : box.state();
     }
 
@@ -63,26 +66,37 @@ final class ComparedPickColumn extends PickColumn {
         status.comparedPicks().set(lines.stream().map(this::box).toList(), on);
     }
 
-    // A box is its hunk's, or its line's, as it is picked or not.
+    // A box is its change's, or its line's, as it is picked or not.
     @Override
     protected Object key(Line line) {
-        final ComparedPicks.Box box = box(line);
-        return List.of(box.id(), box.i());
+        final RowPicks.Box box = box(line);
+        return List.of(box.lines(), box.line());
     }
 
-    // Hunks, or changed lines.
+    // Changes, or changed lines.
     @Override
     protected boolean sameKind(Line anchor, Line line) {
-        return box(anchor).i() < 0 == box(line).i() < 0;
+        return box(anchor).line() == box(line).line();
+    }
+
+    @Override
+    protected Trail trail(Line line) {
+        return status.comparedPicks().trailAt(old, false, line.lineNumber());
+    }
+
+    // The old side's gutter is at the right of its text.
+    @Override
+    protected boolean textAtLeft() {
+        return old;
     }
 
     @Override
     public String getToolTipText(Line line, int x, int y) {
-        final ComparedPicks.Box box = isClickable(line, x, y) ? box(line) : null;
-        return box == null ? null : box.i() < 0 ? "Pick or unpick this change" : "Pick or unpick this line";
+        final RowPicks.Box box = isClickable(line, x, y) ? box(line) : null;
+        return box == null ? null : box.line() ? "Pick or unpick this line" : "Pick or unpick this change";
     }
 
-    private ComparedPicks.Box box(Line line) {
-        return status.comparedPicks().boxAt(false, line.lineNumber());
+    private RowPicks.Box box(Line line) {
+        return status.comparedPicks().boxAt(old, line.lineNumber());
     }
 }

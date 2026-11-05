@@ -100,7 +100,8 @@ final class GitWrites {
         return refs;
     }
 
-    static VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
+    // Stashes the changes, or those to paths if any, whole.
+    static VcsResult stash(VcsRepository repository, String message, Set<StashOption> options, List<String> paths) {
         final List<String> args = args("stash", "push");
         if (options.contains(StashOption.KEEP_INDEX))
             args.add("--keep-index");
@@ -110,6 +111,12 @@ final class GitWrites {
             args.add("--staged");
         if (message != null)
             args.addAll(List.of("-m", message));
+        if (!paths.isEmpty()) {
+            args.add("--");
+            // Each a path, not a pattern: a file named *.txt alone.
+            for (String p : paths)
+                args.add(":(literal)" + p);
+        }
         // An older git's usage text would be all it said.
         if (options.contains(StashOption.STAGED) && !GitCli.versionAtLeast(STASH_STAGED))
             return new VcsResult(GitCli.write(repository.root(), null, args.toArray(new String[0])),

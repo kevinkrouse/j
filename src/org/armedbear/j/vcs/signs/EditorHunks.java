@@ -48,6 +48,11 @@ public final class EditorHunks {
         return Diff.diff(old.keys(), now.keys());
     }
 
+    /** The edits from old to now, git's if given and still theirs. */
+    public static List<Edit> edits(Side old, Side now, List<Edit> git) {
+        return SignsMath.unstaged(old.keys(), now.keys(), git);
+    }
+
     /**
      * e, one of edits, as a hunk with up to CONTEXT lines around it: only
      * lines no edit changes, the same on both sides, so that the patch

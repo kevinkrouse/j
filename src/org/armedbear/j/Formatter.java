@@ -264,6 +264,11 @@ public abstract class Formatter {
         return null;
     }
 
+    /** The background of line's gutter, as a diff's changed rows shade it; or null for the display's own. */
+    public Color getGutterBackground(Line line) {
+        return null;
+    }
+
     /**
      * Spans of line to fill behind its text, offsets in pairs, as a diff's
      * words that differ in a changed line; or null.
@@ -278,6 +283,11 @@ public abstract class Formatter {
      */
     public Color getLineRule(Line line, boolean bottom) {
         return null;
+    }
+
+    /** Whether getLineRule's rules cross the gutter too, as a comparison's do; across the text alone unless overridden. */
+    public boolean isLineRuleThroughGutter() {
+        return false;
     }
 
     /** The color getSpans's spans are filled with. */

@@ -352,4 +352,26 @@ public class DiffParserTest {
         FileDiff d = one("diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1,5 +1,5 @@\n a\n");
         assertEquals(1, d.hunks().get(0).lines().size());
     }
+
+    @Test
+    public void aHunksChangesAreItsEdits() {
+        final List<FileDiff> files = DiffParser.parse("""
+                                                      diff --git a/f b/f
+                                                      --- a/f
+                                                      +++ b/f
+                                                      @@ -1,7 +1,7 @@
+                                                       a
+                                                      -b
+                                                      +B
+                                                      +B2
+                                                       c
+                                                       d
+                                                      -e
+                                                       f
+                                                       g
+                                                      """);
+        assertEquals(
+            List.of(new org.armedbear.j.util.Diff.Edit(1, 1, 1, 2), new org.armedbear.j.util.Diff.Edit(4, 1, 5, 0)),
+            files.get(0).hunks().get(0).edits());
+    }
 }

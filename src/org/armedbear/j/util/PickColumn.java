@@ -20,6 +20,7 @@
 
 package org.armedbear.j.util;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +62,24 @@ public abstract class PickColumn implements GutterColumn {
         return line;
     }
 
+    /**
+     * Where a row is on the line drawn down from a box picking several rows
+     * through them: its box's, between, or the last.
+     */
+    public enum Trail {
+        FROM, THROUGH, TO
+    }
+
+    /** Where line is on the line down from a box picking it with others; null, unless overridden. */
+    protected Trail trail(Line line) {
+        return null;
+    }
+
+    /** Whether the text is at the column's left, as in a gutter at the right; not unless overridden. */
+    protected boolean textAtLeft() {
+        return false;
+    }
+
     /** Whether a Shift click's range from anchor takes line; any that can be picked unless overridden. */
     protected boolean sameKind(Line anchor, Line line) {
         return true;
@@ -73,9 +92,15 @@ public abstract class PickColumn implements GutterColumn {
 
     @Override
     public void paint(Graphics2D g, Line line, int x, int y, int height, boolean top) {
-        final PickState state = anyPicked() ? state(line) : null;
+        if (!anyPicked())
+            return;
+        final PickState state = state(line);
+        final Color picked = buffer.getFormatter().getHoverLinkColor();
+        final Trail trail = trail(line);
+        if (trail != null)
+            PickIcon.paintTrail(g, trail, textAtLeft(), picked, x, y, height);
         if (state != null)
-            PickIcon.paint(g, state, buffer.getFormatter().getHoverLinkColor(), x, y, height);
+            PickIcon.paint(g, state, picked, x, y, height);
     }
 
     @Override

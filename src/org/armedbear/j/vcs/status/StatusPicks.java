@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +35,7 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.diff.Patch;
+import org.armedbear.j.vcs.signs.StatusView;
 import org.armedbear.j.vcs.status.StatusActions.Files;
 import org.armedbear.j.vcs.status.StatusActions.Part;
 import org.armedbear.j.vcs.status.StatusActions.Target;
@@ -275,6 +277,11 @@ final class StatusPicks {
         fp.hunks.clear();
     }
 
+    /** Whether anything of fk's file is picked. */
+    boolean has(String fk) {
+        return files.containsKey(fk);
+    }
+
     /** How much of the hunk id of fk's file is picked. */
     PickState hunkState(String fk, String id) {
         final FilePicks fp = files.get(fk);
@@ -295,6 +302,19 @@ final class StatusPicks {
             return true;
         final HunkPick hp = fp.hunks.get(id);
         return hp != null && (hp.lines() == null || hp.lines().get(i));
+    }
+
+    /** How much of the lines of fk's file that idx gives by hunk id is picked. */
+    PickState linesState(String fk, Map<String, BitSet> idx) {
+        boolean any = false;
+        boolean all = true;
+        for (Map.Entry<String, BitSet> e : idx.entrySet())
+            for (int i = e.getValue().nextSetBit(0); i >= 0; i = e.getValue().nextSetBit(i + 1)) {
+                final boolean picked = linePicked(fk, e.getKey(), i);
+                any |= picked;
+                all &= picked;
+            }
+        return all ? PickState.ALL : any ? PickState.SOME : PickState.NONE;
     }
 
     /** Picks the hunk id of r's section's file f, fk its line's key, or unpicks it if it is picked whole. */
@@ -342,8 +362,9 @@ final class StatusPicks {
                 setLines(fk, e.getKey(), r, section, f, hs.get(e.getKey()), e.getValue(), on);
     }
 
-    // The lines idx of hunk h, id, of fk's file picked or unpicked; all
-    // its changed lines picked, the hunk is.
+    // The lines idx of hunk h, id, of fk's file picked or unpicked, a
+    // modified line's removal with its addition; all its changed lines
+    // picked, the hunk is.
     private void setLines(
             String fk,
             String id,
@@ -351,9 +372,11 @@ final class StatusPicks {
             String section,
             FileItem f,
             Hunk h,
-            BitSet idx,
+            BitSet some,
             boolean on) {
         dirty();
+        final BitSet idx = (BitSet) some.clone();
+        Patch.pairChanges(h, idx);
         FilePicks fp = files.get(fk);
         if (on) {
             if (fp != null && (fp.whole || hunkState(fk, id) == PickState.ALL))
@@ -478,6 +501,71 @@ final class StatusPicks {
         return targets;
     }
 
+    /**
+     * The rows, from 0, of f, fk its line's key, as the working tree has it,
+     * of its changes picked: every row, the file picked whole; an added
+     * line's own, and a deletion's above where it was, as signs draw them;
+     * null with nothing picked or the hunks picked unread. A removed line
+     * with lines added in its place marks no row: its sign is theirs.
+     */
+    StatusView.Picked rows(String fk, FileItem f) {
+        final FilePicks fp = files.get(fk);
+        if (fp == null)
+            return null;
+        if (fp.whole)
+            return new StatusView.Picked(true, new BitSet());
+        if (f.diff() == null)
+            return null;
+        final BitSet out = new BitSet();
+        for (Map.Entry<String, HunkPick> e : fp.hunks.entrySet()) {
+            final Hunk h = ids(f.diff()).get(e.getKey());
+            if (h == null)
+                continue;
+            final BitSet lines = e.getValue().lines();
+            final int[] rows = signRows(h);
+            for (Hunk.Run r : h.runs())
+                for (int i = r.addedCount() > 0 ? r.added() : r.start(); i < r.end(); i++)
+                    if (lines == null || lines.get(i))
+                        out.set(rows[i]);
+        }
+        return new StatusView.Picked(false, out);
+    }
+
+    /**
+     * The row, from 0, of the working tree's file, of each of h's lines'
+     * sign, as signs draw them: an added line's own; a removed one's that
+     * of the line added for it, or past those, the last added; with none
+     * added, the row above where it was, the first if none; -1 for a
+     * context line.
+     */
+    static int[] signRows(Hunk h) {
+        final int[] out = new int[h.lines().size()];
+        Arrays.fill(out, -1);
+        for (Hunk.Run r : h.runs()) {
+            // Paired, the added line's; past those, the last added's.
+            for (int k = 0; k < r.removedCount(); k++)
+                out[r.start() + k] =
+                        r.addedCount() > 0 ? r.newRow() + Math.min(k, r.paired() - 1) : Math.max(0, r.newRow() - 1);
+            for (int k = 0; k < r.addedCount(); k++)
+                out[r.added() + k] = r.newRow() + k;
+        }
+        return out;
+    }
+
+    /** Whether a hunk or lines of a file are picked, not the file whole. */
+    boolean hasParts() {
+        return !partlyPicked().isEmpty();
+    }
+
+    /** The files picked whole, by the keys of their lines, in order. */
+    Map<String, Pick> wholeFiles() {
+        final Map<String, Pick> out = new LinkedHashMap<>();
+        for (Map.Entry<String, FilePicks> e : files.entrySet())
+            if (e.getValue().whole)
+                out.put(e.getKey(), e.getValue().file);
+        return out;
+    }
+
     /** The paths picked, whole or in part, with their repositories, in order, each once. */
     List<Pick> paths() {
         final Map<String, Pick> out = new LinkedHashMap<>();
@@ -561,8 +649,8 @@ final class StatusPicks {
         return parts;
     }
 
-    // The file p is of, as the status has it now, or null.
-    private FileItem item(VcsStatusBuffer status, Pick p) {
+    /** The file p is of, as the status has it now, or null; looked up by path once a read. */
+    FileItem item(VcsStatusBuffer status, Pick p) {
         return items.computeIfAbsent(StatusRenderer.sectionKey(p.repository(), p.section()), k -> {
             final Map<String, FileItem> byPath = new HashMap<>();
             for (FileItem f : status.files(p.repository(), p.section()))

@@ -73,9 +73,24 @@ public final class SignsMath {
      * against head (null for a file new to the index).
      */
     public static Signs compute(List<Line> lines, List<String> buffer, List<String> index, List<String> head) {
+        return compute(lines, buffer, index, head, null);
+    }
+
+    /**
+     * The signs of lines, whose texts are buffer, against index, by edits
+     * of the two if given, which must turn one into the other (see
+     * Diff.isDiffOf), else j's own; and index against head (null for a file
+     * new to the index).
+     */
+    public static Signs compute(
+            List<Line> lines,
+            List<String> buffer,
+            List<String> index,
+            List<String> head,
+            List<Edit> unstagedEdits) {
         final Map<Line, Sign> signs = new IdentityHashMap<>();
         final TreeSet<Integer> starts = new TreeSet<>();
-        final List<Edit> unstaged = Diff.diff(index, buffer);
+        final List<Edit> unstaged = unstagedEdits != null ? unstagedEdits : Diff.diff(index, buffer);
         for (Edit e : unstaged)
             mark(lines, signs, starts, e.newStart(), e.newCount(), e.oldCount() == 0, false);
         final int[] map = indexToBuffer(index.size(), unstaged);
@@ -100,6 +115,11 @@ public final class SignsMath {
         for (int n : starts)
             startLines.add(lines.get(n));
         return new Signs(signs, startLines);
+    }
+
+    /** git's edits of index into buffer, if given and still theirs, else j's own. */
+    public static List<Edit> unstaged(List<String> index, List<String> buffer, List<Edit> git) {
+        return git != null && Diff.isDiffOf(index, buffer, git) ? git : Diff.diff(index, buffer);
     }
 
     private static void mark(

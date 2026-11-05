@@ -433,7 +433,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if (dotLine.lineNumber() >= topLine.lineNumber())
                 y = Math.min(getY(dotLine), Math.max(0, getHeight() - 1));
         }
-        return new Point(gutterWidth + Math.max(0, caretCol) * spaceWidth + spaceWidth / 2, y + charHeight / 2);
+        return new Point(toScreenX(gutterWidth + Math.max(0, caretCol) * spaceWidth + spaceWidth / 2),
+                y + charHeight / 2);
     }
 
     /** The top of line's text in this display, or -1 unless all of it is on screen. */
@@ -472,6 +473,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (overlaid()) {
             changedLines.clear();
             repaint();
+            return;
+        }
+        if (gutterOnRight()) {
+            repaintRows(changedLines::containsKey);
+            changedLines.clear();
             return;
         }
         final Buffer buffer = editor.getBuffer();
@@ -754,7 +760,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int col = absCol - shift;
         formatLine(line, shift, col);
         Graphics2D g2d = (Graphics2D) getGraphics();
-        final int x = gutterWidth + measureLine(g2d, textArray, col, formatArray);
+        // Its own graphics, so where it shows.
+        final int x = toScreenX(gutterWidth + measureLine(g2d, textArray, col, formatArray));
         final int y = getY(line);
         g2d.setColor(editor.getFormatter().getCaretColor());
         g2d.fillRect(x, y, 1, charAscent + charDescent);
@@ -1090,6 +1097,10 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             return;
         if ((updateFlag & REPAINT) == REPAINT || overlaid()) {
             repaint();
+            return;
+        }
+        if (gutterOnRight()) {
+            repaintRows(line -> line == l);
             return;
         }
         final Buffer buffer = editor.getBuffer();
@@ -1699,6 +1710,17 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final Signs.Sign sign = signs.get(line);
             if (sign != null)
                 drawSign(g2d, sign, backgroundColor, y, line.getHeight());
+            // A picked change's line a brighter shade of its kind's; a
+            // deletion's, the line beside it unchanged, a rule where its
+            // lines were, as side by side draws it.
+            if (sign != null && sign.picked() && sign.kind() == Signs.Kind.DELETED) {
+                final int h = Math.max(1, UIScale.scale(1));
+                g2d.setColor(ChangeColors.rule(backgroundColor, signColors[sign.kind().ordinal()]));
+                g2d.fillRect(gutterWidth, sign.above() ? y : y + line.getHeight() - h, getWidth() - gutterWidth, h);
+            } else if (sign != null && sign.picked()) {
+                g2d.setColor(ChangeColors.picked(backgroundColor, signColors[sign.kind().ordinal()]));
+                g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, line.getHeight());
+            }
         } else if (enableChangeMarks && line.isModified()) {
             g2d.setColor(line.isSaved() ? savedChangeColor : changeColor);
             g2d.fillRect(0, y, changeMarkWidth, line.getHeight());
@@ -1707,6 +1729,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         } else {
             g2d.setColor(backgroundColor);
             g2d.fillRect(0, y, getWidth(), line.getHeight());
+        }
+        final Color gutter = editor.getFormatter().getGutterBackground(line);
+        if (gutter != null) {
+            g2d.setColor(gutter);
+            g2d.fillRect(0, y, gutterWidth, line.getHeight());
         }
         // A line the formatter shades, a code block's, unless it is the
         // caret's, which keeps its own.
@@ -1746,7 +1773,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final Color c = f.getLineRule(line, bottom);
             if (c != null) {
                 g2d.setColor(c);
-                g2d.fillRect(gutterWidth, bottom ? y + line.getHeight() - h : y, getWidth() - gutterWidth, h);
+                final int x = f.isLineRuleThroughGutter() ? 0 : gutterWidth;
+                g2d.fillRect(x, bottom ? y + line.getHeight() - h : y, getWidth() - x, h);
             }
         }
     }
@@ -1944,7 +1972,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (closedChanged || !sameFold(caret, caretFold) || !sameFold(hover, hoverFold)) {
             caretFold = caret;
             hoverFold = hover;
-            repaint(0, 0, getGutterWidth(buffer), getHeight());
+            repaintGutter();
         }
     }
 
@@ -2056,7 +2084,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (b != mouseInGutter) {
             mouseInGutter = b;
             if ("hover".equals(editor.getBuffer().getStringProperty(Property.FOLD_MARKERS)))
-                repaint(0, 0, getGutterWidth(editor.getBuffer()), getHeight());
+                repaintGutter();
         }
         updateFoldExtents();
     }
@@ -2110,15 +2138,21 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     private void drawGutterBorder(Graphics g) {
-        int x = getGutterWidth(editor.getBuffer()) - 4;
+        final int x = gutterBorderX();
         g.setColor(gutterBorderColor);
         g.drawLine(x, 0, x, getHeight());
     }
 
     private void drawGutterBorder(Graphics g, int y, int height) {
-        int x = getGutterWidth(editor.getBuffer()) - 4;
+        final int x = gutterBorderX();
         g.setColor(gutterBorderColor);
         g.drawLine(x, y, x, y + height);
+    }
+
+    // Where the gutter's border is laid out: beside the text, the gutter's
+    // left edge when it shows at the right.
+    private int gutterBorderX() {
+        return gutterOnRight() ? 0 : getGutterWidth(editor.getBuffer()) - 4;
     }
 
     // Returns width in pixels.
@@ -2373,6 +2407,29 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     private synchronized void paintComponentInternal(Graphics g) {
+        if (!gutterOnRight()) {
+            paintLaidOut(g);
+            return;
+        }
+        // Laid out as with the gutter at the left, painted twice: the text
+        // moved left over it, then the gutter moved right past the text.
+        final int gutter = getGutterWidth(editor.getBuffer());
+        final int text = getWidth() - gutter;
+        for (int[] part : new int[][] { { 0, text, -gutter }, { text, gutter, text } }) {
+            final Graphics2D g2d = (Graphics2D) g.create();
+            try {
+                g2d.clipRect(part[0], 0, part[1], getHeight());
+                g2d.translate(part[2], 0);
+                paintLaidOut(g2d);
+            }
+            finally {
+                g2d.dispose();
+            }
+        }
+    }
+
+    // Paints g's clip as laid out, the gutter at the left.
+    private void paintLaidOut(Graphics g) {
         initializePaint();
         Graphics2D g2d = (Graphics2D) g;
         setRenderingHints(g2d);
@@ -2387,6 +2444,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final Line currentLine = getCurrentLine();
 
         final Color colorBackground = editor.getFormatter().getBackgroundColor();
+        // The gutter alone, as when it is painted at the right: no text.
+        final boolean text = clipBounds.x + clipBounds.width > gutterWidth;
         int y = -pixelsAboveTopLine;
         Line line = topLine;
         while (line != null && y + rowHeight(line) < clipBounds.y) {
@@ -2406,6 +2465,14 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 } else
                     backgroundColor = colorBackground;
                 drawBackgroundForLine(g2d, backgroundColor, line, y);
+                if (!text) {
+                    drawGutterText(g2d, line, y);
+                    drawLineRules(g2d, line, y);
+                    paintRowsBelow(line, g2d, y + line.getHeight());
+                    y = rowTop + rowHeight(line);
+                    line = line.nextVisible();
+                    continue;
+                }
                 int totalChars = formatLine(line, shift, maxCols);
                 drawRunBackgrounds(g2d, totalChars, y);
                 highlightSpans(line, g2d, y);
@@ -2445,7 +2512,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             g2d.fillRect(0, y, displayWidth, limit - y);
             drawVerticalRule(g2d, y, limit - y);
         }
-        drawCaret(g2d);
+        if (text)
+            drawCaret(g2d);
         if (showLineNumbers && editor.getDot() != null)
             drawGutterBorder(g2d);
         updateFlag &= ~REPAINT;
@@ -3689,6 +3757,96 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
     }
 
+    // Whether the buffer's gutter is drawn at the right of its text: laid
+    // out as at the left, painted and clicked where it shows.
+    private boolean gutterOnRight() {
+        final Buffer buffer = editor.getBuffer();
+        return buffer != null && buffer.isGutterOnRight();
+    }
+
+    /** Where x, as laid out with the gutter at the left, shows. */
+    public int toScreenX(int x) {
+        if (!gutterOnRight())
+            return x;
+        final int gutter = getGutterWidth(editor.getBuffer());
+        return x < gutter ? x + getWidth() - gutter : x - gutter;
+    }
+
+    // x as laid out of x where it shows.
+    private int toLayoutX(int x) {
+        if (!gutterOnRight())
+            return x;
+        final int gutter = getGutterWidth(editor.getBuffer());
+        final int text = getWidth() - gutter;
+        return x >= text ? x - text : x + gutter;
+    }
+
+    // The rows of the lines shown that which takes, and the caret's then
+    // and now, to be painted as Swing paints, the gutter's two passes and
+    // all, in place of painting them straight to the screen.
+    private void repaintRows(java.util.function.Predicate<Line> which) {
+        int y = -pixelsAboveTopLine;
+        for (Line line = topLine; line != null && y < getHeight(); line = line.nextVisible()) {
+            if (which.test(line) || line == caretLine || line == editor.getDotLine())
+                repaint(0, y, getWidth(), rowHeight(line));
+            y += rowHeight(line);
+        }
+        // And below the last, as the line-at-a-time paint fills it.
+        if (y < getHeight())
+            repaint(0, y, getWidth(), getHeight() - y);
+    }
+
+    // The gutter, where it shows.
+    private void repaintGutter() {
+        final int gutter = getGutterWidth(editor.getBuffer());
+        repaint(gutterOnRight() ? getWidth() - gutter : 0, 0, gutter, getHeight());
+    }
+
+    // Mouse events to their listeners, the dispatcher's among them, as laid out.
+    @Override
+    protected void processMouseEvent(MouseEvent e) {
+        final MouseEvent laid = laidOut(e);
+        super.processMouseEvent(laid);
+        if (laid.isConsumed())
+            e.consume();
+    }
+
+    @Override
+    protected void processMouseMotionEvent(MouseEvent e) {
+        final MouseEvent laid = laidOut(e);
+        super.processMouseMotionEvent(laid);
+        if (laid.isConsumed())
+            e.consume();
+    }
+
+    // A drag over the gutter at the right goes on past the text's end, as
+    // past the right edge, not into the gutter laid out at the left.
+    private MouseEvent laidOut(MouseEvent e) {
+        final int text = gutterOnRight() ? getWidth() - getGutterWidth(editor.getBuffer()) : -1;
+        final int x = e.getID() == MouseEvent.MOUSE_DRAGGED && text >= 0 && e.getX() >= text
+                ? getWidth() + e.getX() - text
+                : toLayoutX(e.getX());
+        if (x == e.getX())
+            return e;
+        return new MouseEvent(e.getComponent(),
+                e.getID(),
+                e.getWhen(),
+                e.getModifiersEx(),
+                x,
+                e.getY(),
+                e.getXOnScreen(),
+                e.getYOnScreen(),
+                e.getClickCount(),
+                e.isPopupTrigger(),
+                e.getButton());
+    }
+
+    // A tool tip below the pointer, where it shows, as Swing places one.
+    @Override
+    public Point getToolTipLocation(MouseEvent e) {
+        return gutterOnRight() ? new Point(toScreenX(e.getX()), e.getY() + 20) : null;
+    }
+
     @Override
     public String getToolTipText(MouseEvent e) {
         final VirtualText.Run run = virtualRunAt(e.getX(), e.getY());
@@ -3750,7 +3908,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                                 MouseEvent.MOUSE_MOVED,
                                 System.currentTimeMillis(),
                                 0,
-                                p.x,
+                                toLayoutX(p.x),
                                 p.y,
                                 0,
                                 false));

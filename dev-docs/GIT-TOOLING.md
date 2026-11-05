@@ -892,7 +892,7 @@ changelists are svn's own, by file (`svn changelist`), and committing one is
 #### Design (choice 2)
 
 - **The store.** Lists are kept per repository in
-  `<gitdir>/j/changelists.json` (untracked and never seen by other tools): a
+  `<gitdir>/j/changelists.xml` (untracked and never seen by other tools): a
   name, a comment draft, and assignments. A file goes to its list whole
   unless some of its lines are assigned elsewhere. Assignments are ranges of
   work-tree lines. While a file is open they are `Marker`s in its buffer, so
@@ -2611,7 +2611,7 @@ plan with why it is left, before the next phase starts.
      click. `StatusPickColumn`, the directory's `FilePickColumn` and
      `ComparedPickColumn` say what is picked and how to pick it. The diff
      beside has the status's column and keys; the comparison's new side,
-     as IntelliJ's, a `ComparedPickColumn`, from `ComparedPicks`: a box at
+     as IntelliJ's, a `ComparedPickColumn`, from `RowPicks`: a box at
      each hunk's first changed row there, none while its buffer is
      modified, the keys on either side picking the hunk at the caret's
      row. The comparison is aligned by git's hunks
@@ -2628,15 +2628,169 @@ plan with why it is left, before the next phase starts.
      picked file. The directory buffer: `dirPickFile` (`dirTagFile` its
      old name, `t` kept), its "T" gone from the text to the gutter, and
      delete, copy, move and the shell command taking the selected, else
-     the picked, else the caret's file. Not yet: the hunk preview's
-     "pick", stash and commit of the picked (with h), and tests across
-     two repositories.
+     the picked, else the caret's file. The editor: `vcsPickHunk`, on the
+     hunk preview, the change popup's `;` and vim's `<leader>h;`, picks
+     the git hunk holding the caret's line of the saved file in the status
+     `vcsStatus` opens, reading the status or the file's diff first if it
+     must (`VcsStatusBuffer.pickUnstagedAt`), or with a selection the
+     changed lines whose signs it covers; the preview's box shows the
+     hunk's state, and `;` picks while it shows (`CaretPopup.getKeyMap`,
+     looked up before the input handler); `Signs.Sign.picked`, set by
+     `SignsUpdater` from its `StatusView`, marks a picked change's lines,
+     drawn as a2 says, marked again as picks change. The
+     stash popup's commands take the picked files, whole
+     (`git stash push -- :(literal)<path>`), in each repository, an
+     untracked one with `-u`; hunks picked refused. Tests across two
+     repositories: staging and stashing picks in each. Committing the
+     picked waits for h.
+   - **a2. How changes and picks look.** Researched against IntelliJ
+     (checkboxes in the diff's gutter for a commit's chunks and lines; a
+     hollow marker for staged changes in its staging-area mode, and for
+     another changelist's in its changelist mode, the two never at once),
+     VS Code (staged changes in faded "secondary" gutter colors), and
+     Sublime Merge and GitHub Desktop (the selection is what is chosen,
+     nothing kept). One meaning a channel:
+     - Hue, the kind of change: added green, changed blue, removed grey,
+       as now.
+     - The mark's look, where the change is: solid, unstaged in the
+       active changelist; faded, staged (as now, and VS Code's); hollow,
+       unstaged in another changelist (IntelliJ's; with f).
+     - A box, picked: empty, checked, or a dash for some; the same box in
+       the status, the diff beside, side by side and the editor.
+     - Brightness, picked again: a picked change's line and gutter
+       background a brighter shade of its kind's than one not picked.
+     Where:
+     - Side by side, as IntelliJ's: each changed row's gutter a dimmer
+       shade of its row's color, a picked row's line and gutter brighter
+       (`Formatter.getGutterBackground`; `CompareBuffer.markPickedBy`,
+       given `RowPicks`' rows).
+     - The editor: the status's box column, there only while the file
+       has something picked (its text moves over then): a change's box
+       at its first changed line, or, picked in part, one on each changed
+       line; a collapsed fold's line a box for the changes it hides,
+       checked, dashed or empty, a click setting them all. A picked
+       change's lines a brighter shade of its kind's, in place of the
+       pick color's tint. `RowPicks`' rows made of any file's diff,
+       the compared one's or the editor's file's unstaged one.
+     - The unified diff beside the status: a picked line's background
+       brighter, as side by side's.
+     - A change picked whole: a thin line in the pick color from its box
+       down through its rows to its last line, and in the unified diffs, the
+       status's and the one beside it, a hunk picked whole the same from its
+       `@@` line's box, its lines' boxes gone (`StatusPickColumn.trail`),
+       ending in a tick toward
+       the text (`PickColumn.trail`, `PickIcon.paintTrail`, from
+       `RowPicks.trailAt`), side by side and in the editor, where one box
+       picks many rows.
+     - A picked deletion in the editor: side by side's rule
+       (`ChangeColors.rule`) across the bottom of the line its mark is
+       on, where the lines were, in place of tinting that unchanged
+       line. Side by side, the rule where the other side
+       has lines crosses the gutter too
+       (`Formatter.isLineRuleThroughGutter`); in the editor it doesn't.
+     - One shade for picked, `ChangeColors.picked`, in the editor, side
+       by side and the unified diff, under a changed word's.
+     - A file saved since the status's read: its boxes and marks hidden
+       until the read after the save (`VcsStatusBuffer.savedSinceRead`),
+       as with edits unsaved.
+     - Pairs: a modified line's removal and the addition made for it,
+       as `Patch.pairChanges` pairs them, are always picked together,
+       wherever they are (`StatusPicks.setLines`), so what shows picked
+       is what a command takes. Side by side, a change that adds a line
+       has its box on the new side, one that only removes, on the old;
+       picked in part, a box at each added line on the new side and each
+       removal with no line added for it on the old. The editor's boxes
+       follow its signs (`RowPicks.signBoxAt`): a change's at its first
+       sign, picked in part one at each sign for the lines it marks,
+       a modified line's removals on its addition's row, as `SignsMath`
+       draws them (`StatusPicks.signRows`), only a deletion's above.
+     - The old side's gutter at its right, beside the band and the new
+       side's, as IntelliJ's: `Buffer.isGutterOnRight`, `OldSide`'s
+       true; `Display` lays out as before, the gutter at the left, and
+       paints twice, the text moved left over it, the gutter right past
+       it, its mouse events' x moved back (`toScreenX`, and the reverse
+       in `processMouseEvent`); straight-to-screen line paints repaint
+       instead. Its vertical scroll bar at its left, the horizontal's
+       corner with it (`Editor.updateBeside`).
+     - A box picks a change, a run of a git hunk's changed lines with no
+       context between, as the editor's hunk commands take one (j's
+       `Diff` edits), not git's hunk, which joins changes within six
+       lines: a hunk of three changes has three boxes, side by side and
+       in the editor (`RowPicks.Change`; a `Box` is the lines it picks,
+       by hunk id). The caret's pick takes the change it is on, or the
+       nearest in its hunk (`RowPicks.changeAt`). The unified diff
+       beside the status keeps git's hunks, its `@@` line's box picking
+       one whole, and a box at each changed line. The store is still by
+       git's hunk, its lines picked.
+     - The editor's marks from git's diff while an open status has the
+       file's diff read (`StatusView.edits`, `Hunk.edits`), picked or
+       not, so a pick moves no mark:
+       j's `Diff` and git's can place a change differently where lines
+       repeat (a `{` of three removed: git's the second, j's the third;
+       about one small random edit in ten of `{`, `}` and blank lines),
+       which put a box or a shaded row a line from its mark. So
+       `SignsUpdater` and the hunk commands take git's edits then, if
+       they still turn the index into the buffer (`Diff.isDiffOf`), else
+       j's; edited, or saved and not yet read again, j's own.
+       `SignsUpdater.statusChanged` works the signs out again when the
+       edits its status offers change. `Diff.isDiffOf` also refuses an
+       edit that changes nothing, as git's are once staged, and edits
+       past either end. Staged marks stay j's. A hunk's changes are its `runs()`,
+       which its edits, `Patch.pairChanges`, `StatusPicks.signRows` and
+       `RowPicks`' rows all take.
+     - The status tells the signs through `vcs/signs/StatusView`, which
+       each `VcsStatusBuffer` gives for a file's buffer (its `FileView`)
+       as a `StatusView.Source` registered with `SignsUpdater` while it is
+       open: git's edits, the picked rows (`StatusView.Picked`), the box
+       column, the state at a row for the preview, and picking from the
+       buffer. A file's view is the first status's opened that has its
+       repository, so its column, shading, preview button and `;` are one
+       status's. The signs show the picks, and the column, only while the
+       edits they took are git's as the status has them now
+       (`SignsUpdater.isGits`), or for a file picked whole; where git's
+       were refused (`isGitsRefused`, as with whitespace ignored), `;` in
+       the file says to pick in the status. The status notifies the
+       signs of every file after a read that found something new, of
+       those saved since the read before after one that didn't, and of
+       those a pick touches.
+     - The status reads the diff of each file open in j (its views'),
+       so the marks are git's there, the column there for a file picked
+       whole too; a pick from a file with no status open opens one, not
+       shown, so the file's window stays as it is; vcsStatus shows it. The column stays while anything
+       of the file is picked, its boxes gone while the signs aren't by
+       the status's diff, so an edit moves no text. A view of a buffer
+       closed is dropped as the status next tells the signs.
+     - Saved since the read: by j's clock (`Buffer.getFileChangedAt`, set
+       on a save or reload), not the file's time, which may be ahead. A
+       pick from the file's buffer then waits for the next read, as do
+       several picks waiting on one; the preview's box shows none.
+     - The editor shades a row for its added line picked, or a deletion's
+       for the deletion: a removal with lines added in its place shades
+       none, its sign theirs, though its row's box shows a dash.
+     - The hunk preview's keys only where keys don't type text and no key
+       sequence is begun: not in vim's insert mode, nor an edit mode with
+       none, nor after vim's `d` or `f`.
+     - Not picked: conflicts (their own shading), whitespace-only
+       changes while whitespace is ignored, and unsaved edits (boxes
+       hidden until saved, as side by side's).
+
+     Built: `Formatter.getGutterBackground`, painted under the gutter;
+     `SideFormatter`'s dimmer gutter shades and brighter picked shades,
+     by `CompareBuffer.markPickedBy` from `RowPicks.isPicked`. `RowPicks`
+     (was `ComparedPicks`) of any file, given by a supplier: the compared
+     file's, or a buffer's unstaged one's. `EditorPickColumn`, one a file's
+     view, added and taken off by `SignsUpdater` as it shows signs, its
+     fold boxes from `RowPicks.signsState`/`setSigns`.
+     `VcsStatusFormatter`'s picked lines brighter. The hollow mark of
+     another changelist waits for f.
+
    - **b. The store.** `vcs/changelists`: per repository, the lists (a
      name, a comment draft, one active, "Default" always there) and their
      assignments: a path whole, or ranges of its work-tree lines, each
      with the hash of its hunk's `-`/`+` lines. Kept in
-     `<gitdir>/j/changelists.json`, written whole (a temporary file moved
-     over it), per worktree. Read, each range re-anchored to the unstaged
+     `<gitdir>/j/changelists.xml`, written whole (a temporary file moved
+     over it), per worktree: XML, as the JDK reads and writes it, j's core
+     depending on nothing else, until the JDK has JSON. Read, each range re-anchored to the unstaged
      hunk it matches by hash, else the one it overlaps most; a change
      matching none is the active list's. Shared, behind `VcsBackend`, so
      svn's own changelists (phase 11) can stand in. Tests: a round trip, a

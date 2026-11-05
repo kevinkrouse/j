@@ -315,7 +315,12 @@ public final class GitBackend implements VcsBackend {
 
     @Override
     public VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
-        return GitWrites.stash(repository, message, options);
+        return GitWrites.stash(repository, message, options, List.of());
+    }
+
+    @Override
+    public VcsResult stash(VcsRepository repository, String message, Set<StashOption> options, List<String> paths) {
+        return GitWrites.stash(repository, message, options, paths);
     }
 
     @Override

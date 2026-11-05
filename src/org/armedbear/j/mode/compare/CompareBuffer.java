@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
@@ -159,6 +160,18 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     public void alignBy(BiFunction<Side, Side, DiffAlignment> aligner) {
         this.aligner = aligner;
         align();
+    }
+
+    // Whether a side's line, the old side's if old, by number, is picked,
+    // as the view it is part of says.
+    private BiPredicate<Boolean, Integer> pickedBy = (old, n) -> false;
+
+    /** pickedBy says which lines of a side, the old if its first is true, by number, are picked: drawn brighter. */
+    public void markPickedBy(BiPredicate<Boolean, Integer> pickedBy) {
+        this.pickedBy = pickedBy;
+        for (ViewBuffer side : List.of(old, this))
+            if (side.getFormatter() instanceof SideFormatter f)
+                f.pickedBy(n -> this.pickedBy.test(side == old, n));
     }
 
     /** Aligned again by its aligner, as when what that aligns by changed. */
@@ -550,6 +563,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
         final Formatter had = side.getFormatter();
         final SideFormatter f =
                 new SideFormatter(had instanceof SideFormatter s ? s.own() : had, alignment, other, isOld, aligned);
+        f.pickedBy(n -> pickedBy.test(isOld, n));
         final DiffAlignment a = alignment;
         final boolean withFillers = aligned;
         // A new theme: the fillers and fold labels in its colors.

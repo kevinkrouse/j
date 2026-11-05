@@ -518,6 +518,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsMergeAbort">vcsMergeAbort</a></li>
     <li><a href="commands.html#vcsMergeCommit">vcsMergeCommit</a></li>
     <li><a href="commands.html#vcsMergePopup">vcsMergePopup</a></li>
+    <li><a href="commands.html#vcsPickHunk">vcsPickHunk</a></li>
     <li><a href="commands.html#vcsResolveDelete">vcsResolveDelete</a></li>
     <li><a href="commands.html#vcsResolveKeep">vcsResolveKeep</a></li>
     <li><a href="commands.html#vcsResolveOurs">vcsResolveOurs</a></li>
@@ -6917,6 +6918,16 @@ Opens the merge popup, after Neogit's. It has its switches and merging, or while
 <b>Default key mapping:</b> m in status buffers and the log's list
 <br><br>
 <b>See also:</b> <a href="git.html#merging">Merging</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsPickHunk">vcsPickHunk</a><dl><dd>
+<p>
+Picks the change at the caret in a file the version control tracks, as git's diff of the saved file has it, in the git status, opening the status, not shown, if it isn't; or unpicks it. With a selection, picks the changed lines it covers. Its commands then take it, as picked there. A picked change's lines are a brighter shade of its color, a deletion a rule where its lines were; while the hunk preview shows, ; picks, where keys don't type text.
+<br><br>
+<b>Default key mapping:</b> ; in the change popup; &lt;leader&gt;h; in vim edit mode
+<br><br>
+<b>See also:</b> <a href="git.html#picking">Picking</a>
 <br><br>
 </dl><!--<hr>-->
 
