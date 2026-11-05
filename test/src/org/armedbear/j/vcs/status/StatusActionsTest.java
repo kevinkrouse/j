@@ -357,18 +357,18 @@ public class StatusActionsTest {
         git.git("add", "a.txt");
         git.git("commit", "-q", "--no-edit");
         git.write("bad.patch", """
-                From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-                From: T <t@example.com>
-                Subject: [PATCH] bad
+                               From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+                               From: T <t@example.com>
+                               Subject: [PATCH] bad
 
-                ---
-                diff --git a/c.txt b/c.txt
-                --- a/c.txt
-                +++ b/c.txt
-                @@ -1 +1 @@
-                -not there
-                +x
-                """);
+                               ---
+                               diff --git a/c.txt b/c.txt
+                               --- a/c.txt
+                               +++ b/c.txt
+                               @@ -1 +1 @@
+                               -not there
+                               +x
+                               """);
         assertFalse(git.run("am", "bad.patch").succeeded(), "am stops");
         git.write("a.txt", "edited\n");
         git.git("add", "a.txt");
