@@ -82,7 +82,7 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
 
     // Its file's key without the path: the status's section's.
     private static String key(StatusLine line) {
-        return line.repository().root() + "|" + line.section();
+        return StatusRenderer.sectionKey(line.repository(), line.section());
     }
 
     /**

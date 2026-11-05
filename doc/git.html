@@ -279,6 +279,33 @@ While whitespace is ignored, only whole files are (see
 <a href="#whitespace">Ignoring whitespace</a>).
 
 <p>
+<a name="picking"></a><b>;</b> or <b>Insert</b> picks the thing at
+the caret, a file or a hunk, or each file, hunk or the lines a selection covers;
+pressed again on what is picked, it unpicks it. Picks may be scattered across
+files, sections and repositories. While anything is picked, a column at the
+left draws a box at each thing that can be picked, filled and checked when it
+is, with a dash on a file some of whose hunks are, which also says how many
+after its name, <code>2/5</code>; a file all of whose hunks are picked is
+picked. A click on a box toggles it, and a Shift click sets the boxes from the
+last one clicked to it the same way: files from a file, hunks from a hunk,
+lines from a line. The diff beside does the same, except that in vim
+<b>;</b> there is vim's own, repeating an <b>f</b> or <b>t</b>, and picks only
+on a selection. Side by side, the changes are git's, as the diff beside shows
+them, and the boxes are on the right: each hunk's at its first changed row, or
+the row after a removal, and while a hunk is picked in part, one at each line it
+adds. The same keys pick on either side, a selection picking the changed lines
+it covers, <b>;</b> in vim as in the diff beside; a removed line is picked with
+the line added for it. While the file's buffer has unsaved edits, the boxes
+are hidden until it is saved. <b>s</b>, <b>u</b>, <b>x</b>
+and the resolve popup then take a selection if there is one, else what is
+picked, not the caret, the resolve popup only the picked conflicts,
+and unpick it once done; Enter on a picked file or hunk opens each picked file; a double click visits the line clicked. A stash's files are not picked, and <b>x</b> on a stash's line drops it
+whatever is picked; the resolve popup with no conflict picked says so. A pick lasts through a
+refresh; one whose change is gone, or has changed, is dropped, and the status
+bar says so, unless one of j's own commands took the change. <b>Ctrl ;</b> unpicks everything, as in a directory. Picks are kept in
+memory, not saved.
+
+<p>
 While one change is being made, and until the buffer shows it, another waits:
 the status bar says so.
 

@@ -101,7 +101,8 @@ public final class DiffAlignment {
         return of(edits, oldSize, newSize, Whitespace.NONE);
     }
 
-    private static DiffAlignment of(List<Edit> edits, int oldSize, int newSize, Whitespace ignored) {
+    /** Sides of oldSize and newSize lines aligned by edits, in order, made with ignored's whitespace ignored. */
+    public static DiffAlignment of(List<Edit> edits, int oldSize, int newSize, Whitespace ignored) {
         final List<Row> rows = new ArrayList<>();
         final List<Change> changes = new ArrayList<>();
         int o = 0;

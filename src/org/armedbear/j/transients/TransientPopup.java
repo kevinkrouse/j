@@ -301,6 +301,7 @@ public final class TransientPopup extends JComponent {
         if (ctrl)
             return keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z
                     ? Transient.ctrl((char) ('a' + keyCode - KeyEvent.VK_A))
+                    : keyCode == KeyEvent.VK_SEMICOLON ? Transient.ctrl(';')
                     : null;
         return switch (keyCode) {
             case KeyEvent.VK_BACK_SPACE -> Transient.BACKSPACE;

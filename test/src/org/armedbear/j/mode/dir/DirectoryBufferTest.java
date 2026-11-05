@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.event.KeyEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -34,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.BufferCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.File;
@@ -43,6 +45,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Platform;
+import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,6 +105,119 @@ public class DirectoryBufferTest {
         return text.substring(text.lastIndexOf(' ') + 1);
     }
 
+    // ---- picking
+
+    private DirectoryLine entry(String name) {
+        for (org.armedbear.j.Line l = dir.getFirstLine(); l != null; l = l.next())
+            if (l instanceof DirectoryLine dl && name.equals(dl.getDirectoryEntry().extractName()))
+                return dl;
+        throw new AssertionError("no " + name);
+    }
+
+    private void threeFiles() throws Exception {
+        Files.writeString(tmp.resolve("b.txt"), "b\n");
+        Files.writeString(tmp.resolve("c.txt"), "c\n");
+        onEdt(() -> dir.reload());
+    }
+
+    @Test
+    public void pickingAFileDrawsItInTheGutterAndMovesOn() throws Exception {
+        threeFiles();
+        onEdt(() -> {
+            final int width = dir.getGutterColumns().get(0).width();
+            assertTrue(width > 0, "its room kept while nothing is picked");
+            h.editor().setDot(entry("a.txt"), 0);
+            BufferCommands.dirPickFile(h.editor());
+            assertTrue(entry("a.txt").getDirectoryEntry().isMarked());
+            assertEquals(width, dir.getGutterColumns().get(0).width(), "a pick moves no text");
+            assertFalse(entry("a.txt").getText().startsWith("T"), "no T in the text");
+            assertEquals(entry("b.txt"), h.editor().getDotLine(), "on to the next");
+            assertEquals(List.of("a.txt", "picked"), dir.chosenNames(h.editor()));
+            // dirTagFile, its old name, unpicks it.
+            h.editor().setDot(entry("a.txt"), 0);
+            BufferCommands.dirTagFile(h.editor());
+            assertFalse(entry("a.txt").getDirectoryEntry().isMarked());
+        });
+    }
+
+    @Test
+    public void ctrlSemicolonUnpicksEveryFile() throws Exception {
+        threeFiles();
+        onEdt(() -> {
+            assertEquals(
+                "dirUnpickAll",
+                dir.getMode()
+                        .getKeyMap()
+                        .lookup('\0', KeyEvent.VK_SEMICOLON, org.armedbear.j.Constants.CTRL_MASK)
+                        .getCommand());
+            h.editor().setDot(entry("a.txt"), 0);
+            BufferCommands.dirPickFile(h.editor());
+            BufferCommands.dirPickFile(h.editor());
+            assertEquals(List.of("a.txt", "b.txt", "picked"), dir.chosenNames(h.editor()));
+            BufferCommands.dirUnpickAll(h.editor());
+            assertFalse(entry("a.txt").getDirectoryEntry().isMarked());
+            assertFalse(entry("b.txt").getDirectoryEntry().isMarked());
+            assertFalse(dir.unpickAll(), "nothing left to unpick");
+        });
+    }
+
+    @Test
+    public void aShiftClickPicksTheFilesFromTheLastClick() throws Exception {
+        threeFiles();
+        onEdt(() -> {
+            final org.armedbear.j.GutterColumn col = dir.getGutterColumns().get(0);
+            col.clicked(h.editor(), entry("a.txt"), 0, 0);
+            col.shiftClicked(h.editor(), entry("c.txt"), 0, 0);
+            assertEquals(List.of("a.txt", "b.txt", "c.txt", "picked"), dir.chosenNames(h.editor()));
+            col.clicked(h.editor(), entry("c.txt"), 0, 0);
+            col.shiftClicked(h.editor(), entry("b.txt"), 0, 0);
+            assertEquals(List.of("a.txt", "picked"), dir.chosenNames(h.editor()));
+        });
+    }
+
+    @Test
+    public void vimsVisualSelectionTakesTheFileKeys() throws Exception {
+        final KeyMap km = DirectoryMode.getMode().getVisualKeyMap();
+        assertEquals("dirPickFile", km.lookup(';', 0, 0).getCommand());
+        assertEquals("dirDeleteFiles", km.lookup('D', 0, 0).getCommand());
+        assertEquals("dirCopyFile", km.lookup('C', 0, 0).getCommand());
+        assertEquals("dirMoveFile", km.lookup('R', 0, 0).getCommand());
+    }
+
+    @Test
+    public void aSelectionIsWhatTheCommandsTakeWithNothingPicked() throws Exception {
+        threeFiles();
+        onEdt(() -> {
+            h.editor().setMark(new Position(entry("a.txt"), 0));
+            h.editor().setDot(entry("b.txt"), 3);
+            assertEquals(List.of("a.txt", "b.txt", "selected"), dir.chosenNames(h.editor()));
+            // Picking the selection picks each file it covers.
+            BufferCommands.dirPickFile(h.editor());
+            assertTrue(entry("a.txt").getDirectoryEntry().isMarked());
+            assertTrue(entry("b.txt").getDirectoryEntry().isMarked());
+            assertFalse(entry("c.txt").getDirectoryEntry().isMarked());
+            assertNull(h.editor().getMark(), "the selection gone");
+            // Picked, a selection still comes before them; with none, they
+            // come before the caret.
+            h.editor().setMark(new Position(entry("c.txt"), 0));
+            h.editor().setDot(entry("c.txt"), 3);
+            assertEquals(List.of("c.txt", "selected"), dir.chosenNames(h.editor()));
+            h.editor().setMark(null);
+            assertEquals(List.of("a.txt", "b.txt", "picked"), dir.chosenNames(h.editor()));
+            // One over .. alone is meant too: no file, not the picks.
+            h.editor().setMark(new Position(entry(".."), 0));
+            h.editor().setDot(entry(".."), 2);
+            assertEquals(List.of("selected"), dir.chosenNames(h.editor()));
+            // Picking it picks nothing, and leaves it; a command on it does nothing.
+            BufferCommands.dirPickFile(h.editor());
+            assertEquals(List.of("selected"), dir.chosenNames(h.editor()));
+            dir.deleteFiles();
+            assertEquals("No file selected", h.status());
+            h.editor().setMark(null);
+            assertEquals(List.of("a.txt", "b.txt", "picked"), dir.chosenNames(h.editor()));
+        });
+    }
+
     @Test
     public void aNewFileIsABufferWrittenWhenSaved() throws Exception {
         command("dirNewFile", "b.txt");
@@ -148,16 +264,16 @@ public class DirectoryBufferTest {
     }
 
     @Test
-    public void makingOneKeepsTheTags() throws Exception {
+    public void makingOneKeepsThePicks() throws Exception {
         onEdt(() -> {
             h.editor().setDot(dir.findName("a.txt"), 0);
-            dir.tagFileAtDot();
+            dir.pickFileAtDot();
         });
         command("dirNewDirectory", "archive");
         onEdt(
             () -> assertTrue(
                 ((DirectoryLine) dir.findName("a.txt")).getDirectoryEntry().isMarked(),
-                "a.txt still tagged"));
+                "a.txt still picked"));
     }
 
     @Test
@@ -282,7 +398,7 @@ public class DirectoryBufferTest {
             assertTrue(lineOf("big.bin").contains(" 3.0K "), lineOf("big.bin"));
             dir.setTimeStyle("long-iso");
             assertTrue(lineOf("big.bin").matches(".* \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} big\\.bin"), lineOf("big.bin"));
-            assertTrue(lineOf("big.bin").substring(2).startsWith("-rw"), "the mode column");
+            assertTrue(lineOf("big.bin").startsWith("-rw"), "the mode column");
             dir.setHumanSizes(false);
             dir.setTimeStyle("locale");
             assertTrue(lineOf("big.bin").contains(" 3000 "), lineOf("big.bin"));

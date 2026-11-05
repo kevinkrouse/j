@@ -52,6 +52,11 @@ public final class OldSide extends ViewPane<CompareBuffer> {
     }
 
     @Override
+    public KeyMap getVisualKeyMapForMode() {
+        return getOwner().keys().visual(super.getVisualKeyMapForMode());
+    }
+
+    @Override
     public Line jumpTarget(Line line) {
         return getOwner() != null ? getOwner().jumpTarget(this, line) : line;
     }

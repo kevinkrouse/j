@@ -116,6 +116,15 @@ public interface InputHandler
     }
 
     /**
+     * True while the selection is vim's visual one, which takes in each
+     * line it touches, even one where the mark and the caret meet.
+     */
+    default boolean isVisualSelection()
+    {
+        return false;
+    }
+
+    /**
      * Where a block selection -- the same columns on each line, as vim's
      * CTRL-V makes -- covers a line, as offsets [start, end), or null when
      * the selection is not a block or leaves this line out. With a block the

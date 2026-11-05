@@ -88,15 +88,9 @@ public final class HunkCommands {
         final List<String> lines = new ArrayList<>();
         for (Line l = buffer.getFirstLine(); l != null; l = l.next())
             lines.add(l.getText());
-        int first = -1;
-        int last = -1;
-        if (editor.getMark() != null && !editor.getMark().equals(editor.getDot())) {
-            final Region r = new Region(editor);
-            first = r.getBeginLine().lineNumber();
-            last = r.getEndLine().lineNumber();
-            if (r.getEndOffset() == 0 && last > first)
-                last--;
-        }
+        final List<Line> selected = Region.selectedLines(editor);
+        final int first = selected.isEmpty() ? -1 : selected.get(0).lineNumber();
+        final int last = selected.isEmpty() ? -1 : selected.get(selected.size() - 1).lineNumber();
         return new Snapshot(buffer, lines, buffer.getModCount(), editor.getDotLineNumber(), first, last);
     }
 

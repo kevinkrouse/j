@@ -23,6 +23,7 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class Region {
@@ -68,6 +69,58 @@ public final class Region {
                 endCol = buffer.getCol(end);
             }
         }
+    }
+
+    /**
+     * Whether editor has a selection that takes a line, as selectedLines:
+     * a mark apart from the caret, not just over the break after a line's
+     * text, or vim's
+     * visual mode.
+     */
+    public static boolean isSelection(Editor editor) {
+        final Position mark = editor.getMark();
+        if (mark == null)
+            return false;
+        if (isVisual(editor))
+            return true;
+        if (mark.equals(editor.getDot()))
+            return false;
+        final Region r = new Region(editor.getBuffer(), mark, editor.getDot());
+        return !(r.getEndLine() == r.getBeginLine().next()
+                && pastText(r.getBeginLine(), r.getBeginOffset())
+                && r.getEndOffset() == 0);
+    }
+
+    /**
+     * The lines editor's selection takes: those it has text of, or vim's
+     * visual one's every line; none without one.
+     */
+    public static List<Line> selectedLines(Editor editor) {
+        final List<Line> out = new ArrayList<>();
+        if (!isSelection(editor))
+            return out;
+        final boolean visual = isVisual(editor);
+        final Region r = new Region(editor.getBuffer(), editor.getMark(), editor.getDot());
+        final boolean one = r.getBeginLine() == r.getEndLine();
+        for (Line l = r.getBeginLine(); l != null; l = l.next()) {
+            if (!visual && !one && l == r.getEndLine() && r.getEndOffset() == 0)
+                break;
+            if (visual || one || l != r.getBeginLine() || !pastText(l, r.getBeginOffset()))
+                out.add(l);
+            if (l == r.getEndLine())
+                break;
+        }
+        return out;
+    }
+
+    // Whether offset is past line's text, which has some: from there a
+    // selection takes only its line break. An empty line is all break.
+    private static boolean pastText(Line line, int offset) {
+        return line.length() > 0 && offset == line.length();
+    }
+
+    private static boolean isVisual(Editor editor) {
+        return editor.getInputHandler() != null && editor.getInputHandler().isVisualSelection();
     }
 
     public final Buffer getBuffer() {

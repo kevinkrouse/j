@@ -73,6 +73,7 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
@@ -140,6 +141,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         super(VcsStatusMode.getMode(), title(repositories), "Reading…");
         this.repositories = List.copyOf(repositories);
         setProperty(Property.FOLD_MARKERS, "always");
+        addGutterColumn(new StatusPickColumn(this));
         follow.setRepeats(false);
         for (VcsRepository r : repositories)
             r.addListener(listener);
@@ -216,12 +218,11 @@ public final class VcsStatusBuffer extends ViewBuffer
                 final Map<VcsRepository, StatusData> read = new LinkedHashMap<>();
                 final Set<String> diffs = ConcurrentHashMap.newKeySet();
                 for (VcsRepository r : repositories) {
-                    final String rk = r.root().toString();
                     StatusData d;
                     try {
                         d = r.backend().readStatus(r, (section, path) -> {
-                            final String key = rk + "|" + section + "|" + path;
-                            if (!isExpanded(key, Kind.FILE))
+                            final String key = StatusRenderer.fileKey(r, section, path);
+                            if (!isExpanded(key, Kind.FILE) && !partlyPicked.contains(key))
                                 return false;
                             diffs.add(key);
                             return true;
@@ -255,22 +256,42 @@ public final class VcsStatusBuffer extends ViewBuffer
     private void show(Map<VcsRepository, StatusData> read, Set<String> diffs, long startedAt, Whitespace ignored) {
         if (disposed)
             return;
+        final boolean newWhitespace = ignored != readIgnoring;
         readIgnoring = ignored;
         // A file the status has closed may have changed with nothing it shows.
         followAgain(StatusDiffBuffer.Follow.REFRESHED);
-        if (startedAt > wroteAt && writing) {
+        final boolean wrote = startedAt > wroteAt && writing;
+        if (wrote) {
             writing = false;
             updateToolbars();
         }
         // A refresh comes with each save and each return to j's window: most
-        // find nothing new, and leave the lines, and the selection, as they are.
+        // find nothing new, and leave the lines, and the selection, as they
+        // are; but a pick waiting on a diff that did not come is dropped.
         if (getFirstLine() instanceof StatusLine
                 && diffsRead.containsAll(diffs)
+                && !picks.unread(this)
                 && read.entrySet().stream().allMatch(e -> e.getValue().equals(data.get(e.getKey()))))
             return;
         data.putAll(read);
         diffsRead.addAll(diffs);
-        render();
+        // j's own write takes the changes picks were of whichever way they
+        // were chosen: a pick it drops is not news.
+        render(diffs, wrote ? null : newWhitespace ? Drop.WHITESPACE : Drop.GONE);
+    }
+
+    // Why picks a render drops went, as the status bar says it.
+    private enum Drop {
+        GONE("its change is gone or changed", "their changes are gone or changed"),
+        WHITESPACE("whitespace shown or ignored changed its hunk", "whitespace shown or ignored changed their hunks");
+
+        final String one;
+        final String many;
+
+        Drop(String one, String many) {
+            this.one = one;
+            this.many = many;
+        }
     }
 
     // The whitespace its diffs were last read ignoring.
@@ -451,6 +472,12 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     /** Lays the lines out again from what was read, keeping each window's caret on its thing. */
     void render() {
+        render(Set.of(), Drop.GONE);
+    }
+
+    // As render, the diffs of the files keyed asked just read; a pick it
+    // drops said so, why, unless null.
+    private void render(Set<String> asked, Drop why) {
         final List<StatusRenderer.Part> parts = new ArrayList<>();
         for (VcsRepository r : repositories) {
             final StatusData d = data.get(r);
@@ -462,7 +489,9 @@ public final class VcsStatusBuffer extends ViewBuffer
         }
         if (parts.isEmpty())
             return;
-        final List<StatusLine> lines = StatusRenderer.render(parts, this::isExpanded, diffsRead::contains);
+        // The files, and the diffs' hunks' ids, looked up once, for the lines and the picks.
+        picks.newRead();
+        final List<StatusLine> lines = StatusRenderer.render(parts, this::isExpanded, diffsRead::contains, picks::ids);
         for (StatusTree t : trees.all())
             t.update();
         followAgain(StatusDiffBuffer.Follow.REDRAWN);
@@ -488,6 +517,14 @@ public final class VcsStatusBuffer extends ViewBuffer
             if (l.kind() == StatusLine.Kind.MESSAGE && l.key().endsWith(StatusRenderer.PROGRESS))
                 finishing.add(VirtualText.eol(l, FinishCommands.links(this, l.repository())));
         getVirtualText().set(FinishCommands.OWNER, finishing);
+        // What is picked, less what is gone.
+        final int dropped = picks.retain(this, asked);
+        showPicks();
+        if (dropped > 0 && why != null)
+            for (Editor ed : Editor.getEditorList())
+                if (ed.getBuffer() == this)
+                    ed.status(
+                        dropped == 1 ? "A pick was dropped: " + why.one : dropped + " picks were dropped: " + why.many);
 
         final Map<String, StatusLine> byKey = new HashMap<>();
         for (StatusLine l : lines)
@@ -577,6 +614,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         if (diff != null || disposed)
             return;
         diff = new StatusDiffBuffer(this);
+        diff.addGutterColumn(new StatusPickColumn(this));
         followed = null;
         pending = null;
         if (sideBySide)
@@ -758,6 +796,111 @@ public final class VcsStatusBuffer extends ViewBuffer
         final SideBySide was = sides;
         sides = null;
         was.restore(frame, this, focus, diff, diffFile()).run();
+    }
+
+    // Picking.
+
+    private final StatusPicks picks = new StatusPicks();
+    private final ComparedPicks comparedPicks = new ComparedPicks(this);
+    // Whether picks were last shown, to repaint once when the last goes.
+    private boolean picksShown;
+    // The files partly picked, for a refresh to read their diffs, open or not.
+    private volatile Set<String> partlyPicked = Set.of();
+
+    // The owner of the "2/5" after a file partly picked.
+    private static final String PICKS = "vcs.status.picks";
+
+    /** What is picked in it. */
+    StatusPicks picks() {
+        return picks;
+    }
+
+    /** Its picks in the side-by-side comparison. */
+    ComparedPicks comparedPicks() {
+        return comparedPicks;
+    }
+
+    /** Picks each of ls that can be, or, if each is picked, unpicks them; and shows it. */
+    void pick(List<StatusLine> ls) {
+        picks.toggle(ls);
+        showPicks();
+    }
+
+    /** Picks what ls show if on, else unpicks it, and shows it. */
+    void pick(List<StatusLine> ls, boolean on) {
+        picks.set(ls, on);
+        showPicks();
+    }
+
+    /** Unpicks everything, and shows it. */
+    boolean unpickAll() {
+        if (picks.isEmpty())
+            return false;
+        picks.clear();
+        showPicks();
+        return true;
+    }
+
+    /** Unpicks those of keys still picked, and shows it. */
+    void unpick(Set<String> keys) {
+        if (keys.isEmpty())
+            return;
+        picks.remove(keys);
+        showPicks();
+    }
+
+    /**
+     * Shows what is picked: after a file partly picked, how many of its
+     * hunks are; the gutter repainted, its column there only while
+     * something is picked.
+     */
+    void showPicks() {
+        // Nothing picked now nor before: nothing to show or repaint.
+        if (picks.isEmpty() && !picksShown)
+            return;
+        picksShown = !picks.isEmpty();
+        final List<VirtualText> counts = new ArrayList<>();
+        if (!picks.isEmpty())
+            for (Line l = getFirstLine(); l != null; l = l.next())
+                if (l instanceof StatusLine s) {
+                    final int[] n = picks.counts(s);
+                    if (n != null)
+                        counts.add(VirtualText.eol(s, List.of(VirtualText.Run.of("  " + n[0] + "/" + n[1]))));
+                }
+        getVirtualText().set(PICKS, counts);
+        // A file newly partly picked whose diff is unread, as one closed
+        // here picked beside: read again, its diff with it.
+        final Set<String> was = partlyPicked;
+        partlyPicked = picks.partlyPicked();
+        if (!was.containsAll(partlyPicked) && picks.unread(this))
+            refresh();
+        repaint();
+        if (diff != null)
+            diff.repaint();
+        if (sides != null) {
+            sides.comparison().repaint();
+            sides.comparison().getOld().repaint();
+        }
+    }
+
+    /**
+     * The file the comparison shows, as the diff beside has it, if its
+     * hunks can be picked: read, not a conflict's, and its lines git's,
+     * not a buffer's with edits unsaved; else null.
+     */
+    FileItem comparedItem() {
+        final FileItem item = sides == null || diff == null ? null : diff.item();
+        if (item == null || item.diff() == null || item.change().isConflicted() || !sides.shows(diffFile()))
+            return null;
+        return comparedEdited() ? null : item;
+    }
+
+    // The buffer the comparison's new side follows, or null.
+    private Buffer compared;
+
+    /** Whether the new side is a buffer's with edits unsaved. */
+    boolean comparedEdited() {
+        return sides != null && compared != null && sides.comparison().isFollowing() && compared.isModified();
     }
 
     // A commit's details.
@@ -970,13 +1113,23 @@ public final class VcsStatusBuffer extends ViewBuffer
         return b;
     }
 
-    // The key of the file the unified diff shows, or null.
-    private String diffFile() {
-        return diff == null || diff.item() == null ? null : fileKey(diff.repository(), diff.section(), diff.item());
+    // The file the unified diff shows, and its key, made once a file, as
+    // a side's every row asks for it.
+    private FileItem diffFileOf;
+    private String diffFileKey;
+
+    /** The key of the file the unified diff shows, or null. */
+    String diffFile() {
+        final FileItem item = diff == null ? null : diff.item();
+        if (item != diffFileOf) {
+            diffFileOf = item;
+            diffFileKey = item == null ? null : fileKey(diff.repository(), diff.section(), item);
+        }
+        return diffFileKey;
     }
 
     private static String fileKey(VcsRepository r, String section, FileItem item) {
-        return r.root() + "|" + section + "|" + item.path();
+        return StatusRenderer.fileKey(r, section, item.path());
     }
 
     /** Whether the comparison shows the file the unified diff does, read. */
@@ -986,11 +1139,19 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     // The side-by-side form, part of this, its keys the diff's.
     private SideBySide newSides() {
-        return new SideBySide(this, km -> {
+        final SideBySide ss = new SideBySide(this, km -> {
             km.mapKey('=', "vcsStatusDiffView");
             km.mapKey('q', "vcsStatusDiff");
             km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
+            VcsStatusMode.pickKeys(km);
         });
+        ss.comparison().alignBy(this::gitAlignment);
+        // In vim, ; repeats an f or t in the source shown; on a selection it picks.
+        ss.comparison().embedModal(km -> km.unmapKey(';'));
+        ss.comparison().embedVisual(VcsStatusMode::pickKeys);
+        // On the new side alone, as IntelliJ has them.
+        ss.comparison().addGutterColumn(new ComparedPickColumn(this));
+        return ss;
     }
 
     /**
@@ -1011,11 +1172,15 @@ public final class VcsStatusBuffer extends ViewBuffer
         // Read again only for a new file, or when the status is and what
         // the comparison follows has changed, as when a file is deleted; a
         // buffer's comparison follows the buffer itself.
-        if (!moved && why == StatusDiffBuffer.Follow.REDRAWN && (buffer != null) == sides.comparison().isFollowing())
+        if (!moved && why == StatusDiffBuffer.Follow.REDRAWN && (buffer != null) == sides.comparison().isFollowing()) {
+            // The diff read again may be of the comparison's text where the last wasn't.
+            sides.comparison().align();
             return;
+        }
         final SideBySide ss = sides;
         final int asked = ss.ask(file);
         final CompareBuffer c = ss.comparison();
+        compared = null;
         if (item == null) {
             c.follow(null);
             ss.show(asked, SideBySide.plainText(), "", Side.NONE, "No file at the caret", Side.NONE, null);
@@ -1025,8 +1190,11 @@ public final class VcsStatusBuffer extends ViewBuffer
         final File f = File.getInstance(r.root().resolve(path).toString());
         final boolean staged = "staged".equals(section);
         if (buffer != null) {
-            if (!moved && c.isFollowing())
+            compared = buffer;
+            if (!moved && c.isFollowing()) {
+                c.align();
                 return;
+            }
             Following.open(buffer, VcsDiffCommands.staged(buffer, r, path), (read, side, alignment) -> {
                 if (!ss.isCurrent(asked))
                     return null;
@@ -1045,7 +1213,17 @@ public final class VcsStatusBuffer extends ViewBuffer
                         null);
                     return null;
                 }
-                ss.show(asked, buffer.getMode(), read.title(), read.side(), path + " (buffer)", side, alignment);
+                final DiffAlignment hunks = buffer.isModified()
+                        ? null
+                        : gitAlignment(item, DiffWhitespace.ignored(), readIgnoring, read.side(), side);
+                ss.show(
+                    asked,
+                    buffer.getMode(),
+                    read.title(),
+                    read.side(),
+                    path + " (buffer)",
+                    side,
+                    hunks != null ? hunks : alignment);
                 return c;
             });
             return;
@@ -1054,6 +1232,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         final Charset charset = SideBySide.charset();
         final boolean conflicted = StatusData.UNMERGED.equals(section);
         final Whitespace ignored = DiffWhitespace.ignored();
+        final Whitespace diffIgnoring = readIgnoring;
         Background.start("vcs status compare", () -> {
             String oldTitle;
             Side oldSide = Side.NONE;
@@ -1102,7 +1281,8 @@ public final class VcsStatusBuffer extends ViewBuffer
                 newTitle = path;
                 notRead = true;
             }
-            final DiffAlignment alignment = DiffAlignment.of(oldSide, newSide, ignored);
+            final DiffAlignment hunks = conflicted ? null : gitAlignment(item, ignored, diffIgnoring, oldSide, newSide);
+            final DiffAlignment alignment = hunks != null ? hunks : DiffAlignment.of(oldSide, newSide, ignored);
             final String ot = oldTitle;
             final Side os = oldSide;
             final String nt = newTitle;
@@ -1119,6 +1299,29 @@ public final class VcsStatusBuffer extends ViewBuffer
                 ss.show(asked, mode, ot, os, nt, ns, alignment);
             });
         });
+    }
+
+    // The comparison's texts aligned as the file's diff, as the status read
+    // it, has them, if it is of them; else null, for its own diff.
+    private DiffAlignment gitAlignment(Side oldSide, Side newSide) {
+        final FileItem item = comparedItem();
+        return item == null ? null : gitAlignment(item, DiffWhitespace.ignored(), readIgnoring, oldSide, newSide);
+    }
+
+    // The sides aligned as item's diff, as the status read it, has them,
+    // so the comparison's changes are the unified diff's and its picks';
+    // null if that diff is unread, read ignoring other whitespace than
+    // ignored, or not of these sides.
+    private static DiffAlignment gitAlignment(
+            FileItem item,
+            Whitespace ignored,
+            Whitespace read,
+            Side oldSide,
+            Side newSide) {
+        final FileDiff d = item.diff();
+        if (d == null || ignored != read)
+            return null;
+        return SideBySide.ofHunks(d, oldSide, newSide, ignored);
     }
 
     // Which side of a conflict, or why it has nothing.

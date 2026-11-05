@@ -200,6 +200,8 @@ public class CommandTable {
             add("dirSortByDate", e -> DirectoryMode.dirSortByDate());
             add("dirSortByName", e -> DirectoryMode.dirSortByName());
             add("dirSortBySize", e -> DirectoryMode.dirSortBySize());
+            add("dirPickFile", BufferCommands::dirPickFile);
+            add("dirUnpickAll", BufferCommands::dirUnpickAll);
             add("dirTagFile", BufferCommands::dirTagFile);
             add("dirUpDir", BufferCommands::dirUpDir);
             add("down", MotionCommands::down);
@@ -468,6 +470,8 @@ public class CommandTable {
             add("vcsStatusDiff", VcsStatusMode::vcsStatusDiff);
             add("vcsStatusDiffView", VcsStatusMode::vcsStatusDiffView);
             add("vcsStatusNext", VcsStatusMode::vcsStatusNext);
+            add("vcsStatusPick", VcsStatusMode::vcsStatusPick);
+            add("vcsStatusUnpickAll", VcsStatusMode::vcsStatusUnpickAll);
             add("vcsStatusNextSection", VcsStatusMode::vcsStatusNextSection);
             add("vcsStatusPrevious", VcsStatusMode::vcsStatusPrevious);
             add("vcsStatusPreviousSection", VcsStatusMode::vcsStatusPreviousSection);
@@ -476,6 +480,7 @@ public class CommandTable {
             add("vcsStatusScrollDiffBack", VcsStatusMode::vcsStatusScrollDiffBack);
             add("vcsStatusToggle", VcsStatusMode::vcsStatusToggle);
             add("vcsStatusVisit", VcsStatusMode::vcsStatusVisit);
+            add("vcsStatusVisitHere", VcsStatusMode::vcsStatusVisitHere);
             add("vcsUnstage", e -> StatusActions.run(e, StatusActions.Op.UNSTAGE));
             add("vcsUnstageAll", e -> StatusActions.all(e, false));
             add("vcsUnstageHunk", HunkCommands::vcsUnstageHunk);

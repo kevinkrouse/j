@@ -480,9 +480,9 @@ public class TransientPopupTest {
                     case Switch s -> "dirToggleHidden";
                     default -> throw new AssertionError(item);
                 };
-                // Backspace, pressed; a key of two, as -r, the second in the first's map.
-                KeyMapping m = item.key().equals(Transient.BACKSPACE)
-                        ? km.lookup('\b', KeyEvent.VK_BACK_SPACE, 0)
+                // Backspace and Ctrl ;, pressed; a key of two, as -r, the second in the first's map.
+                KeyMapping m = item.key().equals(Transient.BACKSPACE) ? km.lookup('\b', KeyEvent.VK_BACK_SPACE, 0)
+                        : Transient.isNamed(item.key()) ? TransientKeys.lookup(km, item.key())
                         : km.lookup(item.key().charAt(0), 0, 0);
                 if (item.key().length() == 2 && m != null && m.getCommand() instanceof KeyMap sub)
                     m = sub.lookup(item.key().charAt(1), 0, 0);

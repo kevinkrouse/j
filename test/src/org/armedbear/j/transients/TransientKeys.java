@@ -29,12 +29,14 @@ import org.armedbear.j.KeyMapping;
 public final class TransientKeys {
     private TransientKeys() {}
 
-    /** km's mapping of a popup's key: a character, or Enter, Tab or Ctrl with a letter. */
+    /** km's mapping of a popup's key: a character, or Enter, Tab or Ctrl with a letter or ;. */
     public static KeyMapping lookup(KeyMap km, String key) {
         if (key.equals(Transient.ENTER))
             return km.lookup('\0', KeyEvent.VK_ENTER, 0);
         if (key.equals(Transient.TAB))
             return km.lookup('\0', KeyEvent.VK_TAB, 0);
+        if (key.equals(Transient.ctrl(';')))
+            return km.lookup('\0', KeyEvent.VK_SEMICOLON, CTRL_MASK);
         if (key.startsWith("<C-") && key.length() == 5)
             return km.lookup('\0', KeyEvent.VK_A + key.charAt(3) - 'a', CTRL_MASK);
         if (key.length() != 1)

@@ -23,9 +23,11 @@ package org.armedbear.j.vcs.status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.event.KeyEvent;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +48,7 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.status.StatusActions.Op;
+import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -208,6 +211,23 @@ public class StatusActionsTest {
     }
 
     @Test
+    public void aPickWhoseHunkWhitespaceChangesIsDroppedSayingWhy() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 4\n", "line  4\n"));
+        open();
+        openFile("  M  a.txt", "  -line 3");
+        pickAfter("  M  a.txt", "  @@ -1,");
+        try {
+            onEdt(() -> DiffWhitespace.choose(Whitespace.AMOUNT));
+            until(() -> "A pick was dropped: whitespace shown or ignored changed its hunk".equals(h.status()));
+            onEdt(() -> assertTrue(status.picks().isEmpty()));
+        }
+        finally {
+            onEdt(DiffWhitespace::forget);
+        }
+    }
+
+    @Test
     public void whileWhitespaceIsIgnoredAFileIsStagedWholeAndAHunkNot() throws Exception {
         repository();
         git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 50\n", "line  50\n"));
@@ -290,6 +310,446 @@ public class StatusActionsTest {
         onEdt(() -> StatusActions.run(h.editor(), Op.STAGE));
         until(() -> text().contains("Staged changes (1)"));
         assertEquals("one\ntwo\nthree\nfour\n", git.index("a.txt"));
+    }
+
+    // ---- picking
+
+    private void pick(String at) throws Exception {
+        onEdt(() -> {
+            h.editor().setDot(line(at), 0);
+            VcsStatusMode.vcsStatusPick(h.editor());
+        });
+    }
+
+    private void pickAfter(String file, String prefix) throws Exception {
+        onEdt(() -> {
+            h.editor().setDot(after(line(file), prefix), 0);
+            VcsStatusMode.vcsStatusPick(h.editor());
+        });
+    }
+
+    @Test
+    public void sStagesWhatIsPickedNotWhatIsAtTheCaret() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        pick("  ?  c.txt");
+        pickAfter("  M  a.txt", "  @@ -47");
+        onEdt(
+            () -> assertEquals(
+                "c.txt, a hunk of a.txt",
+                StatusActions.names(StatusActions.targets(status, h.editor()))));
+        // The caret elsewhere: the picks are what s takes.
+        act("  M  b.txt", Op.STAGE);
+        until(() -> git.index("c.txt") != null);
+        // c.txt is staged first, then a.txt's hunk.
+        until(() -> SIXTY.replace("line 50\n", "line fifty\n").equals(git.index("a.txt")));
+        until(() -> status.picks().isEmpty());
+    }
+
+    @Test
+    public void aSelectionInAHunkPicksItsLines() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "one\ntwo\nthree\n");
+        git.commitAll("first");
+        git.write("a.txt", "one\nTWO\nthree\nfour\n");
+        open();
+        openFile("  M  a.txt", "  +four");
+        onEdt(() -> {
+            h.editor().setMark(new Position(line("  +four"), 0));
+            h.editor().setDot(line("  +four"), 4);
+            VcsStatusMode.vcsStatusPick(h.editor());
+            assertEquals(org.armedbear.j.util.PickState.ALL, status.picks().state(line("  +four")));
+            assertEquals(org.armedbear.j.util.PickState.NONE, status.picks().state(line("  +TWO")));
+            assertEquals(org.armedbear.j.util.PickState.SOME, status.picks().state(line("  M  a.txt")));
+            h.editor().setDot(status.getFirstLine(), 0);
+        });
+        onEdt(() -> StatusActions.run(h.editor(), Op.STAGE));
+        until(() -> text().contains("Staged changes (1)"));
+        assertEquals("one\ntwo\nthree\nfour\n", git.index("a.txt"));
+    }
+
+    @Test
+    public void aPickedRemovalStagesWithItsAddition() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "one\ntwo\nthree\n");
+        git.commitAll("first");
+        git.write("a.txt", "one\nTWO\nthree\n");
+        open();
+        openFile("  M  a.txt", "  +TWO");
+        onEdt(() -> {
+            h.editor().setMark(new Position(line("  -two"), 0));
+            h.editor().setDot(line("  -two"), 4);
+            VcsStatusMode.vcsStatusPick(h.editor());
+            h.editor().setDot(status.getFirstLine(), 0);
+        });
+        onEdt(() -> StatusActions.run(h.editor(), Op.STAGE));
+        until(() -> text().contains("Staged changes (1)"));
+        assertEquals("one\nTWO\nthree\n", git.index("a.txt"), "the modified line staged whole");
+    }
+
+    @Test
+    public void aFileSelectedWithItsHunksIsPickedOnce() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        final Runnable selectFileAndHunk = () -> {
+            h.editor().setMark(new Position(line("  M  a.txt"), 0));
+            h.editor().setDot(after(line("  M  a.txt"), "  @@ -47"), 3);
+            VcsStatusMode.vcsStatusPick(h.editor());
+        };
+        onEdt(() -> {
+            selectFileAndHunk.run();
+            assertEquals("a.txt", StatusActions.names(StatusActions.targets(status, h.editor())));
+        });
+        // Unpicked the same way, none of its hunks stays picked.
+        onEdt(() -> {
+            selectFileAndHunk.run();
+            assertTrue(status.picks().isEmpty());
+        });
+    }
+
+    @Test
+    public void aSelectionOfALineBreakAloneLeavesThePicksTaken() throws Exception {
+        repository();
+        open();
+        pick("  ?  c.txt");
+        onEdt(() -> {
+            final org.armedbear.j.Line b = line("  M  b.txt");
+            h.editor().setMark(new Position(b, b.length()));
+            h.editor().setDot(b.next(), 0);
+            assertEquals("c.txt", StatusActions.names(StatusActions.targets(status, h.editor())));
+        });
+    }
+
+    @Test
+    public void aPickTakenAnotherWayIsDroppedWithNothingSaid() throws Exception {
+        repository();
+        open();
+        pick("  ?  c.txt");
+        onEdt(() -> {
+            h.editor().setMark(new Position(line("  ?  c.txt"), 0));
+            h.editor().setDot(line("  ?  c.txt"), 3);
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        until(() -> status.picks().isEmpty());
+        assertFalse(String.valueOf(h.status()).contains("dropped"), h.status());
+    }
+
+    @Test
+    public void aStashsFilesAreNotPicked() throws Exception {
+        repository();
+        open();
+        onEdt(
+            () -> assertFalse(
+                StatusPicks.pickable(new StatusLine(Kind.FILE, "x", "k", "k", repo(), StatusData.STASHES))));
+    }
+
+    @Test
+    public void aHunkPickedInAClosedFileIsStillTaken() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        pickAfter("  M  a.txt", "  @@ -47");
+        onEdt(() -> status.toggle(line("  M  a.txt")));
+        until(() -> !text().contains("  -line 50"));
+        onEdt(() -> status.refresh());
+        until(() -> !text().stream().anyMatch(t -> t.startsWith("Reading")));
+        onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(StatusActions.targets(status, h.editor()))));
+    }
+
+    @Test
+    public void pickingAgainUnpicksAndAHunkOfAPickedFileSplitsIt() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        pick("  M  a.txt");
+        onEdt(
+            () -> assertEquals(
+                org.armedbear.j.util.PickState.ALL,
+                status.picks().state(after(line("  M  a.txt"), "  @@ -47"))));
+        // Unpick one hunk: the file's other stays picked.
+        pickAfter("  M  a.txt", "  @@ -47");
+        onEdt(() -> {
+            assertEquals(org.armedbear.j.util.PickState.SOME, status.picks().state(line("  M  a.txt")));
+            assertEquals(
+                org.armedbear.j.util.PickState.ALL,
+                status.picks().state(after(line("  M  a.txt"), "  @@ -1,6")));
+            assertEquals(
+                org.armedbear.j.util.PickState.NONE,
+                status.picks().state(after(line("  M  a.txt"), "  @@ -47")));
+            assertTrue(
+                status.getVirtualText()
+                        .get("vcs.status.picks")
+                        .stream()
+                        .anyMatch(v -> org.armedbear.j.VirtualText.text(v.rows().get(0)).contains("1/2")),
+                "1/2 after the file");
+        });
+        pickAfter("  M  a.txt", "  @@ -1,6");
+        onEdt(() -> assertTrue(status.picks().isEmpty(), "picked again: unpicked"));
+    }
+
+    @Test
+    public void everyHunkPickedIsTheFilePicked() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        pickAfter("  M  a.txt", "  @@ -1,6");
+        pickAfter("  M  a.txt", "  @@ -47");
+        onEdt(() -> {
+            assertEquals(org.armedbear.j.util.PickState.ALL, status.picks().state(line("  M  a.txt")));
+            assertTrue(status.getVirtualText().get("vcs.status.picks").isEmpty(), "no count on a file picked whole");
+        });
+        // Picked again, the file unpicks all of it.
+        pick("  M  a.txt");
+        onEdt(() -> assertTrue(status.picks().isEmpty()));
+    }
+
+    @Test
+    public void ctrlSemicolonUnpicksAll() throws Exception {
+        repository();
+        open();
+        pick("  M  a.txt");
+        onEdt(() -> {
+            assertEquals(
+                "vcsStatusUnpickAll",
+                status.getMode()
+                        .getKeyMap()
+                        .lookup('\0', KeyEvent.VK_SEMICOLON, org.armedbear.j.Constants.CTRL_MASK)
+                        .getCommand());
+            VcsStatusMode.vcsStatusUnpickAll(h.editor());
+            assertTrue(status.picks().isEmpty());
+        });
+    }
+
+    @Test
+    public void aHunkIsPickedInTheDiffBeside() throws Exception {
+        repository();
+        open();
+        final StatusDiffBuffer diff = paneOn("  M  a.txt", "  @@ -47");
+        onEdt(() -> {
+            assertTrue(
+                diff.getGutterColumns().stream().anyMatch(c -> c instanceof StatusPickColumn),
+                "the pane has picks");
+            h.editor().setDot(paneLine(diff, "  @@ -47"), 0);
+            VcsStatusMode.vcsStatusPick(h.editor());
+            assertEquals(org.armedbear.j.util.PickState.ALL, status.picks().state(paneLine(diff, "  @@ -47")));
+            assertEquals(org.armedbear.j.util.PickState.SOME, status.picks().state(line("  M  a.txt")));
+        });
+    }
+
+    @Test
+    public void aHunkPickedBesideAFileClosedHereIsTaken() throws Exception {
+        repository();
+        open();
+        final StatusDiffBuffer diff = paneOn("  M  a.txt", "  @@ -47");
+        onEdt(() -> {
+            h.editor().setDot(paneLine(diff, "  @@ -47"), 0);
+            VcsStatusMode.vcsStatusPick(h.editor());
+        });
+        // The file closed in the status: its diff read for the pick.
+        until(() -> !status.picks().unread(status));
+        onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(StatusActions.targets(status, h.editor()))));
+    }
+
+    @Test
+    public void picksStayWhenTheWriteFails() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        pickAfter("  M  a.txt", "  @@ -47");
+        Files.writeString(git.root.resolve(".git/index.lock"), "");
+        try {
+            act("  M  b.txt", Op.STAGE);
+            until(() -> !status.isWriting());
+            until(() -> !text().stream().anyMatch(t -> t.startsWith("Reading")));
+            onEdt(() -> assertFalse(status.picks().isEmpty(), "kept to try again"));
+        }
+        finally {
+            Files.delete(git.root.resolve(".git/index.lock"));
+        }
+    }
+
+    @Test
+    public void enterOnADiffLineVisitsItWithSomethingPicked() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        pick("  ?  c.txt");
+        onEdt(() -> {
+            h.editor().setDot(after(line("  M  a.txt"), "  +line fifty"), 0);
+            VcsStatusMode.vcsStatusVisit(h.editor());
+            assertNull(
+                Editor.getBufferList()
+                        .findBuffer(org.armedbear.j.File.getInstance(git.root.resolve("c.txt").toString())),
+                "not the picked file");
+        });
+    }
+
+    @Test
+    public void aShiftClickPicksFromTheLastClickOfItsKind() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        onEdt(() -> {
+            final StatusPickColumn col = (StatusPickColumn) status.getGutterColumns()
+                    .stream()
+                    .filter(c -> c instanceof StatusPickColumn)
+                    .findFirst()
+                    .orElseThrow();
+            // Files, untracked, unstaged then staged: a.txt between is
+            // picked whole, its hunks not apart.
+            col.clicked(h.editor(), line("  ?  c.txt"), 0, 0);
+            col.shiftClicked(h.editor(), line("  M  b.txt"), 0, 0);
+            for (String f : List.of("  ?  c.txt", "  M  a.txt", "  M  b.txt"))
+                assertEquals(org.armedbear.j.util.PickState.ALL, status.picks().state(line(f)), f);
+            // Unpicked, a Shift click unpicks them back to it.
+            col.clicked(h.editor(), line("  M  b.txt"), 0, 0);
+            col.shiftClicked(h.editor(), line("  ?  c.txt"), 0, 0);
+            assertTrue(status.picks().isEmpty());
+            // Lines: from - to +, the hunk's every change.
+            col.clicked(h.editor(), after(line("  M  a.txt"), "  -line 50"), 0, 0);
+            col.shiftClicked(h.editor(), after(line("  M  a.txt"), "  +line fifty"), 0, 0);
+            assertEquals(
+                org.armedbear.j.util.PickState.ALL,
+                status.picks().state(after(line("  M  a.txt"), "  @@ -47")));
+            assertEquals(
+                org.armedbear.j.util.PickState.NONE,
+                status.picks().state(after(line("  M  a.txt"), "  @@ -1,6")));
+        });
+    }
+
+    @Test
+    public void unpickingHunksNotPickedPicksNothing() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        onEdt(() -> {
+            final StatusPickColumn col = (StatusPickColumn) status.getGutterColumns()
+                    .stream()
+                    .filter(c -> c instanceof StatusPickColumn)
+                    .findFirst()
+                    .orElseThrow();
+            final StatusLine first = after(line("  M  a.txt"), "  @@ -1,6");
+            col.clicked(h.editor(), first, 0, 0);
+            col.clicked(h.editor(), first, 0, 0);
+            // From a hunk unpicked, a Shift click unpicks: none of the file is picked.
+            col.shiftClicked(h.editor(), after(line("  M  a.txt"), "  @@ -47"), 0, 0);
+            assertTrue(status.picks().isEmpty());
+        });
+    }
+
+    @Test
+    public void aPickIsDroppedWhenATwinOfItsHunkComes() throws Exception {
+        final StringBuilder thirty = new StringBuilder();
+        for (int i = 1; i <= 30; i++)
+            thirty.append(i == 5 || i == 25 ? "same" : "line " + i).append('\n');
+        git = GitFixture.init(tmp);
+        git.write("a.txt", thirty.toString());
+        git.commitAll("first");
+        final String late = thirty.toString().replaceFirst("(?s)(.*)same", "$1other");
+        git.write("a.txt", late);
+        open();
+        openFile("  M  a.txt", "  +other");
+        pickAfter("  M  a.txt", "  @@ -22");
+        onEdt(() -> assertFalse(status.picks().isEmpty()));
+        // The same change above it: its id would now be the new one's.
+        git.write("a.txt", late.replaceFirst("same", "other"));
+        onEdt(() -> status.refresh());
+        until(() -> status.picks().isEmpty());
+        until(() -> h.status().equals("A pick was dropped: its change is gone or changed"));
+    }
+
+    @Test
+    public void aSelectionComesBeforeWhatIsPicked() throws Exception {
+        repository();
+        open();
+        pick("  ?  c.txt");
+        onEdt(() -> {
+            h.editor().setMark(new Position(line("  M  a.txt"), 0));
+            h.editor().setDot(line("  M  a.txt"), 4);
+            assertEquals("a.txt", StatusActions.names(StatusActions.targets(status, h.editor())));
+            h.editor().setMark(null);
+            assertEquals("c.txt", StatusActions.names(StatusActions.targets(status, h.editor())));
+        });
+    }
+
+    @Test
+    public void theGutterTakesNoClickWhileNothingIsPicked() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            final StatusPickColumn col = (StatusPickColumn) status.getGutterColumns()
+                    .stream()
+                    .filter(c -> c instanceof StatusPickColumn)
+                    .findFirst()
+                    .orElseThrow();
+            assertFalse(col.isClickable(line("  M  a.txt"), 0, 0), "a click there moves the caret");
+        });
+        pick("  ?  c.txt");
+        onEdt(() -> {
+            final StatusPickColumn col = (StatusPickColumn) status.getGutterColumns()
+                    .stream()
+                    .filter(c -> c instanceof StatusPickColumn)
+                    .findFirst()
+                    .orElseThrow();
+            assertTrue(col.isClickable(line("  M  a.txt"), 0, 0));
+        });
+    }
+
+    @Test
+    public void aPickSurvivesARefreshAndGoesWithItsHunk() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        pickAfter("  M  a.txt", "  @@ -47");
+        onEdt(() -> status.refresh());
+        until(() -> !text().stream().anyMatch(t -> t.startsWith("Reading")));
+        onEdt(() -> assertFalse(status.picks().isEmpty(), "kept over a refresh"));
+        // Its change changed: the pick is dropped, and said so.
+        git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 50\n", "line FIFTY\n"));
+        onEdt(() -> status.refresh());
+        until(() -> status.picks().isEmpty());
+        until(() -> h.status().equals("A pick was dropped: its change is gone or changed"));
+    }
+
+    @Test
+    public void enterOpensEachPickedFile() throws Exception {
+        repository();
+        open();
+        pick("  M  a.txt");
+        pick("  ?  c.txt");
+        onEdt(() -> {
+            h.editor().setDot(line("  M  a.txt"), 0);
+            VcsStatusMode.vcsStatusVisit(h.editor());
+        });
+        onEdt(() -> {
+            assertNotNull(
+                Editor.getBufferList()
+                        .findBuffer(org.armedbear.j.File.getInstance(git.root.resolve("a.txt").toString())));
+            assertNotNull(
+                Editor.getBufferList()
+                        .findBuffer(org.armedbear.j.File.getInstance(git.root.resolve("c.txt").toString())));
+        });
+    }
+
+    @Test
+    public void enterOffAPickedLineVisitsAsUsual() throws Exception {
+        repository();
+        open();
+        pick("  M  a.txt");
+        onEdt(() -> {
+            h.editor().setDot(line("  ?  c.txt"), 0);
+            VcsStatusMode.vcsStatusVisit(h.editor());
+            assertNull(
+                Editor.getBufferList()
+                        .findBuffer(org.armedbear.j.File.getInstance(git.root.resolve("a.txt").toString())),
+                "not the picked file");
+            assertNotNull(
+                Editor.getBufferList()
+                        .findBuffer(org.armedbear.j.File.getInstance(git.root.resolve("c.txt").toString())),
+                "the file at the caret");
+        });
     }
 
     @Test
@@ -468,6 +928,33 @@ public class StatusActionsTest {
         });
         assertEquals("Resolve the conflicts on their own", h.status());
         assertTrue(git.read("a.txt").contains("<<<<<<<"), "a.txt left as it was");
+    }
+
+    @Test
+    public void aResolveTakesThePickedConflictsAndLeavesTheRestPicked() throws Exception {
+        conflicted();
+        open();
+        pick("  U  a.txt (both modified)");
+        pick("  M  b.txt");
+        onEdt(() -> {
+            h.editor().setDot(status.getFirstLine(), 0);
+            ResolveCommands.vcsResolveOurs(h.editor());
+        });
+        until(() -> !text().contains("  U  a.txt (both modified)"));
+        assertEquals("ours\n", git.read("a.txt"));
+        onEdt(() -> assertEquals("b.txt", StatusActions.names(StatusActions.targets(status, h.editor()))));
+    }
+
+    @Test
+    public void aResolveWithNoConflictPickedSaysSo() throws Exception {
+        conflicted();
+        open();
+        pick("  M  b.txt");
+        onEdt(() -> {
+            h.editor().setDot(line("  U  a.txt (both modified)"), 0);
+            ResolveCommands.vcsResolveOurs(h.editor());
+        });
+        assertEquals("No conflict is picked", h.status());
     }
 
     @Test

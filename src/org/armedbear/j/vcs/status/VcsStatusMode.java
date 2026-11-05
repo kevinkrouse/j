@@ -46,6 +46,7 @@ import org.armedbear.j.MotionCommands;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
+import org.armedbear.j.Region;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 import org.armedbear.j.ViewBuffer;
@@ -60,6 +61,7 @@ import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Prefix;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.PickState;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.FileRevision;
@@ -166,14 +168,17 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         if (paneModalKeyMap == null) {
             paneModalKeyMap = new KeyMap();
             paneKeys(paneModalKeyMap);
+            // In vim, ; repeats an f or t in the diff, as side by side; on a selection it picks.
+            paneModalKeyMap.unmapKey(';');
         }
         return paneModalKeyMap;
     }
 
     // As the status's where they mean the same, and as the log's diff's.
     private static void paneKeys(KeyMap km) {
+        pickKeys(km);
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
-        km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisit");
+        km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisitHere");
         km.mapKey(KeyEvent.VK_TAB, 0, "vcsStatusToggle");
         km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "vcsStatusCycle");
         km.mapKey('n', "vcsStatusNext");
@@ -206,14 +211,24 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             km.mapKey('s', "vcsStage");
             km.mapKey('u', "vcsUnstage");
             km.mapKey('x', "vcsDiscard");
+            pickKeys(km);
             visualKeyMap = km;
         }
         return visualKeyMap;
     }
 
+    // ; with no Shift, and the file managers' Insert; Ctrl ; unpicks all,
+    // as in a directory.
+    static void pickKeys(KeyMap km) {
+        km.mapKey(KeyEvent.VK_INSERT, 0, "vcsStatusPick");
+        km.mapKey(';', "vcsStatusPick");
+        km.mapKey(KeyEvent.VK_SEMICOLON, CTRL_MASK, "vcsStatusUnpickAll");
+    }
+
     private static void common(KeyMap km) {
+        pickKeys(km);
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
-        km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisit");
+        km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisitHere");
         km.mapKey(KeyEvent.VK_TAB, 0, "vcsStatusToggle");
         km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "vcsStatusCycle");
         for (char c = '1'; c <= '4'; c++)
@@ -393,6 +408,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                     new Command("x", "vcsDiscard", "discard", true)));
         changes.add(new Command(Transient.ctrl('r'), "vcsStatusRefresh", "refresh", true));
         groups.add(new Group("Changes", changes));
+        groups.add(PICK);
         final List<Transient.Item> commands = new ArrayList<>();
         commands.add(new Prefix("l", "log…", () -> LogCommands.openingPopup(editor)));
         commands.add(Command.of("D", "vcsStatusDiff", "diff"));
@@ -408,6 +424,12 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         groups.add(new Group("Commands", commands));
         return new Transient("vcs.status", "Status", "git.html#status", groups);
     }
+
+    // The status's and the diff beside's picking.
+    private static final Group PICK = Group.of(
+        "Pick",
+        new Command(";", "vcsStatusPick", "pick", true),
+        Command.of(Transient.ctrl(';'), "vcsStatusUnpickAll", "unpick all"));
 
     // The diff beside's: what its keys do there.
     private static Transient diffTransient(boolean stages) {
@@ -427,6 +449,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                     new Command("x", "vcsDiscard", "discard", true)));
         changes.add(new Command(Transient.ctrl('r'), "vcsStatusRefresh", "refresh", true));
         groups.add(new Group("Changes", changes));
+        groups.add(PICK);
         groups.add(
             Group.of(
                 "Diff",
@@ -647,6 +670,58 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         ed.setFocusToDisplay();
     }
 
+    /**
+     * ; or Insert: picks the thing at the caret, a file, or a hunk, the
+     * caret on one of its lines too, or each file and hunk or the lines a
+     * selection covers; if each is picked, unpicks them. In the diff
+     * beside, the same; side by side, the hunk at the caret's row. The commands that
+     * take targets take a selection, else what is picked, else the caret's,
+     * and those that act on picks unpick them. The caret goes on to the next
+     * thing of its kind.
+     */
+    public static void vcsStatusPick(Editor editor) {
+        final VcsStatusBuffer b = owner(editor);
+        if (b == null || editor.getDot() == null)
+            return;
+        // A side of the comparison: the hunk at the caret's row.
+        final CompareBuffer c = CompareBuffer.of(editor.getBuffer());
+        if (c != null) {
+            b.comparedPicks().pick(editor, editor.getBuffer() == c.getOld());
+            return;
+        }
+        if (editor.getBuffer() != b && editor.getBuffer() != b.getDiff())
+            return;
+        final boolean selection = Region.isSelection(editor);
+        final List<StatusLine> ls = StatusActions.selected(editor);
+        if (ls.stream().noneMatch(l -> l != null && StatusPicks.pickable(l))) {
+            editor.status("Nothing to pick here");
+            return;
+        }
+        b.pick(ls.stream().filter(l -> l != null).toList());
+        if (selection)
+            editor.setMark(null);
+        else if (!ls.isEmpty() && ls.get(0) != null)
+            nextLike(editor, ls.get(0));
+    }
+
+    // The caret on to the next file, or hunk, after line's.
+    private static void nextLike(Editor editor, StatusLine line) {
+        final Kind kind = line.kind() == Kind.FILE ? Kind.FILE : Kind.HUNK;
+        for (Line l = line.next(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.kind() == kind) {
+                editor.moveDotTo(s, 0);
+                return;
+            }
+    }
+
+    /** Unpicks everything picked in the status. */
+    public static void vcsStatusUnpickAll(Editor editor) {
+        final VcsStatusBuffer b = owner(editor);
+        if (b == null)
+            return;
+        editor.status(b.unpickAll() ? "Nothing is picked" : "Nothing was picked");
+    }
+
     /** =: the diff beside opened as last shown, or switched between unified and side by side. */
     public static void vcsStatusDiffView(Editor editor) {
         final VcsStatusBuffer b = owner(editor);
@@ -785,11 +860,41 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     /**
-     * Visits the thing at the caret: a file, at the line of the hunk or diff
-     * line, a staged one's through the working tree's changes since; or a
-     * commit, shown as a diff.
+     * Enter: on a picked file or hunk, opens each file picked; else visits
+     * the thing at the caret, as vcsStatusVisitHere does.
      */
     public static void vcsStatusVisit(Editor editor) {
+        // On a file or hunk picked, whole or in part, each file picked; on
+        // anything else, as ever.
+        final VcsStatusBuffer status = owner(editor);
+        if (status != null
+                && editor.getBuffer() == status
+                && !status.picks().isEmpty()
+                && dotLine(editor) instanceof StatusLine at
+                && at.kind() != Kind.DIFF
+                && status.picks().state(at) != PickState.NONE) {
+            final List<String> gone = new ArrayList<>();
+            for (StatusPicks.Pick p : status.picks().paths()) {
+                final File f = File.getInstance(p.repository().root().resolve(p.path()).toString());
+                if (f == null || !f.isFile() && !f.isDirectory())
+                    gone.add(p.path());
+                else
+                    visit(editor, f, 0);
+            }
+            if (!gone.isEmpty())
+                editor.status(
+                    String.join(", ", gone) + (gone.size() == 1 ? " is" : " are") + " not in the working tree");
+            return;
+        }
+        vcsStatusVisitHere(editor);
+    }
+
+    /**
+     * A double click: visits the thing at the caret, picks or none: a file,
+     * at the line of the hunk or diff line, a staged one's through the
+     * working tree's changes since; or a commit, shown as a diff.
+     */
+    public static void vcsStatusVisitHere(Editor editor) {
         if (CompareBuffer.of(editor.getBuffer()) != null) {
             visitCompared(editor);
             return;

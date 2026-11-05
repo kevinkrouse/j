@@ -505,6 +505,14 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
                     at.column().clicked(editor, at.line(), at.x(), at.y());
                 return true;
             }
+            if (at != null
+                    && button == MouseEvent.BUTTON1
+                    && modifiers == SHIFT_MASK
+                    && at.column().isShiftClickable(at.line(), at.x(), at.y())) {
+                if (e.getClickCount() == 1)
+                    at.column().shiftClicked(editor, at.line(), at.x(), at.y());
+                return true;
+            }
             if (at != null && button == MouseEvent.BUTTON3 && modifiers == 0 && e.getClickCount() == 1) {
                 final JPopupMenu menu = at.column().contextMenu(editor, at.line(), at.x(), at.y());
                 if (menu != null) {

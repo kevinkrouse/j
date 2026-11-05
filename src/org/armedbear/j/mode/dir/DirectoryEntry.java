@@ -39,8 +39,8 @@ public final class DirectoryEntry {
 
     // For native format, this is all we store: as ls wrote it, or with its date as an age.
     private String string;
-    // Where the size starts and ends and the name starts in the text past the
-    // tag's two columns, so nothing reads a line's columns by its dates; -1 if not found.
+    // Where the size starts and ends and the name starts in the line's text,
+    // so nothing reads a line's columns by its dates; -1 if not found.
     private int sizeStart = -1;
     private int sizeEnd = -1;
     private int nameStart = -1;
@@ -73,19 +73,19 @@ public final class DirectoryEntry {
         name = s.substring(nameStart);
     }
 
-    /** Where the name starts in the line, past the tag's columns; -1 if not known. */
+    /** Where the name starts in the line; -1 if not known. */
     final int nameColumn() {
-        return nameStart < 0 ? -1 : 2 + nameStart;
+        return nameStart;
     }
 
     /** Where the size starts in the line; -1 if not known. */
     final int sizeColumn() {
-        return sizeStart < 0 ? -1 : 2 + sizeStart;
+        return sizeStart;
     }
 
     /** Where the size ends in the line; -1 if not known. */
     final int sizeEndColumn() {
-        return sizeEnd < 0 ? -1 : 2 + sizeEnd;
+        return sizeEnd;
     }
 
     /**
@@ -254,24 +254,22 @@ public final class DirectoryEntry {
 
     @Override
     public String toString() {
-        String marked = isMarked ? "T " : "  ";
         // Use saved string for native format.
         if (string != null)
-            return marked.concat(string);
+            return string;
         // Construct string for internal format: as ls -l writes it, but for
         // links, owner and group.
         StringBuilder sb = new StringBuilder(256);
-        sb.append(marked);
         sb.append(mode).append(' ');
         final String sizeString = style.size(Math.max(size, 0));
         for (int j = sizeString.length(); j < (style.human() ? 5 : 10); j++)
             sb.append(' ');
-        sizeStart = sb.length() - 2;
+        sizeStart = sb.length();
         sb.append(sizeString);
-        sizeEnd = sb.length() - 2;
+        sizeEnd = sb.length();
         sb.append(' ');
         sb.append(style.date(date, System.currentTimeMillis())).append(' ');
-        nameStart = sb.length() - 2;
+        nameStart = sb.length();
         sb.append(name);
         if (linkedTo != null) {
             sb.append(" -> ");

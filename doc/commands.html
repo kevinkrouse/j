@@ -102,6 +102,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a></li>
     <li><a href="commands.html#dirOpenFileInSplit">dirOpenFileInSplit</a></li>
     <li><a href="commands.html#dirOpenFileInVsplit">dirOpenFileInVsplit</a></li>
+    <li><a href="commands.html#dirPickFile">dirPickFile</a></li>
     <li><a href="commands.html#dirProjectDir">dirProjectDir</a></li>
     <li><a href="commands.html#dirRescan">dirRescan</a></li>
     <li><a href="commands.html#dirTagFile">dirTagFile</a></li>
@@ -111,6 +112,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#dirToggleHumanSizes">dirToggleHumanSizes</a></li>
     <li><a href="commands.html#dirToggleReverse">dirToggleReverse</a></li>
     <li><a href="commands.html#dirUnlimit">dirUnlimit</a></li>
+    <li><a href="commands.html#dirUnpickAll">dirUnpickAll</a></li>
     <li><a href="commands.html#dirUpDir">dirUpDir</a></li>
     <li><a href="commands.html#doShellCommandOnRegion">doShellCommandOnRegion</a></li>
     <li><a href="commands.html#down">down</a></li>
@@ -531,13 +533,16 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsStatusDiff">vcsStatusDiff</a></li>
     <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
     <li><a href="commands.html#vcsStatusNextSection">vcsStatusNextSection</a></li>
+    <li><a href="commands.html#vcsStatusPick">vcsStatusPick</a></li>
     <li><a href="commands.html#vcsStatusPrevious">vcsStatusPrevious</a></li>
     <li><a href="commands.html#vcsStatusPreviousSection">vcsStatusPreviousSection</a></li>
     <li><a href="commands.html#vcsStatusRefresh">vcsStatusRefresh</a></li>
     <li><a href="commands.html#vcsStatusScrollDiff">vcsStatusScrollDiff</a></li>
     <li><a href="commands.html#vcsStatusScrollDiffBack">vcsStatusScrollDiffBack</a></li>
     <li><a href="commands.html#vcsStatusToggle">vcsStatusToggle</a></li>
+    <li><a href="commands.html#vcsStatusUnpickAll">vcsStatusUnpickAll</a></li>
     <li><a href="commands.html#vcsStatusVisit">vcsStatusVisit</a></li>
+    <li><a href="commands.html#vcsStatusVisitHere">vcsStatusVisitHere</a></li>
     <li><a href="commands.html#vcsUnstage">vcsUnstage</a></li>
     <li><a href="commands.html#vcsUnstageAll">vcsUnstageAll</a></li>
     <li><a href="commands.html#vcsUnstageHunk">vcsUnstageHunk</a></li>
@@ -1523,6 +1528,16 @@ new window is on the left, as vim's <code>:vsplit</code>.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="dirPickFile">dirPickFile</a><dl><dd>
+<p>
+Picks the file at the caret, or each file the selection covers, or unpicks them if each is picked; the caret goes on to the next. Copy, move, delete and the shell command take the files a selection covers, else those picked, else the file at the caret. A picked file has a box in a column at the left, which a click toggles; a Shift click sets the files from the last clicked to it the same way.
+<br><br>
+<b>Default key mapping:</b> ;, Insert or t in directory buffers
+<br><br>
+<b>See also:</b> <a href="directories.html">Directory Buffers</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a><dl><dd>
 <p>
 Opens the file or directory at the caret, then closes the directory buffer.
@@ -1574,9 +1589,9 @@ Entering a blank string removes the limit, so that all files are displayed.
 
 <a name="dirTagFile">dirTagFile</a><dl><dd>
 <p>
-Tags or untags the file at the current location of the caret.
+The old name of <a href="#dirPickFile">dirPickFile</a>, which it runs.
 <p>
-<b>Default key mapping:</b> 't' in directory buffers
+<b>Default key mapping:</b> none; t runs dirPickFile
 <p>
 <b>See also:</b> <a href="directories.html">Directory Buffers</a>.
 <br><br>
@@ -1641,6 +1656,16 @@ Removes the listing's limit pattern, so that all files are shown.
 <br><br>
 <b>See also:</b> <a href="#dirUnlimit">dirUnlimit</a>,
 <a href="directories.html">Directory Buffers</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirUnpickAll">dirUnpickAll</a><dl><dd>
+<p>
+Unpicks every file picked in a directory buffer.
+<br><br>
+<b>Default key mapping:</b> Ctrl ; in directory buffers
+<br><br>
+<b>See also:</b> <a href="#dirPickFile">dirPickFile</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -7135,6 +7160,16 @@ In a status buffer, goes to the next section.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsStatusPick">vcsStatusPick</a><dl><dd>
+<p>
+In a status buffer, picks the thing at the caret, a file or a hunk, or each file, hunk or the lines the selection covers, or unpicks them if each is picked. Stage, unstage, discard and the resolve popup take a selection if there is one, else what is picked, else the caret's, and unpick what they used once done; Enter on a picked file or hunk opens each picked file. A pick lasts through a refresh, and is dropped when its change is gone.
+<br><br>
+<b>Default key mapping:</b> ; or Insert in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#picking">Picking</a>, <a href="#vcsStatusUnpickAll">vcsStatusUnpickAll</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsStatusPrevious">vcsStatusPrevious</a><dl><dd>
 <p>
 In a status buffer, goes to the previous section, file, hunk or commit.
@@ -7195,13 +7230,33 @@ In a status buffer, opens or closes the section, file or hunk at the caret. Insi
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsStatusUnpickAll">vcsStatusUnpickAll</a><dl><dd>
+<p>
+In a status buffer, unpicks everything picked.
+<br><br>
+<b>Default key mapping:</b> Ctrl ; in status buffers and their diffs
+<br><br>
+<b>See also:</b> <a href="#vcsStatusPick">vcsStatusPick</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsStatusVisit">vcsStatusVisit</a><dl><dd>
 <p>
-In a status buffer, visits the file, commit or stash at the caret. A file opens at the line of the hunk or diff line the caret is on, a commit with its diff; on a stash, or a line in it, its details show beside, as the log shows a commit. A staged line is visited where it is now in the working tree.
+In a status buffer, on a picked file or hunk, opens each picked file; anywhere else, visits the thing at the caret, as <a href="#vcsStatusVisitHere">vcsStatusVisitHere</a> does.
 <br><br>
-<b>Default key mapping:</b> Enter or a double click in status buffers
+<b>Default key mapping:</b> Enter in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusVisitHere">vcsStatusVisitHere</a><dl><dd>
+<p>
+In a status buffer, visits the file, commit or stash at the caret, whatever is picked. A file opens at the line of the hunk or diff line the caret is on, a commit with its diff; on a stash, or a line in it, its details show beside, as the log shows a commit. A staged line is visited where it is now in the working tree.
+<br><br>
+<b>Default key mapping:</b> a double click in status buffers
+<br><br>
+<b>See also:</b> <a href="#vcsStatusVisit">vcsStatusVisit</a>
 <br><br>
 </dl><!--<hr>-->
 

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
@@ -138,7 +139,33 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     public void update(Side oldText, Side newText, DiffAlignment alignment) {
         if (disposed || oldText.equals(this.oldText) && newText.equals(this.newText))
             return;
-        show(oldText, newText, alignment, false);
+        show(oldText, newText, aligned(oldText, newText, alignment), false);
+    }
+
+    // The aligner's alignment of o and n, or else ours.
+    private DiffAlignment aligned(Side o, Side n, DiffAlignment ours) {
+        final DiffAlignment theirs = aligner.apply(o, n);
+        return theirs != null ? theirs : ours;
+    }
+
+    // The alignment of two texts the view it is part of has, as git's diff
+    // of them, over its own diff's; null for none.
+    private BiFunction<Side, Side, DiffAlignment> aligner = (o, n) -> null;
+
+    /**
+     * aligner aligns the texts from now on where it can, as when they are
+     * updated, over its own diff; and now, as they are.
+     */
+    public void alignBy(BiFunction<Side, Side, DiffAlignment> aligner) {
+        this.aligner = aligner;
+        align();
+    }
+
+    /** Aligned again by its aligner, as when what that aligns by changed. */
+    public void align() {
+        final DiffAlignment a = disposed ? null : aligner.apply(oldText, newText);
+        if (a != null && !(a.ignored() == alignment.ignored() && a.changes().equals(alignment.changes())))
+            show(oldText, newText, a, false);
     }
 
     /**
@@ -148,6 +175,16 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     public void embed(Buffer owner, Consumer<KeyMap> keys) {
         setOwner(owner);
         this.keys.setExtra(keys);
+    }
+
+    /** keys changes the view's keys over its sides' in vim, after embed's. */
+    public void embedModal(Consumer<KeyMap> keys) {
+        this.keys.setModalExtra(keys);
+    }
+
+    /** keys maps the view's keys over its sides' in vim's visual mode, as on a selection. */
+    public void embedVisual(Consumer<KeyMap> keys) {
+        this.keys.setVisualExtra(keys);
     }
 
     /**
@@ -331,7 +368,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
                         if (isShown())
                             realign();
                     } else if (alignment.ignored() != ignored)
-                        show(o, n, done, false);
+                        show(o, n, aligned(o, n, done), false);
                 });
             }
         });
@@ -708,6 +745,11 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     @Override
     public KeyMap getModalKeyMapForMode() {
         return keys.over(super.getModalKeyMapForMode(), true);
+    }
+
+    @Override
+    public KeyMap getVisualKeyMapForMode() {
+        return keys.visual(super.getVisualKeyMapForMode());
     }
 
     @Override

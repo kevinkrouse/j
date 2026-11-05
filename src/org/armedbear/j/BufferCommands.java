@@ -183,9 +183,25 @@ public final class BufferCommands {
             ((DirectoryBuffer) editor.getBuffer()).home();
     }
 
+    /** dirPickFile's old name. */
     public static void dirTagFile(Editor editor) {
-        if (editor.getBuffer() instanceof DirectoryBuffer)
-            ((DirectoryBuffer) editor.getBuffer()).tagFileAtDot();
+        dirPickFile(editor);
+    }
+
+    /**
+     * ;, Insert or t: picks the file at the caret, or each the selection
+     * covers, or unpicks them; the directory's commands take what is
+     * picked, a selection before it.
+     */
+    public static void dirPickFile(Editor editor) {
+        if (editor.getBuffer() instanceof DirectoryBuffer d)
+            d.pickFileAtDot();
+    }
+
+    /** Ctrl ;: unpicks every file picked. */
+    public static void dirUnpickAll(Editor editor) {
+        if (editor.getBuffer() instanceof DirectoryBuffer d)
+            editor.status(d.unpickAll() ? "Nothing is picked" : "Nothing was picked");
     }
 
     public static void dirBrowseFile(Editor editor) {

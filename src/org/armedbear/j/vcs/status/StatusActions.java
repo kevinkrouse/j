@@ -27,22 +27,24 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
-import org.armedbear.j.Position;
 import org.armedbear.j.Region;
 import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.util.Background;
@@ -59,7 +61,6 @@ import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.diff.Patch;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
-import org.armedbear.j.vim.VimInputHandler;
 
 /**
  * Staging, unstaging and discarding in a status buffer, or in its diff
@@ -96,34 +97,45 @@ public final class StatusActions {
             (editor, text, title) -> ConfirmDialog.showConfirmDialog(editor, text, title) == RESPONSE_YES;
 
     /**
-     * What the selection takes in, or with none what the caret is on, in
-     * editor's buffer: the status's, or its diff's, whose lines are keyed
-     * as the status's are.
+     * The lines the selection takes, those it has text of, or vim's visual
+     * one's every line; else the caret's, a diff line's hunk's heading, as
+     * the caret in a hunk acts on the hunk.
      */
-    static List<Target> targets(VcsStatusBuffer buffer, Editor editor) {
-        final Buffer shown = editor.getBuffer();
+    static List<StatusLine> selected(Editor editor) {
         final List<StatusLine> lines = new ArrayList<>();
-        final Position mark = editor.getMark();
-        final boolean visual =
-                editor.getInputHandler() instanceof VimInputHandler vim && vim.getState().getMode().isVisual();
-        if (mark != null && (visual || !mark.equals(editor.getDot()))) {
-            final Region r = new Region(shown, mark, editor.getDot());
-            for (Line l = r.getBeginLine(); l != null; l = l.next()) {
-                // A selection takes the lines it has text of; vim's visual
-                // one, every line from end to end.
-                final boolean one = r.getBeginLine() == r.getEndLine();
-                if (!visual && !one && l == r.getEndLine() && r.getEndOffset() == 0)
-                    break;
-                final boolean skip = !visual && !one && l == r.getBeginLine() && r.getBeginOffset() == l.length();
-                if (!skip && l instanceof StatusLine s)
+        if (Region.isSelection(editor)) {
+            for (Line l : Region.selectedLines(editor))
+                if (l instanceof StatusLine s)
                     lines.add(s);
-                if (l == r.getEndLine())
-                    break;
-            }
         } else if (editor.getDotLine() instanceof StatusLine s) {
             // The caret in a hunk acts on the hunk, as on its heading.
             lines.add(s.kind() == Kind.DIFF ? StatusLine.head(s) : s);
         }
+        return lines;
+    }
+
+    /**
+     * Whether the targets in editor are what is picked: something is, and
+     * no selection, which is always meant, comes before it.
+     */
+    static boolean takesPicks(VcsStatusBuffer buffer, Editor editor) {
+        return !buffer.picks().isEmpty() && !Region.isSelection(editor);
+    }
+
+    /**
+     * What the selection takes in; else what is picked; else what the
+     * caret is on, in editor's buffer: the status's, or its diff's, whose
+     * lines are keyed as the status's are.
+     */
+    static List<Target> targets(VcsStatusBuffer buffer, Editor editor) {
+        return targets(buffer, editor, takesPicks(buffer, editor));
+    }
+
+    /** As targets, picked whether it takes the picks, as takesPicks says. */
+    static List<Target> targets(VcsStatusBuffer buffer, Editor editor, boolean picked) {
+        if (picked)
+            return buffer.picks().targets(buffer);
+        final List<StatusLine> lines = selected(editor);
 
         final Map<String, Files> files = new LinkedHashMap<>();
         final Map<Hunk, Part> parts = new IdentityHashMap<>();
@@ -168,13 +180,13 @@ public final class StatusActions {
         // A file taken whole takes its hunks.
         targets.removeIf(
             t -> t instanceof Part p
-                    && files.containsKey(p.repository().root() + "|" + p.section())
-                    && files.get(p.repository().root() + "|" + p.section()).files().contains(p.file()));
+                    && files.containsKey(StatusRenderer.sectionKey(p.repository(), p.section()))
+                    && files.get(StatusRenderer.sectionKey(p.repository(), p.section())).files().contains(p.file()));
         return targets;
     }
 
     private static boolean covers(Map<String, Files> files, StatusLine l) {
-        final Files f = files.get(l.repository().root() + "|" + l.section());
+        final Files f = files.get(StatusRenderer.sectionKey(l.repository(), l.section()));
         return f != null && f.files().contains(l.file());
     }
 
@@ -184,7 +196,7 @@ public final class StatusActions {
             VcsRepository repository,
             String section,
             FileItem file) {
-        final String key = repository.root() + "|" + section;
+        final String key = StatusRenderer.sectionKey(repository, section);
         Files f = files.get(key);
         if (f == null) {
             f = new Files(repository, section, new ArrayList<>());
@@ -214,9 +226,16 @@ public final class StatusActions {
             StashCommands.drop(editor, stash.repository(), stash.stash());
             return;
         }
-        final List<Target> targets = targets(buffer, editor);
-        final String why = refusal(editor, buffer, op, targets);
+        final boolean picked = takesPicks(buffer, editor);
+        final List<Target> targets = targets(buffer, editor, picked);
+        // The picks the targets are, if any: those picked after stay.
+        final Map<Target, Set<String>> used = picked ? buffer.picks().used(targets) : Map.of();
+        final String why = refusal(editor, buffer, op, targets, picked);
         if (why != null) {
+            // A read that left a picked file's diff unread, as one that
+            // failed, is tried again.
+            if (picked && buffer.picks().unread(buffer))
+                buffer.refresh();
             editor.status(why);
             return;
         }
@@ -248,7 +267,7 @@ public final class StatusActions {
                     buffer.gaveUpWriting();
                     return;
                 }
-                start(editor, buffer, "Staging", targets, () -> performAll(op, targets));
+                start(editor, buffer, "Staging", targets, used, did -> performAll(op, targets, did));
             });
             return;
         }
@@ -256,33 +275,59 @@ public final class StatusActions {
             case STAGE -> "Staging";
             case UNSTAGE -> "Unstaging";
             case DISCARD -> "Discarding";
-        }, targets, () -> op == Op.DISCARD ? discard(targets) : performAll(op, targets));
+        }, targets, used, did -> op == Op.DISCARD ? discard(targets, did) : performAll(op, targets, did));
     }
 
-    // Does op to every target; the first thing that went wrong, or null.
-    private static String performAll(Op op, List<Target> targets) {
+    // Does op to every target, telling did of each done; the first thing
+    // that went wrong, or null.
+    private static String performAll(Op op, List<Target> targets, Consumer<Target> did) {
         for (Target t : targets) {
             final String failed = perform(op, t);
             if (failed != null)
                 return failed;
+            did.accept(t);
         }
         return null;
     }
 
-    // Says what is being done to targets and does work, as write does.
+    /**
+     * Says what is being done to targets and does work, as write does,
+     * which tells its argument of each target done, if it can. The picks
+     * used, by target, are unpicked: all once the work is done, else
+     * those of the targets done.
+     */
     static void start(
             Editor editor,
             VcsStatusBuffer buffer,
             String doing,
             List<Target> targets,
-            Supplier<String> work) {
+            Map<Target, Set<String>> used,
+            Function<Consumer<Target>, String> work) {
         editor.setMark(null);
         editor.status(doing + " " + names(targets) + "…");
-        write(editor, buffer, "vcs " + doing.toLowerCase(Locale.ROOT), work);
+        final List<Target> did = Collections.synchronizedList(new ArrayList<>());
+        write(editor, buffer, "vcs " + doing.toLowerCase(Locale.ROOT), () -> work.apply(did::add), failed -> {
+            final Set<String> keys = new HashSet<>();
+            for (Map.Entry<Target, Set<String>> e : used.entrySet())
+                if (failed == null || did.contains(e.getKey()))
+                    keys.addAll(e.getValue());
+            buffer.unpick(keys);
+        });
     }
 
     // Runs work, what went wrong or null, off the event thread, then reads the buffer again.
     static void write(Editor editor, VcsStatusBuffer buffer, String name, Supplier<String> work) {
+        write(editor, buffer, name, work, null);
+    }
+
+    // As write, done given what went wrong or null on the event thread,
+    // before the read after.
+    private static void write(
+            Editor editor,
+            VcsStatusBuffer buffer,
+            String name,
+            Supplier<String> work,
+            Consumer<String> done) {
         buffer.startWriting();
         Background.start(name, () -> {
             String failed = null;
@@ -294,7 +339,7 @@ public final class StatusActions {
                 Log.error(e);
                 failed = "Failed: " + e;
             }
-            finish(editor, buffer, failed);
+            finish(editor, buffer, failed, done);
         });
     }
 
@@ -377,14 +422,18 @@ public final class StatusActions {
             return out;
         if (!(editor.getBuffer() instanceof VcsStatusBuffer || editor.getBuffer() instanceof StatusDiffBuffer))
             return out;
-        final List<Target> targets = targets(buffer, editor);
+        final boolean picked = takesPicks(buffer, editor);
+        final List<Target> targets = targets(buffer, editor, picked);
         for (Op op : Op.values())
-            if (stashDropped(editor, op) != null ? !buffer.isWriting() : refusal(editor, buffer, op, targets) == null)
+            if (stashDropped(editor, op) != null
+                    ? !buffer.isWriting()
+                    : refusal(editor, buffer, op, targets, picked) == null)
                 out.add(op);
         return out;
     }
 
-    // x on a stash's line drops it: the line, or null.
+    // x on a stash's line drops it, whatever is picked, a stash being no
+    // pick: the line, or null.
     private static StatusLine stashDropped(Editor editor, Op op) {
         return op == Op.DISCARD
                 && editor.getMark() == null
@@ -393,14 +442,17 @@ public final class StatusActions {
                 && s.stash() != null ? s : null;
     }
 
-    // Why op can't be done to targets in editor, or null.
-    static String refusal(Editor editor, VcsStatusBuffer buffer, Op op, List<Target> targets) {
+    // Why op can't be done to targets in editor, picked if they are the
+    // picks, or null.
+    static String refusal(Editor editor, VcsStatusBuffer buffer, Op op, List<Target> targets, boolean picked) {
         // The diff beside shows what was there before the last write until it is read again.
         if (editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale())
             return "Wait: the diff is being read again";
         // What the buffer shows is out of date until the last write's refresh.
         if (buffer.isWriting())
             return "Wait: the last change is still being made";
+        if (picked && buffer.picks().unread(buffer))
+            return "Wait: the picked files' diffs are being read";
         if (targets.isEmpty())
             return "Nothing to " + verb(op) + " here";
         for (Target t : targets) {
@@ -498,7 +550,10 @@ public final class StatusActions {
         });
     }
 
-    private static void finish(Editor editor, VcsStatusBuffer buffer, String failed) {
+    private static void finish(Editor editor, VcsStatusBuffer buffer, String failed, Consumer<String> done) {
+        // Before the read after, which would drop the picks as gone.
+        if (done != null)
+            SwingUtilities.invokeLater(() -> done.accept(failed));
         buffer.wrote();
         for (VcsRepository r : buffer.getRepositories()) {
             r.invalidate();
@@ -612,11 +667,19 @@ public final class StatusActions {
     private record Apply(VcsRepository repository, String path, byte[] patch, boolean index) implements Step {}
 
     static String discard(List<Target> targets) {
+        return discard(targets, t -> {});
+    }
+
+    // As discard, telling did of each target done, its steps all done.
+    private static String discard(List<Target> targets, Consumer<Target> did) {
         final List<Step> steps = new ArrayList<>();
-        for (Target t : targets) {
-            final String why = steps(t, steps);
+        // Each target's steps' end in steps.
+        final int[] ends = new int[targets.size()];
+        for (int i = 0; i < targets.size(); i++) {
+            final String why = steps(targets.get(i), steps);
             if (why != null)
                 return why;
+            ends[i] = steps.size();
         }
         for (Step s : steps) {
             if (!(s instanceof Apply a))
@@ -629,8 +692,8 @@ public final class StatusActions {
             if (a.index() && !b.applies(a.repository(), a.patch(), true, false, true))
                 return a.path() + " changed since it was shown; look again";
         }
-        for (Step s : steps) {
-            final String failed = switch (s) {
+        for (int k = 0; k < steps.size(); k++) {
+            final String failed = switch (steps.get(k)) {
                 case Trash t -> {
                     final VcsBackend b = t.repository().backend();
                     final String unstaged =
@@ -647,9 +710,13 @@ public final class StatusActions {
                             : failure(b, b.apply(a.repository(), a.patch(), true, false, true));
                 }
             };
-            if (failed != null)
+            if (failed != null) {
+                for (int i = 0; i < targets.size() && ends[i] <= k; i++)
+                    did.accept(targets.get(i));
                 return failed;
+            }
         }
+        targets.forEach(did);
         return null;
     }
 

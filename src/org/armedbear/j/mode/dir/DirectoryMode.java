@@ -104,7 +104,7 @@ public final class DirectoryMode extends AbstractMode implements Mode {
         km.mapKey('c', "dirCopyFile");
         km.mapKey('g', "dirGetFile");
         km.mapKey('m', "dirMoveFile");
-        km.mapKey('t', "dirTagFile");
+        pickKeys(km);
         km.mapKey('x', "dirClearFilters");
         km.mapKey('a', "dirNewFile");
         km.mapKey('A', "dirNewDirectory");
@@ -201,7 +201,8 @@ public final class DirectoryMode extends AbstractMode implements Mode {
                         "Files",
                         Command.of("a", "dirNewFile", "new file"),
                         Command.of("A", "dirNewDirectory", "new directory"),
-                        Command.of("t", "dirTagFile", "tag"),
+                        Command.of(";", "dirPickFile", "pick"),
+                        Command.of(Transient.ctrl(';'), "dirUnpickAll", "unpick all"),
                         Command.of(vim ? "C" : "c", "dirCopyFile", "copy"),
                         Command.of(vim ? "R" : "m", "dirMoveFile", "move"),
                         Command.of(vim ? "D" : "d", "dirDeleteFiles", "delete"),
@@ -280,7 +281,7 @@ public final class DirectoryMode extends AbstractMode implements Mode {
             km.mapKey(KeyEvent.VK_DELETE, 0, "dirDeleteFiles");
             km.mapKey('R', "dirMoveFile");
             km.mapKey('C', "dirCopyFile");
-            km.mapKey('t', "dirTagFile");
+            pickKeys(km);
             km.mapKey('x', "dirClearFilters");
             km.mapKey('a', "dirNewFile");
             km.mapKey('A', "dirNewDirectory");
@@ -297,6 +298,33 @@ public final class DirectoryMode extends AbstractMode implements Mode {
             modalKeyMap = km;
         }
         return modalKeyMap;
+    }
+
+    // t, as ever, ; and the file managers' Insert pick; Ctrl ; unpicks
+    // all, as in the git status.
+    private static void pickKeys(KeyMap km) {
+        km.mapKey('t', "dirPickFile");
+        km.mapKey(KeyEvent.VK_INSERT, 0, "dirPickFile");
+        km.mapKey(';', "dirPickFile");
+        km.mapKey(KeyEvent.VK_SEMICOLON, CTRL_MASK, "dirUnpickAll");
+    }
+
+    private static KeyMap visualKeyMap;
+
+    // Vim's V or v then a key that takes files: on those selected.
+    @Override
+    public synchronized KeyMap getVisualKeyMap() {
+        if (visualKeyMap == null) {
+            final KeyMap km = new KeyMap();
+            pickKeys(km);
+            km.mapKey('D', "dirDeleteFiles");
+            km.mapKey(KeyEvent.VK_DELETE, 0, "dirDeleteFiles");
+            km.mapKey('R', "dirMoveFile");
+            km.mapKey('C', "dirCopyFile");
+            km.mapKey('!', "dirDoShellCommand");
+            visualKeyMap = km;
+        }
+        return visualKeyMap;
     }
 
     @Override

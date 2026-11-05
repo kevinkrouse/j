@@ -817,6 +817,11 @@ public class Buffer extends SystemBuffer {
         return mode.getModalKeyMap(this);
     }
 
+    /** The keys it takes in vim's visual mode, its mode's; null for none. */
+    public KeyMap getVisualKeyMapForMode() {
+        return mode.getVisualKeyMap();
+    }
+
     /**
      * The lines changes start at, where next and previous change go, as a
      * diff's: its mode's; null for the change marks'.

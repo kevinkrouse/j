@@ -31,7 +31,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
@@ -155,17 +157,20 @@ public final class ResolveCommands {
     }
 
     // Runs take on the unmerged files at the caret or selected, with x's
-    // refusals, if it fits them all.
+    // refusals, if it fits them all; of the picks, the unmerged files'
+    // alone, the rest left picked.
     private static void resolveAt(Editor editor, Take take) {
         final VcsStatusBuffer buffer = VcsStatusMode.owner(editor);
         if (buffer == null || editor.getDot() == null)
             return;
-        final List<Target> targets = StatusActions.targets(buffer, editor);
+        final boolean picked = StatusActions.takesPicks(buffer, editor);
+        final List<Target> all = StatusActions.targets(buffer, editor, picked);
+        final List<Target> targets = picked ? all.stream().filter(StatusActions::isUnmerged).toList() : all;
         if (targets.stream().noneMatch(StatusActions::isUnmerged)) {
-            editor.status("Nothing to resolve here");
+            editor.status(picked ? "No conflict is picked" : "Nothing to resolve here");
             return;
         }
-        final String why = StatusActions.refusal(editor, buffer, Op.DISCARD, targets);
+        final String why = StatusActions.refusal(editor, buffer, Op.DISCARD, targets, picked);
         if (why != null) {
             editor.status(why);
             return;
@@ -174,15 +179,22 @@ public final class ResolveCommands {
             editor.status("That choice doesn't fit these conflicts");
             return;
         }
-        StatusActions.start(editor, buffer, "Resolving", targets, () -> resolve(targets, take));
+        final Map<Target, Set<String>> used = picked ? buffer.picks().used(targets) : Map.of();
+        StatusActions.start(editor, buffer, "Resolving", targets, used, did -> resolve(targets, take, did));
+    }
+
+    /** As resolve, telling did of each target resolved. */
+    static String resolve(List<Target> targets, Take take) {
+        return resolve(targets, take, t -> {});
     }
 
     /**
-     * Resolves the unmerged targets each take, off the event thread: what
-     * went wrong, or null. A repository that fails doesn't stop the others;
-     * with several, each failure names its repository.
+     * Resolves the unmerged targets each take, off the event thread,
+     * telling did of each done: what went wrong, or null. A repository
+     * that fails doesn't stop the others; with several, each failure names
+     * its repository.
      */
-    static String resolve(List<Target> targets, Take take) {
+    static String resolve(List<Target> targets, Take take, Consumer<Target> did) {
         final List<String> failures = new ArrayList<>();
         final long repositories = targets.stream().map(Target::repository).distinct().count();
         for (Target t : targets) {
@@ -191,6 +203,8 @@ public final class ResolveCommands {
             final String failed = resolve(f, take);
             if (failed != null)
                 failures.add(repositories > 1 ? f.repository().name() + ": " + failed : failed);
+            else
+                did.accept(t);
         }
         return failures.isEmpty() ? null : String.join("; ", failures);
     }

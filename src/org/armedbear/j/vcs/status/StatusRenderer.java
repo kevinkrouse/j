@@ -22,9 +22,11 @@ package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.armedbear.j.mode.compare.WordDiff;
 import org.armedbear.j.vcs.FileChange;
@@ -57,9 +59,14 @@ public final class StatusRenderer {
      * @param expanded whether a node, by key and kind, is shown open
      * @param diffRead whether a file's diff, by key, has been read, so that
      *     none means it has none
+     * @param ids a diff's hunks by their ids, as {@link #hunkIds}, read once
      */
-    static List<StatusLine> render(List<Part> parts, BiPredicate<String, Kind> expanded, Predicate<String> diffRead) {
-        final StatusRenderer r = new StatusRenderer(expanded, diffRead);
+    static List<StatusLine> render(
+            List<Part> parts,
+            BiPredicate<String, Kind> expanded,
+            Predicate<String> diffRead,
+            Function<FileDiff, Map<String, Hunk>> ids) {
+        final StatusRenderer r = new StatusRenderer(expanded, diffRead, ids);
         for (Part part : parts)
             r.part(part, parts.size() > 1);
         return r.lines;
@@ -77,7 +84,7 @@ public final class StatusRenderer {
             String section,
             List<FileItem> files,
             BiPredicate<String, Kind> expanded) {
-        final StatusRenderer r = new StatusRenderer(expanded, k -> true);
+        final StatusRenderer r = new StatusRenderer(expanded, k -> true, StatusRenderer::hunkIds);
         for (FileItem f : files)
             r.file(repository, key, section, f);
         return r.lines;
@@ -85,12 +92,17 @@ public final class StatusRenderer {
 
     private final BiPredicate<String, Kind> expanded;
     private final Predicate<String> diffRead;
+    private final Function<FileDiff, Map<String, Hunk>> ids;
     private final List<StatusLine> lines = new ArrayList<>();
     private int blanks;
 
-    private StatusRenderer(BiPredicate<String, Kind> expanded, Predicate<String> diffRead) {
+    private StatusRenderer(
+            BiPredicate<String, Kind> expanded,
+            Predicate<String> diffRead,
+            Function<FileDiff, Map<String, Hunk>> ids) {
         this.expanded = expanded;
         this.diffRead = diffRead;
+        this.ids = ids;
     }
 
     private void part(Part part, boolean several) {
@@ -220,14 +232,54 @@ public final class StatusRenderer {
             add(new StatusLine(Kind.MESSAGE, INDENT + none, fk + "|none", fk, repository, section).file(f));
             return;
         }
-        // A hunk is known by what it changes, not where it is, so that a
-        // change above it leaves it open or closed and the caret in it.
+        for (Map.Entry<String, Hunk> e : ids.apply(diff).entrySet())
+            hunk(repository, fk, section, f, e.getValue(), e.getKey());
+    }
+
+    /** The key of r's section's line. */
+    static String sectionKey(VcsRepository r, String section) {
+        return r.root() + "|" + section;
+    }
+
+    /** The key of the line of r's section's file at path. */
+    static String fileKey(VcsRepository r, String section, String path) {
+        return sectionKey(r, section) + "|" + path;
+    }
+
+    /** The key of the line of the hunk id of the file whose line's key is fk. */
+    static String hunkKey(String fk, String id) {
+        return fk + HUNK + id;
+    }
+
+    /** The key of the file's line from that of its hunk's, hk; hk if it is not a hunk's. */
+    static String fileKeyOf(String hk) {
+        final int at = hk.lastIndexOf(HUNK);
+        return at < 0 ? hk : hk.substring(0, at);
+    }
+
+    /** The id of the hunk whose line's key is hk. */
+    static String hunkId(String hk) {
+        return hk.substring(hk.lastIndexOf(HUNK) + HUNK.length());
+    }
+
+    // Between a file's line's key and a hunk's id; an id has no '|', so the
+    // last of these in a key, whatever the path, ends the file's.
+    private static final String HUNK = "|@";
+
+    /**
+     * diff's hunks by their ids, in order: a hunk is known by what it
+     * changes, not where it is, so that a change above it leaves it open
+     * or closed, the caret in it, and its pick; {@link #hunkKey} makes the
+     * hunk's line's key of one.
+     */
+    static Map<String, Hunk> hunkIds(FileDiff diff) {
+        final Map<String, Hunk> out = new LinkedHashMap<>();
         final Map<String, Integer> seen = new HashMap<>();
         for (Hunk h : diff.hunks()) {
             final String id = changes(h);
-            final int n = seen.merge(id, 1, Integer::sum);
-            hunk(repository, fk, section, f, h, id + "#" + n);
+            out.put(id + "#" + seen.merge(id, 1, Integer::sum), h);
         }
+        return out;
     }
 
     // Why an unmerged file has no combined diff.
@@ -249,7 +301,7 @@ public final class StatusRenderer {
     }
 
     private void hunk(VcsRepository repository, String fk, String section, FileItem f, Hunk hunk, String id) {
-        final String hk = fk + "|@" + id;
+        final String hk = hunkKey(fk, id);
         add(
             new StatusLine(Kind.HUNK, INDENT + hunk.header(), hk, hk, repository, section).file(f)
                     .hunk(hunk)

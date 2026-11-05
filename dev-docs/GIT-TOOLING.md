@@ -2148,7 +2148,7 @@ plan with why it is left, before the next phase starts.
    - **Decided:** the line's blame on and the authors off by default;
      the column's age ranks the buffer's commits, so a line's shade stays
      as it scrolls.
-9. **Next. Conflicts.** Markers, inline actions, navigation, marking
+9. **Done. Conflicts.** Markers, inline actions, navigation, marking
    resolved, and finishing, as [Conflicts](#conflicts) has them.
    Already built: the Unmerged section, with each file's `XY` kept in its
    `FileChange`; the header's "Merge in progress (2 conflicts)"; `s` on an
@@ -2538,9 +2538,168 @@ plan with why it is left, before the next phase starts.
      ediff. Neovim's git-conflict.nvim: `co`, `ct`, `cb`, `c0` (none),
      and `]x`/`[x`, buffer-local in conflicted files; vim-unimpaired
      moves by marker with `]n`/`[n`.
-10. **Changelists.** The store, ranges as markers, re-anchoring, the status
-   section, moving, outlined marks, committing with a private index, and
-   drag and drop.
+10. **Next. Changelists.** Picking files, hunks and lines for any command
+   (in the directory buffer too), then the store, ranges as markers,
+   re-anchoring, the status section, moving, outlined marks, a Changes
+   tab, committing with a private index, and drag and drop, as
+   [Changelists](#changelists) decides (choice 2: lists sort the
+   unstaged changes; the index stays git's). Draft plan, in
+   the order it lands:
+   - **a. Picking.** First, as it needs no changelist. IntelliJ includes
+     chunks and lines in a commit by a checkbox each; j picks them, for
+     any command, not commit alone. The verb is "pick": "tag" is ctags',
+     HTML's and git's, "mark" the region's and vim's, "select" the text's,
+     "check" reads as verifying; "pick" is shared only with a rebase todo
+     list's lines, which j has none of yet. Keys, the same in the status
+     and directory buffers and both edit modes: `;` (unshifted, free in
+     all four keymaps; vim's repeat of `f`/`t` is lost there; may be
+     revisited) and Insert (the file managers'); `*` was dropped, leaving
+     vim's star search. They toggle the pick of the thing at the caret, or
+     of each file or the lines a selection covers; Ctrl `;` unpicks all.
+     - What is picked: a file whole, a hunk, or lines of one (a
+       selection inside a hunk), in its section. Keyed as the status keys
+       its lines, a hunk by what it changes, so a pick survives refreshes
+       and edits elsewhere; one whose file or hunk is gone, or changed so
+       it no longer matches, is dropped, and the status bar says so. In
+       memory, per status buffer, never saved: changelists are what lasts.
+     - Shown: a `GutterColumn` of SVG icons (`SvgIcon`, j's own set, so
+       any size and the theme's colors, no font's glyphs): picked, and on
+       a file some of whose hunks or lines are, partly picked, "2/5"
+       after its name. A click on one toggles it, as IntelliJ's gutter
+       checkboxes do. The column is there only while something is
+       picked, so the status is otherwise as now.
+     - Used: a command that takes targets takes what is picked if
+       anything is, else the selection, else the thing at the caret, its
+       question and message counting them ("Stage 3 picked changes?");
+       one that consumes them clears them. Stage, unstage and discard;
+       the resolve popup; move to a list; commit the picked (with
+       committing a list, h: IntelliJ's partial commit); stash picked files (`git stash push
+       -- <paths>`; picked hunks refused, git having no way to stash
+       them non-interactively); Enter opens each picked file. Across
+       repositories, each command per repository, as selections are.
+     - The directory buffer: its "tag" becomes "pick" (`t` kept,
+       `dirTagFile` an alias of `dirPickFile`), drawn by the same icons
+       in place of its "T", with the same keys; and each of its commands
+       that takes tagged files takes the files a selection covers when
+       none is picked: delete, copy, move, the shell command, and picking
+       itself.
+     - The editor: the hunk preview gains "pick"; a picked hunk's
+       sign shows it; clickable picks in the editor's gutter wait for
+       phase 6's side-by-side view.
+     - Tests: picking a file, a hunk, lines; a pick surviving a
+       refresh and lost when its hunk changes; each command on picked
+       things, across two repositories; the directory buffer's commands
+       on a selection.
+
+     Built: `StatusPicks` (vcs/status) holds a status buffer's picks by
+     file, keyed as the file's line: the file whole, or its hunks by id,
+     each whole or some of its lines; a hunk's id from
+     `StatusRenderer.hunkIds` (one place for "what it changes" ids), its
+     twins counted once a diff. Unpicking a hunk of a file picked whole,
+     or a line of a hunk picked whole, splits it into the rest; a
+     selection's lines are set a hunk at a time. The targets, and the
+     keys each takes, are worked out once until the picks or the status
+     change.
+     `StatusActions.targets` takes a selection, always meant, then the
+     picks, then the caret (`selected`, split out) and `start` unpicks them once used; `render`
+     drops what is gone and says so. `util/PickColumn`, a column of
+     `util/PickState`s, draws `util/PickIcon` (`pick-off`, `pick-on`,
+     `pick-some` SVGs, picked ones filled in the link color), its room
+     always kept and nothing drawn while nothing is picked, so a first
+     pick moves no text; a click toggles, a Shift click
+     (`GutterColumn.shiftClicked`) sets those of its kind from the last
+     click. `StatusPickColumn`, the directory's `FilePickColumn` and
+     `ComparedPickColumn` say what is picked and how to pick it. The diff
+     beside has the status's column and keys; the comparison's new side,
+     as IntelliJ's, a `ComparedPickColumn`, from `ComparedPicks`: a box at
+     each hunk's first changed row there, none while its buffer is
+     modified, the keys on either side picking the hunk at the caret's
+     row. The comparison is aligned by git's hunks
+     (`SideBySide.ofHunks`, given it by `CompareBuffer.alignBy`, asked
+     whenever its text changes, as following the buffer, and again after
+     each render), its changes where the unified diff has them, with
+     whitespace ignored as git's diff was read, lines then compared as
+     the whitespace ignored has them; falling back to its own diff if
+     they are not of the sides' text. In vim, `;`
+     is left vim's in the diff beside and the sides
+     (`CompareBuffer.embedModal`), picking only on a selection. A file each of whose hunks is picked shows
+     as picked. `vcsStatusPick` (`;`, Insert,
+     in visual too), `vcsStatusUnpickAll` (Ctrl `;`, `dirUnpickAll` the same in a directory), Enter opening each
+     picked file. The directory buffer: `dirPickFile` (`dirTagFile` its
+     old name, `t` kept), its "T" gone from the text to the gutter, and
+     delete, copy, move and the shell command taking the selected, else
+     the picked, else the caret's file. Not yet: the hunk preview's
+     "pick", stash and commit of the picked (with h), and tests across
+     two repositories.
+   - **b. The store.** `vcs/changelists`: per repository, the lists (a
+     name, a comment draft, one active, "Default" always there) and their
+     assignments: a path whole, or ranges of its work-tree lines, each
+     with the hash of its hunk's `-`/`+` lines. Kept in
+     `<gitdir>/j/changelists.json`, written whole (a temporary file moved
+     over it), per worktree. Read, each range re-anchored to the unstaged
+     hunk it matches by hash, else the one it overlaps most; a change
+     matching none is the active list's. Shared, behind `VcsBackend`, so
+     svn's own changelists (phase 11) can stand in. Tests: a round trip, a
+     range re-anchored after edits above it, a hunk gone, a file deleted
+     or renamed, a corrupt or missing file, two worktrees.
+   - **c. Ranges that follow edits.** While a file is open its ranges are
+     `Marker`s, carried by edits; an edit inside another list's range
+     joins that list, anywhere else the active one (IntelliJ's rule). On
+     save and close, back to hashed ranges. Undo puts a range back with
+     its text. Tests on a buffer: typing in, above and between ranges;
+     undo; a range emptied.
+   - **d. The status's section.** With `vcsChangelists` on (default off),
+     "Changelists" takes "Unstaged"'s place: a heading per list with its
+     count, its files, and under a file split across lists, the hunks or
+     lines of each. With only the default list it reads as Unstaged does.
+     Staging takes a change out of its list; unstaging puts it in the
+     active one. Per repository in a status of several, as the sections
+     are now, a project's lists of the same name shown as one. The same
+     keys (s, u, x, Tab, =) on a list, file or hunk.
+   - **e. Moving and naming.** j commands in a changelist popup on `C`
+     (`m` stays merge, as Neogit's): `vcsChangelistMove` (`m`: the
+     selection, else what is picked, else the thing at the caret, to a list
+     picked by a fuzzy prompt that can also make one),
+     `vcsChangelistActive` (`a`), `vcsChangelistNew` (`n`), `Rename`
+     (`r`), `Delete` (`d`, its changes to the default), and committing
+     the list at the caret (`c`, as h). `C` is magit's clone, a global
+     command, not a status key, and free in Neogit's status; vim binds
+     the same. In the editor, `<leader>hm` (beside `hs`/`hr`/`hp`/`hu`)
+     moves the hunk at the caret. Tests per command, and moving lines
+     out of a split hunk.
+   - **f. The editor.** Another list's changes drawn outlined in the gutter
+     (`Signs.Sign`'s third state); the hunk preview's "move to list…";
+     the status bar naming the caret's list. Tests: the marks after a
+     move, an edit, a save.
+   - **g. A Changes tab beside Buffers.** The sidebar's buffer list
+     gains tabs, as IntelliJ's Commit window and VS Code's Source Control
+     sit beside their files: "Buffers", as now, and "Changes", the
+     project's changed files by list (by section with changelists off),
+     a split file under each of its lists with "3/5 hunks", picks shown
+     and toggled as in the status, a click opening the file, a file
+     dragged onto a list moving it there. It reads the repositories as
+     the status does, in the background, with no status buffer open. The
+     Buffers list keeps its order: grouping it by list would reorder it
+     as you work. Tests: the tab's tree for one and several
+     repositories, after a move, an edit and a pick.
+   - **h. Committing a list.** Through a private index: `GIT_INDEX_FILE`
+     a temporary file, `read-tree HEAD`, `apply --cached` of the list's
+     changes, `commit` with the list's draft as its message; then the same
+     patch applied to the real index, so it agrees with the new HEAD and
+     what was staged stays staged. If that patch fails, the commit stands
+     and j says the index was left alone and why. `VcsBackend.commit`
+     gains the index file. The commit popup's "commit list" and "commit
+     picked" beside `c c`; a list other than the default, empty after,
+     is deleted. Tests on real repositories: a list's whole files, its
+     hunks, lines of a split hunk, picked changes, with something else
+     staged, a patch to the real index that fails, a hook that rejects
+     the commit.
+   - **i. Drag and drop.** Files, hunks and lines dragged between lists in
+     the status, as `C m` moves them; the sidebar's status tree too.
+   - **j. Docs, the drive and the review.** `doc/git.html`'s
+     Changelists and picking, the keys in both edit modes; the directory
+     buffer's picking in its docs; driven under Xvfb; the adversarial
+     review.
 11. **Subversion.** Its backend on the shared layer: status, diff, marks,
    blame, log (one lane), conflicts, and svn's own changelists. This proves
    the split. Any git-only leaks found here are fixed in the shared code.

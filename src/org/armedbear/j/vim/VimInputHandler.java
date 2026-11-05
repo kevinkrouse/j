@@ -124,6 +124,11 @@ public final class VimInputHandler implements InputHandler {
     }
 
     @Override
+    public boolean isVisualSelection() {
+        return state.getMode().isVisual();
+    }
+
+    @Override
     public boolean isBlockSelection() {
         return state.getMode() == VimMode.VISUAL_BLOCK;
     }
@@ -493,7 +498,7 @@ public final class VimInputHandler implements InputHandler {
     private boolean runVisualModeKey(Editor editor, JEvent event) {
         if (!state.getMode().isVisual() || !builder.isEmpty() || typedLine != null)
             return false;
-        final KeyMap km = editor.getMode().getVisualKeyMap();
+        final KeyMap km = editor.getBuffer().getVisualKeyMapForMode();
         if (km == null || !editor.runKeyMap(km, event))
             return false;
         if (state.getMode().isVisual())

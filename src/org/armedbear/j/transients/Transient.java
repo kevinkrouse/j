@@ -202,9 +202,9 @@ public record Transient(String id, String title, String help, List<Group> groups
     public static final String ENTER = "<cr>";
     public static final String TAB = "<Tab>";
 
-    /** Ctrl with letter, as {@code <C-r>}. */
-    public static String ctrl(char letter) {
-        return "<C-" + letter + ">";
+    /** Ctrl with a letter or ;, as {@code <C-r>}. */
+    public static String ctrl(char key) {
+        return "<C-" + key + ">";
     }
 
     /** Whether key is pressed, as Backspace and Ctrl R are, not typed. */

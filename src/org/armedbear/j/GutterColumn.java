@@ -54,6 +54,14 @@ public interface GutterColumn {
         return false;
     }
 
+    /** Whether a Shift click at x and y in line's part of it is its own, not the text's. */
+    default boolean isShiftClickable(Line line, int x, int y) {
+        return false;
+    }
+
+    /** A Shift click of the first button at x and y in line's part of it, where isShiftClickable. */
+    default void shiftClicked(Editor editor, Line line, int x, int y) {}
+
     /**
      * The menu a right click at x and y in line's part of it shows, or null
      * for none. Its items act on the caret, put on line before it shows.

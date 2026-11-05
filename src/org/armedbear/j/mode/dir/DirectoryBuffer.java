@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -73,6 +74,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Preferences;
 import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
+import org.armedbear.j.Region;
 import org.armedbear.j.RemoteBuffer;
 import org.armedbear.j.RemoteSession;
 import org.armedbear.j.ShellCommand;
@@ -84,6 +86,8 @@ import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.WindowCommands;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.PickColumn;
+import org.armedbear.j.util.PickState;
 import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.TimeStyle;
 import org.armedbear.j.util.Utilities;
@@ -188,6 +192,7 @@ public final class DirectoryBuffer extends Buffer {
         readOnly = true;
         mode = DirectoryMode.getMode();
         formatter = mode.getFormatter(this);
+        addGutterColumn(new FilePickColumn());
         setInitialized(true);
     }
 
@@ -382,7 +387,7 @@ public final class DirectoryBuffer extends Buffer {
 
     // Lists the directory again, the caret on made's first part here: itself, or the directory it is in.
     private void showMade(File made) {
-        keepingTags(this::rescan);
+        keepingPicks(this::rescan);
         final Path here = Path.of(getFile().canonicalPath());
         final Path path = Path.of(made.canonicalPath());
         final Line line = path.startsWith(here) && !path.equals(here)
@@ -554,7 +559,7 @@ public final class DirectoryBuffer extends Buffer {
         if (dotLine instanceof DirectoryLine)
             name = getName(dotLine);
         change.run();
-        keepingTags(() -> {
+        keepingPicks(() -> {
             if (getListing() != null)
                 reloadFromListing();
             else
@@ -589,24 +594,27 @@ public final class DirectoryBuffer extends Buffer {
         return current;
     }
 
-    // Runs a reload, then tags again the names tagged before it that it lists.
-    private void keepingTags(Runnable reload) {
-        final Set<String> tagged = new HashSet<>();
+    // Unpicks the files of names, which a command has taken.
+    private void unpick(Collection<String> names) {
+        final Set<String> taken = new HashSet<>(names);
+        for (Line line = getFirstLine(); line != null; line = line.next())
+            if (line instanceof DirectoryLine dl && taken.contains(getName(line)))
+                setPicked(dl, false);
+        repaint();
+    }
+
+    // Runs a reload, then picks again the names picked before it that it lists.
+    private void keepingPicks(Runnable reload) {
+        final Set<String> picked = new HashSet<>();
         for (Line line = getFirstLine(); line != null; line = line.next())
             if (line instanceof DirectoryLine dl && dl.getDirectoryEntry().isMarked())
-                tagged.add(getName(line));
+                picked.add(getName(line));
         reload.run();
-        if (tagged.isEmpty())
+        if (picked.isEmpty())
             return;
         for (Line line = getFirstLine(); line != null; line = line.next())
-            if (line instanceof DirectoryLine dl && tagged.contains(getName(line))) {
-                final DirectoryEntry de = dl.getDirectoryEntry();
-                if (!de.isMarked()) {
-                    de.setMarked(true);
-                    ++numMarked;
-                    line.setText(de.toString());
-                }
-            }
+            if (line instanceof DirectoryLine dl && picked.contains(getName(line)))
+                setPicked(dl, true);
         for (Editor ed : Editor.getEditorList())
             if (ed.getBuffer() == this)
                 ed.setUpdateFlag(REPAINT);
@@ -767,22 +775,6 @@ public final class DirectoryBuffer extends Buffer {
         appendLine(new DirectoryLine(entry));
     }
 
-    private synchronized DirectoryEntry findEntry(String name) {
-        for (DirectoryEntry entry : entries) {
-            if (name.equals(entry.getName()))
-                return entry;
-        }
-        return null;
-    }
-
-    private synchronized DirectoryEntry findNativeEntry(String string) {
-        for (DirectoryEntry entry : entries) {
-            if (string.equals(entry.getString()))
-                return entry;
-        }
-        return null;
-    }
-
     private synchronized void sort() {
         if (usingNativeFormat) {
             Debug.bug();
@@ -926,7 +918,7 @@ public final class DirectoryBuffer extends Buffer {
             return;
         int end = getFileSizeEndOffset();
         if (end <= 0)
-            end = usingNativeFormat ? 45 : 24;
+            end = usingNativeFormat ? 43 : 22;
         final String s = style.size(totalSize);
         final int begin = Math.max(0, end - s.length());
         appendLine(Utilities.spaces(begin) + "-".repeat(s.length()));
@@ -978,7 +970,7 @@ public final class DirectoryBuffer extends Buffer {
 
     private void resort() {
         if (usingNativeFormat) {
-            keepingTags(this::reload);
+            keepingPicks(this::reload);
         } else {
             sort();
             try {
@@ -1174,36 +1166,132 @@ public final class DirectoryBuffer extends Buffer {
         return LOAD_COMPLETED;
     }
 
-    public void tagFileAtDot() {
+    /**
+     * Picks the file at the caret, or unpicks it, the caret on to the next;
+     * with a selection, each file it covers, or, each picked, unpicks them.
+     */
+    public void pickFileAtDot() {
         final Editor editor = Editor.currentEditor();
-        Line line = editor.getDotLine();
-        if (!(line instanceof DirectoryLine))
-            return;
-        String name = getName(line);
-        if (name == null)
-            return;
-        if (name.equals("."))
-            return;
-        if (name.equals(".."))
-            return;
-        DirectoryEntry de = null;
-        if (usingNativeFormat) {
-            // Text of line has "T " or "  " prepended to DirectoryEntry string.
-            de = findNativeEntry(line.substring(2));
-        } else {
-            de = findEntry(name);
-        }
-        if (de != null) {
-            if (de.isMarked()) {
-                de.setMarked(false);
-                --numMarked;
-            } else {
-                de.setMarked(true);
-                ++numMarked;
+        if (Region.isSelection(editor)) {
+            final List<DirectoryLine> selected = selectedLines(editor);
+            if (selected.isEmpty()) {
+                editor.status("Nothing to pick here");
+                return;
             }
-            line.setText(de.toString());
-            editor.update(line);
-            MotionCommands.down(editor);
+            final boolean on = selected.stream().anyMatch(l -> !l.getDirectoryEntry().isMarked());
+            for (DirectoryLine l : selected)
+                setPicked(l, on);
+            editor.setMark(null);
+            repaint();
+            resetUndo();
+            return;
+        }
+        if (!(editor.getDotLine() instanceof DirectoryLine line) || !pickable(line))
+            return;
+        setPicked(line, !line.getDirectoryEntry().isMarked());
+        editor.update(line);
+        MotionCommands.down(editor);
+        repaint();
+        resetUndo();
+    }
+
+    /** Unpicks every file picked; whether any was. */
+    public boolean unpickAll() {
+        if (numMarked == 0)
+            return false;
+        for (DirectoryEntry de : entries)
+            de.setMarked(false);
+        numMarked = 0;
+        repaint();
+        resetUndo();
+        return true;
+    }
+
+    // A file or directory's line, not . or ..
+    private boolean pickable(DirectoryLine line) {
+        final String name = getName(line);
+        return name != null && !name.equals(".") && !name.equals("..");
+    }
+
+    private void setPicked(DirectoryLine line, boolean on) {
+        final DirectoryEntry de = line.getDirectoryEntry();
+        if (de.isMarked() == on)
+            return;
+        de.setMarked(on);
+        numMarked += on ? 1 : -1;
+    }
+
+    // The lines of files a selection covers, those it has text of; none
+    // without one.
+    private List<DirectoryLine> selectedLines(Editor editor) {
+        final List<DirectoryLine> out = new ArrayList<>();
+        for (Line l : Region.selectedLines(editor))
+            if (l instanceof DirectoryLine dl && pickable(dl))
+                out.add(dl);
+        return out;
+    }
+
+    // The entries a command takes: those a selection covers, any selection
+    // meant, as the status's; else those picked; none for the one at the
+    // caret. The noun counts them.
+    private record Chosen(List<DirectoryEntry> entries, String noun) {
+        boolean picked() {
+            return noun.equals("picked");
+        }
+
+        // A selection with no file in it.
+        boolean nothingSelected() {
+            return entries.isEmpty() && noun.equals("selected");
+        }
+    }
+
+    private Chosen chosen(Editor editor) {
+        if (Region.isSelection(editor))
+            return new Chosen(selectedLines(editor).stream().map(DirectoryLine::getDirectoryEntry).toList(),
+                    "selected");
+        if (numMarked > 0)
+            return new Chosen(entries.stream().filter(DirectoryEntry::isMarked).toList(), "picked");
+        return new Chosen(List.of(), "at the caret");
+    }
+
+    // Says so if chosen is a selection with no file in it, a command's to do nothing.
+    private static boolean nothingSelected(Editor editor, Chosen chosen) {
+        if (chosen.nothingSelected())
+            editor.status("No file selected");
+        return chosen.nothingSelected();
+    }
+
+    // A file's box, while any is picked.
+    private final class FilePickColumn extends PickColumn {
+        FilePickColumn() {
+            super(DirectoryBuffer.this);
+        }
+
+        @Override
+        protected boolean anyPicked() {
+            return numMarked > 0;
+        }
+
+        @Override
+        protected PickState state(Line line) {
+            if (!(line instanceof DirectoryLine dl) || !pickable(dl))
+                return null;
+            return dl.getDirectoryEntry().isMarked() ? PickState.ALL : PickState.NONE;
+        }
+
+        @Override
+        protected void toggle(Editor editor, Line line) {
+            final DirectoryLine dl = (DirectoryLine) line;
+            setPicked(dl, !dl.getDirectoryEntry().isMarked());
+            repaint();
+            resetUndo();
+        }
+
+        @Override
+        protected void set(Editor editor, List<Line> lines, boolean on) {
+            for (Line l : lines)
+                setPicked((DirectoryLine) l, on);
+            repaint();
             resetUndo();
         }
     }
@@ -1588,8 +1676,12 @@ public final class DirectoryBuffer extends Buffer {
     }
 
     public void deleteFiles() {
-        if (numMarked > 0)
-            deleteMarkedFiles();
+        final Editor editor = Editor.currentEditor();
+        final Chosen chosen = chosen(editor);
+        if (nothingSelected(editor, chosen))
+            return;
+        if (!chosen.entries().isEmpty())
+            deleteFiles(chosen);
         else
             deleteFileAtDot();
     }
@@ -1598,24 +1690,16 @@ public final class DirectoryBuffer extends Buffer {
         MessageDialog.showMessageDialog(message, "Error");
     }
 
-    private synchronized void deleteMarkedFiles() {
-        if (numMarked == 0)
-            return;
-        Debug.assertTrue(numMarked > 0);
-        String message = null;
+    private synchronized void deleteFiles(Chosen chosen) {
+        final int n = chosen.entries().size();
         final Editor editor = Editor.currentEditor();
-        if (numMarked > 1)
-            message = "Delete " + numMarked + " tagged files?";
-        else
-            message = "Delete 1 tagged file?";
+        final String message = "Delete " + n + " " + chosen.noun() + (n == 1 ? " file?" : " files?");
         boolean confirmed = editor.confirm("Delete Files", message);
         if (!confirmed)
             return;
         boolean directoryWasDeleted = false;
         FtpSession session = null;
-        for (DirectoryEntry entry : entries) {
-            if (!entry.isMarked())
-                continue;
+        for (DirectoryEntry entry : chosen.entries()) {
             String name = entry.extractName();
             if (name == null) {
                 // Shouldn't happen.
@@ -1623,9 +1707,10 @@ public final class DirectoryBuffer extends Buffer {
                 continue;
             }
             File file = File.getInstance(getFile(), name);
+            // Those deleted already are listed no more.
             if (!file.isRemote() && !file.exists()) {
                 showMessageDialog(file.canonicalPath() + " not found");
-                return;
+                break;
             }
             String displayName = file.canonicalPath();
             boolean isDirectory;
@@ -1670,11 +1755,11 @@ public final class DirectoryBuffer extends Buffer {
         if (session != null)
             session.unlock();
         if (directoryWasDeleted) {
-            rescan();
+            keepingPicks(this::rescan);
         } else {
             if (getFile().isRemote())
                 DirectoryCache.getDirectoryCache().purge(getFile());
-            reload();
+            keepingPicks(this::reload);
         }
     }
 
@@ -1727,11 +1812,11 @@ public final class DirectoryBuffer extends Buffer {
         }
         if (succeeded) {
             if (isDirectory) {
-                rescan();
+                keepingPicks(this::rescan);
             } else {
                 if (getFile().isRemote())
                     DirectoryCache.getDirectoryCache().purge(getFile());
-                reload();
+                keepingPicks(this::reload);
             }
         }
         editor.setDefaultCursor();
@@ -1763,16 +1848,17 @@ public final class DirectoryBuffer extends Buffer {
     }
 
     private void doShellCommand(Editor editor) {
-        List<String> names = getMarkedNames();
-        if (names == null) {
-            names = new ArrayList<>();
+        final Chosen chosen = chosen(editor);
+        if (nothingSelected(editor, chosen))
+            return;
+        List<String> names = names(chosen);
+        if (names.isEmpty())
             names.add(getName(editor.getDotLine()));
-        }
         String prompt = null;
         if (names.size() == 1)
             prompt = "Command (on " + names.get(0) + "):";
         else if (names.size() > 1)
-            prompt = "Command (on " + names.size() + " tagged files):";
+            prompt = "Command (on " + names.size() + " " + chosen.noun() + " files):";
         else
             prompt = "Command:";
         InputDialog d = new InputDialog(editor, prompt, "Shell Command", null);
@@ -1799,7 +1885,9 @@ public final class DirectoryBuffer extends Buffer {
             }
             output = sb.toString();
         }
-        reload();
+        if (chosen.picked())
+            unpick(names);
+        keepingPicks(this::reload);
         if (output != null && output.length() > 0) {
             OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
             if (buf != null) {
@@ -1851,20 +1939,23 @@ public final class DirectoryBuffer extends Buffer {
         return shellCommand.getOutput();
     }
 
-    private synchronized List<String> getMarkedNames() {
-        if (numMarked > 0) {
-            ArrayList<String> names = new ArrayList<>(numMarked);
-            final int size = entries.size();
-            for (DirectoryEntry de : entries) {
-                if (de.isMarked()) {
-                    String name = de.extractName();
-                    if (name != null)
-                        names.add(name);
-                }
-            }
-            return names;
+    /** The names of the files a command would take, and "picked" or "selected"; for tests. */
+    List<String> chosenNames(Editor editor) {
+        final Chosen c = chosen(editor);
+        final List<String> out = new ArrayList<>(names(c));
+        out.add(c.noun());
+        return out;
+    }
+
+    // The names of chosen's entries.
+    private static List<String> names(Chosen chosen) {
+        final List<String> names = new ArrayList<>();
+        for (DirectoryEntry de : chosen.entries()) {
+            final String name = de.extractName();
+            if (name != null)
+                names.add(name);
         }
-        return null;
+        return names;
     }
 
     public void copyFileAtDot() {
@@ -1875,14 +1966,14 @@ public final class DirectoryBuffer extends Buffer {
         moveFiles();
     }
 
-    private List<File> getSourceFiles(Editor editor) {
+    // The files chosen takes, or the caret's.
+    private List<File> getSourceFiles(Editor editor, Chosen chosen) {
         ArrayList<File> sources = new ArrayList<>();
-        if (numMarked > 0) {
-            List<String> names = getMarkedNames();
-            for (String name : names) {
-                if (name != null)
-                    sources.add(File.getInstance(getFile(), name));
-            }
+        if (nothingSelected(editor, chosen))
+            return sources;
+        if (!chosen.entries().isEmpty()) {
+            for (String name : names(chosen))
+                sources.add(File.getInstance(getFile(), name));
         } else if (editor.getDotLine() instanceof DirectoryLine) {
             String name = getName(editor.getDotLine());
             if (name != null)
@@ -1891,15 +1982,7 @@ public final class DirectoryBuffer extends Buffer {
         return sources;
     }
 
-    private File getDestinationForCopy(Editor editor, List<File> sources) {
-        return getDestination(editor, sources, "Copy");
-    }
-
-    private File getDestinationForMove(Editor editor, List<File> sources) {
-        return getDestination(editor, sources, "Move");
-    }
-
-    private File getDestination(Editor editor, List<File> sources, String operation) {
+    private File getDestination(Editor editor, List<File> sources, Chosen chosen, String operation) {
         String title = operation + " File";
         String prompt = operation + " ";
         String name = null;
@@ -1908,7 +1991,7 @@ public final class DirectoryBuffer extends Buffer {
             name = source.getName();
             prompt += name;
         } else
-            prompt += String.valueOf(sources.size()) + " tagged files";
+            prompt += String.valueOf(sources.size()) + " " + chosen.noun() + " files";
         prompt += " to: ";
         CopyFileDialog d = new CopyFileDialog(editor, title, prompt, name);
         editor.centerDialog(d);
@@ -1919,19 +2002,24 @@ public final class DirectoryBuffer extends Buffer {
 
     private void copyFiles() {
         final Editor editor = Editor.currentEditor();
-        List<File> sources = getSourceFiles(editor);
-        File destination = getDestinationForCopy(editor, sources);
+        final Chosen chosen = chosen(editor);
+        List<File> sources = getSourceFiles(editor, chosen);
+        if (sources.isEmpty())
+            return;
+        File destination = getDestination(editor, sources, chosen, "Copy");
         if (destination == null)
             return;
         final String title = "Copy Files";
         if (destination.isLocal())
-            copyLocalToLocal(sources, destination, editor, title);
+            copyLocalToLocal(sources, destination, editor, title, chosen.picked());
         else
             MessageDialog.showMessageDialog(editor, "Destination must be local!", title);
     }
 
-    private void copyLocalToLocal(List<File> sources, File destination, Editor editor, String title) {
+    // Copies sources, unpicking those copied if picked.
+    private void copyLocalToLocal(List<File> sources, File destination, Editor editor, String title, boolean picked) {
         int numFilesCopied = 0;
+        final List<String> copied = new ArrayList<>();
         boolean mustConfirm = true;
         boolean cancelled = false;
         final int limit = sources.size();
@@ -1972,6 +2060,7 @@ public final class DirectoryBuffer extends Buffer {
             }
             if (Utilities.copyFile(from, to)) {
                 ++numFilesCopied;
+                copied.add(from.getName());
             } else {
                 String text = "Unable to copy " + from.getName() + " to " + to.canonicalPath() + ".";
                 if (i < limit - 1) {
@@ -1987,9 +2076,12 @@ public final class DirectoryBuffer extends Buffer {
             statusText += 's';
         statusText += " copied";
         editor.status(statusText);
+        if (picked)
+            unpick(copied);
         for (Editor ed : Editor.getEditorList()) {
             if (destDir.equals(ed.getBuffer().getFile())) {
-                ((DirectoryBuffer) ed.getBuffer()).reload();
+                final DirectoryBuffer d = (DirectoryBuffer) ed.getBuffer();
+                d.keepingPicks(d::reload);
                 if (ed != Editor.currentEditor())
                     ed.updateDisplay();
             }
@@ -1998,8 +2090,11 @@ public final class DirectoryBuffer extends Buffer {
 
     private void moveFiles() {
         final Editor editor = Editor.currentEditor();
-        List<File> sources = getSourceFiles(editor);
-        File destination = getDestinationForMove(editor, sources);
+        final Chosen chosen = chosen(editor);
+        List<File> sources = getSourceFiles(editor, chosen);
+        if (sources.isEmpty())
+            return;
+        File destination = getDestination(editor, sources, chosen, "Move");
         if (destination == null)
             return;
         Log.debug("ready to move");
@@ -2038,7 +2133,7 @@ public final class DirectoryBuffer extends Buffer {
         }
 
         // Current directory may have changed.
-        reload();
+        keepingPicks(this::reload);
     }
 
     public void getFileAtDot() {
@@ -2054,9 +2149,9 @@ public final class DirectoryBuffer extends Buffer {
 
         int status = -1;
 
-        // We'll get in trouble here if the directory format changes.
-        if (editor.getDotLine().length() >= 3) {
-            char c = dotLine.charAt(2);
+        // The line starts with ls -l's mode, its type first.
+        if (dotLine.length() > 0) {
+            char c = dotLine.charAt(0);
             if (c == 'd') {
                 status = 2; // Directory.
             } else if (c == '-') {

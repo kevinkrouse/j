@@ -78,14 +78,13 @@ public final class DirectoryFormatter extends Formatter {
             sizeEnd = Math.min(text.indexOf(' ', matcher.start()), matcher.end());
             nameOffset = matcher.end();
         }
-        final boolean tagged = text.charAt(0) == 'T';
-        span(text, 0, 1, tagged ? DIRECTORY_FORMAT_TAGGED : DIRECTORY_FORMAT_TEXT);
-        final int modeEnd = formatMode(text, 1, sizeStart);
+        final boolean picked = line instanceof DirectoryLine dl && dl.getDirectoryEntry().isMarked();
+        final int modeEnd = formatMode(text, 0, sizeStart);
         span(text, modeEnd, sizeStart, DIRECTORY_FORMAT_TEXT);
         // The size, then the date up to the name.
         span(text, sizeStart, sizeEnd, DIRECTORY_FORMAT_SIZE);
         span(text, sizeEnd, nameOffset, DIRECTORY_FORMAT_DATE);
-        formatName(line, text, nameOffset, tagged);
+        formatName(line, text, nameOffset, picked);
         return segmentList;
     }
 
@@ -118,8 +117,8 @@ public final class DirectoryFormatter extends Formatter {
         return end;
     }
 
-    private void formatName(Line line, String text, int nameOffset, boolean tagged) {
-        if (tagged) {
+    private void formatName(Line line, String text, int nameOffset, boolean picked) {
+        if (picked) {
             addSegment(text, nameOffset, DIRECTORY_FORMAT_TAGGED);
             return;
         }
@@ -138,7 +137,7 @@ public final class DirectoryFormatter extends Formatter {
             addSegment(text, index, DIRECTORY_FORMAT_TEXT);
             return;
         }
-        final String trim = text.substring(2).trim();
+        final String trim = text.trim();
         if (trim.startsWith("d"))
             addSegment(text, nameOffset, DIRECTORY_FORMAT_DIRECTORY);
         else

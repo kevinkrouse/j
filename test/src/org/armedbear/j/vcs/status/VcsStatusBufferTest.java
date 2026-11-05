@@ -294,7 +294,7 @@ public class VcsStatusBufferTest {
                 }
                 final Transient t = VcsStatusMode.getMode().getTransient(h.editor());
                 assertEquals(
-                    List.of("Show", "Go", "Changes", "Commands"),
+                    List.of("Show", "Go", "Changes", "Pick", "Commands"),
                     t.groups().stream().map(Transient.Group::label).toList());
                 final Buffer b = h.editor().getBuffer();
                 final KeyMap km =
@@ -894,7 +894,8 @@ public class VcsStatusBufferTest {
         final List<StatusLine> lines = StatusRenderer.render(
             List.of(new StatusRenderer.Part(fake("/r/one"), data, 0), new StatusRenderer.Part(fake("/r/two"), data, 1)),
             (key, kind) -> true,
-            key -> true);
+            key -> true,
+            StatusRenderer::hunkIds);
         final List<String> text = lines.stream().map(Line::getText).toList();
         assertEquals("one  /r/one", text.get(0));
         assertEquals(Kind.REPOSITORY, lines.get(0).kind());
@@ -1197,6 +1198,243 @@ public class VcsStatusBufferTest {
         for (Line l = b.getFirstLine(); l != null; l = l.next())
             list.add(l.getText());
         return list;
+    }
+
+    @Test
+    public void sideBySideChangesAreGitsWhereAnotherDiffWouldSlideThem() throws Exception {
+        changesAreGits(false, false);
+    }
+
+    @Test
+    public void sideBySideChangesAreGitsWithWhitespaceIgnored() throws Exception {
+        onEdt(() -> org.armedbear.j.mode.compare.DiffWhitespace.choose(org.armedbear.j.util.Whitespace.ALL));
+        try {
+            changesAreGits(false, false);
+            onEdt(
+                () -> assertEquals(org.armedbear.j.util.Whitespace.ALL, status.getCompare().getAlignment().ignored()));
+        }
+        finally {
+            onEdt(org.armedbear.j.mode.compare.DiffWhitespace::forget);
+        }
+    }
+
+    @Test
+    public void sideBySideChangesAreGitsWithTheFilesBufferOpen() throws Exception {
+        changesAreGits(true, false);
+    }
+
+    @Test
+    public void sideBySideChangesAreGitsOnceTheStatusReadsTheDiff() throws Exception {
+        changesAreGits(false, true);
+    }
+
+    @Test
+    public void sideBySideChangesAreGitsOnceTheStatusReadsTheBuffersDiff() throws Exception {
+        changesAreGits(true, true);
+    }
+
+    @Test
+    public void sideBySideChangesAreGitsAgainOnceAnEditIsSaved() throws Exception {
+        changesAreGits(true, false);
+        // Edited, the comparison follows the buffer with its own diff; saved,
+        // the status reads git's again, the file open there, and the
+        // comparison has its changes.
+        onEdt(() -> status.setExpanded(line("  M  a.txt"), true));
+        until(() -> text().stream().anyMatch(t -> t.startsWith("  @@ -4,6 +4,11")));
+        onEdt(() -> {
+            h.showBuffer(file);
+            h.editor().setDot(file.getFirstLine(), 0);
+            h.editor().insertString("// x\n");
+            file.save();
+        });
+        final CompareBuffer c = status.getCompare();
+        // Followed while it is shown.
+        onEdt(() -> h.showBuffer(c));
+        until(() -> lines(c).contains("// x") && gitsAddedRows().contains(0));
+        until(() -> addedRows(c).equals(gitsAddedRows()));
+    }
+
+    // The comparison's changed rows on the new side those git's diff adds,
+    // shown with the file's buffer open if buffer, and the file closed in
+    // the status, its diff unread, at first if closed.
+    private void changesAreGits(boolean buffer, boolean closed) throws Exception {
+        // The lines added repeat those around them: j's own diff has them
+        // from "public K v()" to the "@Override" after, git's from the
+        // "@Override" before to the blank line.
+        final String old = "class A {\n    @Override\n    public K m() {\n        return a();\n    }\n\n"
+                + "    @Override\n    public L s() {\n        return s;\n    }\n}\n";
+        final String now = old.replace(
+            "\n    @Override\n    public L",
+            "\n    @Override\n    public K v() {\n        return b();\n    }\n\n    @Override\n    public L");
+        git = GitFixture.init(tmp);
+        git.write("a.txt", old);
+        git.commitAll("first");
+        git.write("a.txt", now);
+        open();
+        onEdt(() -> {
+            if (buffer) {
+                file = Editor.getBuffer(File.getInstance(git.root.resolve("a.txt").toString()));
+                if (!file.initialized())
+                    file.initialize();
+                file.load();
+            }
+            if (closed)
+                status.setDepth(2);
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  M  a.txt"));
+        until(() -> lines(c).contains("    public K v() {") && (!buffer || "a.txt (buffer)".equals(c.getTitle())));
+        if (closed)
+            onEdt(() -> status.setExpanded(line("  M  a.txt"), true));
+        until(() -> status.getDiff().item() != null && status.getDiff().item().diff() != null);
+        until(() -> addedRows(c).equals(gitsAddedRows()));
+        onEdt(
+            () -> assertTrue(
+                c.getOld().getGutterColumns().stream().noneMatch(col -> col instanceof ComparedPickColumn),
+                "picks on the new side alone"));
+    }
+
+    // The rows, from 0, git's diff of the file the diff beside shows adds.
+    private java.util.Set<Integer> gitsAddedRows() {
+        final java.util.Set<Integer> out = new java.util.TreeSet<>();
+        for (org.armedbear.j.vcs.diff.Hunk hunk : status.getDiff().item().diff().hunks()) {
+            int n = hunk.newStart() - 1;
+            for (org.armedbear.j.vcs.diff.DiffLine d : hunk.lines()) {
+                if (d.isAdded())
+                    out.add(n);
+                if (!d.isRemoved())
+                    n++;
+            }
+        }
+        return out;
+    }
+
+    // The new side's rows, from 0, c shows changed.
+    private static java.util.Set<Integer> addedRows(CompareBuffer c) {
+        final java.util.Set<Integer> out = new java.util.TreeSet<>();
+        for (org.armedbear.j.mode.compare.DiffAlignment.Row row : c.getAlignment().rows())
+            if (row.kind() != org.armedbear.j.mode.compare.DiffAlignment.Kind.SAME && row.newLine() >= 0)
+                out.add(row.newLine());
+        return out;
+    }
+
+    @Test
+    public void aNewFilesBoxIsAtItsFirstRow() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "a\n");
+        git.commitAll("first");
+        git.write("n.txt", "one\ntwo\nthree\n");
+        git.git("add", "n.txt");
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  A  n.txt"));
+        until(() -> lines(c).contains("three"));
+        onEdt(() -> {
+            assertNotNull(status.comparedPicks().boxAt(false, 0));
+            assertEquals(status.comparedPicks().hunkAt(false, 0), status.comparedPicks().boxAt(false, 0).id());
+            assertNull(status.comparedPicks().boxAt(false, 2));
+        });
+    }
+
+    @Test
+    public void aHunkIsPickedSideBySideAtItsRow() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  M  a.txt"));
+        until(() -> lines(c).contains("three blind cats"));
+        onEdt(() -> {
+            assertTrue(c.getGutterColumns().stream().anyMatch(col -> col instanceof ComparedPickColumn));
+            // ; picks, but in vim it is its own, repeating an f or t; on a selection it picks.
+            assertEquals("vcsStatusPick", c.getKeyMapForMode().lookup(';', 0, 0).getCommand());
+            assertNull(c.getModalKeyMapForMode().lookup(';', 0, 0));
+            assertEquals(
+                "vcsStatusPick",
+                c.getModalKeyMapForMode().lookup('\0', java.awt.event.KeyEvent.VK_INSERT, 0).getCommand());
+            assertEquals("vcsStatusPick", c.getVisualKeyMapForMode().lookup(';', 0, 0).getCommand());
+            // The unified diff the same.
+            assertEquals(
+                "vcsStatusPick",
+                VcsStatusMode.getMode().getKeyMap(status.getDiff()).lookup(';', 0, 0).getCommand());
+            assertNull(VcsStatusMode.getMode().getModalKeyMap(status.getDiff()).lookup(';', 0, 0));
+            final int row = lines(c).indexOf("three blind cats");
+            h.showBuffer(c);
+            h.editor().setDot(c.getLine(row), 0);
+            VcsStatusMode.vcsStatusPick(h.editor());
+            final String id = status.comparedPicks().hunkAt(false, row);
+            assertNotNull(id, "the row is a hunk's");
+            // Its box at the change on each side, not at its context above.
+            assertEquals(id, status.comparedPicks().boxAt(false, row).id());
+            assertEquals(id, status.comparedPicks().boxAt(true, lines(c.getOld()).indexOf("three blind mice")).id());
+            assertNull(status.comparedPicks().boxAt(false, 0));
+            assertEquals(org.armedbear.j.util.PickState.ALL, status.comparedPicks().boxAt(false, row).state());
+            assertFalse(status.picks().isEmpty());
+            // Again, unpicked.
+            VcsStatusMode.vcsStatusPick(h.editor());
+            assertTrue(status.picks().isEmpty());
+            h.showBuffer(status);
+        });
+    }
+
+    @Test
+    public void aSelectionSideBySidePicksTheLinesItCovers() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", TEN);
+        git.commitAll("first");
+        git.write("a.txt", TEN.replace("two\n", "two\nTWO\n").replace("four\n", "four\nFOUR\n"));
+        open();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer c = status.getCompare();
+        caretOn(line("  M  a.txt"));
+        until(() -> lines(c).contains("FOUR"));
+        onEdt(() -> {
+            h.showBuffer(c);
+            final int two = lines(c).indexOf("TWO");
+            final int four = lines(c).indexOf("FOUR");
+            final String id = status.comparedPicks().hunkAt(false, two);
+            assertEquals(id, status.comparedPicks().hunkAt(false, four), "one hunk");
+            // A selection over TWO alone picks that line, not the hunk.
+            h.editor().setMark(new Position(c.getLine(two), 0));
+            h.editor().setDot(c.getLine(two), 3);
+            VcsStatusMode.vcsStatusPick(h.editor());
+            assertNull(h.editor().getMark());
+            assertEquals(
+                new ComparedPicks.Box(id,
+                        status.comparedPicks().boxAt(false, two).i(),
+                        org.armedbear.j.util.PickState.ALL),
+                status.comparedPicks().boxAt(false, two));
+            assertEquals(
+                org.armedbear.j.util.PickState.NONE,
+                status.comparedPicks().boxAt(false, four).state(),
+                "a box at each changed row while the hunk is picked in part");
+            // A Shift click on FOUR, none before it a click: every change
+            // picked, the hunk is.
+            final org.armedbear.j.GutterColumn col = c.getGutterColumns()
+                    .stream()
+                    .filter(g -> g instanceof ComparedPickColumn)
+                    .findFirst()
+                    .orElseThrow();
+            col.shiftClicked(h.editor(), c.getLine(four), 0, 0);
+            assertEquals(-1, status.comparedPicks().boxAt(false, two).i());
+            assertEquals(org.armedbear.j.util.PickState.ALL, status.comparedPicks().boxAt(false, two).state());
+            h.showBuffer(status);
+        });
+        // The file closed in the status: its diff read for the pick.
+        until(() -> !status.picks().unread(status));
+        onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(StatusActions.targets(status, h.editor()))));
     }
 
     @Test

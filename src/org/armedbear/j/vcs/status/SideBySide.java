@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.PLAIN_TEXT_MODE;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import org.armedbear.j.Buffer;
@@ -37,6 +38,11 @@ import org.armedbear.j.mode.compare.CompareBuffer;
 import org.armedbear.j.mode.compare.DiffAlignment;
 import org.armedbear.j.mode.compare.DiffWhitespace;
 import org.armedbear.j.mode.compare.Side;
+import org.armedbear.j.util.Diff.Edit;
+import org.armedbear.j.util.Whitespace;
+import org.armedbear.j.vcs.diff.DiffLine;
+import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.diff.Hunk;
 
 /**
  * A diff pane's side-by-side form, as the status's and the log's have it: a
@@ -228,5 +234,61 @@ public final class SideBySide {
     /** Closes the comparison. */
     public void close() {
         comparison.close(null);
+    }
+
+    /**
+     * oldSide and newSide aligned as diff, git's of them read with ignored's
+     * whitespace ignored, has them, so its changes are where the unified
+     * diff shows them, not where another diff, as good, would put them;
+     * null if its hunks are not of these sides' lines, as when either
+     * changed since it was read.
+     */
+    public static DiffAlignment ofHunks(FileDiff diff, Side oldSide, Side newSide, Whitespace ignored) {
+        final List<Edit> edits = new ArrayList<>();
+        int o = 0;
+        int n = 0;
+        for (Hunk h : diff.hunks()) {
+            if (h.isCombined())
+                return null;
+            final int oldStart = h.oldCount() == 0 ? h.oldStart() : h.oldStart() - 1;
+            final int newStart = h.newCount() == 0 ? h.newStart() : h.newStart() - 1;
+            // The same lines between hunks on both sides.
+            if (oldStart - o != newStart - n)
+                return null;
+            o = oldStart;
+            n = newStart;
+            final List<DiffLine> ls = h.lines();
+            for (int i = 0; i < ls.size();) {
+                if (ls.get(i).isContext()) {
+                    if (!has(oldSide, o++, ls.get(i), ignored) || !has(newSide, n++, ls.get(i), ignored))
+                        return null;
+                    i++;
+                    continue;
+                }
+                final int os = o;
+                final int ns = n;
+                for (; i < ls.size() && !ls.get(i).isContext(); i++)
+                    if (ls.get(i).isRemoved()
+                            ? !has(oldSide, o++, ls.get(i), ignored)
+                            : !has(newSide, n++, ls.get(i), ignored))
+                        return null;
+                edits.add(new Edit(os, o - os, ns, n - ns));
+            }
+        }
+        if (oldSide.lines().size() - o != newSide.lines().size() - n)
+            return null;
+        return DiffAlignment.of(edits, oldSide.lines().size(), newSide.lines().size(), ignored);
+    }
+
+    // Whether side's line i is l's, byte for byte, or, whitespace ignored,
+    // as ignored compares them: git's context line, as -w has it, may be
+    // either side's.
+    private static boolean has(Side side, int i, DiffLine l, Whitespace ignored) {
+        if (i >= side.raw().size())
+            return false;
+        if (side.raw().get(i).equals(l.text()))
+            return true;
+        return ignored != Whitespace.NONE
+                && ignored.key(side.lines().get(i)).equals(ignored.key(FileDiff.decode(l.text())));
     }
 }

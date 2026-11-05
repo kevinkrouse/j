@@ -63,8 +63,18 @@ listing.
     directory at the caret in a new window over the listing, Ctrl Enter in
     one beside it.</li>
     <li><b>Files</b>: a opens a new file, written when it is saved (the directories it is in made if need be), A makes a new directory;
-    tag, copy, move, delete, a shell command, and rescan.</li>
+    pick, copy, move, delete, a shell command, and rescan.</li>
 </ul>
+<p>
+<b>;</b>, <b>Insert</b> or <b>t</b> picks the file at the caret, or
+each file a selection covers, and again unpicks it; a box in a column at the left
+shows what is picked, a click on one toggles it, and a Shift click sets the files
+from the last one clicked to it the same way. Copy, move, delete and the
+shell command take the files a selection covers, else those picked, else the
+file at the caret; in vim, so do a visual selection's <b>;</b>, <b>D</b>,
+<b>C</b>, <b>R</b> and <b>!</b>. A selection with no file in it takes
+nothing. Once done, they unpick the picked files they took; the rest stay
+picked. <b>Ctrl ;</b> unpicks every file, as in the git status.
 
 Its keys are the listing's own in the edit mode in use, so each works with
 the popup closed too.
@@ -139,7 +149,7 @@ The following commands are specifically relevant to directory buffers:
     <li><a href="commands.html#dirOpenFileInSplit">dirOpenFileInSplit</a></li>
     <li><a href="commands.html#dirOpenFileInVsplit">dirOpenFileInVsplit</a></li>
     <li><a href="commands.html#dirRescan">dirRescan</a></li>
-    <li><a href="commands.html#dirTagFile">dirTagFile</a></li>
+    <li><a href="commands.html#dirPickFile">dirPickFile</a></li>
     <li><a href="commands.html#dirTimeStyle">dirTimeStyle</a></li>
     <li><a href="commands.html#dirToggleDirectoriesFirst">dirToggleDirectoriesFirst</a></li>
     <li><a href="commands.html#dirToggleHidden">dirToggleHidden</a></li>
