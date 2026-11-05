@@ -166,3 +166,6 @@ d8899b23dc08b94ef4b093431503b44e17cdcea2
 
 # reformat: ChangeMarks, which phase 4 of the git tooling changes
 8ffc53204ebc1cde93ce6021045a88ac7afee87b
+
+# reformat: StatusActionsTest, which phase 10 of the git tooling changes
+3d23c8b317df02dfdb2a4ea389746b179d24beb6
