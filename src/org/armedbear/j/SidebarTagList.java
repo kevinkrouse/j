@@ -36,7 +36,7 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Keys;
 
 public class SidebarTagList extends SidebarList
-    implements NavigationComponent, KeyListener, MouseListener, MouseMotionListener {
+        implements NavigationComponent, KeyListener, MouseListener, MouseMotionListener {
     private Editor editor;
     private Buffer buffer;
     private List<LocalTag> tags;
@@ -244,11 +244,7 @@ public class SidebarTagList extends SidebarList
         editor.ensureActive();
         final int button = e.getButton();
         final boolean unmodified = Keys.isUnmodified(e);
-        if (
-            (unmodified && button == MouseEvent.BUTTON1)
-                ||
-                (unmodified && button == MouseEvent.BUTTON2)
-        ) {
+        if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
             if ((unmodified && button == MouseEvent.BUTTON2))
                 setSelectedIndex(locationToIndex(e.getPoint()));
             paintImmediately(0, 0, getWidth(), getHeight());

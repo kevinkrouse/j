@@ -62,7 +62,7 @@ import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 
 public final class XmlTree extends JTree
-    implements NavigationComponent, TreeSelectionListener, MouseListener, MouseMotionListener, KeyListener {
+        implements NavigationComponent, TreeSelectionListener, MouseListener, MouseMotionListener, KeyListener {
     private final Editor editor;
     private final Buffer buffer;
     private String parserClassName;
@@ -139,10 +139,7 @@ public final class XmlTree extends JTree
                     Runnable r = () -> {
                         setModel(treeModel);
                         if (editor.getBuffer() == buffer)
-                            XmlMode.ensureCurrentNodeIsVisible(
-                                editor,
-                                XmlTree.this
-                            );
+                            XmlMode.ensureCurrentNodeIsVisible(editor, XmlTree.this);
                     };
                     SwingUtilities.invokeLater(r);
                 }
@@ -171,11 +168,9 @@ public final class XmlTree extends JTree
         for (int row = 0; row < limit; row++) {
             TreePath path = getPathForRow(row);
             if (path != null) {
-                DefaultMutableTreeNode node =
-                    (DefaultMutableTreeNode) path.getLastPathComponent();
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                 if (node != null) {
-                    XmlTreeElement treeElement =
-                        (XmlTreeElement) node.getUserObject();
+                    XmlTreeElement treeElement = (XmlTreeElement) node.getUserObject();
                     // Tree element line numbers are one-based, so subtract 1.
                     final int lineNumber = treeElement.getLineNumber() - 1;
                     if (lineNumber == dotLineNumber) {
@@ -191,11 +186,7 @@ public final class XmlTree extends JTree
                         if (columnNumber < 0) {
                             // Crimson always reports -1 ("maintaining column
                             // numbers hurts performance").
-                            index = findStartTag(
-                                treeElement.getName(),
-                                dotLine,
-                                0
-                            );
+                            index = findStartTag(treeElement.getName(), dotLine, 0);
                         } else if (xp) {
                             // Position reported by XP is '<' of start tag.
                             index = columnNumber;
@@ -203,20 +194,12 @@ public final class XmlTree extends JTree
                             // Position reported by parser is next char after
                             // '>' of start tag. Start reverse search 1 back
                             // from there.
-                            index = reverseFindStartTag(
-                                treeElement.getName(),
-                                dotLine,
-                                columnNumber
-                            );
+                            index = reverseFindStartTag(treeElement.getName(), dotLine, columnNumber);
                         }
                         if (aelfred && index < 0) {
                             // Aelfred's locator is very sloppy. Try forward
                             // search.
-                            index = findStartTag(
-                                treeElement.getName(),
-                                dotLine,
-                                columnNumber
-                            );
+                            index = findStartTag(treeElement.getName(), dotLine, columnNumber);
                         }
                         // Make sure index is sane (the tree may need refreshing).
                         if (index < 0)
@@ -253,10 +236,7 @@ public final class XmlTree extends JTree
     private void outOfMemory() {
         disabled = true;
         treeModel = null;
-        MessageDialog.showMessageDialog(
-            "Not enough memory to display tree",
-            "XML Mode"
-        );
+        MessageDialog.showMessageDialog("Not enough memory to display tree", "XML Mode");
     }
 
     @Override
@@ -266,8 +246,7 @@ public final class XmlTree extends JTree
         if (editor.getStatusBar() == null)
             return;
         String statusText = "";
-        DefaultMutableTreeNode node =
-            (DefaultMutableTreeNode) getLastSelectedPathComponent();
+        DefaultMutableTreeNode node = (DefaultMutableTreeNode) getLastSelectedPathComponent();
         if (node != null) {
             XmlTreeElement treeElement = (XmlTreeElement) node.getUserObject();
             statusText = treeElement.getStatusText();
@@ -290,8 +269,7 @@ public final class XmlTree extends JTree
                 e.consume();
                 TreePath path = getSelectionPath();
                 if (path != null) {
-                    DefaultMutableTreeNode node =
-                        (DefaultMutableTreeNode) path.getLastPathComponent();
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                     if (node != null)
                         moveDotToNode(node);
                 }
@@ -334,11 +312,7 @@ public final class XmlTree extends JTree
         editor.ensureActive();
         final int button = e.getButton();
         final boolean unmodified = Keys.isUnmodified(e);
-        if (
-            (unmodified && button == MouseEvent.BUTTON1)
-                ||
-                (unmodified && button == MouseEvent.BUTTON2)
-        ) {
+        if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
             editor.setFocus(this);
             if ((unmodified && button == MouseEvent.BUTTON2)) {
                 int row = getRowForLocation(e.getX(), e.getY());
@@ -356,11 +330,7 @@ public final class XmlTree extends JTree
     public void mouseClicked(MouseEvent e) {
         final int button = e.getButton();
         final boolean unmodified = Keys.isUnmodified(e);
-        if (
-            (unmodified && button == MouseEvent.BUTTON1)
-                ||
-                (unmodified && button == MouseEvent.BUTTON2)
-        ) {
+        if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
             Point point = e.getPoint();
             moveDotToNodeAtPoint(point);
         }
@@ -375,11 +345,9 @@ public final class XmlTree extends JTree
         Point point = e.getPoint();
         TreePath path = getPathForLocation(point.x, point.y);
         if (path != null) {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) path.getLastPathComponent();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
             if (node != null) {
-                XmlTreeElement treeElement =
-                    (XmlTreeElement) node.getUserObject();
+                XmlTreeElement treeElement = (XmlTreeElement) node.getUserObject();
                 statusText = treeElement.getStatusText();
             }
             editor.status(statusText);
@@ -432,8 +400,7 @@ public final class XmlTree extends JTree
                     if (aelfred) {
                         // Aelfred.
                         // Look for start of start tag.
-                        int startOfStartTag =
-                            reverseFindStartTag(name, line, endOfStartTag - 1);
+                        int startOfStartTag = reverseFindStartTag(name, line, endOfStartTag - 1);
                         if (startOfStartTag < 0)
                             startOfStartTag = findStartTag(name, line, endOfStartTag);
                         if (startOfStartTag >= 0)
@@ -441,18 +408,13 @@ public final class XmlTree extends JTree
                     } else {
                         // Not Aelfred.
                         // Look for start of start tag.
-                        int startOfStartTag =
-                            reverseFindStartTag(name, line, endOfStartTag - 1);
+                        int startOfStartTag = reverseFindStartTag(name, line, endOfStartTag - 1);
                         while (startOfStartTag < 0) {
                             // Not found on current line. Look at previous line.
                             if (line.previous() == null)
                                 break;
                             line = line.previous();
-                            startOfStartTag = reverseFindStartTag(
-                                name,
-                                line,
-                                line.length()
-                            );
+                            startOfStartTag = reverseFindStartTag(name, line, line.length());
                         }
                         if (startOfStartTag >= 0)
                             offset = startOfStartTag;
@@ -490,8 +452,7 @@ public final class XmlTree extends JTree
     private void moveDotToNodeAtPoint(Point point) {
         TreePath path = getPathForLocation(point.x, point.y);
         if (path != null) {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) path.getLastPathComponent();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
             moveDotToNode(node);
         }
     }
@@ -499,8 +460,7 @@ public final class XmlTree extends JTree
     public DefaultMutableTreeNode getNodeAtPos(Position where) {
         if (treeModel == null)
             return null;
-        DefaultMutableTreeNode root =
-            (DefaultMutableTreeNode) treeModel.getRoot();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
         if (root == null)
             return null;
 
@@ -531,8 +491,7 @@ public final class XmlTree extends JTree
         int currentColumnDelta = Integer.MAX_VALUE;
         Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) nodes.nextElement();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodes.nextElement();
             XmlTreeElement treeElement = (XmlTreeElement) node.getUserObject();
             int lineDelta = treeElement.getLineNumber() - targetLineNumber;
 
@@ -542,8 +501,7 @@ public final class XmlTree extends JTree
                 currentLineDelta = lineDelta;
             }
             if (lineDelta == 0 && currentLineDelta == 0) {
-                int columnDelta =
-                    treeElement.getColumnNumber() - targetColumnNumber;
+                int columnDelta = treeElement.getColumnNumber() - targetColumnNumber;
 
                 // We want the smallest columnDelta >= 0.
                 if (columnDelta >= 0 && columnDelta < currentColumnDelta) {
@@ -634,8 +592,7 @@ public final class XmlTree extends JTree
         private XmlTree tree;
         private Editor editor;
 
-        private static Color noFocusSelectionBackground =
-            new Color(208, 208, 208);
+        private static Color noFocusSelectionBackground = new Color(208, 208, 208);
 
         private Color oldBackgroundSelectionColor;
 
@@ -656,23 +613,14 @@ public final class XmlTree extends JTree
 
         @Override
         public Component getTreeCellRendererComponent(
-            JTree tree,
-            Object value,
-            boolean selected,
-            boolean expanded,
-            boolean leaf,
-            int row,
-            boolean hasFocus
-        ) {
-            super.getTreeCellRendererComponent(
-                tree,
-                value,
-                selected,
-                expanded,
-                leaf,
-                row,
-                hasFocus
-            );
+                JTree tree,
+                Object value,
+                boolean selected,
+                boolean expanded,
+                boolean leaf,
+                int row,
+                boolean hasFocus) {
+            super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
             if (selected)
                 super.setForeground(getTextSelectionColor());
             else
