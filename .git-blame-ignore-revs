@@ -172,3 +172,6 @@ d8899b23dc08b94ef4b093431503b44e17cdcea2
 
 # reformat: Server, which phase 10 of the git tooling changes
 b0f9e873779926840838d61e99cac934768edb6c
+
+# reformat: WindowCommands, which phase 10 of the git tooling changes
+0f829f505fb216fd87294087cc6af1cc7878d04e
