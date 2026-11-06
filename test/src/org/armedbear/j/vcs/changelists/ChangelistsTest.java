@@ -37,7 +37,6 @@ import org.armedbear.j.vcs.changelists.Changelists.Change;
 import org.armedbear.j.vcs.changelists.Changelists.Part;
 import org.armedbear.j.vcs.diff.DiffParser;
 import org.armedbear.j.vcs.diff.FileDiff;
-import org.armedbear.j.vcs.git.GitBackend;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -384,8 +383,8 @@ public class ChangelistsTest {
         git.git("worktree", "add", "-q", "-b", "other", tmp.resolve("other").toString());
         final VcsRepository main = Repositories.forDirectory(git.root);
         final VcsRepository other = Repositories.forDirectory(tmp.resolve("other").toRealPath());
-        final ChangelistStore mainStore = GitBackend.changelists(main);
-        final ChangelistStore otherStore = GitBackend.changelists(other);
+        final ChangelistStore mainStore = ChangelistStore.of(main);
+        final ChangelistStore otherStore = ChangelistStore.of(other);
         assertNotEquals(mainStore.file(), otherStore.file());
         assertTrue(mainStore.write(kept()));
         assertEquals(kept(), mainStore.read());

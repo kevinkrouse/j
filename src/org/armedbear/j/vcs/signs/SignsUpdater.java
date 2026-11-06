@@ -39,6 +39,9 @@ import org.armedbear.j.util.PickState;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.BasesCache;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.changelists.ChangeTracker;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
+import org.armedbear.j.vcs.diff.Hunk;
 
 /**
  * A tracked file's buffer's signs: worked out again 100 ms after its text
@@ -140,6 +143,7 @@ public final class SignsUpdater implements Buffer.Follower {
         // While a status has its diff read, its signs are git's, if that is
         // still the file's.
         final List<Edit> git = gitEdits();
+        final boolean tracking = tracker() != null;
         running = true;
         Background.then("vcs signs", () -> {
             final Bases b = bases();
@@ -152,12 +156,47 @@ public final class SignsUpdater implements Buffer.Follower {
             final List<Edit> unstaged = SignsMath.unstaged(index.keys(), now.keys(), git);
             return new Computed(
                     SignsMath.compute(lines, now.keys(), index.keys(), head == null ? null : head.keys(), unstaged),
-                    unstaged);
+                    unstaged,
+                    tracking ? changes(lines, index, now, unstaged) : null);
         }, c -> done(c, git, modCount));
     }
 
-    // Signs worked out, and the buffer's edits against the index they took.
-    private record Computed(Signs signs, List<Edit> unstaged) {}
+    // Signs worked out, the buffer's edits against the index they took, and
+    // those as changes for its changelists, or null.
+    private record Computed(Signs signs, List<Edit> unstaged, List<ChangeTracker.Now> changes) {}
+
+    // The edits from index to now, the buffer's lines, as changes: each a
+    // run of a hunk, with the lines it adds, or the line where it removes.
+    private static List<ChangeTracker.Now> changes(List<Line> lines, Side index, Side now, List<Edit> edits) {
+        final List<ChangeTracker.Now> out = new ArrayList<>();
+        for (Edit e : edits) {
+            final Hunk h = EditorHunks.hunk(index, now, e, edits);
+            for (Hunk.Run r : h.runs()) {
+                final int from = Math.min(r.newRow(), lines.size());
+                final int to = Math.min(r.newRow() + r.addedCount(), lines.size());
+                // Lines only removed: under the line above where they were.
+                final int above = Math.min(Math.max(0, r.newRow() - 1), lines.size() - 1);
+                final Line under = r.addedCount() == 0 && above >= 0 ? lines.get(above) : null;
+                out.add(new ChangeTracker.Now(h, r, List.copyOf(lines.subList(from, to)), under));
+            }
+        }
+        return out;
+    }
+
+    // Its file's changelists, as it is edited; null where its version
+    // control keeps none of j's.
+    private ChangeTracker tracker;
+    private boolean trackerSought;
+
+    /** Its file's changes in their changelists, as it is edited; null if there are none. */
+    public ChangeTracker tracker() {
+        if (!trackerSought) {
+            trackerSought = true;
+            final RepositoryLists lists = RepositoryLists.of(getRepository());
+            tracker = lists == null ? null : new ChangeTracker(lists, getPath());
+        }
+        return tracker;
+    }
 
     /** The open statuses, in the order opened. */
     private static final List<StatusView.Source> sources = new CopyOnWriteArrayList<>();
@@ -201,6 +240,8 @@ public final class SignsUpdater implements Buffer.Follower {
         computed = c == null ? null : c.signs();
         offered = git;
         used = c == null ? null : c.unstaged();
+        if (c != null && c.changes() != null)
+            tracker.update(c.changes(), !buffer.isModified());
         show();
     }
 

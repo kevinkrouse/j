@@ -2832,6 +2832,27 @@ plan with why it is left, before the next phase starts.
      save and close, back to hashed ranges. Undo puts a range back with
      its text. Tests on a buffer: typing in, above and between ranges;
      undo; a range emptied.
+
+     Built: not `Marker`s, which are positions on `Line`s, and undo puts
+     back copies of deleted lines, not the lines. `ChangeTracker`, one
+     for each file's `SignsUpdater`, told of the changes each time the
+     signs are worked out (`ChangeTracker.Now`: a run, the `Line`s it
+     adds, or the line its removed lines are under), by the same edits
+     the signs took. First it places them as the lists keep the file
+     (`Anchors.place`); then a change with lines that were in a list stays
+     in it, new lines in the list of the nearest above, else below, those
+     of other lists its parts; one with none, as undo brings back, in the
+     list it had when it went, found by hash (the last 200 gone kept);
+     else the file's list if kept whole, else the active one. Kept again,
+     by `Anchors.assignment`, when the buffer is unmodified, as after a
+     save, if it changed, and only once there are lists other than the
+     default or the file was kept. `RepositoryLists`, one for each
+     store's file, read once, changed through `update`, which reads
+     again and redoes the change once if another writer's came between.
+     The store's file is in `VcsBackend.stateDirectory` (git's
+     `<gitdir>/j`, `ChangelistStore.of`), so the git package doesn't know
+     changelists. `reload` places a file's changes again from the store,
+     for e's moves.
    - **d. The status's section.** With `vcsChangelists` on (default off),
      "Changelists" takes "Unstaged"'s place: a heading per list with its
      count, its files, and under a file split across lists, the hunks or

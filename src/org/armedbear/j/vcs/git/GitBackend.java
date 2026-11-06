@@ -50,7 +50,6 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.VersionControlEntry;
 import org.armedbear.j.vcs.blame.BlameCommit;
-import org.armedbear.j.vcs.changelists.ChangelistStore;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
@@ -313,13 +312,11 @@ public final class GitBackend implements VcsBackend {
         return GitWrites.setParent(repository, branch, parent);
     }
 
-    /**
-     * Where repository's changelists are kept: j's own file in the working
-     * tree's git directory, a worktree's its own; null if it has none.
-     */
-    public static ChangelistStore changelists(VcsRepository repository) {
+    // j's own directory in the working tree's git directory, a worktree's its own.
+    @Override
+    public Path stateDirectory(VcsRepository repository) {
         final GitDirs dirs = GitDirs.of(repository.root());
-        return dirs == null ? null : new ChangelistStore(dirs.gitDir().resolve("j/changelists.xml"));
+        return dirs == null ? null : dirs.gitDir().resolve("j");
     }
 
     @Override

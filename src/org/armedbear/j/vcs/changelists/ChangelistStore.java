@@ -88,6 +88,12 @@ public final class ChangelistStore {
         this.file = file;
     }
 
+    /** Where repository's changelists are kept, in its backend's state directory; null for none. */
+    public static ChangelistStore of(org.armedbear.j.vcs.VcsRepository repository) {
+        final Path dir = repository.backend().stateDirectory(repository);
+        return dir == null ? null : new ChangelistStore(dir.resolve("changelists.xml"));
+    }
+
     /** The file it keeps them in. */
     public Path file() {
         return file;

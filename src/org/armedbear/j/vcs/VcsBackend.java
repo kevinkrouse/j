@@ -325,6 +325,14 @@ public interface VcsBackend {
         return null;
     }
 
+    /**
+     * The directory j keeps its own state of repository in, as its
+     * changelists, which other tools don't see; null for none.
+     */
+    default Path stateDirectory(VcsRepository repository) {
+        return null;
+    }
+
     /** Stashes the changes, with message if not null. */
     default VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
         return null;
