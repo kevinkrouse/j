@@ -35,14 +35,13 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.function.Consumer;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.util.AtomicFiles;
 
 /**
  * Lets a second j hand its files to the one already running. The port file
@@ -121,24 +120,7 @@ public class Server implements Runnable {
 
     // Written private, then moved into place, so no one else sees the token.
     /*package*/ static void writePortFile(Path path, int port, String token) throws IOException {
-        Path temp;
-        try {
-            temp = Files.createTempFile(
-                path.getParent(),
-                "port",
-                null,
-                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
-        }
-        catch (UnsupportedOperationException e) {
-            temp = Files.createTempFile(path.getParent(), "port", null);
-        }
-        try {
-            Files.writeString(temp, port + "\n" + token + "\n", StandardCharsets.UTF_8);
-            Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        }
-        finally {
-            Files.deleteIfExists(temp);
-        }
+        AtomicFiles.write(path, (port + "\n" + token + "\n").getBytes(StandardCharsets.UTF_8), true);
     }
 
     /** True if a j is listening on the port this port file names. */

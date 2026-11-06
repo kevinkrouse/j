@@ -2796,6 +2796,36 @@ plan with why it is left, before the next phase starts.
      svn's own changelists (phase 11) can stand in. Tests: a round trip, a
      range re-anchored after edits above it, a hunk gone, a file deleted
      or renamed, a corrupt or missing file, two worktrees.
+
+     Built: `vcs/changelists`. `Changelists`, immutable: the lists (the
+     default first, its draft comment each), the active one, and by path,
+     in the order given, an `Assignment`, whole to a list or of its
+     `Change`s. A change is a run of a hunk (`Hunk.Run`), as a box picks
+     one: its hash (SHA-256 of its `-`/`+` lines, `Anchors.hash`), its
+     rows in the work tree and in the index, its list, and `Part`s of its
+     rows in other lists, for a change split. A line only removed in a
+     change that adds lines follows the change, having no row of its own.
+     `Anchors.place` puts a file's changes now in lists: twins with the
+     same hash matched in order down the file, nearest by index rows,
+     which edits in the work tree don't move, their parts kept; else the
+     kept change it overlaps most in the index, else in the work tree,
+     parts dropped; else the active list. A file kept whole has every
+     change in its list, and stays whole when kept again
+     (`Anchors.assignment`); a file deleted, the list of most of its kept
+     rows; a renamed one is found under the path it had. The diff must be
+     the whole file's with whitespace shown, or the changes it leaves out
+     are dropped. `ChangelistStore`, concrete, no interface until svn's
+     lists (phase 11) show what one needs; git's from
+     `GitBackend.changelists`, at `GitDirs.gitDir()/j/changelists.xml`,
+     a worktree's its own. DOM with no DTD or external entities, written
+     whole by `util/AtomicFiles` (shared with the stash note and the port
+     file, with the fallback where a move can't be atomic), and only over
+     the bytes it last read or wrote, so another writer's changes aren't
+     lost: a refused write is read again and redone. A file that isn't
+     changelists XML is moved aside (`.bad`, `.bad.1`, ...); one that
+     can't be read for now, or a later version's, is kept and not written
+     over; a list unknown is read as the default.
+     Nothing uses it yet: c and d do.
    - **c. Ranges that follow edits.** While a file is open its ranges are
      `Marker`s, carried by edits; an edit inside another list's range
      joins that list, anywhere else the active one (IntelliJ's rule). On

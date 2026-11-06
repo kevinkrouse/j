@@ -15,10 +15,8 @@ import static org.armedbear.j.Constants.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -33,6 +31,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.util.AtomicFiles;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Bases;
 import org.armedbear.j.vcs.Capability;
@@ -51,6 +50,7 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.VersionControlEntry;
 import org.armedbear.j.vcs.blame.BlameCommit;
+import org.armedbear.j.vcs.changelists.ChangelistStore;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
 import org.armedbear.j.vcs.log.LogCommit;
@@ -313,6 +313,15 @@ public final class GitBackend implements VcsBackend {
         return GitWrites.setParent(repository, branch, parent);
     }
 
+    /**
+     * Where repository's changelists are kept: j's own file in the working
+     * tree's git directory, a worktree's its own; null if it has none.
+     */
+    public static ChangelistStore changelists(VcsRepository repository) {
+        final GitDirs dirs = GitDirs.of(repository.root());
+        return dirs == null ? null : new ChangelistStore(dirs.gitDir().resolve("j/changelists.xml"));
+    }
+
     @Override
     public VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
         return GitWrites.stash(repository, message, options, List.of());
@@ -410,26 +419,11 @@ public final class GitBackend implements VcsBackend {
             if (note == null)
                 Files.deleteIfExists(file);
             else {
-                // Whole or not at all: written aside, then moved over it,
-                // atomically where the file system can; what is left aside
-                // removed if it isn't.
-                final Path written = Files.createTempFile(file.getParent(), STASH_NOTE, ".new");
-                try {
-                    Files.writeString(
-                        written,
-                        (note.pop() ? "pop" : "apply") + "\n" + note.name() + "\n" + note.hash() + "\n"
-                                + (note.head() == null ? "" : note.head()) + "\n",
-                        StandardCharsets.UTF_8);
-                    try {
-                        Files.move(written, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-                    }
-                    catch (AtomicMoveNotSupportedException e) {
-                        Files.move(written, file, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
-                finally {
-                    Files.deleteIfExists(written);
-                }
+                AtomicFiles.write(
+                    file,
+                    ((note.pop() ? "pop" : "apply") + "\n" + note.name() + "\n" + note.hash() + "\n"
+                            + (note.head() == null ? "" : note.head()) + "\n").getBytes(StandardCharsets.UTF_8),
+                    false);
             }
         }
         catch (IOException e) {
