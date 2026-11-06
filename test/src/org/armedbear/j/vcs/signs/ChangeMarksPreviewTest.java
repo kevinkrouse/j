@@ -242,7 +242,14 @@ public class ChangeMarksPreviewTest {
     public void thePopupStagesOnlyWhereTheVersionControlTracks() {
         assertEquals(List.of("revertLines", "nextChange", "previousChange"), commands(ChangeMarks.popup(false)));
         assertEquals(
-            List.of("vcsStageHunk", "vcsUnstageHunk", "vcsPickHunk", "revertLines", "nextChange", "previousChange"),
+            List.of(
+                "vcsStageHunk",
+                "vcsUnstageHunk",
+                "vcsPickHunk",
+                "vcsChangelistMove",
+                "revertLines",
+                "nextChange",
+                "previousChange"),
             commands(ChangeMarks.popup(true)));
     }
 

@@ -293,7 +293,7 @@ public class EachRepositoryTest {
         }
         open();
         final List<List<String>> offered = new ArrayList<>();
-        BranchCommands.choose = (editor, q, history, names, chosen) -> {
+        BranchCommands.choose = (editor, q, history, names, unavailable, chosen) -> {
             offered.add(names);
             chosen.accept("feature (2 of 3)");
         };

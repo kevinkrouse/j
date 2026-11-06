@@ -187,6 +187,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         km.mapKey('s', "vcsStage");
         km.mapKey('u', "vcsUnstage");
         km.mapKey('x', "vcsDiscard");
+        km.mapKey('C', "vcsChangelistPopup");
         scrollKeys(km);
         km.mapKey(KeyEvent.VK_R, CTRL_MASK, "vcsStatusRefresh");
         km.mapKey('$', "vcsCommandLog");
@@ -212,6 +213,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             km.mapKey('s', "vcsStage");
             km.mapKey('u', "vcsUnstage");
             km.mapKey('x', "vcsDiscard");
+            // The changelists' popup, its move taking the lines selected.
+            km.mapKey('C', "vcsChangelistPopup");
             pickKeys(km);
             visualKeyMap = km;
         }
@@ -227,6 +230,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     }
 
     private static void common(KeyMap km) {
+        km.mapKey('C', "vcsChangelistPopup");
         pickKeys(km);
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisitHere");
@@ -419,6 +423,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         commands.add(Command.of("m", "vcsMergePopup", "merge…"));
         commands.add(Command.of("f", "vcsFetchPopup", "fetch…"));
         commands.add(Command.of(vim ? "Z" : "z", "vcsStashPopup", "stash…"));
+        commands.add(Command.of("C", "vcsChangelistPopup", "changelists…"));
         commands.add(Command.of("$", "vcsCommandLog", "command log"));
         commands.add(Command.of("=", "vcsStatusDiffView", "diff layout"));
         commands.add(Command.of("q", "killBuffer", "close"));

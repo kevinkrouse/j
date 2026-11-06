@@ -561,21 +561,38 @@ public final class Finders {
             String history,
             List<String> names,
             Consumer<String> chosen) {
+        choose(editor, prompt, hint, typed, history, names, Map.of(), chosen);
+    }
+
+    /**
+     * As choose, those of names unavailable has listed after the rest,
+     * dimmed, its reason beside each, not chosen; nor is one typed.
+     */
+    public static void choose(
+            Editor editor,
+            int prompt,
+            String hint,
+            boolean typed,
+            String history,
+            List<String> names,
+            Map<String, String> unavailable,
+            Consumer<String> chosen) {
         HistoryTextField textField = editor.getPromptTextField();
         if (textField == null)
             return;
         Supplier<List<FinderItem>> items = () -> {
             List<FinderItem> list = new ArrayList<>();
             for (String name : names)
-                list.add(new NameItem(name, chosen));
+                list.add(new NameItem(name, unavailable.get(name), chosen));
             return list;
         };
-        Function<String, FinderItem> fallback = typed ? text -> new NameItem(text, chosen) : null;
+        Function<String, FinderItem> fallback =
+                typed ? text -> new NameItem(text, unavailable.get(text.strip()), chosen) : null;
         show(editor, prompt, new ListFinderTextFieldHandler(editor, textField, null, items, fallback), history, "");
         textField.setHint(hint);
     }
 
-    private record NameItem(String name, Consumer<String> chosen) implements FinderItem {
+    private record NameItem(String name, String unavailable, Consumer<String> chosen) implements FinderItem {
         @Override
         public String matchText() {
             return name;

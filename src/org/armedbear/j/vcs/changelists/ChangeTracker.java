@@ -21,14 +21,17 @@
 package org.armedbear.j.vcs.changelists;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.armedbear.j.Line;
 import org.armedbear.j.vcs.changelists.Anchors.Placed;
 import org.armedbear.j.vcs.changelists.Changelists.Assignment;
+import org.armedbear.j.vcs.changelists.Changelists.Part;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 
@@ -60,6 +63,10 @@ public final class ChangeTracker {
     // Changes gone, by hash, the latest last, for an undo that brings one back.
     private final Map<String, Placed> gone = new LinkedHashMap<>();
     private List<Placed> placed = List.of();
+    // The changes as last told, which placed is of, and whether the buffer
+    // was then as its file.
+    private List<Now> now = List.of();
+    private boolean saved;
     private boolean started;
 
     public ChangeTracker(RepositoryLists repository, String path) {
@@ -87,7 +94,7 @@ public final class ChangeTracker {
     public void update(List<Now> now, boolean saved) {
         final Changelists c = repository.lists();
         final Assignment kept = c.assignment(path);
-        final List<Placed> next = started ? follow(now, c, kept) : Anchors.place(c, path, null, diff(now));
+        final List<Placed> next = known(started ? follow(now, c, kept) : Anchors.place(c, path, null, diff(now)), c);
         started = true;
         // Those gone remembered, by their lines.
         final Map<String, Placed> nowByHash = new HashMap<>();
@@ -102,6 +109,107 @@ public final class ChangeTracker {
         }
         while (gone.size() > GONE)
             gone.remove(gone.keySet().iterator().next());
+        placed(next, now);
+        this.saved = saved;
+        if (saved && (c.lists().size() > 1 || kept != null))
+            keep(kept);
+    }
+
+    /** What a move did: nothing of the lines changed, moved and kept, or moved but not kept. */
+    public enum Moved {
+        NOTHING, MOVED, NOT_KEPT
+    }
+
+    /**
+     * Moves to list to the changes of lines, the buffer's as last told, or
+     * those lines alone of changes that add more; a change removing lines
+     * only, whole, if the line it is under is one of them. Kept if the
+     * buffer was as its file, else as it is saved.
+     */
+    public Moved move(Set<Line> lines, String to) {
+        final List<Placed> next = movedTo(lines, to);
+        if (next.equals(placed))
+            return Moved.NOTHING;
+        placed(next, now);
+        return !saved || keep(repository.lists().assignment(path)) ? Moved.MOVED : Moved.NOT_KEPT;
+    }
+
+    /** Whether moving lines to to would change anything. */
+    public boolean wouldMove(Set<Line> lines, String to) {
+        return !movedTo(lines, to).equals(placed);
+    }
+
+    // The changes as placed, those of lines in to.
+    private List<Placed> movedTo(Set<Line> lines, String to) {
+        final List<Placed> next = new ArrayList<>(placed);
+        for (int i = 0; i < now.size(); i++) {
+            final Now n = now.get(i);
+            final Placed p = placed.get(i);
+            if (n.lines().isEmpty()) {
+                if (n.under() != null && lines.contains(n.under()))
+                    next.set(i, new Placed(n.hunk(), n.run(), to, List.of()));
+                continue;
+            }
+            final String[] lists = new String[n.lines().size()];
+            boolean hit = false;
+            for (int k = 0; k < lists.length; k++) {
+                hit |= lines.contains(n.lines().get(k));
+                lists[k] = lines.contains(n.lines().get(k)) ? to : Anchors.listOf(p, k);
+            }
+            if (hit)
+                next.set(i, Anchors.withLists(n.hunk(), n.run(), lists));
+        }
+        return next;
+    }
+
+    /**
+     * The list from renamed to, or deleted, to the default: its changes,
+     * those since gone too, in to, as the lists now have them.
+     */
+    public void relist(String from, String to) {
+        final List<Placed> next = new ArrayList<>();
+        for (Placed p : placed)
+            next.add(relisted(p, from, to));
+        placed(next, now);
+        gone.replaceAll((hash, p) -> relisted(p, from, to));
+    }
+
+    private static Placed relisted(Placed p, String from, String to) {
+        final List<Part> parts = new ArrayList<>();
+        for (Part part : p.parts())
+            parts.add(part.list().equals(from) ? new Part(part.from(), part.to(), to) : part);
+        return new Placed(p.hunk(), p.run(), p.list().equals(from) ? to : p.list(), parts);
+    }
+
+    // next, its lists those c has: one gone since, as another writer's
+    // delete, the default.
+    private static List<Placed> known(List<Placed> next, Changelists c) {
+        final List<Placed> out = new ArrayList<>();
+        for (Placed p : next) {
+            Placed q = p;
+            if (c.list(q.list()) == null)
+                q = relisted(q, q.list(), Changelists.DEFAULT);
+            for (Part part : q.parts())
+                if (c.list(part.list()) == null)
+                    q = relisted(q, part.list(), Changelists.DEFAULT);
+            out.add(q);
+        }
+        return out;
+    }
+
+    /** The lines of the change line is of, or the line it is under; none for none. */
+    public Set<Line> changeAt(Line line) {
+        for (Now n : now)
+            if (n.lines().contains(line) || n.lines().isEmpty() && n.under() == line) {
+                final Set<Line> out = Collections.newSetFromMap(new IdentityHashMap<>());
+                out.addAll(n.lines().isEmpty() ? List.of(line) : n.lines());
+                return out;
+            }
+        return Set.of();
+    }
+
+    // next placed, now's changes: their lines' lists known.
+    private void placed(List<Placed> next, List<Now> now) {
         lineLists.clear();
         underLists.clear();
         for (int i = 0; i < next.size(); i++) {
@@ -113,8 +221,7 @@ public final class ChangeTracker {
                 underLists.put(n.under(), p.list());
         }
         placed = next;
-        if (saved && (c.lists().size() > 1 || kept != null))
-            keep(kept);
+        this.now = now;
     }
 
     // The changes now, each in the list of its lines that were in one, of
@@ -160,10 +267,16 @@ public final class ChangeTracker {
     }
 
     // The changes as kept, if not as they were: none, the file unchanged.
-    private void keep(Assignment kept) {
-        final Assignment a = placed.isEmpty() ? null : Anchors.assignment(placed, kept);
-        if (a == null ? kept != null : !a.equals(kept))
-            repository.update(c -> c.withFile(path, a));
+    // Kept, if changed: whether it is, or needn't be.
+    private boolean keep(Assignment kept) {
+        // Kept whole while every change is in its list.
+        final boolean whole = kept != null
+                && kept.whole() != null
+                && placed.stream().allMatch(p -> p.list().equals(kept.whole()) && p.parts().isEmpty());
+        final Assignment a = placed.isEmpty() ? null : Anchors.assignment(placed, whole ? kept : null);
+        return a == null
+                ? kept == null || repository.update(c -> c.withFile(path, a))
+                : a.equals(kept) || repository.update(c -> c.withFile(path, a));
     }
 
     // The changes now as a diff, each hunk once, in order.

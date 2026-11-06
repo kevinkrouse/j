@@ -108,11 +108,21 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
             right -= w + 2 * pad;
         }
 
-        x = drawMarked(g2, item.label(), item.labelOffset(), x, right, baseline, foreground, item.isTransient());
+        // One that can't be chosen dimmed, why after it.
+        final boolean unavailable = item.unavailable() != null;
+        x = drawMarked(
+            g2,
+            item.label(),
+            item.labelOffset(),
+            x,
+            right,
+            baseline,
+            unavailable ? dim : foreground,
+            item.isTransient());
         String detail = item.detail();
         if (!detail.isEmpty() && x < right)
             x = drawMarked(g2, detail, item.detailOffset(), x + 2 * pad, right, baseline, dim, false);
-        String note = item.note();
+        String note = unavailable ? "· " + item.unavailable() : item.note();
         if (!note.isEmpty() && x < right) {
             g2.setFont(getFont());
             g2.setColor(dim);

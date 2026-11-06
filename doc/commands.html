@@ -461,8 +461,11 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsBranchRename">vcsBranchRename</a></li>
     <li><a href="commands.html#vcsBranchSetParent">vcsBranchSetParent</a></li>
     <li><a href="commands.html#vcsChangelistActive">vcsChangelistActive</a></li>
+    <li><a href="commands.html#vcsChangelistDelete">vcsChangelistDelete</a></li>
     <li><a href="commands.html#vcsChangelistMove">vcsChangelistMove</a></li>
     <li><a href="commands.html#vcsChangelistNew">vcsChangelistNew</a></li>
+    <li><a href="commands.html#vcsChangelistPopup">vcsChangelistPopup</a></li>
+    <li><a href="commands.html#vcsChangelistRename">vcsChangelistRename</a></li>
     <li><a href="commands.html#vcsCommandLog">vcsCommandLog</a></li>
     <li><a href="commands.html#vcsCommit">vcsCommit</a></li>
     <li><a href="commands.html#vcsCommitAbort">vcsCommitAbort</a></li>
@@ -6316,13 +6319,17 @@ Sets the parent of the branch checked out, from a list. It does as <a href="#git
 <p>
 Makes the changelist whose heading the caret is on in the git status active, else asks which: a change made outside the other lists' changes goes to the active one.
 <br><br>
+<b>Default key mapping:</b> a in the changelist popup
+<br><br>
 <b>See also:</b> <a href="git.html#changelists">Changelists</a>
 <br><br>
 </dl><!--<hr>-->
 
 <a name="vcsChangelistMove">vcsChangelistMove</a><dl><dd>
 <p>
-In the git status, moves the changes not staged that the selection takes, else those picked, else the thing at the caret, a changelist's heading, a file, a hunk, or lines of one, to a changelist asked for, made if new.
+In the git status, moves the changes not staged that the selection takes, else those picked, else the thing at the caret, a changelist's heading, a file, a hunk, or lines of one, to a changelist asked for, made if new. In a file's own buffer, moves the change at the caret, or the lines of the selection, kept as the file is saved.
+<br><br>
+<b>Default key mapping:</b> m in the changelist popup and the change popup; &lt;leader&gt;hm in vim edit mode
 <br><br>
 <b>See also:</b> <a href="git.html#changelists">Changelists</a>
 <br><br>
@@ -6331,6 +6338,38 @@ In the git status, moves the changes not staged that the selection takes, else t
 <a name="vcsChangelistNew">vcsChangelistNew</a><dl><dd>
 <p>
 Makes a changelist in the repository at the caret, or of the file shown, asking its name.
+<br><br>
+<b>Default key mapping:</b> n in the changelist popup
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsChangelistDelete">vcsChangelistDelete</a><dl><dd>
+<p>
+Deletes the changelist whose heading the caret is on in the git status, else one asked for, after asking; its changes go to the default list, which stays.
+<br><br>
+<b>Default key mapping:</b> d in the changelist popup
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsChangelistPopup">vcsChangelistPopup</a><dl><dd>
+<p>
+Opens the changelist popup of the git status: move, make active, new, rename and delete.
+<br><br>
+<b>Default key mapping:</b> C in the git status
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsChangelistRename">vcsChangelistRename</a><dl><dd>
+<p>
+Renames the changelist whose heading the caret is on in the git status, else one asked for; the default list can't be renamed.
+<br><br>
+<b>Default key mapping:</b> r in the changelist popup
 <br><br>
 <b>See also:</b> <a href="git.html#changelists">Changelists</a>
 <br><br>

@@ -462,6 +462,9 @@ public class CommandTable {
             add("vcsChangelistActive", ChangelistCommands::vcsChangelistActive);
             add("vcsChangelistMove", ChangelistCommands::vcsChangelistMove);
             add("vcsChangelistNew", ChangelistCommands::vcsChangelistNew);
+            add("vcsChangelistDelete", ChangelistCommands::vcsChangelistDelete);
+            add("vcsChangelistPopup", ChangelistCommands::vcsChangelistPopup);
+            add("vcsChangelistRename", ChangelistCommands::vcsChangelistRename);
             add("vcsStashApply", StashCommands::vcsStashApply);
             add("vcsStashDrop", StashCommands::vcsStashDrop);
             add("vcsStashKeepIndex", StashCommands::vcsStashKeepIndex);

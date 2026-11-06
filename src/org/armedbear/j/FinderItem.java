@@ -74,6 +74,15 @@ public interface FinderItem {
         return null;
     }
 
+    /**
+     * Why it can't be chosen here, as the list it is already in; null if it
+     * can. Listed dimmed after those that can, the reason beside it, and
+     * Enter on it says the reason.
+     */
+    default String unavailable() {
+        return null;
+    }
+
     /** Whether this is a transient buffer: listed in italics. */
     default boolean isTransient() {
         return false;

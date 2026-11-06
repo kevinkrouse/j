@@ -2914,6 +2914,39 @@ plan with why it is left, before the next phase starts.
      the same. In the editor, `<leader>hm` (beside `hs`/`hr`/`hp`/`hu`)
      moves the hunk at the caret. Tests per command, and moving lines
      out of a split hunk.
+
+     Built, but `c` (h): `vcsChangelistPopup` on `C` in the status, both
+     edit modes, and in its `?` popup: `m` move, `a` active, `n` new, `r`
+     `vcsChangelistRename` (the default can't be renamed), `d`
+     `vcsChangelistDelete` (after asking; its changes the default's,
+     which stays). The list at the caret is a heading's, else one asked
+     for (`ChangelistCommands.onList`). In a file's own buffer, `m` in the
+     change popup and `<leader>hm` in vim move the change at the caret, or
+     the selection's lines, through its `ChangeTracker.move`: kept at once
+     if the buffer is as its file, else as it is saved; a file kept whole
+     stays whole only while every change is its list's. A prompt lists
+     what it can't take last, dimmed, why beside it (`FinderItem.unavailable`,
+     `Finders.choose` with a map of them; Enter on one, or its name typed,
+     says why): a move's list what it takes is all in
+     (`ChangelistCommands.listsOf`, or the tracker's lines' in a file), the
+     active list to make active, the default to rename or delete; with
+     nothing else, the status bar says so, no prompt. Whether a move would
+     change nothing is worked out by moving (`ChangelistCommands.moved`,
+     the files placed once; `ChangeTracker.wouldMove` in a file). An
+     unavailable name typed just so ranks first, so Enter says why; with
+     all that matches unavailable, what is typed is offered too
+     (`FinderTextFieldHandler.offerTyped`). New and active leave open
+     files' trackers be; rename and delete rename the list in them
+     (`ChangeTracker.relist`), changes gone included, so edits unsaved
+     keep their moves; a list gone since is the default's
+     (`ChangeTracker.known`, `ListedChanges.known`). A file with no hunks,
+     as a binary one, moves whole, as one unread. A move in a file not
+     kept says so (`ChangeTracker.Moved`). `C` also in the status's visual
+     map and the diff beside; the commands refuse with `vcsChangelists`
+     false. One `BranchCommands.Choose`, taking what is unavailable.
+     Tests: rename,
+     delete, the popup and its key, a move from the file, and lines moved
+     out of a hunk split across two lists into a third.
    - **f. The editor.** Another list's changes drawn outlined in the gutter
      (`Signs.Sign`'s third state); the hunk preview's "move to list…";
      the status bar naming the caret's list. Tests: the marks after a

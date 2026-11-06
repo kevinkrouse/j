@@ -48,6 +48,7 @@ import org.armedbear.j.transients.Transients;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.StatusActions.Op;
@@ -550,15 +551,18 @@ public class StatusActionsTest {
     // Runs body with changelist names asked for and chosen answered with name.
     private void answering(String name, ThrowingRunnable body) throws Exception {
         final BranchCommands.Ask ask = ChangelistCommands.ask;
-        final BranchCommands.Choose choose = ChangelistCommands.choose;
+        final BranchCommands.Choose choose = BranchCommands.choose;
         ChangelistCommands.ask = (e, prompt, title, offered) -> name;
-        ChangelistCommands.choose = (e, q, history, names, chosen) -> chosen.accept(name);
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> {
+            offeredUnavailable = unavailable;
+            chosen.accept(name);
+        };
         try {
             body.run();
         }
         finally {
             ChangelistCommands.ask = ask;
-            ChangelistCommands.choose = choose;
+            BranchCommands.choose = choose;
         }
     }
 
@@ -774,6 +778,310 @@ public class StatusActionsTest {
             finally {
                 onEdt(() -> DiffWhitespace.choose(Whitespace.NONE));
             }
+        });
+    }
+
+    // The lists the last changelist prompt dimmed, and why.
+    private java.util.Map<String, String> offeredUnavailable;
+
+    @Test
+    public void eachChangelistPromptDimsWhatItCantTake() throws Exception {
+        repository();
+        open();
+        // Only the default: nothing to delete, rename or make active.
+        onEdt(() -> {
+            h.editor().setDot(status.getFirstLine(), 0);
+            ChangelistCommands.vcsChangelistDelete(h.editor());
+            assertEquals("Only Default, which stays: n makes a list", h.status());
+            ChangelistCommands.vcsChangelistActive(h.editor());
+            assertEquals("Only Default, which is active: n makes a list", h.status());
+        });
+        makeList("Feature");
+        answering("Feature", () -> {
+            // Feature offered, and its delete declined.
+            answer = false;
+            onEdt(() -> {
+                h.editor().setDot(status.getFirstLine(), 0);
+                ChangelistCommands.vcsChangelistDelete(h.editor());
+            });
+            answer = true;
+            assertEquals(java.util.Map.of(Changelists.DEFAULT, "always kept"), offeredUnavailable);
+            onEdt(() -> {
+                h.editor().setDot(status.getFirstLine(), 0);
+                ChangelistCommands.vcsChangelistActive(h.editor());
+            });
+            assertEquals(java.util.Map.of(Changelists.DEFAULT, "active"), offeredUnavailable);
+        });
+        // Feature active now, a.txt, in no list, in it.
+        until(() -> text().contains("  Feature (1)  active"));
+        answering("Feature", () -> {
+            // A file in Feature: Feature dimmed, and chosen anyway, refused.
+            onEdt(() -> {
+                h.editor().setDot(line("    M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            assertEquals(java.util.Map.of("Feature", "already here"), offeredUnavailable);
+            assertEquals("Feature: already here", h.status());
+            onEdt(() -> {
+                h.editor().setDot(line("  Default (0)"), 0);
+                ChangelistCommands.vcsChangelistRename(h.editor());
+                assertEquals("Default: can't be renamed", h.status());
+            });
+        });
+    }
+
+    @Test
+    public void aMoveUnsavedInAFileOutlastsAListMade() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final Buffer file = showFile();
+        untilTracked(file);
+        // An edit unsaved, then line fifty's change moved.
+        onEdt(() -> {
+            h.editor().setDot(file.getLine(10), 0);
+            h.editor().insertString("x");
+        });
+        until(() -> file.getSignsUpdater().tracker().listOf(file.getLine(10)) != null);
+        answering("Feature", () -> onEdt(() -> {
+            h.editor().setDot(file.getLine(49), 0);
+            ChangelistCommands.vcsChangelistMove(h.editor());
+            assertEquals("Moved to Feature, kept as the file is saved", h.status());
+        }));
+        // Another list made: the move is still the file's.
+        makeList("Other");
+        Thread.sleep(300);
+        onEdt(() -> {
+            assertEquals("Feature", file.getSignsUpdater().tracker().listOf(file.getLine(49)));
+            // Feature deleted: the change the default's, unsaved still.
+        });
+        answering("Feature", () -> onEdt(() -> {
+            h.editor().setDot(line("  Feature (0)"), 0);
+            ChangelistCommands.vcsChangelistDelete(h.editor());
+        }));
+        onEdt(() -> {
+            assertEquals(Changelists.DEFAULT, file.getSignsUpdater().tracker().listOf(file.getLine(49)));
+            file.kill();
+        });
+    }
+
+    @Test
+    public void unchangedLinesSelectedInAFileMoveNothingAndMakeNoList() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final Buffer file = showFile();
+        untilTracked(file);
+        offeredUnavailable = null;
+        answering("Scratch", () -> onEdt(() -> {
+            h.editor().setMark(new Position(file.getLine(10), 0));
+            h.editor().setDot(file.getLine(12), 0);
+            ChangelistCommands.vcsChangelistMove(h.editor());
+            assertEquals("No change here to move", h.status());
+        }));
+        onEdt(() -> {
+            assertNull(offeredUnavailable, "no prompt");
+            assertFalse(text().contains("  Scratch (0)"));
+            file.kill();
+        });
+    }
+
+    @Test
+    public void aMoveNotKeptSaysSo() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final Buffer file = showFile();
+        untilTracked(file);
+        final java.nio.file.Path j = git.root.resolve(".git/j");
+        try {
+            // The store's directory not writable, nor its file read again.
+            assertTrue(j.toFile().setWritable(false));
+            answering("Feature", () -> onEdt(() -> {
+                h.editor().setDot(file.getLine(49), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+                assertEquals("Couldn't keep the changelists: see the log", h.status());
+                h.clearLoggedErrors();
+            }));
+        }
+        finally {
+            j.toFile().setWritable(true);
+            onEdt(() -> file.kill());
+        }
+    }
+
+    @Test
+    public void aBinaryFileMovesWhole() throws Exception {
+        repository();
+        git.write("bin.dat", "a\u0000b\n");
+        git.commitAll("binary");
+        git.write("bin.dat", "a\u0000c\n");
+        open();
+        openFile("  M  bin.dat", "  Binary file");
+        makeList("Feature");
+        makeList("Other");
+        for (String to : List.of("Feature", "Other"))
+            answering(to, () -> {
+                onEdt(() -> {
+                    h.editor().setDot(line("    M  bin.dat"), 0);
+                    ChangelistCommands.vcsChangelistMove(h.editor());
+                });
+                until(() -> indexAfter(text().indexOf("  " + to + " (1)"), "    M  bin.dat") > 0);
+            });
+    }
+
+    @Test
+    public void changelistsOffRefuseTheirCommands() throws Exception {
+        repository();
+        open();
+        try {
+            Editor.preferences().setProperty(org.armedbear.j.Property.VCS_CHANGELISTS, "false");
+            onEdt(() -> {
+                h.editor().setDot(status.getFirstLine(), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+                assertEquals("Changelists are off: vcsChangelists is false", h.status());
+            });
+        }
+        finally {
+            Editor.preferences().removeProperty(org.armedbear.j.Property.VCS_CHANGELISTS.key());
+        }
+        onEdt(
+            () -> assertEquals(
+                "vcsChangelistPopup",
+                status.getMode().getVisualKeyMap().lookup('C', 0, 0).getCommand(),
+                "C in vim's visual mode too"));
+    }
+
+    // Until file's changes are placed in their lists, line fifty's among them.
+    private void untilTracked(Buffer file) throws Exception {
+        until(
+            () -> file.getSignsUpdater() != null
+                    && file.getSignsUpdater().tracker() != null
+                    && file.getSignsUpdater().tracker().listOf(file.getLine(49)) != null);
+    }
+
+    // A changelist made, named name, from the status.
+    private void makeList(String name) throws Exception {
+        answering(name, () -> {
+            onEdt(() -> {
+                h.editor().setDot(status.getFirstLine(), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+            });
+            until(() -> text().contains("  " + name + " (0)"));
+        });
+    }
+
+    @Test
+    public void aChangelistIsRenamedAndDeletedItsChangesToTheDefault() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        answering("Feature", () -> {
+            onEdt(() -> {
+                h.editor().setDot(line("    M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)"));
+            onEdt(() -> {
+                h.editor().setDot(line("  Feature (1)"), 0);
+                ChangelistCommands.vcsChangelistActive(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)  active"));
+        });
+        // Renamed at its heading: its file and the active list with it.
+        answering("Fix", () -> onEdt(() -> {
+            h.editor().setDot(line("  Feature (1)  active"), 0);
+            ChangelistCommands.vcsChangelistRename(h.editor());
+        }));
+        until(() -> text().contains("  Fix (1)  active"));
+        onEdt(() -> {
+            h.editor().setDot(line("  Default (0)"), 0);
+            ChangelistCommands.vcsChangelistRename(h.editor());
+            assertEquals("Default: can't be renamed", h.status());
+        });
+        // Deleted, after asking: its file the default's, which is active then.
+        onEdt(() -> {
+            h.editor().setDot(line("  Fix (1)  active"), 0);
+            ChangelistCommands.vcsChangelistDelete(h.editor());
+        });
+        until(() -> !text().contains("Changelists (1)"));
+        assertTrue(text().contains("Unstaged changes (1)"), "the default alone: Unstaged again");
+        assertTrue(asked.stream().anyMatch(q -> q.startsWith("Delete changelist Fix?")), asked.toString());
+    }
+
+    @Test
+    public void theChangelistPopupIsOnC() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            assertEquals("vcsChangelistPopup", status.getKeyMapForMode().lookup('C', 0, 0).getCommand());
+            assertEquals("vcsChangelistPopup", status.getModalKeyMapForMode().lookup('C', 0, 0).getCommand());
+            final List<String> commands = new ArrayList<>();
+            for (org.armedbear.j.transients.Transient.Group g : ChangelistCommands.popup().groups())
+                for (org.armedbear.j.transients.Transient.Item i : g.items())
+                    if (i instanceof org.armedbear.j.transients.Transient.Command c)
+                        commands.add(c.command());
+            assertEquals(
+                List.of(
+                    "vcsChangelistMove",
+                    "vcsChangelistActive",
+                    "vcsChangelistNew",
+                    "vcsChangelistRename",
+                    "vcsChangelistDelete"),
+                commands);
+        });
+    }
+
+    @Test
+    public void theChangeAtTheCaretInAFileIsMovedToAList() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final Buffer file = showFile();
+        until(
+            () -> file.getSignsUpdater() != null
+                    && file.getSignsUpdater().tracker() != null
+                    && Changelists.DEFAULT.equals(file.getSignsUpdater().tracker().listOf(file.getLine(49))));
+        answering("Feature", () -> onEdt(() -> {
+            h.editor().setDot(file.getLine(49), 0);
+            ChangelistCommands.vcsChangelistMove(h.editor());
+        }));
+        onEdt(() -> {
+            assertEquals("Feature", file.getSignsUpdater().tracker().listOf(file.getLine(49)));
+            assertEquals(Changelists.DEFAULT, file.getSignsUpdater().tracker().listOf(file.getLine(2)));
+        });
+        // Unmodified: kept at once, the status showing it.
+        until(() -> text().contains("  Feature (1)") && text().contains("  Default (1)  active"));
+        onEdt(() -> file.kill());
+    }
+
+    @Test
+    public void linesAreMovedOutOfAHunkSplitAcrossLists() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 6\n", "line six\n"));
+        open();
+        openFile("  M  a.txt", "  -line 6");
+        makeList("Feature");
+        makeList("Other");
+        answering("Feature", () -> onEdt(() -> {
+            final StatusLine six = after(line("    M  a.txt"), "    +line six");
+            h.editor().setMark(new Position(six, 0));
+            h.editor().setDot(six, six.length());
+            ChangelistCommands.vcsChangelistMove(h.editor());
+        }));
+        until(() -> text().contains("  Feature (1)"));
+        // Line 3's change, under Default, to Other: each list one change.
+        answering("Other", () -> onEdt(() -> {
+            final StatusLine three = after(line("  Default (1)  active"), "    +line three");
+            h.editor().setMark(new Position(three, 0));
+            h.editor().setDot(three, three.length());
+            ChangelistCommands.vcsChangelistMove(h.editor());
+        }));
+        until(() -> text().contains("  Default (0)  active") && text().contains("  Other (1)"));
+        onEdt(() -> {
+            assertTrue(after(line("  Feature (1)"), "    +line three").isForeign());
+            assertFalse(after(line("  Other (1)"), "    +line three").isForeign());
+            assertTrue(after(line("  Other (1)"), "    +line six").isForeign());
         });
     }
 

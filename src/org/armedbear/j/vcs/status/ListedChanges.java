@@ -83,7 +83,7 @@ record ListedChanges(List<Changelist> lists, String active, Map<String, List<Mem
                 // An added line's own list; a removed one's, its added one's
                 // if it has one, else the change's.
                 final int added = i < r.added() ? (i - r.start() < r.paired() ? i - r.start() : -1) : i - r.added();
-                final String list = added < 0 ? p.list() : Anchors.listOf(p, added);
+                final String list = known(c, added < 0 ? p.list() : Anchors.listOf(p, added));
                 out.computeIfAbsent(list, k -> new LinkedHashMap<>()).computeIfAbsent(id, k -> new BitSet()).set(i);
             }
         }
@@ -97,12 +97,17 @@ record ListedChanges(List<Changelist> lists, String active, Map<String, List<Mem
 
     // The list of a file whose changes aren't read: its kept whole, of most
     // of its kept rows, else the active one if none are kept.
-    private static String listOf(Changelists c, FileItem f) {
+    static String listOf(Changelists c, FileItem f) {
         Assignment a = c.assignment(f.path());
         if (a == null && f.change().origPath() != null)
             a = c.assignment(f.change().origPath());
         if (a == null)
             return c.active();
-        return a.whole() != null ? a.whole() : Anchors.most(a);
+        return known(c, a.whole() != null ? a.whole() : Anchors.most(a));
+    }
+
+    // name, if c has the list, else the default, as one deleted since.
+    private static String known(Changelists c, String name) {
+        return c.list(name) != null ? name : Changelists.DEFAULT;
     }
 }

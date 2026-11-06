@@ -377,14 +377,19 @@ lists sort every change, whitespace and all, so with whitespace ignored the
 Changelists section still shows changes only in whitespace.
 
 <p>
-<a href="commands.html#vcsChangelistNew">vcsChangelistNew</a> makes a list,
-<a href="commands.html#vcsChangelistActive">vcsChangelistActive</a> makes the
-list whose heading the caret is on active, or asks which, and
-<a href="commands.html#vcsChangelistMove">vcsChangelistMove</a> moves the
-selection's changes, else those picked, else the thing at the caret (a
-list, a file, a hunk, or lines of one) to a list you choose or name, made
-if new. A file whose diff the status hasn't read moves whole. Find them with
-<b>Ctrl Shift P</b>; their keys come with the changelist popup.
+<b>C</b> in the status opens the changelist popup:
+<b>m</b> (<a href="commands.html#vcsChangelistMove">vcsChangelistMove</a>)
+moves the selection's changes, else those picked, else the thing at the
+caret (a list, a file, a hunk, or lines of one) to a list you choose or
+name, made if new; <b>a</b> makes the list whose heading the caret is on
+active, or asks which; <b>n</b> makes a list; <b>r</b> renames one, and
+<b>d</b> deletes one, after asking, its changes going to Default, which
+stays. A list a command can't take is listed last, dimmed, with why beside
+it: for a move, the list what you move is already in; to make active, the
+active one; to rename or delete, Default. A file whose diff the status hasn't read moves whole. In a file's
+own buffer, <b>m</b> in the change popup, or <code>&lt;leader&gt;hm</code>
+in vim edit mode, moves the change at the caret, or the lines of the
+selection; if the file has edits unsaved, the move is kept as it is saved.
 
 <p>
 While a file is open, its lists follow your edits: a change in a list's

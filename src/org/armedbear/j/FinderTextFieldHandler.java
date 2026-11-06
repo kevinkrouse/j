@@ -199,7 +199,7 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
                 if (gen != generation.get() || !isActive())
                     return;
                 // The fallback is built, on this thread, only when it's needed.
-                List<FinderItem> fallback = rows.isEmpty() && !query.isEmpty() ? fallbackCandidates() : null;
+                List<FinderItem> fallback = offerTyped(rows, query) ? fallbackCandidates() : null;
                 if (fallback == null) {
                     showRanked(text, rows);
                     return;
@@ -207,7 +207,8 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
                 ranker.execute(() -> {
                     if (gen != generation.get())
                         return;
-                    List<FinderItem.Row> fallbackRows = rank(fallback, query);
+                    List<FinderItem.Row> fallbackRows = new ArrayList<>(rank(fallback, query));
+                    fallbackRows.addAll(rows);
                     SwingUtilities.invokeLater(() -> {
                         if (gen == generation.get() && isActive())
                             showRanked(text, fallbackRows);
@@ -248,7 +249,32 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             FuzzyMatcher.Match m = query.isEmpty() ? null : FuzzyMatcher.match(r.text(), query);
             rows.add(new FinderItem.Row(r.item(), m == null ? null : m.positions()));
         }
-        return rows;
+        // Those that can't be chosen after those that can, each in its
+        // order, but one that is just what is typed first, so Enter says why.
+        List<FinderItem.Row> out = new ArrayList<>();
+        for (FinderItem.Row row : rows)
+            if (row.item().unavailable() != null && row.item().label().equalsIgnoreCase(query.text()))
+                out.add(row);
+        for (FinderItem.Row row : rows)
+            if (row.item().unavailable() == null)
+                out.add(row);
+        for (FinderItem.Row row : rows)
+            if (row.item().unavailable() != null && !out.contains(row))
+                out.add(row);
+        return out;
+    }
+
+    /**
+     * Whether what is typed is offered as itself, if it can be: nothing
+     * listed matches, or what does can't be chosen and isn't just it.
+     */
+    static boolean offerTyped(List<FinderItem.Row> rows, Query query) {
+        if (query.isEmpty())
+            return false;
+        for (FinderItem.Row row : rows)
+            if (row.item().unavailable() == null || row.item().label().equalsIgnoreCase(query.text()))
+                return false;
+        return true;
     }
 
     private void show(String text, List<FinderItem.Row> rows) {
@@ -293,18 +319,25 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             generation.incrementAndGet();
             Query query = Query.parse(queryText(text));
             List<FinderItem.Row> rows = rank(query.isEmpty() ? emptyQueryItems() : candidates(), query);
-            List<FinderItem> fallback = rows.isEmpty() && !query.isEmpty() ? fallbackCandidates() : null;
-            if (fallback != null)
-                rows = rank(fallback, query);
+            List<FinderItem> fallback = offerTyped(rows, query) ? fallbackCandidates() : null;
+            if (fallback != null) {
+                List<FinderItem.Row> typed = new ArrayList<>(rank(fallback, query));
+                typed.addAll(rows);
+                rows = typed;
+            }
             show(text, rows);
         }
         return popup.getSelected();
     }
 
-    /** Closes the prompt, then has item do its thing. */
+    /** Closes the prompt, then has item do its thing; one that can't be chosen says why, the prompt kept. */
     protected void accept(FinderItem item, boolean otherWindow) {
         if (item == null)
             return;
+        if (item.unavailable() != null) {
+            editor.status(item.label() + ": " + item.unavailable());
+            return;
+        }
         closePrompt();
         item.accept(editor, otherWindow);
     }

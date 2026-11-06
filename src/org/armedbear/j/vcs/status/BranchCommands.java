@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -96,11 +97,22 @@ public final class BranchCommands {
 
     /** Asks q, from names listed in their order; replaced in tests. */
     interface Choose {
-        void choose(Editor editor, Question q, String history, List<String> names, Consumer<String> chosen);
+        /** As choose, those of names unavailable has dimmed after the rest, with why, not chosen. */
+        void choose(
+                Editor editor,
+                Question q,
+                String history,
+                List<String> names,
+                Map<String, String> unavailable,
+                Consumer<String> chosen);
+
+        default void choose(Editor editor, Question q, String history, List<String> names, Consumer<String> chosen) {
+            choose(editor, q, history, names, Map.of(), chosen);
+        }
     }
 
-    static Choose choose = (editor, q, history, names, chosen) -> Finders
-            .choose(editor, q.prompt(), q.hint(), q.typed(), history, names, chosen);
+    static Choose choose = (editor, q, history, names, unavailable, chosen) -> Finders
+            .choose(editor, q.prompt(), q.hint(), q.typed(), history, names, unavailable, chosen);
 
     /**
      * A repository's refs, with the ref at the caret, null for none, and

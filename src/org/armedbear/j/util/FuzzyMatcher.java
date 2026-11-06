@@ -72,6 +72,11 @@ public final class FuzzyMatcher {
             }
         }
 
+        /** Its terms, a space between each, as typed. */
+        public String text() {
+            return String.join(" ", terms);
+        }
+
         public static Query parse(String s) {
             if (s == null)
                 return new Query(new String[0]);

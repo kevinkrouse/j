@@ -205,6 +205,7 @@ public final class ChangeMarks {
             change.add(Command.of("s", "vcsStageHunk", "stage"));
             change.add(Command.of("u", "vcsUnstageHunk", "unstage"));
             change.add(Command.of(";", "vcsPickHunk", "pick"));
+            change.add(Command.of("m", "vcsChangelistMove", "move to changelist…"));
         }
         change.add(Command.of("r", "revertLines", "revert"));
         return new Transient("change",

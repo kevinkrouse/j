@@ -122,7 +122,7 @@ public class BranchCommandsTest {
 
     // Runs command with the ref at, each list answered with pick.
     private void run(BiConsumer<Editor, String> command, String at, String pick) throws Exception {
-        BranchCommands.choose = (editor, q, history, names, chosen) -> {
+        BranchCommands.choose = (editor, q, history, names, unavailable, chosen) -> {
             offered.add(names);
             questions.add(q);
             chosen.accept(pick);
@@ -423,7 +423,7 @@ public class BranchCommandsTest {
     public void withAllACheckoutIsMadeInEachThatHasTheBranchOneFailingLeavingTheOthers() throws Exception {
         final List<GitFixture> fs = three();
         final Editor editor = statusOf(fs);
-        BranchCommands.choose = (e, q, history, names, chosen) -> {
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> {
             offered.add(names);
             chosen.accept("feature (2 of 3)");
         };
@@ -446,7 +446,7 @@ public class BranchCommandsTest {
         fs.get(2).git("remote", "add", "origin", fs.get(0).root.toString());
         fs.get(2).git("fetch", "-q", "origin");
         final Editor editor = statusOf(fs);
-        BranchCommands.choose = (e, q, history, names, chosen) -> {
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> {
             offered.add(names);
             chosen.accept("feature (3)");
         };
@@ -463,7 +463,7 @@ public class BranchCommandsTest {
     public void withAllABranchIsMadeInEachFromHeadWhereTheStartIsMissing() throws Exception {
         final List<GitFixture> fs = three();
         final Editor editor = statusOf(fs);
-        BranchCommands.choose = (e, q, history, names, chosen) -> {
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> {
             offered.add(names);
             questions.add(q);
             chosen.accept("feature (2 of 3)");
@@ -483,7 +483,7 @@ public class BranchCommandsTest {
     public void withAllADeleteAsksOnceNamingTheCommitsLostInEach() throws Exception {
         final List<GitFixture> fs = three();
         final Editor editor = statusOf(fs);
-        BranchCommands.choose = (e, q, history, names, chosen) -> chosen.accept("feature (2 of 3)");
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> chosen.accept("feature (2 of 3)");
         final List<String> asked = new ArrayList<>();
         StatusActions.confirm = (e, text, title) -> asked.add(text);
         onEdt(() -> BranchCommands.vcsBranchDelete(editor, null));
