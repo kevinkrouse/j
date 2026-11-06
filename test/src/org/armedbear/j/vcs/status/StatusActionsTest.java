@@ -547,6 +547,236 @@ public class StatusActionsTest {
         });
     }
 
+    // Runs body with changelist names asked for and chosen answered with name.
+    private void answering(String name, ThrowingRunnable body) throws Exception {
+        final BranchCommands.Ask ask = ChangelistCommands.ask;
+        final BranchCommands.Choose choose = ChangelistCommands.choose;
+        ChangelistCommands.ask = (e, prompt, title, offered) -> name;
+        ChangelistCommands.choose = (e, q, history, names, chosen) -> chosen.accept(name);
+        try {
+            body.run();
+        }
+        finally {
+            ChangelistCommands.ask = ask;
+            ChangelistCommands.choose = choose;
+        }
+    }
+
+    // The index of the first line text is, after from's; -1 for none.
+    private int indexAfter(int from, String text) {
+        final List<String> lines = text();
+        for (int i = from + 1; i < lines.size(); i++)
+            if (lines.get(i).equals(text) || lines.get(i).startsWith(text) && text.contains("@@"))
+                return i;
+        return -1;
+    }
+
+    @Test
+    public void aFileMovedToAChangelistIsUnderItsHeadingWhichStagesIt() throws Exception {
+        repository();
+        open();
+        answering("Feature", () -> {
+            onEdt(() -> {
+                h.editor().setDot(line("  M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+            });
+            until(() -> text().contains("  Feature (0)"));
+            assertTrue(text().contains("Changelists (1)"), "in Unstaged's place");
+            assertTrue(text().contains("  Default (1)  active"));
+            onEdt(() -> {
+                h.editor().setDot(line("    M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)"));
+            assertTrue(text().contains("  Default (0)  active"));
+            assertTrue(indexAfter(text().indexOf("  Feature (1)"), "    M  a.txt") > 0, "under its heading");
+            // s on the heading stages its files.
+            onEdt(() -> {
+                h.editor().setDot(line("  Feature (1)"), 0);
+                StatusActions.run(h.editor(), Op.STAGE);
+            });
+            until(() -> String.valueOf(git.index("a.txt")).contains("line fifty"));
+        });
+    }
+
+    @Test
+    public void aHunkMovedSplitsItsFileAcrossTheLists() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  -line 50");
+        answering("Feature", () -> {
+            onEdt(() -> {
+                h.editor().setDot(line("  M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+            });
+            until(() -> text().contains("  Feature (0)"));
+            onEdt(() -> {
+                h.editor().setDot(after(line("    M  a.txt"), "    @@ -47"), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)") && text().contains("  Default (1)  active"));
+            // Under each, the file, with its hunk there alone.
+            final int feature = text().indexOf("  Feature (1)");
+            final int defaults = text().indexOf("  Default (1)  active");
+            assertTrue(indexAfter(defaults, "    @@ -1,") > 0);
+            assertTrue(indexAfter(defaults, "    @@ -47") > feature, "not under Default");
+            assertTrue(indexAfter(feature, "    @@ -47") > feature);
+            // Feature's heading stages line 50's change, not line 3's.
+            onEdt(() -> {
+                h.editor().setDot(line("  Feature (1)"), 0);
+                StatusActions.run(h.editor(), Op.STAGE);
+            });
+            until(() -> String.valueOf(git.index("a.txt")).contains("line fifty"));
+            assertTrue(git.index("a.txt").contains("line 3\n"), "Default's change not staged");
+        });
+    }
+
+    @Test
+    public void aHunkSplitAcrossListsShowsWholeTheOthersLinesDimmed() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 6\n", "line six\n"));
+        open();
+        openFile("  M  a.txt", "  -line 6");
+        answering("Feature", () -> {
+            onEdt(() -> {
+                h.editor().setDot(line("  M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+            });
+            until(() -> text().contains("  Feature (0)"));
+            // Line 6's change alone, selected, moved.
+            onEdt(() -> {
+                final StatusLine six = after(line("    M  a.txt"), "    +line six");
+                h.editor().setMark(new Position(six, 0));
+                h.editor().setDot(six, six.length());
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)") && text().contains("  Default (1)  active"));
+            onEdt(() -> {
+                final StatusLine feature = line("  Feature (1)");
+                final StatusLine three = after(feature, "    +line three");
+                final StatusLine six = after(feature, "    +line six");
+                assertTrue(three.isForeign(), "Default's line dimmed under Feature");
+                assertFalse(six.isForeign());
+                assertFalse(StatusPicks.pickable(three));
+                // The hunk under Feature stages its lines there alone.
+                h.editor().setDot(after(feature, "    @@ -1,"), 0);
+                StatusActions.run(h.editor(), Op.STAGE);
+            });
+            until(() -> String.valueOf(git.index("a.txt")).contains("line six"));
+            assertTrue(git.index("a.txt").contains("line 3\n"), "Default's line not staged");
+        });
+    }
+
+    // a.txt's line 50's hunk moved to Feature, a.txt split across Default and Feature.
+    private void splitAcrossLists() throws Exception {
+        openFile("  M  a.txt", "  -line 50");
+        onEdt(() -> {
+            h.editor().setDot(line("  M  a.txt"), 0);
+            ChangelistCommands.vcsChangelistNew(h.editor());
+        });
+        until(() -> text().contains("  Feature (0)"));
+        onEdt(() -> {
+            h.editor().setDot(after(line("    M  a.txt"), "    @@ -47"), 0);
+            ChangelistCommands.vcsChangelistMove(h.editor());
+        });
+        until(() -> text().contains("  Feature (1)") && text().contains("  Default (1)  active"));
+    }
+
+    @Test
+    public void aSplitFilesLineUnderAListKeepsItsKeyAndItsListIsItsParent() throws Exception {
+        repository();
+        open();
+        answering("Feature", () -> {
+            splitAcrossLists();
+            onEdt(() -> {
+                final StatusLine under = after(line("  Feature (1)"), "    M  a.txt");
+                final String key = under.key();
+                assertEquals(line("  Feature (1)"), status.parent(under), "its list's heading");
+                // Default closed: the file under Feature keyed as it was.
+                status.toggle(line("  Default (1)  active"));
+                assertEquals(key, after(line("  Feature (1)"), "    M  a.txt").key());
+                assertEquals(
+                    StatusRenderer.fileKey(repo(), StatusRenderer.UNSTAGED, "a.txt"),
+                    StatusRenderer.first(key));
+                // A path that starts as the mark might look is its own.
+                assertEquals("r|unstaged|~notes.txt", StatusRenderer.first("r|unstaged|~notes.txt"));
+            });
+        });
+    }
+
+    @Test
+    public void aFileUnderAClosedListIsRevealed() throws Exception {
+        repository();
+        open();
+        answering("Feature", () -> {
+            onEdt(() -> {
+                h.editor().setDot(line("  M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+            });
+            until(() -> text().contains("  Feature (0)"));
+            onEdt(() -> {
+                h.editor().setDot(line("    M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)"));
+            onEdt(() -> {
+                status.toggle(line("  Feature (1)"));
+                assertFalse(text().contains("    M  a.txt"));
+                final String fk = StatusRenderer.fileKey(repo(), StatusRenderer.UNSTAGED, "a.txt");
+                status.reveal(null, StatusRenderer.sectionKey(repo(), StatusRenderer.UNSTAGED), fk);
+                assertEquals("    M  a.txt", h.editor().getDotLine().getText());
+            });
+        });
+    }
+
+    @Test
+    public void aRemovedLineAloneMovesItsChange() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "a\nb\nc\nd\n");
+        git.commitAll("first");
+        git.write("a.txt", "A\nd\n");
+        open();
+        openFile("  M  a.txt", "  -c");
+        answering("Feature", () -> {
+            onEdt(() -> {
+                h.editor().setDot(line("  M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+            });
+            until(() -> text().contains("  Feature (0)"));
+            // c, removed with no line added for it, selected alone.
+            onEdt(() -> {
+                final StatusLine c = after(line("    M  a.txt"), "    -c");
+                h.editor().setMark(new Position(c, 0));
+                h.editor().setDot(c, c.length());
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)") && text().contains("  Default (0)  active"));
+        });
+    }
+
+    @Test
+    public void changelistsTakeTheWorkTreesChangesWithWhitespaceIgnored() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 40\n", "line  40\n"));
+        open();
+        answering("Feature", () -> {
+            onEdt(() -> {
+                h.editor().setDot(line("  M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistNew(h.editor());
+            });
+            until(() -> text().contains("  Feature (0)"));
+            try {
+                onEdt(() -> DiffWhitespace.choose(Whitespace.AMOUNT));
+                onEdt(() -> status.toggle(line("    M  a.txt")));
+                // The whitespace-only change shown, as the lists take it.
+                until(() -> text().contains("    -line 40"));
+            }
+            finally {
+                onEdt(() -> DiffWhitespace.choose(Whitespace.NONE));
+            }
+        });
+    }
+
     @Test
     public void aStashRefusesHunksPicked() throws Exception {
         repository();

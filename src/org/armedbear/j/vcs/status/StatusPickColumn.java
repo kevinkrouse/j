@@ -73,8 +73,7 @@ final class StatusPickColumn extends PickColumn {
 
     // Whether the hunk a diff's line is of is picked whole.
     private boolean wholeHunk(StatusLine diff) {
-        return status.picks()
-                .hunkState(StatusRenderer.fileKeyOf(diff.node()), StatusRenderer.hunkId(diff.node())) == PickState.ALL;
+        return status.picks().hunkState(StatusPicks.fileKey(diff), StatusRenderer.hunkId(diff.node())) == PickState.ALL;
     }
 
     // The index of h's last changed line.

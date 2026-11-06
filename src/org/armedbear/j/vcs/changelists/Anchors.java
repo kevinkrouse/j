@@ -111,6 +111,38 @@ public final class Anchors {
         return out;
     }
 
+    /** The list of the k-th line p adds, a part's if one has it, else p's. */
+    public static String listOf(Placed p, int k) {
+        for (Part part : p.parts())
+            if (k >= part.from() && k < part.to())
+                return part.list();
+        return p.list();
+    }
+
+    /**
+     * run of hunk, whose added lines are in lists, one for each: in the
+     * list of most of them, the rest its parts.
+     */
+    public static Placed withLists(Hunk hunk, Hunk.Run run, String[] lists) {
+        final Map<String, Integer> count = new HashMap<>();
+        for (String l : lists)
+            count.merge(l, 1, Integer::sum);
+        String most = lists[0];
+        for (Map.Entry<String, Integer> e : count.entrySet())
+            if (e.getValue() > count.get(most))
+                most = e.getKey();
+        final List<Part> parts = new ArrayList<>();
+        for (int k = 0; k < lists.length;) {
+            int end = k + 1;
+            while (end < lists.length && lists[end].equals(lists[k]))
+                end++;
+            if (!lists[k].equals(most))
+                parts.add(new Part(k, end, lists[k]));
+            k = end;
+        }
+        return new Placed(hunk, run, most, parts);
+    }
+
     /**
      * placed, kept again: kept whole, as it was; else each change with its
      * hash and rows now.
@@ -220,8 +252,8 @@ public final class Anchors {
         return Math.max(0, end - start);
     }
 
-    // The list of most of a's kept rows, the default if none.
-    private static String most(Assignment a) {
+    /** The list of most of a's kept rows, the default if none. */
+    public static String most(Assignment a) {
         final Map<String, Integer> rows = new HashMap<>();
         for (Change k : a.changes())
             rows.merge(k.list(), Math.max(1, Math.max(k.rows(), k.oldRows())), Integer::sum);

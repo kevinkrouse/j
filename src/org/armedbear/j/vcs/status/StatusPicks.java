@@ -176,19 +176,35 @@ final class StatusPicks {
         return switch (l.kind()) {
             case FILE -> l.file() != null && l.repository() != null && l.section() != null;
             case HUNK -> l.hunk() != null && !l.hunk().isCombined();
-            case DIFF -> l.hunk() != null && !l.hunk().isCombined() && !l.diffLine().isContext();
+            case DIFF -> l.hunk() != null && !l.hunk().isCombined() && !l.diffLine().isContext() && !l.isForeign();
             default -> false;
         };
+    }
+
+    /**
+     * The key of the line of l's file in its section, as picks are kept by:
+     * under a changelist, a file split across lists has a line under each.
+     */
+    static String fileKey(StatusLine l) {
+        return l.file() == null ? l.key() : fileKey(l, l.file());
+    }
+
+    /** The key of the line of file in l's section. */
+    static String fileKey(StatusLine l, FileItem file) {
+        return StatusRenderer.fileKey(l.repository(), l.section(), file.path());
     }
 
     /** How much of what l shows is picked. */
     PickState state(StatusLine l) {
         if (!pickable(l))
             return PickState.NONE;
+        // Under a changelist, of a file or hunk split across lists, its lines there.
+        if (l.only() != null)
+            return linesState(fileKey(l), l.only());
         return switch (l.kind()) {
             case FILE -> fileState(l);
-            case HUNK -> hunkState(StatusRenderer.fileKeyOf(l.key()), StatusRenderer.hunkId(l.key()));
-            case DIFF -> linePicked(StatusRenderer.fileKeyOf(l.node()), StatusRenderer.hunkId(l.node()), l.diffIndex())
+            case HUNK -> hunkState(fileKey(l), StatusRenderer.hunkId(l.key()));
+            case DIFF -> linePicked(fileKey(l), StatusRenderer.hunkId(l.node()), l.diffIndex())
                     ? PickState.ALL
                     : PickState.NONE;
             default -> PickState.NONE;
@@ -198,7 +214,7 @@ final class StatusPicks {
     // A file's line's: picked whole, or each of its hunks, as its diff is
     // read, is; else picked in part, or not.
     private PickState fileState(StatusLine file) {
-        final FilePicks fp = files.get(file.key());
+        final FilePicks fp = files.get(fileKey(file));
         if (fp == null)
             return PickState.NONE;
         if (fp.whole)
@@ -229,19 +245,25 @@ final class StatusPicks {
      */
     void set(List<StatusLine> ls, boolean on) {
         final Set<String> whole = new HashSet<>();
+        for (StatusLine l : ls) {
+            if (!pickable(l) || l.only() == null)
+                continue;
+            // Under a changelist, a file's or hunk's lines there.
+            setLines(fileKey(l), l.repository(), l.section(), l.file(), l.only(), on);
+        }
         for (StatusLine l : ls)
-            if (l.kind() == Kind.FILE && pickable(l)) {
-                whole.add(l.key());
+            if (l.kind() == Kind.FILE && pickable(l) && l.only() == null) {
+                whole.add(fileKey(l));
                 setFile(l, on);
             }
         // The lines of each hunk, by its line's key: the first, and their indexes.
         final Map<String, StatusLine> firsts = new LinkedHashMap<>();
         final Map<String, BitSet> idx = new HashMap<>();
         for (StatusLine l : ls) {
-            if (l.kind() == Kind.FILE || !pickable(l))
+            if (l.kind() == Kind.FILE || !pickable(l) || l.only() != null)
                 continue;
             final String hk = l.kind() == Kind.HUNK ? l.key() : l.node();
-            final String fk = StatusRenderer.fileKeyOf(hk);
+            final String fk = fileKey(l);
             if (whole.contains(fk))
                 continue;
             if (l.kind() == Kind.HUNK)
@@ -254,7 +276,7 @@ final class StatusPicks {
         for (Map.Entry<String, StatusLine> e : firsts.entrySet()) {
             final StatusLine l = e.getValue();
             setLines(
-                StatusRenderer.fileKeyOf(e.getKey()),
+                fileKey(l),
                 StatusRenderer.hunkId(e.getKey()),
                 l.repository(),
                 l.section(),
@@ -268,11 +290,12 @@ final class StatusPicks {
     // A file's line's pick set, its hunks' with it, or cleared.
     private void setFile(StatusLine l, boolean on) {
         dirty();
+        final String fk = fileKey(l);
         if (!on) {
-            files.remove(l.key());
+            files.remove(fk);
             return;
         }
-        final FilePicks fp = of(l.key(), l.repository(), l.section(), l.file());
+        final FilePicks fp = of(fk, l.repository(), l.section(), l.file());
         fp.whole = true;
         fp.hunks.clear();
     }
@@ -623,7 +646,7 @@ final class StatusPicks {
                 || file.file().diff() == null
                 || state(file) != PickState.SOME)
             return null;
-        return new int[] { files.get(file.key()).hunks.size(), ids(file.file().diff()).size() };
+        return new int[] { files.get(fileKey(file)).hunks.size(), ids(file.file().diff()).size() };
     }
 
     /** Whether a hunk or lines are picked of a file whose diff the status has not read. */

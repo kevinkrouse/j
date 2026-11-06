@@ -358,6 +358,41 @@ git runs in the background. When a command fails, the status bar says why and
 the <a href="commands.html#vcsCommandLog">command log</a> opens with its
 output.
 
+<h2><a name="changelists">Changelists</a></h2>
+
+<p>
+Changelists sort the changes you haven't staged into named lists, each a
+commit to be, as IntelliJ's do; Staged stays git's own. There is always a
+list called Default, and one list is active: a change made outside the
+other lists' changes goes to it. Until there is a list besides Default, the
+status shows Unstaged as before; once there is,
+<code>vcsChangelists=false</code> aside, Changelists takes its place, with a
+heading for each list, how many files it has, and <code>active</code> after
+the active one's. Under it are its files; a file split across lists is under
+each, open to its hunks, and a hunk split across lists shows whole under
+each, the other lists' lines dimmed. <b>s</b>, <b>u</b>, <b>x</b>, picking
+and the rest take a list's heading as its files, and under a list, a split
+file or hunk as its lines there. A change you stage leaves its list. The
+lists sort every change, whitespace and all, so with whitespace ignored the
+Changelists section still shows changes only in whitespace.
+
+<p>
+<a href="commands.html#vcsChangelistNew">vcsChangelistNew</a> makes a list,
+<a href="commands.html#vcsChangelistActive">vcsChangelistActive</a> makes the
+list whose heading the caret is on active, or asks which, and
+<a href="commands.html#vcsChangelistMove">vcsChangelistMove</a> moves the
+selection's changes, else those picked, else the thing at the caret (a
+list, a file, a hunk, or lines of one) to a list you choose or name, made
+if new. A file whose diff the status hasn't read moves whole. Find them with
+<b>Ctrl Shift P</b>; their keys come with the changelist popup.
+
+<p>
+While a file is open, its lists follow your edits: a change in a list's
+lines joins that list, a new line the list of the lines beside it, and
+undo puts a change back in the list it had. The lists are kept in
+<code>.git/j/changelists.xml</code>, a worktree's in its own git directory,
+which no other tool reads.
+
 <h2><a name="committing">Committing</a></h2>
 
 <p>

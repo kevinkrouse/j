@@ -22,7 +22,9 @@ package org.armedbear.j.vcs.changelists;
 
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.armedbear.j.vcs.VcsRepository;
 
@@ -32,6 +34,8 @@ import org.armedbear.j.vcs.VcsRepository;
  */
 public final class RepositoryLists {
     private static final Map<Path, RepositoryLists> open = new HashMap<>();
+    // By repository, looked up once, as asked for at each render; empty for none.
+    private static final Map<VcsRepository, Optional<RepositoryLists>> byRepository = new IdentityHashMap<>();
 
     private final ChangelistStore store;
     private Changelists lists;
@@ -42,13 +46,17 @@ public final class RepositoryLists {
 
     /** repository's lists; null if its version control keeps none of j's. */
     public static RepositoryLists of(VcsRepository repository) {
-        final ChangelistStore store = ChangelistStore.of(repository);
-        return store == null ? null : open.computeIfAbsent(store.file(), f -> new RepositoryLists(store));
+        return byRepository.computeIfAbsent(repository, r -> {
+            final ChangelistStore store = ChangelistStore.of(r);
+            return Optional.ofNullable(
+                store == null ? null : open.computeIfAbsent(store.file(), f -> new RepositoryLists(store)));
+        }).orElse(null);
     }
 
     /** Forgets every repository's lists, to be read again: for tests. */
     static void forget() {
         open.clear();
+        byRepository.clear();
     }
 
     /** The lists, read if they haven't been. */

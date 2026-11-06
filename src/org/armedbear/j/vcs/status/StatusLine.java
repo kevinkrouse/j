@@ -21,7 +21,9 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
+import java.util.Map;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
 import org.armedbear.j.TextLine;
@@ -38,7 +40,7 @@ import org.armedbear.j.vcs.status.StatusData.StashItem;
  */
 public final class StatusLine extends TextLine {
     public enum Kind {
-        REPOSITORY, FIELD, MESSAGE, BLANK, SECTION, FILE, HUNK, DIFF, COMMIT, TEXT
+        REPOSITORY, FIELD, MESSAGE, BLANK, SECTION, LIST, FILE, HUNK, DIFF, COMMIT, TEXT
     }
 
     private final Kind kind;
@@ -61,6 +63,15 @@ public final class StatusLine extends TextLine {
     private int repositoryColor = -1;
     // Changed words in a diff line, as {start, end} offsets into the text.
     private List<int[]> words = List.of();
+    // Under a changelist: a file's or hunk's lines in it, by hunk id, null
+    // for all of them; whether a diff line is another list's change; and a
+    // list's files.
+    private Map<String, BitSet> only;
+    private boolean foreign;
+    private List<Member> members = List.of();
+
+    /** A file under a changelist's heading: its lines in the list, by hunk id, or null for all of it. */
+    public record Member(FileItem file, Map<String, BitSet> only) {}
 
     /** The hunks' headings among buffer's lines, in order: where nextChange goes in a diff. */
     public static List<Line> hunks(Buffer buffer) {
@@ -200,6 +211,39 @@ public final class StatusLine extends TextLine {
 
     StatusLine stash(StashItem stash) {
         this.stash = stash;
+        return this;
+    }
+
+    /**
+     * Under a changelist, of a file or a hunk split across lists, its lines
+     * in this one, by hunk id; null for all of them.
+     */
+    public Map<String, BitSet> only() {
+        return only;
+    }
+
+    /** Whether it is a diff line under a changelist of a change in another, shown but not taken. */
+    public boolean isForeign() {
+        return foreign;
+    }
+
+    /** A changelist's heading's files. */
+    public List<Member> members() {
+        return members;
+    }
+
+    StatusLine only(Map<String, BitSet> only) {
+        this.only = only;
+        return this;
+    }
+
+    StatusLine foreign(boolean b) {
+        this.foreign = b;
+        return this;
+    }
+
+    StatusLine members(List<Member> members) {
+        this.members = List.copyOf(members);
         return this;
     }
 

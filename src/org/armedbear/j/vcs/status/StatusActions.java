@@ -148,19 +148,31 @@ public final class StatusActions {
                     for (FileItem f : buffer.files(l.repository(), l.section()))
                         addFile(files, targets, l.repository(), l.section(), f);
                 }
+                // A changelist's files, those split across lists their lines in it.
+                case LIST -> {
+                    for (StatusLine.Member m : l.members())
+                        if (m.only() == null)
+                            addFile(files, targets, l.repository(), l.section(), m.file());
+                        else
+                            addLines(parts, targets, l.repository(), l.section(), m.file(), m.only());
+                }
                 case FILE, MESSAGE -> {
-                    if (l.file() != null)
+                    if (l.file() != null && l.only() != null)
+                        addLines(parts, targets, l.repository(), l.section(), l.file(), l.only());
+                    else if (l.file() != null)
                         addFile(files, targets, l.repository(), l.section(), l.file());
                 }
                 case HUNK -> {
-                    if (!covers(files, l) && !parts.containsKey(l.hunk())) {
+                    if (l.only() != null)
+                        addLines(parts, targets, l.repository(), l.section(), l.file(), l.only());
+                    else if (!covers(files, l) && !parts.containsKey(l.hunk())) {
                         final Part p = new Part(l.repository(), l.section(), l.file(), l.hunk(), null);
                         parts.put(l.hunk(), p);
                         targets.add(p);
                     }
                 }
                 case DIFF -> {
-                    if (covers(files, l))
+                    if (covers(files, l) || l.isForeign())
                         continue;
                     Part p = parts.get(l.hunk());
                     if (p == null) {
@@ -183,6 +195,32 @@ public final class StatusActions {
                     && files.containsKey(StatusRenderer.sectionKey(p.repository(), p.section()))
                     && files.get(StatusRenderer.sectionKey(p.repository(), p.section())).files().contains(p.file()));
         return targets;
+    }
+
+    // Of file, the lines only gives by hunk id, as parts, added to those
+    // already of their hunks.
+    private static void addLines(
+            Map<Hunk, Part> parts,
+            List<Target> targets,
+            VcsRepository repository,
+            String section,
+            FileItem file,
+            Map<String, BitSet> only) {
+        if (file.diff() == null)
+            return;
+        final Map<String, Hunk> ids = StatusRenderer.hunkIds(file.diff());
+        for (Map.Entry<String, BitSet> e : only.entrySet()) {
+            final Hunk h = ids.get(e.getKey());
+            if (h == null)
+                continue;
+            final Part p = parts.get(h);
+            if (p == null) {
+                final Part made = new Part(repository, section, file, h, (BitSet) e.getValue().clone());
+                parts.put(h, made);
+                targets.add(made);
+            } else if (p.lines() != null)
+                p.lines().or(e.getValue());
+        }
     }
 
     private static boolean covers(Map<String, Files> files, StatusLine l) {

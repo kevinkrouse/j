@@ -65,7 +65,8 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         "Merge:",
         "Rename:",
         "Delete:",
-        "Parent:", };
+        "Parent:",
+        "Changelist:", };
 
     public static final int PROMPT_LOCATION = 0;
     public static final int PROMPT_COMMAND = 1;
@@ -88,6 +89,7 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
     public static final int PROMPT_RENAME = 18;
     public static final int PROMPT_DELETE = 19;
     public static final int PROMPT_PARENT = 20;
+    public static final int PROMPT_CHANGELIST = 21;
 
     public LocationBar(final Editor editor) {
         this.editor = editor;

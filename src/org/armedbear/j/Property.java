@@ -186,6 +186,8 @@ public final class Property implements Comparable<Property> {
     public static final Property WEB_SHOW_IMAGES = createProperty("webShowImages", false);
     // Whether git buffers show a hint row of their keys.
     public static final Property VCS_HINTS = createProperty("vcsHints", true);
+    // Whether the status sorts the work tree's changes into changelists, once there is one besides the default.
+    public static final Property VCS_CHANGELISTS = createProperty("vcsChangelists", true);
     // Whether a log of several repositories names each row's beside its strip.
     public static final Property VCS_LOG_REPOSITORY_NAMES = createProperty("vcsLogRepositoryNames", false);
     // Whether a tracked file's change marks are its version control's, not j's own.

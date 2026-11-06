@@ -2815,9 +2815,9 @@ plan with why it is left, before the next phase starts.
      rows; a renamed one is found under the path it had. The diff must be
      the whole file's with whitespace shown, or the changes it leaves out
      are dropped. `ChangelistStore`, concrete, no interface until svn's
-     lists (phase 11) show what one needs; git's from
-     `GitBackend.changelists`, at `GitDirs.gitDir()/j/changelists.xml`,
-     a worktree's its own. DOM with no DTD or external entities, written
+     lists (phase 11) show what one needs; `ChangelistStore.of`, in
+     `VcsBackend.stateDirectory`, git's `GitDirs.gitDir()/j`, a
+     worktree's its own. DOM with no DTD or external entities, written
      whole by `util/AtomicFiles` (shared with the stash note and the port
      file, with the fallback where a move can't be atomic), and only over
      the bytes it last read or wrote, so another writer's changes aren't
@@ -2861,6 +2861,48 @@ plan with why it is left, before the next phase starts.
      active one. Per repository in a status of several, as the sections
      are now, a project's lists of the same name shown as one. The same
      keys (s, u, x, Tab, =) on a list, file or hunk.
+
+     Built, with e's new list, move and active (no popup yet): the
+     section shows once a repository has a list besides the default and
+     `vcsChangelists` (default true) isn't false, not by a preference
+     turned on. `ListedChanges` sorts the unstaged files into the lists
+     at each render, by `Anchors.place` on git's diff, a removed line in
+     its added line's list, else its change's; a file whose diff is
+     unread in its list kept whole, or of most of its kept changes, else
+     the active one; the diffs of files kept change by change read with
+     the status (`VcsStatusBuffer.listedKeys`, from the store, rebuilt at
+     each render and known before the first read). With whitespace
+     ignored, a repository whose lists show has its unstaged section read
+     again with it shown (`withFullUnstaged`), as `Anchors.place` needs:
+     the lists, and their section, are the same either way. The sorting
+     is kept until the lists or the read change, and `RepositoryLists`
+     is looked up once a repository. `StatusRenderer.changelists`:
+     "Changelists (n)", the section's line, so the section's keys and
+     commands stand; a `Kind.LIST` heading for each, its files indented
+     under it. A file split across lists is under each, its first's lines
+     keyed as the section's, the others' with the list's name between
+     `\u0001` marks after the path (`StatusRenderer.elsewhere`, `first`;
+     a list's name can't have control characters), keyed in the lists'
+     order whether or not a list is open, and open as the first until
+     toggled; `parent` of a file under a list is its heading, and
+     `reveal` opens a closed list a file is under; `StatusLine.only` its lines there by hunk
+     id, a split hunk whole with the others' changes `foreign`, dimmed, not
+     pickable or taken. Picks are kept by the file's key in its section,
+     from its repository, section and path (`StatusPicks.fileKey`), not
+     the line's; `only` lines pick and take those lines. `StatusActions`
+     takes a list's heading as its members. `ChangelistCommands`:
+     `vcsChangelistNew` (asks a name), `vcsChangelistActive` (the heading
+     at the caret, else a choice), `vcsChangelistMove` (the targets s
+     would take, unstaged alone, to a list chosen or named, made if new;
+     a file whole, each of its changes; a hunk, its changes; lines, their
+     changes, or of those adding lines, those lines as parts, but removed
+     lines alone with none added for them their whole change; a file
+     unread, whole; a renamed file's entry under its old path dropped); each then shows the status again and has open files'
+     trackers place again (`ChangelistCommands.changed`). `Anchors.listOf`
+     and `withLists` shared with the tracker. Staging takes a change out
+     of its list, as it leaves the diff; unstaging puts it back in the list
+     it had if the store still has it, by hash, else the active one. The
+     status's tree in the sidebar still shows Unstaged.
    - **e. Moving and naming.** j commands in a changelist popup on `C`
      (`m` stays merge, as Neogit's): `vcsChangelistMove` (`m`: the
      selection, else what is picked, else the thing at the caret, to a list

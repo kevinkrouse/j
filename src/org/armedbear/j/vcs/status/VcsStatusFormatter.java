@@ -86,7 +86,7 @@ public class VcsStatusFormatter extends Formatter {
                 if (name >= 0)
                     addSegment(text, name, DIM);
             }
-            case SECTION -> {
+            case SECTION, LIST -> {
                 final int count = text.lastIndexOf(" (");
                 addSegment(text, 0, count < 0 ? text.length() : count, HEADING);
                 if (count >= 0)
@@ -101,7 +101,10 @@ public class VcsStatusFormatter extends Formatter {
                     addSegment(text, 10 + end, TEXT);
             }
             case FILE -> {
-                final int letter = StatusRenderer.INDENT.length();
+                // After its indent, more under a changelist.
+                int letter = 0;
+                while (letter < text.length() - 1 && text.charAt(letter) == ' ')
+                    letter++;
                 addSegment(text, 0, letter, TEXT);
                 addSegment(text, letter, letter + 1, letterFormat(text.charAt(letter)));
                 addSegment(text, letter + 1, TEXT);
@@ -145,6 +148,11 @@ public class VcsStatusFormatter extends Formatter {
 
     // A diff line: its kind's format, the changed words in the stronger one.
     private void diff(StatusLine s, String text) {
+        // Another changelist's change, under this one's: shown, not taken.
+        if (s.isForeign()) {
+            addSegment(text, DIM);
+            return;
+        }
         final char kind = s.diffLine().kind();
         final int plain = kind == '+' ? ADDED : kind == '-' ? REMOVED : CONTEXT;
         final int word = kind == '+' ? ADDED_WORD : REMOVED_WORD;
@@ -217,7 +225,7 @@ public class VcsStatusFormatter extends Formatter {
             return null;
         if (s.kind() == StatusLine.Kind.HUNK)
             return hunkBackground();
-        if (s.kind() != StatusLine.Kind.DIFF || s.diffLine().isContext())
+        if (s.kind() != StatusLine.Kind.DIFF || s.diffLine().isContext() || s.isForeign())
             return null;
         shades();
         if (picked(s))

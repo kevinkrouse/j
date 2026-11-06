@@ -77,6 +77,8 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.changelists.Changelists;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.log.CommitDetails;
@@ -153,6 +155,8 @@ public final class VcsStatusBuffer extends ViewBuffer
         for (VcsRepository r : repositories)
             r.addListener(listener);
         SignsUpdater.addSource(this);
+        // Its first read takes the diffs its changelists want.
+        knowLists();
     }
 
     private static String title(List<VcsRepository> repositories) {
@@ -238,6 +242,7 @@ public final class VcsStatusBuffer extends ViewBuffer
                             final String key = StatusRenderer.fileKey(r, section, path);
                             if (!isExpanded(key, Kind.FILE)
                                     && !partlyPicked.contains(key)
+                                    && !listedKeys.contains(key)
                                     && !wanted.contains(key)
                                     && !viewed.contains(key))
                                 return false;
@@ -249,6 +254,9 @@ public final class VcsStatusBuffer extends ViewBuffer
                         Log.error(e);
                         d = StatusData.failed(e.toString());
                     }
+                    // Changelists take the work tree's changes whitespace and all.
+                    if (d != null && d.error() == null && ignored != Whitespace.NONE && listing.contains(r))
+                        d = withFullUnstaged(r, d, diffs);
                     read.put(r, d != null ? d : StatusData.failed(r.backend().name() + " has no status"));
                 }
                 SwingUtilities.invokeLater(() -> show(read, diffs, startedAt, wallAt, ignored));
@@ -268,6 +276,38 @@ public final class VcsStatusBuffer extends ViewBuffer
             }
             throw e;
         }
+    }
+
+    // d with its unstaged section read again with whitespace shown, the
+    // diffs it takes added to diffs; d as it is if that read fails.
+    private StatusData withFullUnstaged(VcsRepository r, StatusData d, Set<String> diffs) {
+        final StatusData full;
+        try {
+            full = r.backend().readStatus(r, (section, path) -> {
+                final String key = StatusRenderer.fileKey(r, section, path);
+                if (!StatusRenderer.UNSTAGED.equals(section)
+                        || !isExpanded(key, Kind.FILE)
+                                && !partlyPicked.contains(key)
+                                && !listedKeys.contains(key)
+                                && !wanted.contains(key)
+                                && !viewed.contains(key))
+                    return false;
+                diffs.add(key);
+                return true;
+            }, Whitespace.NONE);
+        }
+        catch (RuntimeException e) {
+            Log.error(e);
+            return d;
+        }
+        if (full == null || full.error() != null)
+            return d;
+        final Section unstaged =
+                full.sections().stream().filter(x -> x.id().equals(StatusRenderer.UNSTAGED)).findFirst().orElse(null);
+        final List<Section> sections = new ArrayList<>();
+        for (Section x : d.sections())
+            sections.add(x.id().equals(StatusRenderer.UNSTAGED) && unstaged != null ? unstaged : x);
+        return new StatusData(d.header(), d.inProgress(), sections, d.error());
     }
 
     private void show(
@@ -414,6 +454,14 @@ public final class VcsStatusBuffer extends ViewBuffer
      * if it was closed, and the diff beside following; the window, or null
      * if none there shows it. With no frame, as in tests, any window's.
      */
+    // The line keyed key, or null.
+    private StatusLine lineOf(String key) {
+        for (Line l = getFirstLine(); l != null; l = l.next())
+            if (l instanceof StatusLine s && s.key().equals(key))
+                return s;
+        return null;
+    }
+
     Editor reveal(Frame frame, String section, String key) {
         final Editor ed = frame != null ? frame.findEditor(this) : Editor.windowShowing(this);
         if (ed == null)
@@ -422,6 +470,17 @@ public final class VcsStatusBuffer extends ViewBuffer
             expanded.put(section, true);
             render();
         }
+        // A file under a changelist closed: the list opened.
+        if (key != null && lineOf(key) == null)
+            for (Line l = getFirstLine(); l != null; l = l.next())
+                if (l instanceof StatusLine s
+                        && s.kind() == Kind.LIST
+                        && !s.isOpen()
+                        && s.members().stream().anyMatch(m -> key.equals(StatusPicks.fileKey(s, m.file())))) {
+                    expanded.put(s.key(), true);
+                    render();
+                    break;
+                }
         final String wanted = key != null ? key : section;
         for (Line l = getFirstLine(); l != null; l = l.next())
             if (l instanceof StatusLine s && s.key().equals(wanted)) {
@@ -449,6 +508,11 @@ public final class VcsStatusBuffer extends ViewBuffer
         final Boolean b = expanded.get(key);
         if (b != null)
             return b;
+        // A file split across changelists, or its hunk, under another list
+        // than its first: as under its first, until opened or closed itself.
+        final String first = StatusRenderer.first(key);
+        if (!first.equals(key))
+            return isExpanded(first, kind);
         return switch (kind) {
             // A section of commits between branches only deeper.
             case SECTION -> depth >= (StatusData.RANGES.contains(key.substring(key.lastIndexOf('|') + 1)) ? 3 : 2);
@@ -466,8 +530,11 @@ public final class VcsStatusBuffer extends ViewBuffer
     public StatusLine parent(StatusLine line) {
         final StatusLine head = StatusLine.head(line);
         final String key = head != null ? head.key() : line.key();
+        final boolean file = (head != null ? head : line).kind() == Kind.FILE;
         for (Line l = line.previous(); l != null; l = l.previous())
-            if (l instanceof StatusLine s && s.isExpandable() && key.startsWith(s.key() + "|"))
+            if (l instanceof StatusLine s && s.isExpandable()
+            // A file's under a changelist, the list's heading above it.
+                    && (key.startsWith(s.key() + "|") || file && s.kind() == Kind.LIST))
                 return s;
         return null;
     }
@@ -523,6 +590,8 @@ public final class VcsStatusBuffer extends ViewBuffer
     // As render, the diffs of the files keyed asked just read; a pick it
     // drops said so, why, unless null.
     private void render(Set<String> asked, Drop why) {
+        // The files, and the diffs' hunks' ids, looked up once, for the lines and the picks.
+        picks.newRead();
         final List<StatusRenderer.Part> parts = new ArrayList<>();
         for (VcsRepository r : repositories) {
             final StatusData d = data.get(r);
@@ -530,12 +599,12 @@ public final class VcsStatusBuffer extends ViewBuffer
                 parts.add(
                     new StatusRenderer.Part(r,
                             d,
-                            repositories.size() > 1 ? Repositories.colorIndex(r, repositories) : -1));
+                            repositories.size() > 1 ? Repositories.colorIndex(r, repositories) : -1,
+                            listed(r, d)));
         }
         if (parts.isEmpty())
             return;
-        // The files, and the diffs' hunks' ids, looked up once, for the lines and the picks.
-        picks.newRead();
+        knowLists();
         final List<StatusLine> lines = StatusRenderer.render(parts, this::isExpanded, diffsRead::contains, picks::ids);
         for (StatusTree t : trees.all())
             t.update();
@@ -851,6 +920,85 @@ public final class VcsStatusBuffer extends ViewBuffer
     private boolean picksShown;
     // The files partly picked, for a refresh to read their diffs, open or not.
     private volatile Set<String> partlyPicked = Set.of();
+    // The keys of the unstaged files whose changes are kept in changelists
+    // one by one, whose diffs a read takes to sort them.
+    private volatile Set<String> listedKeys = Set.of();
+
+    /** Its repositories' changelists changed: its lines shown again, its files sorted again. */
+    void listsChanged() {
+        render(Set.of(), null);
+    }
+
+    /** r's lists, if the status sorts its work tree's changes into them: there is one besides the default. */
+    RepositoryLists changelists(VcsRepository r) {
+        if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS))
+            return null;
+        final RepositoryLists lists = RepositoryLists.of(r);
+        return lists != null && lists.lists().lists().size() > 1 ? lists : null;
+    }
+
+    // The repositories whose changelists it shows; read with their work
+    // trees' changes whitespace and all.
+    private volatile Set<VcsRepository> listing = Set.of();
+    // The last sorting of each repository's files: of which lists, and of
+    // which read.
+    private final Map<VcsRepository, Listed> lastListed = new HashMap<>();
+
+    private record Listed(Changelists lists, StatusData data, ListedChanges sorted) {}
+
+    // r's unstaged files, as d has them, in its changelists; null if it
+    // doesn't sort them. Those kept one change at a time whose diffs
+    // aren't read, read.
+    private ListedChanges listed(VcsRepository r, StatusData d) {
+        final RepositoryLists lists = changelists(r);
+        if (lists == null)
+            return null;
+        final Changelists c = lists.lists();
+        final Listed last = lastListed.get(r);
+        if (last != null && last.lists() == c && last.data() == d)
+            return last.sorted();
+        final List<FileItem> files = files(r, StatusRenderer.UNSTAGED);
+        final Set<String> keys = keysOf(r, c);
+        for (FileItem f : files) {
+            final String key = StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, f.path());
+            if (keys.contains(key) && f.diff() == null && !diffsRead.contains(key)) {
+                SwingUtilities.invokeLater(this::refresh);
+                break;
+            }
+        }
+        final ListedChanges sorted = ListedChanges.of(c, files, picks::ids);
+        lastListed.put(r, new Listed(c, d, sorted));
+        return sorted;
+    }
+
+    // The keys of r's files c keeps change by change, whose diffs a read takes.
+    private static Set<String> keysOf(VcsRepository r, Changelists c) {
+        final Set<String> out = new HashSet<>();
+        for (Map.Entry<String, Changelists.Assignment> e : c.files().entrySet())
+            if (e.getValue().whole() == null)
+                out.add(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, e.getKey()));
+        return out;
+    }
+
+    // Which repositories' lists it shows, and the files whose diffs they
+    // want read, as they are now: read again if a repository's lists now
+    // show while whitespace is ignored, as they take the full diff.
+    private void knowLists() {
+        final Set<String> keys = new HashSet<>();
+        final Set<VcsRepository> shown = new HashSet<>();
+        for (VcsRepository r : repositories) {
+            final RepositoryLists lists = changelists(r);
+            if (lists != null) {
+                shown.add(r);
+                keys.addAll(keysOf(r, lists.lists()));
+            }
+        }
+        listedKeys = Set.copyOf(keys);
+        final boolean more = !listing.containsAll(shown);
+        listing = Set.copyOf(shown);
+        if (more && readIgnoring != Whitespace.NONE)
+            refresh();
+    }
 
     // The owner of the "2/5" after a file partly picked.
     private static final String PICKS = "vcs.status.picks";

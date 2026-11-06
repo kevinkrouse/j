@@ -21,16 +21,20 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.armedbear.j.mode.compare.WordDiff;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
@@ -52,8 +56,19 @@ public final class StatusRenderer {
     /** The key's end of a repository's line of what it has in progress. */
     static final String PROGRESS = "|progress";
 
-    /** A repository and what was read of it; colorIndex is -1 when it is the only one. */
-    record Part(VcsRepository repository, StatusData data, int colorIndex) {}
+    /**
+     * A repository and what was read of it; colorIndex is -1 when it is the
+     * only one; its unstaged files in its changelists, null to show them as
+     * one section.
+     */
+    record Part(VcsRepository repository, StatusData data, int colorIndex, ListedChanges listed) {
+        Part(VcsRepository repository, StatusData data, int colorIndex) {
+            this(repository, data, colorIndex, null);
+        }
+    }
+
+    /** The section of the work tree's changes, which changelists sort. */
+    static final String UNSTAGED = "unstaged";
 
     /**
      * @param expanded whether a node, by key and kind, is shown open
@@ -151,7 +166,69 @@ public final class StatusRenderer {
                         null));
         }
         for (Section s : data.sections())
-            section(repository, rk, s);
+            if (part.listed() != null && s.id().equals(UNSTAGED))
+                changelists(repository, rk, s, part.listed());
+            else
+                section(repository, rk, s);
+    }
+
+    /**
+     * After a split file's key, under another changelist than its first,
+     * that list: in marks no path or name has.
+     */
+    static String elsewhere(String list) {
+        return "|" + ELSEWHERE + list + ELSEWHERE;
+    }
+
+    /** The mark before and after a changelist's name in a split file's key, under another list. */
+    static final char ELSEWHERE = '\u0001';
+
+    /** key, a file's or hunk's under another changelist than its file's first, as under that first. */
+    static String first(String key) {
+        final int at = key.indexOf("|" + ELSEWHERE);
+        if (at < 0)
+            return key;
+        final int end = key.indexOf(ELSEWHERE, at + 2);
+        return end < 0 ? key : key.substring(0, at) + key.substring(end + 1);
+    }
+
+    /**
+     * The key of the heading of r's changelist name, in the section of
+     * the work tree's changes; no path being empty, unlike any file's.
+     */
+    static String listKey(VcsRepository r, String name) {
+        return sectionKey(r, UNSTAGED) + "||" + name;
+    }
+
+    // The work tree's changes, s, as changelists: a heading for each, with
+    // its files, a file split across lists in each with its lines there,
+    // its first's lines keyed as the section's, the others' apart.
+    private void changelists(VcsRepository repository, String rk, Section s, ListedChanges listed) {
+        blank(rk);
+        final String sk = rk + "|" + s.id();
+        add(
+            new StatusLine(Kind.SECTION, "Changelists (" + s.total() + ")", sk, sk, repository, s.id()).expandable(true)
+                    .open(expanded.test(sk, Kind.SECTION)));
+        if (!expanded.test(sk, Kind.SECTION))
+            return;
+        final Set<String> shown = new HashSet<>();
+        for (Changelist l : listed.lists()) {
+            final List<StatusLine.Member> members = listed.members().get(l.name());
+            final String lk = listKey(repository, l.name());
+            final boolean open = expanded.test(lk, Kind.LIST);
+            final String text = INDENT + l.name() + " (" + members.size() + ")"
+                    + (l.name().equals(listed.active()) ? "  active" : "");
+            add(
+                new StatusLine(Kind.LIST, text, lk, lk, repository, s.id()).members(members)
+                        .expandable(true)
+                        .open(open));
+            // Keyed in the lists' order, open or not, so a key stays its file's.
+            for (StatusLine.Member m : members) {
+                final String suffix = shown.add(m.file().path()) ? "" : elsewhere(l.name());
+                if (open)
+                    file(repository, sk, s.id(), m.file(), INDENT, suffix, m.only());
+            }
+        }
     }
 
     private void section(VcsRepository repository, String rk, Section s) {
@@ -206,12 +283,29 @@ public final class StatusRenderer {
     }
 
     private void file(VcsRepository repository, String sk, String section, FileItem f) {
-        final String fk = sk + "|" + f.path();
+        file(repository, sk, section, f, "", "", null);
+    }
+
+    /**
+     * A file's line, and its hunks' as it is open: in, more indent, under
+     * a changelist; suffix after its key, a file split across lists shown
+     * under another; only, its lines in the list, by hunk id, null for all.
+     */
+    private void file(
+            VcsRepository repository,
+            String sk,
+            String section,
+            FileItem f,
+            String in,
+            String suffix,
+            Map<String, BitSet> only) {
+        final String fk = sk + "|" + f.path() + suffix;
         final String orig = f.change().origPath();
         final String name = orig != null && f.staged() ? orig + " -> " + f.path() : f.path();
         final String shown = f.change().conflict() == null ? name : name + " (" + f.change().conflict().words() + ")";
         add(
-            new StatusLine(Kind.FILE, INDENT + f.letter() + "  " + shown, fk, fk, repository, section).file(f)
+            new StatusLine(Kind.FILE, in + INDENT + f.letter() + "  " + shown, fk, fk, repository, section).file(f)
+                    .only(only)
                     .expandable(f.hasDiff())
                     .open(f.hasDiff() && expanded.test(fk, Kind.FILE)));
         if (!f.hasDiff() || !expanded.test(fk, Kind.FILE))
@@ -219,7 +313,7 @@ public final class StatusRenderer {
         final FileDiff diff = f.diff();
         if (diff == null) {
             final String message = diffRead.test(fk) ? "No diff: see vcsCommandLog" : "Reading the diff…";
-            add(new StatusLine(Kind.MESSAGE, INDENT + message, fk + "|reading", fk, repository, section).file(f));
+            add(new StatusLine(Kind.MESSAGE, in + INDENT + message, fk + "|reading", fk, repository, section).file(f));
             return;
         }
         final String none = diff.isBinary() ? "Binary file"
@@ -229,11 +323,14 @@ public final class StatusRenderer {
                 : diff.isRename() ? "Renamed, with no change to its content"
                 : "No change to its content";
         if (none != null) {
-            add(new StatusLine(Kind.MESSAGE, INDENT + none, fk + "|none", fk, repository, section).file(f));
+            add(new StatusLine(Kind.MESSAGE, in + INDENT + none, fk + "|none", fk, repository, section).file(f));
             return;
         }
         for (Map.Entry<String, Hunk> e : ids.apply(diff).entrySet())
-            hunk(repository, fk, section, f, e.getValue(), e.getKey());
+            if (only == null)
+                hunk(repository, fk, section, f, e.getValue(), e.getKey(), in, null);
+            else if (only.containsKey(e.getKey()))
+                hunk(repository, fk, section, f, e.getValue(), e.getKey(), in, only.get(e.getKey()));
     }
 
     /** The key of r's section's line. */
@@ -300,11 +397,22 @@ public final class StatusRenderer {
         return Integer.toHexString(sb.toString().hashCode());
     }
 
-    private void hunk(VcsRepository repository, String fk, String section, FileItem f, Hunk hunk, String id) {
+    // A hunk's line, and its lines as it is open; under a changelist, in
+    // more, mine its lines in it, null for all, the others dimmed.
+    private void hunk(
+            VcsRepository repository,
+            String fk,
+            String section,
+            FileItem f,
+            Hunk hunk,
+            String id,
+            String in,
+            BitSet mine) {
         final String hk = hunkKey(fk, id);
         add(
-            new StatusLine(Kind.HUNK, INDENT + hunk.header(), hk, hk, repository, section).file(f)
+            new StatusLine(Kind.HUNK, in + INDENT + hunk.header(), hk, hk, repository, section).file(f)
                     .hunk(hunk)
+                    .only(mine == null ? null : Map.of(id, mine))
                     .expandable(true)
                     .open(expanded.test(hk, Kind.HUNK)));
         if (!expanded.test(hk, Kind.HUNK))
@@ -316,11 +424,11 @@ public final class StatusRenderer {
         for (int i = 0; i < diffLines.size(); i++) {
             final DiffLine d = diffLines.get(i);
             final StatusLine line = new StatusLine(Kind.DIFF,
-                    INDENT + d.prefix() + detab(stripCr(FileDiff.decode(d.text()))),
+                    in + INDENT + d.prefix() + detab(stripCr(FileDiff.decode(d.text()))),
                     hk + "|" + i,
                     hk,
                     repository,
-                    section).file(f).hunk(hunk);
+                    section).file(f).hunk(hunk).foreign(mine != null && !d.isContext() && !mine.get(i));
             // On the old side, or a combined diff's first parent, ours.
             line.diff(d, i, d.isOld() ? oldLine++ : 0, d.isNew() ? newLine++ : newLine);
             shown.add(line);
@@ -328,13 +436,12 @@ public final class StatusRenderer {
         }
         // A combined diff's two columns of markers: no words to pair.
         if (!hunk.isCombined())
-            words(shown);
+            words(shown, in.length() + INDENT.length() + 1);
     }
 
     // Pairs each run of removed lines with the run of added lines after it,
-    // line by line, and marks the words that differ.
-    private static void words(List<StatusLine> hunk) {
-        final int skip = INDENT.length() + 1;
+    // line by line, and marks the words that differ, skip into the text.
+    private static void words(List<StatusLine> hunk, int skip) {
         int i = 0;
         while (i < hunk.size()) {
             if (!hunk.get(i).diffLine().isRemoved()) {

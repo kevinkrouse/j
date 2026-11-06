@@ -460,6 +460,9 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsBranchPopup">vcsBranchPopup</a></li>
     <li><a href="commands.html#vcsBranchRename">vcsBranchRename</a></li>
     <li><a href="commands.html#vcsBranchSetParent">vcsBranchSetParent</a></li>
+    <li><a href="commands.html#vcsChangelistActive">vcsChangelistActive</a></li>
+    <li><a href="commands.html#vcsChangelistMove">vcsChangelistMove</a></li>
+    <li><a href="commands.html#vcsChangelistNew">vcsChangelistNew</a></li>
     <li><a href="commands.html#vcsCommandLog">vcsCommandLog</a></li>
     <li><a href="commands.html#vcsCommit">vcsCommit</a></li>
     <li><a href="commands.html#vcsCommitAbort">vcsCommitAbort</a></li>
@@ -6306,6 +6309,30 @@ Sets the parent of the branch checked out, from a list. It does as <a href="#git
 <b>Default key mapping:</b> p in the branch popup
 <br><br>
 <b>See also:</b> <a href="git.html#branches">Branches</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsChangelistActive">vcsChangelistActive</a><dl><dd>
+<p>
+Makes the changelist whose heading the caret is on in the git status active, else asks which: a change made outside the other lists' changes goes to the active one.
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsChangelistMove">vcsChangelistMove</a><dl><dd>
+<p>
+In the git status, moves the changes not staged that the selection takes, else those picked, else the thing at the caret, a changelist's heading, a file, a hunk, or lines of one, to a changelist asked for, made if new.
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsChangelistNew">vcsChangelistNew</a><dl><dd>
+<p>
+Makes a changelist in the repository at the caret, or of the file shown, asking its name.
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
 <br><br>
 </dl><!--<hr>-->
 

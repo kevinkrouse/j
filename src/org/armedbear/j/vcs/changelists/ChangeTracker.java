@@ -29,7 +29,6 @@ import java.util.Map;
 import org.armedbear.j.Line;
 import org.armedbear.j.vcs.changelists.Anchors.Placed;
 import org.armedbear.j.vcs.changelists.Changelists.Assignment;
-import org.armedbear.j.vcs.changelists.Changelists.Part;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 
@@ -109,7 +108,7 @@ public final class ChangeTracker {
             final Placed p = next.get(i);
             final Now n = now.get(i);
             for (int k = 0; k < n.lines().size(); k++)
-                lineLists.put(n.lines().get(k), listAt(p, k));
+                lineLists.put(n.lines().get(k), Anchors.listOf(p, k));
             if (n.lines().isEmpty() && n.under() != null)
                 underLists.put(n.under(), p.list());
         }
@@ -147,7 +146,7 @@ public final class ChangeTracker {
             for (int k = lists.length - 2; k >= 0; k--)
                 if (lists[k] == null)
                     lists[k] = lists[k + 1];
-            out.add(withParts(n, lists));
+            out.add(Anchors.withLists(n.hunk(), n.run(), lists));
         }
         return out;
     }
@@ -158,35 +157,6 @@ public final class ChangeTracker {
         return was != null
                 ? new Placed(n.hunk(), n.run(), was.list(), was.parts())
                 : new Placed(n.hunk(), n.run(), otherwise, List.of());
-    }
-
-    // n in the list of most of its lines, lists, the rest its parts.
-    private static Placed withParts(Now n, String[] lists) {
-        final Map<String, Integer> count = new HashMap<>();
-        for (String l : lists)
-            count.merge(l, 1, Integer::sum);
-        String most = lists[0];
-        for (Map.Entry<String, Integer> e : count.entrySet())
-            if (e.getValue() > count.get(most))
-                most = e.getKey();
-        final List<Part> parts = new ArrayList<>();
-        for (int k = 0; k < lists.length;) {
-            int end = k + 1;
-            while (end < lists.length && lists[end].equals(lists[k]))
-                end++;
-            if (!lists[k].equals(most))
-                parts.add(new Part(k, end, lists[k]));
-            k = end;
-        }
-        return new Placed(n.hunk(), n.run(), most, parts);
-    }
-
-    // The list of the k-th line p adds.
-    private static String listAt(Placed p, int k) {
-        for (Part part : p.parts())
-            if (k >= part.from() && k < part.to())
-                return part.list();
-        return p.list();
     }
 
     // The changes as kept, if not as they were: none, the file unchanged.

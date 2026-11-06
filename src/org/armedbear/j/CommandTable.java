@@ -73,6 +73,7 @@ import org.armedbear.j.vcs.git.Git;
 import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.BranchCommands;
+import org.armedbear.j.vcs.status.ChangelistCommands;
 import org.armedbear.j.vcs.status.CommitCommands;
 import org.armedbear.j.vcs.status.FetchCommands;
 import org.armedbear.j.vcs.status.FinishCommands;
@@ -458,6 +459,9 @@ public class CommandTable {
             add("vcsStageAll", e -> StatusActions.all(e, true));
             add("vcsStageHunk", HunkCommands::vcsStageHunk);
             add("vcsPickHunk", HunkCommands::vcsPickHunk);
+            add("vcsChangelistActive", ChangelistCommands::vcsChangelistActive);
+            add("vcsChangelistMove", ChangelistCommands::vcsChangelistMove);
+            add("vcsChangelistNew", ChangelistCommands::vcsChangelistNew);
             add("vcsStashApply", StashCommands::vcsStashApply);
             add("vcsStashDrop", StashCommands::vcsStashDrop);
             add("vcsStashKeepIndex", StashCommands::vcsStashKeepIndex);
