@@ -127,8 +127,7 @@ public class Server implements Runnable {
                 path.getParent(),
                 "port",
                 null,
-                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
-            );
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
         }
         catch (UnsupportedOperationException e) {
             temp = Files.createTempFile(path.getParent(), "port", null);
@@ -157,9 +156,8 @@ public class Server implements Runnable {
         if (port.size() < 2)
             return false;
         try (Socket socket = new Socket(InetAddress.getLoopbackAddress(), Integer.parseInt(port.get(0).trim()));
-            BufferedWriter out = new BufferedWriter(
-                new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)
-            )) {
+             BufferedWriter out =
+                     new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8))) {
             if (lines == null)
                 return true;
             out.write(port.get(1).trim());
@@ -180,9 +178,8 @@ public class Server implements Runnable {
         while (true) {
             final List<String> lines = new ArrayList<>();
             try (Socket sock = socket.accept();
-                BufferedReader in = new BufferedReader(
-                    new InputStreamReader(sock.getInputStream(), StandardCharsets.UTF_8)
-                )) {
+                 BufferedReader in =
+                         new BufferedReader(new InputStreamReader(sock.getInputStream(), StandardCharsets.UTF_8))) {
                 // A client that never finishes must not hold up the next.
                 sock.setSoTimeout(5000);
                 if (!token.equals(in.readLine()))
