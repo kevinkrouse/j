@@ -143,13 +143,8 @@ public final class Anchors {
         return new Placed(hunk, run, most, parts);
     }
 
-    /**
-     * placed, kept again: kept whole, as it was; else each change with its
-     * hash and rows now.
-     */
-    public static Assignment assignment(List<Placed> placed, Assignment kept) {
-        if (kept != null && kept.whole() != null)
-            return kept;
+    /** placed, kept again: each change with its hash and rows now. */
+    public static Assignment assignment(List<Placed> placed) {
         final List<Change> cs = new ArrayList<>();
         for (Placed p : placed) {
             final Hunk.Run r = p.run();

@@ -22,11 +22,16 @@
 package org.armedbear.j;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import javax.swing.JComponent;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
@@ -73,7 +78,28 @@ public final class StatusBar extends JComponent implements PreferencesChangeList
         insets = border.getBorderInsets(this);
         dim.height = charAscent + charDescent + insets.top + insets.bottom;
         setPreferredSize(dim);
+        // The buffer's link in the status text, as the change's changelist, opens what it does.
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                final Editor editor = frame.getCurrentEditor();
+                if (link != null && link.contains(e.getPoint()) && editor.getBuffer() != null)
+                    editor.getBuffer().statusLinkClicked(editor, StatusBar.this, link.x, 0);
+            }
+        });
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                setCursor(
+                    link != null && link.contains(e.getPoint())
+                            ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                            : Cursor.getDefaultCursor());
+            }
+        });
     }
+
+    // Where the buffer's link in the status text was last painted, or null.
+    private Rectangle link;
 
     // The status bar outlives a preferences reload -- the frame doesn't
     // recreate it -- so it has to resize itself in place.
@@ -162,10 +188,42 @@ public final class StatusBar extends JComponent implements PreferencesChangeList
             g.setClip(x1, 0, x2 - x1 - 20, getHeight());
             g.drawString(messageText, x1, y);
         }
+        link = null;
         if (statusText != null) {
             g.setClip(x2, 0, textAreaWidth - x2, getHeight());
-            g.drawString(statusText, x2, y);
+            final String linked = buffer.getStatusLink(editor);
+            final int start = linked == null ? -1 : linkStart(statusText, linked);
+            final int at = start < 0 ? -1 : start - 1;
+            if (at < 0)
+                g.drawString(statusText, x2, y);
+            else {
+                // The link in the link color, underlined.
+                final String before = statusText.substring(0, at + 1);
+                final int lx = x2 + fm.stringWidth(before);
+                final int lw = fm.stringWidth(linked);
+                g.drawString(before, x2, y);
+                g.setColor(linkColor());
+                g.drawString(linked, lx, y);
+                g.drawLine(lx, y + 1, lx + lw, y + 1);
+                g.setColor(UIManager.getColor("controlText"));
+                g.drawString(statusText.substring(at + 1 + linked.length()), lx + lw, y);
+                link = new Rectangle(lx, 0, lw, getHeight());
+            }
         }
+    }
+
+    /**
+     * Where link starts in text, as a buffer's status text puts it, after
+     * a middle dot, the last such; -1 if it isn't there.
+     */
+    static int linkStart(String text, String link) {
+        final int dot = text.lastIndexOf("· " + link + "   ");
+        return dot < 0 ? -1 : dot + 2;
+    }
+
+    private static Color linkColor() {
+        final Color c = UIManager.getColor("Component.linkColor");
+        return c != null ? c : new Color(0x3574F0);
     }
 
     public void repaintNow() {

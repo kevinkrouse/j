@@ -83,8 +83,8 @@ public class ChangelistsTest {
     // DIFF's two changes kept, THREE's in A but its line in B, X's in B.
     private static Changelists kept() {
         final List<Placed> now = Anchors.place(Changelists.initial(), "a.txt", null, diff(DIFF));
-        final Change three = Anchors.assignment(now, null).changes().get(0);
-        final Change x = Anchors.assignment(now, null).changes().get(1);
+        final Change three = Anchors.assignment(now).changes().get(0);
+        final Change x = Anchors.assignment(now).changes().get(1);
         return Changelists.initial()
                 .withList("A")
                 .withList("B")
@@ -138,7 +138,7 @@ public class ChangelistsTest {
         // The lines added at the top are new: the active list's.
         assertEquals(List.of("A", "A", "B"), lists(placed));
         assertEquals(List.of(new Part(0, 1, "B")), placed.get(1).parts(), "found by its lines, its parts kept");
-        assertEquals(4, Anchors.assignment(placed, null).changes().get(1).row(), "kept again where it is now");
+        assertEquals(4, Anchors.assignment(placed).changes().get(1).row(), "kept again where it is now");
     }
 
     @Test
@@ -164,7 +164,7 @@ public class ChangelistsTest {
                             """;
         final List<Placed> placed = Anchors.place(kept(), "a.txt", null, diff(left));
         assertEquals(List.of("B"), lists(placed));
-        assertEquals(1, Anchors.assignment(placed, null).changes().size());
+        assertEquals(1, Anchors.assignment(placed).changes().size());
     }
 
     @Test
@@ -274,9 +274,11 @@ public class ChangelistsTest {
     }
 
     @Test
-    public void aFileKeptWholeIsKeptWholeAgain() {
+    public void aFileKeptWholeIsKeptAgainByItsChanges() {
         final List<Placed> placed = Anchors.place(kept(), "b.txt", null, diff(DIFF));
-        assertEquals(Assignment.whole("B"), Anchors.assignment(placed, kept().assignment("b.txt")));
+        final Assignment again = Anchors.assignment(placed);
+        assertEquals(null, again.whole());
+        assertEquals(List.of("B", "B"), again.changes().stream().map(Change::list).toList());
         assertEquals(List.of(), Anchors.place(kept(), "a.txt", null, null), "no diff: no change");
     }
 
@@ -330,7 +332,7 @@ public class ChangelistsTest {
                               10
                              """;
         final List<Placed> first = Anchors.place(Changelists.initial(), "a.txt", null, diff(twins));
-        final List<Change> cs = Anchors.assignment(first, null).changes();
+        final List<Change> cs = Anchors.assignment(first).changes();
         final Changelists lists = Changelists.initial()
                 .withList("A")
                 .withList("B")
@@ -390,5 +392,12 @@ public class ChangelistsTest {
         assertEquals(kept(), mainStore.read());
         assertEquals(Changelists.initial(), otherStore.read(), "the other worktree's lists its own");
         assertEquals(git.root.resolve(".git/j/changelists.xml"), mainStore.file());
+    }
+
+    @Test
+    public void aNewListsNameIsRefusedIfBadOrTaken() {
+        assertEquals("There is a changelist B already", kept().refusedName("B"));
+        assertEquals("A changelist's name can't have control characters", kept().refusedName("a\u0001b"));
+        assertEquals(null, kept().refusedName("C"));
     }
 }

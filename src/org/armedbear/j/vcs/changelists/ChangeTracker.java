@@ -37,11 +37,11 @@ import org.armedbear.j.vcs.diff.Hunk;
 
 /**
  * An open file's changes in their lists as it is edited, IntelliJ's rule:
- * a change with lines that were in a list stays in it, its new lines in the
- * list of those beside them; one with none, brought back by undo, in the
- * list it had, found by its lines; else the active list, or the file's if
- * it is kept whole. Placed first as the lists keep the file, and kept again
- * as the file is saved. Told of the changes each time the file's signs are
+ * a change with lines that were in a list stays in it, a new line between
+ * two of a list's in it, one at its edge the active list's; one with none,
+ * brought back by undo, in the list it had, found by its lines; else the
+ * active list. Placed first as the lists keep the file, and kept again,
+ * change by change, as the file is saved. Told of the changes each time the file's signs are
  * worked out. On the event thread.
  */
 public final class ChangeTracker {
@@ -67,6 +67,8 @@ public final class ChangeTracker {
     // was then as its file.
     private List<Now> now = List.of();
     private boolean saved;
+    // The texts, by line, of the lines in and beside the changes as last told.
+    private final Map<Line, String> seen = new IdentityHashMap<>();
     private boolean started;
 
     public ChangeTracker(RepositoryLists repository, String path) {
@@ -90,11 +92,14 @@ public final class ChangeTracker {
         started = false;
     }
 
-    /** The changes now placed in lists; kept if saved, the buffer as its file is. */
-    public void update(List<Now> now, boolean saved) {
+    /**
+     * The changes now placed in lists, lines all the buffer's lines; kept
+     * if saved, the buffer as its file is.
+     */
+    public void update(List<Now> now, boolean saved, List<Line> lines) {
         final Changelists c = repository.lists();
         final Assignment kept = c.assignment(path);
-        final List<Placed> next = known(started ? follow(now, c, kept) : Anchors.place(c, path, null, diff(now)), c);
+        final List<Placed> next = known(started ? follow(now, c) : Anchors.place(c, path, null, diff(now)), c);
         started = true;
         // Those gone remembered, by their lines.
         final Map<String, Placed> nowByHash = new HashMap<>();
@@ -111,6 +116,21 @@ public final class ChangeTracker {
             gone.remove(gone.keySet().iterator().next());
         placed(next, now);
         this.saved = saved;
+        // The texts of the lines in and beside the changes, a line a diff
+        // takes into one by aligning it otherwise, its text the same, known
+        // from one edited or new.
+        seen.clear();
+        for (Now n : now)
+            if (!n.lines().isEmpty()) {
+                // The change's lines, and as many beside it each way, at
+                // least a few: those a diff may align it over.
+                final int span = Math.max(3, n.lines().size());
+                final int first = n.run().newRow();
+                for (int row = Math.max(0, first - span);
+                        row < Math.min(lines.size(), first + n.lines().size() + span);
+                        row++)
+                    seen.put(lines.get(row), lines.get(row).getText());
+            }
         if (saved && (c.lists().size() > 1 || kept != null))
             keep(kept);
     }
@@ -226,9 +246,9 @@ public final class ChangeTracker {
 
     // The changes now, each in the list of its lines that were in one, of
     // most of them, those in others its parts; else its list when it went;
-    // else the file's if kept whole, else the active list.
-    private List<Placed> follow(List<Now> now, Changelists c, Assignment kept) {
-        final String otherwise = kept != null && kept.whole() != null ? kept.whole() : c.active();
+    // else the active list.
+    private List<Placed> follow(List<Now> now, Changelists c) {
+        final String otherwise = c.active();
         final List<Placed> out = new ArrayList<>();
         for (Now n : now) {
             if (n.lines().isEmpty()) {
@@ -246,13 +266,33 @@ public final class ChangeTracker {
                 out.add(before(n, otherwise));
                 continue;
             }
-            // A new line in the list of the nearest above it, else below.
-            for (int k = 1; k < lists.length; k++)
-                if (lists[k] == null)
-                    lists[k] = lists[k - 1];
-            for (int k = lists.length - 2; k >= 0; k--)
-                if (lists[k] == null)
-                    lists[k] = lists[k + 1];
+            // A line the diff only aligned into the change, there before
+            // with the same text, as over a twin blank line or brace, the
+            // list of those beside it; a new or edited line inside a list's
+            // lines, between two of them, in it; one at either edge,
+            // outside, the active list's.
+            final String[] known = lists.clone();
+            for (int k = 0; k < lists.length; k++) {
+                if (known[k] != null)
+                    continue;
+                final Line l = n.lines().get(k);
+                if (l.getText().equals(seen.get(l))) {
+                    String near = null;
+                    for (int d = 1; near == null && (k - d >= 0 || k + d < lists.length); d++)
+                        near = k - d >= 0 && known[k - d] != null ? known[k - d]
+                                : k + d < lists.length ? known[k + d]
+                                : null;
+                    lists[k] = near;
+                    continue;
+                }
+                String above = null;
+                for (int j = k - 1; j >= 0 && above == null; j--)
+                    above = known[j];
+                String below = null;
+                for (int j = k + 1; j < lists.length && below == null; j++)
+                    below = known[j];
+                lists[k] = above != null && above.equals(below) ? above : c.active();
+            }
             out.add(Anchors.withLists(n.hunk(), n.run(), lists));
         }
         return out;
@@ -268,12 +308,10 @@ public final class ChangeTracker {
 
     // The changes as kept, if not as they were: none, the file unchanged.
     // Kept, if changed: whether it is, or needn't be.
+    // Change by change: a file kept whole, as an older store has it, is
+    // no longer.
     private boolean keep(Assignment kept) {
-        // Kept whole while every change is in its list.
-        final boolean whole = kept != null
-                && kept.whole() != null
-                && placed.stream().allMatch(p -> p.list().equals(kept.whole()) && p.parts().isEmpty());
-        final Assignment a = placed.isEmpty() ? null : Anchors.assignment(placed, whole ? kept : null);
+        final Assignment a = placed.isEmpty() ? null : Anchors.assignment(placed);
         return a == null
                 ? kept == null || repository.update(c -> c.withFile(path, a))
                 : a.equals(kept) || repository.update(c -> c.withFile(path, a));

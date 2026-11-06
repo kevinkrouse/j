@@ -26,6 +26,8 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
+import org.armedbear.j.Editor;
+import org.armedbear.j.Property;
 import org.armedbear.j.vcs.VcsRepository;
 
 /**
@@ -51,6 +53,17 @@ public final class RepositoryLists {
             return Optional.ofNullable(
                 store == null ? null : open.computeIfAbsent(store.file(), f -> new RepositoryLists(store)));
         }).orElse(null);
+    }
+
+    /**
+     * repository's lists if they sort its changes: vcsChangelists isn't
+     * false, and it has one besides the default; else null.
+     */
+    public static RepositoryLists shown(VcsRepository repository) {
+        if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS))
+            return null;
+        final RepositoryLists lists = of(repository);
+        return lists != null && lists.lists().lists().size() > 1 ? lists : null;
     }
 
     /** Forgets every repository's lists, to be read again: for tests. */

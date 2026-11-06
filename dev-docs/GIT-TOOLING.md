@@ -2951,6 +2951,44 @@ plan with why it is left, before the next phase starts.
      (`Signs.Sign`'s third state); the hunk preview's "move to list…";
      the status bar naming the caret's list. Tests: the marks after a
      move, an edit, a save.
+
+     Built: `Signs.Sign.other`, set by `SignsUpdater.show` from its
+     tracker's lists against the active one (`Signs.others`) while the
+     lists show (`RepositoryLists.shown`); `Display.drawSign` outlines it,
+     a run of lines one outline closed at its ends, a deletion's triangle
+     hollow. `SignsUpdater.changelistAt` names the caret's in
+     `Buffer.getStatusText`, after git's letter, a link
+     (`Buffer.getStatusLink`, drawn and clicked by `StatusBar`). The hunk
+     preview's changelist button, a small triangle at its icon's corner,
+     and its `m`, run `vcsChangelistMenu`: `vcs/signs/ChangelistMenu`, a
+     `JPopupMenu` of the lists, the change's own dimmed, and a new one,
+     under the button, else under the caret, the first item selected; the
+     status bar's link opens it too. `ChangelistMenu.move` is the move from
+     a file, the command's prompt sharing it; statuses hear of a change of
+     the lists through `StatusView.Source.listsChanged`
+     (`SignsUpdater.listsChanged`). The commands mark the signs
+     again after any change of the lists (`SignsUpdater.listsChanged`).
+     Tests: the marks after a move, an edit in and outside the list, a
+     save, and making the list active; the status bar; the preview's key.
+     After trying it: a new line joins a list only between two of its
+     lines, one at a change's edge going to the active list, IntelliJ's
+     "inside" (an edit beside a change had joined it, the diff merging
+     the two); and a file is never kept whole any more: a move from the
+     status reads an unread file's diff first
+     (`VcsStatusBuffer.readDiffsThen`) and keeps its changes, the
+     tracker sends new edits to the active list and keeps a file change
+     by change, so a whole entry an older store has turns into changes
+     the next time the file is seen (a file with no hunks, as a binary
+     one, still moves whole). The preview stays while its changelist
+     menu shows (`Editor.replacingCaretPopup`). A line a diff only aligns
+     into a change, there before with the same text, as over a twin `}`
+     and blank line, takes the list of the change's lines beside it, not
+     the active one (`ChangeTracker.seen`): the signs' edits are git's
+     while the file is as read and j's own while edited, and the two may
+     align a change two lines apart, so each edit or save moved such lines
+     in and out of it. The icon: a bulleted
+     list (`changelist.svg`), IntelliJ's, among list, stack, tag, tray,
+     folder and checklist drafts.
    - **g. A Changes tab beside Buffers.** The sidebar's buffer list
      gains tabs, as IntelliJ's Commit window and VS Code's Source Control
      sit beside their files: "Buffers", as now, and "Changes", the

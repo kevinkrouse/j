@@ -594,6 +594,11 @@ public class StatusActionsTest {
             until(() -> text().contains("  Feature (1)"));
             assertTrue(text().contains("  Default (0)  active"));
             assertTrue(indexAfter(text().indexOf("  Feature (1)"), "    M  a.txt") > 0, "under its heading");
+            // Its diff read first: kept by its changes, not whole.
+            final org.armedbear.j.vcs.changelists.Changelists.Assignment kept =
+                    org.armedbear.j.vcs.changelists.ChangelistStore.of(repo()).read().assignment("a.txt");
+            assertNull(kept.whole());
+            assertEquals(2, kept.changes().size());
             // s on the heading stages its files.
             onEdt(() -> {
                 h.editor().setDot(line("  Feature (1)"), 0);
@@ -820,8 +825,10 @@ public class StatusActionsTest {
                 h.editor().setDot(line("    M  a.txt"), 0);
                 ChangelistCommands.vcsChangelistMove(h.editor());
             });
+            // Its diff read first, the move by its changes.
+            until(() -> offeredUnavailable.containsKey("Feature"));
             assertEquals(java.util.Map.of("Feature", "already here"), offeredUnavailable);
-            assertEquals("Feature: already here", h.status());
+            until(() -> "Feature: already here".equals(h.status()));
             onEdt(() -> {
                 h.editor().setDot(line("  Default (0)"), 0);
                 ChangelistCommands.vcsChangelistRename(h.editor());
@@ -950,6 +957,103 @@ public class StatusActionsTest {
                 "vcsChangelistPopup",
                 status.getMode().getVisualKeyMap().lookup('C', 0, 0).getCommand(),
                 "C in vim's visual mode too"));
+    }
+
+    @Test
+    public void anotherListsChangesAreOutlinedAndTheStatusBarNamesTheList() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final Buffer file = showFile();
+        untilTracked(file);
+        answering("Feature", () -> onEdt(() -> {
+            h.editor().setDot(file.getLine(49), 0);
+            ChangelistCommands.vcsChangelistMove(h.editor());
+        }));
+        until(() -> file.getSigns().get(file.getLine(49)).other());
+        onEdt(() -> {
+            assertEquals("Feature", file.getSigns().get(file.getLine(49)).otherList(), "which list, outlined apart");
+            assertFalse(file.getSigns().get(file.getLine(2)).other(), "the active list's, solid");
+            h.editor().setDot(file.getLine(49), 0);
+            assertTrue(file.getStatusText(h.editor()).contains("M · Feature"), file.getStatusText(h.editor()));
+            h.editor().setDot(file.getLine(10), 0);
+            assertFalse(file.getStatusText(h.editor()).contains("·"), "no change there");
+        });
+        // Typed in: still Feature's; elsewhere: the active list's.
+        onEdt(() -> {
+            h.editor().setDot(file.getLine(49), 0);
+            h.editor().insertString("!");
+            h.editor().setDot(file.getLine(20), 0);
+            h.editor().insertString("x");
+        });
+        until(() -> file.getSigns().get(file.getLine(20)) != null);
+        onEdt(() -> {
+            assertTrue(file.getSigns().get(file.getLine(49)).other());
+            assertFalse(file.getSigns().get(file.getLine(20)).other());
+            file.save();
+        });
+        until(() -> !file.isModified() && file.getSigns().get(file.getLine(49)).other());
+        // Feature made active: its change solid, the others outlined.
+        answering("Feature", () -> onEdt(() -> {
+            h.editor().setDot(status.getFirstLine(), 0);
+            ChangelistCommands.vcsChangelistActive(h.editor());
+        }));
+        until(() -> !file.getSigns().get(file.getLine(49)).other() && file.getSigns().get(file.getLine(2)).other());
+        onEdt(() -> file.kill());
+    }
+
+    @Test
+    public void theHunkPreviewMovesWhereThereAreLists() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final Buffer file = showFile();
+        untilTracked(file);
+        onEdt(() -> {
+            h.editor().setDot(file.getLine(49), 0);
+            org.armedbear.j.vcs.signs.HunkCommands.previewHunk(h.editor());
+        });
+        until(() -> org.armedbear.j.vcs.signs.HunkPreview.showing(h.editor()));
+        onEdt(() -> {
+            assertEquals("vcsChangelistMenu", h.editor().getCaretPopup().getKeyMap().lookup('m', 0, 0).getCommand());
+            // Its menu's lists: the change's own dimmed, the rest offered.
+            final org.armedbear.j.vcs.signs.SignsUpdater u = file.getSignsUpdater();
+            final java.util.Set<org.armedbear.j.Line> lines =
+                    org.armedbear.j.vcs.signs.ChangelistMenu.linesAt(h.editor(), u.tracker());
+            assertEquals(
+                java.util.Set.of(Changelists.DEFAULT, "Feature"),
+                org.armedbear.j.vcs.signs.ChangelistMenu.choices(u, lines).keySet());
+            assertEquals(
+                "already here",
+                org.armedbear.j.vcs.signs.ChangelistMenu.choices(u, lines).get(Changelists.DEFAULT));
+            assertNull(org.armedbear.j.vcs.signs.ChangelistMenu.choices(u, lines).get("Feature"));
+            assertEquals(
+                "Moved to Feature",
+                org.armedbear.j.vcs.signs.ChangelistMenu.move(h.editor(), u, lines, "Feature"));
+            // The status bar names it, a link.
+            assertEquals("Feature", file.getStatusLink(h.editor()));
+            h.editor().closeCaretPopup();
+            file.kill();
+        });
+    }
+
+    @Test
+    public void aMoveWaitingOnDiffsWhoseCaretMovedOnDoesNothing() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        answering("Feature", () -> {
+            offeredUnavailable = null;
+            onEdt(() -> {
+                h.editor().setDot(line("    M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+                assertEquals("Reading the diffs to move…", h.status());
+                // Moved on before the read.
+                h.editor().setDot(line("  M  b.txt"), 0);
+            });
+            until(() -> "Moved on while the diffs were read: move again".equals(h.status()));
+            assertNull(offeredUnavailable, "no prompt");
+        });
     }
 
     // Until file's changes are placed in their lists, line fifty's among them.

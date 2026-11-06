@@ -386,14 +386,22 @@ active, or asks which; <b>n</b> makes a list; <b>r</b> renames one, and
 <b>d</b> deletes one, after asking, its changes going to Default, which
 stays. A list a command can't take is listed last, dimmed, with why beside
 it: for a move, the list what you move is already in; to make active, the
-active one; to rename or delete, Default. A file whose diff the status hasn't read moves whole. In a file's
+active one; to rename or delete, Default. A file moves by its changes, the status reading its diff first if it
+hasn't; new changes in it then go to the active list. In a file's
 own buffer, <b>m</b> in the change popup, or <code>&lt;leader&gt;hm</code>
 in vim edit mode, moves the change at the caret, or the lines of the
 selection; if the file has edits unsaved, the move is kept as it is saved.
 
 <p>
-While a file is open, its lists follow your edits: a change in a list's
-lines joins that list, a new line the list of the lines beside it, and
+In a file's buffer, the marks of changes in a list other than the active
+one are outlined, as IntelliJ draws them, a run of lines one outline; the
+status bar names the list of the change at the caret after git's letter,
+<code>git M · Feature</code>, a link: a click on it opens a small menu of the
+lists the change can move to, the one it is in dimmed, and a new one. The
+hunk preview's changelist button, and its <b>m</b>, open the same menu under
+it. While a file is open, its lists follow your edits: a change in a list's
+lines joins that list, a new line between two of a list's lines that
+list, one at the edge of a change the active list, and
 undo puts a change back in the list it had. The lists are kept in
 <code>.git/j/changelists.xml</code>, a worktree's in its own git directory,
 which no other tool reads.

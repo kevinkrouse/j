@@ -332,6 +332,33 @@ public final class VcsStatusBuffer extends ViewBuffer
         pendingPicks.clear();
         for (PendingPick p : waiting)
             pickUnstagedAt(p, diffs);
+        // What waits on diffs this read took, or a second read whatever it took.
+        final List<PendingRead> reads = List.copyOf(pendingReads);
+        pendingReads.clear();
+        for (PendingRead r : reads)
+            if (diffs.containsAll(r.keys()) || r.tried()) {
+                wanted.removeAll(r.keys());
+                r.then().run();
+            } else {
+                pendingReads.add(new PendingRead(r.keys(), r.then(), true));
+                refresh();
+            }
+    }
+
+    // What waits on a read of files' diffs, by their lines' keys; whether a read has been tried.
+    private record PendingRead(Set<String> keys, Runnable then, boolean tried) {}
+
+    private final List<PendingRead> pendingReads = new ArrayList<>();
+
+    /**
+     * Reads the diffs of the files whose lines are keyed keys, then runs
+     * then, after the read that has them, or the second after, whatever
+     * it took.
+     */
+    void readDiffsThen(Set<String> keys, Runnable then) {
+        wanted.addAll(keys);
+        pendingReads.add(new PendingRead(Set.copyOf(keys), then, false));
+        refresh();
     }
 
     // Whether it found anything new, and showed it.
@@ -929,12 +956,15 @@ public final class VcsStatusBuffer extends ViewBuffer
         render(Set.of(), null);
     }
 
+    @Override
+    public void listsChanged(VcsRepository r) {
+        if (repositories.contains(r))
+            listsChanged();
+    }
+
     /** r's lists, if the status sorts its work tree's changes into them: there is one besides the default. */
     RepositoryLists changelists(VcsRepository r) {
-        if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS))
-            return null;
-        final RepositoryLists lists = RepositoryLists.of(r);
-        return lists != null && lists.lists().lists().size() > 1 ? lists : null;
+        return RepositoryLists.shown(r);
     }
 
     // The repositories whose changelists it shows; read with their work

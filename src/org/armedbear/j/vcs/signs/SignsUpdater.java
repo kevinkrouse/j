@@ -157,13 +157,14 @@ public final class SignsUpdater implements Buffer.Follower {
             return new Computed(
                     SignsMath.compute(lines, now.keys(), index.keys(), head == null ? null : head.keys(), unstaged),
                     unstaged,
-                    tracking ? changes(lines, index, now, unstaged) : null);
+                    tracking ? changes(lines, index, now, unstaged) : null,
+                    lines);
         }, c -> done(c, git, modCount));
     }
 
     // Signs worked out, the buffer's edits against the index they took, and
     // those as changes for its changelists, or null.
-    private record Computed(Signs signs, List<Edit> unstaged, List<ChangeTracker.Now> changes) {}
+    private record Computed(Signs signs, List<Edit> unstaged, List<ChangeTracker.Now> changes, List<Line> lines) {}
 
     // The edits from index to now, the buffer's lines, as changes: each a
     // run of a hunk, with the lines it adds, or the line where it removes.
@@ -187,6 +188,31 @@ public final class SignsUpdater implements Buffer.Follower {
     // control keeps none of j's.
     private ChangeTracker tracker;
     private boolean trackerSought;
+
+    /**
+     * repository's changelists changed: the statuses show them again, and
+     * its files' signs mark them.
+     */
+    public static void listsChanged(VcsRepository repository) {
+        for (StatusView.Source s : sources)
+            s.listsChanged(repository);
+        for (Buffer b : Editor.getBufferList()) {
+            final SignsUpdater u = b.getSignsUpdater();
+            if (u != null && u.getRepository() == repository)
+                u.listsChanged();
+        }
+    }
+
+    /** Its repository's changelists changed: its signs marked again, as their lists now are. */
+    public void listsChanged() {
+        if (buffer.getSignsUpdater() == this)
+            show();
+    }
+
+    /** The changelist of the change line is of, or is under, if changelists sort its changes; else null. */
+    public String changelistAt(Line line) {
+        return tracker() == null || RepositoryLists.shown(getRepository()) == null ? null : tracker.listOf(line);
+    }
 
     /** Its file's changes in their changelists, as it is edited; null if there are none. */
     public ChangeTracker tracker() {
@@ -241,7 +267,7 @@ public final class SignsUpdater implements Buffer.Follower {
         offered = git;
         used = c == null ? null : c.unstaged();
         if (c != null && c.changes() != null)
-            tracker.update(c.changes(), !buffer.isModified());
+            tracker.update(c.changes(), !buffer.isModified(), c.lines());
         show();
     }
 
@@ -296,7 +322,18 @@ public final class SignsUpdater implements Buffer.Follower {
         final StatusView.Picked p = computed == null || v == null || buffer.isModified() ? null : v.picked();
         // The file picked whole needs no rows: every sign is picked.
         final StatusView.Picked picked = p != null && (p.whole() || placed) ? p : null;
-        buffer.setSigns(picked == null ? computed : computed.picked(picked));
+        final Signs signs = picked == null || computed == null ? computed : computed.picked(picked);
+        // Another changelist's changes than the active one's, outlined.
+        final RepositoryLists lists =
+                signs == null || tracker() == null ? null : RepositoryLists.shown(getRepository());
+        if (lists != null) {
+            final String active = lists.lists().active();
+            buffer.setSigns(signs.others(l -> {
+                final String list = tracker.listOf(l);
+                return list == null || list.equals(active) ? null : list;
+            }));
+        } else
+            buffer.setSigns(signs);
         showColumn(v != null && v.hasPicks() ? v.column() : null);
         for (Editor ed : Editor.getEditorList())
             if (ed.getBuffer() == buffer)

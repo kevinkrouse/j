@@ -38,6 +38,9 @@ public interface StatusView {
     /** A status, giving its view of a file; null if it has none. */
     interface Source {
         StatusView viewOf(SignsUpdater u);
+
+        /** repository's changelists changed: shown again, if it shows them. */
+        default void listsChanged(org.armedbear.j.vcs.VcsRepository repository) {}
     }
 
     /**

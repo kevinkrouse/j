@@ -55,14 +55,16 @@ import org.armedbear.j.mode.compare.WordDiff;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.PickState;
 import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
 
 /**
  * A hunk's removed and added lines in a popup under the caret, the
  * characters that differ between paired lines marked, under a bar with
  * buttons to go to the previous or next hunk, around at the ends, stage or
  * unstage it and pick it where there is version control, or revert it, and
- * its number. While it shows, each enabled button's key, as the change
- * popup's, does what it does: p, n, s, u, ; and r.
+ * its number, and where changelists sort the file's changes, move it to
+ * another. While it shows, each enabled button's key, as the change
+ * popup's, does what it does: p, n, s, u, ;, m and r.
  * The editor closes it after the next command; going to another hunk shows
  * that one in its place.
  */
@@ -110,7 +112,56 @@ public final class HunkPreview extends JPanel implements CaretPopup {
     }
 
     // A button on the bar, in the text color, dimmed when disabled.
-    private void button(String icon, String command, char key, String tip, boolean enabled) {
+    // The move's button, its menu under it.
+    private JButton moveButton;
+
+    // b, which opens a menu under it: a small triangle in its icon's corner.
+    private void dropdown(JButton b) {
+        moveButton = b;
+        // No icon, as one that couldn't be read: no triangle either.
+        if (b.getIcon() == null || b.getDisabledIcon() == null)
+            return;
+        final Color bg = editor.getFormatter().getBackgroundColor();
+        final Color text = editor.getFormatter().getColor(0);
+        b.setIcon(new Dropdown(b.getIcon(), text));
+        b.setDisabledIcon(new Dropdown(b.getDisabledIcon(), DefaultTheme.blend(bg, text, 0.3)));
+    }
+
+    /** Opens the changelists the change shown can move to under the preview's button; false if it has none. */
+    public static boolean showChangelistMenu(Editor editor) {
+        if (!(editor.getCaretPopup() instanceof HunkPreview p) || p.moveButton == null)
+            return false;
+        // The preview stays, past the command that opens the menu, till
+        // the menu closes, a list chosen or not.
+        editor.replacingCaretPopup();
+        ChangelistMenu.show(editor, p.moveButton, 0, p.moveButton.getHeight(), () -> close(editor));
+        return true;
+    }
+
+    // An icon with a small downward triangle at its bottom right, as a menu's button.
+    private record Dropdown(javax.swing.Icon base, Color color) implements javax.swing.Icon {
+        @Override
+        public void paintIcon(java.awt.Component c, java.awt.Graphics g, int x, int y) {
+            base.paintIcon(c, g, x, y);
+            final int w = Math.max(3, getIconWidth() / 4);
+            final int left = x + getIconWidth() - w;
+            final int top = y + getIconHeight() - w / 2 - 1;
+            g.setColor(color);
+            g.fillPolygon(new int[] { left, left + w, left + w / 2 }, new int[] { top, top, top + w / 2 + 1 }, 3);
+        }
+
+        @Override
+        public int getIconWidth() {
+            return base.getIconWidth();
+        }
+
+        @Override
+        public int getIconHeight() {
+            return base.getIconHeight();
+        }
+    }
+
+    private JButton button(String icon, String command, char key, String tip, boolean enabled) {
         final Color bg = editor.getFormatter().getBackgroundColor();
         final Color text = editor.getFormatter().getColor(0);
         final int size = UIScale.scale(Icons.ICON_SIZE);
@@ -133,6 +184,7 @@ public final class HunkPreview extends JPanel implements CaretPopup {
                     .actionPerformed(new ActionEvent(editor, ActionEvent.ACTION_PERFORMED, command)));
         bar.add(b);
         buttons.add(b);
+        return b;
     }
 
     /**
@@ -182,6 +234,9 @@ public final class HunkPreview extends JPanel implements CaretPopup {
                 ';',
                 picked == PickState.ALL ? "Unpick hunk in the status" : "Pick hunk in the status",
                 true);
+            // Where changelists sort the file's changes, to another.
+            if (u != null && RepositoryLists.shown(u.getRepository()) != null)
+                p.dropdown(p.button("changelist", "vcsChangelistMenu", 'm', "Move to changelist…", true));
         }
         p.button("undo", "revertLines", 'r', "Revert hunk", !staged);
         editor.showCaretPopup(p);

@@ -36,7 +36,6 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocationBar;
 import org.armedbear.j.Property;
-import org.armedbear.j.Region;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
@@ -50,6 +49,7 @@ import org.armedbear.j.vcs.changelists.Changelists.Assignment;
 import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.signs.ChangelistMenu;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.armedbear.j.vcs.status.StatusActions.Files;
 import org.armedbear.j.vcs.status.StatusActions.Part;
@@ -72,12 +72,12 @@ public final class ChangelistCommands {
     static BranchCommands.Ask ask = BranchCommands.ask;
 
     // Why a changelist can't be chosen: the move's, the active's, the default's.
-    private static final String HERE = "already here";
+    private static final String HERE = ChangelistMenu.HERE;
     private static final String ACTIVE_NOW = "active";
     private static final String NO_RENAME = "can't be renamed";
     private static final String KEPT = "always kept";
 
-    private static final String NOT_KEPT = "Couldn't keep the changelists: see the log";
+    private static final String NOT_KEPT = ChangelistMenu.NOT_KEPT;
 
     private static final BranchCommands.Question MOVE =
             new BranchCommands.Question(LocationBar.PROMPT_CHANGELIST, "select a changelist or enter a new one", true);
@@ -129,10 +129,8 @@ public final class ChangelistCommands {
                 if (to == null || to.isBlank() || to.strip().equals(name))
                     return "";
                 final String now = to.strip();
-                if (refused(now) != null)
-                    return refused(now);
-                if (lists.lists().list(now) != null)
-                    return "There is a changelist " + now + " already";
+                if (lists.lists().refusedName(now) != null)
+                    return lists.lists().refusedName(now);
                 // Read again, another writer's may have it, or not the old.
                 if (!lists.update(c -> c.list(now) != null || c.list(name) == null ? c : c.renamed(name, now)))
                     return NOT_KEPT;
@@ -173,6 +171,13 @@ public final class ChangelistCommands {
      * for, made if it is new.
      */
     public static void vcsChangelistMove(Editor editor) {
+        move(editor, true);
+    }
+
+    // The move, the diffs of the files it takes read first if read and
+    // they aren't, then it again; a file whose diff isn't read then, or
+    // that has none, moved whole.
+    private static void move(Editor editor, boolean read) {
         final VcsStatusBuffer status = VcsStatusMode.owner(editor);
         if (status == null) {
             moveInFile(editor);
@@ -201,6 +206,24 @@ public final class ChangelistCommands {
             for (Set<String> keys : status.picks().used(targets).values())
                 used.addAll(keys);
         final List<Taken> taken = taken(targets);
+        // A file moves by its changes: their diffs read first.
+        final Set<String> unreadKeys = new HashSet<>();
+        for (Taken t : taken)
+            if (t.file().diff() == null)
+                unreadKeys.add(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, t.file().path()));
+        if (read && !unreadKeys.isEmpty()) {
+            editor.status("Reading the diffs to move…");
+            // Then, if editor still shows it, its caret where it was.
+            final org.armedbear.j.Buffer shown = editor.getBuffer();
+            final String at = editor.getDotLine() instanceof StatusLine s ? s.key() : null;
+            status.readDiffsThen(unreadKeys, () -> {
+                if (editor.getBuffer() == shown && editor.getDotLine() instanceof StatusLine s && s.key().equals(at))
+                    move(editor, false);
+                else
+                    editor.status("Moved on while the diffs were read: move again");
+            });
+            return;
+        }
         final Changelists c = lists.lists();
         final Map<String, List<Placed>> placed = placed(c, taken);
         // A list a move to changes nothing, the move's from.
@@ -242,39 +265,20 @@ public final class ChangelistCommands {
                 editor.status("No changelists here");
             return;
         }
-        final Set<Line> lines = Collections.newSetFromMap(new IdentityHashMap<>());
-        if (Region.isSelection(editor))
-            lines.addAll(Region.selectedLines(editor));
-        else
-            lines.addAll(tracker.changeAt(editor.getDotLine()));
-        lines.removeIf(l -> tracker.listOf(l) == null);
+        final Set<Line> lines = ChangelistMenu.linesAt(editor, tracker);
         if (lines.isEmpty()) {
             editor.status("No change here to move");
             return;
         }
-        final Changelists c = lists.lists();
         final Map<String, String> unavailable = new HashMap<>();
-        for (Changelist l : c.lists())
-            if (!tracker.wouldMove(lines, l.name()))
-                unavailable.put(l.name(), HERE);
-        final List<String> names = c.lists().stream().map(Changelist::name).toList();
+        for (Map.Entry<String, String> e : ChangelistMenu.choices(u, lines).entrySet())
+            if (e.getValue() != null)
+                unavailable.put(e.getKey(), e.getValue());
+        final List<String> names = lists.lists().lists().stream().map(Changelist::name).toList();
         BranchCommands.choose.choose(editor, MOVE, "vcsChangelistMove", names, unavailable, name -> {
             final String to = name.strip();
-            if (rejected(editor, to, unavailable))
-                return;
-            if (lists.lists().list(to) == null && !lists.update(cc -> cc.withList(to))) {
-                editor.status(NOT_KEPT);
-                return;
-            }
-            final ChangeTracker.Moved moved = tracker.move(lines, to);
-            editor.setMark(null);
-            // The statuses show the lists again; the file's changes stay as moved.
-            shown(u.getRepository());
-            editor.status(switch (moved) {
-                case NOTHING -> "No change here to move";
-                case NOT_KEPT -> NOT_KEPT;
-                case MOVED -> "Moved to " + to + (editor.getBuffer().isModified() ? ", kept as the file is saved" : "");
-            });
+            if (!rejected(editor, to, unavailable))
+                editor.status(ChangelistMenu.move(editor, u, lines, to));
         });
     }
 
@@ -426,7 +430,7 @@ public final class ChangelistCommands {
             // A renamed file's kept under its path now alone.
             if (orig != null)
                 out = out.withFile(orig, null);
-            out = out.withFile(f.path(), Anchors.assignment(after, null));
+            out = out.withFile(f.path(), Anchors.assignment(after));
         }
         return out;
     }
@@ -457,17 +461,13 @@ public final class ChangelistCommands {
 
     // Why name can't name a changelist, or null if it can.
     static String refused(String name) {
-        return name.chars().anyMatch(Character::isISOControl)
-                ? "A changelist's name can't have control characters"
-                : null;
+        return Changelists.badName(name);
     }
 
     // name made in r's lists: what is said.
     private static String make(VcsRepository r, RepositoryLists lists, String name) {
-        if (refused(name) != null)
-            return refused(name);
-        if (lists.lists().list(name) != null)
-            return "There is a changelist " + name + " already";
+        if (lists.lists().refusedName(name) != null)
+            return lists.lists().refusedName(name);
         if (!lists.update(c -> c.withList(name)))
             return NOT_KEPT;
         shown(r);
@@ -496,22 +496,20 @@ public final class ChangelistCommands {
         return lists;
     }
 
-    // r's statuses show its lists again.
+    // r's statuses show its lists again, and its files' signs mark theirs.
     private static void shown(VcsRepository r) {
-        for (Buffer b : Editor.getBufferList())
-            if (b instanceof VcsStatusBuffer s && s.getRepositories().contains(r))
-                s.listsChanged();
+        SignsUpdater.listsChanged(r);
     }
 
     // r's list from renamed to, or deleted, to the default: shown again, and
     // its open files' changes in to, edits unsaved and all.
     private static void relisted(VcsRepository r, String from, String to) {
-        shown(r);
         for (Buffer b : Editor.getBufferList()) {
             final SignsUpdater u = b.getSignsUpdater();
             if (u != null && u.getRepository() == r && u.tracker() != null)
                 u.tracker().relist(from, to);
         }
+        shown(r);
     }
 
     // r's files at paths, open, placed again from the lists as kept, as a

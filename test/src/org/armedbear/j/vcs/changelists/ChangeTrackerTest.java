@@ -83,14 +83,14 @@ public class ChangeTrackerTest {
         git = GitFixture.init(tmp);
         git.write("a.txt", THIRTY);
         git.commitAll("first");
-        git.write("a.txt", THIRTY.replace("line 5\n", "FIVE\n").replace("line 20\n", "TWENTY\n"));
+        git.write("a.txt", THIRTY.replace("line 5\nline 6\n", "FIVE\nSIX\n").replace("line 20\n", "TWENTY\n"));
         final VcsRepository r = Repositories.forDirectory(git.root);
         final List<Placed> placed = Anchors.place(
             Changelists.initial(),
             "a.txt",
             null,
             DiffParser.parse(git.git("diff", "--no-ext-diff", "a.txt")).get(0));
-        final List<Change> cs = Anchors.assignment(placed, null).changes();
+        final List<Change> cs = Anchors.assignment(placed).changes();
         final Change five = cs.get(0);
         assertTrue(
             ChangelistStore.of(r)
@@ -171,16 +171,18 @@ public class ChangeTrackerTest {
         // Typed in X's range: X.
         change(4, "FIVE!");
         until(() -> "X".equals(listOf(4)) && buffer.getLine(4).getText().equals("FIVE!"));
-        // A line added in it: X.
+        // A line added inside it, between FIVE and SIX: X.
         onEdt(() -> {
             final Line l = buffer.getLine(4);
             h.editor().setDot(l, l.length());
             h.editor().insertString("\nnew");
         });
-        until(() -> "X".equals(listOf(5)));
-        // The line below, unchanged till now, edited: joined to the range, X.
-        change(6, "SIX");
-        until(() -> "X".equals(listOf(6)));
+        until(() -> "X".equals(listOf(5)) && "X".equals(listOf(6)));
+        // The line below, unchanged till now, edited: at the range's edge,
+        // outside it, the active list's, the range still X.
+        change(7, "SEVEN");
+        until(() -> "Y".equals(listOf(7)));
+        onEdt(() -> assertEquals("X", listOf(6)));
         // Elsewhere, line 12, a row down now: the active list, Y.
         change(12, "TWELVE");
         until(() -> "Y".equals(listOf(12)));
@@ -219,5 +221,73 @@ public class ChangeTrackerTest {
         assertEquals(List.of("Y", "X", Changelists.DEFAULT), kept.stream().map(Change::list).toList());
         assertEquals(6, kept.get(1).row(), "X's change two rows down");
         assertEquals(List.of(), kept.get(0).parts());
+    }
+
+    @Test
+    public void aFileKeptWholeAsAnOlderStoreHasItSendsNewEditsToTheActiveList() throws Exception {
+        open();
+        // The file kept whole in X.
+        final ChangelistStore store = ChangelistStore.of(Repositories.forDirectory(git.root));
+        onEdt(() -> {
+            assertTrue(
+                RepositoryLists.of(Repositories.forDirectory(git.root))
+                        .update(c -> c.withFile("a.txt", Assignment.whole("X"))));
+            tracker().reload();
+            buffer.getSignsUpdater().changed();
+        });
+        until(() -> "X".equals(listOf(19)));
+        // An edit elsewhere: the active list's, Y.
+        change(12, "TWELVE");
+        until(() -> "Y".equals(listOf(12)));
+        onEdt(() -> buffer.save());
+        until(() -> {
+            final Assignment a = store.read().assignment("a.txt");
+            return a != null && a.whole() == null && a.changes().size() == 3;
+        });
+    }
+
+    // A diff of one hunk: from, 1-based, adding added after the lines before it.
+    private static org.armedbear.j.vcs.diff.Hunk adding(int from, String... added) {
+        final StringBuilder sb = new StringBuilder("diff --git a/a.txt b/a.txt\n--- a/a.txt\n+++ b/a.txt\n");
+        sb.append("@@ -").append(from - 1).append(",0 +").append(from).append(',').append(added.length).append(" @@\n");
+        for (String a : added)
+            sb.append('+').append(a).append('\n');
+        return DiffParser.parse(sb.toString()).get(0).hunks().get(0);
+    }
+
+    @Test
+    public void linesADiffAlignsIntoAChangeOtherwiseKeepItsList() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "x\n");
+        git.commitAll("first");
+        final VcsRepository r = Repositories.forDirectory(git.root);
+        onEdt(() -> {
+            final RepositoryLists lists = RepositoryLists.of(r);
+            assertTrue(lists.update(c -> c.withList("X").withList("Y").withActive("Y")));
+            final ChangeTracker t = new ChangeTracker(lists, "a.txt");
+            // "}", "", a block, "}", "": the block added after the first
+            // "}" and "", as git aligns it, or before the second, as j's may.
+            final List<Line> lines = List.of(
+                new org.armedbear.j.TextLine("}"),
+                new org.armedbear.j.TextLine(""),
+                new org.armedbear.j.TextLine("b"),
+                new org.armedbear.j.TextLine("}"),
+                new org.armedbear.j.TextLine(""));
+            final org.armedbear.j.vcs.diff.Hunk git = adding(3, "b", "}", "");
+            final org.armedbear.j.vcs.diff.Hunk j = adding(1, "}", "", "b");
+            t.update(List.of(new ChangeTracker.Now(git, git.runs().get(0), lines.subList(2, 5), null)), false, lines);
+            // Placed in Y, the active list, then moved to X.
+            assertTrue(t.move(java.util.Set.copyOf(lines.subList(2, 5)), "X") != ChangeTracker.Moved.NOTHING);
+            // Aligned the other way: the lines it takes in, there before
+            // with their text, X's too.
+            t.update(List.of(new ChangeTracker.Now(j, j.runs().get(0), lines.subList(0, 3), null)), false, lines);
+            assertEquals("X", t.listOf(lines.get(0)));
+            assertEquals("X", t.listOf(lines.get(1)));
+            assertEquals("X", t.listOf(lines.get(2)));
+            // And back.
+            t.update(List.of(new ChangeTracker.Now(git, git.runs().get(0), lines.subList(2, 5), null)), false, lines);
+            assertEquals("X", t.listOf(lines.get(3)));
+            assertEquals("X", t.listOf(lines.get(4)));
+        });
     }
 }

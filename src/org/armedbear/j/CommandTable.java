@@ -71,6 +71,7 @@ import org.armedbear.j.vcs.blame.BlameCommands;
 import org.armedbear.j.vcs.conflicts.ConflictCommands;
 import org.armedbear.j.vcs.git.Git;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.signs.ChangelistMenu;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.BranchCommands;
 import org.armedbear.j.vcs.status.ChangelistCommands;
@@ -460,6 +461,7 @@ public class CommandTable {
             add("vcsStageHunk", HunkCommands::vcsStageHunk);
             add("vcsPickHunk", HunkCommands::vcsPickHunk);
             add("vcsChangelistActive", ChangelistCommands::vcsChangelistActive);
+            add("vcsChangelistMenu", ChangelistMenu::vcsChangelistMenu);
             add("vcsChangelistMove", ChangelistCommands::vcsChangelistMove);
             add("vcsChangelistNew", ChangelistCommands::vcsChangelistNew);
             add("vcsChangelistDelete", ChangelistCommands::vcsChangelistDelete);

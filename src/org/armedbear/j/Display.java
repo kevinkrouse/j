@@ -1709,7 +1709,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             g2d.fillRect(0, y, getWidth(), line.getHeight());
             final Signs.Sign sign = signs.get(line);
             if (sign != null)
-                drawSign(g2d, sign, backgroundColor, y, line.getHeight());
+                drawSign(g2d, line, sign, backgroundColor, y, line.getHeight());
             // A picked change's line a brighter shade of its kind's; a
             // deletion's, the line beside it unchanged, a rule where its
             // lines were, as side by side draws it.
@@ -1779,21 +1779,46 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
     }
 
+    // Whether line's sign is outlined as sign is, of the same kind and
+    // list: one run.
+    private boolean outlined(Line line, Signs.Sign sign) {
+        final Signs.Sign s = line == null ? null : signs.get(line);
+        return s != null
+                && sign.otherList().equals(s.otherList())
+                && s.kind() == sign.kind()
+                && s.staged() == sign.staged();
+    }
+
     // A bar beside a line added or changed, a triangle where lines were
     // deleted; dimmed halfway to the background when staged.
-    private void drawSign(Graphics2D g2d, Signs.Sign sign, Color background, int y, int height) {
+    private void drawSign(Graphics2D g2d, Line line, Signs.Sign sign, Color background, int y, int height) {
         Color color = signColors[sign.kind().ordinal()];
         if (sign.staged())
             color = DefaultTheme.blend(background, color, 0.5);
         g2d.setColor(color);
+        // Another changelist's, outlined, as IntelliJ draws them: one
+        // outline down a run of its lines, closed at its ends.
         if (sign.kind() != Signs.Kind.DELETED) {
-            g2d.fillRect(0, y, changeMarkWidth, height);
+            if (!sign.other()) {
+                g2d.fillRect(0, y, changeMarkWidth, height);
+                return;
+            }
+            final int right = Math.max(1, changeMarkWidth - 1);
+            g2d.drawLine(0, y, 0, y + height - 1);
+            g2d.drawLine(right, y, right, y + height - 1);
+            if (!outlined(line.previous(), sign))
+                g2d.drawLine(0, y, right, y);
+            if (!outlined(line.next(), sign))
+                g2d.drawLine(0, y + height - 1, right, y + height - 1);
             return;
         }
         final int size = Math.max(changeMarkWidth + 2, charHeight / 3);
         final int edge = sign.above() ? y : y + height;
         final int toward = sign.above() ? size : -size;
-        g2d.fillPolygon(new int[] { 0, size, 0 }, new int[] { edge, edge, edge + toward }, 3);
+        if (sign.other())
+            g2d.drawPolygon(new int[] { 0, size, 0 }, new int[] { edge, edge, edge + toward }, 3);
+        else
+            g2d.fillPolygon(new int[] { 0, size, 0 }, new int[] { edge, edge, edge + toward }, 3);
     }
 
     /**

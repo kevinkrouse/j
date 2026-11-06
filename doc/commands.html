@@ -462,6 +462,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsBranchSetParent">vcsBranchSetParent</a></li>
     <li><a href="commands.html#vcsChangelistActive">vcsChangelistActive</a></li>
     <li><a href="commands.html#vcsChangelistDelete">vcsChangelistDelete</a></li>
+    <li><a href="commands.html#vcsChangelistMenu">vcsChangelistMenu</a></li>
     <li><a href="commands.html#vcsChangelistMove">vcsChangelistMove</a></li>
     <li><a href="commands.html#vcsChangelistNew">vcsChangelistNew</a></li>
     <li><a href="commands.html#vcsChangelistPopup">vcsChangelistPopup</a></li>
@@ -6320,6 +6321,16 @@ Sets the parent of the branch checked out, from a list. It does as <a href="#git
 Makes the changelist whose heading the caret is on in the git status active, else asks which: a change made outside the other lists' changes goes to the active one.
 <br><br>
 <b>Default key mapping:</b> a in the changelist popup
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsChangelistMenu">vcsChangelistMenu</a><dl><dd>
+<p>
+In a file's own buffer, opens a small menu of the changelists the change at the caret, or the lines of the selection, can move to, the one it is in dimmed, and a new one; choosing one moves it. Under the hunk preview's button when it shows, else under the caret; a click on the changelist's name in the status bar opens it too.
+<br><br>
+<b>Default key mapping:</b> m in the hunk preview
 <br><br>
 <b>See also:</b> <a href="git.html#changelists">Changelists</a>
 <br><br>

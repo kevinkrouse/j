@@ -85,6 +85,19 @@ public record Changelists(List<Changelist> lists, String active, Map<String, Ass
         return new Changelists(List.of(new Changelist(DEFAULT, "")), DEFAULT, Map.of());
     }
 
+    /** Why name can't name any changelist, or null if it can. */
+    public static String badName(String name) {
+        return name.chars().anyMatch(Character::isISOControl)
+                ? "A changelist's name can't have control characters"
+                : null;
+    }
+
+    /** Why a new list can't be named name: a bad name, or one a list has; null if it can. */
+    public String refusedName(String name) {
+        final String bad = badName(name);
+        return bad != null ? bad : list(name) != null ? "There is a changelist " + name + " already" : null;
+    }
+
     /** The list named name, or null. */
     public Changelist list(String name) {
         for (Changelist l : lists)

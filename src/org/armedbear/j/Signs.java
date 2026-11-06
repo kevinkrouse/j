@@ -42,10 +42,17 @@ public final class Signs {
      * @param above for DELETED on the first line: the lines went above it,
      *     not below
      * @param picked whether the change is picked, as in the git status
+     * @param otherList the changelist the change is in, if not the active
+     *     one, drawn outlined; else null
      */
-    public record Sign(Kind kind, boolean staged, boolean above, boolean picked) {
+    public record Sign(Kind kind, boolean staged, boolean above, boolean picked, String otherList) {
         public Sign(Kind kind, boolean staged, boolean above) {
-            this(kind, staged, above, false);
+            this(kind, staged, above, false, null);
+        }
+
+        /** Whether the change is in a changelist other than the active one. */
+        public boolean other() {
+            return otherList != null;
         }
     }
 
@@ -95,9 +102,19 @@ public final class Signs {
         final Map<Line, Sign> out = new IdentityHashMap<>();
         for (Map.Entry<Line, Sign> e : signs.entrySet()) {
             final Sign s = e.getValue();
-            out.put(
-                e.getKey(),
-                new Sign(s.kind(), s.staged(), s.above(), !s.staged() && picked.test(e.getKey().lineNumber())));
+            final boolean p = !s.staged() && picked.test(e.getKey().lineNumber());
+            out.put(e.getKey(), new Sign(s.kind(), s.staged(), s.above(), p, s.otherList()));
+        }
+        return new Signs(out, starts);
+    }
+
+    /** These signs, those of lines not staged in the changelist other gives, if not null, not the active one. */
+    public Signs others(java.util.function.Function<Line, String> other) {
+        final Map<Line, Sign> out = new IdentityHashMap<>();
+        for (Map.Entry<Line, Sign> e : signs.entrySet()) {
+            final Sign s = e.getValue();
+            final String o = s.staged() ? null : other.apply(e.getKey());
+            out.put(e.getKey(), new Sign(s.kind(), s.staged(), s.above(), s.picked(), o));
         }
         return new Signs(out, starts);
     }

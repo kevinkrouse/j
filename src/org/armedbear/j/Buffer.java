@@ -66,6 +66,7 @@ import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.VersionControlEntry;
 import org.armedbear.j.vcs.blame.Blame;
 import org.armedbear.j.vcs.conflicts.Conflicts;
+import org.armedbear.j.vcs.signs.ChangelistMenu;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 
 public class Buffer extends SystemBuffer {
@@ -3122,6 +3123,21 @@ public class Buffer extends SystemBuffer {
             return textCursor;
     }
 
+    /**
+     * The part of getStatusText a click on opens something with, as the
+     * changelist of the change at the caret; null for none.
+     */
+    public String getStatusLink(Editor editor) {
+        final Position dot = editor.getDotCopy();
+        final SignsUpdater u = signsUpdater;
+        return dot == null || u == null ? null : u.changelistAt(dot.getLine());
+    }
+
+    /** A click on getStatusLink's text, at x and y in c: the lists the change at the caret can move to, above it. */
+    public void statusLinkClicked(Editor editor, java.awt.Component c, int x, int y) {
+        ChangelistMenu.showAbove(editor, c, x, y);
+    }
+
     public String getStatusText(Editor editor) {
         Debug.assertTrue(editor.getBuffer() == this);
         Position dot = editor.getDotCopy();
@@ -3130,6 +3146,10 @@ public class Buffer extends SystemBuffer {
         final StringBuilder sb = new StringBuilder();
         if (vcsEntry != null) {
             sb.append(vcsEntry.getStatusText());
+            // The changelist of the change at the caret.
+            final String list = getStatusLink(editor);
+            if (list != null)
+                sb.append(" · ").append(list);
             sb.append("   ");
         }
         if (Editor.preferences().getBooleanProperty(Property.STATUS_BAR_DISPLAY_LINE_SEPARATOR)) {
