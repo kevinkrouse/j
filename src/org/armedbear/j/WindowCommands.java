@@ -196,10 +196,7 @@ public final class WindowCommands {
                 count = Integer.parseInt(arg);
             }
             catch (NumberFormatException e) {
-                MessageDialog.showMessageDialog(
-                    "Invalid number \"" + arg + '"',
-                    "Error"
-                );
+                MessageDialog.showMessageDialog("Invalid number \"" + arg + '"', "Error");
                 return;
             }
 
@@ -217,10 +214,7 @@ public final class WindowCommands {
                 count = Integer.parseInt(arg);
             }
             catch (NumberFormatException e) {
-                MessageDialog.showMessageDialog(
-                    "Invalid number \"" + arg + '"',
-                    "Error"
-                );
+                MessageDialog.showMessageDialog("Invalid number \"" + arg + '"', "Error");
                 return;
             }
 
