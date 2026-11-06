@@ -169,3 +169,6 @@ d8899b23dc08b94ef4b093431503b44e17cdcea2
 
 # reformat: StatusActionsTest, which phase 10 of the git tooling changes
 3d23c8b317df02dfdb2a4ea389746b179d24beb6
+
+# reformat: Server, which phase 10 of the git tooling changes
+b0f9e873779926840838d61e99cac934768edb6c
