@@ -388,6 +388,9 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#sidebarListBuffers">sidebarListBuffers</a></li>
     <li><a href="commands.html#sidebarListChanges">sidebarListChanges</a></li>
     <li><a href="commands.html#sidebarListTags">sidebarListTags</a></li>
+    <li><a href="commands.html#sidebarToggleBuffers">sidebarToggleBuffers</a></li>
+    <li><a href="commands.html#sidebarToggleChanges">sidebarToggleChanges</a></li>
+    <li><a href="commands.html#sidebarToggleTree">sidebarToggleTree</a></li>
     <li><a href="commands.html#slideIn">slideIn</a></li>
     <li><a href="commands.html#slideOut">slideOut</a></li>
     <li><a href="commands.html#duplicateLines">duplicateLines</a></li>
@@ -5398,6 +5401,34 @@ changed files of the current buffer's repositories, by changelist. See
 Shows and focuses the sidebar's tag list, if the buffer has tags.
 <br><br>
 <b>Default key mapping:</b> Ctrl Shift T
+<br><br>
+</dl><!--<hr>-->
+
+<a name="sidebarToggleBuffers">sidebarToggleBuffers</a><dl><dd>
+<p>
+Shows the sidebar's buffer list, or hides it if it shows, as the status
+bar's Buffers button does. It shares the upper half with the Changes tab:
+shown, it takes Changes' place. Hiding the last panel shown hides the
+sidebar, which shows that panel again when it is next shown.
+<br><br>
+<b>See also:</b> <a href="navigation.html#sidebar">The sidebar</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="sidebarToggleChanges">sidebarToggleChanges</a><dl><dd>
+<p>
+Shows the sidebar's Changes tab, or hides it if it shows, as the status
+bar's Changes button does; it takes the buffer list's place.
+<br><br>
+<b>See also:</b> <a href="git.html#changes-tab">The Changes tab</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="sidebarToggleTree">sidebarToggleTree</a><dl><dd>
+<p>
+Shows the sidebar's lower half, the mode's tree of tags, sections or
+files, or hides it if it shows, as the status bar's Tree button does,
+dimmed where the mode has no tree.
 <br><br>
 </dl><!--<hr>-->
 

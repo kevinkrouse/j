@@ -23,6 +23,7 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.awt.Component;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
@@ -43,6 +44,8 @@ public final class Sidebar extends JComponent {
     private ChangesTree changesTree;
 
     private NavigationComponent bottomComponent;
+    // The buffer the lower half's tree is of, which titles it if the tree doesn't.
+    private Buffer bottomBuffer;
     private int updateFlag;
 
     public Sidebar(Frame frame) {
@@ -59,16 +62,17 @@ public final class Sidebar extends JComponent {
         bottomPanel = new SidebarPanel(this);
         splitPane = new SplitPane(SplitPane.VERTICAL_SPLIT, topPanel, bottomPanel);
         splitPane.setBorder(BorderFactory.createEmptyBorder());
-        splitPane.setDividerLocation(Editor.getSessionProperties().getSidebarDividerLocation(frame));
+        divider = Editor.getSessionProperties().getSidebarDividerLocation(frame);
+        splitPane.setDividerLocation(divider);
         add(splitPane);
-        showTab(frame.sidebarTab);
+        setPanels(frame.sidebarTop, frame.sidebarTree);
     }
 
-    /** Hidden or replaced: its tab kept for the next, the Changes tab letting go of its status. */
+    /** Hidden or replaced: the Changes tab lets go of its status; its frame keeps the panels. */
     public void dispose() {
-        frame.sidebarTab = tabs.shown();
-        if (changesTree != null)
+        if (changesShown)
             changesTree.shown(false);
+        changesShown = false;
     }
 
     public final Frame getFrame() {
@@ -97,56 +101,144 @@ public final class Sidebar extends JComponent {
 
     /** The upper half's tab, BUFFERS or CHANGES, shown and focused. */
     public void activate(int tab) {
-        showTab(tab);
+        setPanels(tab, frame.sidebarTree);
         frame.setFocus(getTopView());
     }
 
-    /** The upper half's tabs. */
+    /** Its panels: the upper half's, BUFFERS or CHANGES, NONE for none, and the lower half's tree. */
+    public static final int NONE = -1;
+
     public static final int BUFFERS = 0;
 
     public static final int CHANGES = 1;
 
-    /** The upper half shows tab, BUFFERS or CHANGES. */
-    public void showTab(int tab) {
-        if (tab == tabs.shown())
+    public static final int TREE = 2;
+
+    /**
+     * The panels a sidebar shows: its upper half's, BUFFERS, CHANGES or
+     * NONE, and whether its lower half's tree shows.
+     */
+    record Panels(int top, boolean tree) {
+        /** Whether it shows none. */
+        boolean isEmpty() {
+            return top == NONE && !tree;
+        }
+
+        /** With panel, BUFFERS, CHANGES or TREE, shown, or hidden if it shows; Buffers and Changes in turn. */
+        Panels toggle(int panel) {
+            if (panel == TREE)
+                return new Panels(top, !tree);
+            return new Panels(top == panel ? NONE : panel, tree);
+        }
+
+        /** With panel shown, as the sidebar shows again for it. */
+        Panels with(int panel) {
+            return panel == TREE ? new Panels(top, true) : new Panels(panel, tree);
+        }
+    }
+
+    /** A panel of the upper half as the session's properties keep it. */
+    static String topName(int top) {
+        return switch (top) {
+            case CHANGES -> "changes";
+            case NONE -> "none";
+            default -> "buffers";
+        };
+    }
+
+    /** The panel of the upper half name keeps; Buffers for none or another. */
+    static int topOf(String name) {
+        return "changes".equals(name) ? CHANGES : "none".equals(name) ? NONE : BUFFERS;
+    }
+
+    // Where the halves divide, as last seen with both shown.
+    private int divider;
+    // Whether the Changes tab's tree was last told it shows.
+    private boolean changesShown;
+
+    /**
+     * Shows the upper half's panel top, BUFFERS or CHANGES, or hides the
+     * half for NONE, and the lower half's tree if tree; its frame keeps
+     * them. With one half hidden the other fills the sidebar.
+     */
+    public void setPanels(int top, boolean tree) {
+        if (topPanel.isVisible() && bottomPanel.isVisible())
+            divider = splitPane.getDividerLocation();
+        frame.sidebarTop = top;
+        frame.sidebarTree = tree;
+        if (top != NONE)
+            showTab(top);
+        // Told only as it shows or hides: showing again selects the buffer's file.
+        if ((top == CHANGES) != changesShown) {
+            changesShown = top == CHANGES;
+            changesTree.shown(changesShown);
+        }
+        // A half hidden with the focus in it: the focus back to the text.
+        final Component focused = frame.getFocusedComponent();
+        if (focused != null
+                && (top == NONE && SwingUtilities.isDescendingFrom(focused, topPanel)
+                        || !tree && SwingUtilities.isDescendingFrom(focused, bottomPanel)))
+            frame.getCurrentEditor().setFocusToDisplay();
+        topPanel.setVisible(top != NONE);
+        bottomPanel.setVisible(tree);
+        if (top != NONE && tree)
+            splitPane.setDividerLocation(divider);
+        splitPane.revalidate();
+        splitPane.repaint();
+        frame.repaintStatusBar();
+    }
+
+    // The upper half's view the tab's: the buffer list or the Changes tab's tree.
+    private void showTab(int tab) {
+        if (tab == CHANGES && changesTree == null)
+            changesTree = new ChangesTree(this, frame.changesKept);
+        if (tab == tabs.shown() && topScrollPane.getViewport().getView() == getView(tab))
             return;
         tabs.show(tab);
-        if (tab == CHANGES) {
-            if (changesTree == null)
-                changesTree = new ChangesTree(this, frame.changesOpen);
-            topScrollPane.setViewportView(changesTree);
-            changesTree.shown(true);
-        } else {
-            if (changesTree != null)
-                changesTree.shown(false);
-            topScrollPane.setViewportView(bufferTree);
-        }
+        topScrollPane.setViewportView(getView(tab));
         topPanel.validate();
         topPanel.repaint();
     }
 
-    // A click on a tab's title: shown; the Changes tab's shown already, read again.
-    private void chooseTab(int tab) {
-        if (tab == CHANGES && tabs.shown() == CHANGES)
-            changesTree.again();
-        showTab(tab);
+    private JComponent getView(int tab) {
+        return tab == CHANGES ? changesTree : bufferTree;
     }
 
-    /** What the upper half shows: the buffer list, or the Changes tab's tree. */
+    // A click on a tab's title: shown; the Changes tab's shown already, read again.
+    private void chooseTab(int tab) {
+        if (tab == CHANGES && tabs.shown() == CHANGES && changesTree != null)
+            changesTree.again();
+        setPanels(tab, frame.sidebarTree);
+    }
+
+    /** What the upper half shows, the buffer list or the Changes tab's tree; null with it hidden. */
     public JComponent getTopView() {
-        return tabs.shown() == CHANGES ? changesTree : bufferTree;
+        return topPanel.isVisible() ? getView(tabs.shown()) : null;
+    }
+
+    /** The upper half's view focused, if it shows, as Tab from the lower half goes. */
+    public void focusTopView() {
+        final JComponent view = getTopView();
+        if (view != null)
+            frame.setFocus(view);
+    }
+
+    /** The lower half's tree focused, if it shows, as Tab from the upper half goes. */
+    public void focusBottomComponent() {
+        if (bottomPanel.isVisible() && bottomComponent != null)
+            frame.setFocus((JComponent) bottomComponent);
     }
 
     public void activateNavigationComponent() {
+        if (!frame.sidebarTree)
+            setPanels(frame.sidebarTop, true);
         if (bottomComponent != null)
             frame.setFocus((JComponent) bottomComponent);
     }
 
+    /** Where the halves divide: with one hidden, where they did with both shown. */
     public int getDividerLocation() {
-        if (splitPane == null)
-            return -1;
-
-        return splitPane.getDividerLocation();
+        return topPanel.isVisible() && bottomPanel.isVisible() ? splitPane.getDividerLocation() : divider;
     }
 
     /** The lower half's label, as when its component's own text changes. */
@@ -224,6 +316,7 @@ public final class Sidebar extends JComponent {
         }
         Debug.assertTrue(bottomComponent == null);
         final Editor editor = getEditor();
+        bottomBuffer = editor.getBuffer();
         bottomComponent = editor.getMode().getSidebarComponent(editor);
         if (bottomComponent != null) {
             // The mode caches this component on the View, so it can predate a
@@ -243,7 +336,7 @@ public final class Sidebar extends JComponent {
 
     public synchronized void refreshSidebar() {
         // The current buffer's repositories, if the Changes tab shows them.
-        if (changesTree != null && tabs.shown() == CHANGES)
+        if (changesTree != null && frame.sidebarTop == CHANGES)
             changesTree.follow();
         if (updateFlag != 0) {
             if ((updateFlag & SIDEBAR_BUFFER_LIST_ALL) != 0) {
@@ -259,7 +352,10 @@ public final class Sidebar extends JComponent {
             if (bottomComponent == null || bottomComponent != frame.getFocusedComponent()) {
                 setBottomComponent();
                 if (bottomComponent != null) {
-                    bottomPanel.setLabelText(bottomComponent.getLabelText());
+                    // A tree of a buffer with no file, as a comparison's side,
+                    // titled by the buffer: the label row stays.
+                    final String label = bottomComponent.getLabelText();
+                    bottomPanel.setLabelText(label != null && !label.isEmpty() ? label : bottomBuffer.getTitle());
                     // This might start a thread.
                     bottomComponent.refresh();
                     if ((updateFlag & SIDEBAR_POSITION) != 0)

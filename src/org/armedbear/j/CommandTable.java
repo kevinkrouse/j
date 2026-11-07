@@ -345,6 +345,9 @@ public class CommandTable {
             add("shrinkWindowIfLargerThanBuffer", WindowCommands::shrinkWindowIfLargerThanBuffer);
             add("sidebarListBuffers", WindowCommands::sidebarListBuffers);
             add("sidebarListChanges", WindowCommands::sidebarListChanges);
+            add("sidebarToggleBuffers", WindowCommands::sidebarToggleBuffers);
+            add("sidebarToggleChanges", WindowCommands::sidebarToggleChanges);
+            add("sidebarToggleTree", WindowCommands::sidebarToggleTree);
             add("sidebarListTags", WindowCommands::sidebarListTags);
             add("slideIn", IndentCommands::slideIn);
             add("slideOut", IndentCommands::slideOut);

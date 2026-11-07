@@ -618,6 +618,10 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             return s.getRepositories();
         if (buffer instanceof StatusDiffBuffer d)
             return d.getOwner().getRepositories();
+        // A comparison following a buffer, as vcsDiff's of a file: the file's.
+        final CompareBuffer compare = CompareBuffer.of(buffer);
+        if (compare != null && compare.followed() != null && compare.followed() != buffer)
+            return repositoriesFor(compare.followed());
         // A log's, from its list or its files or diff.
         final Buffer view = buffer instanceof ViewPane<?> pane ? pane.getOwner() : buffer;
         if (view instanceof LogBuffer log)

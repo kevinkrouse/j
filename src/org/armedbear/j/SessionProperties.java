@@ -112,7 +112,22 @@ public final class SessionProperties {
                 }
             }
             setBooleanProperty(prefix.concat("sidebar.show"), frame.getSidebar() != null);
+            // The panels it shows, kept while it is hidden, for it to show again.
+            setStringProperty(prefix.concat("sidebar.top"), Sidebar.topName(frame.sidebarTop));
+            setBooleanProperty(prefix.concat("sidebar.tree"), frame.sidebarTree);
         }
+    }
+
+    /** The upper half's panel frame's sidebar showed, Sidebar.BUFFERS, CHANGES or NONE; Buffers to begin with. */
+    public int getSidebarTop(Frame frame) {
+        final String prefix = getPrefix(frame);
+        return Sidebar.topOf(prefix == null ? null : getStringProperty(prefix.concat("sidebar.top"), null));
+    }
+
+    /** Whether frame's sidebar showed its lower half's tree; to begin with it does. */
+    public boolean getSidebarTree(Frame frame) {
+        final String prefix = getPrefix(frame);
+        return prefix == null || getBooleanProperty(prefix.concat("sidebar.tree"), true);
     }
 
     // Records the uiScale the sidebar is being laid out under. Called when the

@@ -281,7 +281,7 @@ public final class XmlTree extends JTree
             case KeyEvent.VK_TAB:
                 e.consume();
                 if (modifiers == 0)
-                    editor.setFocus(editor.getSidebar().getTopView());
+                    editor.getSidebar().focusTopView();
                 return;
             case KeyEvent.VK_ESCAPE:
                 e.consume();

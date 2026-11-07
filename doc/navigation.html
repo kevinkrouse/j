@@ -95,14 +95,21 @@ to the buffer before.
 <a href="commands.html#nextBuffer">nextBuffer</a>) cycle through the open
 buffers.
 
-<li><b>Alt B</b> (<a href="commands.html#sidebarListBuffers">sidebarListBuffers</a>)
+<li><a name="sidebar"></a><b>Alt B</b> (<a href="commands.html#sidebarListBuffers">sidebarListBuffers</a>)
 moves to the buffer list in the sidebar, the first of its upper half's two
 tabs; the second, Changes
 (<a href="commands.html#sidebarListChanges">sidebarListChanges</a>), lists
 the files changed in the current buffer's repositories: see
 <a href="git.html#changes-tab">the Changes tab</a>. <b>Alt =</b>
 (<a href="commands.html#toggleSidebar">toggleSidebar</a>) shows or hides the
-sidebar.
+sidebar. The buttons at the left of the status bar do the same and show
+what is shown, lit: the sidebar, then its panels, Buffers and Changes
+(<a href="commands.html#sidebarToggleBuffers">sidebarToggleBuffers</a>,
+<a href="commands.html#sidebarToggleChanges">sidebarToggleChanges</a>), which
+share the upper half, and the Tree below
+(<a href="commands.html#sidebarToggleTree">sidebarToggleTree</a>). Hiding the
+last panel hides the sidebar; shown again, it shows the panels it had, which
+j keeps from one run to the next.
 
 <li><b>F10</b> and <b>Ctrl F10</b>
 (<a href="commands.html#splitWindow">splitWindow</a>,

@@ -56,6 +56,7 @@ import javax.swing.LayoutFocusTraversalPolicy;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.vcs.VersionControl;
+import org.armedbear.j.vcs.status.ChangesTree;
 
 public final class Frame extends JFrame
         implements ComponentListener, FocusListener, WindowListener, WindowStateListener {
@@ -86,6 +87,8 @@ public final class Frame extends JFrame
         editors.add(editor);
         currentEditor = editor;
         priorEditor = null;
+        sidebarTop = sessionProperties.getSidebarTop(this);
+        sidebarTree = sessionProperties.getSidebarTree(this);
         if (sessionProperties.getShowSidebar(this)) {
             sidebar = new Sidebar(this);
             sidebarSplitPane = createSidebarSplitPane();
@@ -356,10 +359,13 @@ public final class Frame extends JFrame
     }
 
     private Sidebar sidebar;
-    // The sidebar's upper half's tab, kept as the sidebar is hidden or rebuilt.
-    int sidebarTab = Sidebar.BUFFERS;
-    // The Changes tab's nodes left open or closed, by key, kept likewise.
-    final Map<String, Boolean> changesOpen = new HashMap<>();
+    // The sidebar's panels: its upper half's, Sidebar.BUFFERS, CHANGES or
+    // NONE, and whether its lower half's tree shows; kept as the sidebar is
+    // hidden or rebuilt, and in the session's properties.
+    int sidebarTop = Sidebar.BUFFERS;
+    boolean sidebarTree = true;
+    // What the Changes tab keeps likewise.
+    final ChangesTree.Kept changesKept = new ChangesTree.Kept();
 
     public final Sidebar getSidebar() {
         return sidebar;
@@ -389,14 +395,56 @@ public final class Frame extends JFrame
         getContentPane().add(sidebarSplitPane, "Center");
         validate();
         currentEditor.setFocusToDisplay();
+        // Filled now, not when the idle thread next refreshes it, half a second or more on.
         sidebar.setUpdateFlag(SIDEBAR_ALL);
+        sidebar.refreshSidebar();
     }
 
     public final EditorPane getEditorPane() {
         return editorPane;
     }
 
+    /**
+     * Shows or hides a panel of the sidebar, Sidebar.BUFFERS, CHANGES or
+     * TREE: the sidebar shown with it if hidden; hidden, with the panel
+     * kept for it to show again, if the last panel shown is hidden.
+     * Buffers and Changes share the upper half: one shows the other hidden.
+     */
+    public void toggleSidebarPanel(int panel) {
+        final Sidebar.Panels now = new Sidebar.Panels(sidebarTop, sidebarTree);
+        if (sidebar == null) {
+            final Sidebar.Panels shown = now.with(panel);
+            sidebarTop = shown.top();
+            sidebarTree = shown.tree();
+            frameToggleSidebar();
+            return;
+        }
+        final Sidebar.Panels next = now.toggle(panel);
+        // The last hidden: the sidebar hidden, its panels kept.
+        if (next.isEmpty()) {
+            frameToggleSidebar();
+            return;
+        }
+        sidebar.setPanels(next.top(), next.tree());
+        // What it shows newly filled at once, not when the idle thread next
+        // refreshes it: the buffer list, or the tree. Changes reads itself.
+        int flags = 0;
+        if (next.top() == Sidebar.BUFFERS && now.top() != Sidebar.BUFFERS)
+            flags |= SIDEBAR_BUFFER_LIST_ALL;
+        if (next.tree() && !now.tree())
+            flags |= SIDEBAR_NAVIGATION_COMPONENT_ALL;
+        if (flags != 0) {
+            sidebar.setUpdateFlag(flags);
+            sidebar.refreshSidebar();
+        }
+    }
+
     public void frameToggleSidebar() {
+        // Shown with no panel to show: the first ones again.
+        if (sidebar == null && new Sidebar.Panels(sidebarTop, sidebarTree).isEmpty()) {
+            sidebarTop = Sidebar.BUFFERS;
+            sidebarTree = true;
+        }
         if (sidebar == null) {
             // Add sidebar.
             getContentPane().remove(getEditorPane());
@@ -415,6 +463,7 @@ public final class Frame extends JFrame
         for (Editor ed : editors)
             ed.updateScrollBars();
         currentEditor.setFocusToDisplay();
+        repaintStatusBar();
     }
 
     public final StatusBar getStatusBar() {

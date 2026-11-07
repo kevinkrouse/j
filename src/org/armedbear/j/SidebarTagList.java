@@ -212,7 +212,7 @@ public class SidebarTagList extends SidebarList
                 e.consume();
                 if (modifiers == 0) {
                     updatePosition();
-                    editor.setFocus(sidebar.getTopView());
+                    sidebar.focusTopView();
                 }
                 return;
             case KeyEvent.VK_ESCAPE:

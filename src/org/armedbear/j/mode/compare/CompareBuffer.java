@@ -246,6 +246,11 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
         return source != null;
     }
 
+    /** The buffer it follows, as vcsDiff's the file's; null for none. */
+    public Buffer followed() {
+        return source != null ? source.buffer() : null;
+    }
+
     /** Whether a window shows either side. */
     public boolean isShown() {
         return !windows().isEmpty() || !old.windows().isEmpty();

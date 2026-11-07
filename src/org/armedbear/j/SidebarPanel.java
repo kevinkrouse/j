@@ -68,13 +68,8 @@ public final class SidebarPanel extends JPanel implements MouseListener {
                     validate();
                 }
             }
-            if (label != null && !s.equals(label.getText())) {
+            if (label != null && !s.equals(label.getText()))
                 label.setText(s);
-                // Don't let width of label constrain width of sidebar.
-                Dimension dim = label.getPreferredSize();
-                dim.width = 0;
-                label.setMinimumSize(dim);
-            }
         }
     }
 
@@ -121,6 +116,18 @@ public final class SidebarPanel extends JPanel implements MouseListener {
         private Label() {
             super();
             setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
+        }
+
+        // Its full height always, so a short sidebar doesn't squash it; its
+        // width no limit on the sidebar's.
+        @Override
+        public Dimension getMinimumSize() {
+            return new Dimension(0, getPreferredSize().height);
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
         }
 
         @Override

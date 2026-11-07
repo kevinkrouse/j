@@ -23,6 +23,7 @@ package org.armedbear.j.vcs.status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -60,6 +61,8 @@ public class ChangesTreeTest {
     private GitFixture git;
     private EditorHarness h;
     private ChangesTree tree;
+    // What the tree keeps across sidebars, as a frame does.
+    private final ChangesTree.Kept kept = new ChangesTree.Kept();
 
     private static final String SIXTY;
 
@@ -116,7 +119,7 @@ public class ChangesTreeTest {
                 a.initialize();
             a.load();
             h.showBuffer(a);
-            tree = new ChangesTree(null, new java.util.HashMap<>());
+            tree = new ChangesTree(null, kept);
             tree.shown(true);
         });
         until(() -> !rows().isEmpty() && !rows().get(0).equals("Reading…"));
@@ -251,7 +254,7 @@ public class ChangesTreeTest {
             // The status of both, as the project's: the tree shows it.
             final VcsStatusBuffer status = VcsStatusBuffer.of(List.of(ra, rb));
             h.showBuffer(status);
-            tree = new ChangesTree(null, new java.util.HashMap<>());
+            tree = new ChangesTree(null, kept);
             tree.shown(true);
         });
         until(() -> rows().contains("  Unstaged changes (1)") && rows().contains("    M  x.txt"));
@@ -326,5 +329,34 @@ public class ChangesTreeTest {
             status.unpickAll();
             assertTrue(status.isDisposed(), "closed with nothing to keep it");
         });
+    }
+
+    @Test
+    public void vcsDiffsComparisonIsInItsFilesRepositoriesAndANewTreeShowsWhatTheLastDid() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        onEdt(() -> org.armedbear.j.vcs.VcsDiffCommands.vcsDiff(h.editor()));
+        // Made once what is staged is read.
+        final org.armedbear.j.mode.compare.CompareBuffer[] found = new org.armedbear.j.mode.compare.CompareBuffer[1];
+        until(() -> {
+            for (Buffer b : Editor.getBufferList())
+                if (b instanceof org.armedbear.j.mode.compare.CompareBuffer c)
+                    found[0] = c;
+            return found[0] != null;
+        });
+        onEdt(() -> {
+            assertNull(found[0].getFile(), "a buffer of no file");
+            assertEquals(List.of(repo()), VcsStatusMode.repositoriesFor(found[0]));
+            found[0].kill();
+        });
+        // A new tree, as the sidebar is shown again, over a buffer in no
+        // repository: the repositories the last one kept.
+        onEdt(() -> {
+            tree.shown(false);
+            h.showBuffer(h.buffer());
+            tree = new ChangesTree(null, kept);
+            tree.shown(true);
+        });
+        until(() -> rows().contains("Unstaged changes (1)"));
     }
 }

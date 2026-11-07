@@ -77,7 +77,7 @@ public class SidebarTree extends JTree {
                     final Sidebar sidebar = editor.getSidebar();
                     if (sidebar != null) {
                         updatePosition.run();
-                        editor.setFocus(sidebar.getTopView());
+                        sidebar.focusTopView();
                     }
                 }
                 return;

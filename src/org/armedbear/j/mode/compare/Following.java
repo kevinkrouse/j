@@ -93,6 +93,11 @@ public final class Following implements Buffer.Follower {
     // Changed while out of every window.
     private boolean pending;
 
+    /** The buffer it follows. */
+    public Buffer buffer() {
+        return buffer;
+    }
+
     private Following(CompareBuffer comparison, Buffer buffer, Base base, Frame frame) {
         this.comparison = comparison;
         this.buffer = buffer;

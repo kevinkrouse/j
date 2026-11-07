@@ -64,7 +64,6 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -543,10 +542,8 @@ public final class SidebarBufferTree extends SidebarTree
             case KeyEvent.VK_TAB:
                 e.consume();
                 if (modifiers == 0) {
-                    if (sidebar.getBottomComponent() != null) {
-                        sidebar.setBuffer();
-                        editor.setFocus((JComponent) sidebar.getBottomComponent());
-                    }
+                    sidebar.setBuffer();
+                    sidebar.focusBottomComponent();
                 }
                 return;
             case KeyEvent.VK_ESCAPE:

@@ -32,12 +32,14 @@ import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.util.List;
 import javax.swing.JComponent;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public final class StatusBar extends JComponent implements PreferencesChangeListener {
@@ -78,24 +80,133 @@ public final class StatusBar extends JComponent implements PreferencesChangeList
         insets = border.getBorderInsets(this);
         dim.height = charAscent + charDescent + insets.top + insets.bottom;
         setPreferredSize(dim);
-        // The buffer's link in the status text, as the change's changelist, opens what it does.
+        // Its buttons for the sidebar run their commands; the buffer's link in
+        // the status text, as the change's changelist, opens what it does.
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 final Editor editor = frame.getCurrentEditor();
-                if (link != null && link.contains(e.getPoint()) && editor.getBuffer() != null)
+                final int b = buttonAt(e.getX(), e.getY());
+                if (b >= 0 && e.getButton() == MouseEvent.BUTTON1) {
+                    editor.executeCommand(BUTTONS.get(b).command());
+                    repaint();
+                } else if (link != null && link.contains(e.getPoint()) && editor.getBuffer() != null)
                     editor.getBuffer().statusLinkClicked(editor, StatusBar.this, link.x, 0);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hover(-1);
             }
         });
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
+                hover(buttonAt(e.getX(), e.getY()));
                 setCursor(
                     link != null && link.contains(e.getPoint())
                             ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                             : Cursor.getDefaultCursor());
             }
         });
+        // Each button's, as getToolTipText says.
+        setToolTipText("");
+    }
+
+    /** A button at the status bar's left that shows or hides the sidebar, or a panel of it. */
+    record Button(String command, String icon, String name, int panel) {}
+
+    // The sidebar's button's panel.
+    private static final int SIDEBAR = -2;
+
+    /** Its buttons, left to right: the sidebar, then past a divider its panels. */
+    static final List<Button> BUTTONS = List.of(
+        new Button("toggleSidebar", "sidebar", "Sidebar", SIDEBAR),
+        new Button("sidebarToggleBuffers", "buffers", "Buffers", Sidebar.BUFFERS),
+        new Button("sidebarToggleChanges", "changelist", "Changes", Sidebar.CHANGES),
+        new Button("sidebarToggleTree", "tree", "Tree", Sidebar.TREE));
+
+    // Where each button was last painted, and the one the mouse is over, or -1.
+    private final Rectangle[] buttons = new Rectangle[BUTTONS.size()];
+    private int hover = -1;
+
+    private int buttonAt(int x, int y) {
+        for (int i = 0; i < buttons.length; i++)
+            if (buttons[i] != null && buttons[i].contains(x, y))
+                return i;
+        return -1;
+    }
+
+    private void hover(int b) {
+        if (b == hover)
+            return;
+        hover = b;
+        repaint();
+    }
+
+    /** Whether what b shows or hides shows in frame. */
+    static boolean isOn(Frame frame, Button b) {
+        final Sidebar sidebar = frame.getSidebar();
+        if (b.panel() == SIDEBAR || sidebar == null)
+            return sidebar != null;
+        return b.panel() == Sidebar.TREE ? frame.sidebarTree : frame.sidebarTop == b.panel();
+    }
+
+    @Override
+    public String getToolTipText(MouseEvent e) {
+        final int b = buttonAt(e.getX(), e.getY());
+        if (b < 0)
+            return null;
+        final Button button = BUTTONS.get(b);
+        final Editor editor = frame.getCurrentEditor();
+        final Object[] mapping =
+                editor == null || editor.getBuffer() == null ? null : editor.getKeyMapping(button.command());
+        final String key = mapping != null && mapping[0] instanceof KeyMapping m ? m.getKeyText() : "";
+        return (isOn(frame, button) ? "Hide " : "Show ") + button.name() + (key.isEmpty() ? "" : "  " + key);
+    }
+
+    // The buttons painted from x, in a row height tall at y: the right of the last.
+    private int paintButtons(Graphics g, int x, int y, int height) {
+        final int width = height + UIScale.scale(4);
+        final int iconSize = Math.max(8, height - UIScale.scale(4));
+        final int arc = UIScale.scale(6);
+        final Color text = UIManager.getColor("controlText");
+        final Color dim = UIManager.getColor("Label.disabledForeground");
+        final Color selection = UIManager.getColor("Tree.selectionBackground");
+        final Color on = selection != null ? selection : new Color(0xd9ddf7);
+        final Color control = UIManager.getColor("control");
+        final Color hovered = control != null ? control.darker() : Color.lightGray;
+        for (int i = 0; i < BUTTONS.size(); i++) {
+            final Button b = BUTTONS.get(i);
+            if (i == 1) {
+                // The sidebar's apart from its panels.
+                x += UIScale.scale(4);
+                g.setColor(dim != null ? dim : Color.gray);
+                g.fillRect(x, y + UIScale.scale(3), 1, height - 2 * UIScale.scale(3));
+                x += 1 + UIScale.scale(4);
+            }
+            final boolean shown = isOn(frame, b);
+            if (shown) {
+                g.setColor(on);
+                g.fillRoundRect(x, y, width - 1, height - 1, arc, arc);
+                g.setColor(on.darker());
+                g.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            } else if (i == hover) {
+                g.setColor(hovered);
+                g.fillRoundRect(x, y, width - 1, height - 1, arc, arc);
+            }
+            // The tree dimmed where the buffer's mode has none.
+            final boolean none = b.panel() == Sidebar.TREE
+                    && frame.getSidebar() != null
+                    && frame.getSidebar().getBottomComponent() == null;
+            final Color color = shown ? linkColor().darker() : none && dim != null ? dim : text;
+            final javax.swing.Icon icon = Icons.getIconFromFile(b.icon(), iconSize, color);
+            if (icon != null)
+                icon.paintIcon(this, g, x + (width - iconSize) / 2, y + (height - iconSize) / 2);
+            buttons[i] = new Rectangle(x, y, width, height);
+            x += width + UIScale.scale(1);
+        }
+        return x;
     }
 
     // Where the buffer's link in the status text was last painted, or null.
@@ -172,7 +283,8 @@ public final class StatusBar extends JComponent implements PreferencesChangeList
         g.setColor(UIManager.getColor("controlText"));
         g.setFont(font);
         Display.setRenderingHints(g);
-        int x1 = insets.left + leftMargin;
+        int x1 = paintButtons(g, insets.left + leftMargin, insets.top, textAreaHeight) + UIScale.scale(8);
+        g.setColor(UIManager.getColor("controlText"));
         int y = insets.top + charAscent;
         if (messageText == null && displayContext > 0) {
             // We want the long context string if displayContext > 1.

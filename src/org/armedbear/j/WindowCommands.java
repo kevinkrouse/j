@@ -58,6 +58,21 @@ public final class WindowCommands {
         sidebarTab(editor, Sidebar.CHANGES);
     }
 
+    /** sidebarToggleBuffers: the sidebar's buffer list shown, or hidden if it shows, as its status bar button. */
+    public static void sidebarToggleBuffers(Editor editor) {
+        editor.getFrame().toggleSidebarPanel(Sidebar.BUFFERS);
+    }
+
+    /** sidebarToggleChanges: the sidebar's Changes tab shown, or hidden if it shows. */
+    public static void sidebarToggleChanges(Editor editor) {
+        editor.getFrame().toggleSidebarPanel(Sidebar.CHANGES);
+    }
+
+    /** sidebarToggleTree: the sidebar's lower half, the mode's tree, shown, or hidden if it shows. */
+    public static void sidebarToggleTree(Editor editor) {
+        editor.getFrame().toggleSidebarPanel(Sidebar.TREE);
+    }
+
     // The sidebar shown, if it isn't, its upper half's tab shown and focused.
     private static void sidebarTab(Editor editor, int tab) {
         editor.ensureActive();

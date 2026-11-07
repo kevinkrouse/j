@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,8 +148,19 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     private boolean shown;
     // The buffer followed last.
     private Buffer followed;
-    // The repositories it showed as it was hidden, shown again for a buffer in none.
-    private List<VcsRepository> hidden;
+    // What it keeps across sidebars, its frame's.
+    private final Kept kept;
+
+    /**
+     * What a frame's Changes tab keeps as its sidebar is hidden or rebuilt:
+     * the nodes left open or closed, by key, and the repositories it last
+     * showed, shown again for a buffer in none, as a comparison's side.
+     */
+    public static final class Kept {
+        final Map<String, Boolean> open = new HashMap<>();
+        List<VcsRepository> shown;
+    }
+
     // What it shows, and of which status.
     private List<Part> parts = List.of();
     private RepositoryStatus partsOf;
@@ -172,8 +184,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     // The file dragged, while one is.
     private FileNode dragged;
 
-    /** In sidebar, null in tests; its nodes left open or closed kept in opened, by key. */
-    public ChangesTree(Sidebar sidebar, Map<String, Boolean> opened) {
+    /** In sidebar, null in tests, keeping what it keeps across sidebars in kept. */
+    public ChangesTree(Sidebar sidebar, Kept kept) {
         super((TreeModel) null);
         this.sidebar = sidebar;
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -184,7 +196,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         setToolTipText("");
         addKeyListener(this);
         addMouseListener(this);
-        open = new TreeOpenState(this, opened, ChangesTree::key, o -> true);
+        this.kept = kept;
+        open = new TreeOpenState(this, kept.open, ChangesTree::key, o -> true);
         // Headless, as in tests, there is no dragging.
         if (!GraphicsEnvironment.isHeadless())
             setDragEnabled(true);
@@ -204,8 +217,6 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             follow();
             update();
         } else {
-            if (status != null)
-                hidden = status.getRepositories();
             show(null);
         }
     }
@@ -228,7 +239,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         List<VcsRepository> rs = VcsStatusMode.repositoriesFor(b);
         // Not in one, as a directory listing outside: what it showed stays.
         if (rs.isEmpty())
-            rs = status != null ? status.getRepositories() : hidden != null ? hidden : List.of();
+            rs = status != null ? status.getRepositories() : kept.shown != null ? kept.shown : List.of();
         if (!rs.isEmpty() && (status == null || !status.getRepositories().equals(rs)))
             show(RepositoryStatus.of(rs));
         else if (status == null && !built)
@@ -245,8 +256,10 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             return;
         final RepositoryStatus was = status;
         status = s;
-        if (s != null)
+        if (s != null) {
             s.hold(this, shows);
+            kept.shown = s.getRepositories();
+        }
         if (was != null)
             was.release(this, shows);
         update();
@@ -533,8 +546,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         // Tab to the lower half, Space picks.
         if (e.getKeyCode() == KeyEvent.VK_TAB && Keys.keyModifiers(e) == 0) {
             e.consume();
-            if (sidebar != null && sidebar.getBottomComponent() != null)
-                editor.setFocus((JComponent) sidebar.getBottomComponent());
+            if (sidebar != null)
+                sidebar.focusBottomComponent();
             return;
         }
         if (e.getKeyCode() == KeyEvent.VK_SPACE && Keys.keyModifiers(e) == 0) {
