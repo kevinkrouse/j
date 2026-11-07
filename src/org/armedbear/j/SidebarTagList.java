@@ -222,6 +222,8 @@ public class SidebarTagList extends SidebarList
                 editor.setFocusToDisplay();
                 return;
         }
+        if (SidebarTree.chord(editor, e))
+            return;
         editor.getDispatcher().setEnabled(false);
     }
 

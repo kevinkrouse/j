@@ -54,6 +54,7 @@ import org.armedbear.j.LocationBar;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
+import org.armedbear.j.SidebarTree;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.WindowCommands;
 import org.armedbear.j.XmlParserImpl;
@@ -290,6 +291,8 @@ public final class XmlTree extends JTree
                 editor.setFocusToDisplay();
                 return;
         }
+        if (SidebarTree.chord(editor, e))
+            return;
         editor.getDispatcher().setEnabled(false);
     }
 

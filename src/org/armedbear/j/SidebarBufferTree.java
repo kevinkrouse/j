@@ -561,6 +561,8 @@ public final class SidebarBufferTree extends SidebarTree
                 closeSelectedBuffers();
                 return;
         }
+        if (SidebarTree.chord(editor, e))
+            return;
         editor.getDispatcher().setEnabled(false);
     }
 

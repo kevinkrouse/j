@@ -241,6 +241,8 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                 return;
         }
 
+        if (SidebarTree.chord(editor, e))
+            return;
         editor.getDispatcher().setEnabled(false);
     }
 

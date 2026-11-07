@@ -89,7 +89,33 @@ public class SidebarTree extends JTree {
                 editor.setFocusToDisplay();
                 return;
         }
+        if (chord(editor, e))
+            return;
         editor.getDispatcher().setEnabled(false);
+    }
+
+    /**
+     * A chord, Ctrl or Alt with a key the tree doesn't move by, run as the
+     * text's keys run it, so Ctrl P, Ctrl Shift P and the like work from the
+     * sidebar too: whether something took it.
+     */
+    public static boolean chord(Editor editor, KeyEvent e) {
+        final int modifiers = Keys.keyModifiers(e);
+        if ((modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK | Constants.META_MASK)) == 0)
+            return false;
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_SHIFT, KeyEvent.VK_CONTROL, KeyEvent.VK_ALT, KeyEvent.VK_META, KeyEvent.VK_UP,
+                    KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_KP_UP, KeyEvent.VK_KP_DOWN,
+                    KeyEvent.VK_KP_LEFT, KeyEvent.VK_KP_RIGHT, KeyEvent.VK_HOME, KeyEvent.VK_END, KeyEvent.VK_PAGE_UP,
+                    KeyEvent.VK_PAGE_DOWN, KeyEvent.VK_SPACE, KeyEvent.VK_ENTER, KeyEvent.VK_TAB, KeyEvent.VK_ESCAPE:
+                return false;
+            default:
+                break;
+        }
+        if (!editor.getDispatcher().dispatchKeyPressedFrom(e))
+            return false;
+        e.consume();
+        return true;
     }
 
     /** The key's release: the editor's keys again. */

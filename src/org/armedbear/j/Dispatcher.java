@@ -137,6 +137,18 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         this.enabled = enabled;
     }
 
+    /**
+     * A key pressed elsewhere in its frame, as in the sidebar, run as its
+     * window's own would be: whether something took it.
+     */
+    public boolean dispatchKeyPressedFrom(KeyEvent e) {
+        editor.ensureActive();
+        Editor.setCurrentEditor(editor);
+        lastKeyEvent = KeyEvent.KEY_PRESSED;
+        ignoreKeyTyped = false;
+        return dispatchKeyPressed(e);
+    }
+
     private void dispatch(AWTEvent e) {
         lastEvent = e;
 
