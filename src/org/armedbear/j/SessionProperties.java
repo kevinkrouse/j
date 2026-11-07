@@ -108,16 +108,10 @@ public final class SessionProperties {
                 int dividerLocation = frame.getSidebar().getDividerLocation();
                 if (dividerLocation >= 0) {
                     // If < 0, sidebar has no divider.
-                    setIntegerProperty(
-                        prefix.concat("sidebar.dividerLocation"),
-                        dividerLocation
-                    );
+                    setIntegerProperty(prefix.concat("sidebar.dividerLocation"), dividerLocation);
                 }
             }
-            setBooleanProperty(
-                prefix.concat("sidebar.show"),
-                frame.getSidebar() != null
-            );
+            setBooleanProperty(prefix.concat("sidebar.show"), frame.getSidebar() != null);
         }
     }
 
@@ -129,10 +123,7 @@ public final class SessionProperties {
     public void recordSidebarScale(Frame frame) {
         String prefix = getPrefix(frame);
         if (prefix != null)
-            setIntegerProperty(
-                prefix.concat("sidebar.scale"),
-                (int) Math.round(UIScale.getScale() * 100)
-            );
+            setIntegerProperty(prefix.concat("sidebar.scale"), (int) Math.round(UIScale.getScale() * 100));
     }
 
     public boolean getShowSidebar(Frame frame) {
@@ -143,10 +134,7 @@ public final class SessionProperties {
 
         String prefix = getPrefix(frame);
         if (prefix != null)
-            toBeReturned = getBooleanProperty(
-                prefix.concat("sidebar.show"),
-                toBeReturned
-            );
+            toBeReturned = getBooleanProperty(prefix.concat("sidebar.show"), toBeReturned);
         return toBeReturned;
     }
 
