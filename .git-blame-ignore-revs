@@ -178,3 +178,6 @@ b0f9e873779926840838d61e99cac934768edb6c
 
 # reformat: SidebarTagList and XmlTree, which phase 10 of the git tooling changes
 5f295d416395c36010831f329ed713f6d21e3326
+
+# reformat: SessionProperties, which phase 10 of the git tooling changes
+f6789442af3b4e2e41044ba39c4f651e5b68d463
