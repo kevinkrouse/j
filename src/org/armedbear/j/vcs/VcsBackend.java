@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -154,6 +155,28 @@ public interface VcsBackend {
 
     /** Commits what is staged with message (null to keep the last's, with AMEND and KEEP_MESSAGE). */
     default VcsResult commit(VcsRepository repository, String message, Set<CommitOption> options) {
+        return null;
+    }
+
+    /** What a commit through a private index came to: the commit's result, and what went wrong after it, or null. */
+    record PrivateCommit(VcsResult result, String trouble) {}
+
+    /**
+     * Commits with message the changes of paths that stage, run here,
+     * stages into a private index, the repository's set to HEAD, as it
+     * would the repository's own; stage says what went wrong, or null. The
+     * repository's index left alone but for paths, set as committed; and
+     * refused, as the index has it now, with a conflict, or something of
+     * paths staged. stage must make its writes on the calling thread,
+     * which alone takes the private index. Null where its version control
+     * has no private index.
+     */
+    default PrivateCommit commitPrivately(
+            VcsRepository repository,
+            List<String> paths,
+            Supplier<String> stage,
+            String message,
+            Set<CommitOption> options) {
         return null;
     }
 

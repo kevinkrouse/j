@@ -478,7 +478,9 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitCancel">vcsCommitCancel</a></li>
     <li><a href="commands.html#vcsCommitExtend">vcsCommitExtend</a></li>
     <li><a href="commands.html#vcsCommitFinish">vcsCommitFinish</a></li>
+    <li><a href="commands.html#vcsCommitList">vcsCommitList</a></li>
     <li><a href="commands.html#vcsCommitNextMessage">vcsCommitNextMessage</a></li>
+    <li><a href="commands.html#vcsCommitPicked">vcsCommitPicked</a></li>
     <li><a href="commands.html#vcsCommitPopup">vcsCommitPopup</a></li>
     <li><a href="commands.html#vcsCommitPreviousMessage">vcsCommitPreviousMessage</a></li>
     <li><a href="commands.html#vcsCommitReword">vcsCommitReword</a></li>
@@ -6499,11 +6501,34 @@ Commits with the message being written, its # lines left out.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsCommitList">vcsCommitList</a><dl><dd>
+<p>
+Commits a changelist's changes alone, what is staged left staged: the list
+whose heading the caret is on, else one chosen. Its message starts from the
+list's draft. Committed, a list other than Default is deleted.
+<br><br>
+<b>Default key mapping:</b> c l in status buffers; c in the changelist popup
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsCommitNextMessage">vcsCommitNextMessage</a><dl><dd>
 <p>
 In a commit message, steps forward through the messages committed or given up before.
 <br><br>
 <b>Default key mapping:</b> Ctrl N in commit messages
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCommitPicked">vcsCommitPicked</a><dl><dd>
+<p>
+Commits what is picked of the work tree's changes and untracked files alone,
+what is staged left staged.
+<br><br>
+<b>Default key mapping:</b> c p in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#committing">Committing</a>
 <br><br>

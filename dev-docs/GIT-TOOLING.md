@@ -3070,6 +3070,76 @@ plan with why it is left, before the next phase starts.
      hunks, lines of a split hunk, picked changes, with something else
      staged, a patch to the real index that fails, a hook that rejects
      the commit.
+
+     Built: as `git commit -- <paths>` makes a commit (a temporary
+     index from HEAD, the paths updated in it, committed, then the same
+     paths updated in the real index) and git-autofixup and git-hunk
+     commit through `GIT_INDEX_FILE`; IntelliJ adjusts the index to the
+     chosen hunks, and its known trap is a hook that re-stages files.
+     `VcsBackend.commitPrivately`, git's in `GitWrites`: a private index
+     in `<gitdir>/j` (`commit-index-*`, gone after), a copy of the real
+     one made HEAD's with `read-tree -m HEAD`, so unchanged entries keep
+     their stat data and nothing is hashed again; `--empty` only when
+     `rev-parse --verify -q HEAD` says HEAD is missing (exit 1, nothing
+     said), its failure otherwise refusing. The staging runs with
+     `GitCli.withIndex`, a thread's writes taking `GIT_INDEX_FILE` while
+     its reads, as `stillThere`'s diff, take the real index; then the
+     commit, hooks and all, from it. `vcs/status/PartialCommit`, a list
+     (`ofList`) or the picks (`ofPicks`), works out its `Plan` as the
+     message opens and again at Ctrl Enter, refusing (`Refused`): while
+     writing; a list member kept change by change whose diff is unread;
+     picks waiting on a diff, of hunks with whitespace ignored, of what
+     is staged, of a conflict; a repository with no staging, or with a
+     merge, rebase or cherry-pick in progress (git would make the commit
+     the merge's); and a file with something staged, which a whole-file
+     add would take, or the index's update lose. A list's targets are
+     `StatusActions.listTargets`, shared with `s` on its heading. Staged
+     by `StatusActions.perform` into the private index and committed,
+     each path committed is then set in the real index as HEAD has it
+     (`VcsBackend.unstage`, `reset -q -- <paths>`), as git's own commit
+     of paths does: nothing replayed, so no hunk that moved, nor a work
+     tree a hook changed, leaves it half staged. The message is the
+     list's draft; the buffer disposed however, not committed, keeps the
+     text above the template as the draft, # lines of its own and all;
+     committed, a list other than the default is deleted, the default's
+     draft cleared, and each repository's picks unpicked as it commits.
+     Ctrl P and N keep its template (`templateOf`), its title what it
+     commits. `vcsCommitList` (`c l`, and `c` in the changelist popup:
+     the heading at the caret, else chosen, lists with nothing dimmed)
+     and `vcsCommitPicked` (`c p`), `-a` and `-e` dropped. Tests on real
+     repositories: a list's hunk with b.txt staged, the default's whole
+     files and draft, the picked changes with an untracked file, the
+     lines of a hunk split across lists, two hunks of a file around
+     another list's, a hook that rejects (nothing changed, no private
+     index left), a hook that changes the work tree (the index as
+     committed), a file with something staged and a merge in progress
+     refused, Ctrl P keeping the template, and the message killed kept
+     as the draft.
+
+     After three adversarial reviews: the private index is made with
+     `read-tree -i -m HEAD`, the index alone, so an entry the work tree
+     has changed elsewhere (a file staged then edited, an intent-to-add)
+     doesn't stop it; the real index is read afresh where the commit runs
+     (`GitWrites.refusal`: a conflict anywhere, or something of the paths
+     staged, refuses, whatever the status last read); HEAD is checked
+     unmoved before the commit and HEAD^ after it, a commit made meanwhile
+     refused or said; the paths are reset in the real index by the
+     backend itself, an `index.lock` another process holds waited out,
+     its failure said with the command to run; a renamed file's old path
+     is staged and reset with it; private indexes a dead j left are
+     deleted after a day. The message buffer holds the status's model, so
+     what it commits stays read with the status closed. Repository
+     refusals come before a file's "wait". A plan at Ctrl Enter that
+     differs from the one shown redraws the template and waits for
+     another Ctrl Enter (`PartialCommit.retemplate`). A list is deleted
+     only once a read shows nothing left in it, a change the commit
+     didn't take keeping it. A draft whose list was renamed or deleted
+     goes to the comment ring. The trouble after a commit that stands is
+     said with the commits' message, not over it. Tests added: a commit
+     staged in a terminal as the message is written refused at Ctrl
+     Enter, a pick made meanwhile shown before it is committed, a file
+     staged then edited elsewhere, and picks in two repositories; the
+     hook's refusal asserted said.
    - **i. Drag and drop.** Files, hunks and lines dragged between lists in
      the status, as `C m` moves them; the sidebar's status tree too.
    - **j. Docs, the drive and the review.** `doc/git.html`'s

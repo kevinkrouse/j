@@ -1135,7 +1135,8 @@ public class StatusActionsTest {
                     "vcsChangelistActive",
                     "vcsChangelistNew",
                     "vcsChangelistRename",
-                    "vcsChangelistDelete"),
+                    "vcsChangelistDelete",
+                    "vcsCommitList"),
                 commands);
         });
     }

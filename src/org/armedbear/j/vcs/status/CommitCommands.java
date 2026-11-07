@@ -25,7 +25,9 @@ import static org.armedbear.j.Constants.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.regex.Matcher;
@@ -36,6 +38,7 @@ import org.armedbear.j.BufferCommands;
 import org.armedbear.j.CommentRing;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
+import org.armedbear.j.LocationBar;
 import org.armedbear.j.Log;
 import org.armedbear.j.MotionCommands;
 import org.armedbear.j.WindowCommands;
@@ -51,6 +54,8 @@ import org.armedbear.j.vcs.CommandLog;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
+import org.armedbear.j.vcs.changelists.Changelists;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vim.VimInputHandler;
 import org.armedbear.j.vim.VimMode;
@@ -98,7 +103,11 @@ public final class CommitCommands {
                         Switch.of("-n", "--no-verify", "skip the hooks"),
                         Switch.of("-s", "--signoff", "sign off"),
                         Switch.of("-v", "--verbose", "show the diff under the message")),
-                    Group.of("Create", Command.of("c", "vcsCommit", commit)),
+                    Group.of(
+                        "Create",
+                        Command.of("c", "vcsCommit", commit),
+                        Command.of("l", "vcsCommitList", "commit a changelist alone"),
+                        Command.of("p", "vcsCommitPicked", "commit what is picked alone")),
                     Group.of(
                         "Edit the last commit",
                         Command.of("a", "vcsCommitAmend", amend),
@@ -187,6 +196,105 @@ public final class CommitCommands {
 
     public static void vcsCommit(Editor editor) {
         start(editor, EnumSet.noneOf(CommitOption.class));
+    }
+
+    /**
+     * vcsCommitList: commits a changelist's changes alone, what is staged
+     * left staged: the list whose heading the caret is on, else one asked
+     * for, of the repository at the caret; its draft the message.
+     */
+    public static void vcsCommitList(Editor editor) {
+        final Editor at = statusWindow(editor);
+        if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
+            return;
+        final VcsRepository r = repository(at, status);
+        final RepositoryLists lists = RepositoryLists.shown(r);
+        if (lists == null) {
+            at.status("No changelists here: n in the changelist popup makes one");
+            return;
+        }
+        if (status.getData(r) == null) {
+            at.status("Wait: the status is being read");
+            return;
+        }
+        final String heading = ChangelistCommands.listAt(at);
+        if (heading != null) {
+            startPartial(at, status, PartialCommit.ofList(status, r, heading), PartialCommit.draft(r, heading));
+            return;
+        }
+        // Those with nothing in them dimmed, as having nothing to commit.
+        final Map<String, String> empty = new HashMap<>();
+        final List<String> names = new ArrayList<>();
+        final ListedChanges listed = status.model().listed(r);
+        for (Changelists.Changelist l : lists.lists().lists()) {
+            names.add(l.name());
+            if (listed == null || listed.members().getOrDefault(l.name(), List.of()).isEmpty())
+                empty.put(l.name(), "nothing to commit");
+        }
+        if (names.stream().allMatch(empty::containsKey)) {
+            at.status("No changelist has a change to commit");
+            return;
+        }
+        // With several repositories, whose lists they are.
+        final BranchCommands.Question q = status.getRepositories().size() > 1
+                ? new BranchCommands.Question(LocationBar.PROMPT_CHANGELIST,
+                        "select the changelist of " + r.name() + " to commit",
+                        false)
+                : COMMIT_LIST;
+        BranchCommands.choose.choose(at, q, "vcsCommitList", names, empty, name -> {
+            final String list = name.strip();
+            if (empty.containsKey(list) || lists.lists().list(list) == null) {
+                at.status(list + ": " + empty.getOrDefault(list, "no such changelist"));
+                return;
+            }
+            startPartial(at, status, PartialCommit.ofList(status, r, list), PartialCommit.draft(r, list));
+        });
+    }
+
+    private static final BranchCommands.Question COMMIT_LIST =
+            new BranchCommands.Question(LocationBar.PROMPT_CHANGELIST, "select the changelist to commit", false);
+
+    /** vcsCommitPicked: commits what is picked of the work tree's changes alone, what is staged left staged. */
+    public static void vcsCommitPicked(Editor editor) {
+        final Editor at = statusWindow(editor);
+        if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
+            return;
+        startPartial(at, status, PartialCommit.ofPicks(status), "");
+    }
+
+    // A message for partial opened, starting from message, if it can be
+    // committed as things are; else why not said. What it takes is worked
+    // out again as it commits.
+    private static void startPartial(Editor editor, VcsStatusBuffer status, PartialCommit partial, String message) {
+        final PartialCommit.Plan plan;
+        try {
+            plan = partial.plan();
+        }
+        catch (PartialCommit.Refused e) {
+            editor.status(e.getMessage());
+            return;
+        }
+        // What is staged it leaves alone: no -a; nor an empty commit.
+        final Set<CommitOption> options = options(editor);
+        options.removeAll(EnumSet.of(CommitOption.ALL, CommitOption.ALLOW_EMPTY));
+        final List<VcsRepository> repositories = List.copyOf(plan.targets().keySet());
+        final CommitMessageBuffer buffer =
+                open(editor, status, repositories, options, null, partial.template(message, plan, repositories));
+        if (buffer != null)
+            buffer.setPartial(partial, plan);
+    }
+
+    // The message's text with message as its message, as it was opened:
+    // the template of what it commits.
+    private static String templateOf(CommitMessageBuffer buffer, String message) {
+        return buffer.getPartial() != null
+                ? buffer.getPartial().template(message, buffer.getPlan(), buffer.getRepositories())
+                : template(
+                    buffer.getStatus(),
+                    buffer.getRepositories(),
+                    buffer.getOptions(),
+                    message,
+                    buffer.getDiff());
     }
 
     public static void vcsCommitAmend(Editor editor) {
@@ -348,7 +456,8 @@ public final class CommitCommands {
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
-    private static void open(
+    // The message buffer, shown; null if it couldn't be.
+    private static CommitMessageBuffer open(
             Editor editor,
             VcsStatusBuffer status,
             List<VcsRepository> repositories,
@@ -360,13 +469,14 @@ public final class CommitCommands {
         buffer.setStarted(buffer.getMessage());
         final Editor ed = show.apply(editor, buffer);
         if (ed == null)
-            return;
+            return null;
         ed.setDot(buffer.getFirstLine(), buffer.getFirstLine().length());
         ed.moveCaretToDotCol();
         // A message is for writing: in vim edit mode, start inserting.
         if (ed.getInputHandler() instanceof VimInputHandler vim)
             vim.getState().beginInsert(ed, VimMode.INSERT);
         ed.updateDisplay();
+        return buffer;
     }
 
     /** Commits the message being written. */
@@ -393,19 +503,63 @@ public final class CommitCommands {
             editor.status("Wait: the last change is still being made");
             return;
         }
+        // Part of the changes: what it takes worked out as things are now,
+        // in those of its repositories it still commits to.
+        final PartialCommit partial = buffer == null ? null : buffer.getPartial();
+        final PartialCommit.Plan plan;
+        final List<VcsRepository> committing;
+        if (partial != null) {
+            try {
+                plan = partial.plan();
+            }
+            catch (PartialCommit.Refused e) {
+                editor.status(e.getMessage());
+                return;
+            }
+            committing = repositories.stream().filter(plan.targets()::containsKey).toList();
+            if (committing.isEmpty()) {
+                editor.status("Nothing of " + partial.what() + " is left to commit");
+                return;
+            }
+            // What it takes changed since it was shown, as a file edited or
+            // picked meanwhile: shown again, to commit as it is shown.
+            final String shown = templateOf(buffer, message);
+            buffer.setPartial(partial, plan);
+            if (!committing.equals(buffer.getRepositories()))
+                buffer.setRepositories(committing);
+            final String now = templateOf(buffer, message);
+            if (!now.equals(shown)) {
+                for (Editor ed : Editor.getEditorList())
+                    if (ed.getBuffer() == buffer)
+                        replace(ed, buffer, partial.retemplate(buffer.getText(), plan, committing));
+                editor.status("What it commits changed since it was shown: Ctrl Enter commits it as it is now");
+                return;
+            }
+        } else {
+            plan = null;
+            committing = repositories;
+        }
         if (buffer != null)
             buffer.setCommitting(true);
         if (status != null)
             status.startWriting();
-        editor.status(repositories.size() == 1 ? "Committing…" : "Committing to " + names(repositories) + "…");
+        editor.status(committing.size() == 1 ? "Committing…" : "Committing to " + names(committing) + "…");
         Background.start("vcs commit", () -> {
             // One after another; whatever happens, the message and the
             // status take keys again.
             final List<VcsResult> results = new ArrayList<>();
-            for (VcsRepository repository : repositories) {
+            final List<String> unstaged = new ArrayList<>();
+            for (VcsRepository repository : committing) {
                 VcsResult result = null;
                 try {
-                    result = repository.backend().commit(repository, message, options);
+                    if (partial == null)
+                        result = repository.backend().commit(repository, message, options);
+                    else {
+                        final PartialCommit.Done done = partial.commit(plan, repository, message, options);
+                        result = done.result();
+                        if (done.index() != null)
+                            unstaged.add((committing.size() > 1 ? repository.name() + ": " : "") + done.index());
+                    }
                 }
                 catch (RuntimeException e) {
                     Log.error(e);
@@ -414,11 +568,23 @@ public final class CommitCommands {
             }
             if (status != null)
                 status.wrote();
-            for (VcsRepository repository : repositories) {
+            for (VcsRepository repository : committing) {
                 repository.invalidate();
                 repository.refresh();
             }
-            SwingUtilities.invokeLater(() -> committed(editor, status, repositories, message, buffer, results));
+            SwingUtilities.invokeLater(() -> {
+                // Those committed: a list's done with, their picks unpicked.
+                if (partial != null)
+                    for (int i = 0; i < committing.size(); i++)
+                        if (results.get(i) != null && results.get(i).succeeded())
+                            try {
+                                partial.committed(plan, committing.get(i));
+                            }
+                            catch (RuntimeException e) {
+                                Log.error(e);
+                            }
+                committed(editor, status, committing, message, buffer, results, unstaged);
+            });
         });
     }
 
@@ -430,7 +596,10 @@ public final class CommitCommands {
             List<VcsRepository> repositories,
             String message,
             CommitMessageBuffer buffer,
-            List<VcsResult> results) {
+            List<VcsResult> results,
+            List<String> troubles) {
+        // What went wrong after a commit that stands, said with the rest.
+        final String after = troubles.isEmpty() ? "" : "; but " + String.join("; ", troubles);
         final List<String> done = new ArrayList<>();
         final List<String> failed = new ArrayList<>();
         final List<VcsRepository> left = new ArrayList<>();
@@ -449,10 +618,16 @@ public final class CommitCommands {
         if (!done.isEmpty() && message != null)
             CommentRing.getInstance().appendNew(message);
         if (left.isEmpty()) {
-            if (buffer != null)
+            if (buffer != null) {
+                // Committed: no draft to keep.
+                buffer.committedAll();
                 close(editor, buffer);
+            }
             Editor.currentEditor()
-                    .status(repositories.size() == 1 ? done.get(0) : "Committed to " + String.join(", ", done));
+                    .status(
+                        (repositories.size() == 1 ? done.get(0) : "Committed to " + String.join(", ", done)) + after);
+            if (!troubles.isEmpty() && editor.getFrame() != null)
+                CommandLog.vcsCommandLog();
             return;
         }
         if (buffer != null) {
@@ -461,10 +636,7 @@ public final class CommitCommands {
                 buffer.setRepositories(left);
                 for (Editor ed : Editor.getEditorList())
                     if (ed.getBuffer() == buffer)
-                        replace(
-                            ed,
-                            buffer,
-                            template(status, left, buffer.getOptions(), buffer.getMessage(), buffer.getDiff()));
+                        replace(ed, buffer, templateOf(buffer, buffer.getMessage()));
             }
         }
         final String failures = repositories.size() == 1
@@ -473,7 +645,7 @@ public final class CommitCommands {
         editor.status(
             done.isEmpty()
                     ? failures
-                    : "Committed to " + String.join(", ", done) + "; " + failures
+                    : "Committed to " + String.join(", ", done) + after + "; " + failures
                             + (buffer != null ? ": Ctrl Enter commits to " + names(left) : ""));
         if (results.stream().anyMatch(r -> r != null) && editor.getFrame() != null)
             CommandLog.vcsCommandLog();
@@ -575,25 +747,14 @@ public final class CommitCommands {
                 return;
             }
             buffer.ringIndex = -1;
-            replace(
-                editor,
-                buffer,
-                template(
-                    buffer.getStatus(),
-                    buffer.getRepositories(),
-                    buffer.getOptions(),
-                    buffer.getStarted(),
-                    buffer.getDiff()));
+            replace(editor, buffer, templateOf(buffer, buffer.getStarted()));
             return;
         }
         buffer.ringIndex = next;
         final String message = ring.get(next);
         if (message == null)
             return;
-        replace(
-            editor,
-            buffer,
-            template(buffer.getStatus(), buffer.getRepositories(), buffer.getOptions(), message, buffer.getDiff()));
+        replace(editor, buffer, templateOf(buffer, message));
     }
 
     /** Replaces the message buffer's text, as one edit undo takes back. */

@@ -378,6 +378,8 @@ public class CommandTable {
             add("vcsCommandLog", e -> CommandLog.vcsCommandLog());
             add("vcsCommit", CommitCommands::vcsCommit);
             add("vcsCommitAmend", CommitCommands::vcsCommitAmend);
+            add("vcsCommitList", CommitCommands::vcsCommitList);
+            add("vcsCommitPicked", CommitCommands::vcsCommitPicked);
             add("vcsCommitAbort", CommitCommands::vcsCommitAbort);
             add("vcsBranchCheckout", e -> BranchCommands.vcsBranchCheckout(e, null), BranchCommands::vcsBranchCheckout);
             add(

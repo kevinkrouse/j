@@ -20,19 +20,27 @@
 
 package org.armedbear.j.vcs.git;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
+import org.armedbear.j.Log;
 import org.armedbear.j.vcs.CommitOption;
 import org.armedbear.j.vcs.FetchOption;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Finish;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.StashOption;
+import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.log.LogRef;
@@ -373,6 +381,169 @@ final class GitWrites {
                 COMMIT_TIMEOUT,
                 Map.of("GIT_EDITOR", "true"),
                 args.toArray(new String[0])));
+    }
+
+    /**
+     * As VcsBackend.commitPrivately: the private index a file in dir, a
+     * copy of the repository's made HEAD's tree (`read-tree -i -m`, the
+     * index alone, so entries the work tree has changed don't stop it, and
+     * unchanged entries keep their file data), as git's commit of paths
+     * makes its own; none before the first commit. Gone after.
+     */
+    static VcsBackend.PrivateCommit commitPrivately(
+            VcsRepository repository,
+            Path dir,
+            List<String> paths,
+            Supplier<String> stage,
+            String message,
+            Set<CommitOption> options) {
+        if (dir == null)
+            return null;
+        // No commit yet only if HEAD is missing, not if it couldn't be read:
+        // a tree from nothing would drop every other file.
+        final VcsResult head = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "-q", "HEAD"));
+        final boolean born = head.succeeded();
+        if (!born && (head.exitCode() != 1 || !head.stderr().isBlank()))
+            return new VcsBackend.PrivateCommit(head, null);
+        final String before = born ? head.out().strip() : null;
+        // What the status showed may be old: the real index read now.
+        final String refused = refusal(repository, paths);
+        if (refused != null)
+            return new VcsBackend.PrivateCommit(failed(refused), null);
+        Path index = null;
+        try {
+            Files.createDirectories(dir);
+            forgetOld(dir);
+            index = Files.createTempFile(dir, "commit-index-", "");
+            final Path real = realIndex(repository);
+            if (born && real != null && Files.isRegularFile(real))
+                Files.copy(real, index, StandardCopyOption.REPLACE_EXISTING);
+            else
+                // git makes it: an empty file is no index.
+                Files.delete(index);
+            final Path in = index;
+            final VcsResult result = GitCli.withIndex(in, () -> {
+                final VcsResult read =
+                        run(repository, born ? args("read-tree", "-i", "-m", "HEAD") : args("read-tree", "--empty"));
+                if (!read.succeeded())
+                    return read;
+                final String failed = stage.get();
+                if (failed != null)
+                    return failed(failed);
+                // A commit made meanwhile would be this one's parent, its
+                // changes undone by a tree from before it.
+                if (!Objects.equals(before, headNow(repository)))
+                    return failed("HEAD moved as this was staged: commit again");
+                return commit(repository, message, options);
+            });
+            if (!result.succeeded())
+                return new VcsBackend.PrivateCommit(result, null);
+            // As git's commit of paths leaves the index: those paths as
+            // committed, nothing else touched.
+            String trouble = resetPaths(repository, paths);
+            final String parent = firstParent(repository);
+            if (!Objects.equals(before, parent))
+                trouble = (trouble == null ? "" : trouble + "; ")
+                        + "HEAD moved as this committed: see that the commit doesn't undo the one before it";
+            return new VcsBackend.PrivateCommit(result, trouble);
+        }
+        catch (IOException e) {
+            Log.error(e);
+            return new VcsBackend.PrivateCommit(failed("Couldn't make a private index: " + e.getMessage()), null);
+        }
+        finally {
+            if (index != null)
+                try {
+                    Files.deleteIfExists(index);
+                    Files.deleteIfExists(index.resolveSibling(index.getFileName() + ".lock"));
+                }
+                catch (IOException e) {
+                    Log.error(e);
+                }
+        }
+    }
+
+    private static VcsResult failed(String why) {
+        return new VcsResult(null, 1, new byte[0], why, 0);
+    }
+
+    // Why paths can't be committed alone, as the real index has them now:
+    // a conflict anywhere, or something of them staged; null if they can.
+    private static String refusal(VcsRepository repository, List<String> paths) {
+        final VcsResult unmerged = GitCli.run(GitCli.read(repository.root(), "ls-files", "-u"));
+        if (!unmerged.succeeded())
+            return "git: " + firstLine(unmerged);
+        if (!unmerged.out().isBlank())
+            return "Resolve the conflicts first";
+        final List<String> args = args("--literal-pathspecs", "diff", "--cached", "--name-only", "--");
+        args.addAll(paths);
+        final VcsResult staged = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        if (!staged.succeeded())
+            return "git: " + firstLine(staged);
+        final String first = staged.out().lines().filter(l -> !l.isBlank()).findFirst().orElse(null);
+        return first == null ? null : first + " has staged changes: c c commits them, or u unstages them";
+    }
+
+    private static String firstLine(VcsResult r) {
+        final String err = r.stderr().strip();
+        return err.isEmpty() ? "exit code " + r.exitCode() : err.split("\n", 2)[0];
+    }
+
+    // HEAD's commit now, or null if there is none.
+    private static String headNow(VcsRepository repository) {
+        final VcsResult head = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "-q", "HEAD"));
+        return head.succeeded() ? head.out().strip() : null;
+    }
+
+    // HEAD's first parent, or null for a first commit.
+    private static String firstParent(VcsRepository repository) {
+        final VcsResult p = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "-q", "HEAD^"));
+        return p.succeeded() ? p.out().strip() : null;
+    }
+
+    // paths set in the real index as HEAD has them; a lock another process
+    // holds waited out a little: what went wrong, or null.
+    private static String resetPaths(VcsRepository repository, List<String> paths) {
+        final List<String> args = args("--literal-pathspecs", "reset", "-q", "--");
+        args.addAll(paths);
+        VcsResult r = null;
+        for (int i = 0; i < 10; i++) {
+            r = run(repository, args);
+            if (r.succeeded())
+                return null;
+            if (!r.stderr().contains("index.lock"))
+                break;
+            try {
+                Thread.sleep(200);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        return "the index still holds what " + String.join(", ", paths) + " had before: git reset -q -- "
+                + String.join(" ", paths) + " brings it up to the commit (" + firstLine(r) + ")";
+    }
+
+    // Private indexes a j that died left behind, a day old or more.
+    private static void forgetOld(Path dir) {
+        final long day = System.currentTimeMillis() - 24L * 60 * 60 * 1000;
+        try (var files = Files.list(dir)) {
+            for (Path p : (Iterable<Path>) files::iterator)
+                if (p.getFileName().toString().startsWith("commit-index-")
+                        && Files.getLastModifiedTime(p).toMillis() < day)
+                    Files.deleteIfExists(p);
+        }
+        catch (IOException e) {
+            Log.error(e);
+        }
+    }
+
+    // The repository's index file, or null if git can't say.
+    private static Path realIndex(VcsRepository repository) {
+        final VcsResult r = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--git-path", "index"));
+        // Relative to where it ran, the root, unless absolute.
+        return r.succeeded() && !r.out().isBlank() ? repository.root().resolve(r.out().strip()) : null;
     }
 
     static boolean verboseCommits(VcsRepository repository) {

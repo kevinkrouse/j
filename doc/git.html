@@ -440,6 +440,12 @@ Then:
 
 <ul>
     <li><b>c</b> commits what is staged, with a message you write;</li>
+    <li><b>l</b> (<a href="commands.html#vcsCommitList">vcsCommitList</a>)
+    commits a changelist alone: the one whose heading the caret is on, else
+    one you choose; <b>c</b> in the changelist popup does the same;</li>
+    <li><b>p</b> (<a href="commands.html#vcsCommitPicked">vcsCommitPicked</a>)
+    commits what is picked alone, the work tree's changes and untracked
+    files;</li>
     <li><b>a</b> amends the last commit, starting from its message;</li>
     <li><b>e</b> extends it with what is staged, keeping its message;</li>
     <li><b>w</b> rewords it, leaving what is staged as it is.</li>
@@ -458,6 +464,24 @@ the messages committed or given up before, and Ctrl N forward again to the one
 being written. A message can't be closed while it is being committed, and one
 whose hooks fail is kept for another try. The toolbar and the Mode menu have
 Commit and Cancel.
+
+<p>
+A changelist, or what is picked, is committed alone, and what is staged stays
+staged, as <code>git commit</code> with paths does: j stages it into an index
+of its own, the repository's set to HEAD, commits that, then sets each file
+committed in the repository's index as the commit has it. What is committed is
+worked out as you commit, not as the message opens. A changelist's message
+starts from its draft; closing the message without committing keeps what you
+wrote as the draft. A changelist other than Default is deleted once, committed, the status shows
+nothing left in it; Default stays, its draft cleared.
+The popup's <b>-a</b>, <b>-e</b> and <b>-v</b> don't apply to these. A file that also has something staged isn't
+committed alone, as that would take what is staged or lose it: <b>c c</b>
+commits what is staged, or <b>u</b> unstages it. Nor is anything committed
+alone while a merge, rebase or cherry-pick is in progress, as git would make
+the commit the merge's; nor picks of what is staged, of a conflict, or of hunks
+while whitespace is ignored. The commit's hooks see only what it commits; a
+hook that stages files itself, as lint-staged does, can add them to the
+commit. If the hooks fail, nothing changes and the message is kept.
 
 <h3><a name="committing-several">Committing in several repositories</a></h3>
 

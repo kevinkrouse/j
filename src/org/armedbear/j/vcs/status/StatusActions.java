@@ -149,13 +149,7 @@ public final class StatusActions {
                         addFile(files, targets, l.repository(), l.section(), f);
                 }
                 // A changelist's files, those split across lists their lines in it.
-                case LIST -> {
-                    for (StatusLine.Member m : l.members())
-                        if (m.only() == null)
-                            addFile(files, targets, l.repository(), l.section(), m.file());
-                        else
-                            addLines(parts, targets, l.repository(), l.section(), m.file(), m.only());
-                }
+                case LIST -> addMembers(files, parts, targets, l.repository(), l.section(), l.members());
                 case FILE, MESSAGE -> {
                     if (l.file() != null && l.only() != null)
                         addLines(parts, targets, l.repository(), l.section(), l.file(), l.only());
@@ -195,6 +189,38 @@ public final class StatusActions {
                     && files.containsKey(StatusRenderer.sectionKey(p.repository(), p.section()))
                     && files.get(StatusRenderer.sectionKey(p.repository(), p.section())).files().contains(p.file()));
         return targets;
+    }
+
+    /**
+     * What a changelist's members, members, in r's section, take: whole
+     * files, and a file split across lists its lines there, a changed
+     * line's removal with its addition; as s on the list's heading takes
+     * them. A split file whose diff isn't read takes nothing.
+     */
+    static List<Target> listTargets(VcsRepository r, String section, List<StatusLine.Member> members) {
+        final Map<String, Files> files = new LinkedHashMap<>();
+        final Map<Hunk, Part> parts = new IdentityHashMap<>();
+        final List<Target> targets = new ArrayList<>();
+        addMembers(files, parts, targets, r, section, members);
+        for (Part p : parts.values())
+            if (p.lines() != null)
+                Patch.pairChanges(p.hunk(), p.lines());
+        return targets;
+    }
+
+    // A changelist's members as targets, added to those already.
+    private static void addMembers(
+            Map<String, Files> files,
+            Map<Hunk, Part> parts,
+            List<Target> targets,
+            VcsRepository r,
+            String section,
+            List<StatusLine.Member> members) {
+        for (StatusLine.Member m : members)
+            if (m.only() == null)
+                addFile(files, targets, r, section, m.file());
+            else
+                addLines(parts, targets, r, section, m.file(), m.only());
     }
 
     // Of file, the lines only gives by hunk id, as parts, added to those
@@ -517,7 +543,7 @@ public final class StatusActions {
 
     // Whether targets take a hunk or lines of one, while the diffs shown,
     // or those to come, ignore whitespace: a patch of them can't apply.
-    private static boolean hunksIgnoreWhitespace(VcsStatusBuffer buffer, List<Target> targets) {
+    static boolean hunksIgnoreWhitespace(VcsStatusBuffer buffer, List<Target> targets) {
         return (DiffWhitespace.ignored() != Whitespace.NONE || buffer.readIgnoring() != Whitespace.NONE)
                 && targets.stream().anyMatch(t -> t instanceof Part);
     }

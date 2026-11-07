@@ -372,7 +372,8 @@ public final class ChangelistCommands {
                         Command.of("a", "vcsChangelistActive", "make active"),
                         Command.of("n", "vcsChangelistNew", "new"),
                         Command.of("r", "vcsChangelistRename", "rename"),
-                        Command.of("d", "vcsChangelistDelete", "delete"))));
+                        Command.of("d", "vcsChangelistDelete", "delete"),
+                        Command.of("c", "vcsCommitList", "commit alone"))));
     }
 
     // Whether to can't be moved to, said: a name refused, or unavailable.
@@ -592,7 +593,7 @@ public final class ChangelistCommands {
     }
 
     // The changelist whose heading the caret is on, or null.
-    private static String listAt(Editor editor) {
+    static String listAt(Editor editor) {
         if (!(editor.getDotLine() instanceof StatusLine s) || s.kind() != Kind.LIST)
             return null;
         final RepositoryLists lists = RepositoryLists.of(s.repository());

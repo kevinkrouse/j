@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.VcsCommand;
 import org.armedbear.j.vcs.VcsResult;
@@ -82,9 +83,37 @@ public final class GitCli {
         return new VcsCommand(dir, argv(args), OPTIONS, env(READ_ENV), stdin, false, null);
     }
 
+    // The index this thread's writes take in place of the repository's, or null.
+    private static final ThreadLocal<Path> privateIndex = new ThreadLocal<>();
+
+    /**
+     * Runs work with this thread's writes, as staging, taking index in
+     * place of the repository's own index; reads still take the real one.
+     */
+    static <T> T withIndex(Path index, Supplier<T> work) {
+        final Path was = privateIndex.get();
+        privateIndex.set(index);
+        try {
+            return work.get();
+        }
+        finally {
+            privateIndex.set(was);
+        }
+    }
+
+    // The environment of a write: with the private index, if there is one.
+    private static Map<String, String> writeEnv() {
+        final Path index = privateIndex.get();
+        if (index == null)
+            return env(WRITE_ENV);
+        final Map<String, String> env = new HashMap<>(env(WRITE_ENV));
+        env.put("GIT_INDEX_FILE", index.toString());
+        return env;
+    }
+
     /** A command that changes the repository at root, reading stdin if not null. */
     public static VcsCommand write(Path root, byte[] stdin, String... args) {
-        return new VcsCommand(root, argv(args), OPTIONS, env(WRITE_ENV), stdin, true, null);
+        return new VcsCommand(root, argv(args), OPTIONS, writeEnv(), stdin, true, null);
     }
 
     /** As write, with a timeout of its own and more environment, as a commit's hooks want. */
@@ -94,7 +123,7 @@ public final class GitCli {
             Duration timeout,
             Map<String, String> environment,
             String... args) {
-        Map<String, String> env = new HashMap<>(env(WRITE_ENV));
+        Map<String, String> env = new HashMap<>(writeEnv());
         env.putAll(environment);
         return new VcsCommand(root, argv(args), OPTIONS, env, stdin, true, timeout);
     }

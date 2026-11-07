@@ -55,6 +55,9 @@ public final class CommitMessageBuffer extends Buffer {
         this.repositories = List.copyOf(repositories);
         this.options = options.isEmpty() ? EnumSet.noneOf(CommitOption.class) : EnumSet.copyOf(options);
         this.status = status;
+        // What it commits from kept read while it is open, the status closed or not.
+        if (status != null)
+            status.model().hold(this, null);
         initializeUndo();
         type = TYPE_OUTPUT;
         mode = CommitMessageMode.getMode();
@@ -91,8 +94,12 @@ public final class CommitMessageBuffer extends Buffer {
         title = title();
     }
 
-    // "git commit: x", or "git commit: 3 repositories: x, y, z".
+    // "git commit: x", or "git commit: 3 repositories: x, y, z"; for part
+    // of the changes, "git commit changelist Feature: x".
     private String title() {
+        if (partial != null)
+            return getRepository().backend().name() + " commit " + partial.what() + ": "
+                    + CommitCommands.names(repositories);
         final String what = options.contains(CommitOption.MESSAGE_ONLY) ? " reword: "
                 : options.contains(CommitOption.AMEND) ? " amend: "
                 : " commit: ";
@@ -106,6 +113,32 @@ public final class CommitMessageBuffer extends Buffer {
     /** The status buffer it was written from, or null. */
     public VcsStatusBuffer getStatus() {
         return status;
+    }
+
+    // What it commits alone, a changelist or the picks, through a private
+    // index; null for what is staged.
+    private PartialCommit partial;
+    // What it last found partial takes.
+    private PartialCommit.Plan plan;
+    // Whether all it was to commit is committed, so there's no draft to keep.
+    private boolean committedAll;
+
+    PartialCommit getPartial() {
+        return partial;
+    }
+
+    PartialCommit.Plan getPlan() {
+        return plan;
+    }
+
+    void setPartial(PartialCommit partial, PartialCommit.Plan plan) {
+        this.partial = partial;
+        this.plan = plan;
+        title = title();
+    }
+
+    void committedAll() {
+        committedAll = true;
     }
 
     // The message it started with, which Ctrl N comes back to.
@@ -172,6 +205,11 @@ public final class CommitMessageBuffer extends Buffer {
     public void dispose() {
         if (!closing && !getMessage().isEmpty())
             CommentRing.getInstance().appendNew(getMessage());
+        // Given up, however closed: what was written kept as its list's draft.
+        if (partial != null && !committedAll)
+            partial.giveUp(getText());
+        if (status != null)
+            status.model().release(this, null);
         closing = true;
         super.dispose();
     }

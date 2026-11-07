@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -441,6 +442,16 @@ public final class GitBackend implements VcsBackend {
     @Override
     public VcsResult commit(VcsRepository repository, String message, Set<CommitOption> options) {
         return GitWrites.commit(repository, message, options);
+    }
+
+    @Override
+    public PrivateCommit commitPrivately(
+            VcsRepository repository,
+            List<String> paths,
+            Supplier<String> stage,
+            String message,
+            Set<CommitOption> options) {
+        return GitWrites.commitPrivately(repository, stateDirectory(repository), paths, stage, message, options);
     }
 
     @Override
