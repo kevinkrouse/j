@@ -344,6 +344,7 @@ public class CommandTable {
             add("setEncoding", FileCommands::setEncoding, (e, s) -> FileCommands.setEncoding(e, s));
             add("shrinkWindowIfLargerThanBuffer", WindowCommands::shrinkWindowIfLargerThanBuffer);
             add("sidebarListBuffers", WindowCommands::sidebarListBuffers);
+            add("sidebarListChanges", WindowCommands::sidebarListChanges);
             add("sidebarListTags", WindowCommands::sidebarListTags);
             add("slideIn", IndentCommands::slideIn);
             add("slideOut", IndentCommands::slideOut);

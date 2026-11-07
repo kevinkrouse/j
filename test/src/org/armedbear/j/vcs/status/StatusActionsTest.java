@@ -92,24 +92,28 @@ public class StatusActionsTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         StatusActions.confirm = SAVED_CONFIRM;
         CommitCommands.show = (editor, buffer) -> editor.activateInOtherWindow(buffer);
         final List<org.armedbear.j.Buffer> buffers = new ArrayList<>();
         for (org.armedbear.j.Buffer b : Editor.getBufferList())
             buffers.add(b);
-        for (org.armedbear.j.Buffer b : buffers)
-            if (b instanceof VcsStatusBuffer status && status.getDiff() != null)
-                status.closeDiff(null);
-        for (org.armedbear.j.Buffer b : buffers)
-            if (b instanceof VcsStatusBuffer || b instanceof CommitMessageBuffer) {
-                b.dispose();
-                Editor.getBufferList().remove(b);
-            }
+        // On the event thread, as the status's model is told.
+        SwingUtilities.invokeAndWait(() -> {
+            for (org.armedbear.j.Buffer b : buffers)
+                if (b instanceof VcsStatusBuffer status && status.getDiff() != null)
+                    status.closeDiff(null);
+            for (org.armedbear.j.Buffer b : buffers)
+                if (b instanceof VcsStatusBuffer || b instanceof CommitMessageBuffer) {
+                    b.dispose();
+                    Editor.getBufferList().remove(b);
+                }
+        });
         if (h != null) {
             h.showBuffer(h.buffer());
             h.close();
         }
+        SwingUtilities.invokeAndWait(RepositoryStatus::closeAll);
         GitFixture.reset();
     }
 
@@ -1223,8 +1227,8 @@ public class StatusActionsTest {
             h.editor().setDot(file[0].getLine(49), 0);
             HunkCommands.vcsPickHunk(h.editor());
         });
-        until(() -> "Picked a change of a.txt in the status".equals(h.status()));
-        onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(status.picks().targets(status))));
+        until(() -> "Picked a change of a.txt".equals(h.status()));
+        onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(status.picks().targets(status.model()))));
         until(() -> file[0].getSigns().get(file[0].getLine(49)).picked());
         onEdt(() -> assertFalse(file[0].getSigns().get(file[0].getLine(2)).picked(), "line 3's hunk not picked"));
         // A column of boxes while something of the file is picked: checked,
@@ -1276,7 +1280,7 @@ public class StatusActionsTest {
             h.editor().setDot(file[0].getLine(50), 4);
             HunkCommands.vcsPickHunk(h.editor());
         });
-        until(() -> "Picked lines of a.txt in the status".equals(h.status()));
+        until(() -> "Picked lines of a.txt".equals(h.status()));
         onEdt(() -> {
             assertNull(h.editor().getMark(), "the selection gone");
             assertTrue(file[0].getSigns().get(file[0].getLine(50)).picked());
@@ -1296,14 +1300,16 @@ public class StatusActionsTest {
         });
         until(() -> file[0].getSigns().get(file[0].getLine(49)).picked());
         onEdt(() -> {
-            final java.util.function.IntPredicate picked = status.pickedRows(repo(), "a.txt");
+            final java.util.function.IntPredicate picked = status.model().pickedRows(repo(), "a.txt");
             assertTrue(picked.test(49) && picked.test(50));
             assertFalse(picked.test(48), "the line above not picked");
             final EditorPickColumn col = editorPicks(file[0]);
             assertEquals(org.armedbear.j.util.PickState.ALL, state(col, file[0].getLine(49)));
             assertNull(state(col, file[0].getLine(50)), "the hunk's box alone");
-            // The status gone, its column and marks go with it.
+            // The status gone, its picks stay; unpicked, the column and marks go.
             status.dispose();
+            assertNotNull(editorPicks(file[0]));
+            status.model().unpickAll();
             assertNull(editorPicks(file[0]));
             assertFalse(file[0].getSigns().get(file[0].getLine(49)).picked());
         });
@@ -1388,8 +1394,8 @@ public class StatusActionsTest {
             h.editor().setDot(c, 2);
             VcsStatusMode.vcsStatusPick(h.editor());
         });
-        until(() -> status.pickedRows(repo(), "a.txt") != null);
-        onEdt(() -> assertFalse(status.pickedRows(repo(), "a.txt").test(0)));
+        until(() -> status.model().pickedRows(repo(), "a.txt") != null);
+        onEdt(() -> assertFalse(status.model().pickedRows(repo(), "a.txt").test(0)));
     }
 
     @Test
@@ -1406,9 +1412,9 @@ public class StatusActionsTest {
             h.editor().setDot(file.getLine(54), 0);
             HunkCommands.vcsPickHunk(h.editor());
         });
-        until(() -> "Picked a change of a.txt in the status".equals(h.status()));
+        until(() -> "Picked a change of a.txt".equals(h.status()));
         onEdt(() -> {
-            final java.util.function.IntPredicate picked = status.pickedRows(repo(), "a.txt");
+            final java.util.function.IntPredicate picked = status.model().pickedRows(repo(), "a.txt");
             assertTrue(picked.test(54), "line fifty's change");
             assertFalse(picked.test(7), "not line three's");
             file.kill();
@@ -1429,7 +1435,7 @@ public class StatusActionsTest {
             HunkCommands.vcsPickHunk(h.editor());
         });
         until(() -> {
-            final java.util.function.IntPredicate picked = status.pickedRows(repo(), "a.txt");
+            final java.util.function.IntPredicate picked = status.model().pickedRows(repo(), "a.txt");
             return picked != null && picked.test(2) && picked.test(49);
         });
         onEdt(() -> file.kill());
@@ -1464,8 +1470,9 @@ public class StatusActionsTest {
             assertTrue(sign.picked());
             assertNull(file[0].getSigns().get(file[0].getLine(2)), "git's, below the second, where its box is");
             assertEquals(org.armedbear.j.util.PickState.ALL, state(editorPicks(file[0]), file[0].getLine(1)));
-            // The status gone, the signs are j's own again.
+            // The status gone and nothing picked, the signs are j's own again.
             status.dispose();
+            status.model().unpickAll();
         });
         until(() -> file[0].getSigns().get(file[0].getLine(2)) != null);
         onEdt(() -> {
@@ -1600,7 +1607,7 @@ public class StatusActionsTest {
             VcsStatusMode.vcsStatusPick(h.editor());
         });
         // The file closed in the status: its diff read for the pick.
-        until(() -> !status.picks().unread(status));
+        until(() -> !status.picks().unread(status.model()));
         onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(StatusActions.targets(status, h.editor()))));
     }
 

@@ -84,8 +84,10 @@ public class VcsStatusBufferTest {
     public void tearDown() throws Exception {
         if (status != null) {
             final VcsStatusBuffer b = status;
-            SwingUtilities.invokeAndWait(() -> b.closeDiff(null));
-            status.dispose();
+            SwingUtilities.invokeAndWait(() -> {
+                b.closeDiff(null);
+                b.dispose();
+            });
             if (Editor.getBufferList().contains(status))
                 Editor.getBufferList().remove(status);
         }
@@ -107,6 +109,7 @@ public class VcsStatusBufferTest {
             h.showBuffer(h.buffer());
             h.close();
         }
+        SwingUtilities.invokeAndWait(RepositoryStatus::closeAll);
         GitFixture.reset();
     }
 
@@ -1445,7 +1448,7 @@ public class VcsStatusBufferTest {
             h.showBuffer(status);
         });
         // The file closed in the status: its diff read for the pick.
-        until(() -> !status.picks().unread(status));
+        until(() -> !status.picks().unread(status.model()));
         onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(StatusActions.targets(status, h.editor()))));
     }
 

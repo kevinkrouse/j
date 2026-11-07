@@ -36,8 +36,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import javax.swing.Icon;
 import javax.swing.JTree;
-import javax.swing.event.TreeExpansionEvent;
-import javax.swing.event.TreeExpansionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
@@ -125,7 +123,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     // What it shows.
     private List<Part> parts = List.of();
     // Whether each node was left open or closed, by key, across rebuilds.
-    private final Map<String, Boolean> open = new HashMap<>();
+    private final TreeOpenState open;
 
     StatusTree(VcsStatusBuffer status, Frame frame) {
         super((TreeModel) null);
@@ -140,18 +138,10 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         setFocusTraversalKeysEnabled(false);
         addKeyListener(this);
         addMouseListener(this);
-        addTreeExpansionListener(new TreeExpansionListener() {
-            @Override
-            public void treeExpanded(TreeExpansionEvent e) {
-                remember(e.getPath(), true);
-                restore(e.getPath());
-            }
-
-            @Override
-            public void treeCollapsed(TreeExpansionEvent e) {
-                remember(e.getPath(), false);
-            }
-        });
+        open = new TreeOpenState(this,
+                new HashMap<>(),
+                StatusTree::key,
+                o -> !(o instanceof SectionNode s && closed(s.id())));
         setModel(new DefaultTreeModel(new DefaultMutableTreeNode()));
     }
 
@@ -244,23 +234,8 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         this.parts = List.copyOf(parts);
         final DefaultMutableTreeNode root = build(parts);
         setModel(new DefaultTreeModel(root));
-        restore(new TreePath(root));
+        open.restore(new TreePath(root));
         updatePosition();
-    }
-
-    // The nodes in an open one opened as they were left, or to begin with;
-    // those in each opened as it opens.
-    private void restore(TreePath path) {
-        final DefaultMutableTreeNode n = (DefaultMutableTreeNode) path.getLastPathComponent();
-        for (int i = 0; i < n.getChildCount(); i++) {
-            final DefaultMutableTreeNode c = (DefaultMutableTreeNode) n.getChildAt(i);
-            if (c.isLeaf())
-                continue;
-            final TreePath p = path.pathByAddingChild(c);
-            final Boolean was = open.get(key(p));
-            if (was != null ? was : !(c.getUserObject() instanceof SectionNode s && closed(s.id())))
-                expandPath(p);
-        }
     }
 
     // A node's key: the status line's, or a repository's root.
@@ -273,12 +248,6 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
             case CommitNode c -> c.key();
             case null, default -> "";
         };
-    }
-
-    private void remember(TreePath path, boolean expanded) {
-        final String key = key(path);
-        if (!key.isEmpty())
-            open.put(key, expanded);
     }
 
     // Rebuilt as the status is shown again.

@@ -51,7 +51,7 @@ public class SidebarTree extends JTree {
     /**
      * The keys a tree in the sidebar takes: Enter does enter, if any, and
      * goes back to the text (Alt+Enter hides the sidebar too), Tab goes to
-     * the buffer list, Escape back to the text. Any other key is the
+     * the upper half's list, Escape back to the text. Any other key is the
      * tree's, not the editor's, until it is released.
      */
     protected static void sidebarKeyPressed(Editor editor, KeyEvent e, Runnable enter, Runnable updatePosition) {
@@ -75,9 +75,9 @@ public class SidebarTree extends JTree {
                 e.consume();
                 if (modifiers == 0) {
                     final Sidebar sidebar = editor.getSidebar();
-                    if (sidebar != null && sidebar.getBufferList() != null) {
+                    if (sidebar != null) {
                         updatePosition.run();
-                        editor.setFocus(sidebar.getBufferList());
+                        editor.setFocus(sidebar.getTopView());
                     }
                 }
                 return;

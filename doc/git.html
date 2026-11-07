@@ -315,18 +315,19 @@ and unpick it once done; Enter on a picked file or hunk opens each picked file; 
 whatever is picked; the resolve popup with no conflict picked says so. A pick lasts through a
 refresh; one whose change is gone, or has changed, is dropped, and the status
 bar says so, unless one of j's own commands took the change. <b>Ctrl ;</b> unpicks everything, as in a directory. Picks are kept in
-memory, not saved.
+memory, not saved. They belong to the repositories, not to a status
+buffer: the status, the sidebar's Changes tab and a file's own buffer share
+them, and they stay when the status is closed, until unpicked or committed.
 
 <p>
 In a file's own buffer, the change popup and the hunk preview have
 <b>pick</b> (<code>&lt;leader&gt;h;</code> in vim edit mode,
 <a href="commands.html#vcsPickHunk">vcsPickHunk</a>): it picks the change at
-the caret, as git's diff of the saved file has it, in the status, opening the
-status if it isn't, or unpicks it; with a selection, vim's visual one too, it
+the caret, as git's diff of the saved file has it, or unpicks it; with a selection, vim's visual one too, it
 picks the changed lines the selection covers. While the preview shows,
 <b>;</b> picks too, where keys don't type text, and its box shows whether
-the change is picked. If no status is open, one opens, in the buffer list,
-not shown: the file's window stays as it is, and <b>vcsStatus</b> shows it.
+the change is picked. No status buffer opens for it: <b>vcsStatus</b>
+shows what is picked when you open it.
 
 <p>
 While an open status has read the file's diff, as it does of each file open
@@ -405,6 +406,26 @@ list, one at the edge of a change the active list, and
 undo puts a change back in the list it had. The lists are kept in
 <code>.git/j/changelists.xml</code>, a worktree's in its own git directory,
 which no other tool reads.
+
+<h3><a name="changes-tab">The Changes tab</a></h3>
+
+<p>
+The sidebar's upper half has two tabs: <b>Buffers</b>, the buffer list as
+before, and <b>Changes</b>
+(<a href="commands.html#sidebarListChanges">sidebarListChanges</a>), the
+changed files of the repositories the status would show from the current
+buffer, which it follows: by changelist, every list shown, the active one
+marked, then Staged and Untracked; by section where there are no lists
+besides Default. With several repositories, each is under its name. A file
+split across lists is under each, with how many of its hunks are there,
+<code>1/2 hunks</code>, its directory dimmed after its name. The tab shares
+what the status reads and picks, reading the repositories in the
+background whether or not a status buffer is open; a click on its title
+reads them again. Each file has a box that picks it, as its box in the
+status, or <b>Space</b>; a click on its name, or <b>Enter</b>, opens
+it at its first change in the list; a file dragged onto another list moves
+its changes there, a split file's in that list only. The buffer list keeps
+its own order.
 
 <h2><a name="committing">Committing</a></h2>
 

@@ -229,10 +229,8 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
             case KeyEvent.VK_TAB:
                 e.consume();
-                if (modifiers == 0) {
-                    if (editor.getSidebar().getBufferList() != null)
-                        editor.setFocus(editor.getSidebar().getBufferList());
-                }
+                if (modifiers == 0)
+                    editor.setFocus(editor.getSidebar().getTopView());
                 return;
 
             case KeyEvent.VK_ESCAPE:

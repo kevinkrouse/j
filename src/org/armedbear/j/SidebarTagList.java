@@ -211,10 +211,8 @@ public class SidebarTagList extends SidebarList
             case KeyEvent.VK_TAB:
                 e.consume();
                 if (modifiers == 0) {
-                    if (sidebar.getBufferList() != null) {
-                        updatePosition();
-                        editor.setFocus(sidebar.getBufferList());
-                    }
+                    updatePosition();
+                    editor.setFocus(sidebar.getTopView());
                 }
                 return;
             case KeyEvent.VK_ESCAPE:

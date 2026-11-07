@@ -665,6 +665,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     static void removeFrame(Frame frame) {
         frames.remove(frame);
+        if (frame.getSidebar() != null)
+            frame.getSidebar().dispose();
     }
 
     public static int indexOf(Frame frame) {

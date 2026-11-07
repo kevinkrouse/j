@@ -281,7 +281,7 @@ public final class SidebarBufferTree extends SidebarTree
             // When this happens, we need to redraw at least one of the icons,
             // so make sure that a repaint gets scheduled.
             updateFlag |= SIDEBAR_REPAINT_BUFFER_LIST;
-            updateLabel();
+            updateFlag &= ~SIDEBAR_MODIFIED_BUFFER_COUNT;
         }
         // Select active buffer.
         Buffer buffer = sidebar.getEditor().getBuffer();
@@ -373,33 +373,11 @@ public final class SidebarBufferTree extends SidebarTree
 
     @Override
     public String getLabelText() {
-        int total = 0;
-        int modified = 0;
-        for (Buffer buf : Editor.getBufferList()) {
-            ++total;
-            if (buf.isModified())
-                ++modified;
-        }
-        StringBuilder sb = new StringBuilder("Buffers");
-        sb.append(" (");
-        sb.append(total);
-        if (modified > 0) {
-            sb.append("; ");
-            sb.append(modified);
-            sb.append(" modified");
-        }
-        sb.append(')');
-        return sb.toString();
-    }
-
-    private synchronized void updateLabel() {
-        sidebar.setBufferListLabelText(getLabelText());
-        updateFlag &= ~SIDEBAR_MODIFIED_BUFFER_COUNT;
+        return "Buffers";
     }
 
     private final Runnable refreshRunnable = () -> {
-        if ((updateFlag & SIDEBAR_MODIFIED_BUFFER_COUNT) != 0)
-            updateLabel();
+        updateFlag &= ~SIDEBAR_MODIFIED_BUFFER_COUNT;
         initializeTreeStructure();
     };
 

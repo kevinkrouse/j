@@ -28,6 +28,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.vcs.status.ChangesTree;
 
 public final class Sidebar extends JComponent {
     private final Frame frame;
@@ -35,6 +36,11 @@ public final class Sidebar extends JComponent {
     private final SidebarPanel topPanel;
     private final SidebarPanel bottomPanel;
     private final SidebarBufferTree bufferTree;
+    // The upper half's tabs, Buffers and Changes, and what it scrolls.
+    private final SidebarTabs tabs;
+    private final JScrollPane topScrollPane;
+    // The Changes tab's tree, made as it is first shown.
+    private ChangesTree changesTree;
 
     private NavigationComponent bottomComponent;
     private int updateFlag;
@@ -44,16 +50,25 @@ public final class Sidebar extends JComponent {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         topPanel = new SidebarPanel(this);
         bufferTree = new SidebarBufferTree(this);
-        JScrollPane bufferListScrollPane = new JScrollPane(bufferTree);
-        bufferListScrollPane.setAlignmentX(LEFT_ALIGNMENT);
-        bufferListScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        bufferListScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        topPanel.addScrollPane(bufferListScrollPane);
+        topScrollPane = new JScrollPane(bufferTree);
+        topScrollPane.setAlignmentX(LEFT_ALIGNMENT);
+        topScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        topScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tabs = new SidebarTabs(this::chooseTab, "Buffers", "Changes");
+        topPanel.addScrollPane(topScrollPane, tabs);
         bottomPanel = new SidebarPanel(this);
         splitPane = new SplitPane(SplitPane.VERTICAL_SPLIT, topPanel, bottomPanel);
         splitPane.setBorder(BorderFactory.createEmptyBorder());
         splitPane.setDividerLocation(Editor.getSessionProperties().getSidebarDividerLocation(frame));
         add(splitPane);
+        showTab(frame.sidebarTab);
+    }
+
+    /** Hidden or replaced: its tab kept for the next, the Changes tab letting go of its status. */
+    public void dispose() {
+        frame.sidebarTab = tabs.shown();
+        if (changesTree != null)
+            changesTree.shown(false);
     }
 
     public final Frame getFrame() {
@@ -77,8 +92,49 @@ public final class Sidebar extends JComponent {
     }
 
     public void activateBufferList() {
-        if (bufferTree != null)
-            frame.setFocus(bufferTree);
+        activate(BUFFERS);
+    }
+
+    /** The upper half's tab, BUFFERS or CHANGES, shown and focused. */
+    public void activate(int tab) {
+        showTab(tab);
+        frame.setFocus(getTopView());
+    }
+
+    /** The upper half's tabs. */
+    public static final int BUFFERS = 0;
+
+    public static final int CHANGES = 1;
+
+    /** The upper half shows tab, BUFFERS or CHANGES. */
+    public void showTab(int tab) {
+        if (tab == tabs.shown())
+            return;
+        tabs.show(tab);
+        if (tab == CHANGES) {
+            if (changesTree == null)
+                changesTree = new ChangesTree(this, frame.changesOpen);
+            topScrollPane.setViewportView(changesTree);
+            changesTree.shown(true);
+        } else {
+            if (changesTree != null)
+                changesTree.shown(false);
+            topScrollPane.setViewportView(bufferTree);
+        }
+        topPanel.validate();
+        topPanel.repaint();
+    }
+
+    // A click on a tab's title: shown; the Changes tab's shown already, read again.
+    private void chooseTab(int tab) {
+        if (tab == CHANGES && tabs.shown() == CHANGES)
+            changesTree.again();
+        showTab(tab);
+    }
+
+    /** What the upper half shows: the buffer list, or the Changes tab's tree. */
+    public JComponent getTopView() {
+        return tabs.shown() == CHANGES ? changesTree : bufferTree;
     }
 
     public void activateNavigationComponent() {
@@ -91,10 +147,6 @@ public final class Sidebar extends JComponent {
             return -1;
 
         return splitPane.getDividerLocation();
-    }
-
-    public final void setBufferListLabelText(String s) {
-        topPanel.setLabelText(s);
     }
 
     /** The lower half's label, as when its component's own text changes. */
@@ -190,6 +242,9 @@ public final class Sidebar extends JComponent {
     }
 
     public synchronized void refreshSidebar() {
+        // The current buffer's repositories, if the Changes tab shows them.
+        if (changesTree != null && tabs.shown() == CHANGES)
+            changesTree.follow();
         if (updateFlag != 0) {
             if ((updateFlag & SIDEBAR_BUFFER_LIST_ALL) != 0) {
                 final SidebarBufferTree bufferTree = getBufferTree();

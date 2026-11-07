@@ -356,6 +356,10 @@ public final class Frame extends JFrame
     }
 
     private Sidebar sidebar;
+    // The sidebar's upper half's tab, kept as the sidebar is hidden or rebuilt.
+    int sidebarTab = Sidebar.BUFFERS;
+    // The Changes tab's nodes left open or closed, by key, kept likewise.
+    final Map<String, Boolean> changesOpen = new HashMap<>();
 
     public final Sidebar getSidebar() {
         return sidebar;
@@ -403,6 +407,7 @@ public final class Frame extends JFrame
             // Remove sidebar.
             getContentPane().remove(sidebarSplitPane);
             sidebarSplitPane = null;
+            sidebar.dispose();
             sidebar = null;
             getContentPane().add(getEditorPane(), "Center");
         }
@@ -1528,6 +1533,7 @@ public final class Frame extends JFrame
             // Remove sidebar.
             getContentPane().remove(sidebarSplitPane);
             sidebarSplitPane = null;
+            sidebar.dispose();
             sidebar = null;
 
             sidebar = new Sidebar(this);

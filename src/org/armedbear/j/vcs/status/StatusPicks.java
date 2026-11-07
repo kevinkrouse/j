@@ -476,7 +476,7 @@ final class StatusPicks {
      * its addition; one whose file or hunk is gone left out. Worked out
      * once until what is picked, or the status, changes.
      */
-    List<Target> targets(VcsStatusBuffer status) {
+    List<Target> targets(RepositoryStatus status) {
         if (targets != null)
             return targets;
         final Map<Target, Set<String>> keys = new IdentityHashMap<>();
@@ -604,7 +604,7 @@ final class StatusPicks {
      * come: how many were dropped, a file whole's or each hunk's one. None
      * while a write runs, which may be using them.
      */
-    int retain(VcsStatusBuffer status, Set<String> asked) {
+    int retain(RepositoryStatus status, Set<String> asked) {
         if (status.isWriting())
             return 0;
         dirty();
@@ -650,7 +650,7 @@ final class StatusPicks {
     }
 
     /** Whether a hunk or lines are picked of a file whose diff the status has not read. */
-    boolean unread(VcsStatusBuffer status) {
+    boolean unread(RepositoryStatus status) {
         for (FilePicks fp : files.values())
             if (!fp.whole) {
                 final FileItem f = item(status, fp.file);
@@ -673,7 +673,7 @@ final class StatusPicks {
     }
 
     /** The file p is of, as the status has it now, or null; looked up by path once a read. */
-    FileItem item(VcsStatusBuffer status, Pick p) {
+    FileItem item(RepositoryStatus status, Pick p) {
         return items.computeIfAbsent(StatusRenderer.sectionKey(p.repository(), p.section()), k -> {
             final Map<String, FileItem> byPath = new HashMap<>();
             for (FileItem f : status.files(p.repository(), p.section()))

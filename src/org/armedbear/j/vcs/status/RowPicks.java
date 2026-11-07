@@ -62,16 +62,19 @@ final class RowPicks {
         }
     }
 
-    private final VcsStatusBuffer status;
+    private final RepositoryStatus status;
     // The file now, null when its picks can't be shown.
     private final Supplier<Of> of;
+    // Why nothing is picked where nothing is there to pick.
+    private final Supplier<String> nothingHere;
     // The rows of the diff last asked of, worked out once a diff.
     private FileDiff rowsOf;
     private Rows rows;
 
-    RowPicks(VcsStatusBuffer status, Supplier<Of> of) {
+    RowPicks(RepositoryStatus status, Supplier<Of> of, Supplier<String> nothingHere) {
         this.status = status;
         this.of = of;
+        this.nothingHere = nothingHere;
     }
 
     /**
@@ -184,7 +187,7 @@ final class RowPicks {
                 idx.putAll(c.picks());
         }
         if (idx.isEmpty()) {
-            editor.status(nothingHere());
+            editor.status(nothingHere.get());
             return;
         }
         status.picks().toggleLines(f.key(), f.repository(), f.section(), f.item(), idx);
@@ -248,17 +251,6 @@ final class RowPicks {
         final Map<String, BitSet> out = new LinkedHashMap<>();
         rows(f).signs(from, to, out);
         return out.isEmpty() ? null : out;
-    }
-
-    // Why nothing is picked in a side of the comparison.
-    private String nothingHere() {
-        if (status.comparedEdited())
-            return "Save " + status.getDiff().item().path() + " to pick its changes here";
-        if (status.comparedSaved()) {
-            status.refresh();
-            return status.getDiff().item().path() + " was saved: its changes can be picked once the status reads it";
-        }
-        return "No change to pick here";
     }
 
     // f's rows, or null for no file.

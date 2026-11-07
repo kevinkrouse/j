@@ -3000,6 +3000,64 @@ plan with why it is left, before the next phase starts.
      Buffers list keeps its order: grouping it by list would reorder it
      as you work. Tests: the tab's tree for one and several
      repositories, after a move, an edit and a pick.
+
+     Built: `SidebarTabs`, the titles of the sidebar's upper half in a
+     row laid out by hand (a `BoxLayout` gave each title half its height
+     once `uiScale` grew its font), the one shown on the list's
+     background with a line in the selection's color along its foot, the
+     other in the same text color, a thin line under it on hover: dimmed
+     titles read as disabled. The titles carry no counts, which only
+     distracted. `Sidebar.showTab` swaps the scroll pane's
+     view between the buffer list and `vcs/status/ChangesTree`, made as
+     first shown.
+
+     After trying it, the reading and picking moved out of
+     `VcsStatusBuffer` into `RepositoryStatus`, one per set of
+     repositories (`RepositoryStatus.of`, found by the list as
+     `VcsStatusBuffer.find` was): the read loop, the diffs read and those
+     waited on (`readDiffsThen`), the whitespace read, the writes'
+     clock, the changelists' sorting (`listed`), the picks, and the views
+     of files the signs take (`StatusView.Source`, `FileView`, picks
+     from a file's buffer). It is held by whatever shows it
+     (`hold`/`release`: a status buffer, the Changes tab while shown) and
+     closes when nothing holds it, nothing is picked and no pick or read
+     waits; one let go lingers 30 s first, so the tab following buffers
+     between repositories and back doesn't read each again. It hears of
+     whitespace shown or ignored itself (`DiffWhitespace.Listener`), as
+     the status buffer may not be open.
+     Its `Listener`s hear of a read (with the picks it dropped and why),
+     of picks, and of every read, new or not (the diff beside follows),
+     and add the diffs they want read (`wantsDiff`: the status's open
+     files). The status buffer renders from it and keeps the rest: what
+     is open, the diff beside, the comparison and its picks' rows, a
+     commit's details. A pick from a file's buffer, and the tab's boxes,
+     no longer open a status buffer; picks outlive a status closed, and
+     one opened later shows them.
+
+     The tree follows the current buffer's repositories
+     (`VcsStatusMode.repositoriesFor`) from `Sidebar.refreshSidebar`,
+     keeping what it shows for a buffer in no repository, and lets go of
+     the model when hidden; the sidebar hidden, rebuilt or its frame
+     closed lets go too (`Sidebar.dispose`), the frame keeping the tab
+     shown and the nodes left open (`TreeOpenState`, shared with
+     `StatusTree`). Rows: a list per `ListedChanges`, every list,
+     so each is a drop target, in Unstaged's place, then Staged and
+     Untracked, the rest as sections, commits and stashes left out; a
+     file's node holds a `StatusLine` as the status would make it, its
+     `only` for a split file, so `StatusPicks.state` and
+     `RepositoryStatus.pick` serve its box unchanged. A click on the box
+     picks, elsewhere opens at its first change in its list
+     (`VcsStatusMode.visit`); `Space` and `Enter` the same. A drag onto
+     another list of its repository moves it
+     (`ChangelistCommands.moveFile`, sharing `moveTo` with the prompt's
+     move; a split file's lines there alone, its diff read first if it
+     isn't). `sidebarListChanges` shows and focuses it, as
+     `sidebarListBuffers` the buffer list; Tab in the lower half goes to
+     the tab shown. Tests: one repository by section and by list with a
+     split file, opening at its change in each list; two repositories;
+     a drop then a pick; an edit, no status buffer opened, one opened
+     sharing the model and its picks, and the model closed once nothing
+     holds it.
    - **h. Committing a list.** Through a private index: `GIT_INDEX_FILE`
      a temporary file, `read-tree HEAD`, `apply --cached` of the list's
      changes, `commit` with the list's draft as its message; then the same

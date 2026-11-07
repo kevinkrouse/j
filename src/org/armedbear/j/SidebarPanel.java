@@ -79,7 +79,14 @@ public final class SidebarPanel extends JPanel implements MouseListener {
     }
 
     public void addScrollPane(JScrollPane scrollPane) {
-        if (label == null)
+        addScrollPane(scrollPane, null);
+    }
+
+    /** scrollPane under header, in place of the label, if not null. */
+    void addScrollPane(JScrollPane scrollPane, JComponent header) {
+        if (header != null)
+            add(header);
+        else if (label == null)
             add(label = new Label());
         if (scrollPane.getVerticalScrollBar() != null)
             scrollPane.getVerticalScrollBar().addMouseListener(this);

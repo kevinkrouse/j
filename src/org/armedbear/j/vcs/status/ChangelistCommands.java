@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -236,19 +237,85 @@ public final class ChangelistCommands {
             final String to = name.strip();
             if (rejected(editor, to, unavailable))
                 return;
-            if (!lists.update(cc -> moved(cc.withList(to), taken, null, to))) {
+            if (!moveTo(r, lists, taken, to)) {
                 editor.status(NOT_KEPT);
                 return;
             }
             if (picked)
                 status.unpick(used);
-            final Set<String> paths = new HashSet<>();
-            for (Taken t : taken)
-                paths.add(t.file().path());
-            shown(r);
-            replaced(r, paths);
             editor.status("Moved " + StatusActions.names(targets) + " to " + to);
         });
+    }
+
+    // taken to the list to, made if new, of r's lists: shown, and their
+    // open files placed again; false if the lists couldn't be kept.
+    private static boolean moveTo(VcsRepository r, RepositoryLists lists, List<Taken> taken, String to) {
+        if (!lists.update(cc -> moved(cc.withList(to), taken, null, to)))
+            return false;
+        final Set<String> paths = new HashSet<>();
+        for (Taken t : taken)
+            paths.add(t.file().path());
+        shown(r);
+        replaced(r, paths);
+        return true;
+    }
+
+    /**
+     * Moves r's unstaged file at path in status, or with only, its lines
+     * there by hunk id, to the list to, as a file dragged onto a list in
+     * the sidebar's Changes tab: its diff read first if it isn't; what is
+     * said to said.
+     */
+    static void moveFile(
+            RepositoryStatus status,
+            VcsRepository r,
+            String path,
+            Map<String, BitSet> only,
+            String to,
+            Consumer<String> said) {
+        moveFile(status, r, path, only, to, said, true);
+    }
+
+    private static void moveFile(
+            RepositoryStatus status,
+            VcsRepository r,
+            String path,
+            Map<String, BitSet> only,
+            String to,
+            Consumer<String> said,
+            boolean read) {
+        final RepositoryLists lists = RepositoryLists.shown(r);
+        final FileItem f = status.unstaged(r, path);
+        if (lists == null || f == null) {
+            said.accept("Nothing here to move");
+            return;
+        }
+        if (read && f.diff() == null && f.hasDiff()) {
+            said.accept("Reading the diff to move…");
+            status.readDiffsThen(
+                Set.of(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, path)),
+                () -> moveFile(status, r, path, only, to, said, false));
+            return;
+        }
+        // Its lines in a list, which an unread diff can't tell.
+        if (only != null && f.diff() == null) {
+            said.accept("Couldn't read the diff of " + path + ": move again");
+            return;
+        }
+        final Map<Hunk, BitSet> lines = new IdentityHashMap<>();
+        if (only != null) {
+            final Map<String, Hunk> ids = status.picks().ids(f.diff());
+            for (Map.Entry<String, BitSet> e : only.entrySet())
+                if (ids.containsKey(e.getKey()))
+                    lines.put(ids.get(e.getKey()), e.getValue());
+        }
+        final Taken t = new Taken(f, only == null, Set.of(), lines);
+        // Its lines there gone since, as after a read, or all in to already.
+        if (moved(lists.lists().withList(to), List.of(t), null, to).equals(lists.lists().withList(to))) {
+            said.accept("Nothing of " + path + " to move to " + to);
+            return;
+        }
+        said.accept(moveTo(r, lists, List.of(t), to) ? "Moved " + path + " to " + to : NOT_KEPT);
     }
 
     /**

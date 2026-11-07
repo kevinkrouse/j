@@ -50,13 +50,21 @@ public final class WindowCommands {
     }
 
     public static void sidebarListBuffers(Editor editor) {
-        editor.ensureActive();
+        sidebarTab(editor, Sidebar.BUFFERS);
+    }
 
+    /** sidebarListChanges: the sidebar's Changes tab, shown and focused. */
+    public static void sidebarListChanges(Editor editor) {
+        sidebarTab(editor, Sidebar.CHANGES);
+    }
+
+    // The sidebar shown, if it isn't, its upper half's tab shown and focused.
+    private static void sidebarTab(Editor editor, int tab) {
+        editor.ensureActive();
         if (editor.getFrame().getSidebar() == null)
             toggleSidebar(editor);
-
         if (editor.getFrame().getSidebar() != null)
-            editor.getFrame().getSidebar().activateBufferList();
+            editor.getFrame().getSidebar().activate(tab);
     }
 
     public static void sidebarListTags(Editor editor) {

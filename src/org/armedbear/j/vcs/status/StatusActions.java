@@ -134,7 +134,7 @@ public final class StatusActions {
     /** As targets, picked whether it takes the picks, as takesPicks says. */
     static List<Target> targets(VcsStatusBuffer buffer, Editor editor, boolean picked) {
         if (picked)
-            return buffer.picks().targets(buffer);
+            return buffer.picks().targets(buffer.model());
         final List<StatusLine> lines = selected(editor);
 
         final Map<String, Files> files = new LinkedHashMap<>();
@@ -272,7 +272,7 @@ public final class StatusActions {
         if (why != null) {
             // A read that left a picked file's diff unread, as one that
             // failed, is tried again.
-            if (picked && buffer.picks().unread(buffer))
+            if (picked && buffer.picks().unread(buffer.model()))
                 buffer.refresh();
             editor.status(why);
             return;
@@ -489,7 +489,7 @@ public final class StatusActions {
         // What the buffer shows is out of date until the last write's refresh.
         if (buffer.isWriting())
             return "Wait: the last change is still being made";
-        if (picked && buffer.picks().unread(buffer))
+        if (picked && buffer.picks().unread(buffer.model()))
             return "Wait: the picked files' diffs are being read";
         if (targets.isEmpty())
             return "Nothing to " + verb(op) + " here";
