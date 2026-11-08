@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,6 +55,53 @@ final class GitWrites {
 
     private static VcsResult run(VcsRepository repository, List<String> args) {
         return GitCli.run(GitCli.write(repository.root(), null, args.toArray(new String[0])));
+    }
+
+    // path appended to the root's .gitignore, /-anchored so it means this
+    // file alone, not any of its name below here; the file made if it isn't
+    // there. What went wrong, or null.
+    static String ignore(Path root, String path) {
+        final Path file = root.resolve(".gitignore");
+        final String rule = "/" + escape(path);
+        try {
+            final byte[] before = Files.isRegularFile(file) ? Files.readAllBytes(file) : new byte[0];
+            final String text = new String(before, StandardCharsets.UTF_8);
+            // Whole lines only: a rule is already there if a line is it,
+            // not if the file merely contains it, as /lib/ is in /vendor/lib/.
+            for (String line : text.split("\n", -1))
+                if (chomp(line).equals(rule))
+                    return null;
+            final String sep = text.isEmpty() || text.endsWith("\n") ? "" : "\n";
+            // Appended, not rewritten whole: a non-UTF-8 line read above is
+            // left as it is on disk, and a crash loses no more than the one line.
+            Files.write(
+                file,
+                (sep + rule + "\n").getBytes(StandardCharsets.UTF_8),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND);
+            return null;
+        }
+        catch (IOException e) {
+            return "Couldn't write " + file + ": " + e.getMessage();
+        }
+    }
+
+    // line without its trailing carriage return, for a CRLF file.
+    private static String chomp(String line) {
+        return line.endsWith("\r") ? line.substring(0, line.length() - 1) : line;
+    }
+
+    // A path as a .gitignore rule: glob characters and the rule's own
+    // marks backslash-escaped, so a literal name with one still matches.
+    private static String escape(String path) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < path.length(); i++) {
+            final char c = path.charAt(i);
+            if (c == '\\' || c == '#' || c == '!' || c == '*' || c == '?' || c == '[' || c == ']' || c == ' ')
+                sb.append('\\');
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     private static List<String> args(String... args) {

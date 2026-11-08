@@ -204,6 +204,11 @@ public final class Sidebar extends JComponent {
         return tab == CHANGES ? changesTree : bufferTree;
     }
 
+    /** The Changes tab's tree, or null before it is first shown. */
+    public ChangesTree getChangesTree() {
+        return changesTree;
+    }
+
     // A click on a tab's title: shown; the Changes tab's shown already, read again.
     private void chooseTab(int tab) {
         if (tab == CHANGES && tabs.shown() == CHANGES && changesTree != null)

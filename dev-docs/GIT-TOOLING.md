@@ -3140,9 +3140,108 @@ plan with why it is left, before the next phase starts.
      Enter, a pick made meanwhile shown before it is committed, a file
      staged then edited elsewhere, and picks in two repositories; the
      hook's refusal asserted said.
-   - **i. Drag and drop.** Files, hunks and lines dragged between lists in
+   - **i. Right-click menus.** The sidebar's Changes tab and the status
+     buffer gain context menus of the git things to do with what is under
+     the mouse, as IntelliJ's Commit window and VS Code's Source Control
+     have; each item a j command, the menu only offering it, its key shown
+     beside it, dimmed with why where it can't apply.
+
+     In the Changes tab, on a file, or the files selected:
+     - **Commit file…** (`vcsCommitFiles`): the commit message for those
+       files alone, what is staged left staged, through step h's private
+       index (`PartialCommit` of `Files` targets);
+     - **Discard…** (`vcsDiscard`, asking first);
+     - **Stage** / **Unstage** (`vcsStage`, `vcsUnstage`);
+     - **Move to changelist…** (`vcsChangelistMove`, its chooser; a split
+       file's lines in its list alone);
+     - **Show diff** (`Ctrl D`: the file's diff against what is staged, or
+       a staged file's against HEAD, as the status's diff beside does);
+     - **Show history** (`vcsLogFileAt` of the file, which isn't the buffer's);
+     - **Blame** (`vcsBlame`), **Open** (Enter), **Pick** / **Unpick**
+       (Space), **Copy path** (relative to its repository);
+     - an untracked file: **Add to .gitignore** (`vcsIgnore`, new) and
+       **Delete…**; an unmerged one: **Resolve as ours / theirs**,
+       **Mark resolved** (the `vcsResolve*` commands).
+     On a changelist: **Commit changelist…** (`vcsCommitList`), **Make
+     active**, **New changelist…**, **Rename…**, **Delete…** (`C`'s
+     commands); on a section, **Stage all** / **Unstage all**; on a
+     repository, **Refresh** and **Open status**.
+
+     In the status buffer, the menu follows the line right-clicked, the
+     caret moved there first unless it is inside the selection, which the
+     menu then takes:
+     - a file, as in the Changes tab, plus **Show diff beside** (`D`);
+     - a hunk, or diff lines selected: **Stage hunk / lines**, **Unstage**,
+       **Discard…**, **Move to changelist…**, **Commit alone…** (the hunk
+       or lines through the private index), **Pick**;
+     - a changelist heading: the changelist's items above;
+     - a section heading: stage / unstage / discard all of it, open or
+       close it;
+     - a commit (Recent, Unpushed): **Show commit**, **Copy hash**, **Show
+       in log**, **Reword** if it is HEAD; a stash: **Apply**, **Pop**,
+       **Drop…**;
+     - a repository heading: **Fetch**, **Refresh**, **Log**.
+     The editor's own items (Copy, Select All) follow a separator.
+
+     The actions work on `StatusActions.Target`s, so a command in the
+     status (from the selection, picks or caret) and the tree's menu (from
+     its selected nodes) share one implementation; the tree builds its
+     targets from its `FileNode`s' status lines. `Ctrl D` and the tree's
+     other keys are the tree's, before `SidebarTree.chord` hands chords to
+     the editor (where `Ctrl D` is `dir`). Several repositories: items act
+     on the right-clicked node's repository, a selection spanning
+     repositories committing one commit each, as `c p` does. Tests: the
+     menu's items and their enabled state for each kind of node and line,
+     and each new command (`vcsCommitFiles`, `vcsIgnore`, the tree's show
+     diff) on real repositories; the drive shows both menus.
+
+     Built: `VcsMenu` (vcs/status), the popup both menus build: an item
+     of a label, a command, its key shown at the right, enabled or dimmed
+     with a why as its tool tip; the key the editor maps the command to,
+     or, where its own mode doesn't (the Changes tab's editor is a file
+     buffer), the status mode's, the command's home. `VcsContextMenus`
+     holds the items shared by both — `fileItems` and `changelistItems` —
+     each item's command run by a `Function<String, Runnable>` the surface
+     supplies: the status runs it by name through the editor's dispatcher,
+     the tree in place on its own nodes, both on the same
+     `StatusActions.Target`s. `changelistItems` takes the list's name and
+     whether it is active, dimming Rename and Delete on Default (it can't
+     be renamed and always stays) and Make active on the list already
+     active; the status reads the active name from `ListedChanges.active()`
+     and the list from a new `StatusLine.list` field the renderer sets, the
+     tree from its `GroupNode.active`. `fileItems` shows an untracked
+     file's add as **Add to VCS** (`vcsStage`, which runs `git add`), in
+     place of the Stage/Unstage a tracked file gets. The status's `menuFor` switches on the
+     `StatusLine.Kind` at the caret; `getContextMenu` moves the caret to
+     the line under the mouse unless the click is inside the selection,
+     which the menu then takes, and `vcsStatusContextMenu` (the menu key,
+     Shift F10) opens it at the caret for the keyboard. The tree's
+     `menuFor(TreePath)` acts on the node right-clicked, or on the
+     selection if the node is in it; `ChangesTree` is now
+     `DISCONTIGUOUS_TREE_SELECTION` with `addSelectionPath` overridden so
+     a list, section or repository is selected alone, never with files.
+     New commands: `vcsCommitFiles` (`CommitCommands`, `PartialCommit.ofTargets`
+     of the whole files or the hunk/lines, the same private index as a
+     list; the selection or the caret, never the picks, so the menu's
+     Commit file… commits what its label says with picks pending — the
+     picks are `vcsCommitPicked`'s), `vcsIgnore` (`StatusActions`, the backend's `writeIgnore`,
+     the path `/`-anchored, the status read again), `vcsCopyPath`
+     (`StatusActions`, the kill ring and system clipboard as blame's copy
+     commands), `vcsLogFileAt` and `vcsLogCommit` (`LogCommands`,
+     `showFileLog(editor, r, path)` for a file that isn't the buffer's,
+     the whole log revealed at a commit), and `vcsShowDiff` (`ChangesTree`,
+     the status opened, the file revealed, the diff beside opened — the
+     tree's `Ctrl D`, handled before `SidebarTree.chord` so it isn't
+     `dir`). The tree's `Delete` discards the selection, asking as `x`
+     does. `ResolveCommands.resolveTargets` takes the tree's targets for
+     the unmerged resolves. Tests: `VcsContextMenuTest` (the status menu
+     per line kind — items, keys, dimmed with why, selection vs caret —
+     and `vcsCommitFiles`, `vcsIgnore`, `showFileLog` on real repos) and
+     `ChangesTreeTest` (the tree's menu per node kind, several files
+     selected, groups single).
+   - **j. Drag and drop.** Files, hunks and lines dragged between lists in
      the status, as `C m` moves them; the sidebar's status tree too.
-   - **j. Docs, the drive and the review.** `doc/git.html`'s
+   - **k. Docs, the drive and the review.** `doc/git.html`'s
      Changelists and picking, the keys in both edit modes; the directory
      buffer's picking in its docs; driven under Xvfb; the adversarial
      review.

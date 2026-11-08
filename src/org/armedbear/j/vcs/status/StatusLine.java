@@ -69,6 +69,8 @@ public final class StatusLine extends TextLine {
     private Map<String, BitSet> only;
     private boolean foreign;
     private List<Member> members = List.of();
+    // A changelist heading's name, null for a section heading.
+    private String list;
 
     /** A file under a changelist's heading: its lines in the list, by hunk id, or null for all of it. */
     public record Member(FileItem file, Map<String, BitSet> only) {}
@@ -232,6 +234,11 @@ public final class StatusLine extends TextLine {
         return members;
     }
 
+    /** A changelist heading's name, null for a section heading. */
+    public String list() {
+        return list;
+    }
+
     StatusLine only(Map<String, BitSet> only) {
         this.only = only;
         return this;
@@ -244,6 +251,11 @@ public final class StatusLine extends TextLine {
 
     StatusLine members(List<Member> members) {
         this.members = List.copyOf(members);
+        return this;
+    }
+
+    StatusLine list(String list) {
+        this.list = list;
         return this;
     }
 

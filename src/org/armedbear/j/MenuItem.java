@@ -31,20 +31,22 @@ import javax.swing.JMenuItem;
 import javax.swing.UIManager;
 
 public final class MenuItem extends JMenuItem {
-    private static final Font acceleratorFont =
-        UIManager.getFont("MenuItem.acceleratorFont");
-    private static final Color acceleratorForeground =
-        UIManager.getColor("MenuItem.acceleratorForeground");
+    private static final Font acceleratorFont = UIManager.getFont("MenuItem.acceleratorFont");
+    private static final Color acceleratorForeground = UIManager.getColor("MenuItem.acceleratorForeground");
     private static final Color acceleratorSelectionForeground =
-        UIManager.getColor("MenuItem.acceleratorSelectionForeground");
-    private static final Color disabledForeground =
-        UIManager.getColor("MenuItem.disabledForeground");
+            UIManager.getColor("MenuItem.acceleratorSelectionForeground");
+    private static final Color disabledForeground = UIManager.getColor("MenuItem.disabledForeground");
 
     private final String acceleratorText;
 
     public MenuItem(String label, String acceleratorText) {
         super(label);
         this.acceleratorText = acceleratorText;
+    }
+
+    /** The key text shown at the item's right, or null for none. */
+    public String getAcceleratorText() {
+        return acceleratorText;
     }
 
     @Override
@@ -83,8 +85,7 @@ public final class MenuItem extends JMenuItem {
             g.drawString(
                 acceleratorText,
                 item.getWidth() - (fm.stringWidth(acceleratorText) + insets.right + insets.left),
-                item.getFont().getSize() + (insets.top - 1)
-            );
+                item.getFont().getSize() + (insets.top - 1));
         }
     }
 }

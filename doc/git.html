@@ -112,6 +112,27 @@ directory's first file, opening a closed section, and the diff beside
 follows; a double click or <b>Enter</b> visits a file or shows a commit's
 or stash's details.
 
+<h3><a name="context-menus">Right-click menus</a></h3>
+
+<p>
+Right-clicking a line, or the menu key or <b>Shift F10</b>
+(<a href="commands.html#vcsStatusContextMenu">vcsStatusContextMenu</a>),
+opens a menu of the git things to do with the line under the mouse. The
+caret moves there first, unless the click is inside the selection, which
+the menu then takes. Every item is a command with its key shown, dimmed
+with why where it can't apply. On a <b>file</b>: the same items as the
+Changes tab's — commit, discard, stage, unstage, move, show history,
+blame, open, pick, copy path; for an untracked file, <b>Add to VCS</b>
+(<code>vcsStage</code>, which adds it), the ignore and delete; for an
+unmerged one, the resolves — plus <b>Show diff beside</b> (<b>D</b>). On a <b>hunk heading</b>, or with <b>diff lines selected</b>:
+stage, unstage, discard, move, <b>Commit alone…</b> and pick. On a
+<b>changelist heading</b>: the changelist items. On a <b>section
+heading</b>: stage, unstage and discard all of it, and open or close it.
+On a <b>commit line</b>: show it, copy its hash, show it in the log, and
+reword if it is HEAD. On a <b>stash line</b>: apply, pop and drop. On a
+<b>repository heading</b>: fetch, refresh and log. Then the editor's own
+Copy and Select All.
+
 <h3>Showing and hiding</h3>
 
 <p>
@@ -426,6 +447,31 @@ status, or <b>Space</b>; a click on its name, or <b>Enter</b>, opens
 it at its first change in the list; a file dragged onto another list moves
 its changes there, a split file's in that list only. The buffer list keeps
 its own order.
+
+<p>
+Right-clicking a node, or the menu key or <b>Shift F10</b>, opens a menu of
+the git things to do with it, each a command with its key shown, dimmed
+with why where it can't apply. On a file, or several files selected
+(<b>Ctrl</b> or <b>Shift</b> to add to the selection; a list, section or
+repository is selected alone, never with files): <b>Commit file…</b>
+(<a href="commands.html#vcsCommitFiles">vcsCommitFiles</a>), the message
+for those files alone, what is staged left staged; <b>Discard…</b>, asking
+first; <b>Stage</b> and <b>Unstage</b>; <b>Move to changelist…</b>;
+<b>Show diff</b> (<b>Ctrl D</b>), the file's diff against what is staged,
+a staged file's against HEAD, in the status's diff beside; <b>Show
+history</b> and <b>Blame</b>; <b>Open</b>, <b>Pick</b>, <b>Copy path</b>;
+and for an untracked file, <b>Add to VCS</b>
+(<a href="commands.html#vcsStage">vcsStage</a>, which adds it),
+<b>Add to .gitignore</b>
+(<a href="commands.html#vcsIgnore">vcsIgnore</b>) and <b>Delete…</b>, or
+for an unmerged one, the resolves. On a changelist: <b>Commit
+changelist…</b>, <b>Make active</b>, <b>New</b>, <b>Rename…</b>,
+<b>Delete…</b> — <b>Make active</b> dimmed on the active list, and
+<b>Rename…</b> and <b>Delete…</b> on Default, which can't be renamed and
+always stays. On a section: <b>Stage all</b>, <b>Unstage all</b>,
+<b>Discard all…</b>. On a repository: <b>Refresh</b> and <b>Open
+status</b>. <b>Delete</b> discards the selection, asking first. The menu
+acts on the node right-clicked, or on the selection if it is in it.
 
 <h2><a name="committing">Committing</a></h2>
 

@@ -75,6 +75,7 @@ import org.armedbear.j.vcs.signs.ChangelistMenu;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.BranchCommands;
 import org.armedbear.j.vcs.status.ChangelistCommands;
+import org.armedbear.j.vcs.status.ChangesTree;
 import org.armedbear.j.vcs.status.CommitCommands;
 import org.armedbear.j.vcs.status.FetchCommands;
 import org.armedbear.j.vcs.status.FinishCommands;
@@ -378,6 +379,7 @@ public class CommandTable {
             add("vcsCommandLog", e -> CommandLog.vcsCommandLog());
             add("vcsCommit", CommitCommands::vcsCommit);
             add("vcsCommitAmend", CommitCommands::vcsCommitAmend);
+            add("vcsCommitFiles", CommitCommands::vcsCommitFiles);
             add("vcsCommitList", CommitCommands::vcsCommitList);
             add("vcsCommitPicked", CommitCommands::vcsCommitPicked);
             add("vcsCommitAbort", CommitCommands::vcsCommitAbort);
@@ -425,6 +427,9 @@ public class CommandTable {
             add("vcsResolveOurs", ResolveCommands::vcsResolveOurs);
             add("vcsResolveRestore", ResolveCommands::vcsResolveRestore);
             add("vcsResolveTheirs", ResolveCommands::vcsResolveTheirs);
+            add("vcsShowDiff", ChangesTree::vcsShowDiff);
+            add("vcsCopyPath", StatusActions::vcsCopyPath);
+            add("vcsCopyHash", StatusActions::vcsCopyHash);
             add("vcsDiff", VcsDiffCommands::vcsDiff);
             add("vcsDiscard", e -> StatusActions.run(e, StatusActions.Op.DISCARD));
             add("vcsFetchAll", FetchCommands::vcsFetchAll);
@@ -433,6 +438,7 @@ public class CommandTable {
             add("vcsFetchPopup", FetchCommands::vcsFetchPopup);
             add("vcsFetchPushRemote", FetchCommands::vcsFetchPushRemote);
             add("vcsFetchUpstream", FetchCommands::vcsFetchUpstream);
+            add("vcsIgnore", StatusActions::vcsIgnore);
             add("vcsLogNext", LogCommands::vcsLogNext);
             add("vcsLogNextFile", LogCommands::vcsLogNextFile);
             add("vcsLogOpenFile", LogCommands::vcsLogOpenFile);
@@ -482,6 +488,7 @@ public class CommandTable {
             add("vcsStashStaged", StashCommands::vcsStashStaged);
             add("vcsStashUntracked", StashCommands::vcsStashUntracked);
             add("vcsStatusCycle", VcsStatusMode::vcsStatusCycle);
+            add("vcsStatusContextMenu", VcsStatusMode::vcsStatusContextMenu);
             add("vcsStatusDepth", e -> VcsStatusMode.vcsStatusDepth(e, "2"), VcsStatusMode::vcsStatusDepth);
             add("vcsStatusDiff", VcsStatusMode::vcsStatusDiff);
             add("vcsStatusDiffView", VcsStatusMode::vcsStatusDiffView);
@@ -595,7 +602,9 @@ public class CommandTable {
             add("forwardSexp", e -> LispMode.forwardSexp());
             add("git", e -> Git.git(), (e, s) -> Git.git(s));
             add("vcsLog", LogCommands::vcsLog);
+            add("vcsLogCommit", LogCommands::vcsLogCommit);
             add("vcsLogFile", LogCommands::vcsLogFile);
+            add("vcsLogFileAt", LogCommands::vcsLogFileAt);
             add("vcsLogQuick", LogCommands::vcsLogQuick);
             add("vcsBlame", BlameCommands::vcsBlame);
             add("vcsBlameCopyHash", BlameCommands::vcsBlameCopyHash);

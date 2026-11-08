@@ -129,6 +129,206 @@ public class ChangesTreeTest {
         return Repositories.forDirectory(git.root);
     }
 
+    // The TreePath whose user object is o, or null.
+    private javax.swing.tree.TreePath pathTo(Object o) {
+        final Enumeration<TreeNode> nodes = ((DefaultMutableTreeNode) tree.getModel().getRoot()).preorderEnumeration();
+        while (nodes.hasMoreElements()) {
+            final DefaultMutableTreeNode n = (DefaultMutableTreeNode) nodes.nextElement();
+            if (n.getUserObject() == o)
+                return new javax.swing.tree.TreePath(n.getPath());
+        }
+        throw new AssertionError("no node " + o + " in " + rows());
+    }
+
+    // The menu for the node whose user object is o.
+    private javax.swing.JPopupMenu menuFor(Object o) throws Exception {
+        final javax.swing.JPopupMenu[] out = new javax.swing.JPopupMenu[1];
+        onEdt(() -> out[0] = tree.menuFor(pathTo(o)));
+        assertNotNull(out[0], "no menu for " + o);
+        // Every item is a real j command, as the feature promises.
+        for (String name : commands(out[0]))
+            assertNotNull(org.armedbear.j.CommandTable.getCommand(name), "command " + name + " is registered");
+        return out[0];
+    }
+
+    // The item whose action command is command, or null.
+    private static org.armedbear.j.MenuItem item(javax.swing.JPopupMenu menu, String command) {
+        for (java.awt.Component c : menu.getComponents())
+            if (c instanceof org.armedbear.j.MenuItem mi && command.equals(mi.getActionCommand()))
+                return mi;
+        return null;
+    }
+
+    // The commands of the menu, in order.
+    private static List<String> commands(javax.swing.JPopupMenu menu) {
+        final List<String> out = new ArrayList<>();
+        for (java.awt.Component c : menu.getComponents())
+            if (c instanceof javax.swing.JMenuItem mi)
+                out.add(mi.getActionCommand());
+        return out;
+    }
+
+    @Test
+    public void aFileNodeMenuOffersTheFileItemsWithTheirKeys() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        final FileNode a = file("Unstaged", "a.txt");
+        final javax.swing.JPopupMenu menu = menuFor(a);
+        assertTrue(
+            commands(menu).containsAll(
+                List.of(
+                    "vcsCommitFiles",
+                    "vcsDiscard",
+                    "vcsStage",
+                    "vcsUnstage",
+                    "vcsChangelistMove",
+                    "vcsShowDiff",
+                    "vcsLogFileAt",
+                    "vcsBlame",
+                    "vcsStatusVisit",
+                    "vcsStatusPick",
+                    "vcsCopyPath")),
+            commands(menu).toString());
+        // The tree's own Ctrl D for the diff; the status mode's S/U/X for the rest.
+        assertEquals("Ctrl D", item(menu, "vcsShowDiff").getAcceleratorText());
+        assertEquals("S", item(menu, "vcsStage").getAcceleratorText());
+        assertEquals("X", item(menu, "vcsDiscard").getAcceleratorText());
+        // Unstaged file: Stage live, Unstage dimmed.
+        assertTrue(item(menu, "vcsStage").isEnabled());
+        assertFalse(item(menu, "vcsUnstage").isEnabled());
+    }
+
+    @Test
+    public void anUntrackedFileNodeSaysDeleteAndOffersIgnore() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        final FileNode c = file("Untracked", "c.txt");
+        final javax.swing.JPopupMenu menu = menuFor(c);
+        assertEquals("Add to VCS", item(menu, "vcsStage").getText());
+        assertTrue(item(menu, "vcsStage").isEnabled(), "an untracked file can be added");
+        assertNull(item(menu, "vcsUnstage"));
+        assertEquals("Delete…", item(menu, "vcsDiscard").getText());
+        assertNotNull(item(menu, "vcsIgnore"));
+        assertFalse(item(menu, "vcsBlame").isEnabled());
+    }
+
+    @Test
+    public void aListNodeOffersTheChangelistItems() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        splitAcrossLists();
+        // The Feature list's node: not active, not Default, all live.
+        final ChangesTree.GroupNode feature = group("Feature");
+        final javax.swing.JPopupMenu menu = menuFor(feature);
+        assertTrue(
+            commands(menu).containsAll(
+                List.of(
+                    "vcsCommitList",
+                    "vcsChangelistActive",
+                    "vcsChangelistNew",
+                    "vcsChangelistRename",
+                    "vcsChangelistDelete")),
+            commands(menu).toString());
+        assertTrue(item(menu, "vcsChangelistActive").isEnabled());
+        assertTrue(item(menu, "vcsChangelistRename").isEnabled());
+        assertTrue(item(menu, "vcsChangelistDelete").isEnabled());
+        // Default: already active, and it can't be renamed or deleted.
+        final javax.swing.JPopupMenu def = menuFor(group("Default"));
+        assertFalse(item(def, "vcsChangelistActive").isEnabled(), "Default is active");
+        assertEquals("Already active", item(def, "vcsChangelistActive").getToolTipText());
+        assertFalse(item(def, "vcsChangelistRename").isEnabled(), "Default can't be renamed");
+        assertEquals("Default can't be renamed", item(def, "vcsChangelistRename").getToolTipText());
+        assertFalse(item(def, "vcsChangelistDelete").isEnabled(), "Default stays");
+        assertEquals("Default stays", item(def, "vcsChangelistDelete").getToolTipText());
+        // Commit and New still offered on Default.
+        assertTrue(item(def, "vcsCommitList").isEnabled());
+        assertTrue(item(def, "vcsChangelistNew").isEnabled());
+    }
+
+    @Test
+    public void aSectionNodeStagesUnstagesDiscardsAll() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        final ChangesTree.GroupNode unstaged = group("Unstaged changes");
+        final javax.swing.JPopupMenu menu = menuFor(unstaged);
+        assertEquals("Stage all", item(menu, "vcsStage").getText());
+        assertEquals("Unstage all", item(menu, "vcsUnstage").getText());
+        assertEquals("Discard all…", item(menu, "vcsDiscard").getText());
+    }
+
+    @Test
+    public void aRepositoryNodeRefreshesAndOpensStatus() throws Exception {
+        final Path a = Files.createDirectories(tmp.resolve("a"));
+        final Path b = Files.createDirectories(tmp.resolve("b"));
+        git = repository(a);
+        final GitFixture other = GitFixture.init(b);
+        other.write("x.txt", "x\n");
+        other.commitAll("first");
+        other.write("x.txt", "x changed\n");
+        h = EditorHarness.create();
+        Editor.setCurrentEditor(h.editor());
+        final VcsRepository ra = Repositories.forDirectory(a);
+        final VcsRepository rb = Repositories.forDirectory(b);
+        onEdt(() -> {
+            final VcsStatusBuffer status = VcsStatusBuffer.of(List.of(ra, rb));
+            h.showBuffer(status);
+            tree = new ChangesTree(null, kept);
+            tree.shown(true);
+        });
+        until(() -> rows().contains("  Unstaged changes (1)"));
+        final ChangesTree.RepositoryNode node = repoNode();
+        final javax.swing.JPopupMenu menu = menuFor(node);
+        assertTrue(commands(menu).containsAll(List.of("vcsStatusRefresh", "vcsStatus")), commands(menu).toString());
+    }
+
+    // The group node whose title starts with title.
+    private ChangesTree.GroupNode group(String title) {
+        final Enumeration<TreeNode> nodes = ((DefaultMutableTreeNode) tree.getModel().getRoot()).preorderEnumeration();
+        while (nodes.hasMoreElements()) {
+            final Object o = ((DefaultMutableTreeNode) nodes.nextElement()).getUserObject();
+            if (o instanceof ChangesTree.GroupNode g && g.toString().startsWith(title))
+                return g;
+        }
+        throw new AssertionError("no group " + title + " in " + rows());
+    }
+
+    // The repository node.
+    private ChangesTree.RepositoryNode repoNode() {
+        final Enumeration<TreeNode> nodes = ((DefaultMutableTreeNode) tree.getModel().getRoot()).preorderEnumeration();
+        while (nodes.hasMoreElements()) {
+            final Object o = ((DefaultMutableTreeNode) nodes.nextElement()).getUserObject();
+            if (o instanceof ChangesTree.RepositoryNode r)
+                return r;
+        }
+        throw new AssertionError("no repository node in " + rows());
+    }
+
+    // Several files selected: the menu takes them all, "Commit files…".
+    @Test
+    public void severalFilesSelectedCommitFilesAndGroupsStaySingle() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        final FileNode a = file("Unstaged", "a.txt");
+        final FileNode b = file("Staged", "b.txt");
+        onEdt(() -> {
+            tree.addSelectionPath(pathTo(a));
+            tree.addSelectionPath(pathTo(b));
+        });
+        final javax.swing.JPopupMenu[] out = new javax.swing.JPopupMenu[1];
+        onEdt(() -> out[0] = tree.menuFor(pathTo(a)));
+        // Two files: "Commit files…".
+        assertEquals("Commit files…", item(out[0], "vcsCommitFiles").getText());
+        // A group added to files selects it alone.
+        onEdt(() -> tree.addSelectionPath(pathTo(group("Unstaged changes"))));
+        onEdt(() -> {
+            final javax.swing.tree.TreePath[] sel = tree.getSelectionPaths();
+            assertEquals(1, sel.length, "a group alone");
+            assertTrue(
+                sel[0].getLastPathComponent() instanceof DefaultMutableTreeNode n
+                        && n.getUserObject() instanceof ChangesTree.GroupNode);
+        });
+    }
+
     // The tree's rows, each indented by its depth, a split file's hunks after it.
     private List<String> rows() {
         final List<String> out = new ArrayList<>();

@@ -496,6 +496,23 @@ public interface VcsBackend {
         return null;
     }
 
+    /**
+     * Whether this backend can be told to ignore a file, as git's
+     * .gitignore or svn's svn:ignore; what writeIgnore does.
+     */
+    default boolean canIgnore() {
+        return false;
+    }
+
+    /**
+     * Tells the system to ignore path, relative to root, by its own rules:
+     * git appends it to the root's .gitignore, svn sets svn:ignore on its
+     * directory. What went wrong, or null. Off the event thread.
+     */
+    default VcsResult writeIgnore(VcsRepository repository, String path) {
+        return null;
+    }
+
     /** Whether a file in no tree any backend recognizes belongs to this one. */
     default boolean claimsUntracked() {
         return false;

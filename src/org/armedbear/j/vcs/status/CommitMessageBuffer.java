@@ -42,7 +42,7 @@ public final class CommitMessageBuffer extends Buffer {
     // with something staged; after some fail, those left.
     private List<VcsRepository> repositories;
     private final Set<CommitOption> options;
-    private final VcsStatusBuffer status;
+    private final RepositoryStatus model;
     private boolean committing;
     // Where Ctrl P and Ctrl N are in the comment ring; -1 before either.
     int ringIndex = -1;
@@ -50,14 +50,14 @@ public final class CommitMessageBuffer extends Buffer {
     CommitMessageBuffer(
             List<VcsRepository> repositories,
             Set<CommitOption> options,
-            VcsStatusBuffer status,
+            RepositoryStatus model,
             String text) {
         this.repositories = List.copyOf(repositories);
         this.options = options.isEmpty() ? EnumSet.noneOf(CommitOption.class) : EnumSet.copyOf(options);
-        this.status = status;
+        this.model = model;
         // What it commits from kept read while it is open, the status closed or not.
-        if (status != null)
-            status.model().hold(this, null);
+        if (model != null)
+            model.hold(this, null);
         initializeUndo();
         type = TYPE_OUTPUT;
         mode = CommitMessageMode.getMode();
@@ -110,9 +110,9 @@ public final class CommitMessageBuffer extends Buffer {
         return options;
     }
 
-    /** The status buffer it was written from, or null. */
-    public VcsStatusBuffer getStatus() {
-        return status;
+    /** The status it was written from, or null. */
+    public RepositoryStatus getModel() {
+        return model;
     }
 
     // What it commits alone, a changelist or the picks, through a private
@@ -208,8 +208,8 @@ public final class CommitMessageBuffer extends Buffer {
         // Given up, however closed: what was written kept as its list's draft.
         if (partial != null && !committedAll)
             partial.giveUp(getText());
-        if (status != null)
-            status.model().release(this, null);
+        if (model != null)
+            model.release(this, null);
         closing = true;
         super.dispose();
     }

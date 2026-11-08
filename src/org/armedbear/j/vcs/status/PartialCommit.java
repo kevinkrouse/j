@@ -55,30 +55,44 @@ import org.armedbear.j.vcs.status.StatusLine.Member;
  * take or lose it. What it takes is worked out as it commits (plan).
  */
 final class PartialCommit {
-    private final VcsStatusBuffer status;
+    private final RepositoryStatus model;
     // The repository whose changelist list it commits, or null for the picks.
     private final VcsRepository repository;
     private final String list;
+    // The changes given it to commit, as a context menu picks them: whole
+    // files, or a hunk or lines; null when it commits a list or the picks.
+    private final List<Target> given;
 
-    private PartialCommit(VcsStatusBuffer status, VcsRepository repository, String list) {
-        this.status = status;
+    private PartialCommit(RepositoryStatus model, VcsRepository repository, String list, List<Target> given) {
+        this.model = model;
         this.repository = repository;
         this.list = list;
+        this.given = given;
     }
 
     /** A commit of r's changelist list. */
-    static PartialCommit ofList(VcsStatusBuffer status, VcsRepository r, String list) {
-        return new PartialCommit(status, r, list);
+    static PartialCommit ofList(RepositoryStatus model, VcsRepository r, String list) {
+        return new PartialCommit(model, r, list, null);
     }
 
-    /** A commit of what status has picked. */
-    static PartialCommit ofPicks(VcsStatusBuffer status) {
-        return new PartialCommit(status, null, null);
+    /** A commit of what the model has picked. */
+    static PartialCommit ofPicks(RepositoryStatus model) {
+        return new PartialCommit(model, null, null, null);
+    }
+
+    /**
+     * A commit of the changes given: whole files, as the Changes tab's
+     * Commit file… takes a file, or a hunk or lines, as the status's
+     * Commit alone… does. What is staged stays staged; a file with
+     * something staged is refused, as a list's would be.
+     */
+    static PartialCommit ofTargets(RepositoryStatus model, List<Target> targets) {
+        return new PartialCommit(model, null, null, targets);
     }
 
     /** What it commits, as said: "changelist Feature", "the picked changes". */
     String what() {
-        return list != null ? "changelist " + list : "the picked changes";
+        return list != null ? "changelist " + list : given != null ? "the changes selected" : "the picked changes";
     }
 
     /**
@@ -96,9 +110,9 @@ final class PartialCommit {
 
     /** What it takes as the status has it now; refused, with why, if it can't be committed so. */
     Plan plan() throws Refused {
-        if (status.model().isDisposed())
+        if (model.isDisposed())
             throw new Refused("The status was closed: commit from it again");
-        if (status.isWriting())
+        if (model.isWriting())
             throw new Refused("Wait: the last change is still being made");
         final Map<VcsRepository, List<Target>> targets = new LinkedHashMap<>();
         final Map<VcsRepository, Set<String>> picks = new HashMap<>();
@@ -106,19 +120,28 @@ final class PartialCommit {
             // The repository's refusals first: no file's read can lift them.
             refuseRepository(repository);
             targets.put(repository, listTargets());
+        } else if (given != null) {
+            if (given.isEmpty())
+                throw new Refused("Nothing is selected to commit");
+            if (StatusActions.hunksIgnoreWhitespace(model, given))
+                throw new Refused("Not a hunk while whitespace is ignored: show it to commit a hunk alone");
+            for (Target t : given)
+                targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
+            for (VcsRepository r : targets.keySet())
+                refuseRepository(r);
         } else {
-            if (status.picks().unread(status.model()))
+            if (model.picks().unread(model))
                 throw new Refused("Wait: the picked files' diffs are being read");
-            final List<Target> picked = status.picks().targets(status.model());
+            final List<Target> picked = model.picks().targets(model);
             if (picked.isEmpty())
                 throw new Refused("Nothing is picked: ; or the boxes pick changes");
-            if (StatusActions.hunksIgnoreWhitespace(status, picked))
+            if (StatusActions.hunksIgnoreWhitespace(model, picked))
                 throw new Refused("Not a hunk while whitespace is ignored: show it to commit picked hunks");
             for (Target t : picked)
                 targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
             for (VcsRepository r : targets.keySet())
                 refuseRepository(r);
-            for (Map.Entry<Target, Set<String>> e : status.picks().used(picked).entrySet())
+            for (Map.Entry<Target, Set<String>> e : model.picks().used(picked).entrySet())
                 picks.computeIfAbsent(e.getKey().repository(), k -> new HashSet<>()).addAll(e.getValue());
         }
         for (Map.Entry<VcsRepository, List<Target>> e : targets.entrySet())
@@ -128,7 +151,7 @@ final class PartialCommit {
 
     // Its changelist's targets, as s on its heading takes them.
     private List<Target> listTargets() throws Refused {
-        final ListedChanges listed = status.model().listed(repository);
+        final ListedChanges listed = model.listed(repository);
         final List<Member> members = listed == null ? null : listed.members().get(list);
         if (members == null || members.isEmpty())
             throw new Refused("Nothing in changelist " + list + " to commit");
@@ -138,7 +161,7 @@ final class PartialCommit {
         for (Member m : members) {
             final Changelists.Assignment a = lists == null ? null : lists.lists().assignment(m.file().path());
             if (m.file().diff() == null && m.file().hasDiff() && a != null && a.whole() == null) {
-                status.refresh();
+                model.refresh();
                 throw new Refused("Wait: " + m.file().path() + "'s diff is being read");
             }
         }
@@ -151,16 +174,16 @@ final class PartialCommit {
             throw new Refused(r.backend().name() + " has no index to commit part of the changes through");
         // Git records a merge, or ends a cherry-pick, with the next commit, whatever it takes.
         if (r.inProgress() != null)
-            throw new Refused((status.getRepositories().size() > 1 ? r.name() + ": a " : "A ") + r.inProgress().label
+            throw new Refused((model.getRepositories().size() > 1 ? r.name() + ": a " : "A ") + r.inProgress().label
                     + " is in progress: finish it with c c, or abort it, first");
-        if (!status.files(r, StatusData.UNMERGED).isEmpty())
+        if (!model.files(r, StatusData.UNMERGED).isEmpty())
             throw new Refused("Resolve the conflicts first");
     }
 
     // Why r's targets ts can't be committed alone, thrown.
     private void refuse(VcsRepository r, List<Target> ts) throws Refused {
         final Set<String> staged = new HashSet<>();
-        for (FileItem f : status.files(r, "staged")) {
+        for (FileItem f : model.files(r, "staged")) {
             staged.add(f.path());
             if (f.change().origPath() != null)
                 staged.add(f.change().origPath());
@@ -254,7 +277,7 @@ final class PartialCommit {
     void committed(Plan plan, VcsRepository r) {
         final Set<String> keys = plan.picks().get(r);
         if (keys != null && !keys.isEmpty())
-            status.unpick(keys);
+            model.unpick(keys);
         if (list == null)
             return;
         final RepositoryLists lists = RepositoryLists.of(r);
@@ -267,7 +290,6 @@ final class PartialCommit {
         }
         // Deleted once a read shows nothing left in it: a change the commit
         // didn't take, or one made meanwhile, keeps it.
-        final RepositoryStatus model = status.model();
         model.readDiffsThen(Set.of(), () -> {
             final ListedChanges listed = model.listed(r);
             if (listed == null || !listed.members().getOrDefault(list, List.of()).isEmpty())

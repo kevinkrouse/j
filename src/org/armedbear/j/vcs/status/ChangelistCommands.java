@@ -125,21 +125,24 @@ public final class ChangelistCommands {
             "vcsChangelistRename",
             c -> Map.of(Changelists.DEFAULT, NO_RENAME),
             c -> ONLY_DEFAULT,
-            (r, lists, name) -> {
-                final String to = ask.ask(editor, "New name:", "Rename Changelist", name);
-                if (to == null || to.isBlank() || to.strip().equals(name))
-                    return "";
-                final String now = to.strip();
-                if (lists.lists().refusedName(now) != null)
-                    return lists.lists().refusedName(now);
-                // Read again, another writer's may have it, or not the old.
-                if (!lists.update(c -> c.list(now) != null || c.list(name) == null ? c : c.renamed(name, now)))
-                    return NOT_KEPT;
-                if (lists.lists().list(now) == null)
-                    return "There is a changelist " + now + " already, or no " + name;
-                relisted(r, name, now);
-                return "Renamed " + name + " to " + now;
-            });
+            (r, lists, name) -> renameList(editor, r, lists, name));
+    }
+
+    /** Renames name to one asked for: what is said. */
+    static String renameList(Editor editor, VcsRepository r, RepositoryLists lists, String name) {
+        final String to = ask.ask(editor, "New name:", "Rename Changelist", name);
+        if (to == null || to.isBlank() || to.strip().equals(name))
+            return "";
+        final String now = to.strip();
+        if (lists.lists().refusedName(now) != null)
+            return lists.lists().refusedName(now);
+        // Read again, another writer's may have it, or not the old.
+        if (!lists.update(c -> c.list(now) != null || c.list(name) == null ? c : c.renamed(name, now)))
+            return NOT_KEPT;
+        if (lists.lists().list(now) == null)
+            return "There is a changelist " + now + " already, or no " + name;
+        relisted(r, name, now);
+        return "Renamed " + name + " to " + now;
     }
 
     /**
@@ -153,17 +156,20 @@ public final class ChangelistCommands {
             "vcsChangelistDelete",
             c -> Map.of(Changelists.DEFAULT, KEPT),
             c -> ONLY_DEFAULT,
-            (r, lists, name) -> {
-                if (!StatusActions.confirm.test(
-                    editor,
-                    "Delete changelist " + name + "? Its changes go to " + Changelists.DEFAULT + ".",
-                    "Delete Changelist"))
-                    return "";
-                if (!lists.update(c -> c.list(name) == null ? c : c.without(name)))
-                    return NOT_KEPT;
-                relisted(r, name, Changelists.DEFAULT);
-                return "Deleted changelist " + name;
-            });
+            (r, lists, name) -> deleteList(editor, r, lists, name));
+    }
+
+    /** Deletes name, its changes the default's, after asking: what is said. */
+    static String deleteList(Editor editor, VcsRepository r, RepositoryLists lists, String name) {
+        if (!StatusActions.confirm.test(
+            editor,
+            "Delete changelist " + name + "? Its changes go to " + Changelists.DEFAULT + ".",
+            "Delete Changelist"))
+            return "";
+        if (!lists.update(c -> c.list(name) == null ? c : c.without(name)))
+            return NOT_KEPT;
+        relisted(r, name, Changelists.DEFAULT);
+        return "Deleted changelist " + name;
     }
 
     /**
@@ -172,20 +178,41 @@ public final class ChangelistCommands {
      * for, made if it is new.
      */
     public static void vcsChangelistMove(Editor editor) {
-        move(editor, true);
-    }
-
-    // The move, the diffs of the files it takes read first if read and
-    // they aren't, then it again; a file whose diff isn't read then, or
-    // that has none, moved whole.
-    private static void move(Editor editor, boolean read) {
         final VcsStatusBuffer status = VcsStatusMode.owner(editor);
         if (status == null) {
             moveInFile(editor);
             return;
         }
-        final boolean picked = StatusActions.takesPicks(status, editor);
-        final List<Target> targets = StatusActions.targets(status, editor);
+        final boolean picked = StatusActions.takesPicks(status.model(), editor);
+        final List<Target> targets = StatusActions.targets(status.model(), editor);
+        // Then, if editor still shows it, its caret where it was, the
+        // targets read afresh: the read made new FileItems with their diffs.
+        final org.armedbear.j.Buffer shown = editor.getBuffer();
+        final String at = editor.getDotLine() instanceof StatusLine s ? s.key() : null;
+        moveTargets(editor, status.model(), targets, picked, true, () -> {
+            if (editor.getBuffer() == shown && editor.getDotLine() instanceof StatusLine s && s.key().equals(at))
+                moveTargets(editor, status.model(),
+                        StatusActions.targets(status.model(), editor),
+                        StatusActions.takesPicks(status.model(), editor), false, null);
+            else
+                editor.status("Moved on while the diffs were read: move again");
+        });
+    }
+
+    /**
+     * Moves targets to a changelist asked for, made if new: the chooser,
+     * the diffs of the files it takes read first if read and they aren't,
+     * then retry; a file whose diff isn't read then, or that has none,
+     * moved whole. picked, whether they are the picks, unpicked as they
+     * move.
+     */
+    static void moveTargets(
+            Editor editor,
+            RepositoryStatus model,
+            List<Target> targets,
+            boolean picked,
+            boolean read,
+            Runnable retry) {
         if (targets.isEmpty()) {
             editor.status("Nothing here to move");
             return;
@@ -204,7 +231,7 @@ public final class ChangelistCommands {
             return;
         final Set<String> used = new HashSet<>();
         if (picked)
-            for (Set<String> keys : status.picks().used(targets).values())
+            for (Set<String> keys : model.picks().used(targets).values())
                 used.addAll(keys);
         final List<Taken> taken = taken(targets);
         // A file moves by its changes: their diffs read first.
@@ -214,15 +241,7 @@ public final class ChangelistCommands {
                 unreadKeys.add(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, t.file().path()));
         if (read && !unreadKeys.isEmpty()) {
             editor.status("Reading the diffs to move…");
-            // Then, if editor still shows it, its caret where it was.
-            final org.armedbear.j.Buffer shown = editor.getBuffer();
-            final String at = editor.getDotLine() instanceof StatusLine s ? s.key() : null;
-            status.readDiffsThen(unreadKeys, () -> {
-                if (editor.getBuffer() == shown && editor.getDotLine() instanceof StatusLine s && s.key().equals(at))
-                    move(editor, false);
-                else
-                    editor.status("Moved on while the diffs were read: move again");
-            });
+            model.readDiffsThen(unreadKeys, retry);
             return;
         }
         final Changelists c = lists.lists();
@@ -242,7 +261,7 @@ public final class ChangelistCommands {
                 return;
             }
             if (picked)
-                status.unpick(used);
+                model.unpick(used);
             editor.status("Moved " + StatusActions.names(targets) + " to " + to);
         });
     }
@@ -533,7 +552,7 @@ public final class ChangelistCommands {
     }
 
     // name made in r's lists: what is said.
-    private static String make(VcsRepository r, RepositoryLists lists, String name) {
+    static String make(VcsRepository r, RepositoryLists lists, String name) {
         if (lists.lists().refusedName(name) != null)
             return lists.lists().refusedName(name);
         if (!lists.update(c -> c.withList(name)))
@@ -543,7 +562,7 @@ public final class ChangelistCommands {
     }
 
     // name made active in r's lists: what is said.
-    private static String activate(VcsRepository r, RepositoryLists lists, String name) {
+    static String activate(VcsRepository r, RepositoryLists lists, String name) {
         if (!lists.update(c -> c.list(name) == null ? c : c.withActive(name)))
             return NOT_KEPT;
         if (!lists.lists().active().equals(name))
@@ -553,7 +572,7 @@ public final class ChangelistCommands {
     }
 
     // r's lists, if changelists are on and its version control keeps j's; else null, said.
-    private static RepositoryLists lists(Editor editor, VcsRepository r) {
+    static RepositoryLists lists(Editor editor, VcsRepository r) {
         if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS)) {
             editor.status("Changelists are off: vcsChangelists is false");
             return null;

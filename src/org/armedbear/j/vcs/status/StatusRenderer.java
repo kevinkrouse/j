@@ -220,6 +220,7 @@ public final class StatusRenderer {
                     + (l.name().equals(listed.active()) ? "  active" : "");
             add(
                 new StatusLine(Kind.LIST, text, lk, lk, repository, s.id()).members(members)
+                        .list(l.name())
                         .expandable(true)
                         .open(open));
             // Keyed in the lists' order, open or not, so a key stays its file's.

@@ -75,9 +75,9 @@ public final class CommitCommands {
      * several repositories, each line names the ones it commits to.
      */
     public static Transient popup(Editor editor) {
-        final VcsStatusBuffer status =
+        final RepositoryStatus status =
                 editor != null && editor.getBuffer() instanceof VcsStatusBuffer b && b.getRepositories().size() > 1
-                        ? b
+                        ? b.model()
                         : null;
         String commit = "commit";
         String amend = "amend";
@@ -131,7 +131,7 @@ public final class CommitCommands {
      * staged, or with -a any tracked change, or with none and an empty
      * commit allowed, the caret's; else the caret's.
      */
-    static List<VcsRepository> targets(VcsStatusBuffer status, VcsRepository caret, Set<CommitOption> options) {
+    static List<VcsRepository> targets(RepositoryStatus status, VcsRepository caret, Set<CommitOption> options) {
         if (options.contains(CommitOption.AMEND) || status.getRepositories().size() == 1)
             return List.of(caret);
         final List<VcsRepository> out = new ArrayList<>();
@@ -188,7 +188,7 @@ public final class CommitCommands {
     }
 
     // The repository of the thing at the caret, or the buffer's only one.
-    private static VcsRepository repository(Editor editor, VcsStatusBuffer status) {
+    private static VcsRepository repository(Editor editor, RepositoryStatus status) {
         if (editor.getDot() != null && editor.getDotLine() instanceof StatusLine s && s.repository() != null)
             return s.repository();
         return status.getRepositories().get(0);
@@ -207,7 +207,7 @@ public final class CommitCommands {
         final Editor at = statusWindow(editor);
         if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
             return;
-        final VcsRepository r = repository(at, status);
+        final VcsRepository r = repository(at, status.model());
         final RepositoryLists lists = RepositoryLists.shown(r);
         if (lists == null) {
             at.status("No changelists here: n in the changelist popup makes one");
@@ -219,7 +219,11 @@ public final class CommitCommands {
         }
         final String heading = ChangelistCommands.listAt(at);
         if (heading != null) {
-            startPartial(at, status, PartialCommit.ofList(status, r, heading), PartialCommit.draft(r, heading));
+            startPartial(
+                at,
+                status.model(),
+                PartialCommit.ofList(status.model(), r, heading),
+                PartialCommit.draft(r, heading));
             return;
         }
         // Those with nothing in them dimmed, as having nothing to commit.
@@ -247,7 +251,11 @@ public final class CommitCommands {
                 at.status(list + ": " + empty.getOrDefault(list, "no such changelist"));
                 return;
             }
-            startPartial(at, status, PartialCommit.ofList(status, r, list), PartialCommit.draft(r, list));
+            startPartial(
+                at,
+                status.model(),
+                PartialCommit.ofList(status.model(), r, list),
+                PartialCommit.draft(r, list));
         });
     }
 
@@ -259,13 +267,54 @@ public final class CommitCommands {
         final Editor at = statusWindow(editor);
         if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
             return;
-        startPartial(at, status, PartialCommit.ofPicks(status), "");
+        startPartial(at, status.model(), PartialCommit.ofPicks(status.model()), "");
+    }
+
+    /**
+     * vcsCommitFiles: commits the thing at the caret, or the selection,
+     * alone, what is staged left staged: a file its whole work-tree
+     * changes, a hunk or a changelist's part of a file just that, as the
+     * other actions take them. Never the picks: the menu says what is
+     * under the mouse, and committing the picks is vcsCommitPicked.
+     */
+    public static void vcsCommitFiles(Editor editor) {
+        final Editor at = statusWindow(editor);
+        if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
+            return;
+        final List<StatusActions.Target> targets = StatusActions.targets(status.model(), at, false);
+        if (targets.isEmpty()) {
+            at.status("Nothing here to commit");
+            return;
+        }
+        startPartial(at, status.model(), PartialCommit.ofTargets(status.model(), targets), "");
+    }
+
+    /**
+     * Commits the changes given, as the Changes tab's Commit file… does
+     * with the files of its selected nodes: whole files, or a hunk or
+     * lines, through the private index, what is staged left staged.
+     */
+    static void commitTargets(Editor editor, RepositoryStatus model, List<StatusActions.Target> targets) {
+        if (targets.isEmpty()) {
+            editor.status("Nothing here to commit");
+            return;
+        }
+        startPartial(editor, model, PartialCommit.ofTargets(model, targets), "");
+    }
+
+    /**
+     * Commits the changelist list of r alone, what is staged left
+     * staged: as the Changes tab's Commit changelist… does with the list
+     * under the mouse.
+     */
+    static void startPartialList(Editor editor, RepositoryStatus model, VcsRepository r, String list) {
+        startPartial(editor, model, PartialCommit.ofList(model, r, list), PartialCommit.draft(r, list));
     }
 
     // A message for partial opened, starting from message, if it can be
     // committed as things are; else why not said. What it takes is worked
     // out again as it commits.
-    private static void startPartial(Editor editor, VcsStatusBuffer status, PartialCommit partial, String message) {
+    private static void startPartial(Editor editor, RepositoryStatus status, PartialCommit partial, String message) {
         final PartialCommit.Plan plan;
         try {
             plan = partial.plan();
@@ -289,12 +338,7 @@ public final class CommitCommands {
     private static String templateOf(CommitMessageBuffer buffer, String message) {
         return buffer.getPartial() != null
                 ? buffer.getPartial().template(message, buffer.getPlan(), buffer.getRepositories())
-                : template(
-                    buffer.getStatus(),
-                    buffer.getRepositories(),
-                    buffer.getOptions(),
-                    message,
-                    buffer.getDiff());
+                : template(buffer.getModel(), buffer.getRepositories(), buffer.getOptions(), message, buffer.getDiff());
     }
 
     public static void vcsCommitAmend(Editor editor) {
@@ -312,8 +356,9 @@ public final class CommitCommands {
     }
 
     private static void start(Editor editor, Set<CommitOption> kind) {
-        if (!(editor.getBuffer() instanceof VcsStatusBuffer status))
+        if (!(editor.getBuffer() instanceof VcsStatusBuffer buffer))
             return;
+        final RepositoryStatus status = buffer.model();
         final VcsRepository caret = repository(editor, status);
         final Set<CommitOption> options = options(editor);
         options.addAll(kind);
@@ -382,7 +427,7 @@ public final class CommitCommands {
     // out: what is staged, and with -a the rest of the tracked changes; with
     // a diff, the diff under the scissors line.
     static String template(
-            VcsStatusBuffer status,
+            RepositoryStatus status,
             List<VcsRepository> repositories,
             Set<CommitOption> options,
             String message,
@@ -426,7 +471,7 @@ public final class CommitCommands {
      * takes: "# COMMITS TO 3 REPOSITORIES, ONE EACH: x, y, z", or which one
      * alone and why not the others; null with one.
      */
-    static String reach(VcsStatusBuffer status, List<VcsRepository> repositories, Set<CommitOption> options) {
+    static String reach(RepositoryStatus status, List<VcsRepository> repositories, Set<CommitOption> options) {
         if (status == null || status.getRepositories().size() < 2)
             return null;
         if (repositories.size() > 1) {
@@ -459,7 +504,7 @@ public final class CommitCommands {
     // The message buffer, shown; null if it couldn't be.
     private static CommitMessageBuffer open(
             Editor editor,
-            VcsStatusBuffer status,
+            RepositoryStatus status,
             List<VcsRepository> repositories,
             Set<CommitOption> options,
             String diff,
@@ -488,12 +533,12 @@ public final class CommitCommands {
             editor.status("The message is empty");
             return;
         }
-        commit(editor, buffer.getStatus(), buffer.getRepositories(), message, buffer.getOptions(), buffer);
+        commit(editor, buffer.getModel(), buffer.getRepositories(), message, buffer.getOptions(), buffer);
     }
 
     private static void commit(
             Editor editor,
-            VcsStatusBuffer status,
+            RepositoryStatus status,
             List<VcsRepository> repositories,
             String message,
             Set<CommitOption> options,
@@ -592,7 +637,7 @@ public final class CommitCommands {
     // for those that failed, saying which they are.
     private static void committed(
             Editor editor,
-            VcsStatusBuffer status,
+            RepositoryStatus status,
             List<VcsRepository> repositories,
             String message,
             CommitMessageBuffer buffer,

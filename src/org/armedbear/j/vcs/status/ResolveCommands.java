@@ -163,14 +163,23 @@ public final class ResolveCommands {
         final VcsStatusBuffer buffer = VcsStatusMode.owner(editor);
         if (buffer == null || editor.getDot() == null)
             return;
-        final boolean picked = StatusActions.takesPicks(buffer, editor);
-        final List<Target> all = StatusActions.targets(buffer, editor, picked);
+        final boolean picked = StatusActions.takesPicks(buffer.model(), editor);
+        final List<Target> all = StatusActions.targets(buffer.model(), editor, picked);
+        resolveTargets(editor, buffer.model(), all, picked, take);
+    }
+
+    /**
+     * Runs take on the unmerged targets, as the Changes tab's menu does
+     * with the files of its nodes: the refusals checked, the unmerged
+     * files' alone taken of the picks, the rest left picked.
+     */
+    static void resolveTargets(Editor editor, RepositoryStatus model, List<Target> all, boolean picked, Take take) {
         final List<Target> targets = picked ? all.stream().filter(StatusActions::isUnmerged).toList() : all;
         if (targets.stream().noneMatch(StatusActions::isUnmerged)) {
             editor.status(picked ? "No conflict is picked" : "Nothing to resolve here");
             return;
         }
-        final String why = StatusActions.refusal(editor, buffer, Op.DISCARD, targets, picked);
+        final String why = StatusActions.refusal(editor, model, Op.DISCARD, targets, picked);
         if (why != null) {
             editor.status(why);
             return;
@@ -179,8 +188,8 @@ public final class ResolveCommands {
             editor.status("That choice doesn't fit these conflicts");
             return;
         }
-        final Map<Target, Set<String>> used = picked ? buffer.picks().used(targets) : Map.of();
-        StatusActions.start(editor, buffer, "Resolving", targets, used, did -> resolve(targets, take, did));
+        final Map<Target, Set<String>> used = picked ? model.picks().used(targets) : Map.of();
+        StatusActions.start(editor, model, "Resolving", targets, used, did -> resolve(targets, take, did));
     }
 
     /** As resolve, telling did of each target resolved. */

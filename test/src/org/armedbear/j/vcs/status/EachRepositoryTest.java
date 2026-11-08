@@ -187,10 +187,10 @@ public class EachRepositoryTest {
         assertEquals("commit to z", CommitCommands.popup(h.editor()).item("c").description());
         assertEquals(
             "# COMMITS TO z ALONE: x, y have nothing staged",
-            CommitCommands.reach(status, List.of(rs.get(2)), EnumSet.noneOf(CommitOption.class)));
+            CommitCommands.reach(status.model(), List.of(rs.get(2)), EnumSet.noneOf(CommitOption.class)));
         assertEquals(
             "# CHANGES x'S LAST COMMIT ALONE, not the other repositories'",
-            CommitCommands.reach(status, List.of(rs.get(0)), EnumSet.of(CommitOption.AMEND)));
+            CommitCommands.reach(status.model(), List.of(rs.get(0)), EnumSet.of(CommitOption.AMEND)));
     }
 
     @Test

@@ -123,6 +123,41 @@ public final class LogCommands {
     }
 
     /**
+     * The log of path in r, through its renames, taking the whole frame:
+     * a file that isn't the buffer's, as the status's or the Changes
+     * tab's Show history.
+     */
+    public static void showFileLog(Editor editor, VcsRepository r, String path) {
+        // Not narrowed by the popup's filters, which could leave the file out.
+        showFull(editor, LogBuffer.open(LogScope.of(r), LogQuery.file(path)));
+    }
+
+    /** The log of the file the caret is on in the status, through its renames. */
+    public static void vcsLogFileAt(Editor editor) {
+        if (!(editor.getDotLine() instanceof StatusLine s) || s.file() == null || s.repository() == null) {
+            editor.status("No file here");
+            return;
+        }
+        showFileLog(editor, s.repository(), s.file().path());
+    }
+
+    /**
+     * The log at the commit the caret is on in the status: the whole
+     * frame's log with that commit picked out.
+     */
+    public static void vcsLogCommit(Editor editor) {
+        if (!(editor.getDotLine() instanceof StatusLine s) || s.commit() == null || s.repository() == null) {
+            editor.status("No commit here");
+            return;
+        }
+        final VcsRepository r = s.repository();
+        final String id = s.commit().hash();
+        final LogBuffer log = LogBuffer.open(LogScope.of(r), LogQuery.ALL);
+        showFull(editor, log);
+        log.reveal(r, id, false);
+    }
+
+    /**
      * The log of path in repository, at commit id: the whole frame with
      * its details, the caret on the commit and filePath, the file's path
      * in that commit, picked out in the files list. From revision when

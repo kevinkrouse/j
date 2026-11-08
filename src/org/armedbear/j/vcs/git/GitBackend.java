@@ -576,6 +576,19 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
+    public boolean canIgnore() {
+        return true;
+    }
+
+    @Override
+    public VcsResult writeIgnore(VcsRepository repository, String path) {
+        final String failed = GitWrites.ignore(repository.root(), path);
+        return failed == null
+                ? new VcsResult(null, 0, new byte[0], "", 0)
+                : new VcsResult(null, 1, new byte[0], failed, 0);
+    }
+
+    @Override
     public boolean isRoot(File dir) {
         File git = File.getInstance(dir, ".git");
         return git != null && git.exists();

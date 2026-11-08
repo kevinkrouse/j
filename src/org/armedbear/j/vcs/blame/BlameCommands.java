@@ -75,6 +75,11 @@ public final class BlameCommands {
         turnOn(editor);
     }
 
+    /** Turns the blame column on for the editor's buffer, as a context menu does after opening the file. */
+    public static void blameBuffer(Editor editor) {
+        turnOn(editor);
+    }
+
     // The column on the editor's buffer, with its blame read, unless it is
     // there already. Says why when there is none.
     private static void turnOn(Editor editor) {

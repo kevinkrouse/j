@@ -118,8 +118,8 @@ public final class StatusActions {
      * Whether the targets in editor are what is picked: something is, and
      * no selection, which is always meant, comes before it.
      */
-    static boolean takesPicks(VcsStatusBuffer buffer, Editor editor) {
-        return !buffer.picks().isEmpty() && !Region.isSelection(editor);
+    static boolean takesPicks(RepositoryStatus model, Editor editor) {
+        return !model.picks().isEmpty() && !Region.isSelection(editor);
     }
 
     /**
@@ -128,15 +128,25 @@ public final class StatusActions {
      * lines are keyed as the status's are.
      */
     static List<Target> targets(VcsStatusBuffer buffer, Editor editor) {
-        return targets(buffer, editor, takesPicks(buffer, editor));
+        return targets(buffer.model(), editor);
+    }
+
+    /** As targets, of the model: what the selection takes, else what is picked, else the caret's. */
+    static List<Target> targets(RepositoryStatus model, Editor editor) {
+        return targets(model, editor, takesPicks(model, editor));
     }
 
     /** As targets, picked whether it takes the picks, as takesPicks says. */
-    static List<Target> targets(VcsStatusBuffer buffer, Editor editor, boolean picked) {
-        if (picked)
-            return buffer.picks().targets(buffer.model());
-        final List<StatusLine> lines = selected(editor);
+    static List<Target> targets(RepositoryStatus model, Editor editor, boolean picked) {
+        return picked ? model.picks().targets(model) : targetsOf(model, selected(editor));
+    }
 
+    /**
+     * What these status lines take, as the status's own lines would: whole
+     * files, a changelist heading its members, a hunk or some of its
+     * lines a Part. What the Changes tab builds from its nodes.
+     */
+    static List<Target> targetsOf(RepositoryStatus model, List<StatusLine> lines) {
         final Map<String, Files> files = new LinkedHashMap<>();
         final Map<Hunk, Part> parts = new IdentityHashMap<>();
         final List<Target> targets = new ArrayList<>();
@@ -145,7 +155,7 @@ public final class StatusActions {
                 continue;
             switch (l.kind()) {
                 case SECTION -> {
-                    for (FileItem f : buffer.files(l.repository(), l.section()))
+                    for (FileItem f : model.files(l.repository(), l.section()))
                         addFile(files, targets, l.repository(), l.section(), f);
                 }
                 // A changelist's files, those split across lists their lines in it.
@@ -290,16 +300,32 @@ public final class StatusActions {
             StashCommands.drop(editor, stash.repository(), stash.stash());
             return;
         }
-        final boolean picked = takesPicks(buffer, editor);
-        final List<Target> targets = targets(buffer, editor, picked);
+        final boolean picked = takesPicks(buffer.model(), editor);
+        final List<Target> targets = targets(buffer.model(), editor, picked);
         // The picks the targets are, if any: those picked after stay.
         final Map<Target, Set<String>> used = picked ? buffer.picks().used(targets) : Map.of();
-        final String why = refusal(editor, buffer, op, targets, picked);
+        runOn(editor, buffer.model(), op, targets, used, picked);
+    }
+
+    /**
+     * Does op to targets in model, asked where op asks, as run does: what
+     * the Changes tab's menu does with the targets of its nodes, and the
+     * status's menu with those of its lines, without the caret being
+     * where they came from.
+     */
+    static void runOn(
+            Editor editor,
+            RepositoryStatus model,
+            Op op,
+            List<Target> targets,
+            Map<Target, Set<String>> used,
+            boolean picked) {
+        final String why = refusal(editor, model, op, targets, picked);
         if (why != null) {
             // A read that left a picked file's diff unread, as one that
             // failed, is tried again.
-            if (picked && buffer.picks().unread(buffer.model()))
-                buffer.refresh();
+            if (picked && model.picks().unread(model))
+                model.refresh();
             editor.status(why);
             return;
         }
@@ -316,8 +342,8 @@ public final class StatusActions {
             // unmerged file is always asked about, another only with
             // markers in what it stages. The count holds the gate, as the
             // write after it does; a no gives it back.
-            final boolean shownWhole = buffer.readIgnoring() == Whitespace.NONE;
-            buffer.startWriting();
+            final boolean shownWhole = model.readIgnoring() == Whitespace.NONE;
+            model.startWriting();
             Background.then("vcs count conflicts", () -> markersStaged(targets, shownWhole), conflicts -> {
                 final int left = conflicts == null ? 0 : conflicts;
                 if (!unmerged.isEmpty()
@@ -328,14 +354,14 @@ public final class StatusActions {
                         : left > 0
                                 && !confirm
                                         .test(editor, leftQuestion("Stage " + names(targets) + "?", left), "Stage")) {
-                    buffer.gaveUpWriting();
+                    model.gaveUpWriting();
                     return;
                 }
-                start(editor, buffer, "Staging", targets, used, did -> performAll(op, targets, did));
+                start(editor, model, "Staging", targets, used, did -> performAll(op, targets, did));
             });
             return;
         }
-        start(editor, buffer, switch (op) {
+        start(editor, model, switch (op) {
             case STAGE -> "Staging";
             case UNSTAGE -> "Unstaging";
             case DISCARD -> "Discarding";
@@ -362,7 +388,7 @@ public final class StatusActions {
      */
     static void start(
             Editor editor,
-            VcsStatusBuffer buffer,
+            RepositoryStatus model,
             String doing,
             List<Target> targets,
             Map<Target, Set<String>> used,
@@ -370,29 +396,29 @@ public final class StatusActions {
         editor.setMark(null);
         editor.status(doing + " " + names(targets) + "…");
         final List<Target> did = Collections.synchronizedList(new ArrayList<>());
-        write(editor, buffer, "vcs " + doing.toLowerCase(Locale.ROOT), () -> work.apply(did::add), failed -> {
+        write(editor, model, "vcs " + doing.toLowerCase(Locale.ROOT), () -> work.apply(did::add), failed -> {
             final Set<String> keys = new HashSet<>();
             for (Map.Entry<Target, Set<String>> e : used.entrySet())
                 if (failed == null || did.contains(e.getKey()))
                     keys.addAll(e.getValue());
-            buffer.unpick(keys);
+            model.unpick(keys);
         });
     }
 
     // Runs work, what went wrong or null, off the event thread, then reads the buffer again.
-    static void write(Editor editor, VcsStatusBuffer buffer, String name, Supplier<String> work) {
-        write(editor, buffer, name, work, null);
+    static void write(Editor editor, RepositoryStatus model, String name, Supplier<String> work) {
+        write(editor, model, name, work, null);
     }
 
     // As write, done given what went wrong or null on the event thread,
     // before the read after.
     private static void write(
             Editor editor,
-            VcsStatusBuffer buffer,
+            RepositoryStatus model,
             String name,
             Supplier<String> work,
             Consumer<String> done) {
-        buffer.startWriting();
+        model.startWriting();
         Background.start(name, () -> {
             String failed = null;
             // Whatever happens, the buffer is read again and takes keys again.
@@ -403,7 +429,7 @@ public final class StatusActions {
                 Log.error(e);
                 failed = "Failed: " + e;
             }
-            finish(editor, buffer, failed, done);
+            finish(editor, model, failed, done);
         });
     }
 
@@ -478,6 +504,55 @@ public final class StatusActions {
         return able(editor).contains(op);
     }
 
+    /** Whether r's system can be told to ignore a file, as git's .gitignore. */
+    static boolean canIgnore(VcsRepository r) {
+        return r != null && r.backend().canIgnore();
+    }
+
+    /**
+     * Tells r's system to ignore path, relative to its root, then reads
+     * the status again so it leaves Untracked: Add to .gitignore. What
+     * went wrong is said in the status bar.
+     */
+    static void ignore(Editor editor, RepositoryStatus model, VcsRepository r, String path) {
+        if (!canIgnore(r)) {
+            editor.status(r == null ? "No repository here" : r.backend().name() + " can't ignore a file here");
+            return;
+        }
+        write(editor, model, "vcs ignore", () -> {
+            final VcsResult result = r.backend().writeIgnore(r, path);
+            return result != null && !result.succeeded() ? result.lastError() : null;
+        });
+    }
+
+    /** vcsIgnore: adds the file at the caret to the repository's ignore file. */
+    public static void vcsIgnore(Editor editor) {
+        final VcsStatusBuffer buffer = VcsStatusMode.owner(editor);
+        if (buffer == null || !(editor.getDotLine() instanceof StatusLine s) || s.file() == null) {
+            editor.status("No file here to ignore");
+            return;
+        }
+        ignore(editor, buffer.model(), s.repository(), s.file().path());
+    }
+
+    /** vcsCopyPath: the file at the caret, relative to its repository, on the clipboard and in the kill ring. */
+    public static void vcsCopyPath(Editor editor) {
+        if (!(editor.getDotLine() instanceof StatusLine s) || s.file() == null) {
+            editor.status("No file here");
+            return;
+        }
+        VcsContextMenus.copyPath(editor, s.file().path());
+    }
+
+    /** vcsCopyHash: the commit at the caret's hash, on the clipboard and in the kill ring. */
+    public static void vcsCopyHash(Editor editor) {
+        if (!(editor.getDotLine() instanceof StatusLine s) || s.commit() == null) {
+            editor.status("No commit here");
+            return;
+        }
+        VcsContextMenus.copyPath(editor, s.commit().hash());
+    }
+
     /** What would do something to what the caret or selection is on, the targets worked out once. */
     public static Set<Op> able(Editor editor) {
         final Set<Op> out = EnumSet.noneOf(Op.class);
@@ -486,12 +561,12 @@ public final class StatusActions {
             return out;
         if (!(editor.getBuffer() instanceof VcsStatusBuffer || editor.getBuffer() instanceof StatusDiffBuffer))
             return out;
-        final boolean picked = takesPicks(buffer, editor);
-        final List<Target> targets = targets(buffer, editor, picked);
+        final boolean picked = takesPicks(buffer.model(), editor);
+        final List<Target> targets = targets(buffer.model(), editor, picked);
         for (Op op : Op.values())
             if (stashDropped(editor, op) != null
                     ? !buffer.isWriting()
-                    : refusal(editor, buffer, op, targets, picked) == null)
+                    : refusal(editor, buffer.model(), op, targets, picked) == null)
                 out.add(op);
         return out;
     }
@@ -506,16 +581,16 @@ public final class StatusActions {
                 && s.stash() != null ? s : null;
     }
 
-    // Why op can't be done to targets in editor, picked if they are the
-    // picks, or null.
-    static String refusal(Editor editor, VcsStatusBuffer buffer, Op op, List<Target> targets, boolean picked) {
+    // Why op can't be done to targets in model, seen from editor,
+    // picked if they are the picks, or null.
+    static String refusal(Editor editor, RepositoryStatus model, Op op, List<Target> targets, boolean picked) {
         // The diff beside shows what was there before the last write until it is read again.
         if (editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale())
             return "Wait: the diff is being read again";
         // What the buffer shows is out of date until the last write's refresh.
-        if (buffer.isWriting())
+        if (model.isWriting())
             return "Wait: the last change is still being made";
-        if (picked && buffer.picks().unread(buffer.model()))
+        if (picked && model.picks().unread(model))
             return "Wait: the picked files' diffs are being read";
         if (targets.isEmpty())
             return "Nothing to " + verb(op) + " here";
@@ -532,7 +607,7 @@ public final class StatusActions {
             if (ResolveCommands.offered(targets).isEmpty())
                 return "Those conflicts differ: resolve them one at a time";
         }
-        if (hunksIgnoreWhitespace(buffer, targets))
+        if (hunksIgnoreWhitespace(model, targets))
             return "Not a hunk while whitespace is ignored: a file is " + switch (op) {
                 case STAGE -> "staged";
                 case UNSTAGE -> "unstaged";
@@ -543,8 +618,8 @@ public final class StatusActions {
 
     // Whether targets take a hunk or lines of one, while the diffs shown,
     // or those to come, ignore whitespace: a patch of them can't apply.
-    static boolean hunksIgnoreWhitespace(VcsStatusBuffer buffer, List<Target> targets) {
-        return (DiffWhitespace.ignored() != Whitespace.NONE || buffer.readIgnoring() != Whitespace.NONE)
+    static boolean hunksIgnoreWhitespace(RepositoryStatus model, List<Target> targets) {
+        return (DiffWhitespace.ignored() != Whitespace.NONE || model.readIgnoring() != Whitespace.NONE)
                 && targets.stream().anyMatch(t -> t instanceof Part);
     }
 
@@ -569,15 +644,16 @@ public final class StatusActions {
             editor.status("Not while a merge, rebase or stash pop is in progress: it would end it. u unstages a file");
             return;
         }
-        final Runnable all = () -> write(editor, buffer, "vcs " + (stage ? "stage" : "unstage") + " all", () -> {
-            for (VcsRepository r : buffer.getRepositories()) {
-                final VcsBackend b = r.backend();
-                final String failed = failure(b, stage ? b.stageAll(r) : b.unstageAll(r));
-                if (failed != null)
-                    return failed;
-            }
-            return null;
-        });
+        final Runnable all =
+                () -> write(editor, buffer.model(), "vcs " + (stage ? "stage" : "unstage") + " all", () -> {
+                    for (VcsRepository r : buffer.getRepositories()) {
+                        final VcsBackend b = r.backend();
+                        final String failed = failure(b, stage ? b.stageAll(r) : b.unstageAll(r));
+                        if (failed != null)
+                            return failed;
+                    }
+                    return null;
+                });
         if (!stage) {
             all.run();
             return;
@@ -614,12 +690,12 @@ public final class StatusActions {
         });
     }
 
-    private static void finish(Editor editor, VcsStatusBuffer buffer, String failed, Consumer<String> done) {
+    private static void finish(Editor editor, RepositoryStatus model, String failed, Consumer<String> done) {
         // Before the read after, which would drop the picks as gone.
         if (done != null)
             SwingUtilities.invokeLater(() -> done.accept(failed));
-        buffer.wrote();
-        for (VcsRepository r : buffer.getRepositories()) {
+        model.wrote();
+        for (VcsRepository r : model.getRepositories()) {
             r.invalidate();
             r.refresh(); // Tells the buffer, which reads again.
         }

@@ -46,6 +46,7 @@ import java.util.Objects;
 import javax.swing.DropMode;
 import javax.swing.Icon;
 import javax.swing.JComponent;
+import javax.swing.JPopupMenu;
 import javax.swing.JTree;
 import javax.swing.TransferHandler;
 import javax.swing.UIManager;
@@ -70,8 +71,11 @@ import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.PickIcon;
 import org.armedbear.j.util.PickState;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.blame.BlameCommands;
 import org.armedbear.j.vcs.changelists.Changelists.Changelist;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -188,7 +192,9 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     public ChangesTree(Sidebar sidebar, Kept kept) {
         super((TreeModel) null);
         this.sidebar = sidebar;
-        getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        // Several files at once, contiguous or not; a list, section or
+        // repository alone, never with files.
+        getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
         setRootVisible(false);
         setShowsRootHandles(true);
         setCellRenderer(new Renderer());
@@ -529,6 +535,59 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         return path == null ? null : ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
     }
 
+    // The user object of a path.
+    private static Object userObject(TreePath path) {
+        return path == null ? null : ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
+    }
+
+    private static boolean isFile(TreePath path) {
+        return userObject(path) instanceof FileNode;
+    }
+
+    // A group — a list, section or repository — is never selected with
+    // files: adding one selects it alone; adding a file drops any group
+    // from the selection and adds to the files.
+    @Override
+    public void addSelectionPath(TreePath path) {
+        if (path != null && !isFile(path))
+            setSelectionPath(path);
+        else {
+            dropGroups();
+            super.addSelectionPath(path);
+        }
+    }
+
+    @Override
+    public void addSelectionPaths(TreePath[] paths) {
+        if (paths == null || paths.length == 0) {
+            super.addSelectionPaths(paths);
+            return;
+        }
+        if (paths.length == 1 && !isFile(paths[0])) {
+            setSelectionPath(paths[0]);
+            return;
+        }
+        dropGroups();
+        final List<TreePath> files = new ArrayList<>();
+        for (TreePath p : paths)
+            if (isFile(p))
+                files.add(p);
+        if (files.isEmpty())
+            setSelectionPath(paths[0]);
+        else
+            super.addSelectionPaths(files.toArray(new TreePath[0]));
+    }
+
+    // Any group in the selection removed, its files kept.
+    private void dropGroups() {
+        final TreePath[] now = getSelectionPaths();
+        if (now == null)
+            return;
+        for (TreePath p : now)
+            if (!isFile(p))
+                super.removeSelectionPath(p);
+    }
+
     @Override
     public String getToolTipText(MouseEvent e) {
         if (!(nodeAt(e.getX(), e.getY()) instanceof FileNode f))
@@ -554,6 +613,33 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             e.consume();
             if (selected() instanceof FileNode f)
                 pick(f);
+            return;
+        }
+        // The tree's own chords, before SidebarTree.chord hands them to
+        // the editor, where Ctrl D is dir.
+        if (e.getKeyCode() == KeyEvent.VK_D
+                && (e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0
+                && selected() instanceof FileNode f) {
+            e.consume();
+            showDiff(f.line());
+            return;
+        }
+        if (e.getKeyCode() == KeyEvent.VK_DELETE && selected() != null) {
+            e.consume();
+            discardSelected();
+            return;
+        }
+        // The context menu, for the keyboard's menu key and Shift F10,
+        // shown by the selected node rather than the tree's corner.
+        if (e.getKeyCode() == KeyEvent.VK_CONTEXT_MENU || e.getKeyCode() == KeyEvent.VK_F10 && e.isShiftDown()) {
+            e.consume();
+            final TreePath path = getSelectionPath();
+            if (path != null) {
+                final java.awt.Rectangle row = getRowBounds(getRowForPath(path));
+                final int x = row != null ? row.x + 16 : 0;
+                final int y = row != null ? row.y + row.height : 0;
+                showPopup(path, x, y);
+            }
             return;
         }
         sidebarKeyPressed(editor, e, () -> {
@@ -585,10 +671,306 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     }
 
     @Override
-    public void mousePressed(MouseEvent e) {}
+    public void mousePressed(MouseEvent e) {
+        if (e.isPopupTrigger())
+            popupFromMouse(e);
+    }
 
     @Override
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {
+        if (e.isPopupTrigger())
+            popupFromMouse(e);
+    }
+
+    // The menu for what the mouse is on: the node right-clicked, or the
+    // selection if it is in it.
+    private void popupFromMouse(MouseEvent e) {
+        final TreePath path = getPathForLocation(e.getX(), e.getY());
+        if (path == null)
+            return;
+        if (!isSelected(path))
+            setSelectionPath(path);
+        showPopup(path, e.getX(), e.getY());
+    }
+
+    private boolean isSelected(TreePath path) {
+        final TreePath[] selected = getSelectionPaths();
+        if (selected == null)
+            return false;
+        for (TreePath p : selected)
+            if (p.equals(path))
+                return true;
+        return false;
+    }
+
+    /**
+     * The menu for the node at path, shown at x, y in this tree; the
+     * selection it is in taken when there is one.
+     */
+    void showPopup(TreePath path, int x, int y) {
+        final JPopupMenu menu = menuFor(path);
+        if (menu != null)
+            menu.show(this, x, y);
+    }
+
+    /**
+     * The menu for the node at path: the file items for a file or the
+     * files selected, the changelist items for a list, stage and unstage
+     * all for a section, refresh and open status for a repository.
+     */
+    JPopupMenu menuFor(TreePath path) {
+        final Object o = userObject(path);
+        final Editor editor = editor();
+        if (status == null || editor == null)
+            return null;
+        final VcsMenu menu = new VcsMenu(editor, null);
+        if (o instanceof FileNode) {
+            // The files selected when the node is among them; else the node alone.
+            final List<StatusLine> lines = isSelected(path) ? selectedFileLines() : List.of(((FileNode) o).line());
+            final List<StatusActions.Target> targets = StatusActions.targetsOf(status, lines);
+            final StatusLine line = lines.isEmpty() ? null : lines.get(0);
+            if (line == null)
+                return null;
+            VcsContextMenus.fileItems(
+                menu,
+                editor,
+                status,
+                targets,
+                targets,
+                line,
+                "Show diff",
+                "vcsShowDiff",
+                "Ctrl D",
+                name -> fileAction(name, targets, line));
+        } else if (o instanceof GroupNode g) {
+            if (g.list() != null)
+                VcsContextMenus.changelistItems(menu, editor, g.list(), g.active(), name -> listAction(name, g));
+            else
+                sectionItems(menu, editor, g);
+        } else if (o instanceof RepositoryNode) {
+            menu.add("Refresh", "vcsStatusRefresh", true, null, e -> status.refresh());
+            menu.add("Open status", "vcsStatus", true, null, e -> VcsStatusMode.vcsStatus(editor));
+        } else
+            return null;
+        return menu.build();
+    }
+
+    // A section's items: stage, unstage, discard all of it.
+    private void sectionItems(VcsMenu menu, Editor editor, GroupNode g) {
+        final List<StatusActions.Target> targets = StatusActions.targetsOf(status, sectionLines(g));
+        menu.add(
+            "Stage all",
+            "vcsStage",
+            StatusActions.refusal(editor, status, StatusActions.Op.STAGE, targets, false) == null,
+            StatusActions.refusal(editor, status, StatusActions.Op.STAGE, targets, false),
+            e -> StatusActions.runOn(editor, status, StatusActions.Op.STAGE, targets, Map.of(), false));
+        menu.add(
+            "Unstage all",
+            "vcsUnstage",
+            StatusActions.refusal(editor, status, StatusActions.Op.UNSTAGE, targets, false) == null,
+            StatusActions.refusal(editor, status, StatusActions.Op.UNSTAGE, targets, false),
+            e -> StatusActions.runOn(editor, status, StatusActions.Op.UNSTAGE, targets, Map.of(), false));
+        menu.add(
+            "Discard all…",
+            "vcsDiscard",
+            StatusActions.refusal(editor, status, StatusActions.Op.DISCARD, targets, false) == null,
+            StatusActions.refusal(editor, status, StatusActions.Op.DISCARD, targets, false),
+            e -> StatusActions.runOn(editor, status, StatusActions.Op.DISCARD, targets, Map.of(), false));
+    }
+
+    // The lines of a section's files, as the status would make them.
+    private List<StatusLine> sectionLines(GroupNode g) {
+        final List<StatusLine> lines = new ArrayList<>();
+        for (FileItem f : status.files(g.repository(), g.section()))
+            lines.add(
+                new StatusLine(Kind.FILE,
+                        f.path(),
+                        StatusRenderer.fileKey(g.repository(), g.section(), f.path()),
+                        null,
+                        g.repository(),
+                        g.section()).file(f));
+        return lines;
+    }
+
+    // What a file item's command does to the targets, in place.
+    private Runnable fileAction(String command, List<StatusActions.Target> targets, StatusLine line) {
+        final Editor editor = editor();
+        switch (command) {
+            case "vcsCommitFiles":
+                return () -> CommitCommands.commitTargets(editor, status, targets);
+            case "vcsDiscard":
+                return () -> StatusActions.runOn(editor, status, StatusActions.Op.DISCARD, targets, Map.of(), false);
+            case "vcsStage":
+                return () -> StatusActions.runOn(editor, status, StatusActions.Op.STAGE, targets, Map.of(), false);
+            case "vcsUnstage":
+                return () -> StatusActions.runOn(editor, status, StatusActions.Op.UNSTAGE, targets, Map.of(), false);
+            case "vcsChangelistMove":
+                return () -> ChangelistCommands.moveTargets(
+                    editor,
+                    status,
+                    targets,
+                    false,
+                    true,
+                    () -> ChangelistCommands.moveTargets(editor, status, targets, false, false, null));
+            case "vcsShowDiff":
+                return () -> showDiff(line);
+            case "vcsLogFileAt":
+                return () -> LogCommands.showFileLog(editor, line.repository(), line.file().path());
+            case "vcsBlame":
+                return () -> blame(line);
+            case "vcsStatusVisit":
+                return () -> open(fileNodeFor(line));
+            case "vcsStatusPick":
+                return () -> pickSelected();
+            case "vcsCopyPath":
+                return () -> VcsContextMenus.copyPath(editor, line.file().path());
+            case "vcsIgnore":
+                return () -> StatusActions.ignore(editor, status, line.repository(), line.file().path());
+            case "vcsResolveOurs":
+                return () -> ResolveCommands.resolveTargets(editor, status, targets, false, ResolveCommands.Take.OURS);
+            case "vcsResolveTheirs":
+                return () -> ResolveCommands
+                        .resolveTargets(editor, status, targets, false, ResolveCommands.Take.THEIRS);
+            case "vcsResolveKeep":
+                return () -> ResolveCommands.resolveTargets(editor, status, targets, false, ResolveCommands.Take.KEEP);
+            default:
+                return () -> editor.status("Nothing to do");
+        }
+    }
+
+    // The FileNode whose line is line, from the selection.
+    private FileNode fileNodeFor(StatusLine line) {
+        for (TreePath p : getSelectionPaths())
+            if (userObject(p) instanceof FileNode f && f.line() == line)
+                return f;
+        return null;
+    }
+
+    // What a changelist item's command does to the list g, in place.
+    private Runnable listAction(String command, GroupNode g) {
+        final Editor editor = editor();
+        final RepositoryLists lists = ChangelistCommands.lists(editor, g.repository());
+        switch (command) {
+            case "vcsCommitList":
+                return () -> CommitCommands.startPartialList(editor, status, g.repository(), g.list());
+            case "vcsChangelistActive":
+                return () -> editor.status(ChangelistCommands.activate(g.repository(), lists, g.list()));
+            case "vcsChangelistNew":
+                return () -> newChangelist(editor, g.repository());
+            case "vcsChangelistRename":
+                return () -> editor.status(ChangelistCommands.renameList(editor, g.repository(), lists, g.list()));
+            case "vcsChangelistDelete":
+                return () -> editor.status(ChangelistCommands.deleteList(editor, g.repository(), lists, g.list()));
+            default:
+                return () -> editor.status("Nothing to do");
+        }
+    }
+
+    // Asks a name and makes it in r.
+    private void newChangelist(Editor editor, VcsRepository r) {
+        final RepositoryLists lists = ChangelistCommands.lists(editor, r);
+        if (lists == null)
+            return;
+        final String name = ChangelistCommands.ask.ask(editor, "Name:", "New Changelist", "");
+        if (name == null || name.isBlank())
+            return;
+        editor.status(ChangelistCommands.make(r, lists, name.strip()));
+    }
+
+    // The lines of the selected files, as the status would make them.
+    private List<StatusLine> selectedFileLines() {
+        final List<StatusLine> lines = new ArrayList<>();
+        final TreePath[] selected = getSelectionPaths();
+        if (selected == null)
+            return lines;
+        for (TreePath p : selected)
+            if (userObject(p) instanceof FileNode f)
+                lines.add(f.line());
+        return lines;
+    }
+
+    // Picks or unpicks the selected files as one, as Space does: the set
+    // toggled together, not each line on its own, which would leave a
+    // mixed selection in a mixed state.
+    private void pickSelected() {
+        final List<StatusLine> lines = new ArrayList<>();
+        for (StatusLine line : selectedFileLines())
+            if (StatusPicks.pickable(line))
+                lines.add(line);
+        if (!lines.isEmpty())
+            status.pick(lines);
+    }
+
+    // Discards the selection, asking first as x does.
+    private void discardSelected() {
+        final Editor editor = editor();
+        final List<StatusLine> lines = selectedFileLines();
+        if (lines.isEmpty())
+            return;
+        final List<StatusActions.Target> targets = StatusActions.targetsOf(status, lines);
+        StatusActions.runOn(editor, status, StatusActions.Op.DISCARD, targets, Map.of(), false);
+    }
+
+    // The file's diff against what is staged, a staged file's against
+    // HEAD: the status shown, the file revealed, the diff beside opened.
+    private void showDiff(StatusLine line) {
+        final Editor editor = editor();
+        final Frame frame = editor == null ? null : editor.getFrame();
+        if (frame == null) {
+            if (editor != null)
+                editor.status("No window to show the diff in");
+            return;
+        }
+        final VcsStatusBuffer buffer = VcsStatusBuffer.of(status.getRepositories());
+        buffer.openDiff(frame);
+        buffer.reveal(frame, line.section(), line.key());
+    }
+
+    /**
+     * vcsShowDiff: the selected file's diff against what is staged, a
+     * staged file's against HEAD, from the Changes tab — the status
+     * shown, the file revealed, the diff beside opened. The tree's
+     * Ctrl D and its menu's Show diff act on the node directly; this is
+     * the command for the keyboard and for describe-command.
+     */
+    public static void vcsShowDiff(Editor editor) {
+        final ChangesTree tree = focused(editor);
+        if (tree == null) {
+            editor.status("The Changes tab isn't shown");
+            return;
+        }
+        final List<StatusLine> lines = tree.selectedFileLines();
+        if (lines.isEmpty()) {
+            editor.status("No file selected");
+            return;
+        }
+        tree.showDiff(lines.get(0));
+    }
+
+    // The ChangesTree in editor's frame with focus, or null.
+    private static ChangesTree focused(Editor editor) {
+        final Frame frame = editor == null ? null : editor.getFrame();
+        if (frame == null)
+            return null;
+        final ChangesTree tree = frame.getSidebar().getChangesTree();
+        return tree != null && tree.isFocusOwner() ? tree : null;
+    }
+
+    // Opens the file and turns blame on.
+    private void blame(StatusLine line) {
+        final Editor editor = editor();
+        final File f = VcsContextMenus.workingFile(line.repository(), line.file());
+        if (f == null) {
+            editor.status("Not in the working tree");
+            return;
+        }
+        final Buffer buffer = Editor.getBuffer(f);
+        if (buffer == null) {
+            editor.status("Couldn't open " + line.file().path());
+            return;
+        }
+        BlameCommands.blameBuffer(VcsStatusMode.showAt(editor, buffer, 0));
+    }
 
     @Override
     public void mouseEntered(MouseEvent e) {}

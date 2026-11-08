@@ -477,6 +477,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsCommitAmend">vcsCommitAmend</a></li>
     <li><a href="commands.html#vcsCommitCancel">vcsCommitCancel</a></li>
     <li><a href="commands.html#vcsCommitExtend">vcsCommitExtend</a></li>
+    <li><a href="commands.html#vcsCommitFiles">vcsCommitFiles</a></li>
     <li><a href="commands.html#vcsCommitFinish">vcsCommitFinish</a></li>
     <li><a href="commands.html#vcsCommitList">vcsCommitList</a></li>
     <li><a href="commands.html#vcsCommitNextMessage">vcsCommitNextMessage</a></li>
@@ -496,6 +497,8 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a></li>
     <li><a href="commands.html#vcsConflictUnresolved">vcsConflictUnresolved</a></li>
     <li><a href="commands.html#vcsContinue">vcsContinue</a></li>
+    <li><a href="commands.html#vcsCopyPath">vcsCopyPath</a></li>
+    <li><a href="commands.html#vcsCopyHash">vcsCopyHash</a></li>
     <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsFetchAll">vcsFetchAll</a></li>
@@ -504,9 +507,12 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsFetchPopup">vcsFetchPopup</a></li>
     <li><a href="commands.html#vcsFetchPushRemote">vcsFetchPushRemote</a></li>
     <li><a href="commands.html#vcsFetchUpstream">vcsFetchUpstream</a></li>
+    <li><a href="commands.html#vcsIgnore">vcsIgnore</a></li>
     <li><a href="commands.html#vcsLog">vcsLog</a></li>
     <li><a href="commands.html#vcsLogClearFilters">vcsLogClearFilters</a></li>
+    <li><a href="commands.html#vcsLogCommit">vcsLogCommit</a></li>
     <li><a href="commands.html#vcsLogFile">vcsLogFile</a></li>
+    <li><a href="commands.html#vcsLogFileAt">vcsLogFileAt</a></li>
     <li><a href="commands.html#vcsLogFilter">vcsLogFilter</a></li>
     <li><a href="commands.html#vcsLogNext">vcsLogNext</a></li>
     <li><a href="commands.html#vcsLogNextFile">vcsLogNextFile</a></li>
@@ -537,12 +543,14 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsResolveOurs">vcsResolveOurs</a></li>
     <li><a href="commands.html#vcsResolveRestore">vcsResolveRestore</a></li>
     <li><a href="commands.html#vcsResolveTheirs">vcsResolveTheirs</a></li>
+    <li><a href="commands.html#vcsShowDiff">vcsShowDiff</a></li>
     <li><a href="commands.html#vcsSkip">vcsSkip</a></li>
     <li><a href="commands.html#vcsStage">vcsStage</a></li>
     <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
     <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a></li>
     <li><a href="commands.html#vcsStatus">vcsStatus</a></li>
     <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
+    <li><a href="commands.html#vcsStatusContextMenu">vcsStatusContextMenu</a></li>
     <li><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></li>
     <li><a href="commands.html#vcsStatusDiff">vcsStatusDiff</a></li>
     <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
@@ -6491,6 +6499,21 @@ In a status buffer, adds what is staged to the last commit, keeping its message.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsCommitFiles">vcsCommitFiles</a><dl><dd>
+<p>
+Commits the selection, else the thing at the caret, alone, what is staged
+left staged: a file its whole work-tree changes, a hunk or a changelist's
+part of a file just that, as the other actions take them. Never what is
+picked — that is <a href="commands.html#vcsCommitPicked">vcsCommitPicked</a>
+— so the menu commits what its label says even with picks pending. A file
+with something staged is refused.
+<br><br>
+<b>Default key mapping:</b> the status buffer's and the Changes tab's right-click menu
+<br><br>
+<b>See also:</b> <a href="git.html#committing">Committing</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsCommitFinish">vcsCommitFinish</a><dl><dd>
 <p>
 Commits with the message being written, its # lines left out.
@@ -6686,6 +6709,27 @@ Goes on with what the repository at the caret has in progress, once its conflict
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsCopyPath">vcsCopyPath</a><dl><dd>
+<p>
+Copies the file the caret is on, relative to its repository, to the system
+clipboard and j's kill ring.
+<br><br>
+<b>Default key mapping:</b> the status buffer's and the Changes tab's right-click menu
+<br><br>
+<b>See also:</b> <a href="commands.html#vcsBlameCopyHash">vcsBlameCopyHash</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsCopyHash">vcsCopyHash</a><dl><dd>
+<p>
+Copies the commit the caret is on to the system clipboard and j's kill ring.
+<br><br>
+<b>Default key mapping:</b> the status buffer's right-click menu on a commit
+<br><br>
+<b>See also:</b> <a href="commands.html#vcsCopyPath">vcsCopyPath</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsDiff">vcsDiff</a><dl><dd>
 <p>
 Compares the file with what is staged of it, side by side. The staged text is at the left, the buffer's at the right, saved or not.
@@ -6764,6 +6808,18 @@ In a status buffer, fetches from the remote of the branch's upstream.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsIgnore">vcsIgnore</a><dl><dd>
+<p>
+Adds the file the caret is on to the repository's ignore file, its path
+anchored at the root, creating the file if needed, then reads the status
+again so the file leaves Untracked.
+<br><br>
+<b>Default key mapping:</b> the status buffer's and the Changes tab's right-click menu
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsLog">vcsLog</a><dl><dd>
 <p>
 Shows the repository's log, every branch and tag, newest first. It takes the whole frame: the commit at the caret's files and diff are beside the list. q closes it and puts the windows back. From the quick log, it grows into the full log.
@@ -6794,6 +6850,16 @@ In the full log, switches the diff between unified and side by side. Side by sid
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsLogCommit">vcsLogCommit</a><dl><dd>
+<p>
+Opens the whole log with the commit the caret is on in the status picked out.
+<br><br>
+<b>Default key mapping:</b> the status buffer's right-click menu on a commit line
+<br><br>
+<b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsLogFile">vcsLogFile</a><dl><dd>
 <p>
 Shows the log of the current file, through its renames, taking the whole frame.
@@ -6801,6 +6867,17 @@ Shows the log of the current file, through its renames, taking the whole frame.
 <b>Default key mapping:</b> None
 <br><br>
 <b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsLogFileAt">vcsLogFileAt</a><dl><dd>
+<p>
+Shows the log of the file the caret is on in the status or the Changes tab,
+through its renames, taking the whole frame — a file that isn't the buffer's.
+<br><br>
+<b>Default key mapping:</b> the status buffer's and the Changes tab's right-click menu
+<br><br>
+<b>See also:</b> <a href="commands.html#vcsLogFile">vcsLogFile</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -7123,6 +7200,18 @@ In a status buffer, resolves the unmerged files at the caret by taking their sid
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsShowDiff">vcsShowDiff</a><dl><dd>
+<p>
+In the Changes tab, shows the selected file's diff against what is staged,
+a staged file's against HEAD: the status opened, the file revealed, the
+diff beside opened.
+<br><br>
+<b>Default key mapping:</b> Ctrl D in the Changes tab
+<br><br>
+<b>See also:</b> <a href="commands.html#vcsStatusDiff">vcsStatusDiff</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsSkip">vcsSkip</a><dl><dd>
 <p>
 Skips the step a rebase, patch series, cherry-pick or revert stopped at, after asking, dropping it and your resolutions, and goes on. A merge, or a stash's pop or apply, is one step and has none to skip. With the merge popup's <b>-a</b>, in each repository with something in progress.
@@ -7135,7 +7224,7 @@ Skips the step a rebase, patch series, cherry-pick or revert stopped at, after a
 
 <a name="vcsStage">vcsStage</a><dl><dd>
 <p>
-In a status buffer or its diff, stages the thing at the caret. It stages what the selection covers too, down to single lines of a hunk. Asks first when what it stages adds conflict markers, and always for an unmerged file.
+In a status buffer or its diff, stages the thing at the caret. It stages what the selection covers too, down to single lines of a hunk. On an untracked file it adds it to the repository, as <b>Add to VCS</b> in the right-click menu. Asks first when what it stages adds conflict markers, and always for an unmerged file.
 <br><br>
 <b>Default key mapping:</b> s in status buffers
 <br><br>
@@ -7258,6 +7347,17 @@ Opens the status of the buffer's repository: changes, staging and recent commits
 In a status buffer, opens everything one depth further. That is sections, then files, then hunks, then the lines of the diffs, then back to the sections.
 <br><br>
 <b>Default key mapping:</b> Shift Tab in status buffers
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusContextMenu">vcsStatusContextMenu</a><dl><dd>
+<p>
+Opens the status buffer's context menu at the caret: the git things to do
+with the line under it, each a command with its key shown.
+<br><br>
+<b>Default key mapping:</b> the menu key or Shift F10 in status buffers and the diff beside
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>

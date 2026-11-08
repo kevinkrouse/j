@@ -79,8 +79,8 @@ public final class Menu extends JMenu {
         return item;
     }
 
-    // The key command is mapped to in editor, as the menu shows it.
-    private static String keyText(Editor editor, String command) {
+    /** The key command is mapped to in editor, as the menu shows it. */
+    public static String keyText(Editor editor, String command) {
         Object[] values = editor.getKeyMapping(command);
         Debug.assertTrue(values != null);
         Debug.assertTrue(values.length == 2);

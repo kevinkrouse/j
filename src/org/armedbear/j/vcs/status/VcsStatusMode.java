@@ -23,13 +23,18 @@ package org.armedbear.j.vcs.status;
 import static org.armedbear.j.Constants.*;
 import static org.armedbear.j.ToolBarIcon.*;
 
+import java.awt.AWTEvent;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
@@ -130,6 +135,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         // The next and previous section, as ]] and [[ are in vim.
         km.mapKey('N', "vcsStatusNextSection");
         km.mapKey('P', "vcsStatusPreviousSection");
+        // The context menu, for the keyboard's menu key and Shift F10.
+        km.mapKey(KeyEvent.VK_CONTEXT_MENU, 0, "vcsStatusContextMenu");
+        km.mapKey(KeyEvent.VK_F10, SHIFT_MASK, "vcsStatusContextMenu");
     }
 
     private static KeyMap modalKeyMap;
@@ -177,6 +185,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     // As the status's where they mean the same, and as the log's diff's.
     private static void paneKeys(KeyMap km) {
         pickKeys(km);
+        km.mapKey(KeyEvent.VK_CONTEXT_MENU, 0, "vcsStatusContextMenu");
+        km.mapKey(KeyEvent.VK_F10, SHIFT_MASK, "vcsStatusContextMenu");
         km.mapKey(KeyEvent.VK_ENTER, 0, "vcsStatusVisit");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "vcsStatusVisitHere");
         km.mapKey(KeyEvent.VK_TAB, 0, "vcsStatusToggle");
@@ -1088,5 +1098,231 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             buffer.setTitle(repository.backend().name() + " show " + hash);
             editor.show(buffer);
         });
+    }
+
+    // Right-click menus.
+
+    /**
+     * The status buffer's context menu: the git things to do with the
+     * line under the mouse, the caret moved there first unless the click
+     * is inside the selection, which the menu then takes.
+     */
+    @Override
+    public JPopupMenu getContextMenu(Editor editor) {
+        if (owner(editor) == null || editor.getDot() == null)
+            return null;
+        final AWTEvent e = editor.getDispatcher().getLastEvent();
+        if (!(e instanceof MouseEvent mouse))
+            return null;
+        final Line line = editor.getDisplay().positionFromPoint(mouse.getPoint()).getLine();
+        if (!(line instanceof StatusLine s))
+            return null;
+        // The caret moves to the line unless the click is inside the selection.
+        if (!insideSelection(editor, line))
+            editor.moveDotTo(line, 0);
+        return menuFor(editor);
+    }
+
+    /**
+     * vcsStatusContextMenu: the context menu at the caret, for the
+     * keyboard's menu key and Shift F10.
+     */
+    public static void vcsStatusContextMenu(Editor editor) {
+        if (owner(editor) == null || !(editor.getDotLine() instanceof StatusLine))
+            return;
+        final JPopupMenu menu = menuFor(editor);
+        if (menu == null)
+            return;
+        final java.awt.Point at = editor.getDisplay().getCaretPoint();
+        menu.show(editor.getDisplay(), at.x + 4, at.y + 16);
+    }
+
+    // Whether line is within the editor's selection.
+    private static boolean insideSelection(Editor editor, Line line) {
+        if (!Region.isSelection(editor))
+            return false;
+        final int mark = editor.getMark().lineNumber();
+        final int dot = editor.getDot().lineNumber();
+        final int at = line.lineNumber();
+        return at >= Math.min(mark, dot) && at <= Math.max(mark, dot);
+    }
+
+    /**
+     * The menu for what the caret and selection are on, by line kind. The
+     * items run their commands by name on this editor, whose caret the
+     * menu put on the line.
+     */
+    static JPopupMenu menuFor(Editor editor) {
+        final VcsStatusBuffer status = owner(editor);
+        if (status == null || !(editor.getDotLine() instanceof StatusLine line))
+            return null;
+        final RepositoryStatus model = status.model();
+        final Function<String, Runnable> run = name -> () -> runNamed(editor, name);
+        final VcsMenu menu = new VcsMenu(editor, null);
+        switch (line.kind()) {
+            case FILE, MESSAGE -> {
+                if (line.file() == null)
+                    return null;
+                VcsContextMenus.fileItems(
+                    menu,
+                    editor,
+                    model,
+                    StatusActions.targets(model, editor),
+                    StatusActions.targets(model, editor, false),
+                    line,
+                    "Show diff beside",
+                    "vcsStatusDiff",
+                    Menu.keyText(editor, "vcsStatusDiff"),
+                    run);
+            }
+            case HUNK, DIFF -> hunkItems(menu, editor, model, run);
+            case LIST -> {
+                final ListedChanges listed = model.listed(line.repository());
+                final boolean active = listed != null && listed.active().equals(line.list());
+                VcsContextMenus.changelistItems(menu, editor, line.list(), active, run);
+            }
+            case SECTION -> sectionItems(menu, editor, model, line, run);
+            case COMMIT -> commitItems(menu, editor, model, line, run);
+            case REPOSITORY -> repositoryItems(menu, editor, run);
+            default -> {
+                return null;
+            }
+        }
+        menu.separator();
+        menu.add("Copy", "copyRegion", true, null, e -> runNamed(editor, "copyRegion"));
+        menu.add("Select All", "selectAll", true, null, e -> runNamed(editor, "selectAll"));
+        return menu.build();
+    }
+
+    // A hunk heading, or diff lines selected: stage, unstage, discard,
+    // move, commit alone, pick.
+    private static void hunkItems(VcsMenu menu, Editor editor, RepositoryStatus model, Function<String, Runnable> run) {
+        final List<StatusActions.Target> targets = StatusActions.targets(model, editor);
+        menu.add(
+            "Stage",
+            "vcsStage",
+            StatusActions.refusal(editor, model, Op.STAGE, targets, false) == null,
+            StatusActions.refusal(editor, model, Op.STAGE, targets, false),
+            e -> run.apply("vcsStage").run());
+        menu.add(
+            "Unstage",
+            "vcsUnstage",
+            StatusActions.refusal(editor, model, Op.UNSTAGE, targets, false) == null,
+            StatusActions.refusal(editor, model, Op.UNSTAGE, targets, false),
+            e -> run.apply("vcsUnstage").run());
+        menu.add(
+            "Discard…",
+            "vcsDiscard",
+            StatusActions.refusal(editor, model, Op.DISCARD, targets, false) == null,
+            StatusActions.refusal(editor, model, Op.DISCARD, targets, false),
+            e -> run.apply("vcsDiscard").run());
+        menu.add(
+            "Move to changelist…",
+            "vcsChangelistMove",
+            VcsContextMenus.moveWhy(model, targets) == null,
+            VcsContextMenus.moveWhy(model, targets),
+            e -> run.apply("vcsChangelistMove").run());
+        // Commit alone… takes the hunk or lines under the caret, never the
+        // picks, so its why is worked out from those, not the targets.
+        final List<StatusActions.Target> commitTargets = StatusActions.targets(model, editor, false);
+        menu.add(
+            "Commit alone…",
+            "vcsCommitFiles",
+            VcsContextMenus.commitWhy(model, commitTargets) == null,
+            VcsContextMenus.commitWhy(model, commitTargets),
+            e -> run.apply("vcsCommitFiles").run());
+        menu.add(
+            "Pick",
+            "vcsStatusPick",
+            StatusActions.selected(editor).stream().anyMatch(l -> l != null && StatusPicks.pickable(l)),
+            "Nothing to pick here",
+            e -> run.apply("vcsStatusPick").run());
+    }
+
+    // A section heading: stage, unstage, discard all of it, open or close.
+    private static void sectionItems(
+            VcsMenu menu,
+            Editor editor,
+            RepositoryStatus model,
+            StatusLine line,
+            Function<String, Runnable> run) {
+        final List<StatusActions.Target> targets = StatusActions.targets(model, editor);
+        menu.add(
+            "Stage all",
+            "vcsStage",
+            StatusActions.refusal(editor, model, Op.STAGE, targets, false) == null,
+            StatusActions.refusal(editor, model, Op.STAGE, targets, false),
+            e -> run.apply("vcsStage").run());
+        menu.add(
+            "Unstage all",
+            "vcsUnstage",
+            StatusActions.refusal(editor, model, Op.UNSTAGE, targets, false) == null,
+            StatusActions.refusal(editor, model, Op.UNSTAGE, targets, false),
+            e -> run.apply("vcsUnstage").run());
+        menu.add(
+            "Discard all…",
+            "vcsDiscard",
+            StatusActions.refusal(editor, model, Op.DISCARD, targets, false) == null,
+            StatusActions.refusal(editor, model, Op.DISCARD, targets, false),
+            e -> run.apply("vcsDiscard").run());
+        menu.add(
+            line.isOpen() ? "Close" : "Open",
+            "vcsStatusToggle",
+            line.isExpandable(),
+            "Nothing to open here",
+            e -> run.apply("vcsStatusToggle").run());
+    }
+
+    // A commit line: show it, copy its hash, show it in the log, reword if HEAD.
+    // A stash line: apply, pop, drop.
+    private static void commitItems(
+            VcsMenu menu,
+            Editor editor,
+            RepositoryStatus model,
+            StatusLine line,
+            Function<String, Runnable> run) {
+        if (line.stash() != null) {
+            menu.add("Apply", "vcsStashApply", true, null, e -> run.apply("vcsStashApply").run());
+            menu.add("Pop", "vcsStashPop", true, null, e -> run.apply("vcsStashPop").run());
+            menu.add("Drop…", "vcsStashDrop", true, null, e -> run.apply("vcsStashDrop").run());
+            return;
+        }
+        menu.add("Show commit", "vcsStatusVisit", true, null, e -> run.apply("vcsStatusVisit").run());
+        menu.add(
+            "Copy hash",
+            "vcsCopyHash",
+            line.commit() != null,
+            "No commit here",
+            e -> run.apply("vcsCopyHash").run());
+        menu.add(
+            "Show in log",
+            "vcsLogCommit",
+            line.commit() != null,
+            "No commit here",
+            e -> run.apply("vcsLogCommit").run());
+        if (isHead(model, line))
+            menu.add("Reword", "vcsCommitReword", true, null, e -> run.apply("vcsCommitReword").run());
+    }
+
+    // Whether line is HEAD's commit: a ref on it is HEAD.
+    private static boolean isHead(RepositoryStatus model, StatusLine line) {
+        return line.commit() != null
+                && line.commit()
+                        .refs()
+                        .stream()
+                        .anyMatch(r -> r.head() && r.kind() == org.armedbear.j.vcs.log.LogRef.Kind.BRANCH);
+    }
+
+    // A repository heading: fetch, refresh, log.
+    private static void repositoryItems(VcsMenu menu, Editor editor, Function<String, Runnable> run) {
+        menu.add("Fetch", "vcsFetchPopup", true, null, e -> run.apply("vcsFetchPopup").run());
+        menu.add("Refresh", "vcsStatusRefresh", true, null, e -> run.apply("vcsStatusRefresh").run());
+        menu.add("Log", "vcsLog", true, null, e -> run.apply("vcsLog").run());
+    }
+
+    // Runs command on editor through its dispatcher, as a menu item does.
+    private static void runNamed(Editor editor, String command) {
+        final ActionEvent e = new ActionEvent(editor, ActionEvent.ACTION_PERFORMED, command);
+        editor.getDispatcher().actionPerformed(e);
     }
 }

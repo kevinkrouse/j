@@ -98,8 +98,8 @@ public final class CommitMessageMode extends AbstractMode implements Mode {
         if (!buffer.getBooleanProperty(Property.VCS_HINTS))
             return null;
         if (buffer instanceof CommitMessageBuffer b
-                && b.getStatus() != null
-                && b.getStatus().getRepositories().size() > 1
+                && b.getModel() != null
+                && b.getModel().getRepositories().size() > 1
                 && !b.getOptions().contains(CommitOption.AMEND))
             return new String[][] {
                 { "vcsCommitFinish", "commit to " + CommitCommands.names(b.getRepositories()) },

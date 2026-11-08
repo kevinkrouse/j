@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.git;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
@@ -88,5 +89,47 @@ public class GitWritesTest {
 
     private boolean statusHasUnmerged() {
         return git.git("status", "--porcelain").contains("UU a.txt");
+    }
+
+    // The rule is already there only as a whole line: /c.txt in /foo/c.txt
+    // is not /c.txt, and a commented-out rule is not a rule.
+    @Test
+    public void ignoreAppendsWhereTheRuleIsOnlyPartOfAnotherLine() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write(".gitignore", "/foo/c.txt\n# /d.txt\n");
+        assertNull(GitWrites.ignore(git.root, "c.txt"));
+        final String text = git.read(".gitignore");
+        assertTrue(text.contains("/foo/c.txt"), text);
+        assertTrue(text.contains("\n/c.txt\n"), "the top-level rule appended whole: " + text);
+        assertNull(GitWrites.ignore(git.root, "d.txt"));
+        assertTrue(
+            git.read(".gitignore").contains("\n/d.txt\n"),
+            "the commented rule didn't count: " + git.read(".gitignore"));
+    }
+
+    // A rule already on its own line is not written twice.
+    @Test
+    public void ignoreLeavesAnAlreadyIgnoredFileAlone() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write(".gitignore", "/c.txt\n");
+        assertNull(GitWrites.ignore(git.root, "c.txt"));
+        assertEquals("/c.txt\n", git.read(".gitignore"));
+    }
+
+    // A CRLF file: the rule read back with its carriage return still matches.
+    @Test
+    public void ignoreSeesARuleInACRLFFile() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write(".gitignore", "/c.txt\r\n");
+        assertNull(GitWrites.ignore(git.root, "c.txt"));
+        assertEquals("/c.txt\r\n", git.read(".gitignore"));
+    }
+
+    // A name with a glob character or a space is escaped so it means itself.
+    @Test
+    public void ignoreEscapesGlobCharacters() throws Exception {
+        git = GitFixture.init(tmp);
+        assertNull(GitWrites.ignore(git.root, "a*b [c] d.txt"));
+        assertEquals("/a\\*b\\ \\[c\\]\\ d.txt\n", git.read(".gitignore"));
     }
 }
