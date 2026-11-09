@@ -3241,6 +3241,17 @@ plan with why it is left, before the next phase starts.
      selected, groups single).
    - **j. Drag and drop.** Files, hunks and lines dragged between lists in
      the status, as `C m` moves them; the sidebar's status tree too.
+     Built: `Buffer`'s drag/drop hooks keep VCS code out of `Dispatcher`;
+     `VcsStatusBuffer` carries selected status targets with the repository
+     and status snapshot, refusing stale or cross-repository drops.
+     `StatusTree` now mirrors changelists with status line keys and moves a
+     file onto another list, like the Changes tab. A changelist drag carries
+     its token in a flavor of its own (`VcsStatusBuffer.CHANGELIST_DRAG`),
+     never as plain text, so one dropped off-target is refused rather than
+     pasted into the buffer under the cursor; the trees drop only that flavor.
+     `bb build` passes; `bb test` ran 2,571 tests: 2,564 passed, none
+     failed, 7 aborted (the aborts are extension-loading assumptions, the
+     extensions not built here).
    - **k. Docs, the drive and the review.** `doc/git.html`'s
      Changelists and picking, the keys in both edit modes; the directory
      buffer's picking in its docs; driven under Xvfb; the adversarial

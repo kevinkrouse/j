@@ -91,6 +91,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     private DragSource dragSource;
     private static DragSourceContext dragSourceContext;
     private boolean inDragText;
+    private Transferable bufferDrag;
     private Region dragTextRegion;
     private static boolean isLineRegion;
 
@@ -407,6 +408,10 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
     @Override
     public void mousePressed(MouseEvent e) {
+        // Cleared before any early return: the drag gesture recognizer
+        // fires from this press whatever the press itself did, so a stale
+        // payload from a previous press must not survive to start a drag.
+        bufferDrag = null;
         if (editor.getFocusedComponent() == editor.getLocationBarTextField()) {
             TextFieldHandler handler = editor.getLocationBarTextField().getHandler();
             if (handler instanceof IncrementalFindTextFieldHandler) {
@@ -447,6 +452,10 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
                 eventHandled();
                 return;
             }
+        }
+        if (plainButton1 && e.getX() >= Display.getGutterWidth(editor.getBuffer())) {
+            Position pos = display.positionFromPoint(e.getPoint());
+            bufferDrag = editor.getBuffer().dragAt(editor, pos);
         }
         if (plainButton1 && editor.getMark() != null) {
             if (editor.getBuffer().getBooleanProperty(Property.ENABLE_DRAG_TEXT)) {
@@ -799,6 +808,8 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
     @Override
     public void dragEnter(DropTargetDragEvent event) {
+        if (bufferDrop(event))
+            return;
         if (editor.getBuffer().isReadOnly()) {
             event.rejectDrag();
         } else {
@@ -817,6 +828,8 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
     @Override
     public void dragOver(DropTargetDragEvent event) {
+        if (bufferDrop(event))
+            return;
         if (event.isDataFlavorSupported(DataFlavor.stringFlavor)) {
             Point pt = event.getLocation();
 
@@ -860,12 +873,65 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     @Override
     public void drop(DropTargetDropEvent event) {
         Transferable t = event.getTransferable();
+        Position pos = display.positionFromPoint(event.getLocation());
+        if (pos != null && editor.getBuffer().canDropAt(editor, pos, t)) {
+            int action = dropAction(event.getDropAction(), event.getSourceActions());
+            if (action == DnDConstants.ACTION_NONE) {
+                event.rejectDrop();
+                return;
+            }
+            event.acceptDrop(action);
+            boolean done;
+            try {
+                done = editor.getBuffer().dropAt(editor, pos, t);
+            }
+            catch (RuntimeException e) {
+                // dropComplete must still run: a throw here would strand
+                // the source's drag state, leaving it never ending.
+                Log.error(e);
+                done = false;
+            }
+            event.getDropTargetContext().dropComplete(done);
+            display.setDragCaretPos(null);
+            return;
+        }
         if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor))
             acceptFileDrop(event, t);
         else if (t.isDataFlavorSupported(DataFlavor.stringFlavor))
             acceptTextDrop(event, t);
         else
             event.rejectDrop();
+    }
+
+    // Whether the buffer takes this drag: handled, accept or reject it and
+    // say so; else leave it to the text drag below, untouched.
+    private boolean bufferDrop(DropTargetDragEvent event) {
+        Position pos = display.positionFromPoint(event.getLocation());
+        if (pos == null || !editor.getBuffer().canDropAt(editor, pos, event.getTransferable()))
+            return false;
+        display.setDragCaretPos(pos);
+        if (pos.getLine() instanceof org.armedbear.j.vcs.status.StatusLine line)
+            editor.status(
+                "Drop to move to " + (line.kind() == org.armedbear.j.vcs.status.StatusLine.Kind.LIST
+                        ? line.list()
+                        : "changelist"));
+        int action = dropAction(event.getDropAction(), event.getSourceActions());
+        if (action == DnDConstants.ACTION_NONE)
+            event.rejectDrag();
+        else
+            event.acceptDrag(action);
+        return true;
+    }
+
+    private static int dropAction(int requested, int supported) {
+        if ((requested == DnDConstants.ACTION_COPY || requested == DnDConstants.ACTION_MOVE)
+                && (supported & requested) != 0)
+            return requested;
+        if ((supported & DnDConstants.ACTION_MOVE) != 0)
+            return DnDConstants.ACTION_MOVE;
+        if ((supported & DnDConstants.ACTION_COPY) != 0)
+            return DnDConstants.ACTION_COPY;
+        return DnDConstants.ACTION_NONE;
     }
 
     private void acceptFileDrop(DropTargetDropEvent event, Transferable t) {
@@ -990,6 +1056,14 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
     @Override
     public void dragGestureRecognized(DragGestureEvent event) {
+        if (bufferDrag != null) {
+            int action = DnDConstants.ACTION_MOVE;
+            dragSource
+                    .startDrag(event, Platform.isPlatformUnix() ? getCursorForAction(action) : null, bufferDrag, this);
+            inDragText = true;
+            dragSourceContext = null;
+            return;
+        }
         if (!Editor.preferences().getBooleanProperty(Property.ENABLE_DRAG_TEXT))
             return;
         if (editor.getMark() != null) {
@@ -1018,6 +1092,10 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         inDragText = false;
         dragTextRegion = null;
         isLineRegion = false;
+        if (bufferDrag != null) {
+            editor.getBuffer().dragFinished(editor);
+            bufferDrag = null;
+        }
         display.setDragCaretPos(null);
         display.repaintChangedLines();
     }

@@ -24,6 +24,7 @@ package org.armedbear.j;
 import static org.armedbear.j.Constants.*;
 
 import java.awt.Cursor;
+import java.awt.datatransfer.Transferable;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -70,6 +71,24 @@ import org.armedbear.j.vcs.signs.ChangelistMenu;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 
 public class Buffer extends SystemBuffer {
+    /** What a drag from pos carries, or null for the buffer's text. */
+    public Transferable dragAt(Editor editor, Position pos) {
+        return null;
+    }
+
+    /** Ends a drag from this buffer. */
+    public void dragFinished(Editor editor) {}
+
+    /** Whether t may be dropped at pos. */
+    public boolean canDropAt(Editor editor, Position pos, Transferable t) {
+        return false;
+    }
+
+    /** Drops t at pos. */
+    public boolean dropAt(Editor editor, Position pos, Transferable t) {
+        return false;
+    }
+
     private static int untitledCount;
 
     protected boolean isUntitled;

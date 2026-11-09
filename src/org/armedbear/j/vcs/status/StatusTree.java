@@ -23,19 +23,25 @@ package org.armedbear.j.vcs.status;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
+import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.swing.DropMode;
 import javax.swing.Icon;
+import javax.swing.JComponent;
 import javax.swing.JTree;
+import javax.swing.TransferHandler;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
@@ -88,6 +94,13 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         }
     }
 
+    record ListNode(VcsRepository repository, String name, String title, int count, boolean active, String key) {
+        @Override
+        public String toString() {
+            return title + " (" + count + ")" + (active ? "  active" : "");
+        }
+    }
+
     /** A directory: its name, its first file's key, and its section's key. */
     record DirNode(String name, String key, String first, String section) {
         @Override
@@ -97,7 +110,12 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     }
 
     /** A file: its letter and path, keyed as the status's line, and its section's key. */
-    record FileNode(char letter, String path, String key, String section) {
+    record FileNode(char letter, String path, String key, String section, VcsRepository repository, String list,
+            Map<String, BitSet> only) {
+        FileNode(char letter, String path, String key, String section) {
+            this(letter, path, key, section, null, null, null);
+        }
+
         @Override
         public String toString() {
             return letter + "  " + path.substring(path.lastIndexOf('/') + 1);
@@ -138,6 +156,10 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         setFocusTraversalKeysEnabled(false);
         addKeyListener(this);
         addMouseListener(this);
+        if (!GraphicsEnvironment.isHeadless())
+            setDragEnabled(true);
+        setDropMode(DropMode.ON);
+        setTransferHandler(new Mover());
         open = new TreeOpenState(this,
                 new HashMap<>(),
                 StatusTree::key,
@@ -146,7 +168,11 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     }
 
     /** One repository's sections, as read. */
-    record Part(VcsRepository repository, String name, List<Section> sections) {}
+    record Part(VcsRepository repository, String name, List<Section> sections, ListedChanges listed) {
+        Part(VcsRepository repository, String name, List<Section> sections) {
+            this(repository, name, sections, null);
+        }
+    }
 
     /** The tree of parts: one's sections at the top, several each under its own name. */
     static DefaultMutableTreeNode build(List<Part> parts) {
@@ -157,8 +183,39 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
                     parts.size() > 1 ? new DefaultMutableTreeNode(new Repository(p.name(), rk)) : root;
             for (Section s : p.sections()) {
                 final String sk = rk + "|" + s.id();
-                final DefaultMutableTreeNode section =
-                        new DefaultMutableTreeNode(new SectionNode(s.id(), s.title(), s.total(), sk));
+                final DefaultMutableTreeNode section = new DefaultMutableTreeNode(new SectionNode(s.id(),
+                        s.id().equals(StatusRenderer.UNSTAGED) && p.listed() != null ? "Changelists" : s.title(),
+                        s.total(),
+                        sk));
+                if (s.id().equals(StatusRenderer.UNSTAGED) && p.listed() != null) {
+                    java.util.Set<String> shown = new java.util.HashSet<>();
+                    for (org.armedbear.j.vcs.changelists.Changelists.Changelist list : p.listed().lists()) {
+                        List<StatusLine.Member> members = p.listed().members().get(list.name());
+                        String lk = StatusRenderer.listKey(p.repository(), list.name());
+                        DefaultMutableTreeNode group = new DefaultMutableTreeNode(new ListNode(p.repository(),
+                                list.name(),
+                                list.name(),
+                                members.size(),
+                                list.name().equals(p.listed().active()),
+                                lk));
+                        for (StatusLine.Member member : members) {
+                            String suffix =
+                                    shown.add(member.file().path()) ? "" : StatusRenderer.elsewhere(list.name());
+                            String fk = StatusRenderer.fileKey(p.repository(), s.id(), member.file().path()) + suffix;
+                            group.add(
+                                new DefaultMutableTreeNode(new FileNode(member.file().letter(),
+                                        member.file().path(),
+                                        fk,
+                                        sk,
+                                        p.repository(),
+                                        list.name(),
+                                        member.only())));
+                        }
+                        section.add(group);
+                    }
+                    under.add(section);
+                    continue;
+                }
                 final Dir files = new Dir();
                 for (Item i : s.items())
                     switch (i) {
@@ -224,7 +281,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         for (VcsRepository r : status.getRepositories()) {
             final StatusData d = status.getData(r);
             if (d != null)
-                parts.add(new Part(r, r.name(), d.sections()));
+                parts.add(new Part(r, r.name(), d.sections(), status.model().listed(r)));
         }
         // Nothing new, as after a section opens in the status: left as it is.
         if (parts.equals(this.parts)) {
@@ -243,11 +300,70 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         return switch (((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject()) {
             case Repository r -> r.key();
             case SectionNode s -> s.key();
+            case ListNode l -> l.key();
             case DirNode d -> d.key();
             case FileNode f -> f.key();
             case CommitNode c -> c.key();
             case null, default -> "";
         };
+    }
+
+    private FileNode dragged;
+
+    private final class Mover extends TransferHandler {
+        @Override
+        public int getSourceActions(JComponent c) {
+            return selected() instanceof FileNode f && f.list() != null ? MOVE : NONE;
+        }
+
+        @Override
+        protected Transferable createTransferable(JComponent c) {
+            if (!(selected() instanceof FileNode f) || f.list() == null)
+                return null;
+            dragged = f;
+            return new VcsStatusBuffer.DragToken(f.path());
+        }
+
+        @Override
+        protected void exportDone(JComponent source, Transferable data, int action) {
+            dragged = null;
+        }
+
+        @Override
+        public boolean canImport(TransferSupport support) {
+            // The changelist flavor, not a stray text drag: a stale
+            // dragged must not let foreign text move the old file.
+            if (!support.isDrop() || dragged == null || !support.isDataFlavorSupported(VcsStatusBuffer.CHANGELIST_DRAG))
+                return false;
+            TreePath path = ((JTree.DropLocation) support.getDropLocation()).getPath();
+            Object target = path == null ? null : userObject(path);
+            return target instanceof ListNode l
+                    && l.repository() == dragged.repository()
+                    && !l.name().equals(dragged.list());
+        }
+
+        @Override
+        public boolean importData(TransferSupport support) {
+            if (!canImport(support))
+                return false;
+            ListNode target = (ListNode) userObject(((JTree.DropLocation) support.getDropLocation()).getPath());
+            // The editor captured now: the move may defer through a diff
+            // read, and a frame switch before it finishes must not send
+            // the message to the window the user left.
+            final Editor ed = frame != null ? frame.getCurrentEditor() : Editor.currentEditor();
+            ChangelistCommands.moveFile(
+                status.model(),
+                dragged.repository(),
+                dragged.path(),
+                dragged.only(),
+                target.name(),
+                s -> ed.status(s));
+            return true;
+        }
+    }
+
+    private static Object userObject(TreePath path) {
+        return ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
     }
 
     // Rebuilt as the status is shown again.
@@ -366,6 +482,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         private final Color focusedSelection = getBackgroundSelectionColor();
 
         private final Icon commit = Icons.getIconFromFile("commit");
+        private final Icon list = Icons.getIconFromFile("changelist");
 
         Renderer() {
             setOpenIcon(Icons.getIconFromFile("dir_open"));
@@ -385,6 +502,8 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
             final Object o = ((DefaultMutableTreeNode) value).getUserObject();
             if (o instanceof FileNode f)
                 setIcon(FileIcons.getIcon(f.path(), null));
+            else if (o instanceof ListNode)
+                setIcon(list);
             else if (o instanceof CommitNode)
                 setIcon(commit);
             else if (o instanceof SectionNode || o instanceof DirNode)

@@ -28,8 +28,14 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
-import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DragGestureEvent;
+import java.awt.dnd.DragGestureListener;
+import java.awt.dnd.DragSource;
+import java.awt.dnd.DragSourceDragEvent;
+import java.awt.dnd.DragSourceDropEvent;
+import java.awt.dnd.DragSourceEvent;
+import java.awt.dnd.DragSourceListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -205,8 +211,11 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         this.kept = kept;
         open = new TreeOpenState(this, kept.open, ChangesTree::key, o -> true);
         // Headless, as in tests, there is no dragging.
-        if (!GraphicsEnvironment.isHeadless())
-            setDragEnabled(true);
+        if (!GraphicsEnvironment.isHeadless()) {
+            setDragEnabled(false);
+            DragSource.getDefaultDragSource()
+                    .createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_MOVE, new MoverGesture());
+        }
         setDropMode(DropMode.ON);
         setTransferHandler(new Mover());
         setModel(new DefaultTreeModel(new DefaultMutableTreeNode()));
@@ -672,6 +681,16 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
 
     @Override
     public void mousePressed(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1 && Keys.isUnmodified(e)) {
+            TreePath path = getPathForLocation(e.getX(), e.getY());
+            if (path != null
+                    && !onBox(e.getX(), e.getY())
+                    && userObject(path) instanceof FileNode f
+                    && f.list() != null) {
+                if (!isSelected(path))
+                    setSelectionPath(path);
+            }
+        }
         if (e.isPopupTrigger())
             popupFromMouse(e);
     }
@@ -981,31 +1000,14 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     // A file dragged onto another list of its repository: its changes moved there.
     private final class Mover extends TransferHandler {
         @Override
-        public int getSourceActions(JComponent c) {
-            return selected() instanceof FileNode f && f.list() != null ? MOVE : NONE;
-        }
-
-        @Override
-        protected Transferable createTransferable(JComponent c) {
-            if (!(selected() instanceof FileNode f) || f.list() == null)
-                return null;
-            dragged = f;
-            return new StringSelection(f.file().path());
-        }
-
-        @Override
-        protected void exportDone(JComponent source, Transferable data, int action) {
-            dragged = null;
-        }
-
-        @Override
         public boolean canImport(TransferSupport support) {
-            if (!support.isDrop() || dragged == null)
+            // The changelist flavor, not a stray text drag: a stale
+            // dragged must not let foreign text move the old file.
+            if (!support.isDrop() || dragged == null || !support.isDataFlavorSupported(VcsStatusBuffer.CHANGELIST_DRAG))
                 return false;
             final TreePath path = ((JTree.DropLocation) support.getDropLocation()).getPath();
-            return path != null
-                    && ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject() instanceof GroupNode g
-                    && canMove(dragged, g);
+            final GroupNode group = groupAt(path);
+            return group != null && canMove(dragged, group);
         }
 
         @Override
@@ -1013,9 +1015,50 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             if (!canImport(support))
                 return false;
             final TreePath path = ((JTree.DropLocation) support.getDropLocation()).getPath();
-            move(dragged, ((GroupNode) ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject()).list());
+            move(dragged, groupAt(path).list());
             return true;
         }
+    }
+
+    private final class MoverGesture implements DragGestureListener, DragSourceListener {
+        @Override
+        public void dragGestureRecognized(DragGestureEvent event) {
+            java.awt.Point point = event.getDragOrigin();
+            TreePath path = getPathForLocation(point.x, point.y);
+            if (path == null
+                    || onBox(point.x, point.y)
+                    || !(userObject(path) instanceof FileNode file)
+                    || file.list() == null)
+                return;
+            if (!isSelected(path))
+                setSelectionPath(path);
+            dragged = file;
+            event.startDrag(null, new VcsStatusBuffer.DragToken(file.file().path()), this);
+        }
+
+        @Override
+        public void dragDropEnd(DragSourceDropEvent event) {
+            dragged = null;
+        }
+
+        @Override
+        public void dragEnter(DragSourceDragEvent event) {}
+
+        @Override
+        public void dragOver(DragSourceDragEvent event) {}
+
+        @Override
+        public void dropActionChanged(DragSourceDragEvent event) {}
+
+        @Override
+        public void dragExit(DragSourceEvent event) {}
+    }
+
+    private static GroupNode groupAt(TreePath path) {
+        for (TreePath at = path; at != null; at = at.getParentPath())
+            if (userObject(at) instanceof GroupNode group && group.list() != null)
+                return group;
+        return null;
     }
 
     // A file with its box, then its type's icon, its directory and hunks
