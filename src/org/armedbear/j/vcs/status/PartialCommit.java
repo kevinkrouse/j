@@ -37,6 +37,7 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Files;
 import org.armedbear.j.vcs.selection.Target.Member;
@@ -125,7 +126,13 @@ final class PartialCommit {
                 throw new Refused("Nothing is selected to commit");
             if (StatusActions.hunksIgnoreWhitespace(model, given))
                 throw new Refused("Not a hunk while whitespace is ignored: show it to commit a hunk alone");
-            for (Target t : given)
+            final Selections.Resolution resolved = model.resolveTargets(given);
+            if (!resolved.ready()) {
+                if (resolved.problems().isEmpty())
+                    model.resolveTargets(given, ignored -> {});
+                throw new Refused(resolved.failure());
+            }
+            for (Target t : resolved.targets())
                 targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
             for (VcsRepository r : targets.keySet())
                 refuseRepository(r);

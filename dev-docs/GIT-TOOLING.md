@@ -3355,6 +3355,35 @@ plan with why it is left, before the next phase starts.
      identical hunks with one added or removed; hunk splits and joins;
      literal paths containing separators used in old rendering keys.
 
+     Built: `FileKey` keeps repository, opaque section and literal path
+     separate; its section key also groups action targets and caches file
+     lookups without renderer keys. `Selections` owns SHA-256 hunk ids,
+     canonical changed-line content, duplicate counts and conversions
+     between changed-line offsets and current hunk indexes. `StatusPicks`
+     caches each diff's index, confirms content and duplicate counts on a
+     refresh, and remaps partial picks when context changes. Rendering and
+     changelist actions use the shared ids. Persisted changelist anchors
+     retain their existing encoding to keep saved assignments compatible;
+     their approximate matching policy remains separate. The remaining
+     presentation-key adapters move in d, after resolution in c.
+
+     `SelectionsTest` covers content identity, newline metadata, context
+     and position changes, duplicate counts, split/join invalidation and
+     literal file keys without an editor. Real-Git status tests cover
+     dropping collided or newline-changed picks, preserving a partial
+     pick after context changes, and consuming picks of delimiter-bearing
+     paths after staging. All 2,601 tests pass, including the large-diff
+     selection regression; formatting checks pass too. Phase 10 k remains
+     open for the later selection review and semantic commit comparison.
+
+     Performance follow-up: diff panes cache hunk ids by the immutable
+     diff's identity across folds, releasing that cache when cleared.
+     Target construction memoizes ids per call across split nodes and
+     changelist members. The former changelist-refresh helper stopped
+     constructing an unused index; c replaces its header-only matching
+     with the shared resolver. Benchmarks of repeated index lookups
+     confirm the saved hashing work; those timings exclude pane rendering.
+
    - **c. Resolve against current status.** `Selections.resolve` takes
      captured targets and the existing current `StatusData`, returning
      current targets, file keys whose diffs need reading, and explicit
@@ -3377,6 +3406,39 @@ plan with why it is left, before the next phase starts.
      files gone or changed; binary and metadata-only changes; one stale
      target preventing a multi-target command; an unrelated refresh leaving
      a selection usable. Test without an editor or Swing component.
+
+     Built: `Selections.resolve` consumes targets, current `StatusData`
+     and the current read's requested file keys. It returns valid current
+     targets, unread file keys and explicit gone, changed, ambiguous,
+     unsupported or read-failed problems. Whole files take their current
+     changes, including binary and metadata-only changes; partial targets
+     verify captured content and duplicate counts and remap changed-line
+     offsets. Each distinct diff is indexed at most once per resolution;
+     unchanged immutable diffs need only an identity membership check.
+
+     `FileItem.diffError` records a failed read. Git status now distinguishes
+     that failure from an unrequested diff and a successful empty read.
+     `RepositoryStatus` tracks requests for the status currently shown and
+     uses its existing bounded pending-read mechanism once per resolution;
+     unresolved reads then become failures. The status's diff pane reads
+     through that same model, which keeps the displayed file's diff read
+     on refresh. A command that needs another read reports that wait
+     before confirming or executing. Stage, unstage and discard, explicit
+     commit targets and direct target moves use resolution before
+     taking their targets. One invalid target blocks the requested command.
+     The drag refresh no longer reconstructs a hunk by its header alone.
+     Picks' retention and the remaining UI/move adapters are still d and f;
+     semantic commit review remains e, and phase 10 k stays open.
+
+     `SelectionsResolveTest` exercises the resolver without Swing or an
+     editor. Backend tests distinguish unread, failed and empty reads;
+     status integration tests cover bounded failed reads, reading missing
+     diffs, refusing every target when one is stale, and rejecting changed
+     content in explicit commits and moves even with an unchanged header.
+     The discard tests await confirmation after resolution; a dedicated
+     unread-target test checks that the read is reported, confirmation
+     waits for it, and only the selected hunk is discarded.
+     All 2,618 tests and formatting checks pass.
 
    - **d. Picks and UI adapters.** Have `StatusPicks` retain selections
      through the shared resolver. Status lines may carry a target alongside

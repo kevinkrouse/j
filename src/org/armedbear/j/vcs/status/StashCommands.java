@@ -49,6 +49,7 @@ import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.log.LogCommit;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
@@ -156,7 +157,7 @@ public final class StashCommands {
     }
 
     // "picked file", or "n picked files", each repository's its own.
-    private static String count(java.util.Collection<StatusPicks.Pick> files) {
+    private static String count(java.util.Collection<FileKey> files) {
         final long n = files.stream().map(p -> List.of(p.repository(), p.path())).distinct().count();
         return n == 1 ? "picked file" : n + " picked files";
     }
@@ -236,7 +237,7 @@ public final class StashCommands {
     // Stashes the files the selection covers, whole, as savePicked does
     // the picked; hunks or lines refused.
     private static void saveSelected(Editor editor, VcsStatusBuffer status, Set<StashOption> options) {
-        final Map<String, StatusPicks.Pick> files = new LinkedHashMap<>();
+        final Map<String, FileKey> files = new LinkedHashMap<>();
         for (Target t : StatusActions.targets(status.model(), editor, false)) {
             if (!(t instanceof Target.Files f)) {
                 editor.status("A stash takes whole files: hunks or lines are selected");
@@ -245,7 +246,7 @@ public final class StashCommands {
             for (FileItem item : f.files())
                 files.put(
                     StatusRenderer.fileKey(f.repository(), f.section(), item.path()),
-                    new StatusPicks.Pick(f.repository(), f.section(), item.path()));
+                    new FileKey(f.repository(), f.section(), item.path()));
         }
         if (files.isEmpty()) {
             editor.status("No file selected to stash");
@@ -272,21 +273,21 @@ public final class StashCommands {
     private static void saveFiles(
             Editor editor,
             VcsStatusBuffer status,
-            Map<String, StatusPicks.Pick> files,
+            Map<String, FileKey> files,
             boolean unpick,
             Set<StashOption> options) {
-        final Map<VcsRepository, List<StatusPicks.Pick>> byRepository = new LinkedHashMap<>();
-        for (StatusPicks.Pick p : files.values())
+        final Map<VcsRepository, List<FileKey>> byRepository = new LinkedHashMap<>();
+        for (FileKey p : files.values())
             byRepository.computeIfAbsent(p.repository(), k -> new ArrayList<>()).add(p);
         final TransientArgs args = Transients.args(editor, ID);
         final String message = args.get(MESSAGE);
         EachRepository.write(editor, new ArrayList<>(byRepository.keySet()), r -> r, "Stashing", "Stashed", r -> {
-            final List<StatusPicks.Pick> ps = byRepository.get(r);
+            final List<FileKey> ps = byRepository.get(r);
             final Set<StashOption> o = EnumSet.noneOf(StashOption.class);
             o.addAll(options);
             if (ps.stream().anyMatch(p -> "untracked".equals(p.section())))
                 o.add(StashOption.UNTRACKED);
-            final List<String> paths = ps.stream().map(StatusPicks.Pick::path).distinct().toList();
+            final List<String> paths = ps.stream().map(FileKey::path).distinct().toList();
             final VcsResult result = r.backend().stash(r, message, o, paths);
             if (result == null)
                 return new EachRepository.Done(r, null, null, r.backend().name() + " can't stash some files");
@@ -301,7 +302,7 @@ public final class StashCommands {
                     stashed.add(d.repository());
             if (unpick) {
                 final Set<String> keys = new HashSet<>();
-                for (Map.Entry<String, StatusPicks.Pick> e : files.entrySet())
+                for (Map.Entry<String, FileKey> e : files.entrySet())
                     if (stashed.contains(e.getValue().repository()))
                         keys.add(e.getKey());
                 status.unpick(keys);

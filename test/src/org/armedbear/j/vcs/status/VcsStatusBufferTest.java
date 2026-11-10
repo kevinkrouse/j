@@ -62,6 +62,7 @@ import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.log.RevisionBuffer;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.junit.jupiter.api.AfterEach;
@@ -900,7 +901,7 @@ public class VcsStatusBufferTest {
             List.of(new StatusRenderer.Part(fake("/r/one"), data, 0), new StatusRenderer.Part(fake("/r/two"), data, 1)),
             (key, kind) -> true,
             key -> true,
-            StatusRenderer::hunkIds);
+            Selections::hunkIds);
         final List<String> text = lines.stream().map(Line::getText).toList();
         assertEquals("one  /r/one", text.get(0));
         assertEquals(Kind.REPOSITORY, lines.get(0).kind());
@@ -939,6 +940,11 @@ public class VcsStatusBufferTest {
         caretOn(line("  M  a.txt"));
         until(() -> paneText().contains("  +three blind cats"));
         assertTrue(paneText().contains("  -three blind mice"));
+        onEdt(
+            () -> assertSame(
+                status.model().unstaged(repo(), "a.txt"),
+                diff.item(),
+                "the pane's readable diff is also current for selection resolution"));
         // The staged one's is the next commit's.
         caretOn(line("  M  b.txt"));
         until(() -> paneText().contains("  +b changed"));

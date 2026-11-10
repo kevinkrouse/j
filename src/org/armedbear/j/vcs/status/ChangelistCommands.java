@@ -50,6 +50,7 @@ import org.armedbear.j.vcs.changelists.Changelists.Assignment;
 import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Files;
 import org.armedbear.j.vcs.selection.Target.Part;
@@ -301,6 +302,17 @@ public final class ChangelistCommands {
 
     /** Moves targets straight to a list, as a drag does. */
     static void moveTargets(RepositoryStatus model, List<Target> targets, String to, Consumer<String> said) {
+        if (model.resolveTargets(targets, resolved -> {
+            if (!resolved.ready()) {
+                said.accept(resolved.failure());
+                return;
+            }
+            moveResolved(model, resolved.targets(), to, said);
+        }))
+            said.accept("Reading the diffs to move…");
+    }
+
+    private static void moveResolved(RepositoryStatus model, List<Target> targets, String to, Consumer<String> said) {
         if (targets.isEmpty()) {
             said.accept("Nothing here to move");
             return;
@@ -321,12 +333,29 @@ public final class ChangelistCommands {
         }
         List<Taken> taken = taken(targets);
         Set<String> unread = new HashSet<>();
-        for (Taken t : taken)
-            if (t.file().diff() == null)
+        for (Taken t : taken) {
+            if (t.file().diffError() != null) {
+                said.accept(t.file().path() + ": " + t.file().diffError());
+                return;
+            }
+            if (t.file().diff() == null && t.file().hasDiff())
                 unread.add(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, t.file().path()));
+        }
         if (!unread.isEmpty()) {
             said.accept("Reading the diffs to move…");
-            model.readDiffsThen(unread, () -> moveTargets(model, refreshed(model, targets), to, said));
+            model.readDiffsThen(unread, () -> {
+                final Selections.Resolution resolved = model.resolveTargets(targets).readsFailed();
+                if (!resolved.ready()) {
+                    said.accept(resolved.failure());
+                    return;
+                }
+                for (Taken current : taken(resolved.targets()))
+                    if (current.file().hasDiff() && current.file().diff() == null) {
+                        said.accept(current.file().path() + ": Could not read the diff to move");
+                        return;
+                    }
+                moveResolved(model, resolved.targets(), to, said);
+            });
             return;
         }
         Changelists c = lists.lists().withList(to);
@@ -336,41 +365,6 @@ public final class ChangelistCommands {
             return;
         }
         said.accept(moveTo(r, lists, taken, to) ? "Moved " + StatusActions.names(targets) + " to " + to : NOT_KEPT);
-    }
-
-    static List<Target> refreshed(RepositoryStatus model, List<Target> targets) {
-        List<Target> result = new ArrayList<>();
-        for (Target target : targets) {
-            if (target instanceof Files files) {
-                List<FileItem> current = new ArrayList<>();
-                for (FileItem file : files.files()) {
-                    FileItem now = model.unstaged(files.repository(), file.path());
-                    if (now != null)
-                        current.add(now);
-                }
-                if (!current.isEmpty())
-                    result.add(new Files(files.repository(), files.section(), current));
-            } else if (target instanceof Part part) {
-                FileItem now = model.unstaged(part.repository(), part.file().path());
-                if (now == null || now.diff() == null)
-                    continue;
-                Hunk hunk = StatusRenderer.hunkIds(now.diff())
-                        .values()
-                        .stream()
-                        .filter(h -> h.header().equals(part.hunk().header()))
-                        .findFirst()
-                        .orElse(null);
-                if (hunk != null)
-                    result.add(
-                        Part.of(
-                            part.repository(),
-                            part.section(),
-                            now,
-                            hunk,
-                            part.lines() == null ? null : (BitSet) part.lines().clone()));
-            }
-        }
-        return result;
     }
 
     private static void moveFile(

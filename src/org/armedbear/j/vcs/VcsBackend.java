@@ -64,6 +64,9 @@ public interface VcsBackend {
      * Reads what the status buffer shows, off the event thread; null if this
      * backend has none. wantsDiff(section id, path) says which files' diffs
      * to read: the ones expanded, ignoring ignored's whitespace.
+     * Report a failed requested read in FileItem.diffError, and a successful
+     * read without textual changes with an empty FileDiff; null alone means
+     * a diff was not requested.
      */
     default StatusData readStatus(VcsRepository repository, BiPredicate<String, String> wantsDiff, Whitespace ignored) {
         return null;

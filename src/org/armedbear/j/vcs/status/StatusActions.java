@@ -59,6 +59,8 @@ import org.armedbear.j.vcs.conflicts.ConflictMarkers;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.diff.Patch;
+import org.armedbear.j.vcs.selection.FileKey;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Files;
 import org.armedbear.j.vcs.selection.Target.Part;
@@ -138,10 +140,11 @@ public final class StatusActions {
      * lines a Part. What the Changes tab builds from its nodes.
      */
     static List<Target> targetsOf(RepositoryStatus model, List<StatusLine> lines) {
-        final Map<String, FileGroup> files = new LinkedHashMap<>();
+        final Map<FileKey.Section, FileGroup> files = new LinkedHashMap<>();
         final Map<Hunk, Part> parts = new IdentityHashMap<>();
         final List<Target> targets = new ArrayList<>();
         final Map<Hunk, BitSet> selectedLines = new IdentityHashMap<>();
+        final Function<FileDiff, Map<String, Hunk>> ids = memoIds();
         for (StatusLine l : lines) {
             if (l == null || l.repository() == null || l.section() == null)
                 continue;
@@ -151,16 +154,16 @@ public final class StatusActions {
                         addFile(files, targets, l.repository(), l.section(), f);
                 }
                 // A changelist's files, those split across lists their lines in it.
-                case LIST -> addMembers(files, parts, targets, l.repository(), l.section(), l.members());
+                case LIST -> addMembers(files, parts, targets, ids, l.repository(), l.section(), l.members());
                 case FILE, MESSAGE -> {
                     if (l.file() != null && l.only() != null)
-                        addLines(parts, targets, l.repository(), l.section(), l.file(), l.only());
+                        addLines(parts, targets, ids, l.repository(), l.section(), l.file(), l.only());
                     else if (l.file() != null)
                         addFile(files, targets, l.repository(), l.section(), l.file());
                 }
                 case HUNK -> {
                     if (l.only() != null)
-                        addLines(parts, targets, l.repository(), l.section(), l.file(), l.only());
+                        addLines(parts, targets, ids, l.repository(), l.section(), l.file(), l.only());
                     else if (!covers(files, l) && !parts.containsKey(l.hunk())) {
                         final Part p = Part.of(l.repository(), l.section(), l.file(), l.hunk(), null);
                         parts.put(l.hunk(), p);
@@ -188,8 +191,8 @@ public final class StatusActions {
         // A file taken whole takes its hunks.
         targets.removeIf(
             t -> t instanceof Part p
-                    && files.containsKey(StatusRenderer.sectionKey(p.repository(), p.section()))
-                    && files.get(StatusRenderer.sectionKey(p.repository(), p.section()))
+                    && files.containsKey(new FileKey.Section(p.repository(), p.section()))
+                    && files.get(new FileKey.Section(p.repository(), p.section()))
                             .members()
                             .containsKey(p.file().path()));
         return targets;
@@ -202,19 +205,20 @@ public final class StatusActions {
      * them. A split file whose diff isn't read takes nothing.
      */
     static List<Target> listTargets(VcsRepository r, String section, List<Target.Member> members) {
-        final Map<String, FileGroup> files = new LinkedHashMap<>();
+        final Map<FileKey.Section, FileGroup> files = new LinkedHashMap<>();
         final Map<Hunk, Part> parts = new IdentityHashMap<>();
         final List<Target> targets = new ArrayList<>();
-        addMembers(files, parts, targets, r, section, members);
+        addMembers(files, parts, targets, memoIds(), r, section, members);
         finishTargets(files, targets, Map.of());
         return targets;
     }
 
     // A changelist's members as targets, added to those already.
     private static void addMembers(
-            Map<String, FileGroup> files,
+            Map<FileKey.Section, FileGroup> files,
             Map<Hunk, Part> parts,
             List<Target> targets,
+            Function<FileDiff, Map<String, Hunk>> ids,
             VcsRepository r,
             String section,
             List<Target.Member> members) {
@@ -222,23 +226,35 @@ public final class StatusActions {
             if (m.only() == null)
                 addFile(files, targets, r, section, m.file());
             else
-                addLines(parts, targets, r, section, m.file(), m.only());
+                addLines(parts, targets, ids, r, section, m.file(), m.only());
+    }
+
+    // A caller's hunk-id lookup, hashing each diff's changed bytes once:
+    // keyed on the diff's identity, which is immutable, so the memo is
+    // exact for the caller's lifetime.
+    private static Function<FileDiff, Map<String, Hunk>> memoIds() {
+        final Map<FileDiff, Map<String, Hunk>> memo = new IdentityHashMap<>();
+        return diff -> memo.computeIfAbsent(diff, Selections::hunkIds);
     }
 
     // Of file, the lines only gives by hunk id, as parts, added to those
-    // already of their hunks.
+    // already of their hunks. ids, the diff's hunk ids, hashed once and
+    // kept by the caller: many members share a file's diff, and hashing
+    // it again per member would repeat a SHA-256 pass over the same
+    // changed bytes.
     private static void addLines(
             Map<Hunk, Part> parts,
             List<Target> targets,
+            Function<FileDiff, Map<String, Hunk>> ids,
             VcsRepository repository,
             String section,
             FileItem file,
             Map<String, BitSet> only) {
         if (file.diff() == null)
             return;
-        final Map<String, Hunk> ids = StatusRenderer.hunkIds(file.diff());
+        final Map<String, Hunk> byId = ids.apply(file.diff());
         for (Map.Entry<String, BitSet> e : only.entrySet()) {
-            final Hunk h = ids.get(e.getKey());
+            final Hunk h = byId.get(e.getKey());
             if (h == null)
                 continue;
             final Part p = parts.get(h);
@@ -268,15 +284,14 @@ public final class StatusActions {
     private record FileGroup(Map<String, FileItem> members) {}
 
     private static void finishTargets(
-            Map<String, FileGroup> files,
+            Map<FileKey.Section, FileGroup> files,
             List<Target> targets,
             Map<Hunk, BitSet> selectedLines) {
         targets.replaceAll(t -> {
             if (t instanceof Files f)
                 return new Files(f.repository(),
                         f.section(),
-                        List.copyOf(
-                            files.get(StatusRenderer.sectionKey(f.repository(), f.section())).members().values()));
+                        List.copyOf(files.get(new FileKey.Section(f.repository(), f.section())).members().values()));
             final Part p = (Part) t;
             if (p.selection() == null)
                 return p;
@@ -288,18 +303,18 @@ public final class StatusActions {
         });
     }
 
-    private static boolean covers(Map<String, FileGroup> files, StatusLine l) {
-        final FileGroup f = files.get(StatusRenderer.sectionKey(l.repository(), l.section()));
+    private static boolean covers(Map<FileKey.Section, FileGroup> files, StatusLine l) {
+        final FileGroup f = files.get(new FileKey.Section(l.repository(), l.section()));
         return f != null && f.members().containsKey(l.file().path());
     }
 
     private static void addFile(
-            Map<String, FileGroup> files,
+            Map<FileKey.Section, FileGroup> files,
             List<Target> targets,
             VcsRepository repository,
             String section,
             FileItem file) {
-        final String key = StatusRenderer.sectionKey(repository, section);
+        final FileKey.Section key = new FileKey.Section(repository, section);
         FileGroup group = files.get(key);
         if (group == null) {
             final Files target = new Files(repository, section, List.of());
@@ -355,6 +370,32 @@ public final class StatusActions {
             // failed, is tried again.
             if (picked && model.picks().unread(model))
                 model.refresh();
+            editor.status(why);
+            return;
+        }
+        if (model.resolveTargets(targets, resolved -> {
+            if (!resolved.ready()) {
+                editor.status(resolved.failure());
+                return;
+            }
+            final Map<Target, Set<String>> currentUsed = new IdentityHashMap<>();
+            for (int i = 0; i < targets.size(); i++)
+                if (used.containsKey(targets.get(i)))
+                    currentUsed.put(resolved.targets().get(i), used.get(targets.get(i)));
+            runResolved(editor, model, op, resolved.targets(), currentUsed, picked);
+        }))
+            editor.status("Reading the selected files' diffs…");
+    }
+
+    private static void runResolved(
+            Editor editor,
+            RepositoryStatus model,
+            Op op,
+            List<Target> targets,
+            Map<Target, Set<String>> used,
+            boolean picked) {
+        final String why = refusal(editor, model, op, targets, picked);
+        if (why != null) {
             editor.status(why);
             return;
         }
@@ -613,6 +654,8 @@ public final class StatusActions {
     // Why op can't be done to targets in model, seen from editor,
     // picked if they are the picks, or null.
     static String refusal(Editor editor, RepositoryStatus model, Op op, List<Target> targets, boolean picked) {
+        if (model.isDisposed())
+            return "The status was closed: select the changes again";
         // The diff beside shows what was there before the last write until it is read again.
         if (editor.getBuffer() instanceof StatusDiffBuffer d && d.isStale())
             return "Wait: the diff is being read again";

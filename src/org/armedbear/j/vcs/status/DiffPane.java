@@ -30,6 +30,9 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.ViewPane;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
@@ -48,6 +51,12 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
     private FileItem item;
     // Hunks closed or opened by hand, by key; open by default.
     private final Map<String, Boolean> expanded = new HashMap<>();
+    // The shown diff's hunk ids, hashed once and kept while the pane
+    // shows the same diff: a fold re-renders without re-hashing its
+    // changed bytes. Keyed on the diff's identity; a refresh makes a
+    // new one and the memo misses.
+    private FileDiff idsFor;
+    private Map<String, Hunk> ids;
 
     protected DiffPane(Mode mode, B owner, String title, String placeholder) {
         super(mode, owner, title, placeholder);
@@ -99,6 +108,8 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
         key = null;
         section = null;
         item = null;
+        idsFor = null;
+        ids = null;
         expanded.clear();
         replace(List.of(StatusLine.of(Kind.MESSAGE, message, "message")), null);
     }
@@ -123,12 +134,18 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
                         && ed.getDotLine() instanceof StatusLine d
                         && ed.getTopLine() instanceof StatusLine t)
                     was.put(ed, new StatusLine[] { d, t });
+        final FileDiff diff = item.diff();
+        if (diff != idsFor) {
+            idsFor = diff;
+            ids = diff == null ? Map.of() : Selections.index(diff).hunks();
+        }
         final List<StatusLine> lines = StatusRenderer.renderFiles(
             repository,
             key,
             section,
             List.of(item),
-            (k, kind) -> kind == Kind.FILE || expanded.getOrDefault(k, true));
+            (k, kind) -> kind == Kind.FILE || expanded.getOrDefault(k, true),
+            d -> d == diff ? ids : Selections.index(d).hunks());
         Line first = null;
         for (StatusLine l : lines)
             if (at != null ? l.key().equals(at) : l.kind() == Kind.DIFF && !l.diffLine().isContext()) {

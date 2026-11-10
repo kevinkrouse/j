@@ -147,4 +147,60 @@ public class GitStatusReaderTest {
         final String id = git.git("rev-parse", "stash").strip();
         Files.delete(git.root.resolve(".git/objects/" + id.substring(0, 2) + "/" + id.substring(2)));
     }
+
+    @Test
+    public void aFailedDiffReadIsDistinctFromAnUnrequestedDiff() throws Exception {
+        final GitFixture git = GitFixture.init(tmp);
+        git.write("a.txt", "old\n");
+        git.commitAll("first");
+        git.write("a.txt", "new\n");
+        final var repository = Repositories.forDirectory(git.root);
+        final StatusData unread = GitStatusReader.read(repository, (s, p) -> false, Whitespace.NONE);
+        final FileItem before = (FileItem) unread.sections()
+                .stream()
+                .filter(s -> s.id().equals("unstaged"))
+                .findFirst()
+                .orElseThrow()
+                .items()
+                .get(0);
+        assertEquals(null, before.diff());
+        assertEquals(null, before.diffError());
+        // Fail the diff after the status snapshot has already been read;
+        // a config watcher cannot turn this into an overall status failure.
+        final StatusData failed = GitStatusReader.read(repository, (s, p) -> {
+            git.git("config", "diff.algorithm", "invalid-algorithm");
+            return true;
+        }, Whitespace.NONE);
+        final FileItem after = (FileItem) failed.sections()
+                .stream()
+                .filter(s -> s.id().equals("unstaged"))
+                .findFirst()
+                .orElseThrow()
+                .items()
+                .get(0);
+        assertEquals(null, after.diff());
+        assertTrue(after.diffError().contains("Could not read"));
+    }
+
+    @Test
+    public void aSuccessfulReadThatFindsNoDiffIsExplicitlyEmpty() throws Exception {
+        final GitFixture git = GitFixture.init(tmp);
+        git.write("a.txt", "old\n");
+        git.commitAll("first");
+        git.write("a.txt", "new\n");
+        final var repository = Repositories.forDirectory(git.root);
+        repository.snapshotNow();
+        // The cached status still has a.txt, while its diff is now empty.
+        git.write("a.txt", "old\n");
+        final StatusData read = GitStatusReader.read(repository, (s, p) -> true, Whitespace.NONE);
+        final FileItem item = (FileItem) read.sections()
+                .stream()
+                .filter(s -> s.id().equals("unstaged"))
+                .findFirst()
+                .orElseThrow()
+                .items()
+                .get(0);
+        assertSame(FileDiff.EMPTY, item.diff());
+        assertEquals(null, item.diffError());
+    }
 }

@@ -78,6 +78,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusActions.Op;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
@@ -908,7 +909,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 && at.kind() != Kind.DIFF
                 && status.picks().state(at) != PickState.NONE) {
             final List<String> gone = new ArrayList<>();
-            for (StatusPicks.Pick p : status.picks().paths()) {
+            for (FileKey p : status.picks().paths()) {
                 final File f = File.getInstance(p.repository().root().resolve(p.path()).toString());
                 if (f == null || !f.isFile() && !f.isDirectory())
                     gone.add(p.path());

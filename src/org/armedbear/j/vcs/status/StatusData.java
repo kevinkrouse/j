@@ -77,8 +77,14 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
      * @param letter the status letter shown: M, A, D, R, C, T, U or ?
      * @param staged whether its diff is the index's against HEAD
      * @param diff its diff, if read; null if not asked for, or there is none
+     * @param diffError why a requested diff could not be read; null on success or before a request
      */
-    public record FileItem(FileChange change, char letter, boolean staged, FileDiff diff) implements Item {
+    public record FileItem(FileChange change, char letter, boolean staged, FileDiff diff, String diffError)
+            implements Item {
+        public FileItem(FileChange change, char letter, boolean staged, FileDiff diff) {
+            this(change, letter, staged, diff, null);
+        }
+
         public String path() {
             return change.path();
         }

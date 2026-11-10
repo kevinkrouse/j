@@ -47,6 +47,9 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.FileKey;
+import org.armedbear.j.vcs.selection.Selections;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.armedbear.j.vcs.signs.StatusView;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
@@ -105,6 +108,9 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     private final Map<VcsRepository, StatusData> data = new LinkedHashMap<>();
     // Files whose diffs have been read, so that none means there is none.
     private final Set<String> diffsRead = new HashSet<>();
+    // Requests made in the status currently shown; earlier reads cannot
+    // turn a currently unread diff into a successful empty one.
+    private Set<FileKey> currentDiffReads = Set.of();
     private final Consumer<VcsRepository> changed = r -> refresh();
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private final Set<Object> holders = new HashSet<>();
@@ -246,6 +252,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
                 final Whitespace ignored = DiffWhitespace.ignored();
                 final Map<VcsRepository, StatusData> read = new LinkedHashMap<>();
                 final Set<String> diffs = ConcurrentHashMap.newKeySet();
+                final Set<FileKey> diffKeys = ConcurrentHashMap.newKeySet();
                 for (VcsRepository r : repositories) {
                     StatusData d;
                     try {
@@ -254,6 +261,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
                             if (!wants(key))
                                 return false;
                             diffs.add(key);
+                            diffKeys.add(new FileKey(r, section, path));
                             return true;
                         }, ignored);
                     }
@@ -263,10 +271,10 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
                     }
                     // Changelists take the work tree's changes whitespace and all.
                     if (d != null && d.error() == null && ignored != Whitespace.NONE && listing.contains(r))
-                        d = withFullUnstaged(r, d, diffs);
+                        d = withFullUnstaged(r, d, diffs, diffKeys);
                     read.put(r, d != null ? d : StatusData.failed(r.backend().name() + " has no status"));
                 }
-                SwingUtilities.invokeLater(() -> show(read, diffs, startedAt, wallAt, ignored));
+                SwingUtilities.invokeLater(() -> show(read, diffs, diffKeys, startedAt, wallAt, ignored));
                 synchronized (this) {
                     if (!readAgain || disposed) {
                         reading = false;
@@ -287,7 +295,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
     // d with its unstaged section read again with whitespace shown, the
     // diffs it takes added to diffs; d as it is if that read fails.
-    private StatusData withFullUnstaged(VcsRepository r, StatusData d, Set<String> diffs) {
+    private StatusData withFullUnstaged(VcsRepository r, StatusData d, Set<String> diffs, Set<FileKey> diffKeys) {
         final StatusData full;
         try {
             full = r.backend().readStatus(r, (section, path) -> {
@@ -295,6 +303,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
                 if (!StatusRenderer.UNSTAGED.equals(section) || !wants(key))
                     return false;
                 diffs.add(key);
+                diffKeys.add(new FileKey(r, section, path));
                 return true;
             }, Whitespace.NONE);
         }
@@ -315,11 +324,13 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     private void show(
             Map<VcsRepository, StatusData> read,
             Set<String> diffs,
+            Set<FileKey> diffKeys,
             long startedAt,
             long wallAt,
             Whitespace ignored) {
         if (disposed)
             return;
+        currentDiffReads = Set.copyOf(diffKeys);
         final long before = shownReadAt;
         shownReadAt = wallAt;
         // Its files' signs, which its diffs place, and what of them is
@@ -436,6 +447,31 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         wanted.addAll(keys);
         pendingReads.add(new PendingRead(Set.copyOf(keys), then, false));
         refresh();
+    }
+
+    /** Resolves immediately against the current read, without scheduling work. */
+    Selections.Resolution resolveTargets(List<Target> captured) {
+        return Selections.resolve(captured, disposed ? Map.of() : data, currentDiffReads::contains);
+    }
+
+    /**
+     * Resolves all targets, using the existing bounded diff-read mechanism
+     * once if necessary. A read that still supplies no diff is a failure,
+     * rather than another request that could loop forever.
+     * Returns whether the callback is waiting on an asynchronous read.
+     */
+    boolean resolveTargets(List<Target> captured, Consumer<Selections.Resolution> done) {
+        final List<Target> selected = List.copyOf(captured);
+        final Selections.Resolution resolved = resolveTargets(selected);
+        if (!resolved.problems().isEmpty() || resolved.unread().isEmpty()) {
+            done.accept(resolved);
+            return false;
+        }
+        final Set<String> keys = new HashSet<>();
+        for (FileKey key : resolved.unread())
+            keys.add(StatusRenderer.fileKey(key.repository(), key.section(), key.path()));
+        readDiffsThen(keys, () -> done.accept(resolveTargets(selected).readsFailed()));
+        return true;
     }
 
     // The whitespace its diffs were last read ignoring.
@@ -641,8 +677,8 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
             for (Listener l : listeners)
                 l.picked();
         // The signs of the files picked now or before, in their buffers.
-        final List<StatusPicks.Pick> now = picks.paths();
-        final List<StatusPicks.Pick> touched = new ArrayList<>(signsPicked);
+        final List<FileKey> now = picks.paths();
+        final List<FileKey> touched = new ArrayList<>(signsPicked);
         touched.addAll(now);
         signsPicked = now;
         signsChanged(
@@ -651,7 +687,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     }
 
     // The files picked as their signs last showed.
-    private List<StatusPicks.Pick> signsPicked = List.of();
+    private List<FileKey> signsPicked = List.of();
 
     // Files' change marks.
 
@@ -806,7 +842,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
     /** r's file at path as the unstaged section has it, or null. */
     FileItem unstaged(VcsRepository r, String path) {
-        return picks.item(this, new StatusPicks.Pick(r, UNSTAGED, path));
+        return picks.item(this, new FileKey(r, UNSTAGED, path));
     }
 
     // A pick from a file's buffer, view's, the caret at row caret: of the

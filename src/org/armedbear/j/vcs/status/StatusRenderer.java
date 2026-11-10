@@ -38,6 +38,7 @@ import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.Field;
@@ -75,7 +76,7 @@ public final class StatusRenderer {
      * @param expanded whether a node, by key and kind, is shown open
      * @param diffRead whether a file's diff, by key, has been read, so that
      *     none means it has none
-     * @param ids a diff's hunks by their ids, as {@link #hunkIds}, read once
+     * @param ids a diff's hunks by their ids, as {@link Selections#hunkIds}, read once
      */
     static List<StatusLine> render(
             List<Part> parts,
@@ -100,7 +101,22 @@ public final class StatusRenderer {
             String section,
             List<FileItem> files,
             BiPredicate<String, Kind> expanded) {
-        final StatusRenderer r = new StatusRenderer(expanded, k -> true, StatusRenderer::hunkIds);
+        return renderFiles(repository, key, section, files, expanded, Selections::hunkIds);
+    }
+
+    /**
+     * As above, with the ids worked out by ids: a caller that renders the
+     * same diff again and again, as a diff pane does on every fold, can
+     * hand a memoized one and hash the changed bytes once.
+     */
+    public static List<StatusLine> renderFiles(
+            VcsRepository repository,
+            String key,
+            String section,
+            List<FileItem> files,
+            BiPredicate<String, Kind> expanded,
+            Function<FileDiff, Map<String, Hunk>> ids) {
+        final StatusRenderer r = new StatusRenderer(expanded, k -> true, ids);
         for (FileItem f : files)
             r.file(repository, key, section, f);
         return r.lines;
@@ -365,22 +381,6 @@ public final class StatusRenderer {
     // last of these in a key, whatever the path, ends the file's.
     private static final String HUNK = "|@";
 
-    /**
-     * diff's hunks by their ids, in order: a hunk is known by what it
-     * changes, not where it is, so that a change above it leaves it open
-     * or closed, the caret in it, and its pick; {@link #hunkKey} makes the
-     * hunk's line's key of one.
-     */
-    static Map<String, Hunk> hunkIds(FileDiff diff) {
-        final Map<String, Hunk> out = new LinkedHashMap<>();
-        final Map<String, Integer> seen = new HashMap<>();
-        for (Hunk h : diff.hunks()) {
-            final String id = changes(h);
-            out.put(id + "#" + seen.merge(id, 1, Integer::sum), h);
-        }
-        return out;
-    }
-
     // Why an unmerged file has no combined diff.
     private static String noCombined(FileChange.Conflict kind) {
         if (kind == FileChange.Conflict.BOTH_DELETED)
@@ -388,15 +388,6 @@ public final class StatusRenderer {
         if (kind == FileChange.Conflict.BOTH_MODIFIED || kind == FileChange.Conflict.BOTH_ADDED)
             return "No line differs from both sides";
         return "A side has no file: = shows the other";
-    }
-
-    // What a hunk removes and adds, as a short key.
-    private static String changes(Hunk hunk) {
-        final StringBuilder sb = new StringBuilder();
-        for (DiffLine d : hunk.lines())
-            if (!d.isContext())
-                sb.append(d.kind()).append(d.text()).append('\n');
-        return Integer.toHexString(sb.toString().hashCode());
     }
 
     // A hunk's line, and its lines as it is open; under a changelist, in

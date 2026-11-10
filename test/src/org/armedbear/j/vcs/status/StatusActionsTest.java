@@ -34,7 +34,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -50,9 +52,11 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.StatusActions.Op;
+import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -2814,7 +2818,9 @@ public class StatusActionsTest {
             h.editor().setDot(paneLine(again, "  +line fifty"), 0);
             StatusActions.run(h.editor(), Op.DISCARD);
         });
-        assertEquals(1, asked.size(), "asked first");
+        // Resolution may need a fresh diff before asking about the discard.
+        until(() -> !asked.isEmpty());
+        assertEquals(1, asked.size(), "asked first; status=" + h.status());
         until(() -> !status.isWriting());
         assertFalse(git.read("a.txt").contains("line fifty"));
         assertTrue(git.read("a.txt").contains("line three"), "only that hunk");
@@ -2874,5 +2880,214 @@ public class StatusActionsTest {
         h.keys("\\hu");
         until(() -> !text().contains("Staged changes (2)") && !status.isWriting());
         assertEquals(SIXTY, git.index("a.txt"), "unstaged again");
+    }
+
+    @Test
+    public void aPickIsDroppedWhenChangedTextHasTheSameJavaHash() throws Exception {
+        repository();
+        git.write("a.txt", SIXTY.replace("line 3\n", "Aa\n"));
+        open();
+        openFile("  M  a.txt", "  +Aa");
+        pickAfter("  M  a.txt", "  @@ -1,");
+        git.write("a.txt", SIXTY.replace("line 3\n", "BB\n"));
+        onEdt(status::refresh);
+        until(() -> text().contains("  +BB"));
+        onEdt(() -> assertTrue(status.picks().isEmpty()));
+        assertTrue(String.valueOf(h.status()).contains("pick was dropped"), h.status());
+    }
+
+    @Test
+    public void aPickIsDroppedWhenOnlyItsFinalNewlineChanges() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "old\n");
+        git.commitAll("first");
+        git.write("a.txt", "new\n");
+        open();
+        openFile("  M  a.txt", "  +new");
+        pickAfter("  M  a.txt", "  @@ -1");
+        git.write("a.txt", "new");
+        onEdt(status::refresh);
+        until(
+            () -> status.model()
+                    .unstaged(repo(), "a.txt")
+                    .diff()
+                    .hunks()
+                    .stream()
+                    .flatMap(h -> h.lines().stream())
+                    .anyMatch(l -> l.noNewline()));
+        onEdt(() -> assertTrue(status.picks().isEmpty()));
+    }
+
+    @Test
+    public void aPickedLinesMeaningSurvivesContextChangesAfterAnotherCommit() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "old\nkeep\n");
+        git.commitAll("first");
+        git.write("a.txt", "NEW\nextra\nkeep\n");
+        open();
+        openFile("  M  a.txt", "  +extra");
+        onEdt(() -> status.pick(List.of(line("  +extra"))));
+        // A separate change committed above the picked addition supplies
+        // more context without changing the hunk's removed/added bytes.
+        git.write("a.txt", "context\nold\nkeep\n");
+        git.commitAll("context above");
+        git.write("a.txt", "context\nNEW\nextra\nkeep\n");
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
+        until(() -> text().contains("   context"));
+        onEdt(() -> {
+            assertFalse(status.picks().isEmpty());
+            StatusActions.run(h.editor(), Op.STAGE);
+        });
+        until(() -> text().contains("Staged changes (1)"));
+        assertEquals("context\nold\nextra\nkeep\n", git.index("a.txt"));
+    }
+
+    @Test
+    public void picksOfLiteralPathsContainingRenderingSeparatorsAreConsumed() throws Exception {
+        git = GitFixture.init(tmp);
+        String name = "file|@node#1.txt";
+        git.write(name, "old\n");
+        git.commitAll("first");
+        git.write(name, "new\n");
+        open();
+        openFile("  M  " + name, "  +new");
+        pickAfter("  M  " + name, "  @@ -1");
+        onEdt(() -> StatusActions.run(h.editor(), Op.STAGE));
+        until(() -> text().contains("Staged changes (1)"));
+        assertEquals("new\n", git.index(name));
+        onEdt(() -> assertTrue(status.picks().isEmpty()));
+    }
+
+    @Test
+    public void oneStaleHunkPreventsStagingAnyOfTheRequestedTargets() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  +line three");
+        final List<Target> captured = new ArrayList<>();
+        onEdt(
+            () -> captured.addAll(
+                StatusActions.targetsOf(status.model(), List.of(line("  +line three"), line("  ?  c.txt")))));
+        git.write("a.txt", SIXTY.replace("line 3\n", "revised three\n"));
+        onEdt(status::refresh);
+        until(() -> text().contains("  +revised three"));
+        onEdt(() -> {
+            StatusActions.runOn(h.editor(), status.model(), Op.STAGE, captured, Map.of(), false);
+            assertFalse(status.isWriting());
+            assertTrue(h.status().contains("selected hunk has changed"), h.status());
+        });
+        assertEquals(SIXTY, git.index("a.txt"));
+        assertEquals("b.txt", git.git("diff", "--cached", "--name-only").strip());
+    }
+
+    private Target.Part capturedUnopenedHunk() {
+        final var repository = repo();
+        final FileItem unread = status.model().unstaged(repository, "a.txt");
+        assertEquals(null, unread.diff());
+        final var diff = repository.backend().readDiff(repository, false, List.of("a.txt"), Whitespace.NONE).get(0);
+        final FileItem captured = new FileItem(unread.change(), unread.letter(), unread.staged(), diff);
+        return Target.Part.of(repository, "unstaged", captured, diff.hunks().get(0), null);
+    }
+
+    @Test
+    public void resolvingAnUnreadSelectionReadsTheDiffAndReturnsCurrentTargets() throws Exception {
+        repository();
+        open();
+        final AtomicReference<Selections.Resolution> result = new AtomicReference<>();
+        onEdt(() -> status.model().resolveTargets(List.of(capturedUnopenedHunk()), result::set));
+        until(() -> result.get() != null);
+        onEdt(() -> {
+            assertTrue(result.get().ready(), result.get().failure());
+            final Target.Part resolved = (Target.Part) result.get().targets().get(0);
+            assertSame(status.model().unstaged(repo(), "a.txt"), resolved.file());
+        });
+    }
+
+    @Test
+    public void resolvingAFailedDiffReadStopsAndReportsTheFailure() throws Exception {
+        repository();
+        open();
+        final Target.Part[] captured = new Target.Part[1];
+        onEdt(() -> captured[0] = capturedUnopenedHunk());
+        git.git("config", "diff.algorithm", "invalid-algorithm");
+        final AtomicReference<Selections.Resolution> result = new AtomicReference<>();
+        final int[] reads = { 0 };
+        final RepositoryStatus.Listener listener = new RepositoryStatus.Listener() {
+            @Override
+            public void refreshed() {
+                reads[0]++;
+            }
+
+            @Override
+            public void picked() {}
+
+            @Override
+            public void read(int dropped, RepositoryStatus.Drop why) {}
+        };
+        onEdt(() -> {
+            status.model().hold(result, listener);
+            status.model().resolveTargets(List.of(captured[0]), result::set);
+        });
+        until(() -> result.get() != null);
+        onEdt(() -> {
+            assertFalse(result.get().ready());
+            assertTrue(result.get().unread().isEmpty());
+            assertEquals(Selections.Reason.READ_FAILED, result.get().problems().get(0).reason());
+            assertTrue(reads[0] <= 2, "bounded reads: " + reads[0]);
+            status.model().release(result, listener);
+        });
+    }
+
+    @Test
+    public void anExplicitCommitRefusesACapturedHunkThatChanged() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  +line three");
+        final PartialCommit[] commit = new PartialCommit[1];
+        onEdt(
+            () -> commit[0] = PartialCommit.ofTargets(
+                status.model(),
+                StatusActions.targetsOf(status.model(), List.of(line("  +line three")))));
+        git.write("a.txt", SIXTY.replace("line 3\n", "revised three\n"));
+        onEdt(status::refresh);
+        until(() -> text().contains("  +revised three"));
+        onEdt(() -> {
+            final var refused =
+                    org.junit.jupiter.api.Assertions.assertThrows(PartialCommit.Refused.class, () -> commit[0].plan());
+            assertTrue(refused.getMessage().contains("selected hunk has changed"), refused.getMessage());
+        });
+    }
+
+    @Test
+    public void aMoveRefusesChangedContentEvenWhenTheHunkHeaderStillMatches() throws Exception {
+        repository();
+        open();
+        openFile("  M  a.txt", "  +line three");
+        final List<Target> captured = new ArrayList<>();
+        onEdt(() -> captured.addAll(StatusActions.targetsOf(status.model(), List.of(line("  +line three")))));
+        git.write("a.txt", SIXTY.replace("line 3\n", "revised three\n").replace("line 50\n", "line fifty\n"));
+        onEdt(status::refresh);
+        until(() -> text().contains("  +revised three"));
+        final AtomicReference<String> said = new AtomicReference<>();
+        onEdt(() -> ChangelistCommands.moveTargets(status.model(), captured, "Feature", said::set));
+        assertTrue(said.get().contains("selected hunk has changed"), said.get());
+    }
+
+    @Test
+    public void anUnreadDiscardSelectionReportsTheReadThenAsksBeforeDiscarding() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            StatusActions
+                    .runOn(h.editor(), status.model(), Op.DISCARD, List.of(capturedUnopenedHunk()), Map.of(), false);
+            assertTrue(h.status().contains("Reading the selected files' diffs"), h.status());
+            assertTrue(asked.isEmpty(), "confirmation waits for the current diff");
+        });
+        until(() -> !asked.isEmpty() && !status.isWriting());
+        assertEquals(1, asked.size());
+        assertTrue(git.read("a.txt").contains("line 3\n"));
+        assertTrue(git.read("a.txt").contains("line fifty\n"), "the other hunk stays");
     }
 }

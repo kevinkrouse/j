@@ -225,12 +225,7 @@ public final class VcsStatusBuffer extends ViewBuffer
             return drag;
         if (!sameStatus(drag.data(), now) || !sameHunks(drag.targets()))
             return null;
-        return new ChangelistDrag(drag.token(),
-                model,
-                drag.repository(),
-                drag.from(),
-                ChangelistCommands.refreshed(model, drag.targets()),
-                now);
+        return new ChangelistDrag(drag.token(), model, drag.repository(), drag.from(), drag.targets(), now);
     }
 
     private static boolean sameStatus(StatusData before, StatusData after) {
@@ -336,7 +331,7 @@ public final class VcsStatusBuffer extends ViewBuffer
 
         @Override
         public boolean wantsDiff(String key) {
-            return isExpanded(key, Kind.FILE);
+            return isExpanded(key, Kind.FILE) || diff != null && key.equals(diff.fileKey());
         }
 
         // A file the status has closed may have changed with nothing it shows.

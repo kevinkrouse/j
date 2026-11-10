@@ -94,8 +94,8 @@ final class GitStatusReader {
         final List<String> conflicted = wanted(StatusData.UNMERGED, unmerged, false, wantsDiff);
         final List<String> worktree = new ArrayList<>(conflicted);
         worktree.addAll(wanted("unstaged", unstaged, false, wantsDiff));
-        final Map<String, FileDiff> diffs = readDiffs(repository, false, worktree, Set.copyOf(conflicted), ignored);
-        final Map<String, FileDiff> stagedDiffs =
+        final ReadDiffs diffs = readDiffs(repository, false, worktree, Set.copyOf(conflicted), ignored);
+        final ReadDiffs stagedDiffs =
                 readDiffs(repository, true, wanted("staged", staged, true, wantsDiff), Set.of(), ignored);
         final List<Section> sections = new ArrayList<>();
         if (!unmerged.isEmpty())
@@ -239,22 +239,27 @@ final class GitStatusReader {
     }
 
     // The diffs of paths, by path, in batches, as a command line has a
-    // limit (32k characters on Windows); a batch git fails on, none. A
+    // limit (32k characters on Windows); a batch git fails on is marked failed. A
     // path git leaves out: an unmerged one, of which git gives no combined
     // diff, as for a side that deleted it, an empty combined one; else,
     // ignoring whitespace, changed only in that.
-    private static Map<String, FileDiff> readDiffs(
+    private record ReadDiffs(Map<String, FileDiff> diffs, Set<String> failed) {}
+
+    private static ReadDiffs readDiffs(
             VcsRepository repository,
             boolean staged,
             List<String> paths,
             Set<String> unmerged,
             Whitespace ignored) {
         final Map<String, FileDiff> diffs = new HashMap<>();
+        final Set<String> failed = new HashSet<>();
         for (int i = 0; i < paths.size(); i += BATCH) {
             final List<String> batch = paths.subList(i, Math.min(paths.size(), i + BATCH));
             final List<FileDiff> read = diff(repository, staged, batch, ignored);
-            if (read == null)
+            if (read == null) {
+                failed.addAll(batch);
                 continue;
+            }
             for (FileDiff d : read)
                 diffs.put(d.path(), d);
             for (String p : batch)
@@ -262,17 +267,24 @@ final class GitStatusReader {
                     diffs.putIfAbsent(p, FileDiff.NO_COMBINED);
                 else if (ignored != Whitespace.NONE)
                     diffs.putIfAbsent(p, FileDiff.ONLY_WHITESPACE);
+                else
+                    diffs.putIfAbsent(p, FileDiff.EMPTY);
         }
-        return diffs;
+        return new ReadDiffs(diffs, failed);
     }
 
     // A section's files, each with its diff, if read: an unmerged one's 'U'.
-    private static List<Item> items(List<FileChange> changes, boolean staged, Map<String, FileDiff> diffs) {
+    private static List<Item> items(List<FileChange> changes, boolean staged, ReadDiffs read) {
         final List<Item> items = new ArrayList<>();
         for (FileChange c : changes) {
             final Kind kind = staged ? c.staged() : c.unstaged();
             final char letter = c.isConflicted() ? 'U' : kind == null ? ' ' : kind.letter();
-            items.add(new FileItem(c, letter, staged, diffs.get(c.path())));
+            items.add(
+                new FileItem(c,
+                        letter,
+                        staged,
+                        read.diffs().get(c.path()),
+                        read.failed().contains(c.path()) ? "Could not read the file's diff" : null));
         }
         return items;
     }
