@@ -47,48 +47,52 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
 /**
  * What is picked in a status, for the commands that take targets to take
  * with no selection, in place of the caret: files whole, hunks, and lines of
- * hunks, each in its section. By file, as the status keys their lines, a
- * hunk by what it changes, so a pick survives a refresh and edits
+ * hunks, each in its section. By typed file keys and captured changes, so
+ * a pick survives a refresh and edits
  * elsewhere. In memory, never saved. On the event thread.
  */
 final class StatusPicks {
+    /** A consumed pick; null hunk is the whole file. No presentation keys are parsed. */
+    record Key(FileKey file, String hunk) {}
+
     // A file's picks: whole, or its hunks' by id in the order picked.
     private static final class FilePicks {
         final FileKey file;
+        FileItem source;
         boolean whole;
         final Map<String, HunkPick> hunks = new LinkedHashMap<>();
 
-        FilePicks(FileKey file) {
+        FilePicks(FileKey file, FileItem source) {
             this.file = file;
+            this.source = source;
         }
     }
 
-    // A hunk's pick: its lines' indexes, null for all of it; twins, the
-    // hunk's and those then with the same changes, whose ids tell them
-    // apart only by their order.
-    private record HunkPick(BitSet lines, int twins, Selections.Content content, Hunk source) {
+    // Mutable picks keep the immutable file/hunk they were captured from.
+    // The shared resolver owns their identity and context remapping.
+    private record HunkPick(BitSet lines, FileItem file, Hunk source) {
         HunkPick withLines(BitSet next) {
-            return new HunkPick(next, twins, content, source);
+            return new HunkPick(next, file, source);
         }
 
-        HunkPick in(Hunk hunk, Selections.Content current) {
-            final BitSet next =
-                    lines == null ? null : Selections.hunkLines(hunk, Selections.changedLines(source, lines));
-            return new HunkPick(next, twins, current, hunk);
+        Part target(FileKey key) {
+            return Part.of(key.repository(), key.section(), file, source, lines);
         }
     }
 
-    // By the key of the file's line.
-    private final Map<String, FilePicks> files = new LinkedHashMap<>();
+    // By repository, opaque section and literal path.
+    private final Map<FileKey, FilePicks> files = new LinkedHashMap<>();
     // Worked out from what is picked, and the status; null until asked for
     // again after either changes: the keys of the files picked in part,
     // the picks as targets and the keys of those each target takes.
-    private Set<String> parts;
+    private Set<FileKey> parts;
     private List<Target> targets;
-    private Map<Target, Set<String>> targetKeys;
+    private Map<Target, Set<Key>> targetKeys;
     // Each diff's hunks' ids, and each section's files by path, by the
     // section's key, as the status has them now.
     private final Map<FileDiff, Selections.Hunks> ids = new IdentityHashMap<>();
+    private final Map<FileDiff, Map<Hunk, String>> reverse = new IdentityHashMap<>();
+    private List<Selections.Problem> droppedProblems = List.of();
     private final Map<FileKey.Section, Map<String, FileItem>> items = new HashMap<>();
 
     boolean isEmpty() {
@@ -101,28 +105,26 @@ final class StatusPicks {
     }
 
     /** The keys of the picks each of targets, as targets made them, takes. */
-    Map<Target, Set<String>> used(List<Target> targets) {
-        final Map<Target, Set<String>> out = new IdentityHashMap<>();
+    Map<Target, Set<Key>> used(List<Target> targets) {
+        final Map<Target, Set<Key>> out = new IdentityHashMap<>();
         for (Target t : targets)
             out.put(t, targetKeys == null ? Set.of() : targetKeys.getOrDefault(t, Set.of()));
         return out;
     }
 
     /** Unpicks those of keys, files' and hunks', still picked. */
-    void remove(Set<String> keys) {
+    void remove(Set<Key> keys) {
         dirty();
-        for (String k : keys) {
-            final FilePicks whole = files.get(k);
-            if (whole != null) {
-                if (whole.whole)
-                    files.remove(k);
+        for (Key key : keys) {
+            final FilePicks picked = files.get(key.file());
+            if (picked == null)
                 continue;
-            }
-            final String fk = StatusRenderer.fileKeyOf(k);
-            final FilePicks fp = files.get(fk);
-            if (fp != null && !fp.whole) {
-                fp.hunks.remove(StatusRenderer.hunkId(k));
-                prune(fk, fp);
+            if (key.hunk() == null) {
+                if (picked.whole)
+                    files.remove(key.file());
+            } else if (!picked.whole) {
+                picked.hunks.remove(key.hunk());
+                prune(key.file(), picked);
             }
         }
     }
@@ -130,6 +132,7 @@ final class StatusPicks {
     /** The status is read again: its files and their hunks' ids are looked up again. */
     void newRead() {
         ids.clear();
+        reverse.clear();
         items.clear();
         targets = null;
         targetKeys = null;
@@ -147,15 +150,22 @@ final class StatusPicks {
         return idsOf(diff).hunks();
     }
 
-    private Selections.Hunks idsOf(FileDiff diff) {
+    Selections.Hunks idsOf(FileDiff diff) {
         return ids.computeIfAbsent(diff, Selections::index);
     }
 
-    private HunkPick picked(FileDiff diff, String id, BitSet lines) {
-        if (diff == null)
-            return new HunkPick(lines, 0, null, null);
-        final Selections.Hunks index = idsOf(diff);
-        return new HunkPick(lines, index.twins().getOrDefault(id, 0), index.contents().get(id), index.hunks().get(id));
+    String hunkId(FileItem file, Hunk hunk) {
+        if (file.diff() == null)
+            return null;
+        return reverse.computeIfAbsent(file.diff(), diff -> {
+            final Map<Hunk, String> out = new IdentityHashMap<>();
+            ids(diff).forEach((id, value) -> out.put(value, id));
+            return out;
+        }).get(hunk);
+    }
+
+    private HunkPick picked(FileItem file, String id, BitSet lines) {
+        return new HunkPick(lines, file, ids(file.diff()).get(id));
     }
 
     /**
@@ -163,10 +173,10 @@ final class StatusPicks {
      * line, not of a combined diff's nor a stash's.
      */
     static boolean pickable(StatusLine l) {
-        if (StatusData.STASHES.equals(l.section()))
+        if (l.repository() == null || l.section() == null || l.file() == null || StatusData.STASHES.equals(l.section()))
             return false;
         return switch (l.kind()) {
-            case FILE -> l.file() != null && l.repository() != null && l.section() != null;
+            case FILE -> true;
             case HUNK -> l.hunk() != null && !l.hunk().isCombined();
             case DIFF -> l.hunk() != null && !l.hunk().isCombined() && !l.diffLine().isContext() && !l.isForeign();
             default -> false;
@@ -174,16 +184,15 @@ final class StatusPicks {
     }
 
     /**
-     * The key of the line of l's file in its section, as picks are kept by:
-     * under a changelist, a file split across lists has a line under each.
+     * The domain key of l's file. A split file has the same key under each list.
      */
-    static String fileKey(StatusLine l) {
-        return l.file() == null ? l.key() : fileKey(l, l.file());
+    static FileKey fileKey(StatusLine l) {
+        return fileKey(l, l.file());
     }
 
     /** The key of the line of file in l's section. */
-    static String fileKey(StatusLine l, FileItem file) {
-        return StatusRenderer.fileKey(l.repository(), l.section(), file.path());
+    static FileKey fileKey(StatusLine l, FileItem file) {
+        return new FileKey(l.repository(), l.section(), file.path());
     }
 
     /** How much of what l shows is picked. */
@@ -195,23 +204,26 @@ final class StatusPicks {
             return linesState(fileKey(l), l.only());
         return switch (l.kind()) {
             case FILE -> fileState(l);
-            case HUNK -> hunkState(fileKey(l), StatusRenderer.hunkId(l.key()));
-            case DIFF -> linePicked(fileKey(l), StatusRenderer.hunkId(l.node()), l.diffIndex())
-                    ? PickState.ALL
-                    : PickState.NONE;
+            case HUNK -> hunkState(fileKey(l), hunkId(l.file(), l.hunk()));
+            case DIFF ->
+                    linePicked(fileKey(l), hunkId(l.file(), l.hunk()), l.diffIndex()) ? PickState.ALL : PickState.NONE;
             default -> PickState.NONE;
         };
     }
 
     // A file's line's: picked whole, or each of its hunks, as its diff is
     // read, is; else picked in part, or not.
-    private PickState fileState(StatusLine file) {
-        final FilePicks fp = files.get(fileKey(file));
+    private PickState fileState(StatusLine line) {
+        return fileState(fileKey(line), line.file());
+    }
+
+    private PickState fileState(FileKey key, FileItem file) {
+        final FilePicks fp = files.get(key);
         if (fp == null)
             return PickState.NONE;
         if (fp.whole)
             return PickState.ALL;
-        final FileDiff d = file.file().diff();
+        final FileDiff d = file.diff();
         if (d == null || d.hunks().isEmpty() || fp.hunks.size() != d.hunks().size())
             return PickState.SOME;
         for (String id : ids(d).keySet()) {
@@ -222,83 +234,74 @@ final class StatusPicks {
         return PickState.ALL;
     }
 
+    PickState state(FileKey key, Target.Member member) {
+        final Map<String, BitSet> only = member.only();
+        return only == null ? fileState(key, member.file()) : linesState(key, only);
+    }
+
     /**
      * Picks each of ls that can be, or, if each is picked already, unpicks
      * them; a file's line among them takes its hunks and lines.
      */
-    void toggle(List<StatusLine> ls) {
-        set(ls, ls.stream().filter(StatusPicks::pickable).anyMatch(l -> state(l) != PickState.ALL));
+    void toggle(List<Target> targets) {
+        set(targets, targets.stream().anyMatch(target -> state(target) != PickState.ALL));
     }
 
-    /**
-     * Picks each of ls that can be, if on, else unpicks it; a file's line
-     * among them takes its hunks and lines, and a hunk's lines are set
-     * together.
-     */
-    void set(List<StatusLine> ls, boolean on) {
-        final Set<String> whole = new HashSet<>();
-        for (StatusLine l : ls) {
-            if (!pickable(l) || l.only() == null)
-                continue;
-            // Under a changelist, a file's or hunk's lines there.
-            setLines(fileKey(l), l.repository(), l.section(), l.file(), l.only(), on);
-        }
-        for (StatusLine l : ls)
-            if (l.kind() == Kind.FILE && pickable(l) && l.only() == null) {
-                whole.add(fileKey(l));
-                setFile(l, on);
+    void set(List<Target> targets, boolean on) {
+        for (Target target : targets) {
+            if (target instanceof Files whole) {
+                for (FileItem file : whole.files()) {
+                    final FileKey key = new FileKey(whole.repository(), whole.section(), file.path());
+                    dirty();
+                    if (!on)
+                        files.remove(key);
+                    else {
+                        final FilePicks picked = of(key, file);
+                        picked.source = file;
+                        picked.whole = true;
+                        picked.hunks.clear();
+                    }
+                }
+            } else {
+                final Part part = (Part) target;
+                final FileKey key = new FileKey(part.repository(), part.section(), part.file().path());
+                final String id = hunkId(part.file(), part.hunk());
+                if (id == null)
+                    continue;
+                if (part.selection() == null)
+                    setHunk(key, id, part.file(), on);
+                else
+                    setLines(key, id, part.file(), part.hunk(), part.lines(), on);
             }
-        // The lines of each hunk, by its line's key: the first, and their indexes.
-        final Map<String, StatusLine> firsts = new LinkedHashMap<>();
-        final Map<String, BitSet> idx = new HashMap<>();
-        for (StatusLine l : ls) {
-            if (l.kind() == Kind.FILE || !pickable(l) || l.only() != null)
-                continue;
-            final String hk = l.kind() == Kind.HUNK ? l.key() : l.node();
-            final String fk = fileKey(l);
-            if (whole.contains(fk))
-                continue;
-            if (l.kind() == Kind.HUNK)
-                setHunk(fk, StatusRenderer.hunkId(hk), l.repository(), l.section(), l.file(), on);
-            else {
-                firsts.putIfAbsent(hk, l);
-                idx.computeIfAbsent(hk, k -> new BitSet()).set(l.diffIndex());
-            }
-        }
-        for (Map.Entry<String, StatusLine> e : firsts.entrySet()) {
-            final StatusLine l = e.getValue();
-            setLines(
-                fileKey(l),
-                StatusRenderer.hunkId(e.getKey()),
-                l.repository(),
-                l.section(),
-                l.file(),
-                l.hunk(),
-                idx.get(e.getKey()),
-                on);
         }
     }
 
-    // A file's line's pick set, its hunks' with it, or cleared.
-    private void setFile(StatusLine l, boolean on) {
-        dirty();
-        final String fk = fileKey(l);
-        if (!on) {
-            files.remove(fk);
-            return;
+    PickState state(Target target) {
+        boolean any = false, all = true;
+        if (target instanceof Files whole) {
+            for (FileItem file : whole.files()) {
+                final PickState picked = fileState(new FileKey(whole.repository(), whole.section(), file.path()), file);
+                any |= picked != PickState.NONE;
+                all &= picked == PickState.ALL;
+            }
+        } else {
+            final Part part = (Part) target;
+            final FileKey key = new FileKey(part.repository(), part.section(), part.file().path());
+            final String id = hunkId(part.file(), part.hunk());
+            return id == null ? PickState.NONE
+                    : part.selection() == null ? hunkState(key, id)
+                    : linesState(key, Map.of(id, part.lines()));
         }
-        final FilePicks fp = of(fk, l.repository(), l.section(), l.file());
-        fp.whole = true;
-        fp.hunks.clear();
+        return all ? PickState.ALL : any ? PickState.SOME : PickState.NONE;
     }
 
     /** Whether anything of fk's file is picked. */
-    boolean has(String fk) {
+    boolean has(FileKey fk) {
         return files.containsKey(fk);
     }
 
     /** How much of the hunk id of fk's file is picked. */
-    PickState hunkState(String fk, String id) {
+    PickState hunkState(FileKey fk, String id) {
         final FilePicks fp = files.get(fk);
         if (fp == null)
             return PickState.NONE;
@@ -309,7 +312,7 @@ final class StatusPicks {
     }
 
     /** Whether line i of the hunk id of fk's file is picked. */
-    boolean linePicked(String fk, String id, int i) {
+    boolean linePicked(FileKey fk, String id, int i) {
         final FilePicks fp = files.get(fk);
         if (fp == null)
             return false;
@@ -320,7 +323,7 @@ final class StatusPicks {
     }
 
     /** How much of the lines of fk's file that idx gives by hunk id is picked. */
-    PickState linesState(String fk, Map<String, BitSet> idx) {
+    PickState linesState(FileKey fk, Map<String, BitSet> idx) {
         boolean any = false;
         boolean all = true;
         for (Map.Entry<String, BitSet> e : idx.entrySet())
@@ -332,22 +335,17 @@ final class StatusPicks {
         return all ? PickState.ALL : any ? PickState.SOME : PickState.NONE;
     }
 
-    /** Picks the hunk id of r's section's file f, fk its line's key, or unpicks it if it is picked whole. */
-    void toggleHunk(String fk, String id, VcsRepository r, String section, FileItem f) {
-        setHunk(fk, id, r, section, f, hunkState(fk, id) != PickState.ALL);
-    }
-
     /**
-     * Picks the hunk id of r's section's file f, fk its line's key, if on,
+     * Picks hunk id of the file keyed fk if on,
      * else unpicks it; unpicked in a file picked whole, the file's other
      * hunks stay picked.
      */
-    void setHunk(String fk, String id, VcsRepository r, String section, FileItem f, boolean on) {
+    private void setHunk(FileKey fk, String id, FileItem f, boolean on) {
         dirty();
         final FilePicks fp = files.get(fk);
         if (on) {
             if (fp == null || !fp.whole)
-                of(fk, r, section, f).hunks.put(id, picked(f.diff(), id, null));
+                of(fk, f).hunks.put(id, picked(f, id, null));
         } else if (fp != null) {
             if (fp.whole)
                 split(fp, f, id, null);
@@ -357,38 +355,10 @@ final class StatusPicks {
         }
     }
 
-    /**
-     * Picks the lines of r's section's file f, fk its line's key, that
-     * idx gives by hunk id, or, each picked already, unpicks them.
-     */
-    void toggleLines(String fk, VcsRepository r, String section, FileItem f, Map<String, BitSet> idx) {
-        boolean on = false;
-        for (Map.Entry<String, BitSet> e : idx.entrySet())
-            for (int i = e.getValue().nextSetBit(0); i >= 0; i = e.getValue().nextSetBit(i + 1))
-                on |= !linePicked(fk, e.getKey(), i);
-        setLines(fk, r, section, f, idx, on);
-    }
-
-    /** Picks the lines of r's section's file f, fk its line's key, that idx gives by hunk id if on, else unpicks them. */
-    void setLines(String fk, VcsRepository r, String section, FileItem f, Map<String, BitSet> idx, boolean on) {
-        final Map<String, Hunk> hs = ids(f.diff());
-        for (Map.Entry<String, BitSet> e : idx.entrySet())
-            if (hs.containsKey(e.getKey()))
-                setLines(fk, e.getKey(), r, section, f, hs.get(e.getKey()), e.getValue(), on);
-    }
-
     // The lines idx of hunk h, id, of fk's file picked or unpicked, a
     // modified line's removal with its addition; all its changed lines
     // picked, the hunk is.
-    private void setLines(
-            String fk,
-            String id,
-            VcsRepository r,
-            String section,
-            FileItem f,
-            Hunk h,
-            BitSet some,
-            boolean on) {
+    private void setLines(FileKey fk, String id, FileItem f, Hunk h, BitSet some, boolean on) {
         dirty();
         final BitSet idx = (BitSet) some.clone();
         Patch.pairChanges(h, idx);
@@ -396,9 +366,9 @@ final class StatusPicks {
         if (on) {
             if (fp != null && (fp.whole || hunkState(fk, id) == PickState.ALL))
                 return;
-            fp = of(fk, r, section, f);
+            fp = of(fk, f);
             final BitSet changed = changed(h);
-            final HunkPick hp = fp.hunks.computeIfAbsent(id, k -> picked(f.diff(), id, new BitSet()));
+            final HunkPick hp = fp.hunks.computeIfAbsent(id, k -> picked(f, id, new BitSet()));
             hp.lines().or(idx);
             hp.lines().and(changed);
             if (hp.lines().equals(changed))
@@ -437,18 +407,18 @@ final class StatusPicks {
             return;
         for (String other : ids(f.diff()).keySet())
             if (!other.equals(id))
-                fp.hunks.put(other, picked(f.diff(), other, null));
+                fp.hunks.put(other, picked(f, other, null));
             else if (some != null && !some.isEmpty())
-                fp.hunks.put(other, picked(f.diff(), other, some));
+                fp.hunks.put(other, picked(f, other, some));
     }
 
     // fk's picks, made if there are none.
-    private FilePicks of(String fk, VcsRepository r, String section, FileItem f) {
-        return files.computeIfAbsent(fk, k -> new FilePicks(new FileKey(r, section, f.path())));
+    private FilePicks of(FileKey fk, FileItem f) {
+        return files.computeIfAbsent(fk, k -> new FilePicks(fk, f));
     }
 
     // fk's picks gone if nothing of the file is left picked.
-    private void prune(String fk, FilePicks fp) {
+    private void prune(FileKey fk, FilePicks fp) {
         if (!fp.whole && fp.hunks.isEmpty())
             files.remove(fk);
     }
@@ -463,44 +433,34 @@ final class StatusPicks {
     }
 
     /**
-     * The picks as the status has them now, as targets: files whole, by
+     * The retained picks as targets: files whole, by
      * section, then hunks and lines of them, a modified line's removal with
-     * its addition; one whose file or hunk is gone left out. Worked out
+     * its addition. Retention owns matching against status. Worked out
      * once until what is picked, or the status, changes.
      */
-    List<Target> targets(RepositoryStatus status) {
+    List<Target> targets() {
         if (targets != null)
             return targets;
-        final Map<Target, Set<String>> keys = new IdentityHashMap<>();
+        final Map<Target, Set<Key>> keys = new IdentityHashMap<>();
         // Files picked whole, by section's key, with their keys.
         final Map<FileKey.Section, List<FileItem>> wholes = new LinkedHashMap<>();
         final Map<FileKey.Section, FileKey> sections = new HashMap<>();
-        final Map<FileKey.Section, Set<String>> wholeKeys = new HashMap<>();
+        final Map<FileKey.Section, Set<Key>> wholeKeys = new HashMap<>();
         final List<Target> parts = new ArrayList<>();
-        for (Map.Entry<String, FilePicks> e : files.entrySet()) {
+        for (Map.Entry<FileKey, FilePicks> e : files.entrySet()) {
             final FilePicks fp = e.getValue();
-            final FileItem f = item(status, fp.file);
-            if (f == null)
-                continue;
+            final FileItem f = fp.source;
             if (fp.whole) {
                 final FileKey.Section sk = fp.file.scope();
                 wholes.computeIfAbsent(sk, k -> new ArrayList<>()).add(f);
                 sections.putIfAbsent(sk, fp.file);
-                wholeKeys.computeIfAbsent(sk, k -> new HashSet<>()).add(e.getKey());
+                wholeKeys.computeIfAbsent(sk, k -> new HashSet<>()).add(new Key(e.getKey(), null));
                 continue;
             }
-            if (f.diff() == null)
-                continue;
             for (Map.Entry<String, HunkPick> h : fp.hunks.entrySet()) {
-                final Hunk hunk = ids(f.diff()).get(h.getKey());
-                if (hunk == null)
-                    continue;
-                final BitSet picked = h.getValue().lines() == null ? null : (BitSet) h.getValue().lines().clone();
-                if (picked != null)
-                    Patch.pairChanges(hunk, picked);
-                final Part p = Part.of(fp.file.repository(), fp.file.section(), f, hunk, picked);
-                parts.add(p);
-                keys.put(p, Set.of(StatusRenderer.hunkKey(e.getKey(), h.getKey())));
+                final Part part = h.getValue().target(fp.file);
+                parts.add(part);
+                keys.put(part, Set.of(new Key(e.getKey(), h.getKey())));
             }
         }
         final List<Target> out = new ArrayList<>();
@@ -523,7 +483,7 @@ final class StatusPicks {
      * null with nothing picked or the hunks picked unread. A removed line
      * with lines added in its place marks no row: its sign is theirs.
      */
-    StatusView.Picked rows(String fk, FileItem f) {
+    StatusView.Picked rows(FileKey fk, FileItem f) {
         final FilePicks fp = files.get(fk);
         if (fp == null)
             return null;
@@ -573,11 +533,11 @@ final class StatusPicks {
     }
 
     /** The files picked whole, by the keys of their lines, in order. */
-    Map<String, FileKey> wholeFiles() {
-        final Map<String, FileKey> out = new LinkedHashMap<>();
-        for (Map.Entry<String, FilePicks> e : files.entrySet())
+    Map<Key, FileKey> wholeFiles() {
+        final Map<Key, FileKey> out = new LinkedHashMap<>();
+        for (Map.Entry<FileKey, FilePicks> e : files.entrySet())
             if (e.getValue().whole)
-                out.put(e.getKey(), e.getValue().file);
+                out.put(new Key(e.getKey(), null), e.getValue().file);
         return out;
     }
 
@@ -593,51 +553,62 @@ final class StatusPicks {
 
     /**
      * Drops the picks whose file the status no longer has in their
-     * section, or whose hunk its file's diff, read, no longer has, or
-     * whose file's diff a read asked for, by its key in asked, did not
-     * come: how many were dropped, a file whole's or each hunk's one. None
-     * while a write runs, which may be using them.
+     * section, or whose captured change is no longer valid. Unread targets
+     * remain pending. A whole file or each hunk counts as one dropped pick.
      */
-    int retain(RepositoryStatus status, Set<String> asked) {
-        if (status.isWriting())
-            return 0;
-        dirty();
-        int dropped = 0;
-        for (var it = files.entrySet().iterator(); it.hasNext();) {
-            final Map.Entry<String, FilePicks> e = it.next();
-            final FilePicks fp = e.getValue();
-            final FileItem f = item(status, fp.file);
-            if (f == null) {
-                dropped += fp.whole ? 1 : fp.hunks.size();
-                it.remove();
-                continue;
-            }
-            if (fp.whole)
-                continue;
-            final int before = fp.hunks.size();
-            if (f.diff() == null) {
-                if (asked.contains(e.getKey()))
-                    fp.hunks.clear();
-            } else {
-                final Selections.Hunks now = idsOf(f.diff());
-                // A fingerprint finds candidates; confirm canonical contents
-                // and duplicate counts before carrying picks across a read.
-                for (var picks = fp.hunks.entrySet().iterator(); picks.hasNext();) {
-                    final Map.Entry<String, HunkPick> entry = picks.next();
-                    final String id = entry.getKey();
-                    final HunkPick pick = entry.getValue();
-                    final Hunk matched = Selections.match(now, id, pick.content(), pick.twins());
-                    if (matched == null)
-                        picks.remove();
-                    else
-                        entry.setValue(pick.in(matched, now.contents().get(id)));
-                }
-            }
-            dropped += before - fp.hunks.size();
-            if (fp.hunks.isEmpty())
-                it.remove();
+    List<Target> captured() {
+        final List<Target> captured = new ArrayList<>();
+        for (FilePicks picked : files.values()) {
+            if (picked.whole)
+                captured.add(new Files(picked.file.repository(), picked.file.section(), List.of(picked.source)));
+            else
+                picked.hunks.values().forEach(hunk -> captured.add(hunk.target(picked.file)));
         }
-        return dropped;
+        return List.copyOf(captured);
+    }
+
+    int retain(RepositoryStatus status) {
+        return status.isWriting() ? 0 : retain(status.resolveTargets(captured()));
+    }
+
+    int retain(Selections.Resolution resolution) {
+        dirty();
+        final int before = files.values().stream().mapToInt(picked -> picked.whole ? 1 : picked.hunks.size()).sum();
+        droppedProblems = resolution.problems();
+        final Map<FileKey, FilePicks> retained = new LinkedHashMap<>();
+        for (Target target : resolution.targets()) {
+            if (target instanceof Files whole) {
+                for (FileItem file : whole.files()) {
+                    final FileKey key = new FileKey(whole.repository(), whole.section(), file.path());
+                    final FilePicks picked = new FilePicks(key, file);
+                    picked.whole = true;
+                    retained.put(key, picked);
+                }
+            } else {
+                final Part part = (Part) target;
+                final FileKey key = new FileKey(part.repository(), part.section(), part.file().path());
+                retained.computeIfAbsent(key, k -> new FilePicks(k, part.file())).hunks
+                        .put(hunkId(part.file(), part.hunk()), new HunkPick(part.lines(), part.file(), part.hunk()));
+            }
+        }
+        final Map<FileKey, FilePicks> ordered = new LinkedHashMap<>();
+        int after = 0;
+        for (Map.Entry<FileKey, FilePicks> original : files.entrySet()) {
+            final FilePicks picked = resolution.unread().contains(original.getKey())
+                    ? original.getValue()
+                    : retained.get(original.getKey());
+            if (picked != null) {
+                ordered.put(original.getKey(), picked);
+                after += picked.whole ? 1 : picked.hunks.size();
+            }
+        }
+        files.clear();
+        files.putAll(ordered);
+        return before - after;
+    }
+
+    List<Selections.Problem> droppedProblems() {
+        return droppedProblems;
     }
 
     /** Of a file's line partly picked, its hunks picked in whole or part, and all its hunks; null otherwise. */
@@ -662,10 +633,10 @@ final class StatusPicks {
     }
 
     /** The keys of the files some of whose hunks or lines are picked, whose diffs a refresh must read. */
-    Set<String> partlyPicked() {
+    Set<FileKey> partlyPicked() {
         if (parts == null) {
-            final Set<String> out = new HashSet<>();
-            for (Map.Entry<String, FilePicks> e : files.entrySet())
+            final Set<FileKey> out = new HashSet<>();
+            for (Map.Entry<FileKey, FilePicks> e : files.entrySet())
                 if (!e.getValue().whole)
                     out.add(e.getKey());
             parts = Set.copyOf(out);

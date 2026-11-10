@@ -28,6 +28,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.util.PickState;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Changelists;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusActions.Op;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
@@ -60,15 +61,17 @@ final class VcsContextMenus {
             RepositoryStatus model,
             List<Target> targets,
             List<Target> commitTargets,
-            StatusLine line,
+            FileKey location,
+            Target.Member member,
+            boolean pickable,
             String diffLabel,
             String diffCommand,
             String diffKey,
             Function<String, Runnable> action) {
-        final FileItem file = line.file();
-        final VcsRepository r = line.repository();
+        final FileItem file = member.file();
+        final VcsRepository r = location.repository();
         final boolean untracked = file != null && file.change().isUntracked();
-        final boolean unmerged = StatusData.UNMERGED.equals(line.section());
+        final boolean unmerged = StatusData.UNMERGED.equals(location.section());
         add(menu, editor, commitLabel(commitTargets), "vcsCommitFiles", commitWhy(model, commitTargets), action);
         add(
             menu,
@@ -116,9 +119,9 @@ final class VcsContextMenus {
         add(
             menu,
             editor,
-            picked(model, line) ? "Unpick" : "Pick",
+            pickable && model.picks().state(location, member) != PickState.NONE ? "Unpick" : "Pick",
             "vcsStatusPick",
-            StatusPicks.pickable(line) ? null : "Nothing to pick here",
+            pickable ? null : "Nothing to pick here",
             action);
         add(menu, editor, "Copy path", "vcsCopyPath", file == null ? "No file here" : null, action);
         if (untracked)
@@ -182,11 +185,6 @@ final class VcsContextMenus {
             String why,
             Function<String, Runnable> action) {
         menu.add(label, command, why == null, why, e -> action.apply(command).run());
-    }
-
-    // Whether the file's changes are picked, so its item says Unpick.
-    private static boolean picked(RepositoryStatus model, StatusLine line) {
-        return StatusPicks.pickable(line) && model.picks().state(line) != PickState.NONE;
     }
 
     // "Commit file…", "Commit files…", "Commit alone…" for a hunk or lines.

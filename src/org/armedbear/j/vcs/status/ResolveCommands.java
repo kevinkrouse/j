@@ -188,7 +188,7 @@ public final class ResolveCommands {
             editor.status("That choice doesn't fit these conflicts");
             return;
         }
-        final Map<Target, Set<String>> used = picked ? model.picks().used(targets) : Map.of();
+        final Map<Target, Set<StatusPicks.Key>> used = picked ? model.picks().used(targets) : Map.of();
         StatusActions.start(editor, model, "Resolving", targets, used, did -> resolve(targets, take, did));
     }
 

@@ -75,7 +75,6 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsDiffCommands;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommit;
@@ -518,7 +517,11 @@ public final class VcsStatusBuffer extends ViewBuffer
                 if (l instanceof StatusLine s
                         && s.kind() == Kind.LIST
                         && !s.isOpen()
-                        && s.members().stream().anyMatch(m -> key.equals(StatusPicks.fileKey(s, m.file())))) {
+                        && s.members()
+                                .stream()
+                                .anyMatch(
+                                    m -> key.equals(
+                                        StatusRenderer.fileKey(s.repository(), s.section(), m.file().path())))) {
                     expanded.put(s.key(), true);
                     render();
                     break;
@@ -630,6 +633,7 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     // As render, dropped picks the model's read dropped said so, why, unless null.
     private void render(int dropped, RepositoryStatus.Drop why) {
+        final String droppedMessage = dropped > 0 && why != null ? model.dropMessage(dropped, why) : null;
         final List<StatusRenderer.Part> parts = new ArrayList<>();
         for (VcsRepository r : repositories) {
             final StatusData d = model.getData(r);
@@ -670,11 +674,10 @@ public final class VcsStatusBuffer extends ViewBuffer
                 finishing.add(VirtualText.eol(l, FinishCommands.links(this, l.repository())));
         getVirtualText().set(FinishCommands.OWNER, finishing);
         showPicked();
-        if (dropped > 0 && why != null)
-            for (Editor ed : Editor.getEditorList())
-                if (ed.getBuffer() == this)
-                    ed.status(
-                        dropped == 1 ? "A pick was dropped: " + why.one : dropped + " picks were dropped: " + why.many);
+        if (droppedMessage != null)
+            for (Editor editor : Editor.getEditorList())
+                if (editor.getBuffer() == this)
+                    editor.status(droppedMessage);
 
         final Map<String, StatusLine> byKey = new HashMap<>();
         for (StatusLine l : lines)
@@ -983,7 +986,7 @@ public final class VcsStatusBuffer extends ViewBuffer
     }
 
     /** Unpicks those of keys still picked, and shows it. */
-    void unpick(Set<String> keys) {
+    void unpick(Set<StatusPicks.Key> keys) {
         model.unpick(keys);
     }
 
@@ -1059,8 +1062,11 @@ public final class VcsStatusBuffer extends ViewBuffer
         final FileItem item = comparedItem();
         if (item == null)
             return null;
-        if (lastCompared == null || lastCompared.item() != item || !lastCompared.key().equals(diffFile()))
-            lastCompared = new RowPicks.Of(diff.repository(), diff.section(), item, diffFile());
+        if (lastCompared == null
+                || lastCompared.item() != item
+                || lastCompared.repository() != diff.repository()
+                || !java.util.Objects.equals(lastCompared.section(), diff.section()))
+            lastCompared = new RowPicks.Of(diff.repository(), diff.section(), item);
         return lastCompared;
     }
 

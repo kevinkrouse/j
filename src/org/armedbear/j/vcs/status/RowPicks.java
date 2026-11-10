@@ -35,6 +35,9 @@ import org.armedbear.j.util.PickState;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.FileKey;
+import org.armedbear.j.vcs.selection.Selections;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 
 /**
@@ -47,8 +50,12 @@ import org.armedbear.j.vcs.status.StatusData.FileItem;
  * box the addition's. Rows count from 0. On the event thread.
  */
 final class RowPicks {
-    /** The file: its repository, section, item, read, and its line's key in the status. */
-    record Of(VcsRepository repository, String section, FileItem item, String key) {}
+    /** The file: its repository, section, item, read, and its typed file key. */
+    record Of(VcsRepository repository, String section, FileItem item, FileKey key) {
+        Of(VcsRepository repository, String section, FileItem item) {
+            this(repository, section, item, new FileKey(repository, section, item.path()));
+        }
+    }
 
     /**
      * A box in a side: the lines it picks, by hunk id, a change's, or one
@@ -190,7 +197,7 @@ final class RowPicks {
             editor.status(nothingHere.get());
             return;
         }
-        status.picks().toggleLines(f.key(), f.repository(), f.section(), f.item(), idx);
+        status.picks().toggle(targets(idx));
         if (selection)
             editor.setMark(null);
         status.showPicks();
@@ -205,7 +212,7 @@ final class RowPicks {
         for (Box b : boxes)
             for (Map.Entry<String, BitSet> e : b.lines().entrySet())
                 idx.computeIfAbsent(e.getKey(), k -> new BitSet()).or(e.getValue());
-        status.picks().setLines(f.key(), f.repository(), f.section(), f.item(), idx, on);
+        status.picks().set(targets(idx), on);
         status.showPicks();
     }
 
@@ -239,7 +246,7 @@ final class RowPicks {
             rows(f).signs(range[0], range[1], idx);
         if (idx.isEmpty())
             return;
-        status.picks().setLines(f.key(), f.repository(), f.section(), f.item(), idx, on);
+        status.picks().set(targets(idx), on);
         status.showPicks();
     }
 
@@ -251,6 +258,16 @@ final class RowPicks {
         final Map<String, BitSet> out = new LinkedHashMap<>();
         rows(f).signs(from, to, out);
         return out.isEmpty() ? null : out;
+    }
+
+    /** Captures the same shared targets as text and tree selections. */
+    List<Target> targets(Map<String, BitSet> lines) {
+        final Of file = of.get();
+        if (file == null)
+            return List.of();
+        return new Selections.Builder(status.picks()::ids)
+                .member(file.repository(), file.section(), new Target.Member(file.item(), lines))
+                .build();
     }
 
     // f's rows, or null for no file.

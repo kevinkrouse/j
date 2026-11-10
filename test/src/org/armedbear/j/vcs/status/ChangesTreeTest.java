@@ -22,11 +22,13 @@ package org.armedbear.j.vcs.status;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.event.KeyEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -48,6 +50,7 @@ import org.armedbear.j.vcs.changelists.Changelists.Assignment;
 import org.armedbear.j.vcs.changelists.Changelists.Change;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.armedbear.j.vcs.status.ChangesTree.FileNode;
 import org.junit.jupiter.api.AfterEach;
@@ -490,7 +493,7 @@ public class ChangesTreeTest {
             assertSame(PickState.NONE, tree.pickState(a));
             tree.pick(a);
             assertSame(PickState.ALL, tree.pickState(a));
-            assertTrue(tree.status().picks().has(StatusRenderer.fileKey(repo(), StatusRenderer.UNSTAGED, "a.txt")));
+            assertTrue(tree.status().picks().has(new FileKey(repo(), StatusRenderer.UNSTAGED, "a.txt")));
             tree.pick(a);
             assertSame(PickState.NONE, tree.pickState(a));
         });
@@ -518,7 +521,7 @@ public class ChangesTreeTest {
         onEdt(() -> {
             opened[0] = VcsStatusBuffer.of(List.of(repo()));
             assertSame(status, opened[0].model());
-            assertTrue(opened[0].picks().has(StatusRenderer.fileKey(repo(), StatusRenderer.UNSTAGED, "a.txt")));
+            assertTrue(opened[0].picks().has(new FileKey(repo(), StatusRenderer.UNSTAGED, "a.txt")));
         });
         // The tab hidden and the status closed, what is picked keeps it.
         onEdt(() -> {
@@ -558,5 +561,75 @@ public class ChangesTreeTest {
             tree.shown(true);
         });
         until(() -> rows().contains("Unstaged changes (1)"));
+    }
+
+    @Test
+    public void statusTreeComparisonAndGutterCaptureTheSamePickedChange() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        splitAcrossLists();
+        onEdt(() -> {
+            final FileNode feature = file("Feature", "a.txt");
+            final RepositoryStatus model = tree.status();
+            tree.pick(feature);
+            final var expected = model.picks().captured();
+            assertEquals(1, expected.size());
+            assertInstanceOf(org.armedbear.j.vcs.selection.Target.Part.class, expected.get(0));
+            model.unpickAll();
+            final var lines = StatusRenderer.renderFiles(
+                repo(),
+                StatusRenderer.sectionKey(repo(), StatusRenderer.UNSTAGED),
+                StatusRenderer.UNSTAGED,
+                List.of(feature.file()),
+                (key, kind) -> true,
+                model.picks()::ids);
+            final StatusLine heading = lines.stream()
+                    .filter(
+                        line -> line.kind() == StatusLine.Kind.HUNK
+                                && line.hunk()
+                                        .lines()
+                                        .stream()
+                                        .anyMatch(changed -> changed.text().equals("line fifty")))
+                    .findFirst()
+                    .orElseThrow();
+            model.pick(List.of(heading));
+            assertEquals(expected, model.picks().captured(), "status text and Changes tree");
+            model.unpickAll();
+            final RowPicks rows = new RowPicks(model, () -> model.unstagedOf(repo(), "a.txt"), () -> "No change");
+            rows.setSigns(49, 49, true);
+            assertEquals(expected, model.picks().captured(), "editor gutter");
+            model.unpickAll();
+            final RowPicks.Box box = rows.boxAt(false, 49);
+            assertNotNull(box);
+            rows.set(List.of(box), true);
+            assertEquals(expected, model.picks().captured(), "comparison row");
+        });
+    }
+
+    @Test
+    public void deleteOnTheNotInARepositoryMessageDoesNothing() throws Exception {
+        final Path file = tmp.resolve("a.txt");
+        Files.writeString(file, "outside a repository\n");
+        assertNull(Repositories.forDirectory(tmp.toRealPath()));
+        show(tmp);
+        onEdt(() -> {
+            assertNull(tree.status());
+            final var root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+            assertEquals(1, root.getChildCount());
+            final var message = (DefaultMutableTreeNode) root.getChildAt(0);
+            assertInstanceOf(ChangesTree.MessageNode.class, message.getUserObject());
+            assertEquals("Not in a repository", message.getUserObject().toString());
+            tree.setSelectionPath(new javax.swing.tree.TreePath(message.getPath()));
+            final KeyEvent delete = new KeyEvent(tree,
+                    KeyEvent.KEY_PRESSED,
+                    System.currentTimeMillis(),
+                    0,
+                    KeyEvent.VK_DELETE,
+                    KeyEvent.CHAR_UNDEFINED);
+            tree.keyPressed(delete);
+            assertTrue(delete.isConsumed());
+            assertEquals(List.of("Not in a repository"), rows());
+        });
+        assertEquals("outside a repository\n", Files.readString(file));
     }
 }

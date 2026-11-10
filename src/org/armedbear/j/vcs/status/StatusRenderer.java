@@ -22,9 +22,7 @@ package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -366,19 +364,7 @@ public final class StatusRenderer {
         return fk + HUNK + id;
     }
 
-    /** The key of the file's line from that of its hunk's, hk; hk if it is not a hunk's. */
-    static String fileKeyOf(String hk) {
-        final int at = hk.lastIndexOf(HUNK);
-        return at < 0 ? hk : hk.substring(0, at);
-    }
-
-    /** The id of the hunk whose line's key is hk. */
-    static String hunkId(String hk) {
-        return hk.substring(hk.lastIndexOf(HUNK) + HUNK.length());
-    }
-
-    // Between a file's line's key and a hunk's id; an id has no '|', so the
-    // last of these in a key, whatever the path, ends the file's.
+    // A presentation delimiter only; actions never parse a renderer key.
     private static final String HUNK = "|@";
 
     // Why an unmerged file has no combined diff.

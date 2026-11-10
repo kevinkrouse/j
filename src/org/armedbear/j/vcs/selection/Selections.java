@@ -35,17 +35,120 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.diff.Patch;
 import org.armedbear.j.vcs.status.StatusData;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 
 /** Selection identity and line coordinates, without I/O or presentation state. */
 public final class Selections {
     private Selections() {}
+
+    /** Collects one selection without cloning a growing line set for each selected row. */
+    public static final class Builder {
+        private final Map<FileKey.Section, Map<String, FileItem>> files = new LinkedHashMap<>();
+        private final Map<FileKey, Map<Hunk, Lines>> parts = new HashMap<>();
+        private final Map<FileDiff, Map<String, Hunk>> ids = new IdentityHashMap<>();
+        private final List<Target> order = new ArrayList<>();
+        private final Function<FileDiff, Map<String, Hunk>> lookup;
+
+        public Builder() {
+            this(Selections::hunkIds);
+        }
+
+        public Builder(Function<FileDiff, Map<String, Hunk>> lookup) {
+            this.lookup = Objects.requireNonNull(lookup);
+        }
+
+        private static final class Lines {
+            final BitSet selected = new BitSet();
+            boolean whole;
+
+        }
+
+        public Builder file(VcsRepository repository, String section, FileItem file) {
+            final FileKey.Section key = new FileKey.Section(repository, section);
+            final Map<String, FileItem> group = files.computeIfAbsent(key, k -> {
+                order.add(new Target.Files(repository, section, List.of()));
+                return new LinkedHashMap<>();
+            });
+            group.putIfAbsent(file.path(), file);
+            return this;
+        }
+
+        private Lines part(VcsRepository repository, String section, FileItem file, Hunk hunk) {
+            final FileKey key = new FileKey(repository, section, file.path());
+            return parts.computeIfAbsent(key, k -> new IdentityHashMap<>()).computeIfAbsent(hunk, h -> {
+                final Target.Part target = Target.Part.of(repository, section, file, hunk, null);
+                order.add(target);
+                return new Lines();
+            });
+        }
+
+        /** null lines takes the whole hunk. */
+        public Builder lines(VcsRepository repository, String section, FileItem file, Hunk hunk, BitSet lines) {
+            final Lines part = part(repository, section, file, hunk);
+            if (lines == null)
+                part.whole = true;
+            else if (!part.whole)
+                part.selected.or(lines);
+            return this;
+        }
+
+        public Builder line(VcsRepository repository, String section, FileItem file, Hunk hunk, int index) {
+            final Lines part = part(repository, section, file, hunk);
+            if (!part.whole && index >= 0)
+                part.selected.set(index);
+            return this;
+        }
+
+        /** A whole file, or its split changelist membership by hunk id. */
+        public Builder member(VcsRepository repository, String section, Target.Member member) {
+            final Map<String, BitSet> only = member.only();
+            if (only == null)
+                return file(repository, section, member.file());
+            final FileDiff diff = member.file().diff();
+            if (diff != null) {
+                final Map<String, Hunk> hunks = ids.computeIfAbsent(diff, lookup);
+                for (Map.Entry<String, BitSet> selected : only.entrySet()) {
+                    final Hunk hunk = hunks.get(selected.getKey());
+                    if (hunk != null)
+                        lines(repository, section, member.file(), hunk, selected.getValue());
+                }
+            }
+            return this;
+        }
+
+        public List<Target> build() {
+            final List<Target> result = new ArrayList<>();
+            for (Target target : order) {
+                final FileKey.Section scope = new FileKey.Section(target.repository(), target.section());
+                final Map<String, FileItem> whole = files.getOrDefault(scope, Map.of());
+                if (target instanceof Target.Files) {
+                    result.add(new Target.Files(target.repository(), target.section(), List.copyOf(whole.values())));
+                    continue;
+                }
+                final Target.Part part = (Target.Part) target;
+                if (whole.containsKey(part.file().path()))
+                    continue;
+                final Lines selected =
+                        parts.get(new FileKey(part.repository(), part.section(), part.file().path())).get(part.hunk());
+                if (selected.whole)
+                    result.add(part);
+                else {
+                    final BitSet bits = (BitSet) selected.selected.clone();
+                    Patch.pairChanges(part.hunk(), bits);
+                    result.add(part.withLines(bits));
+                }
+            }
+            return List.copyOf(result);
+        }
+    }
 
     public enum Reason {
         GONE, CHANGED, AMBIGUOUS, UNSUPPORTED, READ_FAILED
@@ -97,6 +200,15 @@ public final class Selections {
             List<Target> captured,
             Map<VcsRepository, StatusData> status,
             Predicate<FileKey> read) {
+        return resolve(captured, status, read, Selections::index);
+    }
+
+    /** As resolve, sharing the caller's immutable-diff index cache. */
+    public static Resolution resolve(
+            List<Target> captured,
+            Map<VcsRepository, StatusData> status,
+            Predicate<FileKey> read,
+            Function<FileDiff, Hunks> index) {
         final List<Target> resolved = new ArrayList<>();
         final Set<FileKey> unread = new LinkedHashSet<>();
         final List<Problem> problems = new ArrayList<>();
@@ -182,7 +294,7 @@ public final class Selections {
                         continue;
                     }
                 }
-                final Hunks before = indexes.computeIfAbsent(part.file().diff(), Selections::index);
+                final Hunks before = indexes.computeIfAbsent(part.file().diff(), index);
                 final Map<Hunk, String> sourceIds = originalIds.computeIfAbsent(part.file().diff(), diff -> {
                     final Map<Hunk, String> reverse = new IdentityHashMap<>();
                     before.hunks().forEach((id, hunk) -> reverse.put(hunk, id));
@@ -194,7 +306,7 @@ public final class Selections {
                     problems.add(new Problem(key, Reason.CHANGED, "The selected hunk is unavailable"));
                     continue;
                 }
-                final Hunks now = indexes.computeIfAbsent(current.diff(), Selections::index);
+                final Hunks now = indexes.computeIfAbsent(current.diff(), index);
                 final int twins = before.twins().get(id);
                 final int count = now.twins().getOrDefault(content.fingerprint() + "#1", 0);
                 if (count > 0 && twins != count) {

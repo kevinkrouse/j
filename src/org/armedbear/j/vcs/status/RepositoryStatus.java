@@ -386,21 +386,42 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         diffsRead.addAll(diffs);
         // j's own write takes the changes picks were of whichever way they
         // were chosen: a pick it drops is not news.
-        shown(diffs, wrote ? null : newWhitespace ? Drop.WHITESPACE : Drop.GONE);
+        shown(wrote ? null : newWhitespace ? Drop.WHITESPACE : Drop.GONE);
         return true;
     }
 
-    // What was read shown again, the diffs of the files keyed asked just
-    // read: its picks less what is gone, its listeners told, a pick
+    // What was read shown again: its picks less what is gone, its listeners told, a pick
     // dropped said, why, unless null.
-    private void shown(Set<String> asked, Drop why) {
+    private void shown(Drop why) {
         picks.newRead();
         knowLists();
-        final int dropped = picks.retain(this, asked);
+        final int dropped = picks.retain(this);
+        final String message = dropped > 0 && why != null ? dropMessage(dropped, why) : null;
         for (Listener l : listeners)
             l.read(dropped, why);
         // Its listeners have shown the picks with what was read.
         showPicks(false);
+        if (message != null) {
+            for (Editor editor : Editor.getEditorList()) {
+                final Buffer buffer = editor.getBuffer();
+                // Status windows report during rendering. An editor being
+                // initialized or closed may not have a buffer yet.
+                if (buffer == null || buffer instanceof VcsStatusBuffer)
+                    continue;
+                final var signs = buffer.getSignsUpdater();
+                if (buffer instanceof StatusDiffBuffer diff && diff.getOwner().model() == this
+                        || signs != null && repositories.contains(signs.getRepository()))
+                    editor.status(message);
+            }
+        }
+    }
+
+    String dropMessage(int count, Drop why) {
+        final String reason =
+                why != Drop.WHITESPACE && !picks.droppedProblems().isEmpty() ? picks.droppedProblems().get(0).message()
+                        : count == 1 ? why.one
+                        : why.many;
+        return (count == 1 ? "A pick was dropped: " : count + " picks were dropped: ") + reason;
     }
 
     /** What was last read of a repository, or null. */
@@ -451,7 +472,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
     /** Resolves immediately against the current read, without scheduling work. */
     Selections.Resolution resolveTargets(List<Target> captured) {
-        return Selections.resolve(captured, disposed ? Map.of() : data, currentDiffReads::contains);
+        return Selections.resolve(captured, disposed ? Map.of() : data, currentDiffReads::contains, picks::idsOf);
     }
 
     /**
@@ -550,7 +571,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     @Override
     public void listsChanged(VcsRepository r) {
         if (repositories.contains(r))
-            shown(Set.of(), null);
+            shown(null);
     }
 
     /**
@@ -625,13 +646,18 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
     /** Picks each of ls that can be, or, if each is picked, unpicks them; and shows it. */
     void pick(List<StatusLine> ls) {
-        picks.toggle(ls);
+        picks.toggle(StatusActions.targetsOf(this, ls.stream().filter(StatusPicks::pickable).toList()));
         showPicks();
     }
 
     /** Picks what ls show if on, else unpicks it, and shows it. */
     void pick(List<StatusLine> ls, boolean on) {
-        picks.set(ls, on);
+        picks.set(StatusActions.targetsOf(this, ls.stream().filter(StatusPicks::pickable).toList()), on);
+        showPicks();
+    }
+
+    void pickTargets(List<Target> targets) {
+        picks.toggle(targets);
         showPicks();
     }
 
@@ -645,7 +671,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     }
 
     /** Unpicks those of keys still picked, and shows it. */
-    void unpick(Set<String> keys) {
+    void unpick(Set<StatusPicks.Key> keys) {
         if (keys.isEmpty())
             return;
         picks.remove(keys);
@@ -670,7 +696,10 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         // A file newly partly picked whose diff is unread, as one closed
         // in the status picked beside: read again, its diff with it.
         final Set<String> was = partlyPicked;
-        partlyPicked = picks.partlyPicked();
+        partlyPicked = picks.partlyPicked()
+                .stream()
+                .map(file -> StatusRenderer.fileKey(file.repository(), file.section(), file.path()))
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
         if (!was.containsAll(partlyPicked) && picks.unread(this))
             refresh();
         if (tell)
@@ -727,7 +756,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
      */
     StatusView.Picked pickedRows(VcsRepository r, String path) {
         final FileItem item = unstaged(r, path);
-        return item == null ? null : picks.rows(StatusRenderer.fileKey(r, UNSTAGED, path), item);
+        return item == null ? null : picks.rows(new FileKey(r, UNSTAGED, path), item);
     }
 
     /** r's file at path, as its unstaged changes' picks are of it; null with none, or none read. */
@@ -737,7 +766,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
             return null;
         // The last asked for, kept: a file's column asks as it paints.
         if (lastUnstaged == null || lastUnstaged.item() != item || lastUnstaged.repository() != r)
-            lastUnstaged = new RowPicks.Of(r, UNSTAGED, item, StatusRenderer.fileKey(r, UNSTAGED, path));
+            lastUnstaged = new RowPicks.Of(r, UNSTAGED, item);
         return lastUnstaged;
     }
 
@@ -816,7 +845,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
         @Override
         public boolean hasPicks() {
-            return !disposed && picks.has(key);
+            return !disposed && picks.has(new FileKey(r, UNSTAGED, path));
         }
 
         @Override
@@ -892,7 +921,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
             return;
         }
         wanted.remove(fk);
-        done(p, item == null ? "No unstaged change here to pick" : pick(p, fk, item));
+        done(p, item == null ? "No unstaged change here to pick" : pick(p, item));
     }
 
     // p done, said; its then run if its editor is still where it was.
@@ -904,14 +933,16 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     }
 
     // p's change or lines of item, fk its line's key, picked or unpicked: what is said.
-    private String pick(PendingPick p, String fk, FileItem item) {
+    private String pick(PendingPick p, FileItem item) {
         final FileView v = p.view();
         final Map<String, BitSet> idx = p.lines() ? v.rows.signs(p.from(), p.to()) : v.rows.changeAt(p.from());
         if (idx == null)
             return "No unstaged change here to pick";
-        picks.toggleLines(fk, v.r, UNSTAGED, item, idx);
+        picks.toggle(v.rows.targets(idx));
         showPicks();
         final String what = p.lines() ? " lines of " : " a change of ";
-        return (picks.linesState(fk, idx) == PickState.NONE ? "Unpicked" : "Picked") + what + v.path;
+        return (picks.linesState(new FileKey(v.r, UNSTAGED, item.path()), idx) == PickState.NONE
+                ? "Unpicked"
+                : "Picked") + what + v.path;
     }
 }

@@ -51,7 +51,6 @@ import java.util.Map;
 import java.util.Objects;
 import javax.swing.DropMode;
 import javax.swing.Icon;
-import javax.swing.JComponent;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
 import javax.swing.TransferHandler;
@@ -82,12 +81,13 @@ import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.selection.FileKey;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Member;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
-import org.armedbear.j.vcs.status.StatusLine.Kind;
 
 /**
  * The sidebar's Changes tab: the changed files of the repositories the
@@ -118,13 +118,29 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     }
 
     /**
-     * A file: its line as the status's, which picks it; its list, or null
+     * A file's typed location and changelist membership; its list, or null
      * under a section; of a file split across lists, "2/5 hunks", else
-     * null; and its key here.
+     * null; and its presentation key here.
      */
-    record FileNode(StatusLine line, String list, String hunks, String key) {
+    record FileNode(FileKey fileKey, Member member, String list, String hunks, String key) {
         FileItem file() {
-            return line.file();
+            return member.file();
+        }
+
+        VcsRepository repository() {
+            return fileKey.repository();
+        }
+
+        String section() {
+            return fileKey.section();
+        }
+
+        Map<String, BitSet> only() {
+            return member.only();
+        }
+
+        String statusKey() {
+            return StatusRenderer.fileKey(repository(), section(), file().path());
         }
 
         // Its directory, or "" at the top.
@@ -412,11 +428,9 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             FileItem f,
             Map<String, BitSet> only,
             String list) {
-        final String key = StatusRenderer.fileKey(r, section, f.path());
-        final StatusLine line = new StatusLine(Kind.FILE, f.path(), key, key, r, section).file(f).only(only);
         final String hunks =
                 only == null || f.diff() == null ? null : only.size() + "/" + f.diff().hunks().size() + " hunks";
-        return new FileNode(line, list, hunks, gk + "|" + f.path());
+        return new FileNode(new FileKey(r, section, f.path()), new Member(f, only), list, hunks, gk + "|" + f.path());
     }
 
     // A node's key, null for none.
@@ -466,32 +480,32 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     }
 
     private static File fileOf(FileNode f) {
-        return File.getInstance(f.line().repository().root().resolve(f.file().path()).toString());
+        return File.getInstance(f.repository().root().resolve(f.file().path()).toString());
     }
 
     // Acting on a node.
 
     /** Picks f in the status, or unpicks it if it is picked, as its box there. */
     void pick(FileNode f) {
-        if (status != null && StatusPicks.pickable(f.line()))
-            status.pick(List.of(f.line()));
+        if (status != null)
+            status.pickTargets(targetsFor(List.of(f)));
     }
 
     /** How much of f the status has picked. */
     PickState pickState(FileNode f) {
-        return status == null ? PickState.NONE : status.picks().state(f.line());
+        return status == null ? PickState.NONE : status.picks().state(f.fileKey(), f.member());
     }
 
     /** Opens f's file in the current window, at its first change in its list. */
     void open(FileNode f) {
-        VcsStatusMode.visit(editor(), f.line().repository(), f.file(), firstLine(f));
+        VcsStatusMode.visit(editor(), f.repository(), f.file(), firstLine(f));
     }
 
     // The new side's line of f's first change in its list, from 1; 0 for none.
     private int firstLine(FileNode f) {
-        final Map<String, BitSet> only = f.line().only();
+        final Map<String, BitSet> only = f.only();
         if (only == null || f.file().diff() == null || status == null)
-            return VcsStatusMode.lineNumber(f.line());
+            return firstChange(f.file());
         final Map<Hunk, String> idOf = new IdentityHashMap<>();
         for (Map.Entry<String, Hunk> e : status.picks().ids(f.file().diff()).entrySet())
             idOf.put(e.getValue(), e.getKey());
@@ -500,7 +514,13 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             if (lines != null && !lines.isEmpty())
                 return newLine(h, lines.nextSetBit(0));
         }
-        return VcsStatusMode.lineNumber(f.line());
+        return firstChange(f.file());
+    }
+
+    private static int firstChange(FileItem file) {
+        return file.diff() == null || file.diff().hunks().isEmpty()
+                ? 0
+                : VcsStatusMode.firstChange(file.diff().hunks().get(0));
     }
 
     // The new side's line, from 1, of line i of h: a removed line's where it was.
@@ -516,16 +536,12 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     void move(FileNode f, String to) {
         final Editor ed = editor();
         if (status != null)
-            ChangelistCommands
-                    .moveFile(status, f.line().repository(), f.file().path(), f.line().only(), to, s -> ed.status(s));
+            ChangelistCommands.moveFile(status, f.repository(), f.file().path(), f.only(), to, s -> ed.status(s));
     }
 
     // Whether f can be dropped onto g: a list of its repository, not its own.
     private static boolean canMove(FileNode f, GroupNode g) {
-        return f.list() != null
-                && g.list() != null
-                && g.repository() == f.line().repository()
-                && !g.list().equals(f.list());
+        return f.list() != null && g.list() != null && g.repository() == f.repository() && !g.list().equals(f.list());
     }
 
     private Object nodeAt(int x, int y) {
@@ -631,7 +647,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 && (e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0
                 && selected() instanceof FileNode f) {
             e.consume();
-            showDiff(f.line());
+            showDiff(f);
             return;
         }
         if (e.getKeyCode() == KeyEvent.VK_DELETE && selected() != null) {
@@ -746,9 +762,9 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         final VcsMenu menu = new VcsMenu(editor, null);
         if (o instanceof FileNode) {
             // The files selected when the node is among them; else the node alone.
-            final List<StatusLine> lines = isSelected(path) ? selectedFileLines() : List.of(((FileNode) o).line());
-            final List<Target> targets = StatusActions.targetsOf(status, lines);
-            final StatusLine line = lines.isEmpty() ? null : lines.get(0);
+            final List<FileNode> files = isSelected(path) ? selectedFiles() : List.of((FileNode) o);
+            final List<Target> targets = targetsFor(files);
+            final FileNode line = files.isEmpty() ? null : files.get(0);
             if (line == null)
                 return null;
             VcsContextMenus.fileItems(
@@ -757,7 +773,9 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 status,
                 targets,
                 targets,
-                line,
+                line.fileKey(),
+                line.member(),
+                true,
                 "Show diff",
                 "vcsShowDiff",
                 "Ctrl D",
@@ -777,7 +795,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
 
     // A section's items: stage, unstage, discard all of it.
     private void sectionItems(VcsMenu menu, Editor editor, GroupNode g) {
-        final List<Target> targets = StatusActions.targetsOf(status, sectionLines(g));
+        final List<Target> targets =
+                List.of(new Target.Files(g.repository(), g.section(), status.files(g.repository(), g.section())));
         menu.add(
             "Stage all",
             "vcsStage",
@@ -798,22 +817,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             e -> StatusActions.runOn(editor, status, StatusActions.Op.DISCARD, targets, Map.of(), false));
     }
 
-    // The lines of a section's files, as the status would make them.
-    private List<StatusLine> sectionLines(GroupNode g) {
-        final List<StatusLine> lines = new ArrayList<>();
-        for (FileItem f : status.files(g.repository(), g.section()))
-            lines.add(
-                new StatusLine(Kind.FILE,
-                        f.path(),
-                        StatusRenderer.fileKey(g.repository(), g.section(), f.path()),
-                        null,
-                        g.repository(),
-                        g.section()).file(f));
-        return lines;
-    }
-
     // What a file item's command does to the targets, in place.
-    private Runnable fileAction(String command, List<Target> targets, StatusLine line) {
+    private Runnable fileAction(String command, List<Target> targets, FileNode line) {
         final Editor editor = editor();
         switch (command) {
             case "vcsCommitFiles":
@@ -839,7 +844,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             case "vcsBlame":
                 return () -> blame(line);
             case "vcsStatusVisit":
-                return () -> open(fileNodeFor(line));
+                return () -> open(line);
             case "vcsStatusPick":
                 return () -> pickSelected();
             case "vcsCopyPath":
@@ -856,14 +861,6 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             default:
                 return () -> editor.status("Nothing to do");
         }
-    }
-
-    // The FileNode whose line is line, from the selection.
-    private FileNode fileNodeFor(StatusLine line) {
-        for (TreePath p : getSelectionPaths())
-            if (userObject(p) instanceof FileNode f && f.line() == line)
-                return f;
-        return null;
     }
 
     // What a changelist item's command does to the list g, in place.
@@ -897,43 +894,40 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         editor.status(ChangelistCommands.make(r, lists, name.strip()));
     }
 
-    // The lines of the selected files, as the status would make them.
-    private List<StatusLine> selectedFileLines() {
-        final List<StatusLine> lines = new ArrayList<>();
+    private List<FileNode> selectedFiles() {
+        final List<FileNode> files = new ArrayList<>();
         final TreePath[] selected = getSelectionPaths();
-        if (selected == null)
-            return lines;
-        for (TreePath p : selected)
-            if (userObject(p) instanceof FileNode f)
-                lines.add(f.line());
-        return lines;
+        if (selected != null)
+            for (TreePath path : selected)
+                if (userObject(path) instanceof FileNode file)
+                    files.add(file);
+        return files;
     }
 
-    // Picks or unpicks the selected files as one, as Space does: the set
-    // toggled together, not each line on its own, which would leave a
-    // mixed selection in a mixed state.
+    List<Target> targetsFor(List<FileNode> files) {
+        if (status == null || files.isEmpty())
+            return List.of();
+        final Selections.Builder selected = new Selections.Builder(status.picks()::ids);
+        files.forEach(file -> selected.member(file.repository(), file.section(), file.member()));
+        return selected.build();
+    }
+
+    // A mixed selection toggles together, preserving selection before picks before caret.
     private void pickSelected() {
-        final List<StatusLine> lines = new ArrayList<>();
-        for (StatusLine line : selectedFileLines())
-            if (StatusPicks.pickable(line))
-                lines.add(line);
-        if (!lines.isEmpty())
-            status.pick(lines);
+        final List<Target> targets = targetsFor(selectedFiles());
+        if (!targets.isEmpty())
+            status.pickTargets(targets);
     }
 
-    // Discards the selection, asking first as x does.
     private void discardSelected() {
-        final Editor editor = editor();
-        final List<StatusLine> lines = selectedFileLines();
-        if (lines.isEmpty())
-            return;
-        final List<Target> targets = StatusActions.targetsOf(status, lines);
-        StatusActions.runOn(editor, status, StatusActions.Op.DISCARD, targets, Map.of(), false);
+        final List<Target> targets = targetsFor(selectedFiles());
+        if (!targets.isEmpty())
+            StatusActions.runOn(editor(), status, StatusActions.Op.DISCARD, targets, Map.of(), false);
     }
 
     // The file's diff against what is staged, a staged file's against
     // HEAD: the status shown, the file revealed, the diff beside opened.
-    private void showDiff(StatusLine line) {
+    private void showDiff(FileNode line) {
         final Editor editor = editor();
         final Frame frame = editor == null ? null : editor.getFrame();
         if (frame == null) {
@@ -943,7 +937,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         }
         final VcsStatusBuffer buffer = VcsStatusBuffer.of(status.getRepositories());
         buffer.openDiff(frame);
-        buffer.reveal(frame, line.section(), line.key());
+        buffer.reveal(frame, line.section(), line.statusKey());
     }
 
     /**
@@ -959,7 +953,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             editor.status("The Changes tab isn't shown");
             return;
         }
-        final List<StatusLine> lines = tree.selectedFileLines();
+        final List<FileNode> lines = tree.selectedFiles();
         if (lines.isEmpty()) {
             editor.status("No file selected");
             return;
@@ -977,7 +971,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     }
 
     // Opens the file and turns blame on.
-    private void blame(StatusLine line) {
+    private void blame(FileNode line) {
         final Editor editor = editor();
         final File f = VcsContextMenus.workingFile(line.repository(), line.file());
         if (f == null) {

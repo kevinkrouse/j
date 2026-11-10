@@ -3453,6 +3453,49 @@ plan with why it is left, before the next phase starts.
      changed or ambiguous picks dropped with an explanation; staged and
      unstaged picks of one path stay distinct; existing simple and vim keys.
 
+     Built: `Selections.Builder` captures whole files, hunks, changed lines
+     and split changelist members. It pairs modified lines once, freezes
+     selections immutably and lets a whole file subsume its parts. Mutable
+     line sets grow in place during capture; file keys and hunk identity
+     keep that walk linear and keep paths and sections separate.
+
+     Status text and its sidebar tree use the actual status rows through
+     a thin capture adapter. The Changes tab holds typed file keys and
+     immutable membership data, constructing targets directly instead of
+     synthetic status lines. Comparison rows and editor gutter signs use
+     the same builder. Renderer keys remain for navigation and folding;
+     their domain-data parsers are removed.
+
+     `StatusPicks` keeps typed file/hunk keys and captured source targets.
+     Retention calls the shared resolver, preserving unread picks, keeping
+     valid targets and reporting changed, ambiguous or failed ones. The
+     model shares its diff-index cache between resolution and rendering;
+     a reverse identity lookup supplies UI hunk ids without parsing keys.
+     Typed consumption keys pass through actions, commits, stashes,
+     resolves and moves, including partial-success cleanup. Drop reasons
+     reach status windows, the diff pane and editor buffers with signs.
+
+     Tests cover capture immutability and precedence, one index per split
+     file during capture, shared hunk objects in distinct paths/sections,
+     literal path delimiters, partial-success consumption, pending and
+     failed reads, ambiguous picks and context remapping. An integration
+     test picks the same change through the Changes tree, status text,
+     a gutter sign and a comparison checkbox and compares the targets.
+     Initial step d validation: all 2,629 tests and formatting checks pass.
+     Drop notifications skip editors without a buffer and retain the
+     status's render ordering.
+
+     Review follow-up: an empty selection or a Changes tab without a
+     repository returns no targets before binding the index lookup. A
+     regression test reproduces Delete on the selectable "Not in a
+     repository" message and verifies it does nothing. Added tests pick
+     identical changes in the real staged and unstaged sections of one
+     path independently, reverse-lookup the second identical hunk (also
+     checking distinct instances with equal record values), and mutate a
+     caller's `BitSet` before and after building a capture. All 32 affected
+     tests and formatting checks pass after these review changes.
+     Semantic commit comparison remains e; phase 10 k stays open.
+
    - **e. Compare commit selections semantically.** Replace the message
      template comparison with `Selections.sameChanges` on the reviewed and
      newly resolved commit targets. Compare selected content, line sets,

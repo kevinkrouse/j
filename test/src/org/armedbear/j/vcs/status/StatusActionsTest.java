@@ -1234,7 +1234,7 @@ public class StatusActionsTest {
             HunkCommands.vcsPickHunk(h.editor());
         });
         until(() -> "Picked a change of a.txt".equals(h.status()));
-        onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(status.picks().targets(status.model()))));
+        onEdt(() -> assertEquals("a hunk of a.txt", StatusActions.names(status.picks().targets())));
         until(() -> file[0].getSigns().get(file[0].getLine(49)).picked());
         onEdt(() -> assertFalse(file[0].getSigns().get(file[0].getLine(2)).picked(), "line 3's hunk not picked"));
         // A column of boxes while something of the file is picked: checked,
@@ -1723,7 +1723,7 @@ public class StatusActionsTest {
         git.write("a.txt", late.replaceFirst("same", "other"));
         onEdt(() -> status.refresh());
         until(() -> status.picks().isEmpty());
-        until(() -> h.status().equals("A pick was dropped: its change is gone or changed"));
+        until(() -> h.status().equals("A pick was dropped: The number of identical hunks has changed"));
     }
 
     @Test
@@ -1776,7 +1776,7 @@ public class StatusActionsTest {
         git.write("a.txt", SIXTY.replace("line 3\n", "line three\n").replace("line 50\n", "line FIFTY\n"));
         onEdt(() -> status.refresh());
         until(() -> status.picks().isEmpty());
-        until(() -> h.status().equals("A pick was dropped: its change is gone or changed"));
+        until(() -> h.status().equals("A pick was dropped: The selected hunk has changed: select it again"));
     }
 
     @Test
@@ -3089,5 +3089,74 @@ public class StatusActionsTest {
         assertEquals(1, asked.size());
         assertTrue(git.read("a.txt").contains("line 3\n"));
         assertTrue(git.read("a.txt").contains("line fifty\n"), "the other hunk stays");
+    }
+
+    @Test
+    public void anAmbiguousPickIsDroppedWithTheResolversExplanation() throws Exception {
+        git = GitFixture.init(tmp);
+        final String base =
+                SIXTY.replace("line 3\n", "old\n").replace("line 30\n", "old\n").replace("line 50\n", "old\n");
+        git.write("a.txt", base);
+        git.commitAll("first");
+        git.write("a.txt", base.replaceFirst("old\n", "new\n").replaceFirst("old\n", "new\n"));
+        open();
+        openFile("  M  a.txt", "  +new");
+        pickAfter("  M  a.txt", "  @@ -1,");
+        git.write("a.txt", base.replace("old\n", "new\n"));
+        onEdt(status::refresh);
+        until(() -> status.model().unstaged(repo(), "a.txt").diff().hunks().size() == 3);
+        onEdt(() -> {
+            assertTrue(status.picks().isEmpty());
+            assertTrue(h.status().contains("identical hunks"), h.status());
+        });
+    }
+
+    @Test
+    public void stagedAndUnstagedPicksOfOneRealPathStayDistinct() throws Exception {
+        git = GitFixture.init(tmp);
+        final String base = SIXTY.replace("line 3\n", "same\n").replace("line 50\n", "same\n");
+        final String indexed = base.replaceFirst("same\n", "changed\n");
+        final String working = indexed.replaceFirst("same\n", "changed\n");
+        git.write("a.txt", base);
+        git.commitAll("first");
+        git.write("a.txt", indexed);
+        git.git("add", "a.txt");
+        git.write("a.txt", working);
+        open();
+        onEdt(() -> {
+            status.toggle(after(line("Unstaged changes (1)"), "  M  a.txt"));
+            status.toggle(after(line("Staged changes (1)"), "  M  a.txt"));
+        });
+        until(() -> text().stream().filter(text -> text.equals("  +changed")).count() == 2);
+        onEdt(() -> {
+            final StatusLine staged = after(line("Staged changes (1)"), "  @@");
+            final StatusLine unstaged = after(line("Unstaged changes (1)"), "  @@");
+            assertTrue(staged.file().staged());
+            assertFalse(unstaged.file().staged());
+            final StatusPicks picks = status.picks();
+            assertEquals(
+                picks.hunkId(staged.file(), staged.hunk()),
+                picks.hunkId(unstaged.file(), unstaged.hunk()),
+                "identical changed bytes deliberately give the same hunk id in both sections");
+            status.pick(List.of(staged, unstaged));
+            final List<Target> targets = picks.targets();
+            assertEquals(2, targets.size());
+            assertEquals(
+                Set.of("staged", "unstaged"),
+                targets.stream().map(Target::section).collect(java.util.stream.Collectors.toSet()));
+            final Target stagedTarget =
+                    targets.stream().filter(target -> target.section().equals("staged")).findFirst().orElseThrow();
+            status.unpick(picks.used(targets).get(stagedTarget));
+            assertEquals(org.armedbear.j.util.PickState.NONE, picks.state(staged));
+            assertEquals(org.armedbear.j.util.PickState.ALL, picks.state(unstaged));
+            assertEquals(1, picks.targets().size());
+            assertEquals("unstaged", picks.targets().get(0).section());
+            status.pick(List.of(staged));
+            status.pick(List.of(unstaged));
+            assertEquals(org.armedbear.j.util.PickState.ALL, picks.state(staged));
+            assertEquals(org.armedbear.j.util.PickState.NONE, picks.state(unstaged));
+        });
+        assertEquals(indexed, git.index("a.txt"));
+        assertEquals(working, git.read("a.txt"));
     }
 }

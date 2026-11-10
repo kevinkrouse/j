@@ -100,7 +100,7 @@ final class PartialCommit {
      * What it takes, by repository, one commit each: its targets, and of
      * picks, the keys of those it takes, unpicked as each is committed.
      */
-    record Plan(Map<VcsRepository, List<Target>> targets, Map<VcsRepository, Set<String>> picks) {}
+    record Plan(Map<VcsRepository, List<Target>> targets, Map<VcsRepository, Set<StatusPicks.Key>> picks) {}
 
     /** Why it can't be committed, as a plan finds it. */
     static final class Refused extends Exception {
@@ -116,7 +116,7 @@ final class PartialCommit {
         if (model.isWriting())
             throw new Refused("Wait: the last change is still being made");
         final Map<VcsRepository, List<Target>> targets = new LinkedHashMap<>();
-        final Map<VcsRepository, Set<String>> picks = new HashMap<>();
+        final Map<VcsRepository, Set<StatusPicks.Key>> picks = new HashMap<>();
         if (list != null) {
             // The repository's refusals first: no file's read can lift them.
             refuseRepository(repository);
@@ -139,7 +139,7 @@ final class PartialCommit {
         } else {
             if (model.picks().unread(model))
                 throw new Refused("Wait: the picked files' diffs are being read");
-            final List<Target> picked = model.picks().targets(model);
+            final List<Target> picked = model.picks().targets();
             if (picked.isEmpty())
                 throw new Refused("Nothing is picked: ; or the boxes pick changes");
             if (StatusActions.hunksIgnoreWhitespace(model, picked))
@@ -148,7 +148,7 @@ final class PartialCommit {
                 targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
             for (VcsRepository r : targets.keySet())
                 refuseRepository(r);
-            for (Map.Entry<Target, Set<String>> e : model.picks().used(picked).entrySet())
+            for (Map.Entry<Target, Set<StatusPicks.Key>> e : model.picks().used(picked).entrySet())
                 picks.computeIfAbsent(e.getKey().repository(), k -> new HashSet<>()).addAll(e.getValue());
         }
         for (Map.Entry<VcsRepository, List<Target>> e : targets.entrySet())
@@ -282,7 +282,7 @@ final class PartialCommit {
      * On the event thread.
      */
     void committed(Plan plan, VcsRepository r) {
-        final Set<String> keys = plan.picks().get(r);
+        final Set<StatusPicks.Key> keys = plan.picks().get(r);
         if (keys != null && !keys.isEmpty())
             model.unpick(keys);
         if (list == null)

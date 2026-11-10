@@ -59,7 +59,6 @@ import org.armedbear.j.vcs.conflicts.ConflictMarkers;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.diff.Patch;
-import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Files;
@@ -131,198 +130,51 @@ public final class StatusActions {
 
     /** As targets, picked whether it takes the picks, as takesPicks says. */
     static List<Target> targets(RepositoryStatus model, Editor editor, boolean picked) {
-        return picked ? model.picks().targets(model) : targetsOf(model, selected(editor));
+        return picked ? model.picks().targets() : targetsOf(model, selected(editor));
     }
 
     /**
      * What these status lines take, as the status's own lines would: whole
      * files, a changelist heading its members, a hunk or some of its
-     * lines a Part. What the Changes tab builds from its nodes.
+     * lines a Part. The text and status-tree adapter for shared capture.
      */
     static List<Target> targetsOf(RepositoryStatus model, List<StatusLine> lines) {
-        final Map<FileKey.Section, FileGroup> files = new LinkedHashMap<>();
-        final Map<Hunk, Part> parts = new IdentityHashMap<>();
-        final List<Target> targets = new ArrayList<>();
-        final Map<Hunk, BitSet> selectedLines = new IdentityHashMap<>();
-        final Function<FileDiff, Map<String, Hunk>> ids = memoIds();
-        for (StatusLine l : lines) {
-            if (l == null || l.repository() == null || l.section() == null)
+        final Selections.Builder selected =
+                model == null ? new Selections.Builder() : new Selections.Builder(model.picks()::ids);
+        for (StatusLine line : lines) {
+            if (line == null || line.repository() == null || line.section() == null)
                 continue;
-            switch (l.kind()) {
-                case SECTION -> {
-                    for (FileItem f : model.files(l.repository(), l.section()))
-                        addFile(files, targets, l.repository(), l.section(), f);
-                }
-                // A changelist's files, those split across lists their lines in it.
-                case LIST -> addMembers(files, parts, targets, ids, l.repository(), l.section(), l.members());
+            final VcsRepository repository = line.repository();
+            final String section = line.section();
+            switch (line.kind()) {
+                case SECTION ->
+                        model.files(repository, section).forEach(file -> selected.file(repository, section, file));
+                case LIST -> line.members().forEach(member -> selected.member(repository, section, member));
                 case FILE, MESSAGE -> {
-                    if (l.file() != null && l.only() != null)
-                        addLines(parts, targets, ids, l.repository(), l.section(), l.file(), l.only());
-                    else if (l.file() != null)
-                        addFile(files, targets, l.repository(), l.section(), l.file());
+                    if (line.file() != null)
+                        selected.member(repository, section, new Target.Member(line.file(), line.only()));
                 }
                 case HUNK -> {
-                    if (l.only() != null)
-                        addLines(parts, targets, ids, l.repository(), l.section(), l.file(), l.only());
-                    else if (!covers(files, l) && !parts.containsKey(l.hunk())) {
-                        final Part p = Part.of(l.repository(), l.section(), l.file(), l.hunk(), null);
-                        parts.put(l.hunk(), p);
-                        targets.add(p);
-                    }
+                    if (line.only() != null)
+                        selected.member(repository, section, new Target.Member(line.file(), line.only()));
+                    else
+                        selected.lines(repository, section, line.file(), line.hunk(), null);
                 }
                 case DIFF -> {
-                    if (covers(files, l) || l.isForeign())
-                        continue;
-                    Part p = parts.get(l.hunk());
-                    if (p == null) {
-                        p = Part.of(l.repository(), l.section(), l.file(), l.hunk(), new BitSet());
-                        parts.put(l.hunk(), p);
-                        targets.add(p);
-                    }
-                    if (p.selection() != null) {
-                        final Part current = p;
-                        selectedLines.computeIfAbsent(l.hunk(), h -> current.lines()).set(l.diffIndex());
-                    }
+                    if (!line.isForeign())
+                        selected.line(repository, section, line.file(), line.hunk(), line.diffIndex());
                 }
                 default -> {}
             }
         }
-        finishTargets(files, targets, selectedLines);
-        // A file taken whole takes its hunks.
-        targets.removeIf(
-            t -> t instanceof Part p
-                    && files.containsKey(new FileKey.Section(p.repository(), p.section()))
-                    && files.get(new FileKey.Section(p.repository(), p.section()))
-                            .members()
-                            .containsKey(p.file().path()));
-        return targets;
+        return selected.build();
     }
 
-    /**
-     * What a changelist's members, members, in r's section, take: whole
-     * files, and a file split across lists its lines there, a changed
-     * line's removal with its addition; as s on the list's heading takes
-     * them. A split file whose diff isn't read takes nothing.
-     */
-    static List<Target> listTargets(VcsRepository r, String section, List<Target.Member> members) {
-        final Map<FileKey.Section, FileGroup> files = new LinkedHashMap<>();
-        final Map<Hunk, Part> parts = new IdentityHashMap<>();
-        final List<Target> targets = new ArrayList<>();
-        addMembers(files, parts, targets, memoIds(), r, section, members);
-        finishTargets(files, targets, Map.of());
-        return targets;
-    }
-
-    // A changelist's members as targets, added to those already.
-    private static void addMembers(
-            Map<FileKey.Section, FileGroup> files,
-            Map<Hunk, Part> parts,
-            List<Target> targets,
-            Function<FileDiff, Map<String, Hunk>> ids,
-            VcsRepository r,
-            String section,
-            List<Target.Member> members) {
-        for (Target.Member m : members)
-            if (m.only() == null)
-                addFile(files, targets, r, section, m.file());
-            else
-                addLines(parts, targets, ids, r, section, m.file(), m.only());
-    }
-
-    // A caller's hunk-id lookup, hashing each diff's changed bytes once:
-    // keyed on the diff's identity, which is immutable, so the memo is
-    // exact for the caller's lifetime.
-    private static Function<FileDiff, Map<String, Hunk>> memoIds() {
-        final Map<FileDiff, Map<String, Hunk>> memo = new IdentityHashMap<>();
-        return diff -> memo.computeIfAbsent(diff, Selections::hunkIds);
-    }
-
-    // Of file, the lines only gives by hunk id, as parts, added to those
-    // already of their hunks. ids, the diff's hunk ids, hashed once and
-    // kept by the caller: many members share a file's diff, and hashing
-    // it again per member would repeat a SHA-256 pass over the same
-    // changed bytes.
-    private static void addLines(
-            Map<Hunk, Part> parts,
-            List<Target> targets,
-            Function<FileDiff, Map<String, Hunk>> ids,
-            VcsRepository repository,
-            String section,
-            FileItem file,
-            Map<String, BitSet> only) {
-        if (file.diff() == null)
-            return;
-        final Map<String, Hunk> byId = ids.apply(file.diff());
-        for (Map.Entry<String, BitSet> e : only.entrySet()) {
-            final Hunk h = byId.get(e.getKey());
-            if (h == null)
-                continue;
-            final Part p = parts.get(h);
-            if (p == null) {
-                final Part made = Part.of(repository, section, file, h, (BitSet) e.getValue().clone());
-                parts.put(h, made);
-                targets.add(made);
-            } else if (p.lines() != null) {
-                final BitSet bits = p.lines();
-                bits.or(e.getValue());
-                putPart(parts, targets, p.withLines(bits));
-            }
-        }
-    }
-
-    private static void putPart(Map<Hunk, Part> parts, List<Target> targets, Part next) {
-        final Part before = parts.put(next.hunk(), next);
-        if (before == null)
-            targets.add(next);
-        else
-            targets.set(targets.indexOf(before), next);
-    }
-
-    // Mutable builders stay here; the targets handed to commands are immutable.
-    // Membership is by literal path within a repository's section. Hashing
-    // a FileItem would traverse its entire diff on every covered line.
-    private record FileGroup(Map<String, FileItem> members) {}
-
-    private static void finishTargets(
-            Map<FileKey.Section, FileGroup> files,
-            List<Target> targets,
-            Map<Hunk, BitSet> selectedLines) {
-        targets.replaceAll(t -> {
-            if (t instanceof Files f)
-                return new Files(f.repository(),
-                        f.section(),
-                        List.copyOf(files.get(new FileKey.Section(f.repository(), f.section())).members().values()));
-            final Part p = (Part) t;
-            if (p.selection() == null)
-                return p;
-            final BitSet bits = p.lines();
-            if (selectedLines.containsKey(p.hunk()))
-                bits.or(selectedLines.get(p.hunk()));
-            Patch.pairChanges(p.hunk(), bits);
-            return p.withLines(bits);
-        });
-    }
-
-    private static boolean covers(Map<FileKey.Section, FileGroup> files, StatusLine l) {
-        final FileGroup f = files.get(new FileKey.Section(l.repository(), l.section()));
-        return f != null && f.members().containsKey(l.file().path());
-    }
-
-    private static void addFile(
-            Map<FileKey.Section, FileGroup> files,
-            List<Target> targets,
-            VcsRepository repository,
-            String section,
-            FileItem file) {
-        final FileKey.Section key = new FileKey.Section(repository, section);
-        FileGroup group = files.get(key);
-        if (group == null) {
-            final Files target = new Files(repository, section, List.of());
-            group = new FileGroup(new LinkedHashMap<>());
-            files.put(key, group);
-            targets.add(target);
-        }
-        group.members().putIfAbsent(file.path(), file);
+    /** A changelist's current members captured as shared targets. */
+    static List<Target> listTargets(VcsRepository repository, String section, List<Target.Member> members) {
+        final Selections.Builder selected = new Selections.Builder();
+        members.forEach(member -> selected.member(repository, section, member));
+        return selected.build();
     }
 
     /**
@@ -347,7 +199,7 @@ public final class StatusActions {
         final boolean picked = takesPicks(buffer.model(), editor);
         final List<Target> targets = targets(buffer.model(), editor, picked);
         // The picks the targets are, if any: those picked after stay.
-        final Map<Target, Set<String>> used = picked ? buffer.picks().used(targets) : Map.of();
+        final Map<Target, Set<StatusPicks.Key>> used = picked ? buffer.picks().used(targets) : Map.of();
         runOn(editor, buffer.model(), op, targets, used, picked);
     }
 
@@ -362,7 +214,7 @@ public final class StatusActions {
             RepositoryStatus model,
             Op op,
             List<Target> targets,
-            Map<Target, Set<String>> used,
+            Map<Target, Set<StatusPicks.Key>> used,
             boolean picked) {
         final String why = refusal(editor, model, op, targets, picked);
         if (why != null) {
@@ -378,7 +230,7 @@ public final class StatusActions {
                 editor.status(resolved.failure());
                 return;
             }
-            final Map<Target, Set<String>> currentUsed = new IdentityHashMap<>();
+            final Map<Target, Set<StatusPicks.Key>> currentUsed = new IdentityHashMap<>();
             for (int i = 0; i < targets.size(); i++)
                 if (used.containsKey(targets.get(i)))
                     currentUsed.put(resolved.targets().get(i), used.get(targets.get(i)));
@@ -392,7 +244,7 @@ public final class StatusActions {
             RepositoryStatus model,
             Op op,
             List<Target> targets,
-            Map<Target, Set<String>> used,
+            Map<Target, Set<StatusPicks.Key>> used,
             boolean picked) {
         final String why = refusal(editor, model, op, targets, picked);
         if (why != null) {
@@ -461,14 +313,14 @@ public final class StatusActions {
             RepositoryStatus model,
             String doing,
             List<Target> targets,
-            Map<Target, Set<String>> used,
+            Map<Target, Set<StatusPicks.Key>> used,
             Function<Consumer<Target>, String> work) {
         editor.setMark(null);
         editor.status(doing + " " + names(targets) + "…");
         final List<Target> did = Collections.synchronizedList(new ArrayList<>());
         write(editor, model, "vcs " + doing.toLowerCase(Locale.ROOT), () -> work.apply(did::add), failed -> {
-            final Set<String> keys = new HashSet<>();
-            for (Map.Entry<Target, Set<String>> e : used.entrySet())
+            final Set<StatusPicks.Key> keys = new HashSet<>();
+            for (Map.Entry<Target, Set<StatusPicks.Key>> e : used.entrySet())
                 if (failed == null || did.contains(e.getKey()))
                     keys.addAll(e.getValue());
             model.unpick(keys);

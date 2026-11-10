@@ -237,7 +237,7 @@ public final class StashCommands {
     // Stashes the files the selection covers, whole, as savePicked does
     // the picked; hunks or lines refused.
     private static void saveSelected(Editor editor, VcsStatusBuffer status, Set<StashOption> options) {
-        final Map<String, FileKey> files = new LinkedHashMap<>();
+        final Map<StatusPicks.Key, FileKey> files = new LinkedHashMap<>();
         for (Target t : StatusActions.targets(status.model(), editor, false)) {
             if (!(t instanceof Target.Files f)) {
                 editor.status("A stash takes whole files: hunks or lines are selected");
@@ -245,7 +245,7 @@ public final class StashCommands {
             }
             for (FileItem item : f.files())
                 files.put(
-                    StatusRenderer.fileKey(f.repository(), f.section(), item.path()),
+                    new StatusPicks.Key(new FileKey(f.repository(), f.section(), item.path()), null),
                     new FileKey(f.repository(), f.section(), item.path()));
         }
         if (files.isEmpty()) {
@@ -273,7 +273,7 @@ public final class StashCommands {
     private static void saveFiles(
             Editor editor,
             VcsStatusBuffer status,
-            Map<String, FileKey> files,
+            Map<StatusPicks.Key, FileKey> files,
             boolean unpick,
             Set<StashOption> options) {
         final Map<VcsRepository, List<FileKey>> byRepository = new LinkedHashMap<>();
@@ -301,8 +301,8 @@ public final class StashCommands {
                 if (!d.failed() && d.skipped() == null)
                     stashed.add(d.repository());
             if (unpick) {
-                final Set<String> keys = new HashSet<>();
-                for (Map.Entry<String, FileKey> e : files.entrySet())
+                final Set<StatusPicks.Key> keys = new HashSet<>();
+                for (Map.Entry<StatusPicks.Key, FileKey> e : files.entrySet())
                     if (stashed.contains(e.getValue().repository()))
                         keys.add(e.getKey());
                 status.unpick(keys);

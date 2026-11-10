@@ -234,9 +234,9 @@ public final class ChangelistCommands {
         final RepositoryLists lists = lists(editor, r);
         if (lists == null)
             return;
-        final Set<String> used = new HashSet<>();
+        final Set<StatusPicks.Key> used = new HashSet<>();
         if (picked)
-            for (Set<String> keys : model.picks().used(targets).values())
+            for (Set<StatusPicks.Key> keys : model.picks().used(targets).values())
                 used.addAll(keys);
         final List<Taken> taken = taken(targets);
         // A file moves by its changes: their diffs read first.
