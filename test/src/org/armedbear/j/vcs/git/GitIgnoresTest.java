@@ -101,7 +101,7 @@ public class GitIgnoresTest {
     @Test
     public void aDirectoryGitIgnoresGetsNoRulesOfItsOwn() throws IOException {
         // Dotfiles kept in a repository at the root, everything else ignored.
-        Files.createDirectories(tmp.resolve(".git"));
+        GitFixture.metadata(tmp);
         write(".gitignore", "*\n!.bashrc\n");
         Files.createDirectories(tmp.resolve("Downloads"));
         assertTrue(Ignores.holding(tmp).ignored(tmp.resolve("notes.txt"), false));

@@ -30,6 +30,7 @@ import org.armedbear.j.TextLine;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Target.Member;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.StashItem;
@@ -71,9 +72,6 @@ public final class StatusLine extends TextLine {
     private List<Member> members = List.of();
     // A changelist heading's name, null for a section heading.
     private String list;
-
-    /** A file under a changelist's heading: its lines in the list, by hunk id, or null for all of it. */
-    public record Member(FileItem file, Map<String, BitSet> only) {}
 
     /** The hunks' headings among buffer's lines, in order: where nextChange goes in a diff. */
     public static List<Line> hunks(Buffer buffer) {

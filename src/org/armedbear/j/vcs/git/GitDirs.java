@@ -49,6 +49,10 @@ record GitDirs(Path gitDir, Path commonDir) {
         String common = readFirstLine(gitDir.resolve("commondir"));
         if (common != null && !common.isBlank())
             commonDir = gitDir.resolve(common.strip()).normalize();
+        // An empty marker directory is not a repository. HEAD exists even
+        // before the first commit; linked worktrees share the object store.
+        if (!Files.isRegularFile(gitDir.resolve("HEAD")) || !Files.isDirectory(commonDir.resolve("objects")))
+            return null;
         return new GitDirs(gitDir, commonDir);
     }
 

@@ -21,13 +21,20 @@
 package org.armedbear.j.vcs.git;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,9 +69,21 @@ final class GitWrites {
     // there. What went wrong, or null.
     static String ignore(Path root, String path) {
         final Path file = root.resolve(".gitignore");
+        if (path.indexOf('\n') >= 0 || path.indexOf('\r') >= 0)
+            return "A filename containing a newline can't be represented in .gitignore";
         final String rule = "/" + escape(path);
-        try {
-            final byte[] before = Files.isRegularFile(file) ? Files.readAllBytes(file) : new byte[0];
+        // Refuse links when opening either handle. Keep the OS's append
+        // semantics so a simultaneous append is never overwritten.
+        try (SeekableByteChannel channel = Files.newByteChannel(
+            file,
+            Set.of(
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.APPEND,
+                LinkOption.NOFOLLOW_LINKS));
+             SeekableByteChannel reader =
+                     Files.newByteChannel(file, Set.of(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))) {
+            final byte[] before = Channels.newInputStream(reader).readAllBytes();
             final String text = new String(before, StandardCharsets.UTF_8);
             // Whole lines only: a rule is already there if a line is it,
             // not if the file merely contains it, as /lib/ is in /vendor/lib/.
@@ -74,14 +93,12 @@ final class GitWrites {
             final String sep = text.isEmpty() || text.endsWith("\n") ? "" : "\n";
             // Appended, not rewritten whole: a non-UTF-8 line read above is
             // left as it is on disk, and a crash loses no more than the one line.
-            Files.write(
-                file,
-                (sep + rule + "\n").getBytes(StandardCharsets.UTF_8),
-                StandardOpenOption.CREATE,
-                StandardOpenOption.APPEND);
+            final ByteBuffer added = ByteBuffer.wrap((sep + rule + "\n").getBytes(StandardCharsets.UTF_8));
+            while (added.hasRemaining())
+                channel.write(added);
             return null;
         }
-        catch (IOException e) {
+        catch (IOException | UnsupportedOperationException e) {
             return "Couldn't write " + file + ": " + e.getMessage();
         }
     }
@@ -454,6 +471,11 @@ final class GitWrites {
         if (!born && (head.exitCode() != 1 || !head.stderr().isBlank()))
             return new VcsBackend.PrivateCommit(head, null);
         final String before = born ? head.out().strip() : null;
+        // Capture before the refusal: a writer between these reads is
+        // either refused now or detected when reconciling after the hooks.
+        final VcsResult entries = indexEntries(repository, paths);
+        if (!entries.succeeded())
+            return new VcsBackend.PrivateCommit(entries, null);
         // What the status showed may be old: the real index read now.
         final String refused = refusal(repository, paths);
         if (refused != null)
@@ -488,7 +510,7 @@ final class GitWrites {
                 return new VcsBackend.PrivateCommit(result, null);
             // As git's commit of paths leaves the index: those paths as
             // committed, nothing else touched.
-            String trouble = resetPaths(repository, paths);
+            String trouble = resetPaths(repository, paths, entries.stdout());
             final String parent = firstParent(repository);
             if (!Objects.equals(before, parent))
                 trouble = (trouble == null ? "" : trouble + "; ")
@@ -549,28 +571,80 @@ final class GitWrites {
         return p.succeeded() ? p.out().strip() : null;
     }
 
-    // paths set in the real index as HEAD has them; a lock another process
-    // holds waited out a little: what went wrong, or null.
-    private static String resetPaths(VcsRepository repository, List<String> paths) {
-        final List<String> args = args("--literal-pathspecs", "reset", "-q", "--");
+    private static VcsResult indexEntries(VcsRepository repository, List<String> paths) {
+        final List<String> args = args("--literal-pathspecs", "ls-files", "--stage", "-z", "--");
         args.addAll(paths);
-        VcsResult r = null;
-        for (int i = 0; i < 10; i++) {
-            r = run(repository, args);
-            if (r.succeeded())
-                return null;
-            if (!r.stderr().contains("index.lock"))
-                break;
-            try {
-                Thread.sleep(200);
+        return GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+    }
+
+    // Reconcile only unchanged entries, under git's real index lock. Build
+    // from the latest index so staging of unrelated files survives too.
+    private static String resetPaths(VcsRepository repository, List<String> paths, byte[] before) {
+        final Path real = realIndex(repository);
+        if (real == null)
+            return "the index couldn't be found; review it before resetting the committed paths";
+        final Path lock = real.resolveSibling(real.getFileName() + ".lock");
+        boolean held = false;
+        Path scratch = null;
+        try {
+            for (int i = 0; i < 10 && !held; i++) {
+                try {
+                    Files.write(lock, new byte[0], StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+                    held = true;
+                }
+                catch (FileAlreadyExistsException e) {
+                    Thread.sleep(200);
+                }
             }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+            if (!held)
+                return "the index is locked; review it before resetting the committed paths";
+            final VcsResult current = indexEntries(repository, paths);
+            if (!current.succeeded())
+                return "the index was left unchanged: " + firstLine(current);
+            if (!Arrays.equals(before, current.stdout()))
+                return "staging changed while the commit ran; the index was left unchanged: review the committed paths";
+            final String head = headNow(repository);
+            if (head == null)
+                return "HEAD couldn't be read; the index was left unchanged";
+            scratch = Files.createTempFile(real.getParent(), "j-reconcile-", "");
+            if (Files.exists(real))
+                Files.copy(real, scratch, StandardCopyOption.REPLACE_EXISTING);
+            else
+                Files.delete(scratch);
+            final Path in = scratch;
+            final List<String> args = args("--literal-pathspecs", "reset", "-q", head, "--");
+            args.addAll(paths);
+            final VcsResult reset = GitCli.withIndex(in, () -> run(repository, args));
+            if (!reset.succeeded())
+                return "the index was left unchanged: " + firstLine(reset);
+            try {
+                Files.move(scratch, real, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            }
+            catch (AtomicMoveNotSupportedException e) {
+                Files.move(scratch, real, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return null;
+        }
+        catch (IOException e) {
+            return "the index couldn't be updated: " + e.getMessage();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "updating the index was interrupted; the index was left unchanged";
+        }
+        finally {
+            try {
+                if (scratch != null) {
+                    Files.deleteIfExists(scratch);
+                    Files.deleteIfExists(scratch.resolveSibling(scratch.getFileName() + ".lock"));
+                }
+                if (held)
+                    Files.deleteIfExists(lock);
+            }
+            catch (IOException e) {
+                Log.error(e);
             }
         }
-        return "the index still holds what " + String.join(", ", paths) + " had before: git reset -q -- "
-                + String.join(" ", paths) + " brings it up to the commit (" + firstLine(r) + ")";
     }
 
     // Private indexes a j that died left behind, a day old or more.

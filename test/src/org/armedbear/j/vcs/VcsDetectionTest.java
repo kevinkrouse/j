@@ -39,13 +39,14 @@ public class VcsDetectionTest {
 
     @Test
     public void aGitFileMarksAWorktree() throws Exception {
-        Files.writeString(root.resolve(".git"), "gitdir: elsewhere\n");
+        org.armedbear.j.vcs.git.GitFixture.metadata(root.resolve("elsewhere"));
+        Files.writeString(root.resolve(".git"), "gitdir: elsewhere/.git\n");
         assertEquals(VC_GIT, guess(root.resolve("src/a.txt")));
     }
 
     @Test
     public void theNearestTreeWins() throws Exception {
-        Files.createDirectory(root.resolve(".git"));
+        org.armedbear.j.vcs.git.GitFixture.metadata(root);
         Files.createDirectories(root.resolve("sub/.svn"));
         assertEquals(VC_SVN, guess(root.resolve("sub/a.txt")));
         assertEquals(VC_GIT, guess(root.resolve("a.txt")));

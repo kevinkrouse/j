@@ -50,11 +50,11 @@ import org.armedbear.j.vcs.changelists.Changelists.Assignment;
 import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Target;
+import org.armedbear.j.vcs.selection.Target.Files;
+import org.armedbear.j.vcs.selection.Target.Part;
 import org.armedbear.j.vcs.signs.ChangelistMenu;
 import org.armedbear.j.vcs.signs.SignsUpdater;
-import org.armedbear.j.vcs.status.StatusActions.Files;
-import org.armedbear.j.vcs.status.StatusActions.Part;
-import org.armedbear.j.vcs.status.StatusActions.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
@@ -362,11 +362,12 @@ public final class ChangelistCommands {
                         .orElse(null);
                 if (hunk != null)
                     result.add(
-                        new Part(part.repository(),
-                                part.section(),
-                                now,
-                                hunk,
-                                part.lines() == null ? null : (BitSet) part.lines().clone()));
+                        Part.of(
+                            part.repository(),
+                            part.section(),
+                            now,
+                            hunk,
+                            part.lines() == null ? null : (BitSet) part.lines().clone()));
             }
         }
         return result;

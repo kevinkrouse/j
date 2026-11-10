@@ -56,6 +56,7 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vim.VimInputHandler;
 import org.armedbear.j.vim.VimMode;
@@ -281,7 +282,7 @@ public final class CommitCommands {
         final Editor at = statusWindow(editor);
         if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
             return;
-        final List<StatusActions.Target> targets = StatusActions.targets(status.model(), at, false);
+        final List<Target> targets = StatusActions.targets(status.model(), at, false);
         if (targets.isEmpty()) {
             at.status("Nothing here to commit");
             return;
@@ -294,7 +295,7 @@ public final class CommitCommands {
      * with the files of its selected nodes: whole files, or a hunk or
      * lines, through the private index, what is staged left staged.
      */
-    static void commitTargets(Editor editor, RepositoryStatus model, List<StatusActions.Target> targets) {
+    static void commitTargets(Editor editor, RepositoryStatus model, List<Target> targets) {
         if (targets.isEmpty()) {
             editor.status("Nothing here to commit");
             return;

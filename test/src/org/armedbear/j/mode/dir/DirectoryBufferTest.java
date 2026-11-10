@@ -323,7 +323,7 @@ public class DirectoryBufferTest {
     @Test
     public void whatGitIgnoresIsHiddenAsIgnored() throws Exception {
         final Path repo = tmp.resolve("repo");
-        Files.createDirectories(repo.resolve(".git"));
+        org.armedbear.j.vcs.git.GitFixture.metadata(repo);
         Files.writeString(repo.resolve(".gitignore"), "*.log\nout/\n");
         Files.writeString(repo.resolve("run.log"), "");
         Files.writeString(repo.resolve("Main.java"), "");

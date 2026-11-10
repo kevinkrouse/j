@@ -38,6 +38,7 @@ import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.Field;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
@@ -213,7 +214,7 @@ public final class StatusRenderer {
             return;
         final Set<String> shown = new HashSet<>();
         for (Changelist l : listed.lists()) {
-            final List<StatusLine.Member> members = listed.members().get(l.name());
+            final List<Target.Member> members = listed.members().get(l.name());
             final String lk = listKey(repository, l.name());
             final boolean open = expanded.test(lk, Kind.LIST);
             final String text = INDENT + l.name() + " (" + members.size() + ")"
@@ -224,7 +225,7 @@ public final class StatusRenderer {
                         .expandable(true)
                         .open(open));
             // Keyed in the lists' order, open or not, so a key stays its file's.
-            for (StatusLine.Member m : members) {
+            for (Target.Member m : members) {
                 final String suffix = shown.add(m.file().path()) ? "" : elsewhere(l.name());
                 if (open)
                     file(repository, sk, s.id(), m.file(), INDENT, suffix, m.only());

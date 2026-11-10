@@ -75,6 +75,9 @@ file at the caret; in vim, so do a visual selection's <b>;</b>, <b>D</b>,
 <b>C</b>, <b>R</b> and <b>!</b>. A selection with no file in it takes
 nothing. Once done, they unpick the picked files they took; the rest stay
 picked. <b>Ctrl ;</b> unpicks every file, as in the git status.
+Picks belong to this directory listing and are separate from Git picks.
+Rescanning keeps picks for files still present. To copy only one of several
+picked files, select that file first; the selection takes precedence.
 
 Its keys are the listing's own in the edit mode in use, so each works with
 the popup closed too.

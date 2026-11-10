@@ -35,10 +35,10 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.diff.Patch;
+import org.armedbear.j.vcs.selection.Target;
+import org.armedbear.j.vcs.selection.Target.Files;
+import org.armedbear.j.vcs.selection.Target.Part;
 import org.armedbear.j.vcs.signs.StatusView;
-import org.armedbear.j.vcs.status.StatusActions.Files;
-import org.armedbear.j.vcs.status.StatusActions.Part;
-import org.armedbear.j.vcs.status.StatusActions.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 
@@ -506,7 +506,7 @@ final class StatusPicks {
                 final BitSet picked = h.getValue().lines() == null ? null : (BitSet) h.getValue().lines().clone();
                 if (picked != null)
                     Patch.pairChanges(hunk, picked);
-                final Part p = new Part(fp.file.repository(), fp.file.section(), f, hunk, picked);
+                final Part p = Part.of(fp.file.repository(), fp.file.section(), f, hunk, picked);
                 parts.add(p);
                 keys.put(p, Set.of(StatusRenderer.hunkKey(e.getKey(), h.getKey())));
             }

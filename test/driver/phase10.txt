@@ -1,0 +1,47 @@
+# Fixture: a.txt has changes at lines 3 and 50; b.txt is staged; c.txt is new.
+# Start with no custom changelists. Run in simple and vim edit modes.
+expect buffer a.txt
+exec vcsStatus
+expect mode VcsStatus
+expect text Unstaged changes (1)
+execlater vcsChangelistNew
+wait 300
+type Feature
+key ENTER
+expect text Feature (0)
+exec vcsStatusDepth 4
+expect text +line three
+execlater jumpToLine
+wait 200
+type 9
+key ENTER
+expect line @@ -1,6
+key INSERT
+expect line @@ -47,7
+exec vcsChangelistMove
+wait 250
+type Feature
+key ENTER
+expect text Feature (1)
+expect text Default (1)
+key ctrl HOME
+exec incrementalFind
+type Feature (1)
+key ENTER
+expect line Feature (1)
+key shift F10
+wait 200
+shotwin status-context-menu
+key ESCAPE
+exec vcsCommitList
+expect mode VcsCommit
+exec insertString First change alone
+key ctrl ENTER
+expect mode VcsStatus
+expect-not text Feature (1)
+expect text +line fifty
+expect text Staged changes (1)
+exec sidebarListChanges
+wait 500
+shot changes-tab
+log finished

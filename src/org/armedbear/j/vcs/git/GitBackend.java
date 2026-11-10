@@ -590,8 +590,7 @@ public final class GitBackend implements VcsBackend {
 
     @Override
     public boolean isRoot(File dir) {
-        File git = File.getInstance(dir, ".git");
-        return git != null && git.exists();
+        return dir.isLocal() && GitDirs.of(Path.of(dir.canonicalPath())) != null;
     }
 
     @Override

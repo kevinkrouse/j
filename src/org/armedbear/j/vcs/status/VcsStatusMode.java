@@ -78,6 +78,7 @@ import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusActions.Op;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
@@ -1197,7 +1198,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     // A hunk heading, or diff lines selected: stage, unstage, discard,
     // move, commit alone, pick.
     private static void hunkItems(VcsMenu menu, Editor editor, RepositoryStatus model, Function<String, Runnable> run) {
-        final List<StatusActions.Target> targets = StatusActions.targets(model, editor);
+        final List<Target> targets = StatusActions.targets(model, editor);
         menu.add(
             "Stage",
             "vcsStage",
@@ -1224,7 +1225,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             e -> run.apply("vcsChangelistMove").run());
         // Commit alone… takes the hunk or lines under the caret, never the
         // picks, so its why is worked out from those, not the targets.
-        final List<StatusActions.Target> commitTargets = StatusActions.targets(model, editor, false);
+        final List<Target> commitTargets = StatusActions.targets(model, editor, false);
         menu.add(
             "Commit alone…",
             "vcsCommitFiles",
@@ -1246,7 +1247,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             RepositoryStatus model,
             StatusLine line,
             Function<String, Runnable> run) {
-        final List<StatusActions.Target> targets = StatusActions.targets(model, editor);
+        final List<Target> targets = StatusActions.targets(model, editor);
         menu.add(
             "Stage all",
             "vcsStage",

@@ -81,6 +81,7 @@ import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
 import org.armedbear.j.vcs.log.LogScope;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -101,7 +102,7 @@ public final class VcsStatusBuffer extends ViewBuffer
     private static final int FOLLOW_DELAY = 100;
 
     private record ChangelistDrag(String token, RepositoryStatus model, VcsRepository repository, String from,
-            List<StatusActions.Target> targets, StatusData data) {}
+            List<Target> targets, StatusData data) {}
 
     private ChangelistDrag activeDrag;
 
@@ -155,7 +156,7 @@ public final class VcsStatusBuffer extends ViewBuffer
                 lines = List.of(line.kind() == Kind.DIFF ? StatusLine.head(line) : line);
         } else
             lines = List.of(line.kind() == Kind.DIFF ? StatusLine.head(line) : line);
-        List<StatusActions.Target> targets = StatusActions.targetsOf(model, lines);
+        List<Target> targets = StatusActions.targetsOf(model, lines);
         if (targets.isEmpty() || targets.stream().anyMatch(t -> !StatusRenderer.UNSTAGED.equals(t.section())))
             return null;
         VcsRepository repository = targets.get(0).repository();
@@ -206,7 +207,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         StatusLine line = (StatusLine) pos.getLine();
         StatusLine list = listOf(line);
         if (drag.targets().size() == 1
-                && drag.targets().get(0) instanceof StatusActions.Files files
+                && drag.targets().get(0) instanceof Target.Files files
                 && files.files().size() == 1) {
             FileItem file = files.files().get(0);
             ChangelistCommands
@@ -280,9 +281,9 @@ public final class VcsStatusBuffer extends ViewBuffer
         return a.change().equals(b.change()) && a.letter() == b.letter() && a.staged() == b.staged();
     }
 
-    private boolean sameHunks(List<StatusActions.Target> targets) {
-        for (StatusActions.Target target : targets)
-            if (target instanceof StatusActions.Part part) {
+    private boolean sameHunks(List<Target> targets) {
+        for (Target target : targets)
+            if (target instanceof Target.Part part) {
                 FileItem file = model.unstaged(part.repository(), part.file().path());
                 if (file == null || file.diff() == null || !file.diff().hunks().contains(part.hunk()))
                     return false;

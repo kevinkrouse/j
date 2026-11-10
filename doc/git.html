@@ -128,6 +128,10 @@ unmerged one, the resolves — plus <b>Show diff beside</b> (<b>D</b>). On a <b>
 stage, unstage, discard, move, <b>Commit alone…</b> and pick. On a
 <b>changelist heading</b>: the changelist items. On a <b>section
 heading</b>: stage, unstage and discard all of it, and open or close it.
+<b>Add to .gitignore</b> appends a rule for that literal path at the
+repository root. It refuses a symlink at <code>.gitignore</code>, and a
+filename containing a newline, rather than writing to the link's target
+or adding unintended rules.
 On a <b>commit line</b>: show it, copy its hash, show it in the log, and
 reword if it is HEAD. On a <b>stash line</b>: apply, pop and drop. On a
 <b>repository heading</b>: fetch, refresh and log. Then the editor's own
@@ -432,7 +436,36 @@ lines joins that list, a new line between two of a list's lines that
 list, one at the edge of a change the active list, and
 undo puts a change back in the list it had. The lists are kept in
 <code>.git/j/changelists.xml</code>, a worktree's in its own git directory,
-which no other tool reads.
+which no other tool reads. Concurrent saves from another j are checked
+under a lock; a list change that cannot be saved is reported rather than
+silently replacing the other writer's version.
+
+<h3><a name="changelist-workflow">Preparing separate commits</a></h3>
+
+<ol>
+<li>Open the status with <b>Ctrl Alt G</b>, or <code>&lt;leader&gt;gg</code>
+in vim edit mode. Use <b>C n</b> to create a changelist, then <b>C a</b>
+to make it active if new changes should belong to it.</li>
+<li>Open a changed file with <b>Tab</b>. Select its hunk or changed lines
+and use <b>C m</b> to move them to a list. A file can appear under several
+lists; each appearance takes only that list's changes. From the file's
+buffer, use the change popup's <b>m</b>, or <code>&lt;leader&gt;hm</code>
+in vim, to move the change at the caret.</li>
+<li>For a temporary selection across lists or files, use <b>;</b> or
+<b>Insert</b> to pick changes, and <b>Ctrl ;</b> to clear the picks.
+A text or visual selection takes precedence over picks for staging,
+unstaging, discarding and moving.</li>
+<li>Use <b>c l</b> to commit a changelist alone, or <b>c p</b> for the
+picked changes. Write the message and press <b>Ctrl Enter</b>. To commit
+what is already staged, use <b>c c</b> instead.</li>
+</ol>
+
+<p>
+These status keys work in both edit modes. In a diff pane or a comparison,
+vim's <b>;</b> keeps its normal meaning unless there is a visual selection;
+use <b>Insert</b> or the boxes to pick there. Right-click a file or a
+changelist, or use <b>Shift F10</b>, to see the available actions and why
+an action is unavailable.
 
 <h3><a name="changes-tab">The Changes tab</a></h3>
 
@@ -533,7 +566,16 @@ alone while a merge, rebase or cherry-pick is in progress, as git would make
 the commit the merge's; nor picks of what is staged, of a conflict, or of hunks
 while whitespace is ignored. The commit's hooks see only what it commits; a
 hook that stages files itself, as lint-staged does, can add them to the
-commit. If the hooks fail, nothing changes and the message is kept.
+commit. If the hooks reject the commit, the message is kept and j leaves
+the repository's index unchanged; changes a hook itself makes to files or
+to the real index remain.
+
+<p>
+If another tool stages one of the selected files while the hooks run, the
+commit still stands, but j preserves that staging and reports that it left
+the index unchanged. Inspect the staged diff and the commit before changing
+the index yourself. If the index remains locked, j reports that too; it
+never removes another process's lock.
 
 <h3><a name="committing-several">Committing in several repositories</a></h3>
 

@@ -50,6 +50,7 @@ import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.signs.HunkCommands;
 import org.armedbear.j.vcs.status.StatusActions.Op;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
@@ -311,7 +312,7 @@ public class StatusActionsTest {
             // Only the added "four".
             h.editor().setMark(new Position(line("  +four"), 0));
             h.editor().setDot(line("  +four"), 4);
-            final List<StatusActions.Target> t = StatusActions.targets(status, h.editor());
+            final List<Target> t = StatusActions.targets(status, h.editor());
             assertEquals(1, t.size());
             assertEquals("a line of a.txt", StatusActions.names(t));
         });
@@ -2099,11 +2100,11 @@ public class StatusActionsTest {
         git.write("a.txt", "two\n");
         git.git("add", "a.txt");
         git.write("a.txt", "three\n");
-        final StatusActions.Files t =
-                new StatusActions.Files(Repositories.forDirectory(git.root), "staged", new ArrayList<>());
         open();
         until(() -> text().contains("Staged changes (1)"));
-        onEdt(() -> t.files().addAll(status.files(repo(), "staged")));
+        final Target.Files[] target = new Target.Files[1];
+        onEdt(() -> target[0] = new Target.Files(repo(), "staged", status.files(repo(), "staged")));
+        final Target.Files t = target[0];
         final String why = StatusActions.discard(List.of(t));
         assertTrue(why != null && why.contains("unstaged changes"), why);
         assertEquals("three\n", git.read("a.txt"), "nothing changed");
@@ -2799,7 +2800,7 @@ public class StatusActionsTest {
         StatusDiffBuffer diff = paneOn("  M  b.txt", "  +b changed");
         onEdt(() -> {
             h.editor().setDot(paneLine(diff, "  +b changed"), 0);
-            final List<StatusActions.Target> t = StatusActions.targets(status, h.editor());
+            final List<Target> t = StatusActions.targets(status, h.editor());
             assertEquals("Already staged", StatusActions.refuse(Op.STAGE, t.get(0)));
             StatusActions.run(h.editor(), Op.STAGE);
             assertFalse(status.isWriting(), "refused");

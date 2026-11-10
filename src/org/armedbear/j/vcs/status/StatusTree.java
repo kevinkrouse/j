@@ -59,6 +59,7 @@ import org.armedbear.j.SidebarTree;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
@@ -190,7 +191,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
                 if (s.id().equals(StatusRenderer.UNSTAGED) && p.listed() != null) {
                     java.util.Set<String> shown = new java.util.HashSet<>();
                     for (org.armedbear.j.vcs.changelists.Changelists.Changelist list : p.listed().lists()) {
-                        List<StatusLine.Member> members = p.listed().members().get(list.name());
+                        List<Target.Member> members = p.listed().members().get(list.name());
                         String lk = StatusRenderer.listKey(p.repository(), list.name());
                         DefaultMutableTreeNode group = new DefaultMutableTreeNode(new ListNode(p.repository(),
                                 list.name(),
@@ -198,7 +199,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
                                 members.size(),
                                 list.name().equals(p.listed().active()),
                                 lk));
-                        for (StatusLine.Member member : members) {
+                        for (Target.Member member : members) {
                             String suffix =
                                     shown.add(member.file().path()) ? "" : StatusRenderer.elsewhere(list.name());
                             String fk = StatusRenderer.fileKey(p.repository(), s.id(), member.file().path()) + suffix;

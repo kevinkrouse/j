@@ -25,7 +25,10 @@ public class ProjectRootTest {
     Path tmp;
 
     private Path dir(String relative) throws IOException {
-        return Files.createDirectories(tmp.resolve(relative));
+        final Path path = Files.createDirectories(tmp.resolve(relative));
+        if (path.getFileName().toString().equals(".git"))
+            org.armedbear.j.vcs.git.GitFixture.metadata(path.getParent());
+        return path;
     }
 
     private static File file(Path p) {
@@ -60,7 +63,8 @@ public class ProjectRootTest {
     @Test
     public void gitFileCountsAsARoot() throws IOException {
         dir("repo/.git");
-        Files.writeString(dir("repo/sub").resolve(".git"), "gitdir: ../.git/modules/sub\n");
+        org.armedbear.j.vcs.git.GitFixture.metadata(dir("repo/module"));
+        Files.writeString(dir("repo/sub").resolve(".git"), "gitdir: ../module/.git\n");
         assertEquals(real(tmp.resolve("repo/sub")), root(dir("repo/sub/x"), null));
     }
 

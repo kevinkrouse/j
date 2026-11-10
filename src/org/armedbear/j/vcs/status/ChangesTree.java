@@ -82,11 +82,12 @@ import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.selection.Target;
+import org.armedbear.j.vcs.selection.Target.Member;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
-import org.armedbear.j.vcs.status.StatusLine.Member;
 
 /**
  * The sidebar's Changes tab: the changed files of the repositories the
@@ -746,7 +747,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         if (o instanceof FileNode) {
             // The files selected when the node is among them; else the node alone.
             final List<StatusLine> lines = isSelected(path) ? selectedFileLines() : List.of(((FileNode) o).line());
-            final List<StatusActions.Target> targets = StatusActions.targetsOf(status, lines);
+            final List<Target> targets = StatusActions.targetsOf(status, lines);
             final StatusLine line = lines.isEmpty() ? null : lines.get(0);
             if (line == null)
                 return null;
@@ -776,7 +777,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
 
     // A section's items: stage, unstage, discard all of it.
     private void sectionItems(VcsMenu menu, Editor editor, GroupNode g) {
-        final List<StatusActions.Target> targets = StatusActions.targetsOf(status, sectionLines(g));
+        final List<Target> targets = StatusActions.targetsOf(status, sectionLines(g));
         menu.add(
             "Stage all",
             "vcsStage",
@@ -812,7 +813,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     }
 
     // What a file item's command does to the targets, in place.
-    private Runnable fileAction(String command, List<StatusActions.Target> targets, StatusLine line) {
+    private Runnable fileAction(String command, List<Target> targets, StatusLine line) {
         final Editor editor = editor();
         switch (command) {
             case "vcsCommitFiles":
@@ -926,7 +927,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         final List<StatusLine> lines = selectedFileLines();
         if (lines.isEmpty())
             return;
-        final List<StatusActions.Target> targets = StatusActions.targetsOf(status, lines);
+        final List<Target> targets = StatusActions.targetsOf(status, lines);
         StatusActions.runOn(editor, status, StatusActions.Op.DISCARD, targets, Map.of(), false);
     }
 

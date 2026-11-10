@@ -62,6 +62,7 @@ import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.log.RevisionBuffer;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -1047,8 +1048,8 @@ public class VcsStatusBufferTest {
         assertEquals("Nothing to discard here", StatusActions.refuse(StatusActions.Op.DISCARD, files(file)));
     }
 
-    private static StatusActions.Files files(StatusLine l) {
-        return new StatusActions.Files(l.repository(), l.section(), List.of(l.file()));
+    private static Target.Files files(StatusLine l) {
+        return new Target.Files(l.repository(), l.section(), List.of(l.file()));
     }
 
     @Test

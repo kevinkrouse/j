@@ -26,17 +26,25 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Anchors.Placed;
 import org.armedbear.j.vcs.changelists.Changelists.Assignment;
 import org.armedbear.j.vcs.changelists.Changelists.Change;
 import org.armedbear.j.vcs.changelists.Changelists.Part;
+import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.DiffParser;
 import org.armedbear.j.vcs.diff.FileDiff;
+import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -399,5 +407,100 @@ public class ChangelistsTest {
         assertEquals("There is a changelist B already", kept().refusedName("B"));
         assertEquals("A changelist's name can't have control characters", kept().refusedName("a\u0001b"));
         assertEquals(null, kept().refusedName("C"));
+    }
+
+    @Test
+    public void concurrentStoresCannotBothReplaceTheSameVersion() throws Exception {
+        Path file = tmp.resolve("changelists.xml");
+        ChangelistStore one = new ChangelistStore(file), two = new ChangelistStore(file);
+        Changelists a = one.read().withList("A").withComment("A", "a".repeat(100_000));
+        Changelists b = two.read().withList("B").withComment("B", "b".repeat(100_000));
+        var start = new CountDownLatch(1);
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            var first = pool.submit(() -> {
+                start.await();
+                return one.write(a);
+            });
+            var second = pool.submit(() -> {
+                start.await();
+                return two.write(b);
+            });
+            start.countDown();
+            boolean wroteA = first.get(10, TimeUnit.SECONDS);
+            boolean wroteB = second.get(10, TimeUnit.SECONDS);
+            assertTrue(wroteA ^ wroteB, "one writer succeeds, the other retries against the new version");
+            ChangelistStore retry = wroteA ? two : one;
+            assertTrue(retry.write(retry.read().withList(wroteA ? "B" : "A")));
+            Changelists saved = new ChangelistStore(file).read();
+            assertTrue(saved.list("A") != null && saved.list("B") != null);
+        }
+        finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    public void aHeldStoreLockRefusesWritesAndQuarantines() throws Exception {
+        Path file = tmp.resolve("changelists.xml");
+        Files.writeString(file, "<broken>");
+        Path lock = file.resolveSibling("changelists.xml.lock");
+        try (var channel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+             var held = channel.lock()) {
+            ChangelistStore store = new ChangelistStore(file);
+            store.read();
+            assertFalse(store.write(kept()));
+            assertEquals("<broken>", Files.readString(file));
+            assertFalse(Files.exists(file.resolveSibling("changelists.xml.bad")));
+        }
+    }
+
+    @Test
+    public void thousandsOfRepeatedChangesMatchWithoutQuadraticStorage() {
+        var hunks = new ArrayList<Hunk>();
+        for (int i = 0; i < 5000; i++)
+            hunks.add(
+                new Hunk(i * 10 + 1,
+                        1,
+                        i * 10 + 1,
+                        1,
+                        "",
+                        List.of(new DiffLine('-', "old", false), new DiffLine('+', "new", false))));
+        FileDiff diff = new FileDiff(List.of(), "a.txt", "a.txt", false, false, false, false, hunks, false);
+        var placed = Anchors.place(Changelists.initial(), "a.txt", null, diff);
+        var kept = new ArrayList<Change>();
+        for (Change c : Anchors.assignment(placed).changes())
+            kept.add(with(c, kept.size() % 2 == 0 ? "A" : "B", List.of()));
+        Changelists lists = Changelists.initial().withList("A").withList("B").withFile("a.txt", Assignment.of(kept));
+        var result = Anchors.place(lists, "a.txt", null, diff);
+        for (int i = 0; i < result.size(); i++)
+            assertEquals(i % 2 == 0 ? "A" : "B", result.get(i).list());
+        hunks.add(0, new Hunk(0, 1, 0, 1, "", hunks.get(0).lines()));
+        FileDiff added = new FileDiff(List.of(), "a.txt", "a.txt", false, false, false, false, hunks, false);
+        result = Anchors.place(lists, "a.txt", null, added);
+        assertEquals(Changelists.DEFAULT, result.get(0).list());
+        for (int i = 1; i < result.size(); i++)
+            assertEquals((i - 1) % 2 == 0 ? "A" : "B", result.get(i).list());
+    }
+
+    @Test
+    public void repeatedChangesInOneLargeHunkAreMatchedByOccurrence() {
+        var lines = new ArrayList<DiffLine>();
+        for (int i = 0; i < 5000; i++) {
+            lines.add(new DiffLine('-', "old", false));
+            lines.add(new DiffLine('+', "new", false));
+            lines.add(new DiffLine(' ', "context", false));
+        }
+        Hunk hunk = new Hunk(1, 10000, 1, 10000, "", lines);
+        FileDiff diff = new FileDiff(List.of(), "a.txt", "a.txt", false, false, false, false, List.of(hunk), false);
+        var initial = Anchors.place(Changelists.initial(), "a.txt", null, diff);
+        var kept = new ArrayList<Change>();
+        for (Change c : Anchors.assignment(initial).changes())
+            kept.add(with(c, kept.size() % 2 == 0 ? "A" : "B", List.of()));
+        var lists = Changelists.initial().withList("A").withList("B").withFile("a.txt", Assignment.of(kept));
+        var result = Anchors.place(lists, "a.txt", null, diff);
+        assertEquals(5000, result.size());
+        for (int i = 0; i < result.size(); i++)
+            assertEquals(i % 2 == 0 ? "A" : "B", result.get(i).list());
     }
 }

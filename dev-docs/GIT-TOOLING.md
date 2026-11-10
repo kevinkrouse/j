@@ -1884,7 +1884,7 @@ plan with why it is left, before the next phase starts.
      is passed with `--ignore-revs-file` when the repository has one and
      `blame.ignoreRevsFile` is not set: git reads it only through that
      config, so "git honors it" holds for those who set it alone (2.23 and
-     later; gated). A `Capability.BLAME`; svn's comes in phase 11.
+     later; gated). A `Capability.BLAME`; svn's comes in phase 12.
      `GitBlame` parses `--incremental`'s groups (a header per run, the
      commit's fields the first time it is seen). The result is the
      buffer's lines as `Line` objects, read under the buffer's lock when
@@ -2793,7 +2793,7 @@ plan with why it is left, before the next phase starts.
      depending on nothing else, until the JDK has JSON. Read, each range re-anchored to the unstaged
      hunk it matches by hash, else the one it overlaps most; a change
      matching none is the active list's. Shared, behind `VcsBackend`, so
-     svn's own changelists (phase 11) can stand in. Tests: a round trip, a
+     svn's own changelists (phase 12) can stand in. Tests: a round trip, a
      range re-anchored after edits above it, a hunk gone, a file deleted
      or renamed, a corrupt or missing file, two worktrees.
 
@@ -2815,7 +2815,7 @@ plan with why it is left, before the next phase starts.
      rows; a renamed one is found under the path it had. The diff must be
      the whole file's with whitespace shown, or the changes it leaves out
      are dropped. `ChangelistStore`, concrete, no interface until svn's
-     lists (phase 11) show what one needs; `ChangelistStore.of`, in
+     lists (phase 12) show what one needs; `ChangelistStore.of`, in
      `VcsBackend.stateDirectory`, git's `GitDirs.gitDir()/j`, a
      worktree's its own. DOM with no DTD or external entities, written
      whole by `util/AtomicFiles` (shared with the stash note and the port
@@ -3256,7 +3256,207 @@ plan with why it is left, before the next phase starts.
      Changelists and picking, the keys in both edit modes; the directory
      buffer's picking in its docs; driven under Xvfb; the adversarial
      review.
-11. **Subversion.** Its backend on the shared layer: status, diff, marks,
+
+     In progress, not complete: `doc/git.html` now has a separate-commits
+     walkthrough, both edit modes' pick keys, and recovery after concurrent
+     staging or an index lock; `doc/directories.html` distinguishes directory
+     picks from Git picks. `test/driver/phase10.txt` exercises creating a
+     list, picking and moving one hunk, the context menu, committing the
+     list with another file staged, and the Changes tab. Its fixture is a
+     sixty-line a.txt with lines 3 and 50 changed, b.txt staged and c.txt
+     untracked, with no custom lists. Run with `bb drive
+     test/driver/phase10.txt <fixture>/a.txt --out <shots>`; vim uses a fresh
+     home with `editMode=vim` via `--home-from`, and `insertString` can fill
+     the message independently of the text entry mode.
+
+     The failed-test triage found an empty `.git` directory being treated
+     as a repository, including `/tmp/.git`; discovery now checks HEAD and
+     the object store, including linked worktrees. Tests that used empty
+     markers now create minimal unborn metadata. The four separate review
+     fixes are implemented: private commits reconcile only unchanged index
+     entries under git's index lock, preserving external staging; store
+     writes and corrupt-file quarantine compare versions under a persistent
+     file lock; ignore-file writes refuse symlinks at open and names with
+     newlines; repeated-change anchoring matches equal-sized groups in
+     linear time and bounds the exact matcher to 65,536 candidate pairs, using ordered
+     nearest matching for larger unequal groups. This bounds work on the
+     event thread rather than moving an unbounded matcher to another thread.
+     Regression tests cover concurrent staging, lock contention, concurrent
+     store writers, symlinks, and 5,000 repeated changes under a 256 MB heap.
+     Validation of this follow-up: `bb test` passes all 2,587 tests, with
+     none failed or aborted. The focused store, anchoring, ignore/index,
+     target and project-file tests pass all 51 cases under `-Xmx256m`.
+     The GUI workflow passes in simple and vim modes, with the resulting
+     commit checked to contain only the selected hunk and b.txt still
+     staged. Selection identity and same-file commit confirmation remain
+     for phase 11; do not close k until the outstanding review work is
+     verified.
+11. **Shared selections.** Extract the existing selection machinery from
+   the status's presentation code before adding another backend. Keep
+   `RepositoryStatus` and its reads, `StatusData`, and the existing action
+   implementations. A selection is a list of the existing whole-file or
+   partial-hunk targets, resolved against the current status before an
+   action takes it. No new snapshot framework, operation-plan hierarchy,
+   or asynchronous coordinator; no change-run tracking model in this phase.
+   Each step below is a separate change to review and test.
+
+   This phase addresses selection identity, stale selections, commit
+   confirmation, and the duplicate validation in the status and trees.
+   The phase 10 review's index race, store locking, `.gitignore` symlinks,
+   and anchoring performance were fixed separately, as recorded under 10 k;
+   extracting selections does not replace those fixes. Phase 10's docs,
+   drive and review (k) remain open.
+
+   - **a. Extract the existing targets.** Move `StatusActions.Target`,
+     `Files` and `Part` into `vcs/selection`, retaining their current
+     repository, section, file and hunk data. Add an immutable `LineSet`
+     around the partial selection's bits: copy on construction, no mutable
+     storage exposed. Move `StatusLine.Member`'s file-and-selection data
+     out of the presentation class too, reusing the extracted types where
+     practical. This step changes ownership, not selection behavior.
+
+     Tests: existing status action, pick, changelist and commit tests;
+     modifying the source bits or a returned copy cannot change a target;
+     a file selected whole still subsumes its partial selections, and
+     overlapping line selections take each change once.
+
+     Built: `vcs/selection/Target` owns `Files`, `Part` and `Member`;
+     `LineSet` owns a defensive copy of partial selections. File lists and
+     changelist membership maps are captured immutably too. Status actions
+     accumulate mutable selections locally, pairing and freezing them once
+     before handing them to commands; the existing status, trees, picks,
+     moves, resolves, stashes and commits use the extracted types. Patch
+     code takes copies through the transitional `Part.lines()` accessor.
+     `TargetTest` covers capture and accessor immutability and distinguishes
+     a whole hunk from an empty line selection. The status/changelist and
+     selection suites pass; identity, resolution and semantic comparison
+     are still the following steps, not part of this extraction.
+
+   - **b. Keys and change identity.** Add a typed file key (repository,
+     opaque section id, literal relative path) and a shared `Selections`
+     utility. Move the action-facing hunk identity out of `StatusRenderer`:
+     a strong fingerprint of the ordered removed and added bytes, their
+     kinds and newline metadata, with canonical content equality confirming
+     candidate matches. Share the content-encoding helper with changelist
+     anchoring where useful, keeping their matching policies distinct.
+     Rendering's caret and expansion keys remain presentation details.
+
+     Keep hunk-based selections. Match identical occurrences in order
+     only where correspondence is unambiguous; a duplicate appearing or
+     disappearing must not transfer a pick to another occurrence. Preserve
+     selected lines by their offsets among changed lines, translating to
+     hunk indexes when resolved, so context changes cannot shift their
+     meaning. A hunk split or combined by an edit may invalidate the
+     selection and ask for reselection. Never guess by nearest overlap
+     for a pick, even where changelist anchoring does.
+
+     Tests: the `Aa`/`BB` hash collision; a final newline changed; unchanged
+     changes moving after edits above them; context-only changes; repeated
+     identical hunks with one added or removed; hunk splits and joins;
+     literal paths containing separators used in old rendering keys.
+
+   - **c. Resolve against current status.** `Selections.resolve` takes
+     captured targets and the existing current `StatusData`, returning
+     current targets, file keys whose diffs need reading, and explicit
+     problems (gone, changed, ambiguous or unsupported). Whole-file
+     targets take the file's current changes; partial targets must still
+     identify the captured changes. Keep non-textual targets valid without
+     requiring hunks. An unrequested diff, a failed read and a file with
+     no textual diff must have distinct outcomes, using the existing read
+     bookkeeping with a small extension if needed.
+
+     The resolver does no I/O and schedules no work. `RepositoryStatus`
+     uses its existing diff-read mechanism and retries resolution a bounded
+     number of times, reporting a read failure rather than retrying forever.
+     A refresh alone does not invalidate a target. Commands require all
+     requested targets to resolve before execution; picks may keep valid
+     targets and report those dropped. Backend checks at execution remain
+     necessary: a resolved status is not a lock on repository state.
+
+     Tests: unread diffs becoming available; failed reads terminating;
+     files gone or changed; binary and metadata-only changes; one stale
+     target preventing a multi-target command; an unrelated refresh leaving
+     a selection usable. Test without an editor or Swing component.
+
+   - **d. Picks and UI adapters.** Have `StatusPicks` retain selections
+     through the shared resolver. Status lines may carry a target alongside
+     their presentation fields; the Changes tab, status tree, comparisons
+     and gutter construct the same targets directly. Keep selection before
+     picks before caret, pairing a modified line with its removal, and the
+     existing pick-consumption behavior. Stop constructing status lines just
+     to invoke an action, and stop parsing renderer keys for domain data.
+
+     Tests: the same file, hunk and lines picked from every surface yield
+     equivalent targets; line pairing, unpick and partial-success handling;
+     changed or ambiguous picks dropped with an explanation; staged and
+     unstaged picks of one path stay distinct; existing simple and vim keys.
+
+   - **e. Compare commit selections semantically.** Replace the message
+     template comparison with `Selections.sameChanges` on the reviewed and
+     newly resolved commit targets. Compare selected content, line sets,
+     paths, relevant file metadata and base versions, not display context,
+     line numbers, timestamps or a refresh generation. Read whatever is
+     needed to compare whole-file targets, including non-textual changes;
+     an unread target cannot count as unchanged. The message template is
+     generated from the selection, never used as its identity.
+
+     A changelist commit resolves its current membership at Ctrl Enter;
+     committing explicit lines resolves those particular captured changes.
+     A different selection redraws the review and waits for another Ctrl
+     Enter. Include a useful description of changed hunks or line counts
+     even when the filenames are unchanged. Leave private-index execution
+     and its backend safety checks in place.
+
+     Tests: adding or removing a second picked hunk in one file; changing
+     picked lines within one hunk; changelist membership changing within
+     one file; whole-file content and metadata changes; an unchanged
+     selection moving in the display; stale explicit hunks refused; staged
+     changes elsewhere remaining staged in real-repository commit tests.
+
+   - **f. Share move and drag validation.** Give changelist moves one
+     entry point taking extracted targets and a destination. It resolves
+     them, checks repository and destination membership, and applies the
+     existing move implementation. Route `C m`, context-menu moves, and
+     dragging in `VcsStatusBuffer`, `StatusTree` and `ChangesTree` through
+     it. Keep native mouse and transfer handling in each surface; the drag
+     token identifies its in-process payload, not permission to act on
+     stale targets. Capture explicit targets for a drag, not future picks.
+
+     Tests: equivalent moves from all surfaces; a refresh during a drag;
+     changed or ambiguous partial targets; a destination renamed or deleted;
+     cross-repository and foreign-payload drops refused; a failed diff read
+     ending the move; a split file moving only its selected lines.
+
+   - **g. Check the backend boundary.** Treat section ids as opaque and
+     keep Git index concepts out of the selection utility. Use the existing
+     `STAGING`, `PARTIAL_COMMIT`, `HUNK_CHANGELISTS` and
+     `NATIVE_CHANGELISTS` capabilities in action validation. A selection
+     describes what was chosen; it does not grant every backend the means
+     to stage it, commit part of a file, or move its lines to a native
+     changelist. Refuse unsupported partial actions with a reason; never
+     silently widen them to whole files. SVN's native lists are whole-file
+     lists. Its commits of selected paths get a backend implementation in
+     phase 12, not an emulated Git private index here.
+
+     Tests: a small backend fixture with no staging, native file
+     changelists and opaque section names; selecting and resolving files
+     and textual changes; staging unavailable; native-list moves taking
+     whole files and refusing partial selections; non-textual items needing
+     no hunk. Keep this a contract test, not an SVN implementation.
+
+   - **h. Remove adapters, document and review.** Remove transitional
+     target/key conversion code and duplicate freshness checks now covered
+     by resolution, retaining execution-time repository checks. Verify the
+     selection package depends on no `StatusLine`, `StatusRenderer`, editor
+     or Swing type. Document invalidation and reselection behavior and the
+     backend capability boundary. Drive picks, same-file commit changes and
+     drag/drop in simple and vim modes; review the final extraction.
+
+     Checks: the focused tests from a-g, the full unit suite and an Xvfb
+     drive through each UI surface. Record failures and environmental
+     limitations explicitly. Completing this phase does not by itself
+     complete phase 10 k or its separate outstanding review fixes.
+12. **Subversion.** Its backend on the shared layer: status, diff, marks,
    blame, log (one lane), conflicts, and svn's own changelists. This proves
    the split. Any git-only leaks found here are fixed in the shared code.
 
@@ -3298,7 +3498,7 @@ background, updating open buffers; command input in the log.)
 - A repository's first snapshot is still read on the thread that asks, the
   event thread for the status bar, as before. Later ones are not.
 - `Patch` writes git's headers (`diff --git`, a/ and b/, mode lines). svn's
-  backend will need its own header writer, behind the backend, in phase 11.
+  backend will need its own header writer, behind the backend, in phase 12.
 - `Snapshot` has no branch or revision; shared UI reads `GitSnapshot`. A
   neutral "where you are" (branch, revision, upstream) comes with the
   status buffer's header in phase 2.
@@ -3356,7 +3556,7 @@ background, updating open buffers; command input in the log.)
 - **Comments:** four left on the wrong method by inserted code.)
 
 - A change only of tabs to spaces shows `-` and `+` lines that look alike, with no word marked: both are detabbed before the word diff.
-- Git leaks into shared code: `VcsStatusMode`'s help is `git.html#status`, `BufferListStatus` reads git's porcelain codes, and the preference is `gitBufferListStatus`. Svn's backend (phase 11) gives the mode its help topic and the entry its letters.
+- Git leaks into shared code: `VcsStatusMode`'s help is `git.html#status`, `BufferListStatus` reads git's porcelain codes, and the preference is `gitBufferListStatus`. Svn's backend (phase 12) gives the mode its help topic and the entry its letters.
 - A render empties the buffer, which invalidates the views other windows keep of it; a window that comes back to it later starts at its top. Windows showing it keep their place.
 - No tests for git missing, a rebase in progress, or a path with a leading dash (a review's scratch test showed one renders).
 
@@ -3374,7 +3574,7 @@ background, updating open buffers; command input in the log.)
 - **Stale diffs:** staging or unstaging a hunk checks it is still in the file's diff.
 - **Selections:** one starting at the end of a line leaves that line out.)
 
-- The status code names git's sections (`"staged"`, `"unstaged"`) and its staging model in the shared layer. Svn's backend (phase 11) gives the sections and actions by capability.
+- The status code names git's sections (`"staged"`, `"unstaged"`) and its staging model in the shared layer. Svn's backend (phase 12) gives the sections and actions by capability.
 - `VcsBackend.commit` takes no paths and no index file; phase 10's private-index commits and svn's commits of paths add them.
 - On a desktop without a trash, a file no commit has is deleted, as the question says.
 

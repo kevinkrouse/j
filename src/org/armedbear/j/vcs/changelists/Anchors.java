@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,11 +171,30 @@ public final class Anchors {
         final Map<String, List<Change>> keptBy = new HashMap<>();
         for (Change k : kept)
             keptBy.computeIfAbsent(k.hash(), x -> new ArrayList<>()).add(k);
-        final Map<Now, Change> out = new HashMap<>();
+        // The captured occurrence objects are the keys. A value hash would
+        // walk the whole hunk once per run in a large, multi-change hunk.
+        final Map<Now, Change> out = new IdentityHashMap<>();
         for (Map.Entry<String, List<Now>> e : nowBy.entrySet()) {
             final List<Now> ns = e.getValue();
             final List<Change> ks = new ArrayList<>(keptBy.getOrDefault(e.getKey(), List.of()));
             ks.sort(Comparator.comparingInt(Change::oldRow).thenComparingInt(Change::row));
+            if (ks.isEmpty())
+                continue;
+            // Equal counts have only one order-preserving full matching.
+            // This is the usual case, including thousands of repeated edits.
+            if (ns.size() == ks.size()) {
+                for (int i = 0; i < ns.size(); i++)
+                    out.put(ns.get(i), ks.get(i));
+                continue;
+            }
+            // Keep work on the event thread bounded. With a large unequal
+            // group, match in order to the nearest available occurrence,
+            // reserving enough for those still to come. Anchoring is best
+            // effort; picks use their own stricter identity policy.
+            if ((long) ns.size() * ks.size() > 65_536) {
+                nearest(ns, ks, out);
+                continue;
+            }
             // best[i][j]: of ns' first i and ks' first j, the most matched,
             // then the least distance; each step skips one or matches both.
             final int[][] count = new int[ns.size() + 1][ks.size() + 1];
@@ -214,8 +234,28 @@ public final class Anchors {
     }
 
     // How far apart n and k are in the index.
-    private static int apart(Now n, Change k) {
-        return Math.abs(k.oldRow() - n.run().oldRow());
+    private static long apart(Now n, Change k) {
+        return Math.abs((long) k.oldRow() - n.run().oldRow());
+    }
+
+    // Linear time, maximum-cardinality, ordered matching for large groups.
+    private static void nearest(List<Now> ns, List<Change> ks, Map<Now, Change> out) {
+        int at = 0;
+        if (ns.size() > ks.size()) {
+            for (int j = 0; j < ks.size(); j++) {
+                final int last = ns.size() - (ks.size() - j);
+                while (at < last && apart(ns.get(at + 1), ks.get(j)) < apart(ns.get(at), ks.get(j)))
+                    at++;
+                out.put(ns.get(at++), ks.get(j));
+            }
+        } else {
+            for (int i = 0; i < ns.size(); i++) {
+                final int last = ks.size() - (ns.size() - i);
+                while (at < last && apart(ns.get(i), ks.get(at + 1)) < apart(ns.get(i), ks.get(at)))
+                    at++;
+                out.put(ns.get(i), ks.get(at++));
+            }
+        }
     }
 
     // The kept change r overlaps most in the index, else in the work tree;

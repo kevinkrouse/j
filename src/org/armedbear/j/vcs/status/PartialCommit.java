@@ -37,13 +37,13 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
+import org.armedbear.j.vcs.selection.Target;
+import org.armedbear.j.vcs.selection.Target.Files;
+import org.armedbear.j.vcs.selection.Target.Member;
+import org.armedbear.j.vcs.selection.Target.Part;
 import org.armedbear.j.vcs.signs.SignsUpdater;
-import org.armedbear.j.vcs.status.StatusActions.Files;
 import org.armedbear.j.vcs.status.StatusActions.Op;
-import org.armedbear.j.vcs.status.StatusActions.Part;
-import org.armedbear.j.vcs.status.StatusActions.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
-import org.armedbear.j.vcs.status.StatusLine.Member;
 
 /**
  * A commit of part of the work tree's changes, a changelist's or those

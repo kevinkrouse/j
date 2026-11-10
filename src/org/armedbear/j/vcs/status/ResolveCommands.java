@@ -46,9 +46,9 @@ import org.armedbear.j.vcs.FileChange.Conflict;
 import org.armedbear.j.vcs.InProgress;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.status.StatusActions.Files;
+import org.armedbear.j.vcs.selection.Target;
+import org.armedbear.j.vcs.selection.Target.Files;
 import org.armedbear.j.vcs.status.StatusActions.Op;
-import org.armedbear.j.vcs.status.StatusActions.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 
 /**

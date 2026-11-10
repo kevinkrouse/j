@@ -28,15 +28,15 @@ import org.armedbear.j.Property;
 import org.armedbear.j.util.PickState;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Changelists;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusActions.Op;
-import org.armedbear.j.vcs.status.StatusActions.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 
 /**
  * The right-click menus of the status buffer and the Changes tab: the
  * version control things to do with what is under the mouse, each a j
  * command with its key shown, dimmed with why where it can't apply. Both
- * act on {@link StatusActions.Target}s, so a file's items are worked out
+ * act on {@link Target}s, so a file's items are worked out
  * once; the surface says what each command does there — the status runs
  * it by name on the caret it moved, the Changes tab on its own nodes.
  */
@@ -191,9 +191,9 @@ final class VcsContextMenus {
 
     // "Commit file…", "Commit files…", "Commit alone…" for a hunk or lines.
     private static String commitLabel(List<Target> targets) {
-        if (targets.stream().anyMatch(t -> t instanceof StatusActions.Part))
+        if (targets.stream().anyMatch(t -> t instanceof Target.Part))
             return "Commit alone…";
-        final long files = targets.stream().map(t -> ((StatusActions.Files) t).files().size()).reduce(0, Integer::sum);
+        final long files = targets.stream().map(t -> ((Target.Files) t).files().size()).reduce(0, Integer::sum);
         return files == 1 ? "Commit file…" : "Commit files…";
     }
 

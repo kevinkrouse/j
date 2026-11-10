@@ -60,6 +60,14 @@ public final class GitFixture {
         this.root = root;
     }
 
+    /** Minimal unborn repository metadata for discovery tests, without running git. */
+    public static void metadata(Path root) throws IOException {
+        final Path dir = root.resolve(".git");
+        Files.createDirectories(dir.resolve("objects"));
+        Files.createDirectories(dir.resolve("refs/heads"));
+        Files.writeString(dir.resolve("HEAD"), "ref: refs/heads/main\n");
+    }
+
     /** A new repository at dir, on branch main; skips the test if git is missing. */
     public static GitFixture init(Path dir) throws IOException {
         assumeTrue(ProcessRunner.exists("git"), "git is not installed");

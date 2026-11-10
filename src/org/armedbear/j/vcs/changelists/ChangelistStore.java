@@ -23,9 +23,14 @@ package org.armedbear.j.vcs.changelists;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -160,21 +165,35 @@ public final class ChangelistStore {
             return false;
         }
         try {
-            byte[] now;
-            try {
-                now = hash(Files.readAllBytes(file));
-            }
-            catch (NoSuchFileException e) {
-                now = null;
-            }
-            if (!Arrays.equals(now, seen)) {
-                Log.error("Changelists in " + file + " not written: changed since they were read");
-                return false;
-            }
             final byte[] bytes = bytes(lists);
-            AtomicFiles.write(file, bytes, false);
-            seen = hash(bytes);
-            return true;
+            Files.createDirectories(file.toAbsolutePath().getParent());
+            // Keep the lock inode: unlinking it would let another writer
+            // lock a different inode while a waiter still holds this one.
+            try (FileChannel channel = FileChannel
+                    .open(lockFile(), StandardOpenOption.CREATE, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
+                 FileLock lock = channel.tryLock()) {
+                if (lock == null)
+                    return false;
+                byte[] now;
+                try {
+                    now = hash(Files.readAllBytes(file));
+                }
+                catch (NoSuchFileException e) {
+                    now = null;
+                }
+                if (!Arrays.equals(now, seen)) {
+                    Log.error("Changelists in " + file + " not written: changed since they were read");
+                    return false;
+                }
+                AtomicFiles.write(file, bytes, false);
+                seen = hash(bytes);
+                return true;
+            }
+        }
+        catch (OverlappingFileLockException e) {
+            // Another store in this process is writing; the caller can
+            // read and retry just as it does for another process's write.
+            return false;
         }
         catch (IOException | TransformerException | ParserConfigurationException e) {
             Log.error("Changelists in " + file + " can't be written: " + e);
@@ -182,16 +201,26 @@ public final class ChangelistStore {
         }
     }
 
+    private Path lockFile() {
+        return file.resolveSibling(file.getFileName() + ".lock");
+    }
+
     // The file moved aside, under a name no other has; none read since.
     private void moveAside() {
-        Path aside = file.resolveSibling(file.getFileName() + ".bad");
-        for (int n = 1; Files.exists(aside); n++)
-            aside = file.resolveSibling(file.getFileName() + ".bad." + n);
-        try {
+        try (FileChannel channel = FileChannel
+                .open(lockFile(), StandardOpenOption.CREATE, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
+             FileLock lock = channel.tryLock()) {
+            if (lock == null || !Arrays.equals(seen, hash(Files.readAllBytes(file)))) {
+                writable = false;
+                return;
+            }
+            Path aside = file.resolveSibling(file.getFileName() + ".bad");
+            for (int n = 1; Files.exists(aside); n++)
+                aside = file.resolveSibling(file.getFileName() + ".bad." + n);
             Files.move(file, aside);
             seen = null;
         }
-        catch (IOException e) {
+        catch (IOException | OverlappingFileLockException e) {
             Log.error(e);
             writable = false;
         }

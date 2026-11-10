@@ -39,7 +39,10 @@ public class RepositoriesTest {
     Path tmp;
 
     private Path dir(String relative) throws IOException {
-        return Files.createDirectories(tmp.toRealPath().resolve(relative));
+        final Path path = Files.createDirectories(tmp.toRealPath().resolve(relative));
+        if (path.getFileName().toString().equals(".git"))
+            org.armedbear.j.vcs.git.GitFixture.metadata(path.getParent());
+        return path;
     }
 
     private static File file(Path p) {
@@ -126,5 +129,15 @@ public class RepositoriesTest {
         dir("solo/vendored/.git");
         List<VcsRepository> project = Repositories.forProject(file(dir("solo")));
         assertEquals(1, project.size());
+    }
+
+    @Test
+    public void emptyOrBrokenGitMarkersAreNotRepositories() throws IOException {
+        Path empty = dir("empty");
+        Files.createDirectory(empty.resolve(".git"));
+        assertNull(Repositories.forDirectory(empty));
+        Path broken = dir("broken");
+        Files.writeString(broken.resolve(".git"), "gitdir: missing\n");
+        assertNull(Repositories.forDirectory(broken));
     }
 }

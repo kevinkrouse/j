@@ -36,8 +36,9 @@ import org.armedbear.j.vcs.changelists.Changelists.Change;
 import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Target;
+import org.armedbear.j.vcs.selection.Target.Member;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
-import org.armedbear.j.vcs.status.StatusLine.Member;
 
 /**
  * A repository's unstaged files sorted into its changelists, as the status

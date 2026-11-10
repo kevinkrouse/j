@@ -46,6 +46,7 @@ import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.log.LogBuffer;
 import org.armedbear.j.vcs.log.LogCommands;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -550,7 +551,7 @@ public class VcsContextMenuTest {
         onEdt(() -> {
             h.editor().setDot(line("  M  a.txt"), 0);
             // The unstaged a.txt: committing it alone is refused as it has a staged change.
-            final List<StatusActions.Target> targets = StatusActions.targets(status.model(), h.editor());
+            final List<Target> targets = StatusActions.targets(status.model(), h.editor());
             final String why = VcsContextMenus.commitWhy(status.model(), targets);
             assertNotNull(why, "a file with something staged is refused");
             assertTrue(why.contains("staged"), why);

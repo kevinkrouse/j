@@ -56,7 +56,7 @@ public class ProjectFilesTest {
 
     // tmp as a repository's root, walked.
     private List<String> walk(int max, Pattern excludes, Path globalIgnore) throws IOException {
-        Files.createDirectories(tmp.resolve(".git"));
+        org.armedbear.j.vcs.git.GitFixture.metadata(tmp);
         List<String> files = new ArrayList<>(
                 new ProjectFiles.Walker(tmp, max, excludes, git(globalIgnore), () -> false, null).walk());
         Collections.sort(files);
@@ -174,6 +174,7 @@ public class ProjectFilesTest {
         ProjectFiles.awaitScanner();
         assertEquals(List.of("a.txt", "src/b.java", "src/new.java"), pf.files());
         // Already listed, or what a scan would skip: no change.
+        org.armedbear.j.vcs.git.GitFixture.metadata(tmp);
         write(".gitignore", "*.log\n");
         touch(".git/COMMIT_EDITMSG", "x.log", "build/gen.java");
         for (String s : new String[] { "a.txt", ".git/COMMIT_EDITMSG", "x.log", "build/gen.java" })
@@ -240,7 +241,7 @@ public class ProjectFilesTest {
 
     @Test
     public void aWalkInsideAnIgnoredDirectoryListsWhatIsInIt() throws IOException {
-        Files.createDirectories(tmp.resolve(".git"));
+        org.armedbear.j.vcs.git.GitFixture.metadata(tmp);
         write(".gitignore", "out/\n");
         touch("out/a.class", "out/sub/b.class", "src/c.java");
         assertEquals(List.of(".gitignore", "src/c.java"), walk());

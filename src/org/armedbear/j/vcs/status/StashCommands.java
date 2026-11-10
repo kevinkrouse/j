@@ -49,6 +49,7 @@ import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.log.LogCommit;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -139,7 +140,7 @@ public final class StashCommands {
         final boolean selected = status != null && Region.isSelection(at);
         final boolean picked = !selected && status != null && !status.picks().isEmpty();
         final boolean refused = selected
-                ? StatusActions.targets(status.model(), at, false).stream().anyMatch(t -> !(t instanceof StatusActions.Files))
+                ? StatusActions.targets(status.model(), at, false).stream().anyMatch(t -> !(t instanceof Target.Files))
                 : picked && status.picks().hasParts();
         final String taking = refused
                 ? "Stash: hunks or lines are " + (selected ? "selected" : "picked") + ", a stash takes whole files"
@@ -236,8 +237,8 @@ public final class StashCommands {
     // the picked; hunks or lines refused.
     private static void saveSelected(Editor editor, VcsStatusBuffer status, Set<StashOption> options) {
         final Map<String, StatusPicks.Pick> files = new LinkedHashMap<>();
-        for (StatusActions.Target t : StatusActions.targets(status.model(), editor, false)) {
-            if (!(t instanceof StatusActions.Files f)) {
+        for (Target t : StatusActions.targets(status.model(), editor, false)) {
+            if (!(t instanceof Target.Files f)) {
                 editor.status("A stash takes whole files: hunks or lines are selected");
                 return;
             }
