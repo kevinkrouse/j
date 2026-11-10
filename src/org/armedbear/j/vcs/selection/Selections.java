@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.armedbear.j.vcs.VcsBackend.ChangeVersion;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
@@ -48,6 +49,130 @@ import org.armedbear.j.vcs.status.StatusData.FileItem;
 /** Selection identity and line coordinates, without I/O or presentation state. */
 public final class Selections {
     private Selections() {}
+
+    /**
+     * Compares a repository's selections and the versions staging them produces.
+     * Versions include every selected path, even when a side is absent.
+     */
+    public static boolean sameChanges(
+            List<Target> reviewed,
+            Map<String, ChangeVersion> before,
+            List<Target> current,
+            Map<String, ChangeVersion> after) {
+        if (!before.equals(after))
+            return false;
+        return sameSelection(reviewed, current, before);
+    }
+
+    /** Compares the captured selection without repository reads. */
+    public static boolean sameSelection(List<Target> reviewed, List<Target> current) {
+        return sameSelection(reviewed, current, null);
+    }
+
+    private static boolean sameSelection(
+            List<Target> reviewed,
+            List<Target> current,
+            Map<String, ChangeVersion> versions) {
+        final Map<FileDiff, Hunks> indexes = new IdentityHashMap<>();
+        final Map<FileDiff, Map<Hunk, String>> reverse = new IdentityHashMap<>();
+        final Map<FileKey, Chosen> a = chosen(reviewed, versions, indexes, reverse);
+        final Map<FileKey, Chosen> b = chosen(current, versions, indexes, reverse);
+        return a != null && b != null && a.equals(b);
+    }
+
+    private record Piece(Content content, int twins, LineSet lines, List<Integer> baseRows) {}
+
+    private record Chosen(String original, char letter, boolean staged, Map<String, Piece> parts) {}
+
+    private static Map<FileKey, Chosen> chosen(
+            List<Target> targets,
+            Map<String, ChangeVersion> versions,
+            Map<FileDiff, Hunks> indexes,
+            Map<FileDiff, Map<Hunk, String>> reverse) {
+        final Builder builder = new Builder();
+        for (Target target : targets)
+            if (target instanceof Target.Files files)
+                for (FileItem file : files.files())
+                    builder.file(target.repository(), target.section(), file);
+            else {
+                final Target.Part part = (Target.Part) target;
+                builder.lines(part.repository(), part.section(), part.file(), part.hunk(), part.lines());
+            }
+        final Map<FileKey, Chosen> result = new HashMap<>();
+        for (Target target : builder.build()) {
+            final List<FileItem> files =
+                    target instanceof Target.Files whole ? whole.files() : List.of(((Target.Part) target).file());
+            for (FileItem file : files) {
+                final FileKey key = new FileKey(target.repository(), target.section(), file.path());
+                if (file.diffError() != null || versions != null && !versions.containsKey(file.path()))
+                    return null;
+                final boolean whole = target instanceof Target.Files;
+                final Chosen chosen = result.computeIfAbsent(
+                    key,
+                    k -> new Chosen(file.change().origPath(),
+                            file.letter(),
+                            file.staged(),
+                            whole ? null : new HashMap<>()));
+                if (whole)
+                    continue;
+                final Target.Part part = (Target.Part) target;
+                final FileDiff diff = file.diff();
+                if (diff == null || diff.isBinary() || diff.isCombined())
+                    return null;
+                final Hunks index = indexes.computeIfAbsent(diff, Selections::index);
+                final Map<Hunk, String> ids = reverse.computeIfAbsent(diff, d -> {
+                    final Map<Hunk, String> map = new IdentityHashMap<>();
+                    index.hunks().forEach((id, hunk) -> map.put(hunk, id));
+                    return map;
+                });
+                final String id = ids.get(part.hunk());
+                if (id == null)
+                    return null;
+                final BitSet lines = part.lines();
+                final BitSet selected = lines == null ? new BitSet() : lines;
+                if (lines == null)
+                    selected.set(0, part.hunk().lines().size());
+                chosen.parts()
+                        .put(
+                            id,
+                            new Piece(index.contents().get(id),
+                                    index.twins().get(id),
+                                    changedLines(part.hunk(), selected),
+                                    baseRows(part.hunk(), selected)));
+            }
+        }
+        return result;
+    }
+
+    // Removals identify a base row. Additions identify the gap before the
+    // next base row. Context width and working-tree row shifts do not matter.
+    private static List<Integer> baseRows(Hunk hunk, BitSet selected) {
+        final List<Integer> rows = new ArrayList<>();
+        int row = hunk.oldRow();
+        for (int i = 0; i < hunk.lines().size(); i++) {
+            final DiffLine line = hunk.lines().get(i);
+            if (!line.isContext() && (selected == null || selected.get(i)))
+                rows.add(row);
+            if (line.isOld())
+                row++;
+        }
+        return rows;
+    }
+
+    /**
+     * A ready resolution preserves input order. Commit captures must still
+     * describe the same base locations after hunk matching remaps context.
+     */
+    public static boolean sameBaseLocations(List<Target> captured, List<Target> resolved) {
+        if (captured.size() != resolved.size())
+            return false;
+        for (int i = 0; i < captured.size(); i++)
+            if (captured.get(i) instanceof Target.Part before
+                    && (!(resolved.get(i) instanceof Target.Part after)
+                            || !baseRows(before.hunk(), before.lines()).equals(baseRows(after.hunk(), after.lines()))))
+                return false;
+        return true;
+    }
 
     /** Collects one selection without cloning a growing line set for each selected row. */
     public static final class Builder {

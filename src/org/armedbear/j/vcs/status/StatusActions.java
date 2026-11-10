@@ -694,10 +694,16 @@ public final class StatusActions {
         // would stage what the file no longer holds.
         if (!stillThere(r, p))
             return p.file().path() + " changed since it was shown; look again";
+        return applyPart(op, p);
+    }
+
+    // The caller has already checked the selected hunk against the working diff.
+    static String applyPart(Op op, Part p) {
         final byte[] patch = patch(p, op != Op.STAGE);
         if (patch == null)
             return "Those lines change nothing";
-        return failure(b, b.apply(r, patch, true, false, op == Op.UNSTAGE));
+        final VcsRepository r = p.repository();
+        return failure(r.backend(), r.backend().apply(r, patch, true, false, op == Op.UNSTAGE));
     }
 
     private static byte[] patch(Part p, boolean reverse) {

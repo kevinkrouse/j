@@ -166,10 +166,13 @@ public class GitWritesTest {
     }
 
     private VcsBackend.PrivateCommit commit(VcsRepository r) {
-        return GitWrites.commitPrivately(r, r.backend().stateDirectory(r), List.of("a.txt"), () -> {
+        final java.util.function.Supplier<String> stage = () -> {
             var staged = GitWrites.stage(r, List.of("a.txt"));
             return staged.succeeded() ? null : staged.stderr();
-        }, "selected", Set.of());
+        };
+        final var preview = r.backend().previewCommit(r, r.snapshotNow().head(), List.of("a.txt"), stage);
+        assertNull(preview.failure());
+        return r.backend().commitPrivately(r, List.of("a.txt"), preview.versions(), stage, "selected", Set.of());
     }
 
     @Test

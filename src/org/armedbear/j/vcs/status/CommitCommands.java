@@ -327,11 +327,46 @@ public final class CommitCommands {
         // What is staged it leaves alone: no -a; nor an empty commit.
         final Set<CommitOption> options = options(editor);
         options.removeAll(EnumSet.of(CommitOption.ALL, CommitOption.ALLOW_EMPTY));
-        final List<VcsRepository> repositories = List.copyOf(plan.targets().keySet());
-        final CommitMessageBuffer buffer =
-                open(editor, status, repositories, options, null, partial.template(message, plan, repositories));
-        if (buffer != null)
-            buffer.setPartial(partial, plan);
+        final var source = editor.getBuffer();
+        editor.status("Reading the selected changes…");
+        review(editor, partial, plan, reviewed -> {
+            if (reviewed == null || editor.getBuffer() != source)
+                return;
+            final List<VcsRepository> repositories = List.copyOf(reviewed.targets().keySet());
+            final CommitMessageBuffer buffer = open(
+                editor,
+                status,
+                repositories,
+                options,
+                null,
+                partial.template(message, reviewed, repositories));
+            if (buffer != null)
+                buffer.setPartial(partial, reviewed);
+        });
+    }
+
+    // One bounded background read. A UI selection changed during the read
+    // requires a fresh invocation, rather than committing a mixture of both.
+    private static void review(
+            Editor editor,
+            PartialCommit partial,
+            PartialCommit.Plan captured,
+            java.util.function.Consumer<PartialCommit.Plan> then) {
+        Background.then("vcs commit review", () -> partial.review(captured), read -> {
+            PartialCommit.Plan ready = null;
+            try {
+                if (read == null || read.failure() != null)
+                    editor.status(read == null ? "Could not read the selected changes" : read.failure());
+                else if (!captured.sameSelection(partial.plan()))
+                    editor.status("The selection changed while it was being read: review it again");
+                else
+                    ready = read.plan();
+            }
+            catch (PartialCommit.Refused e) {
+                editor.status(e.getMessage());
+            }
+            then.accept(ready);
+        });
     }
 
     // The message's text with message as its message, as it was opened:
@@ -552,38 +587,61 @@ public final class CommitCommands {
         // Part of the changes: what it takes worked out as things are now,
         // in those of its repositories it still commits to.
         final PartialCommit partial = buffer == null ? null : buffer.getPartial();
-        final PartialCommit.Plan plan;
-        final List<VcsRepository> committing;
         if (partial != null) {
+            final PartialCommit.Plan captured;
             try {
-                plan = partial.plan();
+                captured = partial.plan();
             }
             catch (PartialCommit.Refused e) {
                 editor.status(e.getMessage());
                 return;
             }
-            committing = repositories.stream().filter(plan.targets()::containsKey).toList();
-            if (committing.isEmpty()) {
-                editor.status("Nothing of " + partial.what() + " is left to commit");
-                return;
-            }
-            // What it takes changed since it was shown, as a file edited or
-            // picked meanwhile: shown again, to commit as it is shown.
-            final String shown = templateOf(buffer, message);
-            buffer.setPartial(partial, plan);
-            if (!committing.equals(buffer.getRepositories()))
+            buffer.setCommitting(true);
+            editor.status("Checking the selected changes…");
+            review(editor, partial, captured, plan -> {
+                buffer.setCommitting(false);
+                if (plan == null || buffer.isClosing())
+                    return;
+                final List<VcsRepository> committing =
+                        repositories.stream().filter(plan.targets()::containsKey).toList();
+                if (committing.isEmpty()) {
+                    editor.status("Nothing of " + partial.what() + " is left to commit");
+                    return;
+                }
+                final boolean same = buffer.getPlan().sameChanges(plan, repositories);
+                buffer.setPartial(partial, plan);
                 buffer.setRepositories(committing);
-            final String now = templateOf(buffer, message);
-            if (!now.equals(shown)) {
-                for (Editor ed : Editor.getEditorList())
-                    if (ed.getBuffer() == buffer)
-                        replace(ed, buffer, partial.retemplate(buffer.getText(), plan, committing));
-                editor.status("What it commits changed since it was shown: Ctrl Enter commits it as it is now");
-                return;
-            }
-        } else {
-            plan = null;
-            committing = repositories;
+                if (!same) {
+                    for (Editor ed : Editor.getEditorList())
+                        if (ed.getBuffer() == buffer)
+                            replace(ed, buffer, partial.retemplate(buffer.getText(), plan, committing));
+                    editor.status("What it commits changed since it was shown: Ctrl Enter commits it as it is now");
+                    return;
+                }
+                final String currentMessage = buffer.getMessage();
+                if (currentMessage.isEmpty()) {
+                    editor.status("The message is empty");
+                    return;
+                }
+                executeCommit(editor, status, committing, currentMessage, options, buffer, partial, plan);
+            });
+            return;
+        }
+        executeCommit(editor, status, repositories, message, options, buffer, null, null);
+    }
+
+    private static void executeCommit(
+            Editor editor,
+            RepositoryStatus status,
+            List<VcsRepository> committing,
+            String message,
+            Set<CommitOption> options,
+            CommitMessageBuffer buffer,
+            PartialCommit partial,
+            PartialCommit.Plan plan) {
+        if (status != null && status.isWriting()) {
+            editor.status("Wait: the last change is still being made");
+            return;
         }
         if (buffer != null)
             buffer.setCommitting(true);

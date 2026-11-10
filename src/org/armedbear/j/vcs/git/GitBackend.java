@@ -445,13 +445,24 @@ public final class GitBackend implements VcsBackend {
     }
 
     @Override
+    public CommitPreview previewCommit(
+            VcsRepository repository,
+            String base,
+            List<String> paths,
+            Supplier<String> stage) {
+        return GitWrites.previewCommit(repository, stateDirectory(repository), base, paths, stage);
+    }
+
+    @Override
     public PrivateCommit commitPrivately(
             VcsRepository repository,
             List<String> paths,
+            Map<String, ChangeVersion> reviewed,
             Supplier<String> stage,
             String message,
             Set<CommitOption> options) {
-        return GitWrites.commitPrivately(repository, stateDirectory(repository), paths, stage, message, options);
+        return GitWrites
+                .commitPrivately(repository, stateDirectory(repository), paths, reviewed, stage, message, options);
     }
 
     @Override

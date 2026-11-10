@@ -21,7 +21,9 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -30,9 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.armedbear.j.CommentRing;
+import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.CommitOption;
+import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackend.ChangeVersion;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.changelists.Changelists;
@@ -68,7 +73,7 @@ final class PartialCommit {
         this.model = model;
         this.repository = repository;
         this.list = list;
-        this.given = given;
+        this.given = given == null ? null : List.copyOf(given);
     }
 
     /** A commit of r's changelist list. */
@@ -100,7 +105,84 @@ final class PartialCommit {
      * What it takes, by repository, one commit each: its targets, and of
      * picks, the keys of those it takes, unpicked as each is committed.
      */
-    record Plan(Map<VcsRepository, List<Target>> targets, Map<VcsRepository, Set<StatusPicks.Key>> picks) {}
+    record Plan(Map<VcsRepository, List<Target>> targets, Map<VcsRepository, Set<StatusPicks.Key>> picks,
+            Map<VcsRepository, Map<String, ChangeVersion>> versions) {
+        Plan(Map<VcsRepository, List<Target>> targets, Map<VcsRepository, Set<StatusPicks.Key>> picks) {
+            this(targets, picks, Map.of());
+        }
+
+        Plan {
+            final Map<VcsRepository, List<Target>> ts = new LinkedHashMap<>();
+            targets.forEach((r, selected) -> ts.put(r, List.copyOf(selected)));
+            targets = Collections.unmodifiableMap(ts);
+            final Map<VcsRepository, Set<StatusPicks.Key>> ps = new HashMap<>();
+            picks.forEach((r, keys) -> ps.put(r, Set.copyOf(keys)));
+            picks = Map.copyOf(ps);
+            versions = Map.copyOf(versions);
+        }
+
+        boolean sameChanges(Plan current, Collection<VcsRepository> repositories) {
+            for (VcsRepository r : repositories)
+                if (!Selections.sameChanges(
+                    targets.getOrDefault(r, List.of()),
+                    versions.getOrDefault(r, Map.of()),
+                    current.targets.getOrDefault(r, List.of()),
+                    current.versions.getOrDefault(r, Map.of())))
+                    return false;
+            return true;
+        }
+
+        // Check that the UI did not change its selection during the background preview.
+        boolean sameSelection(Plan current) {
+            final List<Target> before = targets.values().stream().flatMap(List::stream).toList();
+            final List<Target> after = current.targets.values().stream().flatMap(List::stream).toList();
+            return Selections.sameSelection(before, after);
+        }
+    }
+
+    record Review(Plan plan, String failure) {}
+
+    /** Fresh selected diffs and complete versions for review; off the event thread. */
+    Review review(Plan captured) {
+        final Map<VcsRepository, List<Target>> targets = new LinkedHashMap<>();
+        final Map<VcsRepository, Map<String, ChangeVersion>> versions = new HashMap<>();
+        for (var entry : captured.targets().entrySet()) {
+            final VcsRepository r = entry.getKey();
+            final Set<String> partial = new HashSet<>();
+            final Set<String> paths = new HashSet<>(paths(entry.getValue()));
+            for (Target target : entry.getValue())
+                if (target instanceof Part part)
+                    partial.add(part.file().path());
+            r.invalidateFiles();
+            final Snapshot snapshot = r.snapshotNow();
+            if (snapshot.error() != null)
+                return new Review(null, snapshot.error());
+            final StatusData fresh =
+                    r.backend().readStatus(r, (section, path) -> partial.contains(path), Whitespace.NONE);
+            if (fresh == null || fresh.error() != null)
+                return new Review(null, fresh == null ? "Could not read the selected files" : fresh.error());
+            for (StatusData.Section section : fresh.sections())
+                for (StatusData.Item item : section.items())
+                    if (item instanceof FileItem file
+                            && file.staged()
+                            && (paths.contains(file.path()) || paths.contains(file.change().origPath())))
+                        return new Review(null,
+                                file.path() + " has staged changes: c c commits them, or u unstages them");
+            final Selections.Resolution resolved = Selections.resolve(entry.getValue(), Map.of(r, fresh), key -> true);
+            if (!resolved.ready())
+                return new Review(null, resolved.failure());
+            if (!Selections.sameBaseLocations(entry.getValue(), resolved.targets()))
+                return new Review(null, "A selected change moved to a different base location: select it again");
+            final List<Target> selected = resolved.targets();
+            final VcsBackend.CommitPreview preview =
+                    r.backend().previewCommit(r, snapshot.head(), paths(selected), () -> stage(r, selected, true));
+            if (preview.failure() != null)
+                return new Review(null, preview.failure());
+            targets.put(r, selected);
+            versions.put(r, preview.versions());
+        }
+        return new Review(new Plan(targets, captured.picks(), versions), null);
+    }
 
     /** Why it can't be committed, as a plan finds it. */
     static final class Refused extends Exception {
@@ -132,6 +214,8 @@ final class PartialCommit {
                     model.resolveTargets(given, ignored -> {});
                 throw new Refused(resolved.failure());
             }
+            if (!Selections.sameBaseLocations(given, resolved.targets()))
+                throw new Refused("A selected change moved to a different base location: select it again");
             for (Target t : resolved.targets())
                 targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
             for (VcsRepository r : targets.keySet())
@@ -220,12 +304,39 @@ final class PartialCommit {
         sb.append(LEFT_OUT).append('\n');
         sb.append("# Commits ").append(what()).append(" alone; what is staged stays staged:\n");
         for (VcsRepository r : repositories) {
-            final Set<String> paths = new LinkedHashSet<>();
-            for (Target t : plan.targets().getOrDefault(r, List.of()))
+            final Map<String, String> labels = new LinkedHashMap<>();
+            final Set<String> whole = new HashSet<>();
+            final Map<String, int[]> counts = new HashMap<>();
+            for (Target t : plan.targets().getOrDefault(r, List.of())) {
                 for (FileItem f : files(t))
-                    paths.add(f.letter() + "  " + f.path());
-            for (String p : paths)
-                sb.append("#   ").append(plan.targets().size() > 1 ? r.name() + ": " : "").append(p).append('\n');
+                    labels.putIfAbsent(f.path(), f.letter() + "  " + f.path());
+                if (t instanceof Files files)
+                    for (FileItem f : files.files())
+                        whole.add(f.path());
+                else {
+                    final Part part = (Part) t;
+                    final int[] count = counts.computeIfAbsent(part.file().path(), k -> new int[2]);
+                    count[0]++;
+                    final BitSet selected = part.lines();
+                    for (int i = 0; i < part.hunk().lines().size(); i++)
+                        if (!part.hunk().lines().get(i).isContext() && (selected == null || selected.get(i)))
+                            count[1]++;
+                }
+            }
+            labels.forEach((path, label) -> {
+                sb.append("#   ").append(repositories.size() > 1 ? r.name() + ": " : "").append(label);
+                if (whole.contains(path))
+                    sb.append(" (whole file)");
+                else {
+                    final int[] count = counts.get(path);
+                    sb.append(" (")
+                            .append(count[0])
+                            .append(count[0] == 1 ? " hunk, " : " hunks, ")
+                            .append(count[1])
+                            .append(count[1] == 1 ? " changed line)" : " changed lines)");
+                }
+                sb.append('\n');
+            });
         }
         return sb.toString();
     }
@@ -246,26 +357,31 @@ final class PartialCommit {
     /** Commits plan's changes in r, each path committed then set in r's index as committed; off the event thread. */
     Done commit(Plan plan, VcsRepository r, String message, Set<CommitOption> options) {
         final List<Target> ts = plan.targets().get(r);
-        // A file renamed: its old path too, as its removal.
-        final Set<String> paths = new LinkedHashSet<>();
-        for (Target t : ts)
-            for (FileItem f : files(t)) {
-                paths.add(f.path());
-                if (f.change().origPath() != null)
-                    paths.add(f.change().origPath());
-            }
         final VcsBackend b = r.backend();
         final VcsBackend.PrivateCommit done =
-                b.commitPrivately(r, List.copyOf(paths), () -> stage(r, ts), message, options);
+                b.commitPrivately(r, paths(ts), plan.versions().get(r), () -> stage(r, ts, false), message, options);
         return done == null ? new Done(null, null) : new Done(done.result(), done.trouble());
+    }
+
+    private static List<String> paths(List<Target> targets) {
+        final Set<String> paths = new LinkedHashSet<>();
+        for (Target target : targets)
+            for (FileItem file : files(target)) {
+                paths.add(file.path());
+                if (file.change().origPath() != null)
+                    paths.add(file.change().origPath());
+            }
+        return List.copyOf(paths);
     }
 
     // ts staged in r, as s stages them, a renamed file's old path with it:
     // what went wrong, or null.
-    private static String stage(VcsRepository r, List<Target> ts) {
+    private static String stage(VcsRepository r, List<Target> ts, boolean preview) {
         final List<String> old = new ArrayList<>();
         for (Target t : ts) {
-            final String failed = StatusActions.perform(Op.STAGE, t);
+            final String failed = preview && t instanceof Part part
+                    ? StatusActions.applyPart(Op.STAGE, part)
+                    : StatusActions.perform(Op.STAGE, t);
             if (failed != null)
                 return failed;
             if (t instanceof Files f)

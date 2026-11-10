@@ -461,6 +461,15 @@ what is already staged, use <b>c c</b> instead.</li>
 </ol>
 
 <p>
+A changelist or picked commit checks its current selection again at
+<b>Ctrl Enter</b>. If its hunks, picked lines, whole-file content or file
+metadata changed while you wrote the message, it updates the review and
+waits for another <b>Ctrl Enter</b>. The message is kept. Committing an
+explicit hunk or line selection keeps those particular changes; if they
+can no longer be identified, select them again. Changes elsewhere can move
+the selected hunk without invalidating it.
+
+<p>
 These status keys work in both edit modes. In a diff pane or a comparison,
 vim's <b>;</b> keeps its normal meaning unless there is a visual selection;
 use <b>Insert</b> or the boxes to pick there. Right-click a file or a

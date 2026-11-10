@@ -3499,24 +3499,52 @@ plan with why it is left, before the next phase starts.
    - **e. Compare commit selections semantically.** Replace the message
      template comparison with `Selections.sameChanges` on the reviewed and
      newly resolved commit targets. Compare selected content, line sets,
-     paths, relevant file metadata and base versions, not display context,
-     line numbers, timestamps or a refresh generation. Read whatever is
-     needed to compare whole-file targets, including non-textual changes;
-     an unread target cannot count as unchanged. The message template is
-     generated from the selection, never used as its identity.
+     paths, relevant file metadata and base versions. Use base coordinates
+     for identity and allow display context and working-tree rows to shift.
+     Read whole-file versions for non-textual changes as well as text.
+     Comparison requires a successful read for every target. Generate the
+     message template from the selection.
 
      A changelist commit resolves its current membership at Ctrl Enter;
      committing explicit lines resolves those particular captured changes.
      A different selection redraws the review and waits for another Ctrl
      Enter. Include a useful description of changed hunks or line counts
-     even when the filenames are unchanged. Leave private-index execution
-     and its backend safety checks in place.
+     even when the filenames are unchanged. Verify the private index
+     against the confirmed review before committing.
 
      Tests: adding or removing a second picked hunk in one file; changing
      picked lines within one hunk; changelist membership changing within
      one file; whole-file content and metadata changes; an unchanged
      selection moving in the display; stale explicit hunks refused; staged
      changes elsewhere remaining staged in real-repository commit tests.
+
+     Built: `Selections.sameChanges` compares typed file keys, canonical
+     hunk occurrences, selected line sets and their positions in the base.
+     The positions distinguish identical edits at different base locations
+     and allow working-tree rows and display context to shift. Explicit
+     partial selections whose base locations changed require reselection.
+
+     `VcsBackend.previewCommit` supplies opaque base and staged versions.
+     Git initializes a temporary index from HEAD and stages the selection
+     with the same add and patch operations used for the commit. This
+     captures Git's index-aware clean conversion, executable bit, and
+     gitlink handling. It also captures mode and rename metadata only when
+     the selected patch stages it. The preview leaves the real index alone
+     and can write unreferenced blobs to Git's object store.
+
+     The initial review and Ctrl Enter preview the selection in the
+     background. A changed preview redraws the review and preserves the
+     draft for another Ctrl Enter. Before committing to each repository,
+     Git stages into a private index and checks the result against the
+     confirmed versions. Edits made after confirmation can cause staging
+     to fail or the versions to differ. Both cases preserve the draft for
+     the affected repository.
+
+     Tests cover same-file hunk and line changes, base locations, staged
+     patch metadata, CRLF conversion, executable modes, new gitlinks, and
+     an earlier repository's hook editing a later repository's selected
+     file. The full suite passed all 2,664 tests, and formatting checks
+     passed. Phase 10 k remains open.
 
    - **f. Share move and drag validation.** Give changelist moves one
      entry point taking extracted targets and a destination. It resolves

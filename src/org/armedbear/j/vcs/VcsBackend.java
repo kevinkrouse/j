@@ -14,6 +14,8 @@ package org.armedbear.j.vcs;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
@@ -79,6 +81,35 @@ public interface VcsBackend {
      */
     default List<FileDiff> readDiff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
         return null;
+    }
+
+    /** Opaque content identity and versioned properties (for example mode or SVN properties). */
+    record FileVersion(String content, String properties) {
+        public FileVersion {
+            Objects.requireNonNull(content);
+            Objects.requireNonNull(properties);
+        }
+    }
+
+    /** Versions before and after staging a selection. A null side means known absent. */
+    record ChangeVersion(FileVersion base, FileVersion staged) {}
+
+    record CommitPreview(Map<String, ChangeVersion> versions, String failure) {
+        public CommitPreview {
+            versions = Map.copyOf(versions);
+        }
+    }
+
+    /**
+     * Runs stage against the given base revision in isolation, off the event thread.
+     * A successful preview has a version for every literal path, including absences.
+     */
+    default CommitPreview previewCommit(
+            VcsRepository repository,
+            String base,
+            List<String> paths,
+            Supplier<String> stage) {
+        return new CommitPreview(Map.of(), "This version control system cannot preview the selected commit");
     }
 
     // Writes, run off the event thread at the repository's root. Each
@@ -168,6 +199,7 @@ public interface VcsBackend {
      * Commits with message the changes of paths that stage, run here,
      * stages into a private index, the repository's set to HEAD, as it
      * would the repository's own; stage says what went wrong, or null. The
+     * staged changes must match the reviewed versions before committing. The
      * repository's index left alone but for paths, set as committed; and
      * refused, as the index has it now, with a conflict, or something of
      * paths staged. stage must make its writes on the calling thread,
@@ -177,6 +209,7 @@ public interface VcsBackend {
     default PrivateCommit commitPrivately(
             VcsRepository repository,
             List<String> paths,
+            Map<String, ChangeVersion> reviewed,
             Supplier<String> stage,
             String message,
             Set<CommitOption> options) {

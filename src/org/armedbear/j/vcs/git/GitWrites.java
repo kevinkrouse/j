@@ -36,6 +36,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +50,9 @@ import org.armedbear.j.vcs.Finish;
 import org.armedbear.j.vcs.MergeOption;
 import org.armedbear.j.vcs.StashOption;
 import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackend.ChangeVersion;
+import org.armedbear.j.vcs.VcsBackend.CommitPreview;
+import org.armedbear.j.vcs.VcsBackend.FileVersion;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.log.LogRef;
@@ -448,22 +452,37 @@ final class GitWrites {
                 args.toArray(new String[0])));
     }
 
-    /**
-     * As VcsBackend.commitPrivately: the private index a file in dir, a
-     * copy of the repository's made HEAD's tree (`read-tree -i -m`, the
-     * index alone, so entries the work tree has changed don't stop it, and
-     * unchanged entries keep their file data), as git's commit of paths
-     * makes its own; none before the first commit. Gone after.
-     */
+    static CommitPreview previewCommit(
+            VcsRepository repository,
+            Path dir,
+            String base,
+            List<String> paths,
+            Supplier<String> stage) {
+        if (dir == null)
+            return previewFailed("Couldn't locate the repository's private index directory");
+        final String refused = refusal(repository, paths);
+        if (refused != null)
+            return previewFailed(refused);
+        try {
+            return withPrivateIndex(dir, () -> stageSelection(repository, base, paths, stage));
+        }
+        catch (IOException e) {
+            return previewFailed("Couldn't make a private index: " + e.getMessage());
+        }
+    }
+
     static VcsBackend.PrivateCommit commitPrivately(
             VcsRepository repository,
             Path dir,
             List<String> paths,
+            Map<String, ChangeVersion> reviewed,
             Supplier<String> stage,
             String message,
             Set<CommitOption> options) {
         if (dir == null)
             return null;
+        if (options.contains(CommitOption.ALL) || options.contains(CommitOption.MESSAGE_ONLY))
+            return new VcsBackend.PrivateCommit(failed("Selected commits must use the reviewed index"), null);
         // No commit yet only if HEAD is missing, not if it couldn't be read:
         // a tree from nothing would drop every other file.
         final VcsResult head = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "-q", "HEAD"));
@@ -480,30 +499,13 @@ final class GitWrites {
         final String refused = refusal(repository, paths);
         if (refused != null)
             return new VcsBackend.PrivateCommit(failed(refused), null);
-        Path index = null;
         try {
-            Files.createDirectories(dir);
-            forgetOld(dir);
-            index = Files.createTempFile(dir, "commit-index-", "");
-            final Path real = realIndex(repository);
-            if (born && real != null && Files.isRegularFile(real))
-                Files.copy(real, index, StandardCopyOption.REPLACE_EXISTING);
-            else
-                // git makes it: an empty file is no index.
-                Files.delete(index);
-            final Path in = index;
-            final VcsResult result = GitCli.withIndex(in, () -> {
-                final VcsResult read =
-                        run(repository, born ? args("read-tree", "-i", "-m", "HEAD") : args("read-tree", "--empty"));
-                if (!read.succeeded())
-                    return read;
-                final String failed = stage.get();
-                if (failed != null)
-                    return failed(failed);
-                // A commit made meanwhile would be this one's parent, its
-                // changes undone by a tree from before it.
-                if (!Objects.equals(before, headNow(repository)))
-                    return failed("HEAD moved as this was staged: commit again");
+            final VcsResult result = withPrivateIndex(dir, () -> {
+                final CommitPreview staged = stageSelection(repository, before, paths, stage);
+                if (staged.failure() != null)
+                    return failed(staged.failure());
+                if (!reviewed.equals(staged.versions()))
+                    return failed("The staged changes differ from the review: check the selection and commit again");
                 return commit(repository, message, options);
             });
             if (!result.succeeded())
@@ -521,16 +523,94 @@ final class GitWrites {
             Log.error(e);
             return new VcsBackend.PrivateCommit(failed("Couldn't make a private index: " + e.getMessage()), null);
         }
-        finally {
-            if (index != null)
-                try {
-                    Files.deleteIfExists(index);
-                    Files.deleteIfExists(index.resolveSibling(index.getFileName() + ".lock"));
-                }
-                catch (IOException e) {
-                    Log.error(e);
-                }
+    }
+
+    private static <T> T withPrivateIndex(Path dir, Supplier<T> operation) throws IOException {
+        Files.createDirectories(dir);
+        forgetOld(dir);
+        final Path index = Files.createTempFile(dir, "commit-index-", "");
+        try {
+            // Read a fresh base index without a copied stat cache. Git add
+            // must read the selected working files, including same-size edits.
+            Files.delete(index);
+            return GitCli.withIndex(index, operation);
         }
+        finally {
+            try {
+                Files.deleteIfExists(index);
+                Files.deleteIfExists(index.resolveSibling(index.getFileName() + ".lock"));
+            }
+            catch (IOException e) {
+                Log.error(e);
+            }
+        }
+    }
+
+    private static CommitPreview stageSelection(
+            VcsRepository repository,
+            String base,
+            List<String> paths,
+            Supplier<String> stage) {
+        if (paths.isEmpty())
+            return previewFailed("No paths were selected for review");
+        final VcsResult read = run(repository, base == null ? args("read-tree", "--empty") : args("read-tree", base));
+        if (!read.succeeded())
+            return previewFailed("Couldn't read the base tree: " + firstLine(read));
+        final Map<String, FileVersion> before = privateVersions(repository, paths);
+        if (before == null)
+            return previewFailed("Couldn't read the selected paths in the base tree");
+        final String failure = stage.get();
+        if (failure != null)
+            return previewFailed(failure);
+        final Map<String, FileVersion> after = privateVersions(repository, paths);
+        if (after == null)
+            return previewFailed("Couldn't read the staged versions of the selected paths");
+        // A tree from an earlier HEAD could undo an unrelated commit.
+        final VcsResult head = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "-q", "HEAD"));
+        if (head.succeeded()
+                ? !head.out().strip().equals(base)
+                : base != null || head.exitCode() != 1 || !head.stderr().isBlank())
+            return previewFailed("HEAD moved as this was staged: commit again");
+        final Map<String, ChangeVersion> versions = new HashMap<>();
+        for (String path : paths) {
+            final FileVersion staged = after.get(indexPath(path));
+            if (path.endsWith("/") && (staged == null || !staged.properties().equals("160000")))
+                return previewFailed(path + " is no longer a nested repository");
+            versions.put(path, new ChangeVersion(before.get(indexPath(path)), staged));
+        }
+        return new CommitPreview(versions, null);
+    }
+
+    private static CommitPreview previewFailed(String message) {
+        return new CommitPreview(Map.of(), message);
+    }
+
+    // Status includes a slash after a new gitlink. The index uses its bare path.
+    private static String indexPath(String path) {
+        return path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+    }
+
+    private static Map<String, FileVersion> privateVersions(VcsRepository repository, List<String> paths) {
+        final Map<String, FileVersion> versions = new HashMap<>();
+        final List<String> indexPaths = paths.stream().map(GitWrites::indexPath).distinct().toList();
+        final Set<String> selected = new HashSet<>(indexPaths);
+        for (int from = 0; from < indexPaths.size(); from += GitStatusReader.BATCH) {
+            final List<String> args = args("--literal-pathspecs", "ls-files", "--stage", "-z", "--");
+            args.addAll(indexPaths.subList(from, Math.min(from + GitStatusReader.BATCH, indexPaths.size())));
+            final VcsResult read = GitCli.run(GitCli.readPrivateIndex(repository.root(), args.toArray(String[]::new)));
+            if (!read.succeeded())
+                return null;
+            for (String entry : read.out().split("\0")) {
+                if (entry.isEmpty())
+                    continue;
+                // "mode object stage TAB path", with a literal NUL-terminated path.
+                final String[] fields = entry.split("[ \t]", 4);
+                if (fields.length != 4 || !fields[2].equals("0") || !selected.contains(fields[3]))
+                    return null;
+                versions.put(fields[3], new FileVersion(fields[1], fields[0]));
+            }
+        }
+        return versions;
     }
 
     private static VcsResult failed(String why) {

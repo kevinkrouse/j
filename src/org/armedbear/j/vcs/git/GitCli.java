@@ -86,6 +86,12 @@ public final class GitCli {
     // The index this thread's writes take in place of the repository's, or null.
     private static final ThreadLocal<Path> privateIndex = new ThreadLocal<>();
 
+    static VcsCommand readPrivateIndex(Path root, String... args) {
+        final Map<String, String> environment = new HashMap<>(env(READ_ENV));
+        environment.put("GIT_INDEX_FILE", privateIndex.get().toString());
+        return new VcsCommand(root, argv(args), OPTIONS, environment, null, false, null);
+    }
+
     /**
      * Runs work with this thread's writes, as staging, taking index in
      * place of the repository's own index; reads still take the real one.

@@ -46,6 +46,7 @@ import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -533,6 +534,7 @@ public class PartialCommitTest {
             CommitCommands.vcsCommitFinish(h.editor());
         });
         // Not committed, shown again with it.
+        until(() -> !m.isCommitting());
         assertEquals("first", subject());
         assertTrue(m.getText().contains("#   M  a.txt"), m.getText());
         assertTrue(String.valueOf(h.status()).contains("changed since it was shown"), h.status());
@@ -540,6 +542,228 @@ public class PartialCommitTest {
         until(() -> "Both".equals(subject()));
         assertEquals(CHANGED, git.head("a.txt"));
         assertEquals("new\n", git.head("c.txt"));
+    }
+
+    private StatusData.FileItem readA() throws Exception {
+        onEdt(() -> status.toggle(line("  M  a.txt")));
+        until(() -> status.files(repo(), StatusRenderer.UNSTAGED).get(0).diff() != null);
+        return status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+    }
+
+    private Target.Part part(StatusData.FileItem file, int hunk) {
+        return Target.Part.of(repo(), StatusRenderer.UNSTAGED, file, file.diff().hunks().get(hunk), null);
+    }
+
+    @Test
+    public void addingAndRemovingAPickedHunkInOneFileEachRequireConfirmation() throws Exception {
+        open();
+        final var file = readA();
+        onEdt(() -> {
+            status.picks().set(List.of(part(file, 0)), true);
+            CommitCommands.vcsCommitPicked(h.editor());
+        });
+        until(() -> message() != null);
+        assertTrue(message().getText().contains("1 hunk, 2 changed lines"));
+        onEdt(() -> status.picks().set(List.of(part(file, 1)), true));
+        finish("One file");
+        assertEquals("first", subject());
+        assertTrue(message().getText().contains("2 hunks, 4 changed lines"), message().getText());
+        onEdt(() -> status.picks().set(List.of(part(file, 1)), false));
+        finish("One file");
+        assertEquals("first", subject());
+        assertTrue(message().getText().contains("1 hunk, 2 changed lines"));
+        finish("One file");
+        assertEquals("One file", subject());
+        assertEquals(SIXTY.replace("line 3\n", "line three\n"), git.head("a.txt"));
+        assertEquals("b changed\n", git.index("b.txt"));
+    }
+
+    @Test
+    public void differentPickedLinesWithTheSameHunkAndLineCountsRequireConfirmation() throws Exception {
+        open();
+        git.write("a.txt", CHANGED.replace("line 4\n", "line four\n"));
+        final var file = readA();
+        final Hunk hunk = file.diff().hunks().get(0);
+        final BitSet three = new BitSet(), four = new BitSet();
+        for (int i = 0; i < hunk.lines().size(); i++) {
+            if (hunk.lines().get(i).text().equals("line three"))
+                three.set(i);
+            if (hunk.lines().get(i).text().equals("line four"))
+                four.set(i);
+        }
+        assertFalse(three.isEmpty());
+        assertFalse(four.isEmpty());
+        final var first = Target.Part.of(repo(), StatusRenderer.UNSTAGED, file, hunk, three);
+        final var second = Target.Part.of(repo(), StatusRenderer.UNSTAGED, file, hunk, four);
+        onEdt(() -> {
+            status.picks().set(List.of(first), true);
+            CommitCommands.vcsCommitPicked(h.editor());
+        });
+        until(() -> message() != null);
+        onEdt(() -> {
+            status.picks().clear();
+            status.picks().set(List.of(second), true);
+        });
+        finish("Four");
+        assertEquals("first", subject());
+        assertTrue(String.valueOf(h.status()).contains("changed since it was shown"), h.status());
+        finish("Four");
+        assertEquals(SIXTY.replace("line 4\n", "line four\n"), git.head("a.txt"));
+        assertEquals("b changed\n", git.index("b.txt"));
+    }
+
+    @Test
+    public void addingAHunkToTheSameChangelistFileRequiresConfirmation() throws Exception {
+        open();
+        fiftyInFeature();
+        onEdt(() -> CommitCommands.startPartialList(h.editor(), status.model(), repo(), "Feature"));
+        until(() -> message() != null);
+        final var file = status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+        final Map<String, BitSet> first = new HashMap<>();
+        status.picks().ids(file.diff()).forEach((id, hunk) -> {
+            if (hunk.lines().stream().anyMatch(l -> l.text().equals("line three"))) {
+                final BitSet bits = new BitSet();
+                bits.set(0, hunk.lines().size());
+                first.put(id, bits);
+            }
+        });
+        onEdt(() -> ChangelistCommands.moveFile(status.model(), repo(), "a.txt", first, "Feature", said::add));
+        until(() -> status.model().listed(repo()).members().get("Feature").get(0).only() == null);
+        finish("Feature");
+        assertEquals("first", subject());
+        assertTrue(message().getText().contains("whole file"), message().getText());
+        finish("Feature");
+        assertEquals(CHANGED, git.head("a.txt"));
+        assertEquals("b changed\n", git.index("b.txt"));
+    }
+
+    @Test
+    public void wholeFileEditsWithoutAStatusRefreshRequireConfirmation() throws Exception {
+        open();
+        onEdt(() -> {
+            status.pick(List.of(line("  M  a.txt")));
+            CommitCommands.vcsCommitPicked(h.editor());
+        });
+        until(() -> message() != null);
+        final String edited = CHANGED.replace("line three", "line THREE");
+        git.write("a.txt", edited);
+        finish("Edited");
+        assertEquals("first", subject());
+        assertTrue(String.valueOf(h.status()).contains("changed since it was shown"), h.status());
+        assertTrue(message().getText().startsWith("Edited"), "the draft survives re-review");
+        finish("Edited");
+        assertEquals(edited, git.head("a.txt"));
+        assertEquals("b changed\n", git.index("b.txt"));
+    }
+
+    @Test
+    public void wholeFileModeAndEmptyUntrackedBinaryContentAreReviewed() throws Exception {
+        open();
+        git.write("c.txt", "");
+        onEdt(() -> {
+            status.pick(List.of(line("  M  a.txt"), line("  ?  c.txt")));
+            CommitCommands.vcsCommitPicked(h.editor());
+        });
+        until(() -> message() != null);
+        assertTrue(tmp.resolve("a.txt").toFile().setExecutable(true));
+        finish("Modes and binary");
+        assertEquals("first", subject());
+        git.write("c.txt", "binary\0content");
+        finish("Modes and binary");
+        assertEquals("first", subject());
+        finish("Modes and binary");
+        assertEquals("binary\0content", git.head("c.txt"));
+        assertTrue(git.git("ls-tree", "HEAD", "a.txt").startsWith("100755"));
+        assertEquals("b changed\n", git.index("b.txt"));
+    }
+
+    @Test
+    public void explicitHunksStayCapturedAndRefuseChangedSelectedBytes() throws Exception {
+        open();
+        final var file = readA();
+        onEdt(() -> CommitCommands.commitTargets(h.editor(), status.model(), List.of(part(file, 1))));
+        until(() -> message() != null);
+        git.write("a.txt", CHANGED.replace("line fifty", "line FIFTY"));
+        finish("Stale");
+        assertEquals("first", subject());
+        assertNotNull(message());
+        assertFalse(String.valueOf(h.status()).contains("changed since it was shown"), h.status());
+        assertTrue(String.valueOf(h.status()).contains("changed"), h.status());
+        assertEquals(SIXTY, git.index("a.txt"));
+    }
+
+    @Test
+    public void anIdenticalEditAtAnotherBaseLocationCannotReplaceAnExplicitHunk() throws Exception {
+        open();
+        final String base = SIXTY.replace("line 3\n", "x\n").replace("line 50\n", "x\n");
+        git.write("a.txt", base);
+        git.git("commit", "--only", "-m", "Repeated base", "--", "a.txt");
+        git.write("a.txt", base.replaceFirst("(?m)^x$", "y"));
+        final var file = readA();
+        onEdt(() -> CommitCommands.commitTargets(h.editor(), status.model(), List.of(part(file, 0))));
+        until(() -> message() != null);
+
+        git.write("a.txt", base.replace("x\nline 51", "y\nline 51"));
+        finish("Moved");
+        assertEquals("Repeated base", subject());
+        assertEquals(base, git.index("a.txt"));
+        assertTrue(String.valueOf(h.status()).contains("different base location"), h.status());
+    }
+
+    @Test
+    public void aNewUnselectedHunkChangesWhetherTheSelectedPatchStagesTheMode() throws Exception {
+        open();
+        final String selected = SIXTY.replace("line 3\n", "line three\n");
+        git.write("a.txt", selected);
+        assertTrue(tmp.resolve("a.txt").toFile().setExecutable(true));
+        final var file = readA();
+        assertEquals(1, file.diff().hunks().size());
+        onEdt(() -> CommitCommands.commitTargets(h.editor(), status.model(), List.of(part(file, 0))));
+        until(() -> message() != null);
+
+        git.write("a.txt", CHANGED);
+        finish("Text only");
+        assertEquals("first", subject());
+        assertTrue(String.valueOf(h.status()).contains("changed since it was shown"), h.status());
+        finish("Text only");
+        assertEquals("Text only", subject());
+        assertEquals(selected, git.head("a.txt"));
+        assertTrue(git.git("ls-tree", "HEAD", "a.txt").startsWith("100644"));
+    }
+
+    @Test
+    public void explicitHunkMovingAfterAnUnselectedEditDoesNotNeedAnotherConfirmation() throws Exception {
+        open();
+        final var file = readA();
+        onEdt(() -> CommitCommands.commitTargets(h.editor(), status.model(), List.of(part(file, 1))));
+        until(() -> message() != null);
+        git.write("a.txt", CHANGED.replace("line three\n", "line three\nextra\nrows\n"));
+        finish("Fifty moved");
+        assertEquals("Fifty moved", subject());
+        assertEquals(SIXTY.replace("line 50\n", "line fifty\n"), git.head("a.txt"));
+        assertEquals("b changed\n", git.index("b.txt"));
+    }
+
+    @Test
+    public void aFailedReviewPreservesTheMessageAndCanBeRetried() throws Exception {
+        open();
+        onEdt(() -> {
+            status.pick(List.of(line("  M  a.txt")));
+            CommitCommands.vcsCommitPicked(h.editor());
+        });
+        until(() -> message() != null);
+        git.write(".gitattributes", "a.txt filter=broken\n");
+        git.git("config", "filter.broken.clean", "false");
+        git.git("config", "filter.broken.required", "true");
+        finish("Retry");
+        assertEquals("first", subject());
+        assertNotNull(message());
+        assertTrue(message().getText().startsWith("Retry"));
+        assertEquals(SIXTY, git.index("a.txt"));
+        Files.delete(tmp.resolve(".gitattributes"));
+        finish("Retry");
+        assertEquals("Retry", subject());
+        assertEquals(CHANGED, git.head("a.txt"));
     }
 
     @Test
@@ -562,8 +786,7 @@ public class PartialCommitTest {
         assertEquals("b\n", git.head("b.txt"));
     }
 
-    @Test
-    public void picksInTwoRepositoriesAreCommittedOneEach() throws Exception {
+    private List<GitFixture> pickInTwoRepositories() throws Exception {
         final GitFixture a = GitFixture.init(Files.createDirectories(tmp.resolve("a")));
         a.write("a.txt", "a\n");
         a.commitAll("first");
@@ -589,6 +812,14 @@ public class PartialCommitTest {
         until(() -> message() != null);
         assertTrue(message().getText().contains(ra.name() + ": M  a.txt"), message().getText());
         assertTrue(message().getText().contains(rb.name() + ": M  b.txt"), message().getText());
+        return List.of(a, b);
+    }
+
+    @Test
+    public void picksInTwoRepositoriesAreCommittedOneEach() throws Exception {
+        final List<GitFixture> repositories = pickInTwoRepositories();
+        final GitFixture a = repositories.get(0);
+        final GitFixture b = repositories.get(1);
         finish("Each");
         until(
             () -> "Each".equals(a.git("log", "-1", "--format=%s").strip())
@@ -597,4 +828,28 @@ public class PartialCommitTest {
         assertEquals("b changed\n", b.head("b.txt"));
         until(() -> status.picks().isEmpty());
     }
+
+    @Test
+    public void theNextRepositoryRefusesUnreviewedContentEditedByAnEarlierHook() throws Exception {
+        final List<GitFixture> repositories = pickInTwoRepositories();
+        final GitFixture a = repositories.get(0);
+        final GitFixture b = repositories.get(1);
+        final Path hook = a.root.resolve(".git/hooks/pre-commit");
+        Files.writeString(hook, "#!/bin/sh\nprintf 'late edit\\n' > ../b/b.txt\n");
+        assertTrue(hook.toFile().setExecutable(true));
+        finish("Both");
+        assertEquals("a changed\n", a.head("a.txt"));
+        assertEquals("b\n", b.head("b.txt"));
+        assertEquals("b\n", b.index("b.txt"));
+        assertTrue(String.valueOf(h.status()).contains("staged changes differ from the review"), h.status());
+        assertNotNull(message());
+
+        until(() -> !status.model().isWriting());
+        finish("Both");
+        assertEquals("b\n", b.head("b.txt"), "the changed preview requires confirmation");
+        assertTrue(String.valueOf(h.status()).contains("changed since it was shown"), h.status());
+        finish("Both");
+        assertEquals("late edit\n", b.head("b.txt"), h.status());
+    }
+
 }
