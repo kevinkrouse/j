@@ -265,8 +265,9 @@ public interface Constants {
     int STATE_PROMPT = 18;
     int STATE_PASSWORD_PROMPT = 19;
     int STATE_CDATA = 20;
+    int STATE_TEXT_BLOCK = 21;
 
-    int STATE_LAST = 20;
+    int STATE_LAST = 21;
 
     String DEFAULT_SHELL_PROMPT_PATTERN = "^[^#$%>]*[#$%>] *|^: *";
 

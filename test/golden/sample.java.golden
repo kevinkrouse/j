@@ -18,12 +18,12 @@ mode Java
 15: text"            " keyword"if" text" (" identifier"i" text" % " number"2" text" " operator"==" text" " number"0" text")"
 16: text"                " function"run" text"();"
 17: text"            " keyword"else" text" " brace"{"
-18: text"                " keyword"long" text" " identifier"big" text" " operator"=" text" " number"123L" text" " operator"+" text" " number"4" text"." number"5" identifier"e3" text";"
+18: text"                " keyword"long" text" " identifier"big" text" " operator"=" text" " number"123L" text" " operator"+" text" " number"4.5e3" text";"
 19: text"            " brace"}"
 20: text"        " brace"}"
 21: text"    " brace"}"
 22:
-23: text"    " text"@" identifier"Override"
+23: text"    " annotation"@Override"
 24: text"    " keyword"public" text" " keyword"void" text" " function"run" text"() " brace"{"
 25: text"        " comment"/* a block"
 26: comment"           " comment"comment */"
@@ -34,7 +34,23 @@ mode Java
 31: text"            " identifier"List" text"." function"of" text"(" number"1" text", " number"2" text");"
 32: text"        " brace"}"
 33: text"    " brace"}"
-34: brace"}"
+34:
+35: text"    " annotation"@java.lang.Override"
+36: text"    " annotation"@SuppressWarnings" text"(" string""unchecked"" text")"
+37: text"    " keyword"public" text" " keyword"void" text" " function"modern" text"() " brace"{"
+38: text"        " keyword"var" text" " identifier"total" text" " operator"=" text" " number"0" text";"
+39: text"        " identifier"Runnable" text" " identifier"r" text" " operator"=" text" () " operator"->" text" " identifier"System" text"." identifier"out" text"." function"println" text"(" string""hi"" text");"
+40: text"        " identifier"Runnable" text" " identifier"r2" text" " operator"=" text" " keyword"this" text"::" identifier"run" text";"
+41: text"        " keyword"int" text" " identifier"binary" text" " operator"=" text" " number"0b1010_1010" text";"
+42: text"        " keyword"long" text" " identifier"million" text" " operator"=" text" " number"1_000_000L" text";"
+43: text"        " keyword"float" text" " identifier"pi" text" " operator"=" text" " number"3.14f" text";"
+44: text"        " keyword"double" text" " identifier"hexFloat" text" " operator"=" text" " number"0x1.8p1" text";"
+45: text"        " identifier"String" text" " identifier"block" text" " operator"=" text" " string"""""
+46: string"            " string"line one"
+47: string"            " string"line "two" with {braces}"
+48: string"            " string""""" text";"
+49: text"    " brace"}"
+50: brace"}"
 
 ## indent
 1: 0
@@ -70,7 +86,23 @@ mode Java
 31: 12
 32: 8
 33: 4
-34: 0
+34: 4
+35: 4
+36: 4
+37: 4
+38: 8
+39: 8
+40: 8
+41: 8
+42: 8
+43: 8
+44: 8
+45: 8
+46: 12
+47: 12
+48: 12
+49: 4
+50: 0
 
 ## tags
 6: class Sample (2)
@@ -81,6 +113,7 @@ mode Java
 9: Sample.c (4)
 12: Sample.Sample (3)
 24: Sample.run (3)
+37: Sample.modern (3)
 
 ## comment
 // package demo;
@@ -115,6 +148,22 @@ mode Java
 //         default:
 //             List.of(1, 2);
 //         }
+//     }
+
+//     @java.lang.Override
+//     @SuppressWarnings("unchecked")
+//     public void modern() {
+//         var total = 0;
+//         Runnable r = () -> System.out.println("hi");
+//         Runnable r2 = this::run;
+//         int binary = 0b1010_1010;
+//         long million = 1_000_000L;
+//         float pi = 3.14f;
+//         double hexFloat = 0x1.8p1;
+//         String block = """
+//             line one
+//             line "two" with {braces}
+//             """;
 //     }
 // }
 

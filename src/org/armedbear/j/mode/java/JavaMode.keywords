@@ -13,6 +13,7 @@ default
 do
 double
 else
+enum
 extends
 false
 final
@@ -31,10 +32,13 @@ native
 new
 null
 package
+permits
 private
 protected
 public
+record
 return
+sealed
 short
 static
 strictfp
@@ -47,6 +51,8 @@ throws
 transient
 true
 try
+var
 void
 volatile
 while
+yield

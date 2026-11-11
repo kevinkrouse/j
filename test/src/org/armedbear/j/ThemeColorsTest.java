@@ -130,7 +130,7 @@ public class ThemeColorsTest {
         assertTrue(
             heading.getText()
                 .matches(
-                    "  heading +#010203  bold italic +color\\.heading  default"
+                    "  heading +#010203  bold italic +color\\.heading +default"
                 ),
             text
         );

@@ -280,6 +280,9 @@ public class JavaMode extends AbstractMode implements Mode {
     public int getCorrectIndentation(final Line line, final Buffer buffer) {
         if (line.flags() == STATE_COMMENT)
             return indentComment(line, buffer);
+        if (line.flags() == STATE_TEXT_BLOCK)
+            // A text block's content is literal; keep the line's own indent.
+            return buffer.getIndentation(line);
         final String text = line.trim();
         final char textFirstChar = text.length() > 0 ? text.charAt(0) : 0;
         if (textFirstChar == '}')
@@ -569,7 +572,7 @@ public class JavaMode extends AbstractMode implements Mode {
 
     private static final boolean isAcceptableModel(Line line) {
         int flags = line.flags();
-        if (flags == STATE_COMMENT || flags == STATE_QUOTE)
+        if (flags == STATE_COMMENT || flags == STATE_QUOTE || flags == STATE_TEXT_BLOCK)
             return false;
         if (line.isBlank())
             return false;

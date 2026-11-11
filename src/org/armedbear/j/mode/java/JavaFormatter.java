@@ -44,9 +44,10 @@ public class JavaFormatter extends Formatter {
     protected static final int JAVA_FORMAT_OPERATOR = 6;
     protected static final int JAVA_FORMAT_BRACE = 7;
     protected static final int JAVA_FORMAT_NUMBER = 8;
+    protected static final int JAVA_FORMAT_ANNOTATION = 9;
 
     /** The last format JavaFormatter uses; CFormatter and HtmlFormatter number theirs after it. */
-    public static final int JAVA_FORMAT_LAST = 8;
+    public static final int JAVA_FORMAT_LAST = 9;
 
     private final int language;
 
@@ -62,6 +63,11 @@ public class JavaFormatter extends Formatter {
     /** Whether lines starting with '#' are preprocessor directives, as in C. */
     protected boolean hasPreprocessor() {
         return false;
+    }
+
+    /** Whether '@Name' is an annotation. Java and its decorators; a subclass may opt out. */
+    protected boolean supportsAnnotations() {
+        return true;
     }
 
     /** Whether a string open at the end of a line continues on the next. */
@@ -86,9 +92,8 @@ public class JavaFormatter extends Formatter {
                 return JAVA_FORMAT_OPERATOR;
             case STATE_BRACE:
                 return JAVA_FORMAT_BRACE;
-            case STATE_NUMBER:
-            case STATE_HEXNUMBER:
-                return JAVA_FORMAT_NUMBER;
+            case STATE_TEXT_BLOCK:
+                return JAVA_FORMAT_STRING;
             default:
                 return JAVA_FORMAT_TEXT;
         }
@@ -109,6 +114,75 @@ public class JavaFormatter extends Formatter {
 
     private boolean isIdentifierPart(char c) {
         return getLanguageMode().isIdentifierPart(c);
+    }
+
+    // A number's end: the offset one past the last character of the literal
+    // starting at `start`. Handles hex (0x, with p-exponent), binary (0b),
+    // decimal with a fraction and an e-exponent, underscores between digits,
+    // and the f/F/d/D/l/L suffixes.
+    private static int scanNumber(String text, int start, int limit) {
+        int i = start;
+        if (text.charAt(i) == '0' && i + 1 < limit
+                && (text.charAt(i + 1) == 'x' || text.charAt(i + 1) == 'X')) {
+            i += 2;
+            i = scanDigits(text, i, limit, "0123456789abcdefABCDEF_");
+            if (i < limit && text.charAt(i) == '.') {
+                ++i;
+                i = scanDigits(text, i, limit, "0123456789abcdefABCDEF_");
+            }
+            if (i < limit && (text.charAt(i) == 'p' || text.charAt(i) == 'P')) {
+                ++i;
+                if (i < limit && (text.charAt(i) == '+' || text.charAt(i) == '-'))
+                    ++i;
+                i = scanDigits(text, i, limit, "0123456789_");
+            }
+            if (i < limit && isNumberSuffix(text.charAt(i)))
+                ++i;
+            return i;
+        }
+        if (text.charAt(i) == '0' && i + 1 < limit
+                && (text.charAt(i + 1) == 'b' || text.charAt(i + 1) == 'B')) {
+            i += 2;
+            i = scanDigits(text, i, limit, "01_");
+            if (i < limit && isNumberSuffix(text.charAt(i)))
+                ++i;
+            return i;
+        }
+        i = scanDigits(text, i, limit, "0123456789_");
+        if (i < limit && text.charAt(i) == '.'
+                && i + 1 < limit && Character.isDigit(text.charAt(i + 1))) {
+            ++i;
+            i = scanDigits(text, i, limit, "0123456789_");
+        }
+        if (i < limit && (text.charAt(i) == 'e' || text.charAt(i) == 'E')) {
+            int save = i;
+            ++i;
+            if (i < limit && (text.charAt(i) == '+' || text.charAt(i) == '-'))
+                ++i;
+            if (i < limit && Character.isDigit(text.charAt(i)))
+                i = scanDigits(text, i, limit, "0123456789_");
+            else
+                i = save;
+        }
+        if (i < limit && isNumberSuffix(text.charAt(i)))
+            ++i;
+        return i;
+    }
+
+    // Digits from `i`, with '_' allowed only between them, never trailing.
+    private static int scanDigits(String text, int i, int limit, String allowed) {
+        while (i < limit && allowed.indexOf(text.charAt(i)) >= 0) {
+            if (text.charAt(i) == '_'
+                    && !(i + 1 < limit && allowed.indexOf(text.charAt(i + 1)) >= 0))
+                break;
+            ++i;
+        }
+        return i;
+    }
+
+    private static boolean isNumberSuffix(char c) {
+        return c == 'f' || c == 'F' || c == 'd' || c == 'D'
+                || c == 'l' || c == 'L' || c == 'u' || c == 'U';
     }
 
     protected void parseLine(Line line) {
@@ -167,7 +241,43 @@ public class JavaFormatter extends Formatter {
                 ++i;
                 continue;
             }
+            if (state == STATE_TEXT_BLOCK) {
+                // A text block's content is all string until the closing """.
+                if (c == '"' && i + 2 < limit
+                        && text.charAt(i + 1) == '"' && text.charAt(i + 2) == '"') {
+                    endToken(text, i + 3, state);
+                    state = STATE_NEUTRAL;
+                    i += 3;
+                } else {
+                    ++i;
+                }
+                continue;
+            }
             // Reaching here, we're not in a comment or a quoted string.
+            if (state == STATE_NEUTRAL
+                    && supportsAnnotations() && !isPreprocessorLine
+                    && c == '@' && i + 1 < limit
+                    && isIdentifierStart(text.charAt(i + 1))) {
+                endToken(text, i, state);
+                int j = i + 1;
+                while (j < limit
+                        && (isIdentifierPart(text.charAt(j))
+                            || (text.charAt(j) == '.' && j + 1 < limit
+                                && isIdentifierStart(text.charAt(j + 1)))))
+                    ++j;
+                addSegment(text, i, j, JAVA_FORMAT_ANNOTATION);
+                tokenBegin = j;
+                i = j;
+                continue;
+            }
+            if (state == STATE_NEUTRAL && c == '"' && i + 2 < limit
+                    && text.charAt(i + 1) == '"' && text.charAt(i + 2) == '"') {
+                // A text block opening.
+                endToken(text, i, state);
+                state = STATE_TEXT_BLOCK;
+                i += 3;
+                continue;
+            }
             if (c == '"' || c == '\'') {
                 endToken(text, i, state);
                 state = STATE_QUOTE;
@@ -219,9 +329,14 @@ public class JavaFormatter extends Formatter {
                 endToken(text, i, state);
                 if (isIdentifierStart(c))
                     state = STATE_IDENTIFIER;
-                else if (Character.isDigit(c))
-                    state = STATE_NUMBER;
-                else
+                else if (Character.isDigit(c)) {
+                    int end = scanNumber(text, i, limit);
+                    addSegment(text, i, end, JAVA_FORMAT_NUMBER);
+                    tokenBegin = end;
+                    state = STATE_NEUTRAL;
+                    i = end;
+                    continue;
+                } else
                     state = STATE_NEUTRAL;
                 ++i;
                 continue;
@@ -251,41 +366,17 @@ public class JavaFormatter extends Formatter {
                 ++i;
                 continue;
             }
-            if (state == STATE_NUMBER) {
-                if (Character.isDigit(c))
-                    ;
-                else if (c == 'u' || c == 'U' || c == 'l' || c == 'L')
-                    ;
-                else if (i - tokenBegin == 1 && (c == 'x' || c == 'X'))
-                    state = STATE_HEXNUMBER;
-                else {
-                    endToken(text, i, state);
-                    state = isIdentifierStart(c) ? STATE_IDENTIFIER : STATE_NEUTRAL;
-                }
-                ++i;
-                continue;
-            }
-            if (state == STATE_HEXNUMBER) {
-                if (Character.isDigit(c))
-                    ;
-                else if ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))
-                    ;
-                else if (c == 'u' || c == 'U' || c == 'l' || c == 'L')
-                    ;
-                else {
-                    endToken(text, i, state);
-                    state = isIdentifierStart(c) ? STATE_IDENTIFIER : STATE_NEUTRAL;
-                }
-                ++i;
-                continue;
-            }
             if (state == STATE_NEUTRAL) {
                 if (isIdentifierStart(c)) {
                     endToken(text, i, state);
                     state = STATE_IDENTIFIER;
                 } else if (Character.isDigit(c)) {
                     endToken(text, i, state);
-                    state = STATE_NUMBER;
+                    int end = scanNumber(text, i, limit);
+                    addSegment(text, i, end, JAVA_FORMAT_NUMBER);
+                    tokenBegin = end;
+                    i = end;
+                    continue;
                 }
             }
             ++i;
@@ -370,6 +461,14 @@ public class JavaFormatter extends Formatter {
                     }
                     continue;
                 }
+                if (state == STATE_TEXT_BLOCK) {
+                    if (c == '"' && i + 2 < limit
+                            && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
+                        i += 2;
+                        state = STATE_NEUTRAL;
+                    }
+                    continue;
+                }
                 // Not in comment or quoted string.
                 if (c == '/' && i < limit - 1) {
                     c = line.charAt(++i);
@@ -379,6 +478,11 @@ public class JavaFormatter extends Formatter {
                         break;
                     } else if (c == '*')
                         state = STATE_COMMENT;
+                } else if (c == '"' && i + 2 < limit
+                        && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
+                    // A text block opening.
+                    i += 2;
+                    state = STATE_TEXT_BLOCK;
                 } else if (c == '"' || c == '\'') {
                     state = STATE_QUOTE;
                     quoteChar = c;
@@ -411,5 +515,6 @@ public class JavaFormatter extends Formatter {
         table.addEntryFromPrefs(JAVA_FORMAT_OPERATOR, "operator");
         table.addEntryFromPrefs(JAVA_FORMAT_BRACE, "brace");
         table.addEntryFromPrefs(JAVA_FORMAT_NUMBER, "number");
+        table.addEntryFromPrefs(JAVA_FORMAT_ANNOTATION, "annotation", "keyword");
     }
 }
