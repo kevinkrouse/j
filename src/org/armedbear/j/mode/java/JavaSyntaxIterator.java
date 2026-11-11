@@ -42,7 +42,39 @@ public final class JavaSyntaxIterator extends DefaultSyntaxIterator {
             return hideSyntacticWhitespace(line.getText(), STATE_COMMENT);
         if (line.flags() == STATE_QUOTE)
             return hideSyntacticWhitespace(line.getText(), STATE_QUOTE);
+        if (line.flags() == STATE_TEXT_BLOCK)
+            return hideTextBlock(line.getText());
         return hideSyntacticWhitespace(line.getText(), STATE_NEUTRAL);
+    }
+
+    // A text block line is string content up to its closing """. Everything
+    // through the closing delimiter becomes 'X', so a brace or quote inside
+    // the block is invisible to brace matching; whatever follows the close
+    // is ordinary code.
+    private char[] hideTextBlock(String s) {
+        final char[] chars = s.toCharArray();
+        final int length = chars.length;
+        for (int i = 0; i < length; i++) {
+            if (chars[i] == '\\' && i + 1 < length) {
+                chars[i] = 'X';
+                chars[i + 1] = 'X';
+                ++i;
+                continue;
+            }
+            if (chars[i] == '"' && i + 2 < length
+                    && chars[i + 1] == '"' && chars[i + 2] == '"') {
+                chars[i] = 'X';
+                chars[i + 1] = 'X';
+                chars[i + 2] = 'X';
+                // Past the close: ordinary code.
+                final char[] rest = hideSyntacticWhitespace(
+                    s.substring(i + 3), STATE_NEUTRAL);
+                System.arraycopy(rest, 0, chars, i + 3, rest.length);
+                return chars;
+            }
+            chars[i] = 'X';
+        }
+        return chars;
     }
 
     @Override

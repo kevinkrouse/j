@@ -31,4 +31,20 @@ public class Sample extends Base implements Runnable {
             List.of(1, 2);
         }
     }
+
+    @java.lang.Override
+    @SuppressWarnings("unchecked")
+    public void modern() {
+        var total = 0;
+        Runnable r = () -> System.out.println("hi");
+        Runnable r2 = this::run;
+        int binary = 0b1010_1010;
+        long million = 1_000_000L;
+        float pi = 3.14f;
+        double hexFloat = 0x1.8p1;
+        String block = """
+            line one
+            line "two" with {braces}
+            """;
+    }
 }
