@@ -20,6 +20,7 @@
 
 package org.armedbear.j.vcs.git;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
@@ -464,7 +465,7 @@ final class GitWrites {
         if (refused != null)
             return previewFailed(refused);
         try {
-            return withPrivateIndex(dir, () -> stageSelection(repository, base, paths, stage));
+            return withPrivateIndex(dir, repository, base, () -> stageSelection(repository, base, paths, stage));
         }
         catch (IOException e) {
             return previewFailed("Couldn't make a private index: " + e.getMessage());
@@ -499,24 +500,58 @@ final class GitWrites {
         final String refused = refusal(repository, paths);
         if (refused != null)
             return new VcsBackend.PrivateCommit(failed(refused), null);
+        final String[] committed = new String[1];
         try {
-            final VcsResult result = withPrivateIndex(dir, () -> {
+            final VcsResult result = withPrivateIndex(dir, repository, before, () -> {
                 final CommitPreview staged = stageSelection(repository, before, paths, stage);
                 if (staged.failure() != null)
                     return failed(staged.failure());
                 if (!reviewed.equals(staged.versions()))
                     return failed("The staged changes differ from the review: check the selection and commit again");
-                return commit(repository, message, options);
+                final VcsResult made = commit(repository, message, options);
+                // The tree committed, to know this commit from a hook's.
+                if (made.succeeded()) {
+                    final VcsResult tree = run(repository, args("write-tree"));
+                    if (tree.succeeded())
+                        committed[0] = tree.out().strip();
+                }
+                return made;
             });
             if (!result.succeeded())
                 return new VcsBackend.PrivateCommit(result, null);
+            // A commit landed between the check and git's commit: this one
+            // sits on it with a tree from before it, undoing it. Taken back,
+            // atomically, if HEAD is still this one; the index not yet touched.
+            final String[] ours = ours(repository, before, committed[0]);
+            if (ours == null)
+                return new VcsBackend.PrivateCommit(result,
+                        "this commit couldn't be found on HEAD: the index was left unchanged, review it");
+            final String made = ours[0];
+            final String parent = ours[1];
+            if (!Objects.equals(before, parent)) {
+                // Only if nothing sits on it: a hook's commit there is kept.
+                if (parent != null && made.equals(headNow(repository))) {
+                    final VcsResult back = run(
+                        repository,
+                        args("update-ref", "-m", "j: a commit on a moved HEAD taken back", "HEAD", parent, made));
+                    if (back.succeeded())
+                        return new VcsBackend.PrivateCommit(
+                                failed(
+                                    "Another commit landed as this one was made, so it was taken back: commit again"),
+                                null);
+                }
+                return new VcsBackend.PrivateCommit(result,
+                        "HEAD moved as this committed: see that the commit doesn't undo the one before it");
+            }
             // As git's commit of paths leaves the index: those paths as
             // committed, nothing else touched.
             String trouble = resetPaths(repository, paths, entries.stdout());
-            final String parent = firstParent(repository);
-            if (!Objects.equals(before, parent))
-                trouble = (trouble == null ? "" : trouble + "; ")
-                        + "HEAD moved as this committed: see that the commit doesn't undo the one before it";
+            // What the hooks staged too, or a file that became a directory:
+            // said, and set in the index as committed where nothing of it
+            // is staged.
+            final String more = beyond(repository, before, made, paths);
+            if (more != null)
+                trouble = trouble == null ? more : trouble + "; " + more;
             return new VcsBackend.PrivateCommit(result, trouble);
         }
         catch (IOException e) {
@@ -525,14 +560,22 @@ final class GitWrites {
         }
     }
 
-    private static <T> T withPrivateIndex(Path dir, Supplier<T> operation) throws IOException {
+    // operation run with a private index: a copy of the real one, its file
+    // times kept so git's racy-file checks read same-size edits as they
+    // would there, unchanged entries keeping their file data so nothing
+    // else is hashed again; none for no base.
+    private static <T> T withPrivateIndex(Path dir, VcsRepository repository, String base, Supplier<T> operation)
+            throws IOException {
         Files.createDirectories(dir);
         forgetOld(dir);
         final Path index = Files.createTempFile(dir, "commit-index-", "");
         try {
-            // Read a fresh base index without a copied stat cache. Git add
-            // must read the selected working files, including same-size edits.
-            Files.delete(index);
+            final Path real = base == null ? null : realIndex(repository);
+            if (real != null && Files.isRegularFile(real))
+                Files.copy(real, index, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+            else
+                // git makes it: an empty file is no index.
+                Files.delete(index);
             return GitCli.withIndex(index, operation);
         }
         finally {
@@ -553,7 +596,10 @@ final class GitWrites {
             Supplier<String> stage) {
         if (paths.isEmpty())
             return previewFailed("No paths were selected for review");
-        final VcsResult read = run(repository, base == null ? args("read-tree", "--empty") : args("read-tree", base));
+        // The index alone made base's, as a one-way merge keeping the file
+        // data of entries unchanged; an entry the work tree changed doesn't stop it.
+        final VcsResult read =
+                run(repository, base == null ? args("read-tree", "--empty") : args("read-tree", "-i", "-m", base));
         if (!read.succeeded())
             return previewFailed("Couldn't read the base tree: " + firstLine(read));
         final Map<String, FileVersion> before = privateVersions(repository, paths);
@@ -625,9 +671,7 @@ final class GitWrites {
             return "git: " + firstLine(unmerged);
         if (!unmerged.out().isBlank())
             return "Resolve the conflicts first";
-        final List<String> args = args("--literal-pathspecs", "diff", "--cached", "--name-only", "--");
-        args.addAll(paths);
-        final VcsResult staged = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        final VcsResult staged = batched(repository, paths, "diff", "--cached", "--name-only");
         if (!staged.succeeded())
             return "git: " + firstLine(staged);
         final String first = staged.out().lines().filter(l -> !l.isBlank()).findFirst().orElse(null);
@@ -645,16 +689,108 @@ final class GitWrites {
         return head.succeeded() ? head.out().strip() : null;
     }
 
-    // HEAD's first parent, or null for a first commit.
-    private static String firstParent(VcsRepository repository) {
-        final VcsResult p = GitCli.run(GitCli.read(repository.root(), "rev-parse", "--verify", "-q", "HEAD^"));
-        return p.succeeded() ? p.out().strip() : null;
+    // This commit and its first parent (null for a first commit): the
+    // earliest on HEAD's first-parent line since before with the tree
+    // committed, so a post-commit hook's commit on it isn't taken for it.
+    // Null if none is.
+    private static String[] ours(VcsRepository repository, String before, String tree) {
+        if (tree == null)
+            return null;
+        final VcsResult log = GitCli.run(
+            GitCli.read(
+                repository.root(),
+                "log",
+                "--first-parent",
+                "-n",
+                "100",
+                "--format=%H %T %P",
+                before == null ? "HEAD" : before + "..HEAD"));
+        if (!log.succeeded())
+            return null;
+        String[] found = null;
+        for (String line : log.out().split("\n")) {
+            final String[] f = line.strip().split(" ");
+            if (f.length >= 2 && f[1].equals(tree))
+                found = new String[] { f[0], f.length > 2 ? f[2] : null };
+        }
+        return found;
     }
 
     private static VcsResult indexEntries(VcsRepository repository, List<String> paths) {
-        final List<String> args = args("--literal-pathspecs", "ls-files", "--stage", "-z", "--");
-        args.addAll(paths);
-        return GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+        return batched(repository, paths, "ls-files", "--stage", "-z");
+    }
+
+    // The read command with paths, a batch at a time so a long list doesn't
+    // overrun the command line: their output together, or the first failure.
+    private static VcsResult batched(VcsRepository repository, List<String> paths, String... command) {
+        // No paths would mean every path to git.
+        if (paths.isEmpty())
+            return new VcsResult(null, 0, new byte[0], "", 0);
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        VcsResult last = null;
+        for (int from = 0; from < paths.size(); from += GitStatusReader.BATCH) {
+            final List<String> args = args("--literal-pathspecs");
+            args.addAll(List.of(command));
+            args.add("--");
+            args.addAll(paths.subList(from, Math.min(from + GitStatusReader.BATCH, paths.size())));
+            last = GitCli.run(GitCli.read(repository.root(), args.toArray(new String[0])));
+            if (!last.succeeded())
+                return last;
+            out.writeBytes(last.stdout());
+        }
+        return new VcsResult(last.command(), 0, out.toByteArray(), last.stderr(), last.millis());
+    }
+
+    // The empty tree, the base of a first commit.
+    private static final String EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+
+    // Of the commit made, from before (null for a first commit), the paths
+    // beyond paths it touched, as a hook staging more, or a file become a
+    // directory: those with nothing staged set in the index as committed;
+    // what is said, or null for none.
+    private static String beyond(VcsRepository repository, String before, String made, List<String> paths) {
+        final VcsResult touched = GitCli.run(
+            GitCli.read(
+                repository.root(),
+                before == null
+                        ? new String[] { "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "-z", made }
+                        : new String[] { "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", before, made }));
+        if (!touched.succeeded())
+            return null;
+        final Set<String> selected = new HashSet<>();
+        for (String p : paths)
+            selected.add(indexPath(p));
+        final List<String> extra = new ArrayList<>();
+        for (String p : touched.out().split("\0"))
+            if (!p.isEmpty() && !selected.contains(p) && selected.stream().noneMatch(s -> p.startsWith(s + "/")))
+                extra.add(p);
+        if (extra.isEmpty())
+            return null;
+        // Those whose index entries differ from before's: staged by the
+        // user, not to be lost.
+        final VcsResult differ = batched(
+            repository,
+            extra,
+            "diff-index",
+            "--cached",
+            "--name-only",
+            "-z",
+            before == null ? EMPTY_TREE : before);
+        final Set<String> staged = new HashSet<>();
+        if (differ.succeeded())
+            for (String p : differ.out().split("\0"))
+                if (!p.isEmpty())
+                    staged.add(p);
+        final List<String> settle = extra.stream().filter(p -> !staged.contains(p)).toList();
+        for (int from = 0; from < settle.size(); from += GitStatusReader.BATCH) {
+            final List<String> args = args("--literal-pathspecs", "reset", "-q", "--");
+            args.addAll(settle.subList(from, Math.min(from + GitStatusReader.BATCH, settle.size())));
+            run(repository, args);
+        }
+        final String also = "the commit took more than was selected, as from a hook: " + String.join(", ", extra);
+        return staged.isEmpty()
+                ? also
+                : also + "; still staged before, left so: " + String.join(", ", staged) + ": review them";
     }
 
     // Reconcile only unchanged entries, under git's real index lock. Build
@@ -687,16 +823,19 @@ final class GitWrites {
             if (head == null)
                 return "HEAD couldn't be read; the index was left unchanged";
             scratch = Files.createTempFile(real.getParent(), "j-reconcile-", "");
+            // Its times kept, or racy entries would be written back clean.
             if (Files.exists(real))
-                Files.copy(real, scratch, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(real, scratch, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
             else
                 Files.delete(scratch);
             final Path in = scratch;
-            final List<String> args = args("--literal-pathspecs", "reset", "-q", head, "--");
-            args.addAll(paths);
-            final VcsResult reset = GitCli.withIndex(in, () -> run(repository, args));
-            if (!reset.succeeded())
-                return "the index was left unchanged: " + firstLine(reset);
+            for (int from = 0; from < paths.size(); from += GitStatusReader.BATCH) {
+                final List<String> args = args("--literal-pathspecs", "reset", "-q", head, "--");
+                args.addAll(paths.subList(from, Math.min(from + GitStatusReader.BATCH, paths.size())));
+                final VcsResult reset = GitCli.withIndex(in, () -> run(repository, args));
+                if (!reset.succeeded())
+                    return "the index was left unchanged: " + firstLine(reset);
+            }
             try {
                 Files.move(scratch, real, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             }

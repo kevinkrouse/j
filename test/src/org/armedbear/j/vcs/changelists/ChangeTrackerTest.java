@@ -290,4 +290,111 @@ public class ChangeTrackerTest {
             assertEquals("X", t.listOf(lines.get(4)));
         });
     }
+
+    @Test
+    public void aBufferReadAgainFromItsFileKeepsItsLists() throws Exception {
+        open();
+        // Changed on disk elsewhere, and read again, as when j gets the focus back.
+        git.write(
+            "a.txt",
+            THIRTY.replace("line 5\nline 6\n", "FIVE\nSIX\n")
+                    .replace("line 12\n", "TWELVE\n")
+                    .replace("line 20\n", "TWENTY\n"));
+        onEdt(() -> buffer.reload());
+        until(() -> buffer.getLine(11).getText().equals("TWELVE") && "Y".equals(listOf(11)));
+        onEdt(() -> {
+            assertEquals("X", listOf(4), "X's change still X");
+            assertEquals(Changelists.DEFAULT, listOf(19));
+        });
+        final ChangelistStore store = ChangelistStore.of(Repositories.forDirectory(git.root));
+        until(() -> {
+            final Assignment a = store.read().assignment("a.txt");
+            return a != null && a.changes().size() == 3;
+        });
+        assertEquals(
+            List.of("X", "Y", Changelists.DEFAULT),
+            store.read().assignment("a.txt").changes().stream().map(Change::list).toList());
+    }
+
+    @Test
+    public void aChangeGoneComesBackInItsListOnlyWhereItWas() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", THIRTY);
+        git.commitAll("first");
+        final VcsRepository r = Repositories.forDirectory(git.root);
+        onEdt(() -> {
+            final RepositoryLists lists = RepositoryLists.of(r);
+            assertTrue(lists.update(c -> c.withList("X").withList("Y").withActive("Y")));
+            final ChangeTracker t = new ChangeTracker(lists, "a.txt");
+            final List<Line> lines = new java.util.ArrayList<>();
+            for (int i = 0; i < 31; i++)
+                lines.add(new org.armedbear.j.TextLine(i == 3 || i == 20 ? "" : "x"));
+            final org.armedbear.j.vcs.diff.Hunk at3 = adding(4, "");
+            final org.armedbear.j.vcs.diff.Hunk at20 = adding(21, "");
+            // A blank line added at row 3, moved to X, then gone.
+            t.update(List.of(new ChangeTracker.Now(at3, at3.runs().get(0), lines.subList(3, 4), null)), false, lines);
+            t.move(java.util.Set.of(lines.get(3)), "X");
+            t.update(List.of(), false, lines);
+            // One like it added elsewhere: the active list's.
+            t.update(
+                List.of(new ChangeTracker.Now(at20, at20.runs().get(0), lines.subList(20, 21), null)),
+                false,
+                lines);
+            assertEquals("Y", t.listOf(lines.get(20)));
+            // Back where it was, as by undo: X.
+            t.update(List.of(new ChangeTracker.Now(at3, at3.runs().get(0), lines.subList(3, 4), null)), false, lines);
+            assertEquals("X", t.listOf(lines.get(3)));
+        });
+    }
+
+    @Test
+    public void editingTheLineAboveADeletionKeepsTheDeletionInItsList() throws Exception {
+        open();
+        // Line 10 deleted: a change of lines only removed, under line 9.
+        onEdt(() -> h.editor().deleteRegion(new Position(buffer.getLine(9), 0), new Position(buffer.getLine(10), 0)));
+        until(() -> buffer.getLine(9).getText().equals("line 11") && "Y".equals(listOf(8)));
+        onEdt(
+            () -> assertTrue(tracker().move(java.util.Set.of(buffer.getLine(8)), "X") != ChangeTracker.Moved.NOTHING));
+        until(() -> "X".equals(listOf(8)));
+        // Line 9 edited: the diff takes it into the deletion's change.
+        change(8, "line 9!");
+        until(() -> buffer.getLine(8).getText().equals("line 9!"));
+        until(() -> "X".equals(listOf(8)));
+    }
+
+    @Test
+    public void undoingTheDeletionOfAChangesLastLineBringsItBackInItsList() throws Exception {
+        open();
+        onEdt(() -> h.editor().deleteRegion(new Position(buffer.getLine(5), 0), new Position(buffer.getLine(6), 0)));
+        until(() -> buffer.getLine(5).getText().equals("line 7") && listOf(5) == null && "X".equals(listOf(4)));
+        onEdt(() -> EditCommands.undo(h.editor()));
+        until(() -> buffer.getLine(5).getText().equals("SIX") && listOf(5) != null);
+        onEdt(() -> {
+            assertEquals("X", listOf(4));
+            assertEquals("X", listOf(5), "not split into the active list");
+        });
+    }
+
+    @Test
+    public void aFileRenamedInTheIndexTakesItsOldPathsLists() throws Exception {
+        git = GitFixture.init(tmp);
+        git.write("a.txt", "x\n");
+        git.commitAll("first");
+        final VcsRepository r = Repositories.forDirectory(git.root);
+        onEdt(() -> {
+            final RepositoryLists lists = RepositoryLists.of(r);
+            final org.armedbear.j.vcs.diff.Hunk h1 = adding(2, "new");
+            final List<Placed> placed = List.of(new Placed(h1, h1.runs().get(0), "X", List.of()));
+            assertTrue(
+                lists.update(
+                    c -> c.withList("X").withList("Y").withActive("Y").withFile("a.txt", Anchors.assignment(placed))));
+            // Opened as b.txt, renamed from a.txt.
+            final ChangeTracker t = new ChangeTracker(lists, "b.txt", () -> "a.txt");
+            final List<Line> lines = List.of(new org.armedbear.j.TextLine("x"), new org.armedbear.j.TextLine("new"));
+            t.update(List.of(new ChangeTracker.Now(h1, h1.runs().get(0), lines.subList(1, 2), null)), true, lines);
+            assertEquals("X", t.listOf(lines.get(1)));
+            assertEquals(null, lists.lists().assignment("a.txt"), "the old path's entry gone");
+            assertEquals("X", lists.lists().assignment("b.txt").changes().get(0).list());
+        });
+    }
 }

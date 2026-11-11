@@ -3291,6 +3291,173 @@ plan with why it is left, before the next phase starts.
      staged. Selection identity and same-file commit confirmation remain
      for phase 11; do not close k until the outstanding review work is
      verified.
+
+     Final review fix list (four adversarial reviews of 221489952..8684b18f4
+     and 47d594d02, each finding confirmed at 2e6ca32e9; done before 11 h):
+
+     Critical:
+     1. A buffer reloaded from disk moves all its changes to the active
+        list and keeps that: the tracker knows lines by `Line` object and a
+        reload makes new ones (`ChangeTracker`, via `Buffer.reloadLocal`).
+        Place the reloaded lines again from the store.
+
+     Major, tracking and the store:
+     2. Stale assignments are never pruned and capture unrelated new edits
+        (`Anchors`; only an open file's tracker drops entries;
+        `PartialCommit.committed` relists a deleted list's entries to the
+        default; `withFileRenamed` is never called). Prune entries whose
+        changes are gone as the status reads a file's diff.
+     3. The tracker's `gone` memory resurrects a list by hash anywhere in
+        the file, not only on undo; twins collapse in `nowByHash`.
+     4. `gone` keeps up to 200 whole `Hunk`s a buffer (hundreds of MB in a
+        large changed region); keep only lists and parts.
+     5. Editing the line above a lines-only deletion takes the deletion out
+        of its list (`underLists` consulted only for runs adding no lines).
+
+     Major, picking and the status model:
+     6. A retained hunk pick can drift to another identical hunk when one
+        twin goes and another comes in one edit; retention must check base
+        locations as commits and moves do.
+     7. With two status models over one repository, editor picks go to one
+        and the gutter shows the other (`SignsUpdater.view`,
+        `RepositoryStatus.viewOf`, `VcsStatusMode` picking into
+        `of(repositoriesFor(buffer))`).
+
+     Major, committing and menus:
+     8. A pre-commit hook that runs `git add` commits unselected changes
+        and leaves the real index staging their reversal, unreported:
+        compare the commit's tree with what was reviewed, and reset every
+        path the commit touched.
+     9. "Commit alone…" in the diff beside commits the status's caret
+        target, not the hunk right-clicked.
+     10. A status selection ending at column 0 makes a menu mixing two
+         targets (`insideSelection` inclusive, `selectedLines` not).
+     11. The Changes tab's file items act on the first selected node, not
+         the one right-clicked.
+
+     Major, sidebar, keys, drag and drop:
+     12. `vcsShowDiff` throws with the sidebar hidden and can't work from
+         M-x; Ctrl D in the tree doesn't run it.
+     13. Switching the upper tab while focus is in it leaves the keyboard
+         dead.
+     14. A prefix chord sent from a sidebar tree stays pending and fires on
+         a later key in the text (vim's Ctrl W).
+     15. In the status, drag-selecting text from a line under a list is
+         always a changelist drag (`dragAt` on every press, before
+         `enableDragText`); the press also clears the selection it drags.
+
+     Minor:
+     16. A whole-file pick stays whole after a later edit splits the file;
+         `x` on a file shown provisionally whole discards other lists'
+         changes.
+     17. Status and patch diffs don't pass `--no-textconv`.
+     18. `RepositoryStatus.wants` reads the status buffer's event-thread
+         `diff` field from the read thread.
+     19. A path starting with `|` gets a changelist heading's display key.
+     20. Undoing the deletion of a change's first or last line puts that
+         line in the active list.
+     21. A file renamed while open loses its lists (`Anchors.place` given
+         no old path by the tracker).
+     22. A draft that can't be kept is lost silently (characters XML
+         forbids, a later store, contention); a path with such characters
+         logs an error on every update.
+     23. With picks pending, the status menu acts on the picks; the line
+         right-clicked takes precedence (11 d).
+     24. A path that turned from a file into a directory commits the old
+         file's deletion unselected.
+     25. A list other than the default keeps its used draft after a
+         commit.
+     26. Every partial commit, and its preview, hashes the whole work tree
+         again: start private indexes from a copy of the real one.
+     27. HEAD can move between j's check and `git commit`: commit with
+         `commit-tree` and `update-ref <new> <old>`.
+     28. Path lists are passed unbatched to git (`refusal`,
+         `indexEntries`, `resetPaths`).
+     29. Menu items enabled where they can't work: Show history on an
+         untracked file, Commit changelist… on an empty list, `vcsIgnore`
+         on a tracked file or ignoring the selection.
+     30. Sidebar chord forwarding takes the trees' own Ctrl A, C, X, V and
+         \; Ctrl D on a list falls through to `dir`; Ctrl Shift D acts as
+         Ctrl D; Delete ignores modifiers; undocumented.
+     31. Core `Dispatcher` holds VCS code (`bufferDrop`'s "Drop to move to
+         …"), and sets the status on every dragOver.
+     32. Drag feedback goes stale off a drop target.
+     33. The Changes tab drags only the file under the mouse while several
+         are selected.
+     34. The Changes tab's labels are clipped with no scrolling or tooltip.
+     35. Docs: malformed HTML in `git.html`; `commands.html` out of
+         alphabetical order; stale "Built:" notes; none for the status-bar
+         buttons or chord forwarding.
+     36. Tests: drops tested past their handlers; no tests of
+         `Sidebar.setPanels`/`showTab`/`dispose`, `toggleSidebarPanel` and
+         its saved panels, `SidebarTree.chord`, the status bar's buttons,
+         or text drag in ordinary buffers; fixed five-second waits.
+
+     Done, all 36: `Buffer.Follower.reloaded`, told before a reload's
+     `textChanged`, has `SignsUpdater` re-place the file from the store
+     (`ChangeTracker.reload` forgets what it knew by line); `gone` keeps
+     a change's list and parts only, keyed by its hash and its row in the
+     index, so a change comes back only where it was; lines dropped from
+     a change remember their list by text, one put back at the change's
+     edge rejoining it; a line a deletion was under takes the deletion's
+     list once the diff merges them; the tracker asks the status for a
+     renamed file's old path (`StatusView.Source.renamedFrom`) and moves
+     its entry. `RepositoryStatus.pruned` drops what no change has, from
+     the work tree's and the staged diffs, but only after a read in which
+     HEAD moved, so a stash, or a change undone and done again elsewhere,
+     keeps the lists. A pick of one of identical hunks must keep its base
+     rows (`Selections.resolve`; since 11's review, `Selections.match`
+     for every hunk: base rows, working rows or context). `SignsUpdater.view` prefers the status
+     its buffer's status command shows (`StatusView.Source.prefers`).
+     Private indexes start from a copy of the real one, file times kept,
+     made the base's with `read-tree -i -m`; a commit whose parent isn't
+     the HEAD it was checked against is taken back with `update-ref HEAD
+     <parent> <made>` and refused; the paths the commit touched beyond the
+     selection (`GitWrites.beyond`, from `diff-tree`) are said and set in
+     the index as committed unless staged before; path lists go to git a
+     batch at a time. Menus run their items with picks set aside
+     (`StatusActions.fromMenu`), take a selection only as `selectedLines`
+     takes it, label by the line right-clicked; the Changes tab's labels
+     and one-file items are the node right-clicked's; "Commit alone…"
+     from the diff beside takes its lines. `vcsShowDiff` needs only the
+     Changes tab shown and is Ctrl D in it. A tab switched with the focus
+     in it moves the focus with it; a prefix chord sent from a tree sends
+     the focus to the text (`Editor.isInKeySequence`); the trees keep
+     Ctrl A, C, X, V and \, exact modifiers for Ctrl D and Delete. A
+     changelist drag starts only from a file or hunk heading or inside a
+     selection, which the press keeps; `Buffer.dropHint` carries the drop
+     hint, so `Dispatcher` has no git code; a changelist drag off a target
+     is refused and its feedback cleared; several files selected in one
+     list drag together; the Changes tab scrolls sideways and its groups
+     have tooltips. `x` refuses a picked whole file now split across lists,
+     or a list's file shown whole until its diff is read. `--no-textconv`;
+     volatile fields for the read thread's `wantsDiff`; list keys use
+     `StatusRenderer.LIST`, a character no path starts with. Drafts the
+     store can't keep go to the comment ring; a list's draft is cleared
+     once committed; `vcsIgnore` takes the selected untracked files.
+
+     Earlier "Built:" notes name what later steps replaced: step g's
+     `FileNode` now holds a typed file key and membership, not a
+     `StatusLine`, and `ChangelistCommands.moveFile`/`moveTo` became the
+     one move entry point of 11 f; step i's `StatusActions.Target` is
+     `vcs/selection/Target` (11 a); step j's `VcsStatusBuffer.CHANGELIST_DRAG`
+     and `ChangelistDragTokenTest` gave way to `ChangelistDrag`'s token
+     (11 f). Step g's "Space and Enter the same": Space picks, Enter opens.
+     Not noted before: b0d2d6c5d, the status bar's sidebar buttons
+     (`StatusBar` buttons, `Frame.toggleSidebarPanel`,
+     `frame.N.sidebar.top`/`.tree` in `props`, `Sidebar.Panels`); and
+     a9971ddea, `SidebarTree.chord` handing a tree's chords to the text.
+
+     Tests added: `ChangeTrackerTest` (a reload, a change gone coming back
+     only where it was, an edit above a deletion, an undone edge line, a
+     rename), `PartialCommitTest` (pruning after a shell commit but not a
+     stash, a hook staging another file, a whole-file pick now split),
+     `SelectionsResolveTest` (identical hunks moving), `SidebarChordTest`,
+     and `vcsShowDiff` with no sidebar; `ChangesTreeTest` waits up to 20 s.
+     Not unit tested, needing a frame: the sidebar's panels and buttons,
+     their saved state, drop locations in the trees and the text, and text
+     drag in ordinary buffers; a status model for a project's two
+     repositories beside one for one of them (fix 7). Left for the drive.
 11. **Shared selections.** Extract the existing selection machinery from
    the status's presentation code before adding another backend. Keep
    `RepositoryStatus` and its reads, `StatusData`, and the existing action
@@ -3360,8 +3527,8 @@ plan with why it is left, before the next phase starts.
      lookups without renderer keys. `Selections` owns SHA-256 hunk ids,
      canonical changed-line content, duplicate counts and conversions
      between changed-line offsets and current hunk indexes. `StatusPicks`
-     caches each diff's index, confirms content and duplicate counts on a
-     refresh, and remaps partial picks when context changes. Rendering and
+     caches each diff's index, confirms content and location (since 11's
+     review; duplicate counts before) on a refresh, and remaps partial picks when context changes. Rendering and
      changelist actions use the shared ids. Persisted changelist anchors
      retain their existing encoding to keep saved assignments compatible;
      their approximate matching policy remains separate. The remaining
@@ -3412,7 +3579,7 @@ plan with why it is left, before the next phase starts.
      targets, unread file keys and explicit gone, changed, ambiguous,
      unsupported or read-failed problems. Whole files take their current
      changes, including binary and metadata-only changes; partial targets
-     verify captured content and duplicate counts and remap changed-line
+     verify captured content and location (see the review below) and remap changed-line
      offsets. Each distinct diff is indexed at most once per resolution;
      unchanged immutable diffs need only an identity membership check.
 
@@ -3444,7 +3611,9 @@ plan with why it is left, before the next phase starts.
      through the shared resolver. Status lines may carry a target alongside
      their presentation fields; the Changes tab, status tree, comparisons
      and gutter construct the same targets directly. Keep selection before
-     picks before caret, pairing a modified line with its removal, and the
+     picks before caret, except that a right-click menu takes the line
+     right-clicked (or the selection it is in) before the picks, pairing a
+     modified line with its removal, and the
      existing pick-consumption behavior. Stop constructing status lines just
      to invoke an action, and stop parsing renderer keys for domain data.
 
@@ -3521,8 +3690,8 @@ plan with why it is left, before the next phase starts.
      Built: `Selections.sameChanges` compares typed file keys, canonical
      hunk occurrences, selected line sets and their positions in the base.
      The positions distinguish identical edits at different base locations
-     and allow working-tree rows and display context to shift. Explicit
-     partial selections whose base locations changed require reselection.
+     and allow working-tree rows and display context to shift. Resolution
+     itself refuses a hunk that moved (see the review below).
 
      `VcsBackend.previewCommit` supplies opaque base and staged versions.
      Git initializes a temporary index from HEAD and stages the selection
@@ -3636,13 +3805,156 @@ plan with why it is left, before the next phase starts.
      standalone and multi-repository statuses. All 2,676 tests and
      formatting checks passed.
 
-   - **h. Remove adapters, document and review.** Remove transitional
+     Review of a-g (2026-11-11, three fault-finding reviews of the plan
+     and the code). Fixed:
+
+     - A hunk is found again by one rule, in `Selections.match`, used by
+       every resolution: the same content, with its changed lines on the
+       same base rows, the same working rows, or between the same
+       context lines. If none or several hunks qualify, the selection is
+       dropped as moved. Before, a hunk with no twin followed its content
+       anywhere in the file: undo `+return null;` in one function and add
+       it in another, and the pick (or a discard of the picks) went to
+       the new one. A twin was compared by absolute base rows, so staging
+       anything above it dropped the pick, silently after j's own write.
+       Any change in the number of twins dropped the pick too, even when
+       the picked one hadn't moved. `sameBaseLocations` and its three
+       callers (commits, list commits, moves) are gone. `sameChanges`
+       still compares base rows between the review and the commit.
+     - A whole-file target whose change letter, side or rename source
+       changed (M to D, say) is `CHANGED`, as a hunk's file is.
+     - Discarding part of a file checks that the hunk is still in a
+       fresh diff, as staging does. `git apply` takes a patch at an
+       offset, so a stale hunk could be taken out somewhere else.
+     - After a private commit, the real index is rebuilt from a copy
+       that keeps its file times. Without them, `git reset` wrote racy
+       entries back as clean, and a same-second edit to an unselected
+       file disappeared from the status and from every later commit.
+     - The commit just made is found by its tree, the earliest commit on
+       HEAD's first-parent line since the old HEAD. Before, a post-commit
+       hook's own commit looked like "another commit landed": the hook's
+       commit was taken off the branch, and the staged reversal of ours
+       was left behind.
+
+     Plan corrections and leaks, for h and phase 12:
+
+     - Committing is tied to Git's index. The Commit popup and menu need
+       `STAGING` in every repository (`VcsStatusMode.stages` uses
+       allMatch), and `PartialCommit.refuseRepository` needs both
+       `PARTIAL_COMMIT` and `STAGING`. `previewCommit` and
+       `commitPrivately` stage into a private index. So a backend without
+       an index can't commit, and a status that mixes Git with such a
+       backend loses Git's commits too. Phase 12 needs a whole-path
+       commit (paths, the reviewed versions, the message) with a preview
+       that hashes working files, and capability checks per repository.
+     - Section ids are not opaque in shared code. About 30 places outside
+       the Git backend name `"staged"`, `"unstaged"` or
+       `StatusRenderer.UNSTAGED`: ChangesTree, StatusTree, RepositoryStatus
+       (pruning, wanted diffs, the unstaged re-read), PartialCommit's list
+       targets, CommitCommands and StashCommands. Changelists exist only
+       under the unstaged section, and `Selections` keys on
+       `FileItem.staged()`. The g notes above overstate this. Phase 12
+       gives each `StatusData.Section` a role (working, staged,
+       untracked, unmerged) and keys shared code on the role.
+     - Native changelists are thin. `readNativeChangelists` returns only
+       names, and status data carries no per-file membership, so the
+       trees can't group files by native list. There's no remove (svn
+       `changelist --remove`), no answer for the default list, and the
+       `create` flag means nothing to svn, where a list exists only while
+       it has members. Drags always use the editor's lists
+       (`ChangelistDrag.canDrop` takes only `ListKind.EDITOR`), while
+       `C m` and the menu offer native lists. Phase 12 settles these and
+       lists what svn refuses (unversioned files, directories).
+     - Destructive actions on whole files act on the file's current
+       changes, by design. A long-lived pick of a whole file also
+       discards edits made after the pick. The confirmation prompt names
+       the file. Comparing blob ids at the pick is the stronger answer,
+       if wanted.
+
+     Minor, noted:
+
+     - Copies are taken for renames: `GitWrites.unstage`,
+       `PartialCommit.paths` and `stage` carry `origPath` for any kind.
+       With `status.renames=copies`, `u` on a copy unstages its source.
+     - Identity depends on the whitespace mode. Toggling it drops hunk
+       picks, and partial commits are refused while whitespace is
+       ignored.
+     - A gitlink's "Subproject commit" hunk isn't classed as
+       non-textual, so it may be picked in part.
+     - Menu items take the clicked line while typed keys take the picks,
+       though the menu shows the keys. No menu path acts on the picks.
+       `StatusActions.fromMenu` is a static flag reset when the item
+       returns, so a command that retargets after a diff read takes the
+       picks. Capturing the targets when the menu opens would fix it.
+     - `Selections.Builder.member` drops unknown hunk ids, and a null
+       diff, without reporting a problem.
+     - `Builder.line` accepts context-line indexes. A selection that
+       starts in one hunk's trailing context makes a context-only target,
+       whose "Those lines change nothing" stops the rest of the stage.
+     - A drag between models (the Changes tab and one repository's status
+       buffer) is refused without a message. A status-buffer drag takes
+       its source list from the line pressed, though the selection can
+       span lists. A capture waiting on unread diffs starts no drag, and
+       says nothing.
+     - While a write runs, `StatusPicks.retain` returns without remapping.
+       A hunk pick's bits can then be mixed with indexes from another
+       hunk object.
+     - Pruning can use an unstaged diff read ignoring whitespace, when the
+       full re-read fails. `listed()` prunes from inside rendering, and
+       re-enters it.
+     - Retention re-hashes every picked file's old and new diffs on the
+       event thread at each read, since `newRead` clears the id cache. The
+       diff pane reads a whole status for one unread file.
+     - The commit preview stages whole files at the review, again at
+       Ctrl Enter, and again at the commit. `GitWrites.stage` passes every
+       path to one `git add`, unlike the batched reads and resets.
+     - `beyond` resets the extra paths on the real index without the lock,
+       and ignores a failure.
+     - Deleting a file that became a directory can't be committed alone.
+       Its message ("Couldn't read the staged versions") doesn't say why.
+     - Picks dropped by retention are reported only in the status line,
+       and `s` or `x` then run on the rest.
+     - Process: b and c landed in one commit. The `VcsBackend` hooks came
+       without a plan step. `vcs.selection` imports `StatusData` from
+       `vcs.status`, which imports it back. Nothing fuzzes `resolve`,
+       which is pure and cheap. The invariants: it never maps a pick to
+       other content, and never moves one between identical hunks.
+
+   - **h. Remove adapters, document and review.** A right-click menu
+     acts on the line or node right-clicked, or the selection it is in,
+     before any picks (10 k fix 23); confirm every surface does and the
+     docs say so. Remove transitional
      target/key conversion code and duplicate freshness checks now covered
-     by resolution, retaining execution-time repository checks. Verify the
-     selection package depends on no `StatusLine`, `StatusRenderer`, editor
-     or Swing type. Document invalidation and reselection behavior and the
-     backend capability boundary. Drive picks, same-file commit changes and
+     by resolution, retaining execution-time repository checks. These
+     remain at the a-g review:
+     - `Target.Part.lines()`, `withLines` and `Part.of(…, BitSet)`
+     - `Selections.hunkIds`
+     - read bookkeeping keyed by `StatusRenderer.fileKey` strings
+       (`wanted`, `diffsRead`, `listedKeys`, `viewed`, `partlyPicked`,
+       `PendingRead.keys`, `PendingPick`'s key, `Listener.wantsDiff`),
+       with conversions in `resolveTargets`, `resolveMove`, `showPicks`
+       and `StatusDiffBuffer`; key these by `FileKey`, as a `|` in a
+       section id or path can make two keys collide
+     - `FileView.key`
+     - `RepositoryStatus.Drop` beside `Selections.Reason`, and `RowPicks.Of`
+     - `ChangelistCommands.replacedFile`, `chooseMove`'s own unread
+       read, and `PartialCommit.listTargets`' unread wait
+     - `StatusActions.listTargets` and `targetsOf`
+     - the static `StatusActions.fromMenu`
+
+     Verify the selection package depends on no `StatusLine`,
+     `StatusRenderer`, editor or Swing type, and decide whether its use
+     of `StatusData` is allowed. Document invalidation and reselection
+     behavior and the backend capability boundary. State that no stored
+     data needs migrating, and test loading a changelist store from
+     before phase 11. Drive picks, same-file commit changes and
      drag/drop in simple and vim modes; review the final extraction.
+     The driver (`test/driver/org/armedbear/j/GuiDriver.java`) has only
+     key, type, exec and hover steps. Add press, drag and release at a
+     row or tree node, a right-click at a line, and a shell step, then
+     `test/driver/phase11.txt` with its fixture. Two status models over
+     one repository and drop locations (from 10 k) go in it. Record
+     whatever can't be driven as not driven.
 
      Checks: the focused tests from a-g, the full unit suite and an Xvfb
      drive through each UI surface. Record failures and environmental
@@ -3651,6 +3963,13 @@ plan with why it is left, before the next phase starts.
 12. **Subversion.** Its backend on the shared layer: status, diff, marks,
    blame, log (one lane), conflicts, and svn's own changelists. This proves
    the split. Any git-only leaks found here are fixed in the shared code.
+   Known before it starts (11's review): commits without an index,
+   capabilities checked per repository, section roles in place of Git
+   section names, and native changelist membership, removal and drags.
+   The hooks phase 11 added are `previewCommit`, `FileVersion`,
+   `ChangeVersion` and `CommitPreview`, the `reviewed` versions given to
+   `commitPrivately`, and `readNativeChangelists` and
+   `moveToNativeChangelist`.
 
 Status comes before the log, although the log is first on the list. Both need
 phase 0, and the status buffer exercises the diff and hunk model that the

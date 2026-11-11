@@ -207,12 +207,13 @@ public final class StatusRenderer {
         return end < 0 ? key : key.substring(0, at) + key.substring(end + 1);
     }
 
-    /**
-     * The key of the heading of r's changelist name, in the section of
-     * the work tree's changes; no path being empty, unlike any file's.
-     */
+    // Between a section's key and a list's name: a character no path
+    // starts with, so a path such as "|x" isn't taken for list x.
+    static final String LIST = "|\u0002";
+
+    /** The key of the heading of r's changelist name, in the section of the work tree's changes. */
     static String listKey(VcsRepository r, String name) {
-        return sectionKey(r, UNSTAGED) + "||" + name;
+        return sectionKey(r, UNSTAGED) + LIST + name;
     }
 
     // The work tree's changes, s, as changelists: a heading for each, with

@@ -1120,9 +1120,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         if (!(line instanceof StatusLine s))
             return null;
         // The caret moves to the line unless the click is inside the selection.
-        if (!insideSelection(editor, line))
+        if (!insideSelection(editor, line)) {
+            editor.setMark(null);
             editor.moveDotTo(line, 0);
-        return menuFor(editor);
+        }
+        return menuFor(editor, s);
     }
 
     /**
@@ -1132,21 +1134,18 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     public static void vcsStatusContextMenu(Editor editor) {
         if (owner(editor) == null || !(editor.getDotLine() instanceof StatusLine))
             return;
-        final JPopupMenu menu = menuFor(editor);
+        final JPopupMenu menu = menuFor(editor, (StatusLine) editor.getDotLine());
         if (menu == null)
             return;
         final java.awt.Point at = editor.getDisplay().getCaretPoint();
         menu.show(editor.getDisplay(), at.x + 4, at.y + 16);
     }
 
-    // Whether line is within the editor's selection.
+    // Whether line is one of the lines the editor's selection takes, as
+    // the commands take them: a selection ending at a line's start doesn't
+    // take that line.
     private static boolean insideSelection(Editor editor, Line line) {
-        if (!Region.isSelection(editor))
-            return false;
-        final int mark = editor.getMark().lineNumber();
-        final int dot = editor.getDot().lineNumber();
-        final int at = line.lineNumber();
-        return at >= Math.min(mark, dot) && at <= Math.max(mark, dot);
+        return Region.isSelection(editor) && Region.selectedLines(editor).contains(line);
     }
 
     /**
@@ -1155,11 +1154,18 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
      * menu put on the line.
      */
     static JPopupMenu menuFor(Editor editor) {
+        return editor.getDotLine() instanceof StatusLine line ? menuFor(editor, line) : null;
+    }
+
+    // As menuFor, line the one right-clicked: what the items' labels are
+    // of. Its items take the line, or the selection it is in, before any
+    // picks.
+    static JPopupMenu menuFor(Editor editor, StatusLine line) {
         final VcsStatusBuffer status = owner(editor);
-        if (status == null || !(editor.getDotLine() instanceof StatusLine line))
+        if (status == null || line == null)
             return null;
         final RepositoryStatus model = status.model();
-        final Function<String, Runnable> run = name -> () -> runNamed(editor, name);
+        final Function<String, Runnable> run = name -> () -> StatusActions.fromMenu(() -> runNamed(editor, name));
         final VcsMenu menu = new VcsMenu(editor, null);
         switch (line.kind()) {
             case FILE, MESSAGE -> {
@@ -1169,9 +1175,9 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                     menu,
                     editor,
                     model,
-                    StatusActions.targets(model, editor),
                     StatusActions.targets(model, editor, false),
-                    StatusActions.takesPicks(model, editor),
+                    StatusActions.targets(model, editor, false),
+                    false,
                     StatusPicks.fileKey(line),
                     new Target.Member(line.file(), line.only()),
                     StatusPicks.pickable(line),
@@ -1184,7 +1190,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             case LIST -> {
                 final ListedChanges listed = model.listed(line.repository());
                 final boolean active = listed != null && listed.active().equals(line.list());
-                VcsContextMenus.changelistItems(menu, editor, line.list(), active, run);
+                final boolean empty = listed == null || listed.members().getOrDefault(line.list(), List.of()).isEmpty();
+                VcsContextMenus.changelistItems(menu, editor, line.list(), active, empty, run);
             }
             case SECTION -> sectionItems(menu, editor, model, line, run);
             case COMMIT -> commitItems(menu, editor, model, line, run);
@@ -1202,7 +1209,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
     // A hunk heading, or diff lines selected: stage, unstage, discard,
     // move, commit alone, pick.
     private static void hunkItems(VcsMenu menu, Editor editor, RepositoryStatus model, Function<String, Runnable> run) {
-        final List<Target> targets = StatusActions.targets(model, editor);
+        final List<Target> targets = StatusActions.targets(model, editor, false);
         menu.add(
             "Stage",
             "vcsStage",
@@ -1221,10 +1228,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             StatusActions.refusal(editor, model, Op.DISCARD, targets, false) == null,
             StatusActions.refusal(editor, model, Op.DISCARD, targets, false),
             e -> run.apply("vcsDiscard").run());
-        VcsContextMenus.moveItem(menu, editor, model, targets, StatusActions.takesPicks(model, editor));
-        // Commit alone… takes the hunk or lines under the caret, never the
-        // picks, so its why is worked out from those, not the targets.
-        final List<Target> commitTargets = StatusActions.targets(model, editor, false);
+        VcsContextMenus.moveItem(menu, editor, model, targets, false);
+        final List<Target> commitTargets = targets;
         menu.add(
             "Commit alone…",
             "vcsCommitFiles",
@@ -1246,7 +1251,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             RepositoryStatus model,
             StatusLine line,
             Function<String, Runnable> run) {
-        final List<Target> targets = StatusActions.targets(model, editor);
+        final List<Target> targets = StatusActions.targets(model, editor, false);
         menu.add(
             "Stage all",
             "vcsStage",

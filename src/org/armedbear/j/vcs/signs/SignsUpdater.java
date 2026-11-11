@@ -100,6 +100,14 @@ public final class SignsUpdater implements Buffer.Follower {
         changed();
     }
 
+    // Read again from its file: its changes placed again from the lists as
+    // kept, as its lines are all new.
+    @Override
+    public void reloaded() {
+        if (tracker != null)
+            tracker.reload();
+    }
+
     // What is staged or committed may have changed: the bases read again.
     @Override
     public void vcsChecked() {
@@ -219,9 +227,19 @@ public final class SignsUpdater implements Buffer.Follower {
         if (!trackerSought) {
             trackerSought = true;
             final RepositoryLists lists = RepositoryLists.of(getRepository());
-            tracker = lists == null ? null : new ChangeTracker(lists, getPath());
+            tracker = lists == null ? null : new ChangeTracker(lists, getPath(), this::renamedFrom);
         }
         return tracker;
+    }
+
+    // The path its file was renamed from, as a status read it; null for none.
+    private String renamedFrom() {
+        for (StatusView.Source s : sources) {
+            final String from = s.renamedFrom(getRepository(), getPath());
+            if (from != null)
+                return from;
+        }
+        return null;
     }
 
     /** The open statuses, in the order opened. */
@@ -230,15 +248,41 @@ public final class SignsUpdater implements Buffer.Follower {
     /** s, a status opened, gives its views of files from now. */
     public static void addSource(StatusView.Source s) {
         sources.add(s);
+        sourcesChanged++;
     }
 
     /** s, a status closed, gives none. */
     public static void removeSource(StatusView.Source s) {
         sources.remove(s);
+        sourcesChanged++;
     }
 
-    /** The view of its file of the first status opened that has one; null for none. */
+    // How many times the statuses opened or closed; and the one this file's
+    // picks go to, as last found then.
+    private static volatile int sourcesChanged;
+    private StatusView.Source preferred;
+    private int preferredAt = -1;
+
+    /**
+     * The view of its file of the status its picks go to, as its buffer's
+     * status command would show; else of the first status opened that has
+     * one; null for none.
+     */
     public StatusView view() {
+        if (preferredAt != sourcesChanged) {
+            preferredAt = sourcesChanged;
+            preferred = null;
+            for (StatusView.Source s : sources)
+                if (s.prefers(this)) {
+                    preferred = s;
+                    break;
+                }
+        }
+        if (preferred != null) {
+            final StatusView v = preferred.viewOf(this);
+            if (v != null)
+                return v;
+        }
         for (StatusView.Source s : sources) {
             final StatusView v = s.viewOf(this);
             if (v != null)

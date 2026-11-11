@@ -355,7 +355,9 @@ public class VcsContextMenuTest {
     }
 
     @Test
-    public void aMoveMenuClearsThePicksItCapturedBeforeARefresh() throws Exception {
+    // The line right-clicked before the picks: a menu built before a refresh
+    // still moves its line, and the pick, not what it took, stays.
+    public void aMoveMenuMovesItsLineAfterARefreshLeavingThePicks() throws Exception {
         repository();
         open();
         onEdt(() -> {
@@ -373,7 +375,7 @@ public class VcsContextMenuTest {
         try {
             onEdt(() -> item(menu, "vcsChangelistMove").doClick());
             until(() -> text().contains("  Feature (1)"));
-            onEdt(() -> assertTrue(status.picks().isEmpty()));
+            onEdt(() -> assertFalse(status.picks().isEmpty(), "the menu took its line, not the picks"));
         }
         finally {
             BranchCommands.choose = choose;

@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +45,7 @@ import org.armedbear.j.util.Diff;
 import org.armedbear.j.util.PickState;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.changelists.Anchors;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
@@ -574,6 +576,25 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
             shown(null);
     }
 
+    // The status the file's buffer's status command shows: the one its picks go to.
+    @Override
+    public boolean prefers(SignsUpdater u) {
+        return !disposed && repositories.equals(VcsStatusMode.repositoriesFor(u.getBuffer()));
+    }
+
+    // A file renamed in the index or the work tree: its old path, as read.
+    @Override
+    public String renamedFrom(VcsRepository r, String path) {
+        final StatusData d = repositories.contains(r) ? data.get(r) : null;
+        if (d == null)
+            return null;
+        for (Section s : d.sections())
+            for (Item i : s.items())
+                if (i instanceof FileItem f && f.path().equals(path) && f.change().origPath() != null)
+                    return f.change().origPath();
+        return null;
+    }
+
     /**
      * r's unstaged files, as last read, in its changelists; null if it
      * doesn't sort them. Those kept one change at a time whose diffs
@@ -584,10 +605,24 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         final RepositoryLists lists = d == null ? null : RepositoryLists.shown(r);
         if (lists == null)
             return null;
-        final Changelists c = lists.lists();
+        Changelists c = lists.lists();
         final Listed last = lastListed.get(r);
         if (last != null && last.lists() == c && last.data() == d)
             return last.sorted();
+        // What no change has any more once a commit moved HEAD, as a file
+        // committed while closed, kept from taking an unrelated edit later.
+        // Only then: a stash, or a change undone and done again elsewhere,
+        // leaves HEAD, and the lists, as they were.
+        final String head = headOf(d);
+        final String seenHead = heads.put(r, head);
+        if (d.error() == null
+                && seenHead != null
+                && !seenHead.equals(head)
+                && !pruned(c, d, readIgnoring).equals(c)
+                && lists.update(x -> pruned(x, d, readIgnoring))) {
+            c = lists.lists();
+            SignsUpdater.listsChanged(r);
+        }
         final List<FileItem> files = files(r, StatusRenderer.UNSTAGED);
         final Set<String> keys = keysOf(r, c);
         for (FileItem f : files) {
@@ -600,6 +635,74 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         final ListedChanges sorted = ListedChanges.of(c, files, picks::ids);
         lastListed.put(r, new Listed(c, d, sorted));
         return sorted;
+    }
+
+    /**
+     * c less what d says no change has any more: a path in neither the
+     * work tree's changes nor what is staged, both sections whole; of a
+     * path whose diffs are read, the changes neither diff has, a change
+     * staged kept so unstaging puts it back in its list. Staged diffs read
+     * ignoring whitespace aren't taken as the changes'.
+     */
+    // The Head a read last showed of each repository, its commit with it.
+    private final Map<VcsRepository, String> heads = new HashMap<>();
+
+    private static String headOf(StatusData d) {
+        for (StatusData.Field f : d.header())
+            if (f.label().equals("Head"))
+                return f.value();
+        return "";
+    }
+
+    static Changelists pruned(Changelists c, StatusData d, Whitespace ignored) {
+        final Section unstaged = section(d, StatusRenderer.UNSTAGED);
+        final Section staged = section(d, "staged");
+        final boolean whole = (unstaged == null || unstaged.total() == unstaged.items().size())
+                && (staged == null || staged.total() == staged.items().size());
+        Changelists out = c;
+        for (Map.Entry<String, Changelists.Assignment> e : c.files().entrySet()) {
+            final String path = e.getKey();
+            final FileItem u = fileAt(unstaged, path);
+            final FileItem st = fileAt(staged, path);
+            if (u == null && st == null) {
+                if (whole)
+                    out = out.withFile(path, null);
+                continue;
+            }
+            if (e.getValue().whole() != null
+                    || u != null && u.diff() == null
+                    || st != null && (st.diff() == null || ignored != Whitespace.NONE))
+                continue;
+            final Set<String> now = new HashSet<>();
+            for (FileItem f : Arrays.asList(u, st))
+                if (f != null)
+                    for (Hunk h : f.diff().hunks())
+                        for (Hunk.Run run : h.runs())
+                            now.add(Anchors.hash(h, run));
+            final List<Changelists.Change> kept = new ArrayList<>();
+            for (Changelists.Change ch : e.getValue().changes())
+                if (now.contains(ch.hash()))
+                    kept.add(ch);
+            if (kept.size() != e.getValue().changes().size())
+                out = out.withFile(path, kept.isEmpty() ? null : Changelists.Assignment.of(kept));
+        }
+        return out;
+    }
+
+    private static Section section(StatusData d, String id) {
+        for (Section s : d.sections())
+            if (s.id().equals(id))
+                return s;
+        return null;
+    }
+
+    // s's file at path, or renamed from it; null for none.
+    private static FileItem fileAt(Section s, String path) {
+        if (s != null)
+            for (Item i : s.items())
+                if (i instanceof FileItem f && (f.path().equals(path) || path.equals(f.change().origPath())))
+                    return f;
+        return null;
     }
 
     // The keys of r's files c keeps change by change, whose diffs a read takes.

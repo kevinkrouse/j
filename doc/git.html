@@ -119,7 +119,8 @@ Right-clicking a line, or the menu key or <b>Shift F10</b>
 (<a href="commands.html#vcsStatusContextMenu">vcsStatusContextMenu</a>),
 opens a menu of the git things to do with the line under the mouse. The
 caret moves there first, unless the click is inside the selection, which
-the menu then takes. Every item is a command with its key shown, dimmed
+the menu then takes; the menu takes that line or selection before anything
+picked, which <b>s</b>, <b>x</b> and the rest take when you type them. Every item is a command with its key shown, dimmed
 with why where it can't apply. On a <b>file</b>: the same items as the
 Changes tab's — commit, discard, stage, unstage, move, show history,
 blame, open, pick, copy path; for an untracked file, <b>Add to VCS</b>
@@ -338,7 +339,8 @@ and the resolve popup then take a selection if there is one, else what is
 picked, not the caret, the resolve popup only the picked conflicts,
 and unpick it once done; Enter on a picked file or hunk opens each picked file; a double click visits the line clicked. A stash's files are not picked, and <b>x</b> on a stash's line drops it
 whatever is picked; the resolve popup with no conflict picked says so. A pick lasts through a
-refresh; one whose change is gone, or has changed, is dropped, and the status
+refresh, following its change as lines are added or staged above it; one whose
+change is gone, has changed, or was undone and made again elsewhere is dropped, and the status
 bar says so, unless one of j's own commands took the change. <b>Ctrl ;</b> unpicks everything, as in a directory. Picks are kept in
 memory, not saved. They belong to the repositories, not to a status
 buffer: the status, the sidebar's Changes tab and a file's own buffer share
@@ -419,10 +421,15 @@ in vim edit mode, moves the change at the caret, or the lines of the
 selection; if the file has edits unsaved, the move is kept as it is saved.
 
 <p>
-Drag a file, hunk, or selected diff lines onto another list in the status
-buffer to move them there. In the sidebar's status tree and Changes tab,
-drag a file onto another list; a split file moves only the changes in that
-list. A drag stays within one repository.
+Drag a file's or a hunk's heading, or from inside the selected diff lines,
+onto another list in the status buffer to move them there; a drag that
+starts on a diff line outside the selection selects text, as in any buffer.
+In the sidebar's status tree and Changes tab, drag a file, or the files
+selected in one list, onto another list; a split file moves only the
+changes in that list. A drag stays within one repository. <b>x</b> on a
+whole file picked before an edit split it across lists, or on a file shown
+whole under a list only until its diff is read, refuses, so as not to
+discard another list's changes.
 
 <p>
 In a file's buffer, the marks of changes in a list other than the active
@@ -511,7 +518,7 @@ history</b> and <b>Blame</b>; <b>Open</b>, <b>Pick</b>, <b>Copy path</b>;
 and for an untracked file, <b>Add to VCS</b>
 (<a href="commands.html#vcsStage">vcsStage</a>, which adds it),
 <b>Add to .gitignore</b>
-(<a href="commands.html#vcsIgnore">vcsIgnore</b>) and <b>Delete…</b>, or
+(<a href="commands.html#vcsIgnore">vcsIgnore</a>) and <b>Delete…</b>, or
 for an unmerged one, the resolves. On a changelist: <b>Commit
 changelist…</b>, <b>Make active</b>, <b>New</b>, <b>Rename…</b>,
 <b>Delete…</b> — <b>Make active</b> dimmed on the active list, and
@@ -575,7 +582,14 @@ alone while a merge, rebase or cherry-pick is in progress, as git would make
 the commit the merge's; nor picks of what is staged, of a conflict, or of hunks
 while whitespace is ignored. The commit's hooks see only what it commits; a
 hook that stages files itself, as lint-staged does, can add them to the
-commit. If the hooks reject the commit, the message is kept and j leaves
+commit: j then says which files the commit took beyond the selection, and
+sets them in the index as committed, unless something of them was staged
+before, which it leaves and names. If another commit lands between j's
+checks and git's, j takes its own commit back and asks you to commit again,
+as its tree came from before that commit. Once a commit has moved HEAD, a
+changelist forgets the changes the work tree and the index no longer have;
+a stash, or a change undone and done again in another tool, leaves the
+lists as they were. If the hooks reject the commit, the message is kept and j leaves
 the repository's index unchanged; changes a hook itself makes to files or
 to the real index remain.
 

@@ -715,7 +715,7 @@ public class PartialCommitTest {
         finish("Moved");
         assertEquals("Repeated base", subject());
         assertEquals(base, git.index("a.txt"));
-        assertTrue(String.valueOf(h.status()).contains("different base location"), h.status());
+        assertTrue(String.valueOf(h.status()).contains("moved"), h.status());
     }
 
     @Test
@@ -860,4 +860,61 @@ public class PartialCommitTest {
         assertEquals("late edit\n", b.head("b.txt"), h.status());
     }
 
+    @Test
+    public void aCommitFromTheShellPrunesWhatNoChangeHasButAStashKeepsIt() throws Exception {
+        open();
+        fiftyInFeature();
+        // Stashed and popped: HEAD where it was, the lists kept.
+        git.git("stash", "-q");
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
+        until(() -> !text().contains("  Feature (1)"));
+        git.git("stash", "pop", "-q");
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
+        until(() -> text().contains("  Feature (1)"));
+        // Committed from the shell: what a.txt's entry kept is gone.
+        git.git("commit", "-qam", "shell");
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
+        until(() -> RepositoryLists.of(repo()).lists().assignment("a.txt") == null);
+    }
+
+    @Test
+    public void aHookThatStagesAnotherFileIsSaidAndTheIndexAgreesWithTheCommit() throws Exception {
+        open();
+        fiftyInFeature();
+        Files.writeString(git.root.resolve(".git/hooks/pre-commit"), "#!/bin/sh\ngit add c.txt\n");
+        git.root.resolve(".git/hooks/pre-commit").toFile().setExecutable(true);
+        onEdt(() -> {
+            h.editor().setDot(line("  Feature (1)"), 0);
+            CommitCommands.vcsCommitList(h.editor());
+        });
+        finish("Fifty");
+        until(() -> "Fifty".equals(subject()));
+        until(() -> String.valueOf(h.status()).contains("took more than was selected"));
+        assertEquals("new\n", git.head("c.txt"), "the hook's file committed");
+        assertEquals("", git.git("status", "--porcelain", "--", "c.txt").strip(), "no staged reversal of it");
+        assertEquals("b changed\n", git.index("b.txt"), "what was staged still staged");
+    }
+
+    @Test
+    public void aWholeFilePickedBeforeItSplitAcrossListsIsntDiscardedWhole() throws Exception {
+        open();
+        // a.txt picked whole, then line 50's hunk moved to Feature.
+        onEdt(() -> status.pick(List.of(line("  M  a.txt"))));
+        fiftyInFeature();
+        onEdt(() -> {
+            h.editor().setDot(status.getFirstLine(), 0);
+            StatusActions.run(h.editor(), StatusActions.Op.DISCARD);
+        });
+        until(() -> String.valueOf(h.status()).contains("split across changelists"));
+        assertEquals(CHANGED, git.read("a.txt"), "nothing discarded");
+    }
 }

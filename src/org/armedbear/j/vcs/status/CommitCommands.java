@@ -279,10 +279,15 @@ public final class CommitCommands {
      * under the mouse, and committing the picks is vcsCommitPicked.
      */
     public static void vcsCommitFiles(Editor editor) {
+        // From the diff beside: its lines, not the status's caret.
+        final VcsStatusBuffer owner = VcsStatusMode.owner(editor);
+        final List<Target> pane = owner != null && editor.getBuffer() != owner
+                ? StatusActions.targets(owner.model(), editor, false)
+                : null;
         final Editor at = statusWindow(editor);
         if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
             return;
-        final List<Target> targets = StatusActions.targets(status.model(), at, false);
+        final List<Target> targets = pane != null ? pane : StatusActions.targets(status.model(), at, false);
         if (targets.isEmpty()) {
             at.status("Nothing here to commit");
             return;

@@ -115,7 +115,13 @@ final class VcsContextMenus {
             file != null,
             file == null ? "No file here" : null,
             e -> action.apply(diffCommand).run());
-        add(menu, editor, "Show history", "vcsLogFileAt", file == null ? "No file here" : null, action);
+        add(
+            menu,
+            editor,
+            "Show history",
+            "vcsLogFileAt",
+            file == null ? "No file here" : untracked ? "Not tracked: it has no history" : null,
+            action);
         add(menu, editor, "Blame", "vcsBlame", blameWhy(r, file), action);
         add(menu, editor, "Open", "vcsStatusVisit", file == null ? "No file here" : null, action);
         add(
@@ -169,9 +175,10 @@ final class VcsContextMenus {
             Editor editor,
             String list,
             boolean active,
+            boolean empty,
             Function<String, Runnable> action) {
         final boolean isDefault = Changelists.DEFAULT.equals(list);
-        add(menu, editor, "Commit changelist…", "vcsCommitList", null, action);
+        add(menu, editor, "Commit changelist…", "vcsCommitList", empty ? "Nothing in it to commit" : null, action);
         add(menu, editor, "Make active", "vcsChangelistActive", active ? "Already active" : null, action);
         add(menu, editor, "New changelist…", "vcsChangelistNew", null, action);
         add(menu, editor, "Rename…", "vcsChangelistRename", isDefault ? "Default can't be renamed" : null, action);

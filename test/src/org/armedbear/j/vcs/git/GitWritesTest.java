@@ -221,4 +221,41 @@ public class GitWritesTest {
         assertNull(done.trouble());
         assertEquals("first\n", git.index("a.txt"));
     }
+
+    private String sh(String command) throws Exception {
+        final Process p =
+                new ProcessBuilder("sh", "-c", command).directory(git.root.toFile()).redirectErrorStream(true).start();
+        final String out = new String(p.getInputStream().readAllBytes());
+        p.waitFor();
+        return out;
+    }
+
+    @Test
+    public void aRacyEditOfAnotherFileIsStillSeenAfterTheCommit() throws Exception {
+        VcsRepository r = forCommit();
+        // b.txt edited, same size, in the second its entry and the index were written.
+        sh(
+            "touch -d '2026-01-01 00:00:00' b.txt && git update-index --refresh -q;"
+                    + " touch -d '2026-01-01 00:00:00' b.txt .git/index;"
+                    + " printf 'x\\n' > b.txt; touch -d '2026-01-01 00:00:00' b.txt");
+        assertEquals(" M a.txt\n M b.txt\n", sh("GIT_OPTIONAL_LOCKS=0 git status --porcelain"));
+        var done = commit(r);
+        assertTrue(done.result().succeeded(), done.result().stderr());
+        assertNull(done.trouble());
+        assertEquals(" M b.txt\n", sh("git status --porcelain"));
+    }
+
+    @Test
+    public void aPostCommitHooksCommitIsKept() throws Exception {
+        VcsRepository r = forCommit();
+        Path hook = tmp.resolve(".git/hooks/post-commit");
+        Files.writeString(
+            hook,
+            "#!/bin/sh\n[ -f .bumped ] && exit 0\ntouch .bumped\nenv -u GIT_INDEX_FILE git commit -q --allow-empty -m bump\n");
+        assertTrue(hook.toFile().setExecutable(true));
+        var done = commit(r);
+        assertTrue(done.result().succeeded(), done.result().stderr());
+        assertNull(done.trouble());
+        assertEquals("bump\nselected\nfirst\n", sh("git log --format=%s"));
+    }
 }

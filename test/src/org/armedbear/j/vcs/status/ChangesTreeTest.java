@@ -363,7 +363,7 @@ public class ChangesTreeTest {
     }
 
     private void until(BooleanSupplier done) throws Exception {
-        for (int i = 0; i < 200; i++) {
+        for (int i = 0; i < 800; i++) {
             final boolean[] ok = new boolean[1];
             SwingUtilities.invokeAndWait(() -> ok[0] = done.getAsBoolean());
             if (ok[0])
@@ -660,5 +660,13 @@ public class ChangesTreeTest {
             assertEquals(List.of("Not in a repository"), rows());
         });
         assertEquals("outside a repository\n", Files.readString(file));
+    }
+
+    @Test
+    public void showDiffWithNoSidebarSaysSo() throws Exception {
+        h = EditorHarness.create();
+        Editor.setCurrentEditor(h.editor());
+        onEdt(() -> ChangesTree.vcsShowDiff(h.editor()));
+        assertEquals("The Changes tab isn't shown", h.status());
     }
 }

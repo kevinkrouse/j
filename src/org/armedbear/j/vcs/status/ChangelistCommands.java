@@ -557,10 +557,6 @@ public final class ChangelistCommands {
             model.readDiffsThen(unread, () -> resolveMove(model, captured, kind, said, ready, false));
             return;
         }
-        if (!Selections.sameBaseLocations(captured, resolved.targets())) {
-            said.accept("A selected change moved to a different base location. Select it again.");
-            return;
-        }
         ready.accept(resolved.targets());
     }
 

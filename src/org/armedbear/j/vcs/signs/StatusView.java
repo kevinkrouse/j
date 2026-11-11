@@ -41,6 +41,19 @@ public interface StatusView {
 
         /** repository's changelists changed: shown again, if it shows them. */
         default void listsChanged(org.armedbear.j.vcs.VcsRepository repository) {}
+
+        /**
+         * Whether u's file's picks are its, the status its buffer's status
+         * command shows, before any other's opened earlier.
+         */
+        default boolean prefers(SignsUpdater u) {
+            return false;
+        }
+
+        /** The path repository's file at path was renamed from, as last read; null for none, or not known. */
+        default String renamedFrom(org.armedbear.j.vcs.VcsRepository repository, String path) {
+            return null;
+        }
     }
 
     /**

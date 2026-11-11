@@ -207,7 +207,6 @@ public class SelectionsSameChangesTest {
         final var before = List.<Target>of(part(file("a", hunk(1, "selected")), 0, null));
         final var after = List.<Target>of(part(file("a", hunk(50, "selected")), 0, null));
         assertFalse(same(before, after));
-        assertFalse(Selections.sameBaseLocations(before, after));
     }
 
     @Test

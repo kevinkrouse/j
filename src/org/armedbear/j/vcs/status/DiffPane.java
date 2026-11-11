@@ -45,10 +45,10 @@ public abstract class DiffPane<B extends Buffer> extends ViewPane<B> {
     private VcsRepository repository;
     // What its lines' keys start with: the status's section's, so a hunk
     // keeps the status's key.
-    private String key;
+    private volatile String key;
     // The status's section the file is in, or null: the log's.
     private String section;
-    private FileItem item;
+    private volatile FileItem item;
     // Hunks closed or opened by hand, by key; open by default.
     private final Map<String, Boolean> expanded = new HashMap<>();
     // The shown diff's hunk ids, hashed once and kept while the pane

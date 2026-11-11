@@ -194,10 +194,18 @@ public final class Sidebar extends JComponent {
             changesTree = new ChangesTree(this, frame.changesKept);
         if (tab == tabs.shown() && topScrollPane.getViewport().getView() == getView(tab))
             return;
+        // The focus in the view swapped out goes to the one shown, not nowhere.
+        final Component focused = frame.getFocusedComponent();
+        final boolean had = focused != null && SwingUtilities.isDescendingFrom(focused, topScrollPane);
         tabs.show(tab);
         topScrollPane.setViewportView(getView(tab));
+        // The Changes tab's long labels scroll; the buffer list's are cut short.
+        topScrollPane.setHorizontalScrollBarPolicy(
+            tab == CHANGES ? JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED : JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         topPanel.validate();
         topPanel.repaint();
+        if (had)
+            frame.setFocus(getView(tab));
     }
 
     private JComponent getView(int tab) {

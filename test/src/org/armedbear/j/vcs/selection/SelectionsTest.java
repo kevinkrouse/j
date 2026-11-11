@@ -51,6 +51,16 @@ public class SelectionsTest {
         return new Hunk(row, context.length + 1, row, context.length + 1, "", lines);
     }
 
+    // A hunk at old row and new row, both from 1.
+    private static Hunk at(int old, int now, String added, String... context) {
+        final List<DiffLine> lines = new ArrayList<>();
+        for (String text : context)
+            lines.add(new DiffLine(' ', text, false));
+        lines.add(new DiffLine('-', "old", false));
+        lines.add(new DiffLine('+', added, false));
+        return new Hunk(old, context.length + 1, now, context.length + 1, "", lines);
+    }
+
     private static FileDiff diff(Hunk... hunks) {
         return new FileDiff(List.of(), "a.txt", "a.txt", false, false, false, false, List.of(hunks), false);
     }
@@ -75,37 +85,57 @@ public class SelectionsTest {
 
     @Test
     public void contextAndPositionsDoNotContributeToIdentity() {
-        Hunk original = hunk(1, "new", false, "before");
-        Hunk moved = hunk(50, "new", false, "different", "more", "context");
+        Hunk original = at(10, 10, "new", "before");
+        Hunk moved = at(8, 60, "new", "different", "more", "context");
         var before = Selections.index(diff(original));
         var after = Selections.index(diff(moved));
         String id = firstId(before);
         assertEquals(id, firstId(after));
         assertEquals(before.contents().get(id), after.contents().get(id));
-        assertSame(moved, Selections.match(after, id, before.contents().get(id), 1));
+        assertSame(moved, Selections.match(after, original, before.contents().get(id)));
+    }
+
+    @Test
+    public void aChangeIsFoundWhereEitherSideKeepsItsRows() {
+        Hunk original = at(10, 10, "new");
+        var content = Selections.content(original);
+        var baseKept = at(10, 14, "new");
+        var workingKept = at(13, 10, "new");
+        var neither = at(13, 14, "new");
+        assertSame(baseKept, Selections.match(Selections.index(diff(baseKept)), original, content));
+        assertSame(workingKept, Selections.match(Selections.index(diff(workingKept)), original, content));
+        assertNull(Selections.match(Selections.index(diff(neither)), original, content));
+        // One keeping the base rows, another the working rows: ambiguous.
+        assertNull(Selections.match(Selections.index(diff(baseKept, at(40, 10, "new"))), original, content));
     }
 
     @Test
     public void canonicalContentsMustMatchEvenWhenACandidateIdMatches() {
-        var before = Selections.index(diff(hunk(1, "Aa", false)));
+        Hunk original = hunk(1, "Aa", false);
+        var before = Selections.index(diff(original));
         String id = firstId(before);
         Hunk different = hunk(1, "BB", false);
         var candidate =
                 new Selections.Hunks(Map.of(id, different), Map.of(id, Selections.content(different)), Map.of(id, 1));
-        assertNull(Selections.match(candidate, id, before.contents().get(id), 1));
+        assertNull(Selections.match(candidate, original, before.contents().get(id)));
     }
 
     @Test
-    public void duplicateCountsChangingInvalidatesTheOriginalOccurrences() {
-        var before = Selections.index(diff(hunk(1, "new", false), hunk(20, "new", false)));
+    public void identicalOccurrencesAreFoundWhereTheyWere() {
+        var original = diff(hunk(1, "new", false), hunk(20, "new", false));
+        var before = Selections.index(original);
         var fewer = Selections.index(diff(hunk(20, "new", false)));
         var more = Selections.index(diff(hunk(1, "new", false), hunk(20, "new", false), hunk(40, "new", false)));
         var moved = Selections.index(diff(hunk(10, "new", false), hunk(30, "new", false)));
-        for (String id : before.hunks().keySet()) {
-            assertNull(Selections.match(fewer, id, before.contents().get(id), 2));
-            assertNull(Selections.match(more, id, before.contents().get(id), 2));
-            assertSame(moved.hunks().get(id), Selections.match(moved, id, before.contents().get(id), 2));
-        }
+        final Hunk first = original.hunks().get(0);
+        final Hunk second = original.hunks().get(1);
+        final var content = Selections.content(first);
+        assertNull(Selections.match(fewer, first, content));
+        assertEquals(20, Selections.match(fewer, second, content).oldStart());
+        assertEquals(1, Selections.match(more, first, content).oldStart());
+        assertEquals(20, Selections.match(more, second, content).oldStart());
+        assertNull(Selections.match(moved, first, content));
+        assertNull(Selections.match(moved, second, content));
         assertThrows(UnsupportedOperationException.class, () -> before.hunks().clear());
     }
 
@@ -132,9 +162,9 @@ public class SelectionsTest {
         var separate = Selections.index(diff(one, two));
         var together = Selections.index(diff(joined));
         for (String id : separate.hunks().keySet())
-            assertNull(Selections.match(together, id, separate.contents().get(id), 1));
+            assertNull(Selections.match(together, separate.hunks().get(id), separate.contents().get(id)));
         String joinedId = firstId(together);
-        assertNull(Selections.match(separate, joinedId, together.contents().get(joinedId), 1));
+        assertNull(Selections.match(separate, joined, together.contents().get(joinedId)));
     }
 
     @Test

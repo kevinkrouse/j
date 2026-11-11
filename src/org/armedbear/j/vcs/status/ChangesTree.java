@@ -63,6 +63,7 @@ import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Constants;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -405,7 +406,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             ListedChanges listed) {
         for (Changelist l : listed.lists()) {
             final List<Member> members = listed.members().get(l.name());
-            final String lk = sk + "||" + l.name();
+            final String lk = sk + StatusRenderer.LIST + l.name();
             final DefaultMutableTreeNode list = new DefaultMutableTreeNode(new GroupNode(r,
                     section,
                     l.name(),
@@ -607,7 +608,11 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
 
     @Override
     public String getToolTipText(MouseEvent e) {
-        if (!(nodeAt(e.getX(), e.getY()) instanceof FileNode f))
+        final Object node = nodeAt(e.getX(), e.getY());
+        // A list's or section's whole label, as the sidebar may be too narrow for it.
+        if (node instanceof GroupNode || node instanceof RepositoryNode)
+            return node.toString();
+        if (!(node instanceof FileNode f))
             return null;
         if (onBox(e.getX(), e.getY()))
             return "Pick or unpick it";
@@ -634,14 +639,12 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         }
         // The tree's own chords, before SidebarTree.chord hands them to
         // the editor, where Ctrl D is dir.
-        if (e.getKeyCode() == KeyEvent.VK_D
-                && (e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0
-                && selected() instanceof FileNode f) {
+        if (e.getKeyCode() == KeyEvent.VK_D && Keys.keyModifiers(e) == Constants.CTRL_MASK) {
             e.consume();
-            showDiff(f);
+            vcsShowDiff(editor());
             return;
         }
-        if (e.getKeyCode() == KeyEvent.VK_DELETE && selected() != null) {
+        if (e.getKeyCode() == KeyEvent.VK_DELETE && Keys.keyModifiers(e) == 0 && selected() != null) {
             e.consume();
             discardSelected();
             return;
@@ -755,9 +758,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             // The files selected when the node is among them; else the node alone.
             final List<FileNode> files = isSelected(path) ? selectedFiles() : List.of((FileNode) o);
             final List<Target> targets = targetsFor(files);
-            final FileNode line = files.isEmpty() ? null : files.get(0);
-            if (line == null)
-                return null;
+            // The labels, and the items of one file, the node right-clicked's.
+            final FileNode line = (FileNode) o;
             VcsContextMenus.fileItems(
                 menu,
                 editor,
@@ -774,7 +776,13 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 name -> fileAction(name, targets, line));
         } else if (o instanceof GroupNode g) {
             if (g.list() != null)
-                VcsContextMenus.changelistItems(menu, editor, g.list(), g.active(), name -> listAction(name, g));
+                VcsContextMenus.changelistItems(
+                    menu,
+                    editor,
+                    g.list(),
+                    g.active(),
+                    g.count() == 0,
+                    name -> listAction(name, g));
             else
                 sectionItems(menu, editor, g);
         } else if (o instanceof RepositoryNode) {
@@ -927,12 +935,11 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     /**
      * vcsShowDiff: the selected file's diff against what is staged, a
      * staged file's against HEAD, from the Changes tab — the status
-     * shown, the file revealed, the diff beside opened. The tree's
-     * Ctrl D and its menu's Show diff act on the node directly; this is
-     * the command for the keyboard and for describe-command.
+     * shown, the file revealed, the diff beside opened: Ctrl D in the
+     * tree; its menu's Show diff acts on the node right-clicked.
      */
     public static void vcsShowDiff(Editor editor) {
-        final ChangesTree tree = focused(editor);
+        final ChangesTree tree = shown(editor);
         if (tree == null) {
             editor.status("The Changes tab isn't shown");
             return;
@@ -945,13 +952,12 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         tree.showDiff(lines.get(0));
     }
 
-    // The ChangesTree in editor's frame with focus, or null.
-    private static ChangesTree focused(Editor editor) {
+    // The Changes tab's tree shown in editor's frame's sidebar, or null.
+    private static ChangesTree shown(Editor editor) {
         final Frame frame = editor == null ? null : editor.getFrame();
-        if (frame == null)
-            return null;
-        final ChangesTree tree = frame.getSidebar().getChangesTree();
-        return tree != null && tree.isFocusOwner() ? tree : null;
+        final Sidebar sidebar = frame == null ? null : frame.getSidebar();
+        final ChangesTree tree = sidebar == null ? null : sidebar.getChangesTree();
+        return tree != null && sidebar.getTopView() == tree ? tree : null;
     }
 
     // Opens the file and turns blame on.
@@ -1013,7 +1019,12 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 return;
             if (!isSelected(path))
                 setSelectionPath(path);
-            dragged = dragFor(file);
+            // The files selected, if all are of the one list; else the one pressed.
+            final List<FileNode> files = selectedFiles();
+            dragged = files.size() > 1
+                    && files.stream().allMatch(f -> file.list().equals(f.list()) && f.repository() == file.repository())
+                            ? ChangelistDrag.capture(status, file.list(), targetsFor(files))
+                            : dragFor(file);
             if (dragged != null)
                 event.startDrag(null, dragged, this);
         }

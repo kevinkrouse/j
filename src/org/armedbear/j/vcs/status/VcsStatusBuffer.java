@@ -107,15 +107,17 @@ public final class VcsStatusBuffer extends ViewBuffer
             return null;
         if (line.kind() == Kind.DIFF && line.isForeign())
             return null;
-        List<StatusLine> lines;
-        if (Region.isSelection(editor)) {
-            Region region = new Region(editor);
-            if (pos.isAfter(region.getBegin()) && pos.isBefore(region.getEnd()))
-                lines = StatusActions.selected(editor);
-            else
-                lines = List.of(line.kind() == Kind.DIFF ? StatusLine.head(line) : line);
-        } else
-            lines = List.of(line.kind() == Kind.DIFF ? StatusLine.head(line) : line);
+        // The selection, pressed inside; else a file or hunk heading: a
+        // press on a diff line outside the selection begins a selection,
+        // as in any text.
+        final List<StatusLine> lines;
+        final Region region = Region.isSelection(editor) ? new Region(editor) : null;
+        if (region != null && pos.isAfter(region.getBegin()) && pos.isBefore(region.getEnd()))
+            lines = StatusActions.selected(editor);
+        else if (line.kind() == Kind.FILE || line.kind() == Kind.HUNK)
+            lines = List.of(line);
+        else
+            return null;
         final StatusLine list = listOf(line);
         activeDrag =
                 ChangelistDrag.capture(model, list == null ? null : list.list(), StatusActions.targetsOf(model, lines));
@@ -132,6 +134,12 @@ public final class VcsStatusBuffer extends ViewBuffer
     public boolean dropAt(Editor editor, Position pos, Transferable transferable) {
         final ChangelistCommands.Destination to = dropDestination(pos);
         return activeDrag != null && to != null && activeDrag.drop(model, to, transferable, editor::status);
+    }
+
+    @Override
+    public String dropHint(Editor editor, Position pos, Transferable transferable) {
+        final ChangelistCommands.Destination to = canDropAt(editor, pos, transferable) ? dropDestination(pos) : null;
+        return to == null ? null : "Drop to move to " + to.name();
     }
 
     private ChangelistCommands.Destination dropDestination(Position pos) {
@@ -189,7 +197,8 @@ public final class VcsStatusBuffer extends ViewBuffer
     private volatile boolean disposed;
     // The diff beside it, or null; what it was last shown to follow, and
     // why it follows next, null for nothing new.
-    private StatusDiffBuffer diff;
+    // Read by the model's read thread too, as it asks which diffs are wanted.
+    private volatile StatusDiffBuffer diff;
     private String followed;
     private StatusDiffBuffer.Follow pending;
     private final Timer follow = new Timer(FOLLOW_DELAY, e -> followCaret());

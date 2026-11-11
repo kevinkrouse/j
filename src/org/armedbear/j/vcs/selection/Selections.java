@@ -157,21 +157,6 @@ public final class Selections {
         return rows;
     }
 
-    /**
-     * A ready resolution preserves input order. Check that its partial
-     * targets still describe the captured base locations after remapping context.
-     */
-    public static boolean sameBaseLocations(List<Target> captured, List<Target> resolved) {
-        if (captured.size() != resolved.size())
-            return false;
-        for (int i = 0; i < captured.size(); i++)
-            if (captured.get(i) instanceof Target.Part before
-                    && (!(resolved.get(i) instanceof Target.Part after)
-                            || !baseRows(before.hunk(), before.lines()).equals(baseRows(after.hunk(), after.lines()))))
-                return false;
-        return true;
-    }
-
     /** Collects one selection without cloning a growing line set for each selected row. */
     public static final class Builder {
         private final Map<FileKey.Section, Map<String, FileItem>> files = new LinkedHashMap<>();
@@ -372,6 +357,11 @@ public final class Selections {
                     continue;
                 }
                 if (target instanceof Target.Files) {
+                    // Its current changes, but of the same kind.
+                    if (!sameChange(selectedFile, current)) {
+                        problems.add(new Problem(key, Reason.CHANGED, "The selected file change has changed"));
+                        continue;
+                    }
                     currentFiles.add(current);
                     continue;
                 }
@@ -393,10 +383,7 @@ public final class Selections {
                     problems.add(new Problem(key, Reason.UNSUPPORTED, "This change cannot be selected in part"));
                     continue;
                 }
-                if (part.file().diff() == null
-                        || part.file().letter() != current.letter()
-                        || part.file().staged() != current.staged()
-                        || !Objects.equals(part.file().change().origPath(), current.change().origPath())) {
+                if (part.file().diff() == null || !sameChange(part.file(), current)) {
                     problems.add(new Problem(key, Reason.CHANGED, "The selected file change has changed"));
                     continue;
                 }
@@ -429,15 +416,16 @@ public final class Selections {
                     continue;
                 }
                 final Hunks now = indexes.computeIfAbsent(current.diff(), index);
-                final int twins = before.twins().get(id);
-                final int count = now.twins().getOrDefault(content.fingerprint() + "#1", 0);
-                if (count > 0 && twins != count) {
-                    problems.add(new Problem(key, Reason.AMBIGUOUS, "The number of identical hunks has changed"));
-                    continue;
-                }
-                final Hunk hunk = match(now, id, content, twins);
+                final Hunk hunk = match(now, part.hunk(), content);
                 if (hunk == null) {
-                    problems.add(new Problem(key, Reason.CHANGED, "The selected hunk has changed: select it again"));
+                    problems.add(
+                        new Problem(key,
+                                now.twins().containsKey(content.fingerprint() + "#1")
+                                        ? Reason.AMBIGUOUS
+                                        : Reason.CHANGED,
+                                now.twins().containsKey(content.fingerprint() + "#1")
+                                        ? "The selected hunk moved: select it again"
+                                        : "The selected hunk has changed: select it again"));
                     continue;
                 }
                 resolved.add(
@@ -452,6 +440,12 @@ public final class Selections {
                 resolved.add(new Target.Files(target.repository(), target.section(), currentFiles));
         }
         return new Resolution(resolved, unread, problems);
+    }
+
+    private static boolean sameChange(FileItem before, FileItem now) {
+        return before.letter() == now.letter()
+                && before.staged() == now.staged()
+                && Objects.equals(before.change().origPath(), now.change().origPath());
     }
 
     /**
@@ -551,13 +545,81 @@ public final class Selections {
         return index(diff).hunks();
     }
 
-    /** The same occurrence, or null if gone, changed or ambiguous after a duplicate count changes. */
-    public static Hunk match(Hunks current, String id, Content expected, int twins) {
-        final Hunk candidate = current.hunks().get(id);
-        return candidate != null
-                && expected != null
-                && current.twins().get(id) == twins
-                && expected.equals(current.contents().get(id)) ? candidate : null;
+    /**
+     * The same change now: a hunk of the same content whose changed lines
+     * keep their base rows (an edit elsewhere in the working file), their
+     * working rows (a write elsewhere in the base) or the lines around them
+     * (both, as a line added above and committed). Null if none or several
+     * do, so a change undone and made again elsewhere isn't followed.
+     */
+    public static Hunk match(Hunks current, Hunk before, Content expected) {
+        if (expected == null)
+            return null;
+        final List<Integer> base = baseRows(before, null);
+        final List<Integer> working = workingRows(before);
+        Hunk found = null;
+        final int count = current.twins().getOrDefault(expected.fingerprint() + "#1", 0);
+        for (int i = 1; i <= count; i++) {
+            final String id = expected.fingerprint() + "#" + i;
+            final Hunk candidate = current.hunks().get(id);
+            if (!expected.equals(current.contents().get(id)))
+                continue;
+            final boolean sameBase = base.equals(baseRows(candidate, null));
+            final boolean sameWorking = working.equals(workingRows(candidate));
+            if (sameBase && sameWorking)
+                return candidate;
+            if (sameBase || sameWorking || sameSurroundings(before, candidate)) {
+                if (found != null)
+                    return null;
+                found = candidate;
+            }
+        }
+        return found;
+    }
+
+    // The context lines next to the changes, as far as both hunks have
+    // them, all equal, and at least one of them.
+    private static boolean sameSurroundings(Hunk a, Hunk b) {
+        final List<DiffLine> x = a.lines(), y = b.lines();
+        final int leadA = leading(x), leadB = leading(y);
+        final int trailA = trailing(x), trailB = trailing(y);
+        final int lead = Math.min(leadA, leadB), trail = Math.min(trailA, trailB);
+        if (lead + trail == 0)
+            return false;
+        for (int i = 1; i <= lead; i++)
+            if (!x.get(leadA - i).text().equals(y.get(leadB - i).text()))
+                return false;
+        for (int i = 1; i <= trail; i++)
+            if (!x.get(x.size() - trailA - 1 + i).text().equals(y.get(y.size() - trailB - 1 + i).text()))
+                return false;
+        return true;
+    }
+
+    private static int leading(List<DiffLine> lines) {
+        int n = 0;
+        while (n < lines.size() && lines.get(n).isContext())
+            n++;
+        return n;
+    }
+
+    private static int trailing(List<DiffLine> lines) {
+        int n = 0;
+        while (n < lines.size() && lines.get(lines.size() - 1 - n).isContext())
+            n++;
+        return n;
+    }
+
+    // As baseRows, on the working side.
+    private static List<Integer> workingRows(Hunk hunk) {
+        final List<Integer> rows = new ArrayList<>();
+        int row = hunk.newRow();
+        for (DiffLine line : hunk.lines()) {
+            if (!line.isContext())
+                rows.add(row);
+            if (line.isNew())
+                row++;
+        }
+        return rows;
     }
 
     /** Hunk indexes expressed as offsets among changed lines, excluding context. */

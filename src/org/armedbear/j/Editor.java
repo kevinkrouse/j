@@ -1455,6 +1455,11 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return false;
     }
 
+    /** Whether a key sequence goes on, its next key yet to come, as after a prefix key. */
+    public boolean isInKeySequence() {
+        return requestedKeyMap != null;
+    }
+
     // A key sequence goes on: the next key is looked up in keyMap.
     private void beginSequence(JEvent event, KeyMap keyMap) {
         if (currentEventSequence == null)

@@ -103,6 +103,14 @@ public class SidebarTree extends JTree {
         final int modifiers = Keys.keyModifiers(e);
         if ((modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK | Constants.META_MASK)) == 0)
             return false;
+        // The tree's own: select all, copy, cut, paste, clear the selection.
+        if (modifiers == Constants.CTRL_MASK)
+            switch (e.getKeyCode()) {
+                case KeyEvent.VK_A, KeyEvent.VK_C, KeyEvent.VK_X, KeyEvent.VK_V, KeyEvent.VK_BACK_SLASH:
+                    return false;
+                default:
+                    break;
+            }
         switch (e.getKeyCode()) {
             case KeyEvent.VK_SHIFT, KeyEvent.VK_CONTROL, KeyEvent.VK_ALT, KeyEvent.VK_META, KeyEvent.VK_UP,
                     KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_KP_UP, KeyEvent.VK_KP_DOWN,
@@ -115,6 +123,10 @@ public class SidebarTree extends JTree {
         if (!editor.getDispatcher().dispatchKeyPressedFrom(e))
             return false;
         e.consume();
+        // A prefix, as vim's Ctrl W: the text takes the keys that finish it.
+        final InputHandler handler = editor.getInputHandler();
+        if (editor.isInKeySequence() || handler != null && handler.getPendingCommand() != null)
+            editor.setFocusToDisplay();
         return true;
     }
 

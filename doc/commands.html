@@ -497,8 +497,8 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsConflictTheirs">vcsConflictTheirs</a></li>
     <li><a href="commands.html#vcsConflictUnresolved">vcsConflictUnresolved</a></li>
     <li><a href="commands.html#vcsContinue">vcsContinue</a></li>
-    <li><a href="commands.html#vcsCopyPath">vcsCopyPath</a></li>
     <li><a href="commands.html#vcsCopyHash">vcsCopyHash</a></li>
+    <li><a href="commands.html#vcsCopyPath">vcsCopyPath</a></li>
     <li><a href="commands.html#vcsDiff">vcsDiff</a></li>
     <li><a href="commands.html#vcsDiscard">vcsDiscard</a></li>
     <li><a href="commands.html#vcsFetchAll">vcsFetchAll</a></li>
@@ -549,8 +549,8 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#vcsStageAll">vcsStageAll</a></li>
     <li><a href="commands.html#vcsStageHunk">vcsStageHunk</a></li>
     <li><a href="commands.html#vcsStatus">vcsStatus</a></li>
-    <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
     <li><a href="commands.html#vcsStatusContextMenu">vcsStatusContextMenu</a></li>
+    <li><a href="commands.html#vcsStatusCycle">vcsStatusCycle</a></li>
     <li><a href="commands.html#vcsStatusDepth">vcsStatusDepth</a></li>
     <li><a href="commands.html#vcsStatusDiff">vcsStatusDiff</a></li>
     <li><a href="commands.html#vcsStatusNext">vcsStatusNext</a></li>
@@ -1550,16 +1550,6 @@ new window is on the left, as vim's <code>:vsplit</code>.
 <br><br>
 </dl><!--<hr>-->
 
-<a name="dirPickFile">dirPickFile</a><dl><dd>
-<p>
-Picks the file at the caret, or each file the selection covers, or unpicks them if each is picked; the caret goes on to the next. Copy, move, delete and the shell command take the files a selection covers, else those picked, else the file at the caret. A picked file has a box in a column at the left, which a click toggles; a Shift click sets the files from the last clicked to it the same way.
-<br><br>
-<b>Default key mapping:</b> ;, Insert or t in directory buffers
-<br><br>
-<b>See also:</b> <a href="directories.html">Directory Buffers</a>
-<br><br>
-</dl><!--<hr>-->
-
 <a name="dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a><dl><dd>
 <p>
 Opens the file or directory at the caret, then closes the directory buffer.
@@ -1568,6 +1558,16 @@ Opens the file or directory at the caret, then closes the directory buffer.
 <p>
 <b>See also:</b> <a href="#dirOpenFile">dirOpenFile</a>,
 <a href="directories.html">Directory Buffers</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="dirPickFile">dirPickFile</a><dl><dd>
+<p>
+Picks the file at the caret, or each file the selection covers, or unpicks them if each is picked; the caret goes on to the next. Copy, move, delete and the shell command take the files a selection covers, else those picked, else the file at the caret. A picked file has a box in a column at the left, which a click toggles; a Shift click sets the files from the last clicked to it the same way.
+<br><br>
+<b>Default key mapping:</b> ;, Insert or t in directory buffers
+<br><br>
+<b>See also:</b> <a href="directories.html">Directory Buffers</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -6376,6 +6376,16 @@ Makes the changelist whose heading the caret is on in the git status active, els
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsChangelistDelete">vcsChangelistDelete</a><dl><dd>
+<p>
+Deletes the changelist whose heading the caret is on in the git status, else one asked for, after asking; its changes go to the default list, which stays.
+<br><br>
+<b>Default key mapping:</b> d in the changelist popup
+<br><br>
+<b>See also:</b> <a href="git.html#changelists">Changelists</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsChangelistMenu">vcsChangelistMenu</a><dl><dd>
 <p>
 In a file's own buffer, opens a small menu of the changelists the change at the caret, or the lines of the selection, can move to, the one it is in dimmed, and a new one; choosing one moves it. Under the hunk preview's button when it shows, else under the caret; a click on the changelist's name in the status bar opens it too.
@@ -6401,16 +6411,6 @@ In the git status, moves the changes not staged that the selection takes, else t
 Makes a changelist in the repository at the caret, or of the file shown, asking its name.
 <br><br>
 <b>Default key mapping:</b> n in the changelist popup
-<br><br>
-<b>See also:</b> <a href="git.html#changelists">Changelists</a>
-<br><br>
-</dl><!--<hr>-->
-
-<a name="vcsChangelistDelete">vcsChangelistDelete</a><dl><dd>
-<p>
-Deletes the changelist whose heading the caret is on in the git status, else one asked for, after asking; its changes go to the default list, which stays.
-<br><br>
-<b>Default key mapping:</b> d in the changelist popup
 <br><br>
 <b>See also:</b> <a href="git.html#changelists">Changelists</a>
 <br><br>
@@ -6709,6 +6709,16 @@ Goes on with what the repository at the caret has in progress, once its conflict
 <br><br>
 </dl><!--<hr>-->
 
+<a name="vcsCopyHash">vcsCopyHash</a><dl><dd>
+<p>
+Copies the commit the caret is on to the system clipboard and j's kill ring.
+<br><br>
+<b>Default key mapping:</b> the status buffer's right-click menu on a commit
+<br><br>
+<b>See also:</b> <a href="commands.html#vcsCopyPath">vcsCopyPath</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="vcsCopyPath">vcsCopyPath</a><dl><dd>
 <p>
 Copies the file the caret is on, relative to its repository, to the system
@@ -6717,16 +6727,6 @@ clipboard and j's kill ring.
 <b>Default key mapping:</b> the status buffer's and the Changes tab's right-click menu
 <br><br>
 <b>See also:</b> <a href="commands.html#vcsBlameCopyHash">vcsBlameCopyHash</a>
-<br><br>
-</dl><!--<hr>-->
-
-<a name="vcsCopyHash">vcsCopyHash</a><dl><dd>
-<p>
-Copies the commit the caret is on to the system clipboard and j's kill ring.
-<br><br>
-<b>Default key mapping:</b> the status buffer's right-click menu on a commit
-<br><br>
-<b>See also:</b> <a href="commands.html#vcsCopyPath">vcsCopyPath</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -6810,9 +6810,10 @@ In a status buffer, fetches from the remote of the branch's upstream.
 
 <a name="vcsIgnore">vcsIgnore</a><dl><dd>
 <p>
-Adds the file the caret is on to the repository's ignore file, its path
-anchored at the root, creating the file if needed, then reads the status
-again so the file leaves Untracked.
+Adds the untracked files selected, or the one the caret is on, to the
+repository's ignore file, each path anchored at the root, creating the file
+if needed, then reads the status again so they leave Untracked. A tracked
+file is refused, as ignoring it changes nothing.
 <br><br>
 <b>Default key mapping:</b> the status buffer's and the Changes tab's right-click menu
 <br><br>
@@ -6840,21 +6841,21 @@ In the log, clears every filter, a file's log's path too, and reads the log agai
 <br><br>
 </dl><!--<hr>-->
 
-<a name="vcsLogDiffView">vcsLogDiffView</a><dl><dd>
-<p>
-In the full log, switches the diff between unified and side by side. Side by side, it is across the bottom of the frame under the list and the files, keeping the line; the next log opens with it as left.
-<br><br>
-<b>Default key mapping:</b> = in the log, its files and diff, and the diff's sides
-<br><br>
-<b>See also:</b> <a href="git.html#log">The log</a>
-<br><br>
-</dl><!--<hr>-->
-
 <a name="vcsLogCommit">vcsLogCommit</a><dl><dd>
 <p>
 Opens the whole log with the commit the caret is on in the status picked out.
 <br><br>
 <b>Default key mapping:</b> the status buffer's right-click menu on a commit line
+<br><br>
+<b>See also:</b> <a href="git.html#log">The log</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsLogDiffView">vcsLogDiffView</a><dl><dd>
+<p>
+In the full log, switches the diff between unified and side by side. Side by side, it is across the bottom of the frame under the list and the files, keeping the line; the next log opens with it as left.
+<br><br>
+<b>Default key mapping:</b> = in the log, its files and diff, and the diff's sides
 <br><br>
 <b>See also:</b> <a href="git.html#log">The log</a>
 <br><br>
@@ -7342,22 +7343,22 @@ Opens the status of the buffer's repository: changes, staging and recent commits
 <br><br>
 </dl><!--<hr>-->
 
-<a name="vcsStatusCycle">vcsStatusCycle</a><dl><dd>
-<p>
-In a status buffer, opens everything one depth further. That is sections, then files, then hunks, then the lines of the diffs, then back to the sections.
-<br><br>
-<b>Default key mapping:</b> Shift Tab in status buffers
-<br><br>
-<b>See also:</b> <a href="git.html#status">The status buffer</a>
-<br><br>
-</dl><!--<hr>-->
-
 <a name="vcsStatusContextMenu">vcsStatusContextMenu</a><dl><dd>
 <p>
 Opens the status buffer's context menu at the caret: the git things to do
 with the line under it, each a command with its key shown.
 <br><br>
 <b>Default key mapping:</b> the menu key or Shift F10 in status buffers and the diff beside
+<br><br>
+<b>See also:</b> <a href="git.html#status">The status buffer</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vcsStatusCycle">vcsStatusCycle</a><dl><dd>
+<p>
+In a status buffer, opens everything one depth further. That is sections, then files, then hunks, then the lines of the diffs, then back to the sections.
+<br><br>
+<b>Default key mapping:</b> Shift Tab in status buffers
 <br><br>
 <b>See also:</b> <a href="git.html#status">The status buffer</a>
 <br><br>

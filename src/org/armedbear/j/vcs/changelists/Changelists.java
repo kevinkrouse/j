@@ -92,6 +92,27 @@ public record Changelists(List<Changelist> lists, String active, Map<String, Ass
                 : null;
     }
 
+    /** Whether text can be kept in the store: XML 1.0 has no other characters, nor a way to escape them. */
+    public static boolean keepable(String text) {
+        return text.codePoints().allMatch(Changelists::xmlChar);
+    }
+
+    /** text, its characters the store can't keep, as a terminal's escapes, left out. */
+    public static String keepableText(String text) {
+        final StringBuilder sb = new StringBuilder();
+        text.codePoints().filter(Changelists::xmlChar).forEach(sb::appendCodePoint);
+        return sb.toString();
+    }
+
+    private static boolean xmlChar(int c) {
+        return c == 0x9
+                || c == 0xA
+                || c == 0xD
+                || c >= 0x20 && c <= 0xD7FF
+                || c >= 0xE000 && c <= 0xFFFD
+                || c >= 0x10000 && c <= 0x10FFFF;
+    }
+
     /** Why a new list can't be named name: a bad name, or one a list has; null if it can. */
     public String refusedName(String name) {
         final String bad = badName(name);

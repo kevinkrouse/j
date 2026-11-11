@@ -99,7 +99,8 @@ public class SelectionsResolveTest {
         var pending = resolve(List.of(selected), item("a.txt", null));
         assertEquals(java.util.Set.of(new FileKey(repository, "section|opaque", "a.txt")), pending.unread());
         assertTrue(pending.problems().isEmpty());
-        FileItem now = item("a.txt", diff(hunk(50, "new")));
+        // Lines added above in the working file: the base rows are kept.
+        FileItem now = item("a.txt", diff(new Hunk(1, 1, 50, 1, "", hunk(1, "new").lines())));
         var resolved = resolve(List.of(selected), now, item("unrelated.txt", null));
         assertTrue(resolved.ready());
         assertSame(now, ((Target.Part) resolved.targets().get(0)).file());
@@ -108,13 +109,13 @@ public class SelectionsResolveTest {
 
     @Test
     public void partialLinesFollowChangedLineOffsetsInsteadOfContextIndexes() {
-        FileItem before = item("a.txt", diff(hunk(1, "new")));
+        FileItem before = item("a.txt", diff(hunk(32, "new")));
         BitSet bits = new BitSet();
         bits.set(1);
         var selected = Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(0), bits);
         Hunk moved = new Hunk(30,
                 3,
-                30,
+                40,
                 3,
                 "context",
                 List.of(
@@ -169,9 +170,45 @@ public class SelectionsResolveTest {
         var selected = List.<Target>of(part(item("a.txt", diff(hunk(1, "Aa")))));
         var changed = resolve(selected, item("a.txt", diff(hunk(1, "BB"))));
         assertEquals(Selections.Reason.CHANGED, changed.problems().get(0).reason());
-        var ambiguous = resolve(selected, item("a.txt", diff(hunk(1, "Aa"), hunk(30, "Aa"))));
-        assertEquals(Selections.Reason.AMBIGUOUS, ambiguous.problems().get(0).reason());
-        assertTrue(ambiguous.targets().isEmpty());
+        var moved = resolve(selected, item("a.txt", diff(hunk(30, "Aa"))));
+        assertEquals(Selections.Reason.AMBIGUOUS, moved.problems().get(0).reason());
+        assertTrue(moved.targets().isEmpty());
+    }
+
+    @Test
+    public void aChangeUndoneAndMadeAgainElsewhereDoesNotTakeThePick() {
+        // One X picked at 10; then it undone and made at 80.
+        final FileItem single = item("a.txt", diff(hunk(10, "X")));
+        final var one = List.<Target>of(part(single));
+        final var elsewhere = resolve(one, item("a.txt", diff(hunk(80, "X"))));
+        assertEquals(Selections.Reason.AMBIGUOUS, elsewhere.problems().get(0).reason());
+        assertTrue(elsewhere.targets().isEmpty());
+        // X at 10 and at 100, the one at 100 picked; then X at 10 gone and
+        // one at 200 come: the pick stays at 100.
+        final FileItem before = item("a.txt", diff(hunk(10, "X"), hunk(100, "X")));
+        final var picked = List
+                .<Target>of(Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(1), null));
+        final var moved = resolve(picked, item("a.txt", diff(hunk(100, "X"), hunk(200, "X"))));
+        assertTrue(moved.problems().isEmpty());
+        assertEquals(100, ((Target.Part) moved.targets().get(0)).hunk().oldStart());
+        // The one at 10 picked instead: gone with it.
+        final var first = List
+                .<Target>of(Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(0), null));
+        assertFalse(resolve(first, item("a.txt", diff(hunk(100, "X"), hunk(200, "X")))).problems().isEmpty());
+    }
+
+    @Test
+    public void twinsShiftedByAWriteAboveInTheBaseKeepThePick() {
+        // Staging two lines above both: base rows move, working rows don't.
+        final FileItem before = item("a.txt", diff(hunk(10, "X"), hunk(50, "X")));
+        final var picked = List
+                .<Target>of(Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(1), null));
+        final Hunk x = hunk(1, "X");
+        final var shifted = resolve(
+            picked,
+            item("a.txt", diff(new Hunk(12, 1, 10, 1, "", x.lines()), new Hunk(52, 1, 50, 1, "", x.lines()))));
+        assertTrue(shifted.problems().isEmpty());
+        assertEquals(52, ((Target.Part) shifted.targets().get(0)).hunk().oldStart());
     }
 
     @Test
@@ -202,7 +239,7 @@ public class SelectionsResolveTest {
     @Test
     public void targetsFromDifferentReadsCanShareACurrentDiff() {
         FileItem before = item("a.txt", diff(hunk(1, "new")));
-        FileItem now = item("a.txt", diff(hunk(30, "new")));
+        FileItem now = item("a.txt", diff(new Hunk(1, 1, 30, 1, "", hunk(1, "new").lines())));
         var result = resolve(List.of(part(before), part(now)), now);
         assertTrue(result.ready());
         assertEquals(2, result.targets().size());

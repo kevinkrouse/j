@@ -171,8 +171,6 @@ final class PartialCommit {
             final Selections.Resolution resolved = Selections.resolve(entry.getValue(), Map.of(r, fresh), key -> true);
             if (!resolved.ready())
                 return new Review(null, resolved.failure());
-            if (!Selections.sameBaseLocations(entry.getValue(), resolved.targets()))
-                return new Review(null, "A selected change moved to a different base location: select it again");
             final List<Target> selected = resolved.targets();
             final VcsBackend.CommitPreview preview =
                     r.backend().previewCommit(r, snapshot.head(), paths(selected), () -> stage(r, selected, true));
@@ -216,8 +214,6 @@ final class PartialCommit {
                     model.resolveTargets(given, ignored -> {});
                 throw new Refused(resolved.failure());
             }
-            if (!Selections.sameBaseLocations(given, resolved.targets()))
-                throw new Refused("A selected change moved to a different base location: select it again");
             for (Target t : resolved.targets())
                 targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
         } else {
@@ -415,11 +411,11 @@ final class PartialCommit {
         final RepositoryLists lists = RepositoryLists.of(r);
         if (lists == null)
             return;
-        if (Changelists.DEFAULT.equals(list)) {
-            lists.update(c -> c.withComment(list, ""));
-            SignsUpdater.listsChanged(r);
+        // Its draft used: cleared, the list kept or not.
+        lists.update(c -> c.list(list) == null ? c : c.withComment(list, ""));
+        SignsUpdater.listsChanged(r);
+        if (Changelists.DEFAULT.equals(list))
             return;
-        }
         // Deleted once a read shows nothing left in it: a change the commit
         // didn't take, or one made meanwhile, keeps it.
         model.readDiffsThen(Set.of(), () -> {
@@ -440,13 +436,18 @@ final class PartialCommit {
         if (list == null)
             return;
         final int at = text.indexOf("\n" + LEFT_OUT);
-        final String draft = (at < 0 ? text : text.substring(0, at)).strip();
+        final String written = (at < 0 ? text : text.substring(0, at)).strip();
+        // As the store can keep it; all of it in the comment ring besides.
+        final String draft = Changelists.keepableText(written);
         final RepositoryLists lists = RepositoryLists.of(repository);
-        if (lists != null && lists.lists().list(list) != null)
-            lists.update(c -> c.withComment(list, draft));
-        else if (!draft.isEmpty())
-            // Its list renamed or gone meanwhile: kept where Ctrl P finds it.
-            CommentRing.getInstance().appendNew(draft);
+        final boolean kept = lists != null
+                && lists.lists().list(list) != null
+                && lists.update(c -> c.list(list) == null ? c : c.withComment(list, draft))
+                && lists.lists().list(list) != null;
+        // Not kept, as its list renamed or gone, or the store refusing,
+        // or kept short of characters: where Ctrl P finds it.
+        if (!written.isEmpty() && (!kept || !draft.equals(written)))
+            CommentRing.getInstance().appendNew(written);
     }
 
     /** r's changelist list's draft, or "". */

@@ -56,6 +56,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import javax.swing.ImageIcon;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
@@ -456,6 +457,14 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         if (plainButton1 && e.getX() >= Display.getGutterWidth(editor.getBuffer())) {
             Position pos = display.positionFromPoint(e.getPoint());
             bufferDrag = editor.getBuffer().dragAt(editor, pos);
+            // Pressed inside the selection it drags: kept, not cleared.
+            if (bufferDrag != null && editor.getMark() != null) {
+                final Region r = new Region(editor);
+                if (pos.isAfter(r.getBegin()) && pos.isBefore(r.getEnd())) {
+                    dragTextStarting = true;
+                    return;
+                }
+            }
         }
         if (plainButton1 && editor.getMark() != null) {
             if (editor.getBuffer().getBooleanProperty(Property.ENABLE_DRAG_TEXT)) {
@@ -821,6 +830,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
     @Override
     public void dragExit(DropTargetEvent e) {
+        hint(null);
         display.setDragCaretPos(null);
         if (Platform.isPlatformUnix() && dragSourceContext != null)
             dragSourceContext.setCursor(getDragCursor(CURSOR_NO));
@@ -907,14 +917,22 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
     // say so; else leave it to the text drag below, untouched.
     private boolean bufferDrop(DropTargetDragEvent event) {
         Position pos = display.positionFromPoint(event.getLocation());
-        if (pos == null || !editor.getBuffer().canDropAt(editor, pos, event.getTransferable()))
+        final Transferable t = event.getTransferable();
+        if (pos == null || !editor.getBuffer().canDropAt(editor, pos, t)) {
+            // Neither text nor files, as the buffer's own drag off a place it
+            // takes: refused, the caret and hint gone, not left as they were.
+            if (!event.isDataFlavorSupported(DataFlavor.stringFlavor)
+                    && !event.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                display.setDragCaretPos(null);
+                display.repaintChangedLines();
+                hint(null);
+                event.rejectDrag();
+                return true;
+            }
             return false;
+        }
         display.setDragCaretPos(pos);
-        if (pos.getLine() instanceof org.armedbear.j.vcs.status.StatusLine line)
-            editor.status(
-                "Drop to move to " + (line.kind() == org.armedbear.j.vcs.status.StatusLine.Kind.LIST
-                        ? line.list()
-                        : "changelist"));
+        hint(editor.getBuffer().dropHint(editor, pos, t));
         int action = dropAction(event.getDropAction(), event.getSourceActions());
         if (action == DnDConstants.ACTION_NONE)
             event.rejectDrag();
@@ -1046,6 +1064,16 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         display.moveCaretToPoint(point);
         if (editor.getBuffer().getBooleanProperty(Property.RESTRICT_CARET))
             display.moveCaretToDotCol();
+    }
+
+    // The drop's hint, said when it changes, not at every move of the mouse.
+    private String lastHint;
+
+    private void hint(String hint) {
+        if (Objects.equals(hint, lastHint))
+            return;
+        lastHint = hint;
+        editor.status(hint);
     }
 
     @Override

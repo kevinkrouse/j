@@ -309,7 +309,7 @@ final class GitStatusReader {
      * against HEAD, of paths; null if git fails.
      */
     static List<FileDiff> diff(VcsRepository repository, boolean staged, List<String> paths, Whitespace ignored) {
-        final List<String> args = new ArrayList<>(List.of("--literal-pathspecs", "diff"));
+        final List<String> args = new ArrayList<>(List.of("--literal-pathspecs", "diff", "--no-textconv"));
         if (staged)
             args.add("--cached");
         GitCli.ignoring(ignored, args).addAll(List.of("--no-ext-diff", "--no-color", "-M", "--"));

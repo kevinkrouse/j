@@ -89,6 +89,11 @@ public class Buffer extends SystemBuffer {
         return false;
     }
 
+    /** What a drop of t at pos would do, said as it is dragged there; null for nothing to say. */
+    public String dropHint(Editor editor, Position pos, Transferable t) {
+        return null;
+    }
+
     private static int untitledCount;
 
     protected boolean isUntitled;
@@ -1247,6 +1252,9 @@ public class Buffer extends SystemBuffer {
             formatter.parseBuffer();
         }))
             return;
+        // Every line new: what knows lines by object, told first.
+        for (Follower f : followers)
+            f.reloaded();
         textChanged();
         unmodified();
         deleteAutosaveFile();
@@ -2117,6 +2125,9 @@ public class Buffer extends SystemBuffer {
 
         /** Its version control state was looked up again: what is staged or committed may have changed. */
         void vcsChecked();
+
+        /** It was read again from its file, every line a new one, before textChanged. */
+        default void reloaded() {}
     }
 
     // Its followers, told on whatever thread the change is made on.

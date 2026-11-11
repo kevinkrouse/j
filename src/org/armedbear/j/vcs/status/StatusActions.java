@@ -55,6 +55,8 @@ import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
+import org.armedbear.j.vcs.changelists.Changelists;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.conflicts.ConflictMarkers;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
@@ -111,7 +113,23 @@ public final class StatusActions {
      * no selection, which is always meant, comes before it.
      */
     static boolean takesPicks(RepositoryStatus model, Editor editor) {
-        return !model.picks().isEmpty() && !Region.isSelection(editor);
+        return !fromMenu && !model.picks().isEmpty() && !Region.isSelection(editor);
+    }
+
+    // Whether a context menu's item runs: it takes the line right-clicked,
+    // or the selection it is in, before the picks.
+    private static boolean fromMenu;
+
+    /** Runs a context menu's item: its command takes the line or selection, not the picks. */
+    static void fromMenu(Runnable item) {
+        final boolean was = fromMenu;
+        fromMenu = true;
+        try {
+            item.run();
+        }
+        finally {
+            fromMenu = was;
+        }
     }
 
     /**
@@ -440,24 +458,54 @@ public final class StatusActions {
      * went wrong is said in the status bar.
      */
     static void ignore(Editor editor, RepositoryStatus model, VcsRepository r, String path) {
+        ignore(editor, model, r, List.of(path));
+    }
+
+    // paths of r added to its ignore file, one after another.
+    static void ignore(Editor editor, RepositoryStatus model, VcsRepository r, List<String> paths) {
         if (!canIgnore(r)) {
             editor.status(r == null ? "No repository here" : r.backend().name() + " can't ignore a file here");
             return;
         }
         write(editor, model, "vcs ignore", () -> {
-            final VcsResult result = r.backend().writeIgnore(r, path);
-            return result != null && !result.succeeded() ? result.lastError() : null;
+            for (String path : paths) {
+                final VcsResult result = r.backend().writeIgnore(r, path);
+                if (result != null && !result.succeeded())
+                    return result.lastError();
+            }
+            return null;
         });
     }
 
-    /** vcsIgnore: adds the file at the caret to the repository's ignore file. */
+    /**
+     * vcsIgnore: adds the untracked files selected, or the one at the caret,
+     * to the repository's ignore file; a tracked file refused, as ignoring
+     * it changes nothing.
+     */
     public static void vcsIgnore(Editor editor) {
         final VcsStatusBuffer buffer = VcsStatusMode.owner(editor);
-        if (buffer == null || !(editor.getDotLine() instanceof StatusLine s) || s.file() == null) {
-            editor.status("No file here to ignore");
+        final List<StatusLine> lines = buffer == null ? List.of() : selected(editor);
+        final List<String> paths = new ArrayList<>();
+        VcsRepository r = null;
+        for (StatusLine s : lines) {
+            if (s.file() == null)
+                continue;
+            if (!s.file().change().isUntracked()) {
+                editor.status(s.file().path() + " is tracked: ignoring it changes nothing");
+                return;
+            }
+            if (r != null && s.repository() != r) {
+                editor.status("Ignore one repository's files at a time");
+                return;
+            }
+            r = s.repository();
+            paths.add(s.file().path());
+        }
+        if (paths.isEmpty()) {
+            editor.status("No untracked file here to ignore");
             return;
         }
-        ignore(editor, buffer.model(), s.repository(), s.file().path());
+        ignore(editor, buffer.model(), r, paths);
     }
 
     /** vcsCopyPath: the file at the caret, relative to its repository, on the clipboard and in the kill ring. */
@@ -525,6 +573,13 @@ public final class StatusActions {
             return "Wait: the picked files' diffs are being read";
         if (targets.isEmpty())
             return "Nothing to " + verb(op) + " here";
+        // A whole file picked, or the caret's file under a list: not one
+        // that is more than that list's now. A section's heading means all.
+        if (op == Op.DISCARD && (picked || fileUnderList(editor))) {
+            final String split = splitWhole(model, targets);
+            if (split != null)
+                return split;
+        }
         for (Target t : targets) {
             final String why = refuse(op, t);
             if (why != null)
@@ -547,6 +602,43 @@ public final class StatusActions {
                 case UNSTAGE -> "unstaged";
                 case DISCARD -> "discarded";
             } + " whole";
+        return null;
+    }
+
+    // Whether editor's caret, with no selection, is on a file line under a changelist.
+    private static boolean fileUnderList(Editor editor) {
+        final VcsStatusBuffer owner = VcsStatusMode.owner(editor);
+        return owner != null
+                && !Region.isSelection(editor)
+                && editor.getDotLine() instanceof StatusLine s
+                && s.kind() == Kind.FILE
+                && owner.listOf(s) != null;
+    }
+
+    // Why a whole file of targets can't be discarded with changelists shown:
+    // its changes are split across lists now, as by an edit since it was
+    // picked, or it is shown whole only until its diff is read; null if
+    // none is.
+    private static String splitWhole(RepositoryStatus model, List<Target> targets) {
+        for (Target t : targets) {
+            if (!(t instanceof Files f) || !StatusRenderer.UNSTAGED.equals(f.section()))
+                continue;
+            final ListedChanges listed = model.listed(f.repository());
+            if (listed == null)
+                continue;
+            final RepositoryLists lists = RepositoryLists.of(f.repository());
+            for (FileItem file : f.files()) {
+                final Changelists.Assignment a = lists == null ? null : lists.lists().assignment(file.path());
+                if (file.diff() == null && file.hasDiff() && a != null && a.whole() == null)
+                    return "Wait: " + file.path() + "'s diff is being read";
+                int in = 0;
+                for (List<Target.Member> members : listed.members().values())
+                    if (members.stream().anyMatch(m -> m.file().path().equals(file.path())))
+                        in++;
+                if (in > 1)
+                    return file.path() + " is split across changelists: discard a list's part of it";
+            }
+        }
         return null;
     }
 
@@ -826,6 +918,9 @@ public final class StatusActions {
         final Part p = (Part) t;
         if (p.file().diff() == null)
             return "Open " + p.file().path() + " first";
+        // As for staging: a patch from an old diff can apply elsewhere.
+        if (!stillThere(r, p))
+            return p.file().path() + " changed since it was shown; look again";
         if (hasStaging(p) && p.lines() == null && p.file().diff().isNew()) {
             steps.add(new Trash(r, p.file(), true));
             return null;

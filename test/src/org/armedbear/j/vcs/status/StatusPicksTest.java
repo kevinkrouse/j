@@ -125,7 +125,8 @@ public class StatusPicksTest {
         var before = file("a.txt", hunk(1, "repeated"), hunk(30, "unique"));
         var picks = new StatusPicks();
         picks.set(List.of(part("section", before, 0), part("section", before, 1)), true);
-        var after = file("a.txt", hunk(1, "repeated"), hunk(20, "repeated"), hunk(50, "unique"));
+        // The picked repeated one gone, two others come; the unique one where it was.
+        var after = file("a.txt", hunk(5, "repeated"), hunk(20, "repeated"), hunk(30, "unique"));
         var resolved = resolve(picks, "section", after);
         assertEquals(Selections.Reason.AMBIGUOUS, resolved.problems().get(0).reason());
         picks.newRead();
@@ -155,9 +156,9 @@ public class StatusPicksTest {
     public void partialPickRetainsItsMeaningAcrossContextChanges() {
         var before = file(
             "a.txt",
-            new Hunk(1,
+            new Hunk(31,
                     1,
-                    1,
+                    31,
                     2,
                     "",
                     List.of(

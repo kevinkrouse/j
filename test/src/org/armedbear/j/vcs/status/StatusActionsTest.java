@@ -1708,7 +1708,7 @@ public class StatusActionsTest {
     }
 
     @Test
-    public void aPickIsDroppedWhenATwinOfItsHunkComes() throws Exception {
+    public void aPickStaysOnItsHunkWhenATwinOfItComes() throws Exception {
         final StringBuilder thirty = new StringBuilder();
         for (int i = 1; i <= 30; i++)
             thirty.append(i == 5 || i == 25 ? "same" : "line " + i).append('\n');
@@ -1721,11 +1721,16 @@ public class StatusActionsTest {
         openFile("  M  a.txt", "  +other");
         pickAfter("  M  a.txt", "  @@ -22");
         onEdt(() -> assertFalse(status.picks().isEmpty()));
-        // The same change above it: its id would now be the new one's.
+        // The same change above it: the pick is still the one where it was.
         git.write("a.txt", late.replaceFirst("same", "other"));
         onEdt(() -> status.refresh());
-        until(() -> status.picks().isEmpty());
-        until(() -> h.status().equals("A pick was dropped: The number of identical hunks has changed"));
+        until(() -> status.model().unstaged(repo(), "a.txt").diff().hunks().size() == 2);
+        onEdt(() -> {
+            assertEquals(1, status.picks().targets().size());
+            assertEquals(
+                22,
+                ((org.armedbear.j.vcs.selection.Target.Part) status.picks().targets().get(0)).hunk().oldStart());
+        });
     }
 
     @Test
@@ -3179,7 +3184,7 @@ public class StatusActionsTest {
     }
 
     @Test
-    public void anAmbiguousPickIsDroppedWithTheResolversExplanation() throws Exception {
+    public void aPickMadeAgainElsewhereIsDroppedWithTheResolversExplanation() throws Exception {
         git = GitFixture.init(tmp);
         final String base =
                 SIXTY.replace("line 3\n", "old\n").replace("line 30\n", "old\n").replace("line 50\n", "old\n");
@@ -3189,12 +3194,15 @@ public class StatusActionsTest {
         open();
         openFile("  M  a.txt", "  +new");
         pickAfter("  M  a.txt", "  @@ -1,");
-        git.write("a.txt", base.replace("old\n", "new\n"));
+        // The picked one undone, and the same change made at line 50.
+        git.write("a.txt", base.replace("old\nline 31", "new\nline 31").replace("old\nline 51", "new\nline 51"));
         onEdt(status::refresh);
-        until(() -> status.model().unstaged(repo(), "a.txt").diff().hunks().size() == 3);
+        until(
+            () -> status.model().unstaged(repo(), "a.txt").diff().hunks().size() == 2
+                    && status.model().unstaged(repo(), "a.txt").diff().hunks().get(0).oldStart() > 10);
         onEdt(() -> {
             assertTrue(status.picks().isEmpty());
-            assertTrue(h.status().contains("identical hunks"), h.status());
+            assertTrue(h.status().contains("moved"), h.status());
         });
     }
 

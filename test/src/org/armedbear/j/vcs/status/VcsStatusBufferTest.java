@@ -209,7 +209,8 @@ public class VcsStatusBufferTest {
         final Transferable[] drag = new Transferable[1];
         onEdt(() -> {
             final StatusLine source = line("    +three blind cats");
-            drag[0] = status.dragAt(h.editor(), new Position(source, 0));
+            // From the hunk's heading: a press on a diff line begins a selection.
+            drag[0] = status.dragAt(h.editor(), new Position(StatusLine.head(source), 0));
             assertNotNull(drag[0]);
             assertEquals(List.of(ChangelistDrag.FLAVOR), List.of(drag[0].getTransferDataFlavors()));
             assertFalse(drag[0].isDataFlavorSupported(DataFlavor.stringFlavor));
@@ -293,7 +294,7 @@ public class VcsStatusBufferTest {
     }
 
     @Test
-    public void aDragRefusesASelectedHunkThatHasGainedAnIdenticalTwin() throws Exception {
+    public void aDragRefusesASelectedHunkMadeAgainElsewhere() throws Exception {
         git = GitFixture.init(tmp);
         final String base = "x\n" + "context\n".repeat(20) + "x\n";
         git.write("a.txt", base);
@@ -305,15 +306,16 @@ public class VcsStatusBufferTest {
         until(() -> text().contains("    +y"));
         final Transferable[] drag = new Transferable[1];
         onEdt(() -> {
-            drag[0] = status.dragAt(h.editor(), new Position(line("    +y"), 0));
+            drag[0] = status.dragAt(h.editor(), new Position(StatusLine.head(line("    +y")), 0));
             assertNotNull(drag[0]);
         });
-        git.write("a.txt", base.replace("x\n", "y\n"));
+        // The first x back, the last one changed instead.
+        git.write("a.txt", base.substring(0, base.length() - 2) + "y\n");
         onEdt(status::refresh);
-        until(() -> java.util.Collections.frequency(text(), "    +y") == 2);
+        until(() -> text().contains("    +y") && text().stream().noneMatch(l -> l.contains("@@ -1,")));
         onEdt(() -> {
             assertTrue(status.dropAt(h.editor(), new Position(line("  Feature (0)"), 0), drag[0]));
-            assertTrue(h.status().contains("number of identical hunks"), h.status());
+            assertTrue(h.status().contains("moved"), h.status());
             status.dragFinished(h.editor());
         });
         assertNull(ChangelistStore.of(repo()).read().assignment("a.txt"));
