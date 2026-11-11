@@ -160,8 +160,8 @@ public final class Selections {
     }
 
     /**
-     * A ready resolution preserves input order. Commit captures must still
-     * describe the same base locations after hunk matching remaps context.
+     * A ready resolution preserves input order. Check that its partial
+     * targets still describe the captured base locations after remapping context.
      */
     public static boolean sameBaseLocations(List<Target> captured, List<Target> resolved) {
         if (captured.size() != resolved.size())

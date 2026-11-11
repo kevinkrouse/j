@@ -208,8 +208,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             update();
         }
     };
-    // The file dragged, while one is.
-    private FileNode dragged;
+    private ChangelistDrag dragged;
 
     /** In sidebar, null in tests, keeping what it keeps across sidebars in kept. */
     public ChangesTree(Sidebar sidebar, Kept kept) {
@@ -532,16 +531,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         return Math.max(1, n);
     }
 
-    /** Moves f's changes in its list, or all of it, to the list to; what is said, in the status bar. */
-    void move(FileNode f, String to) {
-        final Editor ed = editor();
-        if (status != null)
-            ChangelistCommands.moveFile(status, f.repository(), f.file().path(), f.only(), to, s -> ed.status(s));
-    }
-
-    // Whether f can be dropped onto g: a list of its repository, not its own.
-    private static boolean canMove(FileNode f, GroupNode g) {
-        return f.list() != null && g.list() != null && g.repository() == f.repository() && !g.list().equals(f.list());
+    ChangelistDrag dragFor(FileNode file) {
+        return ChangelistDrag.capture(status, file.repository(), file.section(), file.list(), file.member());
     }
 
     private Object nodeAt(int x, int y) {
@@ -773,6 +764,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 status,
                 targets,
                 targets,
+                false,
                 line.fileKey(),
                 line.member(),
                 true,
@@ -829,14 +821,6 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 return () -> StatusActions.runOn(editor, status, StatusActions.Op.STAGE, targets, Map.of(), false);
             case "vcsUnstage":
                 return () -> StatusActions.runOn(editor, status, StatusActions.Op.UNSTAGE, targets, Map.of(), false);
-            case "vcsChangelistMove":
-                return () -> ChangelistCommands.moveTargets(
-                    editor,
-                    status,
-                    targets,
-                    false,
-                    true,
-                    () -> ChangelistCommands.moveTargets(editor, status, targets, false, false, null));
             case "vcsShowDiff":
                 return () -> showDiff(line);
             case "vcsLogFileAt":
@@ -996,23 +980,25 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     private final class Mover extends TransferHandler {
         @Override
         public boolean canImport(TransferSupport support) {
-            // The changelist flavor, not a stray text drag: a stale
-            // dragged must not let foreign text move the old file.
-            if (!support.isDrop() || dragged == null || !support.isDataFlavorSupported(VcsStatusBuffer.CHANGELIST_DRAG))
+            if (!support.isDrop() || dragged == null)
                 return false;
-            final TreePath path = ((JTree.DropLocation) support.getDropLocation()).getPath();
-            final GroupNode group = groupAt(path);
-            return group != null && canMove(dragged, group);
+            final var to = destination(((JTree.DropLocation) support.getDropLocation()).getPath());
+            return to != null && dragged.canDrop(status, to, support.getTransferable());
         }
 
         @Override
         public boolean importData(TransferSupport support) {
-            if (!canImport(support))
+            if (!support.isDrop() || dragged == null)
                 return false;
-            final TreePath path = ((JTree.DropLocation) support.getDropLocation()).getPath();
-            move(dragged, groupAt(path).list());
-            return true;
+            final var to = destination(((JTree.DropLocation) support.getDropLocation()).getPath());
+            final Editor ed = editor();
+            return to != null && dragged.drop(status, to, support.getTransferable(), ed::status);
         }
+    }
+
+    private static ChangelistCommands.Destination destination(TreePath path) {
+        final GroupNode group = groupAt(path);
+        return group == null ? null : new ChangelistCommands.Destination(group.repository(), group.list());
     }
 
     private final class MoverGesture implements DragGestureListener, DragSourceListener {
@@ -1027,8 +1013,9 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 return;
             if (!isSelected(path))
                 setSelectionPath(path);
-            dragged = file;
-            event.startDrag(null, new VcsStatusBuffer.DragToken(file.file().path()), this);
+            dragged = dragFor(file);
+            if (dragged != null)
+                event.startDrag(null, dragged, this);
         }
 
         @Override

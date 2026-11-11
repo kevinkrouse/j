@@ -22,9 +22,7 @@ package org.armedbear.j.vcs.status;
 
 import static org.armedbear.j.Constants.*;
 
-import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -34,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -80,7 +77,6 @@ import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
 import org.armedbear.j.vcs.log.LogScope;
-import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -100,46 +96,11 @@ public final class VcsStatusBuffer extends ViewBuffer
     // How long the caret rests on a file before the diff beside follows it.
     private static final int FOLLOW_DELAY = 100;
 
-    private record ChangelistDrag(String token, RepositoryStatus model, VcsRepository repository, String from,
-            List<Target> targets, StatusData data) {}
-
     private ChangelistDrag activeDrag;
-
-    // A drag of the changelist kind: a flavor no other buffer takes and no
-    // text drop can paste, so a changelist drag dropped off-target is
-    // simply refused rather than leaving its token in the document. Shared
-    // with the sidebar's trees, which move the same way.
-    static final DataFlavor CHANGELIST_DRAG =
-            new DataFlavor("application/x-j-vcs-changelist; class=java.lang.String", "VCS changelist drag");
-
-    // The token, in the changelist flavor alone.
-    static final class DragToken implements Transferable {
-        private final String token;
-
-        DragToken(String token) {
-            this.token = token;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[] { CHANGELIST_DRAG };
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return CHANGELIST_DRAG.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-            if (!isDataFlavorSupported(flavor))
-                throw new UnsupportedFlavorException(flavor);
-            return token;
-        }
-    }
 
     @Override
     public Transferable dragAt(Editor editor, Position pos) {
+        activeDrag = null;
         if (pos == null
                 || !(pos.getLine() instanceof StatusLine line)
                 || !StatusRenderer.UNSTAGED.equals(line.section()))
@@ -155,134 +116,29 @@ public final class VcsStatusBuffer extends ViewBuffer
                 lines = List.of(line.kind() == Kind.DIFF ? StatusLine.head(line) : line);
         } else
             lines = List.of(line.kind() == Kind.DIFF ? StatusLine.head(line) : line);
-        List<Target> targets = StatusActions.targetsOf(model, lines);
-        if (targets.isEmpty() || targets.stream().anyMatch(t -> !StatusRenderer.UNSTAGED.equals(t.section())))
-            return null;
-        VcsRepository repository = targets.get(0).repository();
-        StatusLine list = listOf(line);
-        String from = list == null ? null : list.list();
-        if (from == null)
-            return null;
-        activeDrag = new ChangelistDrag(UUID.randomUUID()
-                .toString(), model, repository, from, targets, model.getData(repository));
-        return new DragToken(activeDrag.token());
+        final StatusLine list = listOf(line);
+        activeDrag =
+                ChangelistDrag.capture(model, list == null ? null : list.list(), StatusActions.targetsOf(model, lines));
+        return activeDrag;
     }
 
     @Override
     public boolean canDropAt(Editor editor, Position pos, Transferable transferable) {
-        ChangelistDrag drag = changelistDrag(transferable);
-        if (drag == null)
-            return false;
-        drag = currentDrag(drag);
-        if (drag == null) {
-            editor.status("The status changed as you dragged: drag again");
-            return false;
-        }
-        VcsRepository repository = drag.repository();
-        if (drag.targets().stream().anyMatch(t -> t.repository() != repository)) {
-            editor.status("A move takes one repository's changes");
-            return false;
-        }
-        if (!(pos.getLine() instanceof StatusLine line) || !StatusRenderer.UNSTAGED.equals(line.section()))
-            return false;
-        StatusLine list = listOf(line);
-        if (list != null && list.kind() == Kind.LIST && list.repository() != repository) {
-            editor.status("A move takes one repository's changes");
-            return false;
-        }
-        return list != null && list.kind() == Kind.LIST && !list.list().equals(drag.from());
+        final ChangelistCommands.Destination to = dropDestination(pos);
+        return activeDrag != null && to != null && activeDrag.canDrop(model, to, transferable);
     }
 
     @Override
     public boolean dropAt(Editor editor, Position pos, Transferable transferable) {
-        if (!canDropAt(editor, pos, transferable)) {
-            return false;
-        }
-        ChangelistDrag drag = currentDrag(changelistDrag(transferable));
-        if (drag == null) {
-            editor.status("The status changed as you dragged: drag again");
-            return false;
-        }
-        StatusLine line = (StatusLine) pos.getLine();
-        StatusLine list = listOf(line);
-        if (drag.targets().size() == 1
-                && drag.targets().get(0) instanceof Target.Files files
-                && files.files().size() == 1) {
-            FileItem file = files.files().get(0);
-            ChangelistCommands
-                    .moveFile(drag.model(), drag.repository(), file.path(), null, list.list(), editor::status);
-        } else
-            ChangelistCommands.moveTargets(drag.model(), drag.targets(), list.list(), editor::status);
-        return true;
+        final ChangelistCommands.Destination to = dropDestination(pos);
+        return activeDrag != null && to != null && activeDrag.drop(model, to, transferable, editor::status);
     }
 
-    private ChangelistDrag currentDrag(ChangelistDrag drag) {
-        if (drag == null || drag.model() != model)
+    private ChangelistCommands.Destination dropDestination(Position pos) {
+        if (pos == null || !(pos.getLine() instanceof StatusLine line))
             return null;
-        StatusData now = model.getData(drag.repository());
-        if (now == drag.data())
-            return drag;
-        if (!sameStatus(drag.data(), now) || !sameHunks(drag.targets()))
-            return null;
-        return new ChangelistDrag(drag.token(), model, drag.repository(), drag.from(), drag.targets(), now);
-    }
-
-    private static boolean sameStatus(StatusData before, StatusData after) {
-        if (before == null
-                || after == null
-                || !before.header().equals(after.header())
-                || !java.util.Objects.equals(before.inProgress(), after.inProgress())
-                || !java.util.Objects.equals(before.error(), after.error())
-                || before.sections().size() != after.sections().size())
-            return false;
-        for (int i = 0; i < before.sections().size(); i++) {
-            StatusData.Section a = before.sections().get(i);
-            StatusData.Section b = after.sections().get(i);
-            if (!a.id().equals(b.id())
-                    || !a.title().equals(b.title())
-                    || a.total() != b.total()
-                    || !java.util.Objects.equals(a.range(), b.range())
-                    || a.items().size() != b.items().size())
-                return false;
-            for (int j = 0; j < a.items().size(); j++)
-                if (!sameItem(a.items().get(j), b.items().get(j)))
-                    return false;
-        }
-        return true;
-    }
-
-    private static boolean sameItem(StatusData.Item a, StatusData.Item b) {
-        if (a instanceof FileItem af && b instanceof FileItem bf)
-            return sameFile(af, bf);
-        if (a instanceof StatusData.StashItem as && b instanceof StatusData.StashItem bs) {
-            if (!as.name().equals(bs.name())
-                    || !as.hash().equals(bs.hash())
-                    || !as.subject().equals(bs.subject())
-                    || (as.files() == null) != (bs.files() == null)
-                    || as.files() != null && as.files().size() != bs.files().size())
-                return false;
-            if (as.files() == null)
-                return true;
-            for (int i = 0; i < as.files().size(); i++)
-                if (!sameFile(as.files().get(i), bs.files().get(i)))
-                    return false;
-            return true;
-        }
-        return a.equals(b);
-    }
-
-    private static boolean sameFile(FileItem a, FileItem b) {
-        return a.change().equals(b.change()) && a.letter() == b.letter() && a.staged() == b.staged();
-    }
-
-    private boolean sameHunks(List<Target> targets) {
-        for (Target target : targets)
-            if (target instanceof Target.Part part) {
-                FileItem file = model.unstaged(part.repository(), part.file().path());
-                if (file == null || file.diff() == null || !file.diff().hunks().contains(part.hunk()))
-                    return false;
-            }
-        return true;
+        final StatusLine list = listOf(line);
+        return list == null ? null : new ChangelistCommands.Destination(list.repository(), list.list());
     }
 
     StatusLine listOf(StatusLine line) {
@@ -290,18 +146,6 @@ public final class VcsStatusBuffer extends ViewBuffer
             if (at.kind() == Kind.LIST)
                 return at;
         return null;
-    }
-
-    private ChangelistDrag changelistDrag(Transferable t) {
-        if (t == null || !t.isDataFlavorSupported(CHANGELIST_DRAG))
-            return null;
-        try {
-            Object value = t.getTransferData(CHANGELIST_DRAG);
-            return activeDrag != null && activeDrag.token().equals(value) ? activeDrag : null;
-        }
-        catch (java.awt.datatransfer.UnsupportedFlavorException | IOException e) {
-            return null;
-        }
     }
 
     @Override

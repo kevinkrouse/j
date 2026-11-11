@@ -3560,6 +3560,31 @@ plan with why it is left, before the next phase starts.
      cross-repository and foreign-payload drops refused; a failed diff read
      ending the move; a split file moving only its selected lines.
 
+     Built: the keyboard command and context menus capture a selection
+     before offering destinations. The text status, Status tree and
+     Changes tab capture their drag targets when the gesture starts and
+     use the active drag's JVM-local token to validate the transfer.
+     Each surface handles its own mouse gestures and drop locations.
+
+     Moves resolve the capture against the current status and use a
+     bounded diff request when needed. Partial targets retain their
+     selected lines and base locations through a refresh. A failed read
+     or an ambiguous match stops the move. A file shown provisionally
+     under one list while its change-by-change assignment is unread must
+     be selected again once its membership is available.
+
+     One move entry point checks the repository and destination and
+     applies the existing changelist anchors. Dropping and choosing an
+     offered list both require that list to exist when saving, including
+     when the store retries after another writer. Typing a new name in
+     the chooser can create a list.
+
+     All 161 focused tests and the full suite of 2,668 tests passed.
+     Coverage includes each move surface, refreshes during drags,
+     ambiguous hunks, foreign transfers, failed diff reads, and
+     destinations renamed or deleted while a move waits. Formatting
+     checks passed.
+
    - **g. Check the backend boundary.** Treat section ids as opaque and
      keep Git index concepts out of the selection utility. Use the existing
      `STAGING`, `PARTIAL_COMMIT`, `HUNK_CHANGELISTS` and

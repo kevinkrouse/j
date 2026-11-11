@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.function.Function;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.Property;
 import org.armedbear.j.util.PickState;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Changelists;
@@ -61,6 +60,7 @@ final class VcsContextMenus {
             RepositoryStatus model,
             List<Target> targets,
             List<Target> commitTargets,
+            boolean picked,
             FileKey location,
             Target.Member member,
             boolean pickable,
@@ -105,7 +105,7 @@ final class VcsContextMenus {
                 StatusActions.refusal(editor, model, Op.UNSTAGE, targets, false),
                 action);
         }
-        add(menu, editor, "Move to changelist…", "vcsChangelistMove", moveWhy(model, targets), action);
+        moveItem(menu, editor, model, targets, picked);
         menu.add(
             diffLabel,
             diffCommand,
@@ -208,17 +208,14 @@ final class VcsContextMenus {
         }
     }
 
-    /** Why the targets can't be moved to a changelist, or null. */
-    static String moveWhy(RepositoryStatus model, List<Target> targets) {
-        if (targets.isEmpty())
-            return "Nothing here to move";
-        if (targets.stream().anyMatch(t -> !StatusRenderer.UNSTAGED.equals(t.section())))
-            return "Changelists sort the changes not staged: unstage it first";
-        if (targets.stream().map(Target::repository).distinct().count() > 1)
-            return "A move takes one repository's changes";
-        if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS))
-            return "Changelists are off: vcsChangelists is false";
-        return null;
+    static void moveItem(VcsMenu menu, Editor editor, RepositoryStatus model, List<Target> targets, boolean picked) {
+        final String why = ChangelistCommands.moveWhy(model, targets);
+        menu.add(
+            "Move to changelist…",
+            "vcsChangelistMove",
+            why == null,
+            why,
+            e -> ChangelistCommands.chooseMove(editor, model, targets, picked));
     }
 
     // Why take doesn't fit the unmerged targets, or null.

@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.armedbear.j.Buffer;
@@ -63,8 +64,8 @@ import org.armedbear.j.vcs.status.StatusLine.Kind;
  * Changelists from the status: making one, making one active, renaming and
  * deleting one, and moving changes of the work tree to one: the
  * selection's, else what is picked, else the thing at the caret, a list's
- * heading, a file, a hunk, or its lines; a file whose diff isn't read, or
- * that has none, as a binary file, moved whole. A prompt lists what a
+ * heading, a file, a hunk, or its lines. A successful diff with no
+ * textual changes, such as a binary file's, moves whole. A prompt lists what a
  * command can't take dimmed, with why. None while vcsChangelists is false.
  */
 public final class ChangelistCommands {
@@ -184,229 +185,235 @@ public final class ChangelistCommands {
             moveInFile(editor);
             return;
         }
-        final boolean picked = StatusActions.takesPicks(status.model(), editor);
-        final List<Target> targets = StatusActions.targets(status.model(), editor);
-        // Then, if editor still shows it, its caret where it was, the
-        // targets read afresh: the read made new FileItems with their diffs.
-        final org.armedbear.j.Buffer shown = editor.getBuffer();
-        final String at = editor.getDotLine() instanceof StatusLine s ? s.key() : null;
-        moveTargets(editor, status.model(), targets, picked, true, () -> {
-            if (editor.getBuffer() == shown && editor.getDotLine() instanceof StatusLine s && s.key().equals(at))
-                moveTargets(
-                    editor,
-                    status.model(),
-                    StatusActions.targets(status.model(), editor),
-                    StatusActions.takesPicks(status.model(), editor),
-                    false,
-                    null);
-            else
-                editor.status("Moved on while the diffs were read: move again");
-        });
+        final RepositoryStatus model = status.model();
+        final boolean picked = StatusActions.takesPicks(model, editor);
+        final Buffer shown = editor.getBuffer();
+        final String at = editor.getDotLine() instanceof StatusLine line ? line.key() : null;
+        chooseMove(
+            editor,
+            model,
+            StatusActions.targets(model, editor, picked),
+            picked,
+            () -> editor.getBuffer() == shown
+                    && editor.getDotLine() instanceof StatusLine line
+                    && line.key().equals(at));
     }
 
-    /**
-     * Moves targets to a changelist asked for, made if new: the chooser,
-     * the diffs of the files it takes read first if read and they aren't,
-     * then retry; a file whose diff isn't read then, or that has none,
-     * moved whole. picked, whether they are the picks, unpicked as they
-     * move.
-     */
-    static void moveTargets(
+    record Destination(VcsRepository repository, String name, boolean create) {
+        Destination(VcsRepository repository, String name) {
+            this(repository, name, false);
+        }
+
+        String missingFrom(Changelists lists) {
+            return !create && lists.list(name) == null ? "There is no changelist " + name : null;
+        }
+    }
+
+    /** A cheap check for menus and drag capture. Resolution happens when moving. */
+    static String moveWhy(RepositoryStatus model, List<Target> targets) {
+        if (targets.isEmpty())
+            return "Nothing here to move";
+        if (model.isDisposed())
+            return "The status was closed";
+        final VcsRepository repository = targets.get(0).repository();
+        if (!model.getRepositories().contains(repository)
+                || targets.stream().anyMatch(t -> t.repository() != repository))
+            return "A move takes one repository's changes";
+        if (targets.stream().anyMatch(t -> !StatusRenderer.UNSTAGED.equals(t.section())))
+            return "Changelists sort the changes not staged: unstage it first";
+        if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS))
+            return "Changelists are off: vcsChangelists is false";
+        if (model.isWriting())
+            return "Wait: the last change is still being made";
+        return null;
+    }
+
+    /** Offer the destinations for the captured selection, including a new name. */
+    static void chooseMove(Editor editor, RepositoryStatus model, List<Target> targets, boolean picked) {
+        chooseMove(editor, model, targets, picked, () -> true);
+    }
+
+    private static void chooseMove(
             Editor editor,
             RepositoryStatus model,
             List<Target> targets,
             boolean picked,
-            boolean read,
-            Runnable retry) {
-        if (targets.isEmpty()) {
-            editor.status("Nothing here to move");
-            return;
-        }
-        if (targets.stream().anyMatch(t -> !StatusRenderer.UNSTAGED.equals(t.section()))) {
-            editor.status("Changelists sort the changes not staged: unstage it first");
-            return;
-        }
-        final VcsRepository r = targets.get(0).repository();
-        if (targets.stream().anyMatch(t -> t.repository() != r)) {
-            editor.status("A move takes one repository's changes");
-            return;
-        }
-        final RepositoryLists lists = lists(editor, r);
-        if (lists == null)
-            return;
-        final Set<StatusPicks.Key> used = new HashSet<>();
-        if (picked)
-            for (Set<StatusPicks.Key> keys : model.picks().used(targets).values())
-                used.addAll(keys);
-        final List<Taken> taken = taken(targets);
-        // A file moves by its changes: their diffs read first.
-        final Set<String> unreadKeys = new HashSet<>();
-        for (Taken t : taken)
-            if (t.file().diff() == null)
-                unreadKeys.add(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, t.file().path()));
-        if (read && !unreadKeys.isEmpty()) {
-            editor.status("Reading the diffs to move…");
-            model.readDiffsThen(unreadKeys, retry);
-            return;
-        }
-        final Changelists c = lists.lists();
-        final Map<String, List<Placed>> placed = placed(c, taken);
-        // A list a move to changes nothing, the move's from.
-        final Map<String, String> unavailable = new HashMap<>();
-        for (Changelist l : c.lists())
-            if (moved(c, taken, placed, l.name()).equals(c))
-                unavailable.put(l.name(), HERE);
-        final List<String> names = c.lists().stream().map(Changelist::name).toList();
-        BranchCommands.choose.choose(editor, MOVE, "vcsChangelistMove", names, unavailable, name -> {
-            final String to = name.strip();
-            if (rejected(editor, to, unavailable))
-                return;
-            if (!moveTo(r, lists, taken, to)) {
-                editor.status(NOT_KEPT);
+            BooleanSupplier stillHere) {
+        if (!picked && !targets.isEmpty()) {
+            final RepositoryLists shown = RepositoryLists.shown(targets.get(0).repository());
+            if (shown != null && hasUnreadMember(shown.lists(), targets)) {
+                editor.status("Wait for the changelist diff, then select the changes again");
                 return;
             }
-            if (picked)
-                model.unpick(used);
-            editor.status("Moved " + StatusActions.names(targets) + " to " + to);
+        }
+        final Set<StatusPicks.Key> used = new HashSet<>();
+        if (picked)
+            model.picks().used(targets).values().forEach(used::addAll);
+        resolveMove(model, targets, editor::status, resolved -> {
+            if (!stillHere.getAsBoolean()) {
+                editor.status("Moved on while the diffs were read: move again");
+                return;
+            }
+            final VcsRepository repository = resolved.get(0).repository();
+            final RepositoryLists lists = lists(editor, repository);
+            if (lists == null)
+                return;
+            final Changelists c = lists.lists();
+            final List<Taken> taken = taken(resolved);
+            final Map<String, List<Placed>> placed = placed(c, taken);
+            final Map<String, String> unavailable = new HashMap<>();
+            for (Changelist l : c.lists())
+                if (moved(c, taken, placed, l.name()).equals(c))
+                    unavailable.put(l.name(), HERE);
+            final List<String> names = c.lists().stream().map(Changelist::name).toList();
+            BranchCommands.choose.choose(editor, MOVE, "vcsChangelistMove", names, unavailable, name -> {
+                final String to = name.strip();
+                if (!rejected(editor, to, unavailable))
+                    moveTargets(
+                        model,
+                        resolved,
+                        new Destination(repository, to, !names.contains(to)),
+                        editor::status,
+                        () -> model.unpick(used));
+            });
         });
     }
 
-    // taken to the list to, made if new, of r's lists: shown, and their
-    // open files placed again; false if the lists couldn't be kept.
-    private static boolean moveTo(VcsRepository r, RepositoryLists lists, List<Taken> taken, String to) {
-        if (!lists.update(cc -> moved(cc.withList(to), taken, null, to)))
-            return false;
-        final Set<String> paths = new HashSet<>();
-        for (Taken t : taken)
-            paths.add(t.file().path());
-        shown(r);
-        replaced(r, paths);
-        return true;
+    // A list can provisionally show a file under one heading while its
+    // change-by-change assignment is waiting on a diff.
+    static boolean hasUnreadMember(Changelists lists, List<Target> targets) {
+        for (Target target : targets)
+            if (target instanceof Files files)
+                for (FileItem file : files.files()) {
+                    if (file.diff() != null)
+                        continue;
+                    Assignment assignment = lists.assignment(file.path());
+                    if (assignment == null && file.change().origPath() != null)
+                        assignment = lists.assignment(file.change().origPath());
+                    if (assignment != null && assignment.whole() == null)
+                        return true;
+                }
+        return false;
     }
 
-    /**
-     * Moves r's unstaged file at path in status, or with only, its lines
-     * there by hunk id, to the list to, as a file dragged onto a list in
-     * the sidebar's Changes tab: its diff read first if it isn't; what is
-     * said to said.
-     */
-    static void moveFile(
-            RepositoryStatus status,
-            VcsRepository r,
-            String path,
-            Map<String, BitSet> only,
-            String to,
-            Consumer<String> said) {
-        moveFile(status, r, path, only, to, said, true);
+    /** Move the captured targets to an existing destination. */
+    static void moveTargets(RepositoryStatus model, List<Target> targets, Destination to, Consumer<String> said) {
+        moveTargets(model, targets, to, said, () -> {});
     }
 
-    /** Moves targets straight to a list, as a drag does. */
-    static void moveTargets(RepositoryStatus model, List<Target> targets, String to, Consumer<String> said) {
-        if (model.resolveTargets(targets, resolved -> {
-            if (!resolved.ready()) {
-                said.accept(resolved.failure());
-                return;
-            }
-            moveResolved(model, resolved.targets(), to, said);
-        }))
-            said.accept("Reading the diffs to move…");
-    }
-
-    private static void moveResolved(RepositoryStatus model, List<Target> targets, String to, Consumer<String> said) {
-        if (targets.isEmpty()) {
-            said.accept("Nothing here to move");
+    private static void moveTargets(
+            RepositoryStatus model,
+            List<Target> targets,
+            Destination to,
+            Consumer<String> said,
+            Runnable did) {
+        final String why = moveWhy(model, targets);
+        if (why != null) {
+            said.accept(why);
             return;
         }
-        if (targets.stream().anyMatch(t -> !StatusRenderer.UNSTAGED.equals(t.section()))) {
-            said.accept("Changelists sort the changes not staged: unstage it first");
-            return;
-        }
-        VcsRepository r = targets.get(0).repository();
-        if (targets.stream().anyMatch(t -> t.repository() != r)) {
+        if (targets.get(0).repository() != to.repository()) {
             said.accept("A move takes one repository's changes");
             return;
         }
-        RepositoryLists lists = RepositoryLists.shown(r);
+        final RepositoryLists lists = RepositoryLists.of(to.repository());
         if (lists == null) {
-            said.accept("Nothing here to move");
+            said.accept("No changelists here");
             return;
         }
-        List<Taken> taken = taken(targets);
-        Set<String> unread = new HashSet<>();
-        for (Taken t : taken) {
-            if (t.file().diffError() != null) {
-                said.accept(t.file().path() + ": " + t.file().diffError());
-                return;
-            }
-            if (t.file().diff() == null && t.file().hasDiff())
-                unread.add(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, t.file().path()));
+        final String missing = to.missingFrom(lists.lists());
+        if (missing != null) {
+            said.accept(missing);
+            return;
         }
-        if (!unread.isEmpty()) {
-            said.accept("Reading the diffs to move…");
-            model.readDiffsThen(unread, () -> {
-                final Selections.Resolution resolved = model.resolveTargets(targets).readsFailed();
-                if (!resolved.ready()) {
-                    said.accept(resolved.failure());
+        resolveMove(model, targets, said, resolved -> {
+            final List<Taken> taken = taken(resolved);
+            try {
+                // update can rerun this against an external writer's changes.
+                if (!lists.update(current -> {
+                    final String absent = to.missingFrom(current);
+                    if (absent != null)
+                        throw new MoveRefused(absent);
+                    final Changelists withDestination = current.withList(to.name());
+                    final Changelists next = moved(withDestination, taken, null, to.name());
+                    if (next.equals(withDestination))
+                        throw new MoveRefused(to.name() + ": " + HERE);
+                    return next;
+                })) {
+                    said.accept(NOT_KEPT);
                     return;
                 }
-                for (Taken current : taken(resolved.targets()))
-                    if (current.file().hasDiff() && current.file().diff() == null) {
-                        said.accept(current.file().path() + ": Could not read the diff to move");
-                        return;
-                    }
-                moveResolved(model, resolved.targets(), to, said);
-            });
-            return;
-        }
-        Changelists c = lists.lists().withList(to);
-        Map<String, List<Placed>> placed = placed(c, taken);
-        if (moved(c, taken, placed, to).equals(c)) {
-            said.accept("Nothing here to move");
-            return;
-        }
-        said.accept(moveTo(r, lists, taken, to) ? "Moved " + StatusActions.names(targets) + " to " + to : NOT_KEPT);
+            }
+            catch (MoveRefused e) {
+                said.accept(e.getMessage());
+                return;
+            }
+            shown(to.repository());
+            final Set<String> paths = new HashSet<>();
+            for (Taken t : taken)
+                paths.add(t.file().path());
+            replaced(to.repository(), paths);
+            did.run();
+            said.accept("Moved " + StatusActions.names(resolved) + " to " + to.name());
+        });
     }
 
-    private static void moveFile(
-            RepositoryStatus status,
-            VcsRepository r,
-            String path,
-            Map<String, BitSet> only,
-            String to,
+    private static final class MoveRefused extends RuntimeException {
+        MoveRefused(String reason) {
+            super(reason, null, false, false);
+        }
+    }
+
+    private static void resolveMove(
+            RepositoryStatus model,
+            List<Target> targets,
             Consumer<String> said,
+            Consumer<List<Target>> ready) {
+        resolveMove(model, List.copyOf(targets), said, ready, true);
+    }
+
+    private static void resolveMove(
+            RepositoryStatus model,
+            List<Target> captured,
+            Consumer<String> said,
+            Consumer<List<Target>> ready,
             boolean read) {
-        final RepositoryLists lists = RepositoryLists.shown(r);
-        final FileItem f = status.unstaged(r, path);
-        if (lists == null || f == null) {
-            said.accept("Nothing here to move");
+        final String why = moveWhy(model, captured);
+        if (why != null) {
+            said.accept(why);
             return;
         }
-        if (read && f.diff() == null && f.hasDiff()) {
-            said.accept("Reading the diff to move…");
-            status.readDiffsThen(
-                Set.of(StatusRenderer.fileKey(r, StatusRenderer.UNSTAGED, path)),
-                () -> moveFile(status, r, path, only, to, said, false));
+        final Selections.Resolution resolved = model.resolveTargets(captured);
+        if (!resolved.problems().isEmpty()) {
+            said.accept(resolved.failure());
             return;
         }
-        // Its lines in a list, which an unread diff can't tell.
-        if (only != null && f.diff() == null) {
-            said.accept("Couldn't read the diff of " + path + ": move again");
+        final Set<String> unread = new HashSet<>();
+        for (var key : resolved.unread())
+            unread.add(StatusRenderer.fileKey(key.repository(), key.section(), key.path()));
+        for (Target target : resolved.targets())
+            for (FileItem file : files(target)) {
+                if (file.diffError() != null) {
+                    said.accept(file.path() + ": " + file.diffError());
+                    return;
+                }
+                if (file.hasDiff() && file.diff() == null)
+                    unread.add(StatusRenderer.fileKey(target.repository(), target.section(), file.path()));
+            }
+        if (!unread.isEmpty()) {
+            if (!read) {
+                said.accept("Could not read the selected diffs to move");
+                return;
+            }
+            said.accept("Reading the diffs to move…");
+            model.readDiffsThen(unread, () -> resolveMove(model, captured, said, ready, false));
             return;
         }
-        final Map<Hunk, BitSet> lines = new IdentityHashMap<>();
-        if (only != null) {
-            final Map<String, Hunk> ids = status.picks().ids(f.diff());
-            for (Map.Entry<String, BitSet> e : only.entrySet())
-                if (ids.containsKey(e.getKey()))
-                    lines.put(ids.get(e.getKey()), e.getValue());
-        }
-        final Taken t = new Taken(f, only == null, Set.of(), lines);
-        // Its lines there gone since, as after a read, or all in to already.
-        if (moved(lists.lists().withList(to), List.of(t), null, to).equals(lists.lists().withList(to))) {
-            said.accept("Nothing of " + path + " to move to " + to);
+        if (!Selections.sameBaseLocations(captured, resolved.targets())) {
+            said.accept("A selected change moved to a different base location. Select it again.");
             return;
         }
-        said.accept(moveTo(r, lists, List.of(t), to) ? "Moved " + path + " to " + to : NOT_KEPT);
+        ready.accept(resolved.targets());
     }
 
     /**

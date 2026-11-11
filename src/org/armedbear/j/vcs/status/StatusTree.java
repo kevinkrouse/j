@@ -31,7 +31,6 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -112,7 +111,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
 
     /** A file: its letter and path, keyed as the status's line, and its section's key. */
     record FileNode(char letter, String path, String key, String section, VcsRepository repository, String list,
-            Map<String, BitSet> only) {
+            Target.Member member) {
         FileNode(char letter, String path, String key, String section) {
             this(letter, path, key, section, null, null, null);
         }
@@ -204,13 +203,8 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
                                     shown.add(member.file().path()) ? "" : StatusRenderer.elsewhere(list.name());
                             String fk = StatusRenderer.fileKey(p.repository(), s.id(), member.file().path()) + suffix;
                             group.add(
-                                new DefaultMutableTreeNode(new FileNode(member.file().letter(),
-                                        member.file().path(),
-                                        fk,
-                                        sk,
-                                        p.repository(),
-                                        list.name(),
-                                        member.only())));
+                                new DefaultMutableTreeNode(new FileNode(member.file()
+                                        .letter(), member.file().path(), fk, sk, p.repository(), list.name(), member)));
                         }
                         section.add(group);
                     }
@@ -309,7 +303,18 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         };
     }
 
-    private FileNode dragged;
+    private ChangelistDrag dragged;
+
+    ChangelistDrag dragFor(FileNode file) {
+        return ChangelistDrag
+                .capture(status.model(), file.repository(), StatusRenderer.UNSTAGED, file.list(), file.member());
+    }
+
+    private static ChangelistCommands.Destination destination(TreePath path) {
+        return path != null && userObject(path) instanceof ListNode list
+                ? new ChangelistCommands.Destination(list.repository(), list.name())
+                : null;
+    }
 
     private final class Mover extends TransferHandler {
         @Override
@@ -319,10 +324,8 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
 
         @Override
         protected Transferable createTransferable(JComponent c) {
-            if (!(selected() instanceof FileNode f) || f.list() == null)
-                return null;
-            dragged = f;
-            return new VcsStatusBuffer.DragToken(f.path());
+            dragged = selected() instanceof FileNode file ? dragFor(file) : null;
+            return dragged;
         }
 
         @Override
@@ -332,34 +335,19 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
 
         @Override
         public boolean canImport(TransferSupport support) {
-            // The changelist flavor, not a stray text drag: a stale
-            // dragged must not let foreign text move the old file.
-            if (!support.isDrop() || dragged == null || !support.isDataFlavorSupported(VcsStatusBuffer.CHANGELIST_DRAG))
+            if (!support.isDrop() || dragged == null)
                 return false;
-            TreePath path = ((JTree.DropLocation) support.getDropLocation()).getPath();
-            Object target = path == null ? null : userObject(path);
-            return target instanceof ListNode l
-                    && l.repository() == dragged.repository()
-                    && !l.name().equals(dragged.list());
+            final var to = destination(((JTree.DropLocation) support.getDropLocation()).getPath());
+            return to != null && dragged.canDrop(status.model(), to, support.getTransferable());
         }
 
         @Override
         public boolean importData(TransferSupport support) {
-            if (!canImport(support))
+            if (!support.isDrop() || dragged == null)
                 return false;
-            ListNode target = (ListNode) userObject(((JTree.DropLocation) support.getDropLocation()).getPath());
-            // The editor captured now: the move may defer through a diff
-            // read, and a frame switch before it finishes must not send
-            // the message to the window the user left.
+            final var to = destination(((JTree.DropLocation) support.getDropLocation()).getPath());
             final Editor ed = frame != null ? frame.getCurrentEditor() : Editor.currentEditor();
-            ChangelistCommands.moveFile(
-                status.model(),
-                dragged.repository(),
-                dragged.path(),
-                dragged.only(),
-                target.name(),
-                s -> ed.status(s));
-            return true;
+            return to != null && dragged.drop(status.model(), to, support.getTransferable(), ed::status);
         }
     }
 

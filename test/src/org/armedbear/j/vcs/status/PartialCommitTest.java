@@ -185,13 +185,22 @@ public class PartialCommitTest {
                     bits.set(0, e.getValue().lines().size());
                     only.put(e.getKey(), bits);
                 }
-            ChangelistCommands.moveFile(status.model(), repo(), "a.txt", only, "Feature", s -> said.add(s));
+            moveA(only);
         });
         until(() -> !said.isEmpty() && (text().contains("  Feature (1)") || !said.get(0).startsWith("Moved")));
         assertTrue(said.get(0).startsWith("Moved"), said.toString());
         until(
             () -> text().contains("  Feature (1)")
                     && text().stream().anyMatch(t -> t.startsWith("  Default (") && !t.startsWith("  Default (0)")));
+    }
+
+    private void moveA(Map<String, BitSet> only) {
+        final var member = new Target.Member(status.model().unstaged(repo(), "a.txt"), only);
+        ChangelistCommands.moveTargets(
+            status.model(),
+            StatusActions.listTargets(repo(), StatusRenderer.UNSTAGED, List.of(member)),
+            new ChangelistCommands.Destination(repo(), "Feature"),
+            said::add);
     }
 
     private final List<String> said = new ArrayList<>();
@@ -443,8 +452,7 @@ public class PartialCommitTest {
                 if (lines.get(k).text().equals("line 6") && lines.get(k).isRemoved()
                         || lines.get(k).text().equals("line six"))
                     bits.set(k);
-            ChangelistCommands
-                    .moveFile(status.model(), repo(), "a.txt", Map.of(e.getKey(), bits), "Feature", said::add);
+            moveA(Map.of(e.getKey(), bits));
         });
         until(() -> text().contains("  Feature (1)") && text().contains("  Default (1)  active"));
         onEdt(() -> {
@@ -484,7 +492,7 @@ public class PartialCommitTest {
                     bits.set(0, e.getValue().lines().size());
                     only.put(e.getKey(), bits);
                 }
-            ChangelistCommands.moveFile(status.model(), repo(), "a.txt", only, "Feature", said::add);
+            moveA(only);
         });
         until(() -> text().contains("  Feature (1)") && text().contains("  Default (1)  active"));
         onEdt(() -> {
@@ -627,7 +635,7 @@ public class PartialCommitTest {
                 first.put(id, bits);
             }
         });
-        onEdt(() -> ChangelistCommands.moveFile(status.model(), repo(), "a.txt", first, "Feature", said::add));
+        onEdt(() -> moveA(first));
         until(() -> status.model().listed(repo()).members().get("Feature").get(0).only() == null);
         finish("Feature");
         assertEquals("first", subject());

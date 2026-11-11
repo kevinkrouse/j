@@ -400,7 +400,15 @@ public class ChangesTreeTest {
                     bits.set(0, e.getValue().lines().size());
                     only.put(e.getKey(), bits);
                 }
-            ChangelistCommands.moveFile(status, repo(), "a.txt", only, "Feature", s -> {});
+            ChangelistCommands.moveTargets(
+                status,
+                StatusActions.listTargets(
+                    repo(),
+                    StatusRenderer.UNSTAGED,
+                    List.of(new org.armedbear.j.vcs.selection.Target.Member(a.file(), only))),
+                new ChangelistCommands.Destination(repo(), "Feature"),
+                s -> {});
+
         });
         until(() -> rows().contains("Feature (1)") && rows().contains("Default (1)  active"));
     }
@@ -476,13 +484,34 @@ public class ChangesTreeTest {
             rows());
     }
 
+    private void dropFile(String from, String to) throws Exception {
+        onEdt(() -> {
+            final ChangelistDrag drag = tree.dragFor(file(from, "a.txt"));
+            assertNotNull(drag);
+            assertTrue(
+                drag.drop(
+                    tree.status(),
+                    new ChangelistCommands.Destination(repo(), to),
+                    drag,
+                    reason -> h.editor().status(reason)));
+        });
+    }
+
     @Test
     public void aFileDroppedOnAListMovesThereAndItsBoxPicksItInTheStatus() throws Exception {
         git = repository(tmp);
         show(tmp);
         splitAcrossLists();
-        // The split file's part under Default, moved: all of it in Feature.
-        onEdt(() -> tree.move(file("Default", "a.txt"), "Feature"));
+        onEdt(() -> {
+            assertTrue(RepositoryLists.of(repo()).update(c -> c.withList("Other")));
+            SignsUpdater.listsChanged(repo());
+        });
+        until(() -> rows().contains("Other (0)"));
+        dropFile("Default", "Other");
+        until(() -> rows().contains("Other (1)") && rows().contains("Feature (1)"));
+        final Assignment split = ChangelistStore.of(repo()).read().assignment("a.txt");
+        assertEquals(List.of("Other", "Feature"), split.changes().stream().map(Change::list).toList());
+        dropFile("Other", "Feature");
         until(() -> rows().contains("Default (0)  active"));
         assertTrue(rows().contains("  M  a.txt"), "whole under Feature: " + rows());
         final Assignment kept = ChangelistStore.of(repo()).read().assignment("a.txt");

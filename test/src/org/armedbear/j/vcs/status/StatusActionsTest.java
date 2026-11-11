@@ -50,7 +50,9 @@ import org.armedbear.j.transients.Transients;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.changelists.ChangelistStore;
 import org.armedbear.j.vcs.changelists.Changelists;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
@@ -3067,12 +3069,97 @@ public class StatusActionsTest {
         openFile("  M  a.txt", "  +line three");
         final List<Target> captured = new ArrayList<>();
         onEdt(() -> captured.addAll(StatusActions.targetsOf(status.model(), List.of(line("  +line three")))));
+        makeList("Feature");
         git.write("a.txt", SIXTY.replace("line 3\n", "revised three\n").replace("line 50\n", "line fifty\n"));
         onEdt(status::refresh);
-        until(() -> text().contains("  +revised three"));
+        until(() -> text().contains("    +revised three"));
         final AtomicReference<String> said = new AtomicReference<>();
-        onEdt(() -> ChangelistCommands.moveTargets(status.model(), captured, "Feature", said::set));
+        onEdt(
+            () -> ChangelistCommands.moveTargets(
+                status.model(),
+                captured,
+                new ChangelistCommands.Destination(repo(), "Feature"),
+                said::set));
         assertTrue(said.get().contains("selected hunk has changed"), said.get());
+    }
+
+    @Test
+    public void aMoveStopsWhenTheRequestedDiffFails() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        git.git("config", "diff.algorithm", "invalid-algorithm");
+        final AtomicReference<String> said = new AtomicReference<>();
+        onEdt(() -> {
+            final List<Target> captured = StatusActions.targetsOf(status.model(), List.of(line("    M  a.txt")));
+            ChangelistCommands.moveTargets(
+                status.model(),
+                captured,
+                new ChangelistCommands.Destination(repo(), "Feature"),
+                said::set);
+            assertTrue(said.get().startsWith("Reading"), said.get());
+        });
+        until(() -> !said.get().startsWith("Reading"));
+        assertTrue(said.get().startsWith("a.txt:") && said.get().contains("invalid-algorithm"), said.get());
+        assertNull(ChangelistStore.of(repo()).read().assignment("a.txt"));
+    }
+
+    @Test
+    public void aDestinationDeletedWhileReadingTheDiffIsNotRecreated() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final AtomicReference<String> said = new AtomicReference<>();
+        onEdt(() -> {
+            final List<Target> captured = StatusActions.targetsOf(status.model(), List.of(line("    M  a.txt")));
+            ChangelistCommands.moveTargets(
+                status.model(),
+                captured,
+                new ChangelistCommands.Destination(repo(), "Feature"),
+                said::set);
+            assertTrue(said.get().startsWith("Reading"), said.get());
+            // An external writer changes the store while the in-memory list is still shown.
+            final ChangelistStore store = ChangelistStore.of(repo());
+            assertTrue(store.write(store.read().without("Feature")));
+        });
+        until(() -> !said.get().startsWith("Reading"));
+        assertEquals("There is no changelist Feature", said.get());
+        EditorHarness.forgetLoggedErrors(); // The store reported the expected competing write.
+        final Changelists kept = ChangelistStore.of(repo()).read();
+        assertNull(kept.list("Feature"));
+        assertNull(kept.assignment("a.txt"));
+    }
+
+    @Test
+    public void aDestinationRenamedWhileTheChooserIsOpenIsNotRecreated() throws Exception {
+        repository();
+        open();
+        makeList("Feature");
+        final AtomicReference<java.util.function.Consumer<String>> choice = new AtomicReference<>();
+        final BranchCommands.Choose choose = BranchCommands.choose;
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> {
+            assertTrue(names.contains("Feature"));
+            choice.set(chosen);
+        };
+        try {
+            onEdt(() -> {
+                h.editor().setDot(line("    M  a.txt"), 0);
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> choice.get() != null);
+            onEdt(() -> {
+                assertTrue(RepositoryLists.of(repo()).update(c -> c.renamed("Feature", "Renamed")));
+                choice.get().accept("Feature");
+                assertEquals("There is no changelist Feature", h.status());
+            });
+        }
+        finally {
+            BranchCommands.choose = choose;
+        }
+        final Changelists kept = ChangelistStore.of(repo()).read();
+        assertNull(kept.list("Feature"));
+        assertNotNull(kept.list("Renamed"));
+        assertNull(kept.assignment("a.txt"));
     }
 
     @Test

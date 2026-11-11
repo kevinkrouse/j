@@ -30,6 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
 import java.awt.Rectangle;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseEvent;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +42,7 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
+import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -57,6 +61,8 @@ import org.armedbear.j.transients.TransientKeys;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.changelists.ChangelistStore;
+import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.log.CommitDetails;
@@ -64,6 +70,7 @@ import org.armedbear.j.vcs.log.LogCommands;
 import org.armedbear.j.vcs.log.RevisionBuffer;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
+import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -178,6 +185,116 @@ public class VcsStatusBufferTest {
 
     private String head() {
         return git.git("log", "-1", "--format=%h").strip();
+    }
+
+    private void addFeatureList() throws Exception {
+        onEdt(() -> {
+            assertTrue(RepositoryLists.of(repo()).update(c -> c.withList("Feature")));
+            SignsUpdater.listsChanged(repo());
+        });
+        until(() -> text().contains("  Feature (0)"));
+    }
+
+    @Test
+    public void aTextDragSurvivesAnUnrelatedRefreshAndRejectsForeignTransfers() throws Exception {
+        repository();
+        final Path otherRoot = Files.createDirectory(tmp.resolve("other"));
+        GitFixture.metadata(otherRoot);
+        final VcsRepository otherRepository = Repositories.forDirectory(otherRoot.toRealPath());
+        assertNotNull(otherRepository);
+        open();
+        addFeatureList();
+        onEdt(() -> status.toggle(line("    M  a.txt")));
+        until(() -> text().contains("    +three blind cats"));
+        final Transferable[] drag = new Transferable[1];
+        onEdt(() -> {
+            final StatusLine source = line("    +three blind cats");
+            drag[0] = status.dragAt(h.editor(), new Position(source, 0));
+            assertNotNull(drag[0]);
+            assertEquals(List.of(ChangelistDrag.FLAVOR), List.of(drag[0].getTransferDataFlavors()));
+            assertFalse(drag[0].isDataFlavorSupported(DataFlavor.stringFlavor));
+            final Position to = new Position(line("  Feature (0)"), 0);
+            final ChangelistDrag foreign = ChangelistDrag.capture(
+                status.model(),
+                "Default",
+                StatusActions.targetsOf(status.model(), List.of(StatusLine.head(source))));
+            assertNotNull(foreign);
+            assertFalse(status.canDropAt(h.editor(), to, foreign));
+            assertFalse(status.dropAt(h.editor(), to, new StringSelection("a.txt")));
+            assertFalse(
+                ((ChangelistDrag) drag[0]).canDrop(
+                    status.model(),
+                    new ChangelistCommands.Destination(otherRepository, "Feature"),
+                    drag[0]));
+            status.pick(List.of(line("  ?  c.txt")));
+        });
+        git.write("d.txt", "another untracked file\n");
+        onEdt(status::refresh);
+        until(() -> text().contains("  ?  d.txt"));
+        onEdt(() -> {
+            final Position to = new Position(line("  Feature (0)"), 0);
+            assertTrue(status.canDropAt(h.editor(), to, drag[0]));
+            assertTrue(status.dropAt(h.editor(), to, drag[0]));
+            status.dragFinished(h.editor());
+            assertFalse(status.canDropAt(h.editor(), to, drag[0]));
+        });
+        until(() -> text().contains("  Feature (1)") && text().contains("  Default (0)  active"));
+        onEdt(() -> assertFalse(status.picks().isEmpty(), "the later pick is still pending"));
+    }
+
+    @Test
+    public void aDragRefusesASelectedHunkThatHasGainedAnIdenticalTwin() throws Exception {
+        git = GitFixture.init(tmp);
+        final String base = "x\n" + "context\n".repeat(20) + "x\n";
+        git.write("a.txt", base);
+        git.commitAll("base");
+        git.write("a.txt", "y" + base.substring(1));
+        open();
+        addFeatureList();
+        onEdt(() -> status.toggle(line("    M  a.txt")));
+        until(() -> text().contains("    +y"));
+        final Transferable[] drag = new Transferable[1];
+        onEdt(() -> {
+            drag[0] = status.dragAt(h.editor(), new Position(line("    +y"), 0));
+            assertNotNull(drag[0]);
+        });
+        git.write("a.txt", base.replace("x\n", "y\n"));
+        onEdt(status::refresh);
+        until(() -> java.util.Collections.frequency(text(), "    +y") == 2);
+        onEdt(() -> {
+            assertTrue(status.dropAt(h.editor(), new Position(line("  Feature (0)"), 0), drag[0]));
+            assertTrue(h.status().contains("number of identical hunks"), h.status());
+            status.dragFinished(h.editor());
+        });
+        assertNull(ChangelistStore.of(repo()).read().assignment("a.txt"));
+    }
+
+    @Test
+    public void aStatusTreeDragMovesTheCapturedFileThroughTheSameRead() throws Exception {
+        repository();
+        open();
+        addFeatureList();
+        onEdt(() -> {
+            final StatusTree tree = status.tree(null);
+            final var root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+            final var nodes = root.preorderEnumeration();
+            while (nodes.hasMoreElements()) {
+                final var node = (DefaultMutableTreeNode) nodes.nextElement();
+                if (node.getUserObject() instanceof StatusTree.FileNode file && "Default".equals(file.list())) {
+                    final ChangelistDrag drag = tree.dragFor(file);
+                    assertNotNull(drag);
+                    assertTrue(
+                        drag.drop(
+                            status.model(),
+                            new ChangelistCommands.Destination(repo(), "Feature"),
+                            drag,
+                            h.editor()::status));
+                    return;
+                }
+            }
+            throw new AssertionError("No file in the Default changelist");
+        });
+        until(() -> text().contains("  Feature (1)") && text().contains("  Default (0)  active"));
     }
 
     @Test

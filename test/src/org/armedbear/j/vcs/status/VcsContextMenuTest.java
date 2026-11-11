@@ -329,6 +329,31 @@ public class VcsContextMenuTest {
         assertTrue(item(menu, "vcsStatusPick").isEnabled(), "a hunk can be picked");
     }
 
+    @Test
+    public void moveFromTheMenuUsesItsCapturedFileAfterTheCaretMoves() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            assertTrue(RepositoryLists.of(repo()).update(c -> c.withList("Feature")));
+            SignsUpdater.listsChanged(repo());
+        });
+        until(() -> text().contains("  Feature (0)"));
+        final JPopupMenu menu = menuOn(line("    M  a.txt"));
+        final BranchCommands.Choose choose = BranchCommands.choose;
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> chosen.accept("Feature");
+        try {
+            onEdt(() -> {
+                h.editor().setDot(line("  M  b.txt"), 0);
+                item(menu, "vcsChangelistMove").doClick();
+            });
+            until(() -> text().contains("  Feature (1)") && text().contains("  Default (0)  active"));
+        }
+        finally {
+            BranchCommands.choose = choose;
+        }
+        assertEquals("b changed\n", git.index("b.txt"));
+    }
+
     // Picks pending and the caret on another file: Commit file… commits the
     // caret's file, not the picks, which is vcsCommitPicked's job.
     @Test

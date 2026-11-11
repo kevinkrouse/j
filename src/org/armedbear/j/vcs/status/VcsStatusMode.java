@@ -1171,6 +1171,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                     model,
                     StatusActions.targets(model, editor),
                     StatusActions.targets(model, editor, false),
+                    StatusActions.takesPicks(model, editor),
                     StatusPicks.fileKey(line),
                     new Target.Member(line.file(), line.only()),
                     StatusPicks.pickable(line),
@@ -1220,12 +1221,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             StatusActions.refusal(editor, model, Op.DISCARD, targets, false) == null,
             StatusActions.refusal(editor, model, Op.DISCARD, targets, false),
             e -> run.apply("vcsDiscard").run());
-        menu.add(
-            "Move to changelist…",
-            "vcsChangelistMove",
-            VcsContextMenus.moveWhy(model, targets) == null,
-            VcsContextMenus.moveWhy(model, targets),
-            e -> run.apply("vcsChangelistMove").run());
+        VcsContextMenus.moveItem(menu, editor, model, targets, StatusActions.takesPicks(model, editor));
         // Commit alone… takes the hunk or lines under the caret, never the
         // picks, so its why is worked out from those, not the targets.
         final List<Target> commitTargets = StatusActions.targets(model, editor, false);
