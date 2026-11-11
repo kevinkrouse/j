@@ -1,1 +1,8 @@
 test/golden/** -text
+
+# Windows batch files must keep CRLF in every working tree, regardless of
+# core.autocrlf; the blob is normalized to LF in the repo.
+*.bat text eol=crlf
+
+# The POSIX launcher must keep LF in every working tree.
+scripts/j text eol=lf

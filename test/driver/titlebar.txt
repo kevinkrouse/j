@@ -1,0 +1,25 @@
+# Title bar smoke test: bb drive test/driver/titlebar.txt README.md
+# Checks j's own decorations. No window manager in Xvfb, so maximize (a WM
+# request) is not exercised here; the WM-independent paths are: the title text,
+# that a click on a menu opens it instead of dragging, and that a drag on the
+# title moves the window.
+expect buffer README.md
+titlepoint
+shotwin before
+# The title bar shows the version string.
+expect title J
+# A click on the File menu opens it and does not move the window.
+expect menuopen 0
+menuclick 0
+expect menuopen 3
+shotwin menu-open
+key ESCAPE
+expect menuopen 0
+# A drag on the title bar moves the window. The before/after positions are
+# logged; the after must differ from the before by the drag delta.
+log before-drag
+drag 400 12 460 80
+log after-drag
+expect-not menuopen 3
+shotwin after-drag
+log end

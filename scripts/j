@@ -1,0 +1,28 @@
+#!/bin/sh
+# Launch j from an unpacked binary distribution.
+#
+# The --add-opens flags let X11WmHandoff reach the JDK's X11 internals to send
+# the EWMH _NET_WM_MOVERESIZE message that hands a window move or resize to the
+# window manager. Without them the handoff is silently unavailable and, under
+# XWayland, title-bar drags and WM-side resizes of j's undecorated windows do
+# nothing.
+#
+# The extension jars under lib/extensions ride the classpath so their classes
+# and dependencies resolve from the application loader.
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+opens="--add-opens java.desktop/sun.awt=ALL-UNNAMED"
+# sun.awt.X11 exists only on Linux; opening it elsewhere warns on every launch.
+[ "$(uname)" = "Linux" ] && opens="$opens --add-opens java.desktop/sun.awt.X11=ALL-UNNAMED"
+
+# The extension jars sit one level down, in lib/extensions/<name>/*.jar, so the
+# classpath wildcard would miss them; collect them explicitly.
+cp="$here/j.jar"
+for jar in "$here"/lib/extensions/*/*.jar; do
+    [ -f "$jar" ] && cp="$cp:$jar"
+done
+
+exec java \
+    $opens \
+    -cp "$cp" \
+    Main "$@"

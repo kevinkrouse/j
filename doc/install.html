@@ -29,13 +29,17 @@ Run the installer, J-1.0.0.exe or J-1.0.0.dmg. It brings its own Java runtime.
 <h2>The binary archive</h2>
 <p>
 On any platform with Java 25 or later, unpack the binary distribution into a
-directory of its own and run the jar:
+directory of its own and run the launcher:
 <pre>
     $ mkdir j
     $ tar -xzf j-1.0.0-bin.tar.gz -C j
-    $ java -jar j/j.jar
+    $ ./j/j
 </pre>
-The zip, j-1.0.0-bin.zip, holds the same files.
+The zip, j-1.0.0-bin.zip, holds the same files; on Windows run
+<code>j\j.bat</code>. The launcher passes the JVM options j needs and puts
+its extensions on the classpath. Running <code>java -jar j/j.jar</code>
+directly works too, but without those options window moves and resizes are
+dead under XWayland.
 <p>
 F1 brings up this guide, which j finds beside j.jar. If you move it, set
 <code><a href="preferences.html#docPath">docPath</a></code> in your

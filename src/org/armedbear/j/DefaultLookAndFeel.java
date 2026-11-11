@@ -145,6 +145,31 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
         // are replaced below with j's own images, which the icon loader
         // already scales, and a UIManager.put outranks this table anyway.
         table.put("ToolTipUI", "org.armedbear.j.ToolTipUI");
+        installTitlePaneDefaults(table);
+    }
+
+    /**
+     * Colors for j's custom title bar, derived from the editor theme so the bar
+     * reads as part of the window.
+     */
+    private void installTitlePaneDefaults(UIDefaults table) {
+        Color background = preferences.getColorProperty("color.background");
+        Color text = preferences.getColorProperty("color.text");
+        if (background == null)
+            background = DefaultTheme.getColor("background");
+        if (text == null)
+            text = DefaultTheme.getColor("text");
+        final boolean dark = DefaultTheme.isDark(background);
+        // Nudge the bar away from the editor field: darken on a light theme,
+        // lighten on a dark one, so the title reads as chrome.
+        final Color active = DefaultTheme.blend(background, text, dark ? 0.10 : 0.06);
+        final Color inactive = DefaultTheme.blend(active, background, 0.5);
+        final Color activeForeground = text;
+        final Color inactiveForeground = DefaultTheme.blend(text, background, 0.5);
+        table.put("TitlePane.background", new ColorUIResource(active));
+        table.put("TitlePane.inactiveBackground", new ColorUIResource(inactive));
+        table.put("TitlePane.foreground", new ColorUIResource(activeForeground));
+        table.put("TitlePane.inactiveForeground", new ColorUIResource(inactiveForeground));
     }
 
     @Override

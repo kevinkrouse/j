@@ -1,0 +1,38 @@
+# Resize smoke test: bb drive test/driver/resize.txt README.md
+# The window is 800x900 at 300,50 on a 1400x1000 screen.
+#
+# Cursor types: 0 default, 6 NW, 7 NE, 4 SW, 5 SE, 10 W, 11 E, 8 N, 9 S.
+# The strips are 4px thick with 9px corners. The top strip resizes across its
+# full width: the menu text sits centered lower in the bar, so the 4px strip at
+# the very top does not cover it.
+expect buffer README.md
+expect framesize 800x900
+# Each edge must show a resize cursor, not the default. The side strips used to
+# show the default cursor, so the sides looked unresizable.
+hovercursor 2 450
+expect-not cursor DragBorder:2
+hovercursor 798 450
+expect-not cursor DragBorder:2
+hovercursor 400 898
+expect-not cursor DragBorder:2
+# The whole top edge resizes, corners and center alike.
+hovercursor 2 2
+expect-not cursor DragBorder:2
+hovercursor 400 2
+expect-not cursor DragBorder:2
+hovercursor 798 2
+expect-not cursor DragBorder:2
+# The menu text, centered lower in the bar, is still a menu.
+hovercursor 60 14
+expect cursor Menu:0
+# SE corner: drag right+down grows the window, origin fixed.
+drag 798 898 848 948
+expect framesize 850x950
+# SW corner: drag left grows the window leftward; the right edge stays put.
+# Used to grow the wrong way and run away under a window manager. Kept
+# horizontal so the screen-bottom clamp does not mask the direction.
+drag 2 948 -48 948
+expect framesize 900x950
+log sw-corner
+shotwin after-resize
+log end

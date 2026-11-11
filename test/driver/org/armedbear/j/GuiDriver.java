@@ -14,6 +14,7 @@ package org.armedbear.j;
 import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.KeyboardFocusManager;
+import java.awt.Robot;
 import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -48,6 +49,16 @@ import javax.swing.SwingUtilities;
  * exec COMMAND [ARGS]                    a command run, as Alt X runs it
  * execlater COMMAND [ARGS]               the same, not waited for: one that opens a dialog
  * hover X Y                              the mouse moved to X Y in the window's text area
+ * click X Y                              a real mouse click at X Y in the focused window
+ * drag X1 Y1 X2 Y2                       a real mouse drag between points in the focused window
+ * movewin X Y                            move the focused window to X Y, to give a corner drag room to grow
+ * sizewin W H                            resize the focused window, so a test controls the geometry a drag starts from
+ * hovercursor X Y                         the pointer moved to X Y; prints CURSOR X Y <component:type>
+ * wmprobe                                prints whether the X11 WM handoff bridge is available and the WM manages the window
+ * titlebutton NAME                        a real click on a title-bar button: minimize, maximize, restore, close
+ * titlepoint                             the title bar's bounds printed: TITLEPOINT x y w h
+ * titlechildren                          the title bar's children printed: TITLECHILD x y w h CLASS
+ * menuclick [N]                          a real click on the Nth embedded menu, 0 is File
  * wait MS                                a pause
  * timeout MS                             how long expect waits; 5000 to begin with
  * shot NAME                              the frame pictured, NAME.png
@@ -60,7 +71,12 @@ import javax.swing.SwingUtilities;
  *
  * <p>WHAT is status (the status bar's message), buffer (its name), mode,
  * text (the buffer's), line (the caret's line, the text of it),
- * location (the location bar) or focus (the focused component's class).
+ * location (the location bar), focus (the focused component's class),
+ * title (j's title bar text), menuopen (the length of the open menu
+ * selection path), framepos (the frame's screen position, x,y),
+ * framesize (the frame's size, WxH), cursor (the component:cursor the last
+ * hovercursor found), wm-managed (whether the WM advertises
+ * _NET_WM_MOVERESIZE) or maximized (whether the frame is maximized).
  *
  * <p>Output lines start STEP, LOG, TEXT, SHOT, PASS, FAIL or ERROR (an
  * error logged or thrown). The exit status is 0 with no FAIL or ERROR.
@@ -157,6 +173,16 @@ public final class GuiDriver {
             }
             case "expect" -> expect(rest, true);
             case "expect-not" -> expect(rest, false);
+            case "click" -> click(rest);
+            case "drag" -> drag(rest);
+            case "movewin" -> moveWindow(rest);
+            case "sizewin" -> sizeWindow(rest);
+            case "wmprobe" -> wmProbe();
+            case "titlebutton" -> titleButton(rest);
+            case "titlepoint" -> titlePoint();
+            case "titlechildren" -> titleChildren();
+            case "menuclick" -> menuClick(rest);
+            case "hovercursor" -> hoverCursor(rest);
             default -> throw new IllegalArgumentException("no such step");
         }
     }
@@ -191,8 +217,206 @@ public final class GuiDriver {
             case "line" -> ed.getDotLine() == null ? "" : ed.getDotLine().getText();
             case "location" -> ed.getLocationBarTextField() == null ? "" : ed.getLocationBarTextField().getText();
             case "focus" -> name(focus());
+            case "title" -> {
+                final TitleBar tb = ed.getFrame().getTitleBar();
+                yield tb == null ? "" : tb.getTitleText();
+            }
+            case "menuopen" -> String.valueOf(
+                    javax.swing.MenuSelectionManager.defaultManager().getSelectedPath().length);
+            case "framepos" -> {
+                final java.awt.Point p = ed.getFrame().getLocationOnScreen();
+                yield p.x + "," + p.y;
+            }
+            case "framesize" -> {
+                final java.awt.Dimension d = ed.getFrame().getSize();
+                yield d.width + "x" + d.height;
+            }
+            case "cursor" -> lastCursor;
+            case "wm-managed" -> String.valueOf(X11WmHandoff.wmManages(ed.getFrame()));
+            case "maximized" -> {
+                final java.awt.Frame f = ed.getFrame();
+                yield String.valueOf((f.getExtendedState() & java.awt.Frame.MAXIMIZED_BOTH) != 0);
+            }
             default -> throw new IllegalArgumentException("can't read " + what);
         };
+    }
+
+    // A real mouse click at x y in the focused window, via the screen robot, so
+    // the event travels the same path a user's click does.
+    private static void click(String spec) throws Exception {
+        final String[] xy = spec.split("\\s+");
+        final int x = Integer.parseInt(xy[0]);
+        final int y = Integer.parseInt(xy[1]);
+        final Window w = onEdt(() -> Editor.currentEditor().getFrame());
+        final java.awt.Point loc = w.getLocationOnScreen();
+        final Robot robot = new Robot();
+        robot.mouseMove(loc.x + x, loc.y + y);
+        Thread.sleep(80);
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        Thread.sleep(60);
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        Thread.sleep(120);
+    }
+
+    // A real mouse drag from x1 y1 to x2 y2 in the focused window.
+    private static void drag(String spec) throws Exception {
+        final String[] xy = spec.split("\\s+");
+        final int x1 = Integer.parseInt(xy[0]);
+        final int y1 = Integer.parseInt(xy[1]);
+        final int x2 = Integer.parseInt(xy[2]);
+        final int y2 = Integer.parseInt(xy[3]);
+        final Window w = onEdt(() -> Editor.currentEditor().getFrame());
+        final java.awt.Point loc = w.getLocationOnScreen();
+        final Robot robot = new Robot();
+        robot.mouseMove(loc.x + x1, loc.y + y1);
+        Thread.sleep(80);
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        for (int i = 1; i <= 10; i++) {
+            robot.mouseMove(loc.x + x1 + (x2 - x1) * i / 10, loc.y + y1 + (y2 - y1) * i / 10);
+            Thread.sleep(20);
+        }
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        Thread.sleep(120);
+    }
+
+    // A real mouse click on a named title-bar button: minimize, maximize,
+    // restore or close.
+    private static void titleButton(String name) throws Exception {
+        final java.awt.Point p = onEdt(() -> {
+            final TitleBar tb = Editor.currentEditor().getFrame().getTitleBar();
+            if (tb == null)
+                throw new IllegalStateException("no title bar to click");
+            return tb.buttonScreenPoint(name);
+        });
+        final Robot robot = new Robot();
+        robot.mouseMove(p.x, p.y);
+        Thread.sleep(80);
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        Thread.sleep(60);
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        Thread.sleep(150);
+    }
+
+    // Prints the title bar's bounds in the window, so a script can pick points
+    // without hard-coding them: TITLEPOINT x y width height.
+    private static void titlePoint() throws Exception {
+        final java.awt.Rectangle b = onEdt(() -> {
+            final TitleBar tb = Editor.currentEditor().getFrame().getTitleBar();
+            if (tb == null)
+                throw new IllegalStateException("no title bar");
+            return tb.getBounds();
+        });
+        System.out.println("TITLEPOINT " + b.x + " " + b.y + " " + b.width + " " + b.height);
+    }
+
+    // The title bar's children in bar coordinates, to see where the buttons
+    // actually land: TITLECHILD x y w h <class>.
+    private static void titleChildren() throws Exception {
+        onEdt(() -> {
+            final TitleBar tb = Editor.currentEditor().getFrame().getTitleBar();
+            if (tb == null)
+                throw new IllegalStateException("no title bar");
+            for (int i = 0; i < tb.getComponentCount(); i++) {
+                final Component c = tb.getComponent(i);
+                System.out.println("TITLECHILD " + c.getBounds() + " "
+                        + c.getClass().getSimpleName() + (c.isVisible() ? "" : " HIDDEN"));
+            }
+            return null;
+        });
+    }
+
+    // A real mouse click on the Nth menu of the embedded menu bar (0 is File),
+    // near the menu's left edge, so the script need not know where it landed.
+    private static void menuClick(String spec) throws Exception {
+        final int index = spec.isEmpty() ? 0 : Integer.parseInt(spec.trim());
+        final java.awt.Point p = onEdt(() -> {
+            final TitleBar tb = Editor.currentEditor().getFrame().getTitleBar();
+            if (tb == null)
+                throw new IllegalStateException("no title bar");
+            final javax.swing.JMenuBar menus = tb.getMenus();
+            if (menus == null || index >= menus.getMenuCount())
+                throw new IllegalStateException("no menu at " + index);
+            final java.awt.Component menu = menus.getMenu(index);
+            if (menu == null)
+                throw new IllegalStateException("no menu at " + index);
+            return menu.getLocationOnScreen();
+        });
+        final Robot robot = new Robot();
+        robot.mouseMove(p.x + 10, p.y + 10);
+        Thread.sleep(80);
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        Thread.sleep(60);
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        Thread.sleep(150);
+    }
+
+    // The component:cursor the last hovercursor step found, for `expect cursor`.
+    private static String lastCursor = "none";
+
+    // Reports whether the X11 WM handoff bridge resolved and the WM advertises
+    // _NET_WM_MOVERESIZE: the two gates that decide whether a drag is delegated.
+    private static void wmProbe() throws Exception {
+        final Window w = onEdt(() -> Editor.currentEditor().getFrame());
+        System.out.println("WMPROBE available=" + X11WmHandoff.available());
+        System.out.println("WMPROBE toolkit=" + java.awt.Toolkit.getDefaultToolkit().getClass().getName());
+        System.out.println("WMPROBE wmManages=" + X11WmHandoff.wmManages(w));
+    }
+
+    // Resizes the focused window, so a test controls the geometry a corner drag
+    // starts from: j sizes a new window to the screen, which varies with the
+    // display.
+    private static void sizeWindow(String spec) throws Exception {
+        final String[] wh = spec.split("\\s+");
+        final int w = Integer.parseInt(wh[0]);
+        final int h = Integer.parseInt(wh[1]);
+        onEdt(() -> {
+            final Window win = Editor.currentEditor().getFrame();
+            win.setSize(w, h);
+            return null;
+        });
+        Thread.sleep(150);
+    }
+
+    // Moves the focused window to x y in its own coordinates, so a test can give
+    // a corner drag room to grow: a window parked at 0,0 cannot be dragged left.
+    private static void moveWindow(String spec) throws Exception {
+        final String[] xy = spec.split("\\s+");
+        final int x = Integer.parseInt(xy[0]);
+        final int y = Integer.parseInt(xy[1]);
+        onEdt(() -> {
+            final Window w = Editor.currentEditor().getFrame();
+            w.setLocation(x, y);
+            return null;
+        });
+        Thread.sleep(150);
+    }
+
+    // Moves the real pointer to x y in the focused window and prints the cursor
+    // type the window manager shows there: the grab-ability signal for a resize
+    // edge. CURSOR x y type (0 default, 6 NW, 7 NE, 4 SW, 5 SE, 10 W, 11 E,
+    // 8 N, 9 S).
+    private static void hoverCursor(String spec) throws Exception {
+        final String[] xy = spec.split("\\s+");
+        final int x = Integer.parseInt(xy[0]);
+        final int y = Integer.parseInt(xy[1]);
+        final Window w = onEdt(() -> Editor.currentEditor().getFrame());
+        final java.awt.Point loc = w.getLocationOnScreen();
+        final Robot robot = new Robot();
+        robot.mouseMove(loc.x + x, loc.y + y);
+        Thread.sleep(150);
+        final int cx = x;
+        final int cy = y;
+        final String info = onEdt(() -> {
+            final Component c = Editor.currentEditor().getFrame().getRootPane().findComponentAt(cx, cy);
+            if (c == null)
+                return "none";
+            final java.awt.Cursor cur = c.getCursor();
+            return c.getClass().getSimpleName() + ":" + (cur == null
+                    ? java.awt.Cursor.getDefaultCursor().getType()
+                    : cur.getType());
+        });
+        lastCursor = info;
+        System.out.println("CURSOR " + x + " " + y + " " + info);
     }
 
     // Its lines, not Buffer.getText, which a buffer that redraws itself, as the status does, may leave stale.
@@ -205,10 +429,13 @@ public final class GuiDriver {
 
     private static String state() {
         final Editor ed = Editor.currentEditor();
+        final java.awt.Point fp = ed.getFrame().getLocationOnScreen();
         return "buffer=" + ed.getBuffer() + " mode=" + ed.getMode().getDisplayName() + " line="
                 + (ed.getDot() == null ? -1 : ed.getDotLineNumber() + 1) + " col="
                 + (ed.getDot() == null ? -1 : ed.getDotCol() + 1) + " focus=" + name(focus()) + " location=["
-                + read("location") + "] status=[" + read("status") + "] editors=" + Editor.getEditorList().size()
+                + read("location") + "] status=[" + read("status") + "] frame=" + fp.x + "," + fp.y
+                + " size=" + ed.getFrame().getWidth() + "x" + ed.getFrame().getHeight()
+                + " editors=" + Editor.getEditorList().size()
                 + " frames=" + Editor.getFrameCount();
     }
 

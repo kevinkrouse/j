@@ -1,0 +1,36 @@
+# Window-manager resize test: bb drive test/driver/wm-resize.txt README.md --wm
+#
+# Run under a real window manager (--wm starts openbox) so the EWMH
+# _NET_WM_MOVERESIZE handoff is exercised: the WM performs the drag, not the
+# client. This is the path that runs on a Wayland desktop (COSMIC, GNOME, KDE)
+# where j runs through XWayland and the compositor drops the client's own
+# position changes. Bare Xvfb cannot test this -- it has no WM, so the client
+# moves its own window and the handoff never fires.
+#
+# The window is sized and parked with room on every side so a corner drag can
+# grow it either way. The WM owns placement, so movewin must come after sizewin.
+expect buffer README.md
+wmprobe
+expect wm-managed true
+sizewin 800 900
+movewin 300 150
+expect framesize 800x900
+# SW corner (win 2,898) drag left: the left edge follows the mouse, the right
+# edge stays put. Used to move the right edge right instead.
+drag 2 898 -48 898
+expect framesize 850x900
+log sw-left
+# TL corner (win 2,2) drag left: left edge follows, right edge fixed.
+drag 2 2 -48 2
+expect framesize 900x900
+log tl-left
+# TL corner drag up: the top edge follows, the bottom edge stays put. Used to
+# move the bottom edge down instead. The window is now at 200,150, so the TL
+# corner is at window (2,2).
+drag 2 2 2 -48
+expect framesize 900x950
+log tl-up
+# Title-bar glue drag moves the whole window. Used to do nothing under XWayland.
+drag 600 14 650 114
+log title-drag
+log end

@@ -254,6 +254,11 @@
 (def ^:private debug-opts
   ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"])
 
+(def ^:private wm-handoff-opts
+  "Opens JDK's X11 internals so X11WmHandoff can send the EWMH _NET_WM_MOVERESIZE"
+  ["--add-opens" "java.desktop/sun.awt.X11=ALL-UNNAMED"
+   "--add-opens" "java.desktop/sun.awt=ALL-UNNAMED"])
+
 (def ^:private j-args
   ["--debug" "--force-new-instance" "--no-session" "--no-server" "--no-restore"])
 
@@ -266,7 +271,7 @@
   (extensions opts)
   (java! {:basis     (basis)
           :cp        [(abs-path classes-dir)]
-          :java-opts debug-opts
+          :java-opts (into wm-handoff-opts debug-opts)
           :main      'Main
           :main-args j-args})
   opts)
@@ -276,7 +281,7 @@
   (build opts)
   (java! {:basis     (basis)
           :cp        [(abs-path classes-dir)]
-          :java-opts debug-opts
+          :java-opts (into wm-handoff-opts debug-opts)
           :main      'Main
           :main-args (cons "--no-extensions" j-args)})
   opts)
@@ -301,7 +306,7 @@
   (java! {:basis     (basis)
           :java-cmd  (str (fs/path (jbr-home) "bin" "java"))
           :cp        [(abs-path classes-dir)]
-          :java-opts (conj debug-opts "-Dawt.toolkit.name=WLToolkit")
+          :java-opts (into wm-handoff-opts (conj debug-opts "-Dawt.toolkit.name=WLToolkit"))
           :main      'Main
           :main-args j-args})
   opts)
@@ -313,7 +318,7 @@
         agent (lib-jar basis 'org.swingexplorer/swingexplorer-agent)]
     (java! {:basis     basis
             :cp        [(abs-path classes-dir)]
-            :java-opts (conj debug-opts (str "-javaagent:" agent))
+            :java-opts (into wm-handoff-opts (conj debug-opts (str "-javaagent:" agent)))
             :main      'org.swingexplorer.Launcher
             :main-args (cons "Main" j-args)}))
   opts)
@@ -374,6 +379,39 @@
   (first (remove #(or (fs/exists? (str "/tmp/.X11-unix/X" %)) (fs/exists? (str "/tmp/.X" % "-lock")))
                  (range 90 200))))
 
+(defn- start-wm
+  "Starts a window manager on display, returning its process, or nil if openbox
+  is neither on the PATH nor buildable from nixpkgs. A real window manager is
+  what makes the EWMH _NET_WM_MOVERESIZE handoff testable.
+  The WM must be started after the X server is up."
+  [display]
+  (let [openbox (or (fs/which "openbox")
+                    (when (fs/which "nix")
+                      (let [{:keys [exit out]} (shell {:out :string :continue true}
+                                                      "nix" "build" "--no-link" "--print-out-paths"
+                                                      "nixpkgs#openbox")]
+                        (when (zero? exit)
+                          (str (str/trim out) "/bin/openbox")))))]
+    (when openbox
+      (when-not (fs/which "xprop")
+        (throw (ex-info "xprop is not on the PATH: cannot wait for the window manager" {})))
+      (let [proc (babashka.process/process {:out :string :err :string
+                                            :env (merge (into {} (System/getenv)) {"DISPLAY" display})}
+                                           openbox)]
+        ;; Wait until the WM owns the root window.
+        (loop [i 0]
+          (when (and (< i 50)
+                     (not (zero? (:exit (shell {:out :string :err :string :continue true
+                                                :env {"DISPLAY" display}}
+                                               "xprop" "-root" "_NET_SUPPORTING_WM_CHECK")))))
+            (Thread/sleep 100)
+            (recur (inc i))))
+        ;; Deref on a live process blocks, so check liveness first; a dead one
+        ;; means the WM failed at startup and its stderr explains why.
+        (when-not (.isAlive (:proc proc))
+          (throw (ex-info (str "the window manager died (exit " (:exit @proc) "): " (:err @proc)) {})))
+        proc))))
+
 (defn- start-xvfb
   "Starts a private Xvfb, returning [display process]."
   [& {:keys [screen] :or {screen "1280x1024x24"}}]
@@ -408,9 +446,11 @@
   (let [home (abs-path (str fuzz-dir "/run-" seed))
         env  (fresh-home-env display home)
         cp   (join-paths [(abs-path classes-dir) (abs-path fuzz-dir)])
-        {:keys [exit out err]} (shell {:continue true :out :string :err :string :extra-env env}
-                                      "java" (str "-Duser.home=" home) "-cp" cp "org.armedbear.j.WindowFuzz"
-                                      (str seed) (str steps))]
+        {:keys [exit out err]} (apply shell {:continue true :out :string :err :string :extra-env env}
+                                      (concat ["java" (str "-Duser.home=" home)]
+                                              wm-handoff-opts
+                                              ["-cp" cp "org.armedbear.j.WindowFuzz"
+                                               (str seed) (str steps)]))]
     {:seed   seed
      :ok     (zero? exit)
      :report (concat (->> (str/split-lines out)
@@ -463,21 +503,26 @@
   expectations (see test/driver/org/armedbear/j/GuiDriver.java): bb drive
   SCRIPT [FILE...]. Options: --out DIR for pictures (build/drive/shots),
   --home-from DIR copied into the fresh home (build/drive/home), --screen
-  1400x1000x24, --display :N to use a running X server. Fails when an
-  expectation fails or J logs or throws an error."
+  1400x1000x24, --display :N to use a running X server, --wm to run a real
+  window manager (openbox) so the EWMH move/resize handoff is exercised rather
+  than the bare-X fallback. Fails when an expectation fails or J logs or throws
+  an error."
   [{:keys [args opts]}]
   (let [[script & files] args
-        {:keys [out home-from screen display]
+        {:keys [out home-from screen display wm]
          :or   {out "build/drive/shots" screen "1400x1000x24"}} opts]
     (when-not script
-      (throw (ex-info "Usage: bb drive SCRIPT [FILE...] [--out DIR] [--home-from DIR] [--screen WxHxD] [--display :N]" {})))
+      (throw (ex-info "Usage: bb drive SCRIPT [FILE...] [--out DIR] [--home-from DIR] [--screen WxHxD] [--display :N] [--wm]" {})))
     (build {})
     (extensions {})
     (javac-against! {:src-dirs [driver-src-dir] :class-dir driver-dir :basis (basis)} [(abs-path classes-dir)])
     (let [[display xvfb] (if display [(str display) nil] (start-xvfb :screen screen))
           home           (abs-path (str build-dir "/drive/home"))
           env            (fresh-home-env display home)
-          prefs          (fs/path home ".config" "j" "prefs")]
+          prefs          (fs/path home ".config" "j" "prefs")
+          ;; The WM starts inside the try so a failed start still tears down the
+          ;; Xvfb that was started for it.
+          wm-proc        (atom nil)]
       (when home-from
         (fs/copy-tree home-from home {:replace-existing true}))
       ;; A picture may land on the half of the blink with no caret.
@@ -485,19 +530,25 @@
         (fs/create-dirs (fs/parent prefs))
         (spit (str prefs) "blinkCaret=false\n"))
       (try
+        (when wm
+          (reset! wm-proc
+                  (or (start-wm display)
+                      (throw (ex-info "--wm requested but no openbox found (PATH or nixpkgs)" {})))))
         (let [{:keys [exit]}
               (apply shell
                      {:continue true
                       ;; Not the desktop's Wayland, whatever the session has.
                       :env      (merge (dissoc (into {} (System/getenv)) "WAYLAND_DISPLAY") env)}
-                     "java" (str "-Duser.home=" home)
-                     "-cp" (join-paths [(abs-path classes-dir) (abs-path driver-dir)])
-                     "org.armedbear.j.GuiDriver" (abs-path script) (abs-path out)
-                     "--force-new-instance" "--no-server" "--no-session" "--no-restore"
-                     (map abs-path files))]
+                     (concat ["java" (str "-Duser.home=" home)]
+                             wm-handoff-opts
+                             ["-cp" (join-paths [(abs-path classes-dir) (abs-path driver-dir)])
+                              "org.armedbear.j.GuiDriver" (abs-path script) (abs-path out)
+                              "--force-new-instance" "--no-server" "--no-session" "--no-restore"]
+                             (map abs-path files)))]
           (when-not (zero? exit)
             (throw (ex-info (str "driving J failed: exit " exit) {}))))
         (finally
+          (when-let [p @wm-proc] (babashka.process/destroy-tree p))
           (when xvfb (babashka.process/destroy-tree xvfb))))))
   {})
 
@@ -911,6 +962,9 @@
                  :include "*.{html,css}"})
     (doseq [[src dst] [["themes" "themes"] ["examples" "examples"] [lib-dir "lib"]]]
       (b/copy-dir {:src-dirs [src] :target-dir (str stage-dir "/" dst)}))
+    (doseq [[src dst] [["scripts/j" "j"] ["scripts/j.bat" "j.bat"]]]
+      (b/copy-file {:src src :target (str stage-dir "/" dst)}))
+    (fs/set-posix-file-permissions (str stage-dir "/j") "rwxr-xr-x")
     ;; An extension's examples are about the extension, so they ship under a
     ;; directory of its own rather than mixed in with core's.
     (doseq [name (extension-names)

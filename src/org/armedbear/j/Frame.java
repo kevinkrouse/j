@@ -70,6 +70,8 @@ public final class Frame extends JFrame
     private Rectangle rect;
     private int extendedState;
     private final StatusBar statusBar;
+    private TitleBar titleBar;
+    private WindowResizer windowResizer;
 
     public Frame(Editor editor) {
         Editor.addFrame(this);
@@ -97,6 +99,22 @@ public final class Frame extends JFrame
             getContentPane().add(editorPane, "Center");
         titleChanged();
         setIconImages();
+        installWindowDecorations();
+    }
+
+    /**
+     * Draws j's own title bar and resize border instead of the operating
+     * system's, when {@link WindowDecorations} says to. Must run before the
+     * frame is first shown, since {@code setUndecorated} requires a
+     * non-displayable window.
+     */
+    private void installWindowDecorations() {
+        if (!WindowDecorations.enabled())
+            return;
+        setUndecorated(true);
+        titleBar = new TitleBar();
+        setJMenuBar(titleBar);
+        windowResizer = new WindowResizer(getRootPane());
     }
 
     public void titleChanged() {
@@ -617,11 +635,27 @@ public final class Frame extends JFrame
 
     public void setMenu() {
         final Mode mode = currentEditor.getMode();
-        final MenuBar oldMenuBar = (MenuBar) getJMenuBar();
+        final MenuBar oldMenuBar = currentMenuBar();
         if (oldMenuBar == null || Platform.isPlatformMacOSX() || oldMenuBar.getMenuName() != mode.getMenuName()) {
-            setJMenuBar(mode.createMenuBar(this));
+            final MenuBar menuBar = mode.createMenuBar(this);
+            if (titleBar != null)
+                titleBar.setMenus(menuBar);
+            else
+                setJMenuBar(menuBar);
             validate();
         }
+    }
+
+    /** The per-mode menu bar, whether embedded in the title bar or set directly. */
+    private MenuBar currentMenuBar() {
+        if (titleBar != null)
+            return (MenuBar) titleBar.getMenus();
+        return (MenuBar) getJMenuBar();
+    }
+
+    /** j's own title bar, or null when the operating system draws decorations. */
+    public TitleBar getTitleBar() {
+        return titleBar;
     }
 
     public void placeWindow() {
@@ -647,12 +681,18 @@ public final class Frame extends JFrame
             Rectangle desired = sessionProperties.getWindowPlacement(1);
             if (desired.width == 0 || desired.height == 0) {
                 // Default positioning is cascaded.
-                desired = Editor.getCurrentFrame().getBounds();
-                Insets insets = Editor.getCurrentFrame().getInsets();
+                final Frame current = Editor.getCurrentFrame();
+                desired = current.getBounds();
+                Insets insets = current.getInsets();
+                // An undecorated frame reports no insets; cascade by the height
+                // of j's own title bar so the new window does not land exactly
+                // on the old one.
+                final TitleBar titleBar = current.getTitleBar();
+                final int top = titleBar != null ? titleBar.getPreferredSize().height : insets.top;
                 desired.x += insets.left;
                 desired.width -= insets.left;
-                desired.y += insets.top;
-                desired.height -= insets.top;
+                desired.y += top;
+                desired.height -= top;
             }
             setBounds(desired);
             int extendedState = sessionProperties.getExtendedState(1);
@@ -1569,7 +1609,14 @@ public final class Frame extends JFrame
         }
         DefaultLookAndFeel.setLookAndFeel();
         final Mode mode = currentEditor.getMode();
-        setJMenuBar(mode.createMenuBar(this));
+        final MenuBar menuBar = mode.createMenuBar(this);
+        if (titleBar != null) {
+            titleBar.setMenus(menuBar);
+            // Re-read the TitlePane.* colors the new look and feel installed.
+            titleBar.updateUI();
+        } else {
+            setJMenuBar(menuBar);
+        }
         final SessionProperties sessionProperties = Editor.getSessionProperties();
         if (sessionProperties.getShowToolbar(this) && ToolBar.isToolBarEnabled()) {
             ToolBar tb = FrameView.toolBarFor(currentEditor.getBuffer(), this);
