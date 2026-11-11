@@ -29,6 +29,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -42,6 +43,8 @@ import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.TransientPopup;
+import org.armedbear.j.util.Background;
+import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Anchors;
 import org.armedbear.j.vcs.changelists.Anchors.Placed;
@@ -189,19 +192,33 @@ public final class ChangelistCommands {
         final boolean picked = StatusActions.takesPicks(model, editor);
         final Buffer shown = editor.getBuffer();
         final String at = editor.getDotLine() instanceof StatusLine line ? line.key() : null;
+        final List<Target> targets = StatusActions.targets(model, editor, picked);
         chooseMove(
             editor,
             model,
-            StatusActions.targets(model, editor, picked),
+            targets,
             picked,
-            () -> editor.getBuffer() == shown
-                    && editor.getDotLine() instanceof StatusLine line
-                    && line.key().equals(at));
+            movePickKeys(model, targets, picked),
+            () -> picked
+                    || editor.getBuffer() == shown
+                            && editor.getDotLine() instanceof StatusLine line
+                            && line.key().equals(at));
     }
 
-    record Destination(VcsRepository repository, String name, boolean create) {
+    enum ListKind {
+        EDITOR(Capability.HUNK_CHANGELISTS), NATIVE(Capability.NATIVE_CHANGELISTS);
+
+        private final Capability capability;
+
+        ListKind(Capability capability) {
+            this.capability = capability;
+        }
+    }
+
+    record Destination(VcsRepository repository, String name, boolean create, ListKind kind) {
+        /** A destination rendered by one of the editor's changelist views. */
         Destination(VcsRepository repository, String name) {
-            this(repository, name, false);
+            this(repository, name, false, ListKind.EDITOR);
         }
 
         String missingFrom(Changelists lists) {
@@ -209,8 +226,12 @@ public final class ChangelistCommands {
         }
     }
 
-    /** A cheap check for menus and drag capture. Resolution happens when moving. */
+    /** A cheap check for menus that offer the repository's changelists. */
     static String moveWhy(RepositoryStatus model, List<Target> targets) {
+        return moveWhy(model, targets, chooserKind(targets));
+    }
+
+    static String moveWhy(RepositoryStatus model, List<Target> targets, ListKind kind) {
         if (targets.isEmpty())
             return "Nothing here to move";
         if (model.isDisposed())
@@ -219,18 +240,43 @@ public final class ChangelistCommands {
         if (!model.getRepositories().contains(repository)
                 || targets.stream().anyMatch(t -> t.repository() != repository))
             return "A move takes one repository's changes";
-        if (targets.stream().anyMatch(t -> !StatusRenderer.UNSTAGED.equals(t.section())))
-            return "Changelists sort the changes not staged: unstage it first";
+        if (!repository.backend().capabilities().contains(kind.capability))
+            return "No changelists here";
         if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS))
             return "Changelists are off: vcsChangelists is false";
         if (model.isWriting())
             return "Wait: the last change is still being made";
+        for (Target target : targets) {
+            if (kind == ListKind.NATIVE && target instanceof Part)
+                return "Native changelists move whole files. Select the file to move it.";
+            for (FileItem file : target.files()) {
+                if (file.staged())
+                    return "Changelists sort the changes not staged: unstage it first";
+                if (file.change().isConflicted())
+                    return "Resolve the conflicts first";
+                if (file.readOnly() || !file.hasDiff() || file.change().unstaged() == null)
+                    return "Only changed tracked files can be moved to a changelist";
+            }
+        }
         return null;
     }
 
+    static Set<StatusPicks.Key> movePickKeys(RepositoryStatus model, List<Target> targets, boolean picked) {
+        if (!picked)
+            return Set.of();
+        final Set<StatusPicks.Key> used = new HashSet<>();
+        model.picks().used(targets).values().forEach(used::addAll);
+        return Set.copyOf(used);
+    }
+
     /** Offer the destinations for the captured selection, including a new name. */
-    static void chooseMove(Editor editor, RepositoryStatus model, List<Target> targets, boolean picked) {
-        chooseMove(editor, model, targets, picked, () -> true);
+    static void chooseMove(
+            Editor editor,
+            RepositoryStatus model,
+            List<Target> targets,
+            boolean picked,
+            Set<StatusPicks.Key> used) {
+        chooseMove(editor, model, targets, picked, used, () -> true);
     }
 
     private static void chooseMove(
@@ -238,23 +284,56 @@ public final class ChangelistCommands {
             RepositoryStatus model,
             List<Target> targets,
             boolean picked,
+            Set<StatusPicks.Key> used,
             BooleanSupplier stillHere) {
-        if (!picked && !targets.isEmpty()) {
-            final RepositoryLists shown = RepositoryLists.shown(targets.get(0).repository());
-            if (shown != null && hasUnreadMember(shown.lists(), targets)) {
-                editor.status("Wait for the changelist diff, then select the changes again");
+        final ListKind kind = chooserKind(targets);
+        final String why = moveWhy(model, targets, kind);
+        if (why != null) {
+            editor.status(why);
+            return;
+        }
+        final VcsRepository repository = targets.get(0).repository();
+        if (!picked && kind == ListKind.EDITOR) {
+            final RepositoryLists shown = RepositoryLists.shown(repository);
+            final Set<String> unread = shown == null ? Set.of() : unreadMembers(shown.lists(), targets);
+            if (!unread.isEmpty()) {
+                editor.status("Reading the changelist diff…");
+                model.readDiffsThen(unread, () -> {
+                    final Selections.Resolution read = model.resolveTargets(targets).readsFailed();
+                    if (!read.ready())
+                        editor.status(read.failure());
+                    else if (read.targets()
+                            .stream()
+                            .flatMap(t -> t.files().stream())
+                            .anyMatch(f -> f.diffError() != null || f.hasDiff() && f.diff() == null))
+                        editor.status("Could not read the changelist diff");
+                    else
+                        editor.status("Select the changes again now that the changelist diff is available");
+                });
                 return;
             }
         }
-        final Set<StatusPicks.Key> used = new HashSet<>();
-        if (picked)
-            model.picks().used(targets).values().forEach(used::addAll);
-        resolveMove(model, targets, editor::status, resolved -> {
+        resolveMove(model, targets, kind, editor::status, resolved -> {
             if (!stillHere.getAsBoolean()) {
                 editor.status("Moved on while the diffs were read: move again");
                 return;
             }
-            final VcsRepository repository = resolved.get(0).repository();
+            if (kind == ListKind.NATIVE) {
+                Background.then(
+                    "vcs read changelists",
+                    () -> repository.backend().readNativeChangelists(repository),
+                    names -> {
+                        if (model.isDisposed())
+                            return;
+                        if (names == null)
+                            editor.status("Could not read the native changelists");
+                        else if (stillHere.getAsBoolean())
+                            offerMove(editor, model, resolved, used, kind, List.copyOf(names), Map.of());
+                        else
+                            editor.status("Moved on while the changelists were read. Move again.");
+                    });
+                return;
+            }
             final RepositoryLists lists = lists(editor, repository);
             if (lists == null)
                 return;
@@ -265,23 +344,42 @@ public final class ChangelistCommands {
             for (Changelist l : c.lists())
                 if (moved(c, taken, placed, l.name()).equals(c))
                     unavailable.put(l.name(), HERE);
-            final List<String> names = c.lists().stream().map(Changelist::name).toList();
-            BranchCommands.choose.choose(editor, MOVE, "vcsChangelistMove", names, unavailable, name -> {
-                final String to = name.strip();
-                if (!rejected(editor, to, unavailable))
-                    moveTargets(
-                        model,
-                        resolved,
-                        new Destination(repository, to, !names.contains(to)),
-                        editor::status,
-                        () -> model.unpick(used));
-            });
+            offerMove(
+                editor,
+                model,
+                resolved,
+                used,
+                kind,
+                c.lists().stream().map(Changelist::name).toList(),
+                unavailable);
+        });
+    }
+
+    private static void offerMove(
+            Editor editor,
+            RepositoryStatus model,
+            List<Target> targets,
+            Set<StatusPicks.Key> used,
+            ListKind kind,
+            List<String> names,
+            Map<String, String> unavailable) {
+        final VcsRepository repository = targets.get(0).repository();
+        BranchCommands.choose.choose(editor, MOVE, "vcsChangelistMove", names, unavailable, name -> {
+            final String to = name.strip();
+            if (!rejected(editor, to, unavailable))
+                moveTargets(
+                    model,
+                    targets,
+                    new Destination(repository, to, !names.contains(to), kind),
+                    editor::status,
+                    () -> model.unpick(used));
         });
     }
 
     // A list can provisionally show a file under one heading while its
     // change-by-change assignment is waiting on a diff.
-    static boolean hasUnreadMember(Changelists lists, List<Target> targets) {
+    static Set<String> unreadMembers(Changelists lists, List<Target> targets) {
+        final Set<String> unread = new HashSet<>();
         for (Target target : targets)
             if (target instanceof Files files)
                 for (FileItem file : files.files()) {
@@ -291,9 +389,16 @@ public final class ChangelistCommands {
                     if (assignment == null && file.change().origPath() != null)
                         assignment = lists.assignment(file.change().origPath());
                     if (assignment != null && assignment.whole() == null)
-                        return true;
+                        unread.add(StatusRenderer.fileKey(target.repository(), target.section(), file.path()));
                 }
-        return false;
+        return unread;
+    }
+
+    private static ListKind chooserKind(List<Target> targets) {
+        return !targets.isEmpty()
+                && targets.get(0).repository().backend().capabilities().contains(Capability.NATIVE_CHANGELISTS)
+                        ? ListKind.NATIVE
+                        : ListKind.EDITOR;
     }
 
     /** Move the captured targets to an existing destination. */
@@ -307,13 +412,17 @@ public final class ChangelistCommands {
             Destination to,
             Consumer<String> said,
             Runnable did) {
-        final String why = moveWhy(model, targets);
+        final String why = moveWhy(model, targets, to.kind());
         if (why != null) {
             said.accept(why);
             return;
         }
         if (targets.get(0).repository() != to.repository()) {
             said.accept("A move takes one repository's changes");
+            return;
+        }
+        if (to.kind() == ListKind.NATIVE) {
+            resolveMove(model, targets, to.kind(), said, resolved -> moveNative(model, resolved, to, said, did));
             return;
         }
         final RepositoryLists lists = RepositoryLists.of(to.repository());
@@ -326,7 +435,7 @@ public final class ChangelistCommands {
             said.accept(missing);
             return;
         }
-        resolveMove(model, targets, said, resolved -> {
+        resolveMove(model, targets, to.kind(), said, resolved -> {
             final List<Taken> taken = taken(resolved);
             try {
                 // update can rerun this against an external writer's changes.
@@ -358,6 +467,30 @@ public final class ChangelistCommands {
         });
     }
 
+    private static void moveNative(
+            RepositoryStatus model,
+            List<Target> targets,
+            Destination to,
+            Consumer<String> said,
+            Runnable did) {
+        final VcsRepository repository = to.repository();
+        final List<String> paths =
+                targets.stream().flatMap(t -> t.files().stream()).map(FileItem::path).distinct().toList();
+        model.startWriting();
+        Background.then(
+            "vcs move changelist",
+            () -> repository.backend().moveToNativeChangelist(repository, paths, to.name(), to.create()),
+            result -> {
+                final String failure = StatusActions.failure(repository.backend(), result);
+                if (failure == null)
+                    did.run();
+                model.wrote();
+                repository.invalidateFiles();
+                repository.refresh();
+                said.accept(failure == null ? "Moved " + StatusActions.names(targets) + " to " + to.name() : failure);
+            });
+    }
+
     private static final class MoveRefused extends RuntimeException {
         MoveRefused(String reason) {
             super(reason, null, false, false);
@@ -367,18 +500,20 @@ public final class ChangelistCommands {
     private static void resolveMove(
             RepositoryStatus model,
             List<Target> targets,
+            ListKind kind,
             Consumer<String> said,
             Consumer<List<Target>> ready) {
-        resolveMove(model, List.copyOf(targets), said, ready, true);
+        resolveMove(model, List.copyOf(targets), kind, said, ready, true);
     }
 
     private static void resolveMove(
             RepositoryStatus model,
             List<Target> captured,
+            ListKind kind,
             Consumer<String> said,
             Consumer<List<Target>> ready,
             boolean read) {
-        final String why = moveWhy(model, captured);
+        final String why = moveWhy(model, captured, kind);
         if (why != null) {
             said.accept(why);
             return;
@@ -388,25 +523,38 @@ public final class ChangelistCommands {
             said.accept(resolved.failure());
             return;
         }
+        if (resolved.ready()) {
+            final String replacement = replacedFile(captured, resolved.targets());
+            if (replacement != null) {
+                said.accept(replacement + ": The selected file change has changed. Select it again.");
+                return;
+            }
+            final String currentWhy = moveWhy(model, resolved.targets(), kind);
+            if (currentWhy != null) {
+                said.accept(currentWhy);
+                return;
+            }
+        }
         final Set<String> unread = new HashSet<>();
         for (var key : resolved.unread())
             unread.add(StatusRenderer.fileKey(key.repository(), key.section(), key.path()));
-        for (Target target : resolved.targets())
-            for (FileItem file : files(target)) {
-                if (file.diffError() != null) {
-                    said.accept(file.path() + ": " + file.diffError());
-                    return;
+        if (kind == ListKind.EDITOR)
+            for (Target target : resolved.targets())
+                for (FileItem file : target.files()) {
+                    if (file.diffError() != null) {
+                        said.accept(file.path() + ": " + file.diffError());
+                        return;
+                    }
+                    if (file.hasDiff() && file.diff() == null)
+                        unread.add(StatusRenderer.fileKey(target.repository(), target.section(), file.path()));
                 }
-                if (file.hasDiff() && file.diff() == null)
-                    unread.add(StatusRenderer.fileKey(target.repository(), target.section(), file.path()));
-            }
         if (!unread.isEmpty()) {
             if (!read) {
                 said.accept("Could not read the selected diffs to move");
                 return;
             }
             said.accept("Reading the diffs to move…");
-            model.readDiffsThen(unread, () -> resolveMove(model, captured, said, ready, false));
+            model.readDiffsThen(unread, () -> resolveMove(model, captured, kind, said, ready, false));
             return;
         }
         if (!Selections.sameBaseLocations(captured, resolved.targets())) {
@@ -414,6 +562,23 @@ public final class ChangelistCommands {
             return;
         }
         ready.accept(resolved.targets());
+    }
+
+    // A ready resolution preserves target and file order.
+    private static String replacedFile(List<Target> captured, List<Target> resolved) {
+        for (int i = 0; i < captured.size(); i++)
+            if (captured.get(i) instanceof Files before) {
+                final List<FileItem> after = resolved.get(i).files();
+                for (int j = 0; j < after.size(); j++) {
+                    final FileItem previous = before.files().get(j);
+                    final FileItem current = after.get(j);
+                    if (previous.staged() != current.staged()
+                            || previous.change().unstaged() != current.change().unstaged()
+                            || !Objects.equals(previous.change().origPath(), current.change().origPath()))
+                        return previous.path();
+                }
+            }
+        return null;
     }
 
     /**
@@ -529,7 +694,7 @@ public final class ChangelistCommands {
     private static List<Taken> taken(List<Target> targets) {
         final Map<String, Taken> out = new LinkedHashMap<>();
         for (Target t : targets)
-            for (FileItem f : files(t)) {
+            for (FileItem f : t.files()) {
                 final Taken k = out.computeIfAbsent(
                     f.path(),
                     p -> new Taken(f,
@@ -618,11 +783,6 @@ public final class ChangelistCommands {
         if (!any)
             return new Placed(p.hunk(), r, to, List.of());
         return Anchors.withLists(p.hunk(), r, lists);
-    }
-
-    // The files t is of.
-    private static List<FileItem> files(Target t) {
-        return t instanceof Files f ? f.files() : List.of(((Part) t).file());
     }
 
     // Why name can't name a changelist, or null if it can.

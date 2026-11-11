@@ -243,6 +243,56 @@ public class VcsStatusBufferTest {
     }
 
     @Test
+    public void aWholeFileDragRefusesADeletionThatReplacedTheModification() throws Exception {
+        repository();
+        open();
+        addFeatureList();
+        final Transferable[] drag = new Transferable[1];
+        onEdt(() -> {
+            drag[0] = status.dragAt(h.editor(), new Position(line("    M  a.txt"), 0));
+            assertNotNull(drag[0]);
+        });
+        Files.delete(tmp.resolve("a.txt"));
+        onEdt(status::refresh);
+        until(() -> text().contains("    D  a.txt"));
+        onEdt(() -> {
+            assertTrue(status.dropAt(h.editor(), new Position(line("  Feature (0)"), 0), drag[0]));
+            assertTrue(h.status().contains("selected file change has changed"), h.status());
+            status.dragFinished(h.editor());
+        });
+        assertNull(ChangelistStore.of(repo()).read().assignment("a.txt"));
+    }
+
+    @Test
+    public void picksMoveFromTheSideBySideDiff() throws Exception {
+        repository();
+        open();
+        addFeatureList();
+        onEdt(() -> {
+            status.openDiff(null);
+            status.diffView(null, status);
+        });
+        final CompareBuffer comparison = status.getCompare();
+        caretOn(line("    M  a.txt"));
+        until(() -> status.comparedPicks() != null && lines(comparison).contains("three blind cats"));
+        final BranchCommands.Choose choose = BranchCommands.choose;
+        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> chosen.accept("Feature");
+        try {
+            onEdt(() -> {
+                h.showBuffer(comparison);
+                h.editor().setDot(comparison.getLine(lines(comparison).indexOf("three blind cats")), 0);
+                VcsStatusMode.vcsStatusPick(h.editor());
+                assertFalse(status.picks().isEmpty());
+                ChangelistCommands.vcsChangelistMove(h.editor());
+            });
+            until(() -> text().contains("  Feature (1)") && status.picks().isEmpty());
+        }
+        finally {
+            BranchCommands.choose = choose;
+        }
+    }
+
+    @Test
     public void aDragRefusesASelectedHunkThatHasGainedAnIdenticalTwin() throws Exception {
         git = GitFixture.init(tmp);
         final String base = "x\n" + "context\n".repeat(20) + "x\n";

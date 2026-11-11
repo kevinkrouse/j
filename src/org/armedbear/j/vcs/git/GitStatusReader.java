@@ -394,7 +394,12 @@ final class GitStatusReader {
 
     // A stash's file, staged as a commit's are: a rename shown from its old path.
     private static FileItem stashFile(String path, String orig, Kind kind, FileDiff d) {
-        return new FileItem(new FileChange(path, orig, kind, null, kind.letter() + " "), kind.letter(), true, d);
+        return new FileItem(new FileChange(path, orig, kind, null, kind.letter() + " "),
+                kind.letter(),
+                true,
+                d,
+                null,
+                true);
     }
 
     // The commits on one side of a range and not the other: its section.

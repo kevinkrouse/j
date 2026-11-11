@@ -32,6 +32,7 @@ import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.ChangelistCommands.Destination;
+import org.armedbear.j.vcs.status.ChangelistCommands.ListKind;
 
 /** An active drag's captured selection and JVM-local transfer token. */
 final class ChangelistDrag implements Transferable {
@@ -50,11 +51,16 @@ final class ChangelistDrag implements Transferable {
     }
 
     static ChangelistDrag capture(RepositoryStatus model, String from, List<Target> targets) {
-        if (model == null || from == null || ChangelistCommands.moveWhy(model, targets) != null)
+        if (model == null || from == null || ChangelistCommands.moveWhy(model, targets, ListKind.EDITOR) != null)
             return null;
         final RepositoryLists lists = RepositoryLists.shown(targets.get(0).repository());
-        if (lists == null || ChangelistCommands.hasUnreadMember(lists.lists(), targets))
+        if (lists == null)
             return null;
+        final var unread = ChangelistCommands.unreadMembers(lists.lists(), targets);
+        if (!unread.isEmpty()) {
+            model.readDiffsThen(unread, () -> {});
+            return null;
+        }
         return new ChangelistDrag(model, from, targets);
     }
 
@@ -103,6 +109,7 @@ final class ChangelistDrag implements Transferable {
     boolean canDrop(RepositoryStatus current, Destination to, Transferable transfer) {
         if (model != current
                 || model.isDisposed()
+                || to.kind() != ListKind.EDITOR
                 || to.repository() != targets.get(0).repository()
                 || from.equals(to.name())
                 || !matches(transfer))

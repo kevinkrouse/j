@@ -78,9 +78,14 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
      * @param staged whether its diff is the index's against HEAD
      * @param diff its diff, if read; null if not asked for, or there is none
      * @param diffError why a requested diff could not be read; null on success or before a request
+     * @param readOnly whether the item describes a historical change
      */
-    public record FileItem(FileChange change, char letter, boolean staged, FileDiff diff, String diffError)
-            implements Item {
+    public record FileItem(FileChange change, char letter, boolean staged, FileDiff diff, String diffError,
+            boolean readOnly) implements Item {
+        public FileItem(FileChange change, char letter, boolean staged, FileDiff diff, String diffError) {
+            this(change, letter, staged, diff, diffError, false);
+        }
+
         public FileItem(FileChange change, char letter, boolean staged, FileDiff diff) {
             this(change, letter, staged, diff, null);
         }

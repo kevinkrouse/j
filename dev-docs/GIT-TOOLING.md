@@ -3585,6 +3585,12 @@ plan with why it is left, before the next phase starts.
      destinations renamed or deleted while a move waits. Formatting
      checks passed.
 
+     Review follow-up: whole-file moves check the captured change kind
+     and rename source after resolving the file. Picked moves work from
+     either side of a comparison, and a move menu keeps the pick keys it
+     captured before a refresh. A provisional member of a renamed file
+     requests a diff at the current path before asking for reselection.
+
    - **g. Check the backend boundary.** Treat section ids as opaque and
      keep Git index concepts out of the selection utility. Use the existing
      `STAGING`, `PARTIAL_COMMIT`, `HUNK_CHANGELISTS` and
@@ -3601,6 +3607,34 @@ plan with why it is left, before the next phase starts.
      and textual changes; staging unavailable; native-list moves taking
      whole files and refusing partial selections; non-textual items needing
      no hunk. Keep this a contract test, not an SVN implementation.
+
+     Built: actions use file metadata for staged, conflicted, untracked,
+     and historical changes. Section ids remain part of selection identity.
+     Staging requires `STAGING`. The private-index commit path requires
+     both `PARTIAL_COMMIT` and `STAGING`.
+
+     Backends with `HUNK_CHANGELISTS` can use j's changelist store and
+     anchors. Backends with `NATIVE_CHANGELISTS` supply names and accept
+     whole paths through `VcsBackend` hooks on a background thread.
+     The move passes whether the chooser allowed creating the destination.
+     Native moves accept whole non-textual files without reading their
+     diffs. Partial native moves ask for a whole-file selection.
+
+     The backend fixture exercises opaque section ids, selection
+     resolution, staging refusals, the partial-commit capability, and
+     whole-file native moves. It also verifies that native moves skip
+     the local changelist store and diff reads. The six focused
+     backend and move regression tests passed, as did all 2,674 tests
+     in the full suite and the formatting checks.
+
+     Review follow-up: destinations carry their editor or native kind
+     through validation, diff reads, and execution. Editor-managed drops
+     use local anchors when a backend supports both kinds. Native moves
+     refresh the repository and notify every subscribed status model.
+     Regression tests cover local whole-file and partial drops on a
+     backend with both capabilities, and native moves observed by
+     standalone and multi-repository statuses. All 2,676 tests and
+     formatting checks passed.
 
    - **h. Remove adapters, document and review.** Remove transitional
      target/key conversion code and duplicate freshness checks now covered

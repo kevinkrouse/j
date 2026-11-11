@@ -35,6 +35,8 @@ public sealed interface Target permits Target.Files, Target.Part {
 
     String section();
 
+    List<FileItem> files();
+
     record Files(VcsRepository repository, String section, List<FileItem> files) implements Target {
         public Files {
             files = List.copyOf(files);
@@ -46,6 +48,11 @@ public sealed interface Target permits Target.Files, Target.Part {
             implements Target {
         public static Part of(VcsRepository repository, String section, FileItem file, Hunk hunk, BitSet lines) {
             return new Part(repository, section, file, hunk, lines == null ? null : new LineSet(lines));
+        }
+
+        @Override
+        public List<FileItem> files() {
+            return List.of(file);
         }
 
         /** A writable copy for the existing patch and selection builders. */

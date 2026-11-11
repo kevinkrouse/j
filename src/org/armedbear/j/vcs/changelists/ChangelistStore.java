@@ -50,6 +50,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.AtomicFiles;
+import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.changelists.Changelists.Assignment;
 import org.armedbear.j.vcs.changelists.Changelists.Change;
 import org.armedbear.j.vcs.changelists.Changelists.Changelist;
@@ -95,6 +96,8 @@ public final class ChangelistStore {
 
     /** Where repository's changelists are kept, in its backend's state directory; null for none. */
     public static ChangelistStore of(org.armedbear.j.vcs.VcsRepository repository) {
+        if (!repository.backend().capabilities().contains(Capability.HUNK_CHANGELISTS))
+            return null;
         final Path dir = repository.backend().stateDirectory(repository);
         return dir == null ? null : new ChangelistStore(dir.resolve("changelists.xml"));
     }

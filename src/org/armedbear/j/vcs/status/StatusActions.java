@@ -258,7 +258,8 @@ public final class StatusActions {
         if (op == Op.DISCARD && !confirm.test(editor, discardQuestion(targets), "Discard"))
             return;
         if (op == Op.STAGE) {
-            final List<Target> unmerged = targets.stream().filter(StatusActions::isUnmerged).toList();
+            final List<Target> unmerged =
+                    targets.stream().filter(t -> t.files().stream().anyMatch(f -> f.change().isConflicted())).toList();
             // Read and counted off the event thread; the question and the
             // write in the callback, if the status is still ours. An
             // unmerged file is always asked about, another only with
@@ -355,12 +356,14 @@ public final class StatusActions {
         });
     }
 
-    // Whether t is files of the unmerged section.
+    // Whether t takes only conflicted files.
     static boolean isUnmerged(Target t) {
-        return t instanceof Files && t.section().equals(StatusData.UNMERGED);
+        return t instanceof Files
+                && !t.files().isEmpty()
+                && t.files().stream().allMatch(f -> f.change().isConflicted());
     }
 
-    // Whether every target is files of the unmerged section.
+    // Whether every target takes only conflicted files.
     static boolean allUnmerged(List<Target> targets) {
         return !targets.isEmpty() && targets.stream().allMatch(StatusActions::isUnmerged);
     }
@@ -503,6 +506,10 @@ public final class StatusActions {
                 && s.stash() != null ? s : null;
     }
 
+    private static boolean hasStaging(Target t) {
+        return t.repository().backend().capabilities().contains(Capability.STAGING);
+    }
+
     // Why op can't be done to targets in model, seen from editor,
     // picked if they are the picks, or null.
     static String refusal(Editor editor, RepositoryStatus model, Op op, List<Target> targets, boolean picked) {
@@ -525,9 +532,12 @@ public final class StatusActions {
         }
         // x on unmerged files opens the resolve popup, which takes them all
         // the same way; a mix of kinds has no single answer.
-        if (op == Op.DISCARD && targets.stream().anyMatch(StatusActions::isUnmerged)) {
+        if (op == Op.DISCARD
+                && targets.stream().flatMap(t -> t.files().stream()).anyMatch(f -> f.change().isConflicted())) {
             if (!allUnmerged(targets))
                 return "Resolve the conflicts on their own";
+            if (targets.stream().anyMatch(t -> !hasStaging(t)))
+                return "Resolve the conflicts before discarding changes";
             if (ResolveCommands.offered(targets).isEmpty())
                 return "Those conflicts differ: resolve them one at a time";
         }
@@ -636,24 +646,25 @@ public final class StatusActions {
 
     // Why op can't be done to t, or null.
     static String refuse(Op op, Target t) {
-        final String section = t.section();
+        if (op != Op.DISCARD && !hasStaging(t))
+            return t.repository().backend().name() + " has no index to stage to";
         if (t instanceof Part p && p.hunk().isCombined())
             return "Not in part: x on the unmerged file resolves it";
-        if (op != Op.DISCARD && !t.repository().backend().capabilities().contains(Capability.STAGING))
-            return t.repository().backend().name() + " has no index to stage to";
-        return switch (op) {
-            case STAGE -> section.equals("staged") ? "Already staged"
-                    : isHistory(section) ? "Nothing to stage here"
-                    : t instanceof Part && !section.equals("unstaged") ? "Only an unstaged hunk is staged in part"
-                    : null;
-            case UNSTAGE -> section.equals("staged") ? null : "Not staged";
-            case DISCARD -> isHistory(section) ? "Nothing to discard here" : null;
-        };
-    }
-
-    // A section of commits or stashes, not of the working tree's changes.
-    private static boolean isHistory(String section) {
-        return StatusData.isCommits(section) || section.equals(StatusData.STASHES);
+        if (t.files().isEmpty() || t.files().stream().anyMatch(FileItem::readOnly))
+            return "Nothing to " + verb(op) + " here";
+        for (FileItem file : t.files()) {
+            final String why = switch (op) {
+                case STAGE -> file.staged() ? "Already staged"
+                        : t instanceof Part && (!file.hasDiff() || file.change().isConflicted())
+                                ? "Only an unstaged hunk is staged in part"
+                        : null;
+                case UNSTAGE -> file.staged() ? null : "Not staged";
+                case DISCARD -> null;
+            };
+            if (why != null)
+                return why;
+        }
+        return null;
     }
 
     // files out of the index. A conflict staged resolved while its merge
@@ -793,16 +804,15 @@ public final class StatusActions {
     // What discarding t takes, added to steps; or why it can't be.
     private static String steps(Target t, List<Step> steps) {
         final VcsRepository r = t.repository();
-        final boolean staged = t.section().equals("staged");
         if (t instanceof Files f) {
             final List<String> checkout = new ArrayList<>();
             for (FileItem i : f.files()) {
                 final FileChange c = i.change();
-                if (t.section().equals("untracked"))
+                if (c.isUntracked())
                     steps.add(new Trash(r, i, false));
-                else if (isNew(i))
+                else if (hasStaging(t) && isNew(i))
                     steps.add(new Trash(r, i, true));
-                else if (staged) {
+                else if (i.staged()) {
                     final String why = stagedSteps(r, i, steps);
                     if (why != null)
                         return why;
@@ -816,16 +826,16 @@ public final class StatusActions {
         final Part p = (Part) t;
         if (p.file().diff() == null)
             return "Open " + p.file().path() + " first";
-        if (p.lines() == null && p.file().diff().isNew()) {
+        if (hasStaging(p) && p.lines() == null && p.file().diff().isNew()) {
             steps.add(new Trash(r, p.file(), true));
             return null;
         }
-        if (staged && p.file().diff().isRename())
+        if (p.file().staged() && p.file().diff().isRename())
             return "Unstage the rename of " + p.file().path() + " (u) before discarding it";
         final byte[] patch = patch(p, true);
         if (patch == null)
             return "Those lines change nothing";
-        steps.add(new Apply(r, p.file().path(), patch, staged));
+        steps.add(new Apply(r, p.file().path(), patch, p.file().staged()));
         return null;
     }
 
@@ -907,18 +917,22 @@ public final class StatusActions {
             if (t instanceof Files f) {
                 final List<FileItem> kept = new ArrayList<>();
                 for (FileItem i : f.files())
-                    if (t.section().equals("untracked") || isNew(i))
+                    if (i.change().isUntracked() || hasStaging(t) && isNew(i))
                         untracked.add(i.path());
                     else
                         kept.add(i);
                 if (!kept.isEmpty())
                     changes.add(new Files(f.repository(), f.section(), kept));
-            } else if (t instanceof Part p && p.lines() == null && p.file().diff() != null && p.file().diff().isNew())
+            } else if (t instanceof Part p
+                    && hasStaging(p)
+                    && p.lines() == null
+                    && p.file().diff() != null
+                    && p.file().diff().isNew())
                 untracked.add(p.file().path());
             else
                 changes.add(t);
         }
-        final boolean staged = changes.stream().anyMatch(t -> t.section().equals("staged"));
+        final boolean staged = changes.stream().flatMap(t -> t.files().stream()).anyMatch(FileItem::staged);
         final StringBuilder sb = new StringBuilder();
         if (!changes.isEmpty()) {
             sb.append("Discard ").append(names(changes));

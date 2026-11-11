@@ -173,7 +173,7 @@ final class StatusPicks {
      * line, not of a combined diff's nor a stash's.
      */
     static boolean pickable(StatusLine l) {
-        if (l.repository() == null || l.section() == null || l.file() == null || StatusData.STASHES.equals(l.section()))
+        if (l.repository() == null || l.section() == null || l.file() == null || l.file().readOnly())
             return false;
         return switch (l.kind()) {
             case FILE -> true;

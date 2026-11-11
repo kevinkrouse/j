@@ -21,10 +21,12 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.util.PickState;
+import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.selection.FileKey;
@@ -71,7 +73,7 @@ final class VcsContextMenus {
         final FileItem file = member.file();
         final VcsRepository r = location.repository();
         final boolean untracked = file != null && file.change().isUntracked();
-        final boolean unmerged = StatusData.UNMERGED.equals(location.section());
+        final boolean unmerged = file != null && file.change().isConflicted();
         add(menu, editor, commitLabel(commitTargets), "vcsCommitFiles", commitWhy(model, commitTargets), action);
         add(
             menu,
@@ -210,18 +212,22 @@ final class VcsContextMenus {
 
     static void moveItem(VcsMenu menu, Editor editor, RepositoryStatus model, List<Target> targets, boolean picked) {
         final String why = ChangelistCommands.moveWhy(model, targets);
+        final Set<StatusPicks.Key> used =
+                why == null ? ChangelistCommands.movePickKeys(model, targets, picked) : Set.of();
         menu.add(
             "Move to changelist…",
             "vcsChangelistMove",
             why == null,
             why,
-            e -> ChangelistCommands.chooseMove(editor, model, targets, picked));
+            e -> ChangelistCommands.chooseMove(editor, model, targets, picked, used));
     }
 
     // Why take doesn't fit the unmerged targets, or null.
     private static String resolveWhy(List<Target> targets, ResolveCommands.Take take) {
         if (targets.isEmpty() || targets.stream().anyMatch(t -> !StatusActions.isUnmerged(t)))
             return "Nothing to resolve here";
+        if (targets.stream().anyMatch(t -> !t.repository().backend().capabilities().contains(Capability.STAGING)))
+            return "This backend does not support resolving conflicts here";
         return take.fits(targets) ? null : "That choice doesn't fit these conflicts";
     }
 

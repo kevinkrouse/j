@@ -100,9 +100,7 @@ public final class Selections {
             }
         final Map<FileKey, Chosen> result = new HashMap<>();
         for (Target target : builder.build()) {
-            final List<FileItem> files =
-                    target instanceof Target.Files whole ? whole.files() : List.of(((Target.Part) target).file());
-            for (FileItem file : files) {
+            for (FileItem file : target.files()) {
                 final FileKey key = new FileKey(target.repository(), target.section(), file.path());
                 if (file.diffError() != null || versions != null && !versions.containsKey(file.path()))
                     return null;
@@ -349,8 +347,7 @@ public final class Selections {
         final Map<FileDiff, Map<Hunk, String>> originalIds = new IdentityHashMap<>();
         final Map<FileDiff, Set<Hunk>> unchanged = new IdentityHashMap<>();
         for (Target target : captured) {
-            final List<FileItem> selected =
-                    target instanceof Target.Files whole ? whole.files() : List.of(((Target.Part) target).file());
+            final List<FileItem> selected = target.files();
             if (selected.isEmpty()) {
                 problems.add(
                     new Problem(new FileKey(target.repository(), target.section(), ""),

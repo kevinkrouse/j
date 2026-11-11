@@ -208,6 +208,8 @@ final class PartialCommit {
                 throw new Refused("Nothing is selected to commit");
             if (StatusActions.hunksIgnoreWhitespace(model, given))
                 throw new Refused("Not a hunk while whitespace is ignored: show it to commit a hunk alone");
+            for (VcsRepository r : given.stream().map(Target::repository).distinct().toList())
+                refuseRepository(r);
             final Selections.Resolution resolved = model.resolveTargets(given);
             if (!resolved.ready()) {
                 if (resolved.problems().isEmpty())
@@ -218,8 +220,6 @@ final class PartialCommit {
                 throw new Refused("A selected change moved to a different base location: select it again");
             for (Target t : resolved.targets())
                 targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
-            for (VcsRepository r : targets.keySet())
-                refuseRepository(r);
         } else {
             if (model.picks().unread(model))
                 throw new Refused("Wait: the picked files' diffs are being read");
@@ -261,41 +261,50 @@ final class PartialCommit {
 
     // Why nothing of r can be committed alone, thrown.
     private void refuseRepository(VcsRepository r) throws Refused {
-        if (!r.backend().capabilities().contains(Capability.STAGING))
-            throw new Refused(r.backend().name() + " has no index to commit part of the changes through");
+        final var capabilities = r.backend().capabilities();
+        if (!capabilities.contains(Capability.PARTIAL_COMMIT) || !capabilities.contains(Capability.STAGING))
+            throw new Refused(r.backend().name() + " does not support committing selected changes here");
         // Git records a merge, or ends a cherry-pick, with the next commit, whatever it takes.
         if (r.inProgress() != null)
             throw new Refused((model.getRepositories().size() > 1 ? r.name() + ": a " : "A ") + r.inProgress().label
                     + " is in progress: finish it with c c, or abort it, first");
-        if (!model.files(r, StatusData.UNMERGED).isEmpty())
+        if (statusFiles(r).stream().anyMatch(f -> f.change().isConflicted()))
             throw new Refused("Resolve the conflicts first");
     }
 
     // Why r's targets ts can't be committed alone, thrown.
     private void refuse(VcsRepository r, List<Target> ts) throws Refused {
         final Set<String> staged = new HashSet<>();
-        for (FileItem f : model.files(r, "staged")) {
-            staged.add(f.path());
-            if (f.change().origPath() != null)
-                staged.add(f.change().origPath());
-        }
+        for (FileItem f : statusFiles(r))
+            if (f.staged() && !f.readOnly()) {
+                staged.add(f.path());
+                if (f.change().origPath() != null)
+                    staged.add(f.change().origPath());
+            }
         for (Target t : ts) {
-            if (t.section().equals("staged"))
+            if (t.files().stream().anyMatch(FileItem::staged))
                 throw new Refused("Picks of what is staged aren't committed alone: c c commits what is staged");
-            if (t.section().equals(StatusData.UNMERGED))
+            if (t.files().stream().anyMatch(f -> f.change().isConflicted()))
                 throw new Refused("Resolve the conflicts first");
             final String why = StatusActions.refuse(Op.STAGE, t);
             if (why != null)
                 throw new Refused(why);
-            for (FileItem f : files(t))
+            for (FileItem f : t.files())
                 if (staged.contains(f.path()))
                     throw new Refused(f.path() + " has staged changes: c c commits them, or u unstages them");
         }
     }
 
-    // The files t is of.
-    private static List<FileItem> files(Target t) {
-        return t instanceof Files f ? f.files() : List.of(((Part) t).file());
+    private List<FileItem> statusFiles(VcsRepository repository) {
+        final StatusData data = model.getData(repository);
+        return data == null
+                ? List.of()
+                : data.sections()
+                        .stream()
+                        .flatMap(s -> s.items().stream())
+                        .filter(FileItem.class::isInstance)
+                        .map(FileItem.class::cast)
+                        .toList();
     }
 
     /** The message, then as # lines, which git leaves out, what plan commits in repositories. */
@@ -308,7 +317,7 @@ final class PartialCommit {
             final Set<String> whole = new HashSet<>();
             final Map<String, int[]> counts = new HashMap<>();
             for (Target t : plan.targets().getOrDefault(r, List.of())) {
-                for (FileItem f : files(t))
+                for (FileItem f : t.files())
                     labels.putIfAbsent(f.path(), f.letter() + "  " + f.path());
                 if (t instanceof Files files)
                     for (FileItem f : files.files())
@@ -366,7 +375,7 @@ final class PartialCommit {
     private static List<String> paths(List<Target> targets) {
         final Set<String> paths = new LinkedHashSet<>();
         for (Target target : targets)
-            for (FileItem file : files(target)) {
+            for (FileItem file : target.files()) {
                 paths.add(file.path());
                 if (file.change().origPath() != null)
                     paths.add(file.change().origPath());

@@ -225,7 +225,9 @@ final class LogFilesBuffer extends ViewPane<Buffer> {
         return new FileItem(new FileChange(ch.path(), ch.origPath(), ch.kind(), null, letter + " "),
                 letter,
                 true,
-                null);
+                null,
+                null,
+                true);
     }
 
     /** The change at editor's caret, or null. */
