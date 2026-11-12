@@ -26,6 +26,7 @@ import static org.armedbear.j.Constants.*;
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
@@ -321,24 +322,70 @@ public class LispMode extends AbstractMode implements Mode {
 
     @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
-        // The formatter's lexical query is the single source of quote
-        // transitions; this predicate is an adapter to it.
         if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
             buffer.repaint();
-        return buffer.getFormatter()
-                .lexicalContextAt(pos.getLine(), pos.getOffset())
-                .orElse(LexicalContext.NEUTRAL) == LexicalContext.STRING;
+        // Migrated formatters answer the query; unmigrated ones (the
+        // Lisp REPL shell) return empty and fall back to the legacy
+        // scan, as the spec requires.
+        Optional<LexicalContext> ctx = buffer.getFormatter().lexicalContextAt(pos.getLine(), pos.getOffset());
+        if (ctx.isPresent())
+            return ctx.get() == LexicalContext.STRING;
+        return legacyIsInQuote(pos.getLine(), pos.getOffset());
     }
 
     @Override
     public boolean isInComment(Buffer buffer, Position pos) {
-        // The formatter's lexical query is the single source of comment
-        // transitions; this predicate is an adapter to it.
         if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
             buffer.repaint();
-        return buffer.getFormatter()
-                .lexicalContextAt(pos.getLine(), pos.getOffset())
-                .orElse(LexicalContext.NEUTRAL) == LexicalContext.COMMENT;
+        Optional<LexicalContext> ctx = buffer.getFormatter().lexicalContextAt(pos.getLine(), pos.getOffset());
+        if (ctx.isPresent())
+            return ctx.get() == LexicalContext.COMMENT;
+        return legacyIsInComment(pos.getLine(), pos.getOffset());
+    }
+
+    // The pre-adapter scans, kept as the fallback for formatters that
+    // do not answer the lexical query (the Lisp REPL shell).
+    private static boolean legacyIsInQuote(Line line, int offset) {
+        boolean inQuote = (line.flags() == STATE_QUOTE);
+        for (int i = 0; i < offset; i++) {
+            char c = line.charAt(i);
+            if (c == '\\') {
+                // Escape.
+                ++i;
+            } else if (inQuote) {
+                if (c == '"')
+                    inQuote = false;
+            } else if (c == '"') {
+                inQuote = true;
+            }
+        }
+        return inQuote;
+    }
+
+    private static boolean legacyIsInComment(Line line, int offset) {
+        int state = line.flags();
+        for (int i = 0; i < offset; i++) {
+            char c = line.charAt(i);
+            if (c == '\\') {
+                // Escape.
+                ++i;
+            } else if (state == STATE_COMMENT) {
+                if (c == '|' && i < offset && line.charAt(i + 1) == '#') {
+                    state = STATE_NEUTRAL; // FIXME nested #| |# comments
+                    ++i; // skip '#'
+                }
+            } else if (state == STATE_QUOTE) {
+                if (c == '"')
+                    state = STATE_NEUTRAL;
+            } else if (c == '"') {
+                state = STATE_QUOTE;
+            } else if (c == '#' && i < offset && line.charAt(i + 1) == '|') {
+                state = STATE_COMMENT;
+                ++i; // skip '|'
+            } else if (c == ';')
+                return true;
+        }
+        return state == STATE_COMMENT;
     }
 
     @Override

@@ -126,16 +126,15 @@ public class JavaFormatter extends Formatter {
         }
 
         LexicalContext run() {
-            // A disabled line is disabled whole: the #if 0 block is
-            // line-based, so no token on it can leave the disabled
-            // state. Running the ordinary transitions would let a
-            // closed string or comment on the line report NEUTRAL and
-            // pair inside disabled code.
-            if (state == STATE_DISABLED) {
-                if (out != null)
-                    java.util.Arrays.fill(out, LexicalContext.OPAQUE);
-                return LexicalContext.OPAQUE;
-            }
+            // The cursor reports the raw comment/string membership of
+            // the line, walking its tokens from the entering flag. A
+            // disabled line enters as STATE_DISABLED, which is none of
+            // the comment or quote states, so the walk treats it as
+            // ordinary text and still finds a /* */ or "..." on it.
+            // That is what isInComment needs: a bracket inside a
+            // comment in an #if 0 block must still be skipped by %
+            // matching. The pairing view collapses the whole disabled
+            // line to OPAQUE at Mode.lexicalContext, not here.
             while (i <= upto) {
                 final LexicalContext ctx = toContext(state);
                 if (out != null)
@@ -219,8 +218,12 @@ public class JavaFormatter extends Formatter {
         }
     }
 
-    // STATE_DISABLED never reaches here: a disabled line is answered by
-    // the OPAQUE fill before the scan runs.
+    // A disabled line enters as STATE_DISABLED, which is none of the
+    // comment or quote states, so it maps to NEUTRAL here and the walk
+    // continues over the line's tokens as ordinary text. The pairing
+    // collapse to OPAQUE happens in Mode.lexicalContext, not in the
+    // cursor, so isInComment can still find a comment inside disabled
+    // code for % matching.
     private static LexicalContext toContext(int state) {
         switch (state) {
             case STATE_QUOTE:

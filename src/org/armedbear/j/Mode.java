@@ -560,11 +560,18 @@ public interface Mode extends Folds {
 
     /**
      * The lexical context at {@code pos} for pairing purposes: NEUTRAL,
-     * STRING or COMMENT. Consults the buffer's formatter query, which
-     * consumes the line prefix up to the offset rather than reading the
-     * entering flags or the segment under the caret. Falls back to
-     * {@link #isInQuote} and {@link #isInComment} only when the
+     * STRING, COMMENT or OPAQUE. Consults the buffer's formatter query,
+     * which consumes the line prefix up to the offset rather than
+     * reading the entering flags or the segment under the caret. Falls
+     * back to {@link #isInQuote} and {@link #isInComment} only when the
      * formatter cannot answer.
+     *
+     * <p>A line in a disabled {@code #if 0} block reads OPAQUE for
+     * pairing, since pairing has no business inside inactive code. The
+     * formatter's cursor still reports the raw comment and string
+     * membership of such a line, so {@link #isInComment} can find a
+     * comment inside disabled code for {@code %} matching; the collapse
+     * to OPAQUE happens here, at the pairing boundary, not in the cursor.
      *
      * <p>Refreshes a dirty parse first, so a preceding edit cannot
      * leave stale entering context.
@@ -576,6 +583,14 @@ public interface Mode extends Folds {
             // correct and never schedules one, leaving the old
             // highlighting on lines this keystroke changed the state of.
             buffer.repaint();
+        // A disabled line is disabled whole: the #if 0 block is
+        // line-based, so no token on it can leave the disabled state.
+        // The formatter's cursor reports the raw comment/string
+        // membership of the line so isInComment still finds a comment
+        // inside disabled code for % matching; for pairing the whole
+        // line is OPAQUE, since pairing has no business inside #if 0.
+        if (pos.getLine().flags() == Constants.STATE_DISABLED)
+            return LexicalContext.OPAQUE;
         return buffer.getFormatter()
                 .lexicalContextAt(pos.getLine(), pos.getOffset())
                 .orElseGet(
@@ -605,6 +620,15 @@ public interface Mode extends Folds {
         if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
             buffer.repaint();
         final int limit = Math.min(end, line.length());
+        // Same disabled-line collapse as the point query: the cursor
+        // reports raw membership so isInComment can find a comment in
+        // disabled code, but the pairing view treats the whole line as
+        // OPAQUE so a bracket inside #if 0 never counts as code.
+        if (line.flags() == Constants.STATE_DISABLED) {
+            final LexicalContext[] opaque = new LexicalContext[limit + 1];
+            java.util.Arrays.fill(opaque, LexicalContext.OPAQUE);
+            return Optional.of(opaque);
+        }
         return buffer.getFormatter().lexicalContexts(line, limit);
     }
 

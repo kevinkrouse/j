@@ -25,6 +25,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.JMenuItem;
@@ -975,15 +976,78 @@ public class JavaMode extends AbstractMode implements Mode {
             Debug.bug();
             return false;
         }
-        // The formatter's lexical query is the single source of comment
-        // transitions; this predicate is an adapter to it. A disabled
-        // line reads OPAQUE, not COMMENT, as before: pairing and these
-        // callers both treat inactive code as not-a-comment.
         if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
             buffer.repaint();
-        return buffer.getFormatter()
-                .lexicalContextAt(pos.getLine(), pos.getOffset())
-                .orElse(LexicalContext.NEUTRAL) == LexicalContext.COMMENT;
+        // Migrated formatters answer the query; the cursor reports the
+        // raw comment membership, so a comment inside a disabled line
+        // still reads COMMENT here for % matching. Unmigrated formatters
+        // (PHP) return empty and fall back to the legacy scan, as the
+        // spec requires.
+        Optional<LexicalContext> ctx = buffer.getFormatter().lexicalContextAt(pos.getLine(), pos.getOffset());
+        if (ctx.isPresent())
+            return ctx.get() == LexicalContext.COMMENT;
+        return legacyIsInComment(pos.getLine(), pos.getOffset());
+    }
+
+    // The pre-adapter scan, kept as the fallback for formatters that do
+    // not answer the lexical query. Walks the line from its entering
+    // flags to the offset and reports whether the caret is in a comment.
+    private static boolean legacyIsInComment(Line line, int offset) {
+        final String text = line.getText();
+        if (text == null)
+            return false;
+        final char[] chars = text.toCharArray();
+        int state = line.flags();
+        final int length = chars.length;
+        for (int i = 0; i < length; i++) {
+            if (i == offset)
+                return state == STATE_COMMENT;
+            char c = chars[i];
+            if (c == '\\' && i < length - 1) {
+                // Escape character.
+                continue;
+            }
+            if (state == STATE_QUOTE) {
+                if (c == '"')
+                    state = STATE_NEUTRAL;
+                continue;
+            }
+            if (state == STATE_SINGLEQUOTE) {
+                if (c == '\'')
+                    state = STATE_NEUTRAL;
+                continue;
+            }
+            if (state == STATE_COMMENT) {
+                if (c == '*' && i < length - 1 && chars[i + 1] == '/') {
+                    // /* */ comment ending
+                    state = STATE_NEUTRAL;
+                }
+                continue;
+            }
+            // Reaching here, STATE_NEUTRAL...
+            if (c == '"') {
+                state = STATE_QUOTE;
+                continue;
+            }
+            if (c == '\'') {
+                state = STATE_SINGLEQUOTE;
+                continue;
+            }
+            if (c == '/') {
+                if (i < length - 1) {
+                    if (chars[i + 1] == '*') {
+                        // /* */ comment starting
+                        state = STATE_COMMENT;
+                        continue;
+                    }
+                    if (chars[i + 1] == '/') {
+                        // "//" comment starting
+                        return true;
+                    }
+                }
+            }
+        }
+        return state == STATE_COMMENT;
     }
 
     @Override
