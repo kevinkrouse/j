@@ -1109,8 +1109,20 @@ existing insert-mode behavior.
    `hi` → `"hi"`. No existing test broke — the modes that bind `)`
    and `{` to electric commands intercept before the catch-all, so
    the migration (step 9) is still pending.
-4. Vim repeat tests 18-19 — the truncation trap. Fix before going
-   further; everything else depends on replay being clean.
+4. Vim repeat tests 18-19 — the truncation trap. **Done, no fix
+   needed.** The trap is real but does not fire for pairs: `)` and `"`
+   are character keys, so they arrive through `keyTyped` and go
+   straight to `insertNormalChar`; the `runInInsert` truncation only
+   touches named keys (arrows, Home, Delete) whose binding moves the
+   caret without changing the buffer. A type-over changes nothing, but
+   it never reaches that path, so the recording keeps the closer and
+   replay re-derives the type-over through the same handler.
+   `VimElectricPairsTest` pins it: pair repeat, type-over repeat
+   (`i)x` -> `()x` on the next line, caret after the x), pair +
+   type-over + text together, one-step undo of the repeat, and the
+   quote. The trailing `<Esc>` in the recording pulls the caret back
+   one column, which is why the repeat lands at column 0/2 rather
+   than between the pair.
 5. Lexical context: the `LexicalState` enum, per-formatter
    `lexicalStateAt` queries sharing the actual lexer context and
    cursor, Markdown block-flag decoding and inline-code scanning,
