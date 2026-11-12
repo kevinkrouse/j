@@ -8,6 +8,10 @@ static int count = 0x1f;
 int disabled(void);
 #endif
 
+unsigned long long big = 0xFFFFFFFFULL + 10UL + 5LL;
+const char *pair = """";
+int afterPair;
+
 int main(int argc, char **argv)
 {
     // line comment

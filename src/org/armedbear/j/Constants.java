@@ -65,6 +65,7 @@ public interface Constants {
 
     int LANGUAGE_JAVA = 0;
     int LANGUAGE_JAVASCRIPT = 1;
+    int LANGUAGE_C = 2;
 
     int LOAD_COMPLETED = 1;
     int LOAD_PENDING = 2;

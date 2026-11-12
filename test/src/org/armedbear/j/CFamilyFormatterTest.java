@@ -61,4 +61,19 @@ public class CFamilyFormatterTest {
         assertEquals(STATE_NEUTRAL, flags(JAVA_MODE, "s = \"abc\\\ndef\";\n")[1]);
         assertEquals(STATE_COMMENT, flags(JAVA_MODE, "/* a\nb */\n")[1]);
     }
+
+    @Test
+    public void onlyJavaHasTextBlocks() {
+        // In C, four quotes are two empty strings: the next line is code.
+        assertEquals(STATE_NEUTRAL, flags(C_MODE, "char *s = \"\"\"\";\nint after = 1;\n")[1]);
+        assertEquals(STATE_NEUTRAL, flags(JAVASCRIPT_MODE, "s = \"\"\"\";\nx = 1;\n")[1]);
+        assertEquals(STATE_TEXT_BLOCK, flags(JAVA_MODE, "s = \"\"\"\nx\n\"\"\";\n")[1]);
+    }
+
+    @Test
+    public void anEscapedQuoteDoesNotCloseATextBlock() {
+        int[] f = flags(JAVA_MODE, "s = \"\"\"\n  esc \\\"\"\" still\n  \"\"\";\nx;\n");
+        assertEquals(STATE_TEXT_BLOCK, f[2]);
+        assertEquals(STATE_NEUTRAL, f[3]);
+    }
 }

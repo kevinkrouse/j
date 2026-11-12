@@ -166,7 +166,11 @@ public final class ElectricCommands {
         if (!editor.checkReadOnly())
             return;
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
-        if (editor.getMark() == null && editor.getDotLine().isBlank()) {
+        // In a text block a blank line keeps its indent, which is part of
+        // the string, rather than being emptied for the brace.
+        if (editor.getMark() == null
+                && editor.getDotLine().isBlank()
+                && editor.getDotLine().flags() != STATE_TEXT_BLOCK) {
             editor.addUndo(SimpleEdit.LINE_EDIT);
             editor.getDotLine().setText("");
             editor.getDot().setOffset(0);
