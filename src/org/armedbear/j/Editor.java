@@ -224,6 +224,41 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     private Selection selection;
     private boolean isColumnSelection;
 
+    /** How many literal-insertion suppressions are open; pairing is off above zero. */
+    private int literalInsertionDepth;
+
+    /**
+     * Opens a literal-insertion suppression: while it is open, electric
+     * pairing is off. {@link #close} is idempotent, so a session that can
+     * end more than once ends the suppression exactly once.
+     */
+    public static final class PairSuppression implements AutoCloseable {
+        private Editor editor;
+
+        PairSuppression(Editor editor) {
+            this.editor = editor;
+        }
+
+        @Override
+        public void close() {
+            final Editor held = editor;
+            editor = null;
+            if (held != null)
+                held.literalInsertionDepth--;
+        }
+    }
+
+    /** A suppression handle; closing it ends the suppression once. */
+    public PairSuppression suppressPairing() {
+        literalInsertionDepth++;
+        return new PairSuppression(this);
+    }
+
+    /** True while any literal-insertion suppression is open. */
+    public boolean isPairingSuppressed() {
+        return literalInsertionDepth > 0;
+    }
+
     Map<SystemBuffer, View> views = new HashMap<>();
 
     // BUG! This stuff should be factored somehow...

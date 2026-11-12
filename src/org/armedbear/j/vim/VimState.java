@@ -128,6 +128,8 @@ public final class VimState {
     private Line blockInsertLine;
     private int blockInsertOffset;
     private boolean blockInsertAppend;
+    /** The session's literal-insertion suppression, held until the session ends. */
+    private Editor.PairSuppression blockInsertSuppression;
     /** Where the caret goes after Escape, for I and A: the top left. */
     private Position blockInsertLanding;
 
@@ -150,14 +152,42 @@ public final class VimState {
      * which leaves the caret at {@code landing} if it is not null.
      */
     public void beginBlockInsert(Editor editor, Block block, boolean append, Position landing) {
+        // A leftover handle from a session that never ended would leak its
+        // suppression; release before opening this one.
+        releaseBlockInsert(editor);
         final Position dot = editor.getDot();
+        blockInsert = null;
         blockInsertLanding = landing;
-        blockInsert = dot == null ? null : block.below();
         if (dot == null)
             return;
+        blockInsert = block.below();
         blockInsertLine = dot.getLine();
         blockInsertOffset = dot.getOffset();
         blockInsertAppend = append;
+        // The session's text is literal: pairing stays off through the
+        // first-line typing and the final copy.
+        blockInsertSuppression = editor.suppressPairing();
+    }
+
+    /**
+     * Ends the block-insert session's suppression. Idempotent: the handle
+     * is cleared before it is closed, so a second call does nothing.
+     */
+    public void releaseBlockInsert(Editor editor) {
+        final Editor.PairSuppression suppression = blockInsertSuppression;
+        blockInsertSuppression = null;
+        if (suppression != null)
+            suppression.close();
+    }
+
+    /**
+     * Drops the block-insert session without copying: an arrow cancels the
+     * replication, and a failed setup never copies.
+     */
+    public void cancelBlockInsert(Editor editor) {
+        blockInsert = null;
+        blockInsertLanding = null;
+        releaseBlockInsert(editor);
     }
 
     /** Where Escape leaves the caret after I or A over a block, once. */
@@ -172,30 +202,35 @@ public final class VimState {
      * if it was typed there, onto the others -- in the insert's undo step.
      */
     public void finishBlockInsert(Editor editor) {
-        final Block rest = blockInsert;
-        blockInsert = null;
-        final Position dot = editor.getDot();
-        if (rest == null || dot == null || dot.getLine() != blockInsertLine || dot.getOffset() < blockInsertOffset)
-            return;
-        final String typed = blockInsertLine.substring(blockInsertOffset, dot.getOffset());
-        if (typed.isEmpty())
-            return;
-        final Position at = new Position(dot);
-        rest.insertOnEachLine(editor, typed, blockInsertAppend);
-        editor.setDot(at);
-        editor.moveCaretToDotCol();
+        try {
+            final Block rest = blockInsert;
+            blockInsert = null;
+            final Position dot = editor.getDot();
+            if (rest == null || dot == null || dot.getLine() != blockInsertLine || dot.getOffset() < blockInsertOffset)
+                return;
+            final String typed = blockInsertLine.substring(blockInsertOffset, dot.getOffset());
+            if (typed.isEmpty())
+                return;
+            final Position at = new Position(dot);
+            rest.insertOnEachLine(editor, typed, blockInsertAppend);
+            editor.setDot(at);
+            editor.moveCaretToDotCol();
+        }
+        finally {
+            releaseBlockInsert(editor);
+        }
     }
 
     /**
      * Switches to insert mode, opening one undo step for the whole session.
      */
     public void beginInsert(Editor editor, VimMode insertMode) {
+        // endInsert cancels any block session left over, releasing its
+        // suppression.
         endInsert(editor);
         final Buffer buffer = editor.getBuffer();
         insertRepeat = 0;
         insertKeys.setLength(0);
-        blockInsert = null;
-        blockInsertLanding = null;
         insertStartLine = -1;
         insertSplit = false;
         if (buffer != null) {
@@ -324,6 +359,10 @@ public final class VimState {
      * matters because it has to be called from every way out of insert mode.
      */
     public void endInsert(Editor editor) {
+        // Every way out of insert mode ends the block session too, so a
+        // buffer switch or a re-enter releases its suppression without
+        // Escape.
+        cancelBlockInsert(editor);
         replaced = null;
         replacedLine = null;
         autoIndentLine = null;
@@ -342,11 +381,11 @@ public final class VimState {
      * another, and forget the keys and count, which no longer describe one
      * insert.
      */
-    public void restartInsert() {
+    public void restartInsert(Editor editor) {
         insertRepeat = 0;
-        // An arrow in the middle: vim puts the text on the first line only.
-        blockInsert = null;
-        blockInsertLanding = null;
+        // An arrow in the middle: vim puts the text on the first line only,
+        // and the block session's suppression ends with it.
+        cancelBlockInsert(editor);
         insertKeys.setLength(0);
         insertStartLine = -1;
         insertSplit = true;

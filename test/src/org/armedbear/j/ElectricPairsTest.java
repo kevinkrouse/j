@@ -489,4 +489,39 @@ public class ElectricPairsTest {
         EditCommands.newlineAndIndent(h.editor());
         h.assertText("a\nb\n");
     }
+
+    @Test
+    public void keyboardMacroReproducesThePair() throws Exception {
+        // j's keyboard macro records the typed character and replays it
+        // through insertNormalChar, so the pair is re-derived on playback
+        // and one undo takes the replayed pair away.
+        resetMacro();
+        h = EditorHarness.create("\n\n").mode(PlainTextMode.getMode());
+        h.cursor(0, 0);
+        h.editor().executeCommand("startMacro");
+        h.keys("(");
+        h.assertText("()\n\n");
+        h.assertCursorAt(0, 1);
+        h.editor().executeCommand("endMacro");
+        h.cursor(1, 0);
+        // No key event follows to sync the display caret, and insertChar
+        // fills to a stale caret column.
+        h.editor().moveCaretToDotCol();
+        h.editor().executeCommand("playbackMacro");
+        h.assertText("()\n()\n");
+        h.assertCursorAt(1, 1);
+        EditCommands.undo(h.editor());
+        h.assertText("()\n\n");
+    }
+
+    /**
+     * The macro is a static, so a leftover one would make startMacro ask
+     * to overwrite it.
+     */
+    private static void resetMacro() throws Exception {
+        final java.lang.reflect.Field field = Macro.class.getDeclaredField("macro");
+        field.setAccessible(true);
+        field.set(null, null);
+        Editor.setRecordingMacro(false);
+    }
 }

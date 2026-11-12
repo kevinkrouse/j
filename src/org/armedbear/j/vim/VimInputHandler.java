@@ -322,7 +322,7 @@ public final class VimInputHandler implements InputHandler {
             commitInsert();
         recording.setLength(0);
         startSplitRecording();
-        state.restartInsert();
+        state.restartInsert(editor);
         return Result.CONSUMED;
     }
 
@@ -461,6 +461,9 @@ public final class VimInputHandler implements InputHandler {
             repeatInsert(editor);
             dropUntouchedAutoIndent(editor);
             state.finishBlockInsert(editor);
+            // Take the landing now: the mode change below ends the insert
+            // session, which clears it.
+            final Position landing = state.takeBlockInsertLanding();
             state.markInsertStop(editor);
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
@@ -469,7 +472,6 @@ public final class VimInputHandler implements InputHandler {
                 editor.setDot(dot.getLine(), CodePoints.previous(dot.getLine(), dot.getOffset()));
             editor.moveCaretToDotCol();
             // I and A over a block go back to its top left.
-            final Position landing = state.takeBlockInsertLanding();
             if (landing != null) {
                 editor.setDot(landing);
                 editor.moveCaretToDotCol();
@@ -808,6 +810,16 @@ public final class VimInputHandler implements InputHandler {
         }
         if (state.getMode().isInsert()) {
             state.noteInsertStart(editor);
+            // A literal run: the snapshot text through the live loop,
+            // suppression held so nothing pairs and recording off so the
+            // repeat does not re-record. The register is never consulted.
+            if (key.startsWith("<literal:")) {
+                try (Editor.PairSuppression suppression = editor.suppressPairing()) {
+                    // replaying is true here, so the loop records nothing.
+                    typeText(editor, literalRun(key));
+                }
+                return;
+            }
             final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
             if (stroke.keyCode == KeyEvent.VK_ESCAPE) {
                 escape(editor);
@@ -824,21 +836,63 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /**
+     * The literal texts a {@code <literal:N>} token stands for, append-only:
+     * a recording or counted-insert key may still refer to an index, so
+     * none is ever reused.
+     */
+    private final List<String> literalRuns = new ArrayList<>();
+
+    /**
      * Types text in insert mode as though its keys were typed, so that a
      * line break indents as Enter does. Recorded as those keys: '.' types
      * the same text again rather than reading a register a second time.
      */
     void typeText(Editor editor, String text) {
+        typeChars(editor, text, !replaying);
+    }
+
+    /**
+     * A register's text, typed literally: pairing suppressed, and the
+     * recording carries the text as a {@code <literal:N>} snapshot --
+     * not the register name, which a later change would rewrite -- so
+     * '.' repeats this text, unpaired, whatever the register holds now.
+     */
+    void typeLiteralText(Editor editor, String text) {
+        final int run = literalRuns.size();
+        literalRuns.add(text);
+        final String token = "<literal:" + run + ">";
+        if (!replaying) {
+            if (recordingEdit)
+                recording.append(token);
+            state.noteInsertKey(token);
+        }
+        // The live insert must not pair either; the repeat holds its own
+        // suppression when it replays the snapshot.
+        try (Editor.PairSuppression suppression = editor.suppressPairing()) {
+            typeChars(editor, text, false);
+        }
+    }
+
+    /**
+     * The live typing loop. {@code record} is false for the literal
+     * paths, which record the run's token instead of its keys.
+     */
+    private void typeChars(Editor editor, String text, boolean record) {
         for (int i = 0; i < text.length(); i++) {
             final char c = text.charAt(i);
             final String key = c == '\n' ? "<CR>" : KeyNotation.name(0, c, 0);
-            if (!replaying) {
+            if (record) {
                 if (recordingEdit)
                     recording.append(key);
                 state.noteInsertKey(key);
             }
             typeInsertKey(editor, KeyNotation.parseOne(key));
         }
+    }
+
+    /** The text a {@code <literal:N>} token stands for. */
+    private String literalRun(String token) {
+        return literalRuns.get(Integer.parseInt(token.substring("<literal:".length(), token.length() - 1)));
     }
 
     /** What an insert-mode key does when it is not a binding of ours. */

@@ -441,7 +441,7 @@ public final class VimActions {
         final VimRegisters.Register register =
             VimRegisters.getInstance().get(name);
         if (register != null)
-            ctx.handler.typeText(ctx.editor, register.text());
+            ctx.handler.typeLiteralText(ctx.editor, register.text());
     }
 
     /**

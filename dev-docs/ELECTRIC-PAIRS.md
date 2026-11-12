@@ -1099,7 +1099,7 @@ existing insert-mode behavior.
    caret-back, `moveCaretToDotCol` at the end), `typeOverCloser`
    (`MOVE` undo + skip), `wrapSelection` (the `insertParentheses`
    shape, `PARENS_REQUIRE_SPACES` honored for `(`).
-   `pairingSuppressed` is hardcoded false until step 8.
+   `pairingSuppressed` carries the literal-insertion depth from step 8.
    `ElectricPairsTest` gained 7 wired tests through the real command
    path: insert pair, caret sync (display column), type-over,
    insert-opener (caret between a pair), wrap, the Lisp apostrophe,
@@ -1232,6 +1232,31 @@ existing insert-mode behavior.
    condition on either side of the caret.
    Use supported register fixtures. Tests 23-27; test 22 separately
    covers the existing j keyboard macro commands in simple mode.
+   **Done.** `Editor.suppressPairing()` returns a `PairSuppression`
+   whose `close()` decrements once; `isPairingSuppressed()` is
+   `depth > 0`, and `insertNormalChar` passes it to rule 1.
+   `VimState` owns the block session's handle: `beginBlockInsert`
+   opens it, `releaseBlockInsert` closes it (field cleared first, so
+   repeat release is harmless), `cancelBlockInsert` also drops the
+   replication state and never copies. `finishBlockInsert` releases in
+   `finally`; `endInsert` cancels, so a buffer switch or a re-enter
+   releases without Escape; `restartInsert` cancels on an arrow.
+   `escape` takes the I/A landing immediately after `finishBlockInsert`
+   and keeps it in a local, because the mode change clears it.
+   `typeLiteralText` appends the register's text to the handler's
+   append-only `literalRuns` and records `<literal:N>` in the change
+   and in `insertKeys`, typing the live text through the same loop with
+   suppression held and per-character recording off; `dispatchReplay`
+   recognizes the token and replays the snapshot the same way, so the
+   register is never re-read and a newline indents as Enter.
+   Tests: 12 in `VimLiteralInsertTest` (block copy without a closer,
+   arrow cancel, buffer switch, depth zero on every exit, setup and
+   injected copy failure, nested Ctrl-R inside a block with the
+   outside-block control, literal opener and its repeat, the snapshot
+   surviving a register change, newline indent and counted insert) plus
+   the j keyboard macro in `ElectricPairsTest`. 64/64 across
+   `VimLiteralInsertTest`, `ElectricPairsTest` and
+   `VimElectricPairsTest`.
 9. Migration: unbind `)` in Java/Lisp/Perl/Shell, extract the
    insertion-free match-flash helper, and preserve the Lisp shell's
    `closeParen` wrapper. Move all `electricOpenBrace`/

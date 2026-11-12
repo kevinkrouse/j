@@ -342,8 +342,7 @@ public final class EditCommands {
                 ElectricPairs.Operation.INSERT,
                 c,
                 editor.getMark() != null,
-                // The literal-insertion depth arrives with step 8.
-                false);
+                editor.isPairingSuppressed());
             switch (decision.action()) {
                 case INSERT_PAIR:
                     insertPair(editor, decision.pair().opener(), decision.pair().closer());
