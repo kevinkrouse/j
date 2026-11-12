@@ -23,11 +23,13 @@ package org.armedbear.j.mode.sh;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Optional;
 import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalState;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -59,6 +61,93 @@ public final class ShellScriptFormatter extends Formatter {
 
     public ShellScriptFormatter(Buffer buffer) {
         this.buffer = buffer;
+    }
+
+    /**
+     * The state at {@code offset}. A line entering in HERE_DOCUMENT
+     * is body: the whole line is STRING, and the terminator is not
+     * needed — the flag already says the heredoc is open, and the
+     * line after the terminator carries a NEUTRAL flag, so the
+     * query never reads the formatter's mutable {@code endOfText}
+     * and cannot leak a stale terminator between heredocs. A NEUTRAL
+     * line is scanned for quotes, a {@code #} comment, and a valid
+     * {@code <<} opener, mirroring {@link #parseBuffer}.
+     */
+    @Override
+    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        if (line.flags() == STATE_HERE_DOCUMENT)
+            return Optional.of(LexicalState.STRING);
+        final int limit = line.length();
+        int state = STATE_NEUTRAL;
+        for (int i = 0; i < offset && i < limit; i++) {
+            char c = line.charAt(i);
+            if (c == '\\' && i < limit - 1) {
+                // Escape: consumes the next character.
+                ++i;
+                continue;
+            }
+            if (state == STATE_QUOTE) {
+                if (c == '"')
+                    state = STATE_NEUTRAL;
+                continue;
+            }
+            if (state == STATE_SINGLEQUOTE) {
+                if (c == '\'')
+                    state = STATE_NEUTRAL;
+                continue;
+            }
+            // Not in a quoted string.
+            if (c == '<' && i < limit - 2 && line.charAt(i + 1) == '<') {
+                if (heredocTerminator(line, i) != null)
+                    // The rest of the line declares the terminator.
+                    return Optional.of(LexicalState.STRING);
+                continue;
+            }
+            if (c == '#')
+                return Optional.of(LexicalState.COMMENT);
+            if (c == '"')
+                state = STATE_QUOTE;
+            else if (c == '\'')
+                state = STATE_SINGLEQUOTE;
+        }
+        return Optional.of(toLexical(state));
+    }
+
+    /**
+     * The terminator a {@code <<} at {@code from} opens, or null when
+     * the {@code <<} is a shift operator rather than a heredoc. The
+     * same rules {@link #parseBuffer} applies: strip a leading dash
+     * and enclosing quotes, and require a letter start.
+     */
+    private static String heredocTerminator(Line line, int from) {
+        String terminator = line.substring(from + 2).trim();
+        if (terminator.startsWith("-"))
+            terminator = terminator.substring(1);
+        int length = terminator.length();
+        if (length > 2) {
+            if (terminator.charAt(0) == '"' && terminator.charAt(length - 1) == '"')
+                terminator = terminator.substring(1, length - 1);
+            else if (terminator.charAt(0) == '\'' && terminator.charAt(length - 1) == '\'')
+                terminator = terminator.substring(1, length - 1);
+        }
+        if (terminator.length() > 0 && Character.isLetter(terminator.charAt(0)))
+            return terminator;
+        return null;
+    }
+
+    private static LexicalState toLexical(int state) {
+        switch (state) {
+            case STATE_QUOTE:
+            case STATE_SINGLEQUOTE:
+            case STATE_BACKQUOTE:
+            case STATE_HERE_DOCUMENT:
+            case STATE_ECHO:
+                return LexicalState.STRING;
+            case STATE_COMMENT:
+                return LexicalState.COMMENT;
+            default:
+                return LexicalState.NEUTRAL;
+        }
     }
 
     private void endToken(int state) {
@@ -369,18 +458,10 @@ public final class ShellScriptFormatter extends Formatter {
                             endOfText = endOfText.substring(1);
                         int length = endOfText.length();
                         if (length > 2) {
-                            if (
-                                endOfText.charAt(0) == '"'
-                                    &&
-                                    endOfText.charAt(length - 1) == '"'
-                            ) {
+                            if (endOfText.charAt(0) == '"' && endOfText.charAt(length - 1) == '"') {
                                 // Removed enclosing double quotes.
                                 endOfText = endOfText.substring(1, length - 1);
-                            } else if (
-                                endOfText.charAt(0) == '\''
-                                    &&
-                                    endOfText.charAt(length - 1) == '\''
-                            ) {
+                            } else if (endOfText.charAt(0) == '\'' && endOfText.charAt(length - 1) == '\'') {
                                 // Removed enclosing single quotes.
                                 endOfText = endOfText.substring(1, length - 1);
                             }

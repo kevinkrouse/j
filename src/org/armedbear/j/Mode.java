@@ -531,6 +531,28 @@ public interface Mode extends Folds {
     public boolean isInComment(Buffer buffer, Position pos);
 
     /**
+     * The lexical state at {@code pos} for pairing purposes: NEUTRAL,
+     * STRING or COMMENT. Consults the buffer's formatter query, which
+     * consumes the line prefix up to the offset rather than reading the
+     * entering flags or the segment under the caret. Falls back to
+     * {@link #isInQuote} and {@link #isInComment} only when the
+     * formatter cannot answer.
+     *
+     * <p>Refreshes a dirty parse first, so a preceding edit cannot
+     * leave stale entering context.
+     */
+    default LexicalState lexicalState(Buffer buffer, Position pos) {
+        if (buffer.needsParsing())
+            buffer.getFormatter().parseBuffer();
+        return buffer.getFormatter()
+                .lexicalStateAt(pos.getLine(), pos.getOffset())
+                .orElseGet(
+                    () -> isInComment(buffer, pos) ? LexicalState.COMMENT
+                            : isInQuote(buffer, pos) ? LexicalState.STRING
+                            : LexicalState.NEUTRAL);
+    }
+
+    /**
      * Returns whether or not the given <code>Line</code> is a comment.
      *
      * @param line      the <code>Line</code> to check to see if it is a

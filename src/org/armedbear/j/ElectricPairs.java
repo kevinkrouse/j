@@ -110,7 +110,7 @@ public final class ElectricPairs {
         // must not skip it.
         if (table.isCloser(c) && charAt(line, offset) == c)
             return Decision.typeOver();
-        if (mode.isInQuote(buffer, dot) || mode.isInComment(buffer, dot))
+        if (mode.lexicalState(buffer, dot) != LexicalState.NEUTRAL)
             return Decision.plain();
         if (table.isOpener(c)) {
             char before = charBefore(line, offset);
@@ -134,6 +134,35 @@ public final class ElectricPairs {
             return Decision.plain();
         }
         return Decision.plain();
+    }
+
+    /**
+     * Whether the caret sits between the two characters of an empty
+     * quote pair — {@code "|"} — so that Backspace may delete both.
+     * The lexical state at the caret reports STRING there, which
+     * would otherwise block the delete; this identifies the real
+     * empty string.
+     *
+     * <p>True only when the characters on either side of the caret
+     * are the same configured symmetric quote, the left one is
+     * unescaped, and the state immediately before that left quote
+     * is NEUTRAL. The NEUTRAL-before condition is what excludes a
+     * quote that closes an earlier string on the same line, a quote
+     * inside a comment, and a quote that is part of a longer
+     * delimiter such as a Python triple: in each of those the state
+     * before the left character is not NEUTRAL.
+     */
+    static boolean isEmptyQuotePair(Mode mode, Buffer buffer, Line line, int offset) {
+        char left = charBefore(line, offset);
+        char right = charAt(line, offset);
+        if (left == 0 || left != right)
+            return false;
+        PairTable.Pair pair = mode.getPairTable().pairFor(left);
+        if (pair == null || pair.opener() != pair.closer())
+            return false;
+        if (oddEscapeRunBefore(mode, line, offset - 1))
+            return false;
+        return mode.lexicalState(buffer, new Position(line, offset - 1)) == LexicalState.NEUTRAL;
     }
 
     /** Whether the run of the mode's escape character ending just before offset is odd. */
@@ -167,7 +196,7 @@ public final class ElectricPairs {
             if (ch != opener && ch != closer)
                 continue;
             Position pos = new Position(line, i);
-            if (mode.isInQuote(buffer, pos) || mode.isInComment(buffer, pos))
+            if (mode.lexicalState(buffer, pos) != LexicalState.NEUTRAL)
                 continue;
             if (ch == opener)
                 depth++;

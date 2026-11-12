@@ -22,6 +22,7 @@ package org.armedbear.j.mode.markdown;
 
 import java.awt.Color;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.function.ObjIntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,6 +30,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.FollowLink;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalState;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -103,28 +105,19 @@ public final class MarkdownFormatter extends Formatter {
     private static final int EMBED_SLOT_SHIFT = 12;
     private static final int EMBED_FORMAT = (1 << EMBED_SLOT_SHIFT) - 1;
 
-    private static final Pattern FENCE_OPEN =
-        Pattern.compile("^ {0,3}(`{3,}(?=[^`]*$)|~{3,}).*$");
-    private static final Pattern FENCE_CLOSE =
-        Pattern.compile("^ {0,3}(`{3,}|~{3,})\\s*$");
+    private static final Pattern FENCE_OPEN = Pattern.compile("^ {0,3}(`{3,}(?=[^`]*$)|~{3,}).*$");
+    private static final Pattern FENCE_CLOSE = Pattern.compile("^ {0,3}(`{3,}|~{3,})\\s*$");
     private static final Pattern ATX_HEADING =
-        Pattern.compile("^ {0,3}(#{1,6})(?:[ \\t]+(.*?))??(?:[ \\t]+#+)?[ \\t]*$");
-    private static final Pattern SETEXT_UNDERLINE =
-        Pattern.compile("^ {0,3}(=+|-+)\\s*$");
-    private static final Pattern RULE_LINE =
-        Pattern.compile("^ {0,3}([-*_])(?:[ \\t]*\\1){2,}[ \\t]*$");
-    static final Pattern QUOTE_PREFIX =
-        Pattern.compile("^(?: {0,3}>[ \\t]?)+");
-    static final Pattern LIST_ITEM =
-        Pattern.compile("[ \\t]*([-*+]|\\d{1,9}[.)])(?=[ \\t]|$)[ \\t]*");
-    static final Pattern TASK_BOX =
-        Pattern.compile("\\[([ xX/-])\\](?=[ \\t]|$)");
+            Pattern.compile("^ {0,3}(#{1,6})(?:[ \\t]+(.*?))??(?:[ \\t]+#+)?[ \\t]*$");
+    private static final Pattern SETEXT_UNDERLINE = Pattern.compile("^ {0,3}(=+|-+)\\s*$");
+    private static final Pattern RULE_LINE = Pattern.compile("^ {0,3}([-*_])(?:[ \\t]*\\1){2,}[ \\t]*$");
+    static final Pattern QUOTE_PREFIX = Pattern.compile("^(?: {0,3}>[ \\t]?)+");
+    static final Pattern LIST_ITEM = Pattern.compile("[ \\t]*([-*+]|\\d{1,9}[.)])(?=[ \\t]|$)[ \\t]*");
+    static final Pattern TASK_BOX = Pattern.compile("\\[([ xX/-])\\](?=[ \\t]|$)");
     private static final Pattern TABLE_DELIMITER_ROW =
-        Pattern.compile("^ {0,3}\\|?(?:[ \\t]*:?-+:?[ \\t]*\\|)+(?:[ \\t]*:?-+:?[ \\t]*)?$");
-    private static final Pattern LINK_DEFINITION =
-        Pattern.compile("^ {0,3}(\\[)([^\\]]+)(\\]:)[ \\t]*(\\S+)");
-    private static final Pattern HTML_TAG_PATTERN =
-        Pattern.compile("</?[a-zA-Z][a-zA-Z0-9-]*(?:\\s[^<>]*)?/?>");
+            Pattern.compile("^ {0,3}\\|?(?:[ \\t]*:?-+:?[ \\t]*\\|)+(?:[ \\t]*:?-+:?[ \\t]*)?$");
+    private static final Pattern LINK_DEFINITION = Pattern.compile("^ {0,3}(\\[)([^\\]]+)(\\]:)[ \\t]*(\\S+)");
+    private static final Pattern HTML_TAG_PATTERN = Pattern.compile("</?[a-zA-Z][a-zA-Z0-9-]*(?:\\s[^<>]*)?/?>");
 
     // The format of each character of the line being formatted, whether it
     // is markup to hide, and the item it is part of.
@@ -185,14 +178,12 @@ public final class MarkdownFormatter extends Formatter {
 
     /** Whether line opens a fence. */
     static boolean opensFence(Line line) {
-        return (line.flags() & BLOCK_MASK) == NORMAL
-            && FENCE_OPEN.matcher(line.getText()).matches();
+        return (line.flags() & BLOCK_MASK) == NORMAL && FENCE_OPEN.matcher(line.getText()).matches();
     }
 
     /** Whether line is the text of a heading underlined on the next. */
     static boolean isSetextHeading(Line line) {
-        return (line.flags() & BLOCK_MASK) == NORMAL
-            && (line.flags() & HEADING_MASK) != 0;
+        return (line.flags() & BLOCK_MASK) == NORMAL && (line.flags() & HEADING_MASK) != 0;
     }
 
     /** Whether text begins with a list marker. */
@@ -203,8 +194,7 @@ public final class MarkdownFormatter extends Formatter {
     /** Whether line is in a fence, or opens or closes one. */
     public static boolean isCode(Line line) {
         return (line.flags() & BLOCK_MASK) == IN_FENCE
-            || ((line.flags() & BLOCK_MASK) == NORMAL
-                && FENCE_OPEN.matcher(line.getText()).matches());
+                || ((line.flags() & BLOCK_MASK) == NORMAL && FENCE_OPEN.matcher(line.getText()).matches());
     }
 
     @Override
@@ -249,17 +239,13 @@ public final class MarkdownFormatter extends Formatter {
                 }
                 default: {
                     Matcher m;
-                    if (
-                        line == first
-                            && line.previous() == null
-                            && text.equals("---")
-                    ) {
+                    if (line == first && line.previous() == null && text.equals("---")) {
                         next = IN_FRONT_MATTER;
                     } else if ((m = FENCE_OPEN.matcher(text)).matches()) {
                         final String run = m.group(1);
                         fence = (run.charAt(0) == '~' ? FENCE_TILDE : 0)
-                            | Math.min(run.length(), 31) << FENCE_LENGTH_SHIFT
-                            | FenceLanguages.slotFor(text.substring(m.end(1))) << LANGUAGE_SHIFT;
+                                | Math.min(run.length(), 31) << FENCE_LENGTH_SHIFT
+                                | FenceLanguages.slotFor(text.substring(m.end(1))) << LANGUAGE_SHIFT;
                         next = IN_FENCE;
                     } else {
                         flags |= setextLevel(line) << HEADING_SHIFT;
@@ -307,16 +293,14 @@ public final class MarkdownFormatter extends Formatter {
         if (!m.matches())
             return 0;
         final String text = line.getText();
-        if (
-            text.trim().isEmpty()
+        if (text.trim().isEmpty()
                 || isIndentedCode(text)
                 || ATX_HEADING.matcher(text).matches()
                 || RULE_LINE.matcher(text).matches()
                 || FENCE_OPEN.matcher(text).matches()
                 || QUOTE_PREFIX.matcher(text).lookingAt()
                 || LIST_ITEM.matcher(text).lookingAt()
-                || text.trim().startsWith("|")
-        )
+                || text.trim().startsWith("|"))
             return 0;
         return m.group(1).charAt(0) == '=' ? 1 : 2;
     }
@@ -385,13 +369,11 @@ public final class MarkdownFormatter extends Formatter {
         }
         int start = 0;
         for (int i = 1; i <= length; i++) {
-            if (
-                i == length
+            if (i == length
                     || formats[i] != formats[start]
                     || hidden[i] != hidden[start]
                     || items[i] != items[start]
-                    || bars[i] != bars[start]
-            ) {
+                    || bars[i] != bars[start]) {
                 addSegment(text, start, i, formats[start], hidden[start], items[start]);
                 getLastSegment().setBar(bars[start]);
                 start = i;
@@ -503,12 +485,7 @@ public final class MarkdownFormatter extends Formatter {
         for (int i = 0; i < segments.size() && pos < text.length(); i++) {
             final LineSegment segment = segments.getSegment(i);
             final int end = Math.min(text.length(), pos + segment.length());
-            set(
-                pos,
-                end,
-                EMBED | slot << EMBED_SLOT_SHIFT
-                    | (segment.getFormat() & EMBED_FORMAT)
-            );
+            set(pos, end, EMBED | slot << EMBED_SLOT_SHIFT | (segment.getFormat() & EMBED_FORMAT));
             pos = end;
         }
         set(pos, text.length(), CODE_BLOCK);
@@ -553,8 +530,7 @@ public final class MarkdownFormatter extends Formatter {
     public int getStyle(int format) {
         final Formatter formatter = embedded(format);
         if (formatter != null)
-            return formatter.getStyle(format & EMBED_FORMAT)
-                | (super.getStyle(CODE_BLOCK) & TextStyle.ITALIC);
+            return formatter.getStyle(format & EMBED_FORMAT) | (super.getStyle(CODE_BLOCK) & TextStyle.ITALIC);
         return super.getStyle(format);
     }
 
@@ -637,12 +613,10 @@ public final class MarkdownFormatter extends Formatter {
             return;
         }
         final Line previous = line.previous();
-        if (
-            previous != null
+        if (previous != null
                 && SETEXT_UNDERLINE.matcher(text).matches()
                 && (previous.flags() & BLOCK_MASK) == NORMAL
-                && (previous.flags() & HEADING_MASK) != 0
-        ) {
+                && (previous.flags() & HEADING_MASK) != 0) {
             set(0, length, HEADING_MARKER);
             if (concealHeadings) {
                 hideHeading(0, length);
@@ -699,11 +673,7 @@ public final class MarkdownFormatter extends Formatter {
             }
             formatInline(text, pos, length, base);
             for (int i = pos; i < length; i++)
-                if (
-                    text.charAt(i) == '|'
-                        && formats[i] == base
-                        && (i == 0 || text.charAt(i - 1) != '\\')
-                )
+                if (text.charAt(i) == '|' && formats[i] == base && (i == 0 || text.charAt(i - 1) != '\\'))
                     formats[i] = MARKUP;
             return;
         }
@@ -870,6 +840,65 @@ public final class MarkdownFormatter extends Formatter {
         return c < 128 && "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".indexOf(c) >= 0;
     }
 
+    /**
+     * The state at {@code offset}. The block comes from the line's
+     * flags: a fence body, an HTML comment and front matter are all
+     * COMMENT for pairing, including a blank fence line at offset
+     * zero. Outside a block, the prefix is scanned for inline code
+     * spans and HTML comments; emphasis and link text stay NEUTRAL.
+     * A code span is COMMENT, and the position after its closing run
+     * is NEUTRAL. A backslash escapes the punctuation after it, so
+     * a backtick or a less-than so escaped is literal.
+     */
+    @Override
+    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        final int block = line.flags() & BLOCK_MASK;
+        if (block == IN_FENCE || block == IN_COMMENT || block == IN_FRONT_MATTER)
+            return Optional.of(LexicalState.COMMENT);
+        final String text = line.getText();
+        // The scan stops at the caret, but a delimiter's close may lie
+        // beyond it, so the helpers see the whole line.
+        final int end = text.length();
+        int i = 0;
+        while (i < offset) {
+            final char c = text.charAt(i);
+            if (c == '\\' && i + 1 < end && isAsciiPunctuation(text.charAt(i + 1))) {
+                // The escape consumes the next character; a caret on
+                // that character is inside the escape, not on a
+                // delimiter.
+                if (offset <= i + 1)
+                    return Optional.of(LexicalState.NEUTRAL);
+                i += 2;
+                continue;
+            }
+            if (c == '`') {
+                final int run = runLength(text, i, end);
+                final int close = findCodeSpanClose(text, i + run, end, run);
+                if (close < 0)
+                    // Nothing closes the run: the backticks are literal.
+                    return Optional.of(LexicalState.NEUTRAL);
+                // The span is [i, close+run): inside it is COMMENT,
+                // the position at or after the closing run is not.
+                if (offset < close + run)
+                    return Optional.of(LexicalState.COMMENT);
+                i = close + run;
+                continue;
+            }
+            if (c == '<' && text.startsWith("<!--", i)) {
+                final int close = text.indexOf("-->", i + 4);
+                if (close < 0)
+                    // Unclosed: everything from here on is COMMENT.
+                    return Optional.of(LexicalState.COMMENT);
+                if (offset < close + 3)
+                    return Optional.of(LexicalState.COMMENT);
+                i = close + 3;
+                continue;
+            }
+            ++i;
+        }
+        return Optional.of(LexicalState.NEUTRAL);
+    }
+
     private static int runLength(String text, int i, int end) {
         final char c = text.charAt(i);
         int j = i;
@@ -1022,20 +1051,12 @@ public final class MarkdownFormatter extends Formatter {
     private static boolean opens(String text, int i, int run, int end) {
         if (i + run >= end || Character.isWhitespace(text.charAt(i + run)))
             return false;
-        return text.charAt(i) != '_'
-            || i == 0
-            || !Character.isLetterOrDigit(text.charAt(i - 1));
+        return text.charAt(i) != '_' || i == 0 || !Character.isLetterOrDigit(text.charAt(i - 1));
     }
 
     // A run of exactly run c's that closes: after something other than white
     // space, and for '_', not before a letter or digit. Skips code spans.
-    private static int findEmphasisClose(
-        String text,
-        int from,
-        int end,
-        char c,
-        int run
-    ) {
+    private static int findEmphasisClose(String text, int from, int end, char c, int run) {
         int j = from;
         while (j < end) {
             final char ch = text.charAt(j);
@@ -1047,13 +1068,9 @@ public final class MarkdownFormatter extends Formatter {
                 j = close < 0 ? j + n : close + n;
             } else if (ch == c) {
                 final int n = runLength(text, j, end);
-                if (
-                    n == run
+                if (n == run
                         && !Character.isWhitespace(text.charAt(j - 1))
-                        && (c != '_'
-                            || j + n >= end
-                            || !Character.isLetterOrDigit(text.charAt(j + n)))
-                )
+                        && (c != '_' || j + n >= end || !Character.isLetterOrDigit(text.charAt(j + n))))
                     return j;
                 j += n;
             } else {

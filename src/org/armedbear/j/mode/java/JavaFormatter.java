@@ -23,9 +23,11 @@ package org.armedbear.j.mode.java;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Optional;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalState;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -57,6 +59,79 @@ public class JavaFormatter extends Formatter {
     public JavaFormatter(Buffer buffer, int language) {
         this.buffer = buffer;
         this.language = language;
+    }
+
+    /**
+     * The state at {@code offset}, consuming the line from its
+     * entering flags with the same transitions {@link #parseBuffer}
+     * uses to write those flags. The offset is checked before each
+     * character is consumed, so a closing quote or comment marker
+     * consumed before the caret yields NEUTRAL and the caret inside a
+     * string or comment yields STRING or COMMENT. A disabled block
+     * reads as COMMENT: pairing has no business inside {@code #if 0}.
+     * Raw text, real offsets.
+     */
+    @Override
+    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        final int limit = line.length();
+        int state = line.flags();
+        char quoteChar = state == STATE_QUOTE ? '"' : '\0';
+        int i = 0;
+        while (i < limit) {
+            if (i == offset)
+                return Optional.of(toLexical(state));
+            char c = line.charAt(i);
+            if (c == '\\' && i < limit - 1) {
+                // Escape: consumes the next character.
+                i += 2;
+                continue;
+            }
+            if (state == STATE_COMMENT) {
+                if (c == '*' && i < limit - 1 && line.charAt(i + 1) == '/') {
+                    i += 2;
+                    state = STATE_NEUTRAL;
+                } else
+                    ++i;
+                continue;
+            }
+            if (state == STATE_QUOTE) {
+                if (c == quoteChar) {
+                    state = STATE_NEUTRAL;
+                    quoteChar = '\0';
+                }
+                ++i;
+                continue;
+            }
+            // Not in comment or quoted string.
+            if (c == '/' && i < limit - 1) {
+                char next = line.charAt(i + 1);
+                if (next == '/')
+                    // A line comment: everything from here on is COMMENT.
+                    return Optional.of(LexicalState.COMMENT);
+                if (next == '*') {
+                    state = STATE_COMMENT;
+                    i += 2;
+                    continue;
+                }
+            } else if (c == '"' || c == '\'') {
+                state = STATE_QUOTE;
+                quoteChar = c;
+            }
+            ++i;
+        }
+        return Optional.of(toLexical(state));
+    }
+
+    private static LexicalState toLexical(int state) {
+        switch (state) {
+            case STATE_QUOTE:
+                return LexicalState.STRING;
+            case STATE_COMMENT:
+            case STATE_DISABLED:
+                return LexicalState.COMMENT;
+            default:
+                return LexicalState.NEUTRAL;
+        }
     }
 
     /** Whether lines starting with '#' are preprocessor directives, as in C. */

@@ -21,10 +21,12 @@
 
 package org.armedbear.j.mode.python;
 
+import java.util.Optional;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalState;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -57,6 +59,99 @@ public final class PythonFormatter extends Formatter {
 
     public PythonFormatter(Buffer buffer) {
         this.buffer = buffer;
+    }
+
+    /**
+     * The state at {@code offset}, consuming the line from its
+     * entering flags with the same transitions {@link #parseBuffer}
+     * uses to write those flags — the source of the entering state,
+     * so the two agree. Identifier, operator, brace and number states
+     * all read as NEUTRAL for pairing; only quotes and comments
+     * matter. Raw text, real offsets: no detabbing.
+     */
+    @Override
+    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        final String text = line.getText();
+        final int limit = Math.min(offset, text.length());
+        int state = line.flags();
+        int i = 0;
+        while (i < limit) {
+            char c = text.charAt(i);
+            if (c == '\\' && i < text.length() - 1) {
+                // Escape: consumes the next character.
+                i += 2;
+                continue;
+            }
+            if (state == PYTHON_STATE_SINGLE_QUOTE) {
+                if (c == '\'')
+                    state = PYTHON_STATE_NEUTRAL;
+                ++i;
+                continue;
+            }
+            if (state == PYTHON_STATE_DOUBLE_QUOTE) {
+                if (c == '"')
+                    state = PYTHON_STATE_NEUTRAL;
+                ++i;
+                continue;
+            }
+            if (state == PYTHON_STATE_TRIPLE_SINGLE) {
+                if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
+                    state = PYTHON_STATE_NEUTRAL;
+                    i += 3;
+                } else
+                    ++i;
+                continue;
+            }
+            if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
+                if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
+                    state = PYTHON_STATE_NEUTRAL;
+                    i += 3;
+                } else
+                    ++i;
+                continue;
+            }
+            // Not in a quoted string.
+            if (c == '\'') {
+                if (text.regionMatches(i, "'''", 0, 3)) {
+                    state = PYTHON_STATE_TRIPLE_SINGLE;
+                    i += 3;
+                } else {
+                    state = PYTHON_STATE_SINGLE_QUOTE;
+                    ++i;
+                }
+                continue;
+            }
+            if (c == '"') {
+                if (text.regionMatches(i, "\"\"\"", 0, 3)) {
+                    state = PYTHON_STATE_TRIPLE_DOUBLE;
+                    i += 3;
+                } else {
+                    state = PYTHON_STATE_DOUBLE_QUOTE;
+                    ++i;
+                }
+                continue;
+            }
+            if (c == '#')
+                // A line comment: the caret inside it is COMMENT, at
+                // its first character still the state before it.
+                return Optional.of(i < offset ? LexicalState.COMMENT : toLexical(state));
+            ++i;
+        }
+        return Optional.of(toLexical(state));
+    }
+
+    private static LexicalState toLexical(int state) {
+        switch (state) {
+            case PYTHON_STATE_SINGLE_QUOTE:
+            case PYTHON_STATE_DOUBLE_QUOTE:
+            case PYTHON_STATE_TRIPLE_SINGLE:
+            case PYTHON_STATE_TRIPLE_DOUBLE:
+                return LexicalState.STRING;
+            case PYTHON_STATE_COMMENT:
+                return LexicalState.COMMENT;
+            default:
+                return LexicalState.NEUTRAL;
+        }
     }
 
     private int begin = 0;
@@ -151,13 +246,9 @@ public final class PythonFormatter extends Formatter {
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
-                } else if (
-                    ((c == '>' && text.regionMatches(i, ">>>", 0, 3))
-                        ||
-                        (c == '.' && text.regionMatches(i, "...", 0, 3)))
-                        &&
-                        (text.substring(0, i).trim().length() == 0)
-                ) {
+                } else if (((c == '>' && text.regionMatches(i, ">>>", 0, 3))
+                        || (c == '.' && text.regionMatches(i, "...", 0, 3)))
+                        && (text.substring(0, i).trim().length() == 0)) {
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
                 } else
@@ -170,13 +261,9 @@ public final class PythonFormatter extends Formatter {
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
-                } else if (
-                    ((c == '>' && text.regionMatches(i, ">>>", 0, 3))
-                        ||
-                        (c == '.' && text.regionMatches(i, "...", 0, 3)))
-                        &&
-                        (text.substring(0, i).trim().length() == 0)
-                ) {
+                } else if (((c == '>' && text.regionMatches(i, ">>>", 0, 3))
+                        || (c == '.' && text.regionMatches(i, "...", 0, 3)))
+                        && (text.substring(0, i).trim().length() == 0)) {
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
                 } else

@@ -22,6 +22,7 @@
 package org.armedbear.j;
 
 import java.awt.Color;
+import java.util.Optional;
 import org.armedbear.j.util.Utilities;
 
 public abstract class Formatter {
@@ -45,6 +46,29 @@ public abstract class Formatter {
     public boolean parseBuffer() {
         buffer.setNeedsParsing(false);
         return false;
+    }
+
+    /**
+     * The lexical state at {@code offset} — the state the parser is in
+     * after consuming this line's text from its entering state
+     * ({@code line.flags()}) up to that offset, not the state the
+     * line enters with and not the segment under the caret. A closing
+     * quote consumed before the offset yields NEUTRAL; the offset
+     * inside a string or a trailing line comment yields STRING or
+     * COMMENT. At zero the answer is the entering state; at the end
+     * of the line it is the state after the whole line, not
+     * {@code line.flags()}.
+     *
+     * <p>{@code offset} is a real character offset into the line's
+     * text, not a detabbed display column. A scan must use local
+     * state and never touch the highlighting parser's fields.
+     *
+     * @return the state, or empty when this formatter cannot answer
+     *         for the position; NEUTRAL is an answer, not the
+     *         unsupported sentinel
+     */
+    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        return Optional.empty();
     }
 
     // The mode whose language this formats: the buffer's, unless the

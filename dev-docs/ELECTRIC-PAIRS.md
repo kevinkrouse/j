@@ -1130,7 +1130,37 @@ existing insert-mode behavior.
    triple quotes, heredoc terminators and boundaries, not only
    single-line quote toggling. Tests 11-13. (Rule 5 is live from
    step 3 with the old `isInQuote`/`isInComment` defaults; this step
-   makes it correct for the modes the defaults get wrong.)
+   makes it correct for the modes the defaults get wrong.) **Done.**
+   `LexicalState` (NEUTRAL/STRING/COMMENT). `Formatter.lexicalStateAt(Line,int)`
+   default `Optional.empty()`; the query consumes the line prefix
+   from `line.flags()` through the offset, with local state only —
+   never the highlighting parser's mutable fields. `Mode.lexicalState`
+   refreshes a dirty parse, then consults the formatter, falling back
+   to `isInQuote`/`isInComment` only when the formatter cannot
+   answer. `decide` and `hasUnmatchedCloserAhead` now read
+   `lexicalState` instead of the old pair.
+   Implemented: Java (covers C via the shared `parseBuffer`; the
+   mode's old escape-branch bug is not carried over), Lisp (`#|`
+   lookahead), Python (triple-quote lookahead, mirrors `parseBuffer`
+   not `parseLine` so no REPL-prompt reset), Shell (HERE_DOCUMENT
+   entering flag means the whole line is body, so the query never
+   reads the formatter's mutable `endOfText` and cannot leak a
+   terminator between heredocs; a NEUTRAL line scans for a valid
+   `<<` opener), Markdown (block from `BLOCK_MASK`; inline code via
+   the existing static `findCodeSpanClose`; HTML comment via
+   `-->`; backslash escapes punctuation).
+   `isEmptyQuotePair` guards the step-6 DELETE_BOTH: symmetric
+   configured quote, left unescaped, NEUTRAL immediately before the
+   left character — which excludes a quote closing an earlier string,
+   a quote in a comment, and a quote inside a triple delimiter.
+   `LexicalStateTest` 33 tests: EOL comment vs entering flags,
+   closed-string NEUTRAL, triple quotes with continuation and tabbed
+   prefix, heredoc body/partial terminator/sequential non-leaking,
+   Markdown blank-fence-at-zero with and without language, HTML
+   comment and inline code with their closer boundaries, the
+   apostrophe-stays-NEUTRAL prose case, escaped backtick, the
+   empty-pair exception six ways, and parse freshness after an
+   edit. Full suite 2741/2741, vim conformance 168/253.
 6. Backspace delete-both + Ctrl-W stop fix. Tests 13-14, 20-21.
 7. Enter-between, with the create-then-indent ordering. Test 15.
 8. Literal insertion: the scoped `literalInsertionDepth` on `Editor`,
