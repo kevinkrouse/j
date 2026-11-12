@@ -20,6 +20,7 @@ color.matchingText               = #9a6700
 # Syntax
 color.comment                    = #3a7a3a
 color.keyword                    = #1a3d8f
+color.annotation                 = #807930
 color.function                   = #1f1f1f
 color.string                     = #a3321f
 color.number                     = #8a6d00

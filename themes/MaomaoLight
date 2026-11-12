@@ -48,6 +48,7 @@ color.matchingText               = #c94349
 # Syntax
 color.comment                    = #7aae8f
 color.keyword                    = #4a7a9b
+color.annotation                 = #7a742f
 color.function                   = #1a5d4a
 color.string                     = #a67a2b
 color.number                     = #b85c32
