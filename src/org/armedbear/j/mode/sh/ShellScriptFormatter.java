@@ -30,6 +30,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -105,22 +106,14 @@ public final class ShellScriptFormatter extends Formatter {
      * allocating the prefix. {@code steps} counts token advances so a
      * test can assert the walk stays linear in the line's length.
      */
-    static final class Cursor {
+    static final class Cursor extends LexicalCursor {
         private final Line line;
-        private final String text;
-        private final int limit;
-        private final int upto;
-        private final LexicalContext[] out;
         private int state;
-        private int i;
         long steps;
 
         Cursor(Line line, int upto, LexicalContext[] out) {
+            super(line, upto, out);
             this.line = line;
-            this.text = line.getText();
-            this.limit = text.length();
-            this.upto = upto;
-            this.out = out;
             // parseBuffer carries an open quote across lines, so a
             // line inside a multi-line string enters in that string.
             this.state =
@@ -196,21 +189,6 @@ public final class ShellScriptFormatter extends Formatter {
                 ++i;
             }
             return toContext(state);
-        }
-
-        /**
-         * Whether the point target falls inside a token of length
-         * {@code len} starting at the cursor, whose interior carries
-         * {@code interiorCtx}. In bulk mode the interior offsets are
-         * recorded and the walk continues.
-         */
-        private boolean inside(int len, LexicalContext interiorCtx) {
-            if (out != null) {
-                for (int j = i + 1; j <= Math.min(i + len - 1, upto); j++)
-                    out[j] = interiorCtx;
-                return false;
-            }
-            return upto >= i + 1 && upto <= i + len - 1;
         }
     }
 

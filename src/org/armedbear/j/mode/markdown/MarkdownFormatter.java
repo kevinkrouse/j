@@ -31,6 +31,7 @@ import org.armedbear.j.FollowLink;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -914,21 +915,13 @@ public final class MarkdownFormatter extends Formatter {
      * advances so a test can assert the walk stays linear in the
      * line's length.
      */
-    static final class Cursor {
+    static final class Cursor extends LexicalCursor {
         private final int block;
-        private final String text;
-        private final int limit;
-        private final int upto;
-        private final LexicalContext[] out;
-        private int i;
         long steps;
 
         Cursor(Line line, int upto, LexicalContext[] out) {
+            super(line, upto, out);
             this.block = line.flags() & BLOCK_MASK;
-            this.text = line.getText();
-            this.limit = text.length();
-            this.upto = upto;
-            this.out = out;
         }
 
         LexicalContext run() {
@@ -1018,25 +1011,6 @@ public final class MarkdownFormatter extends Formatter {
                 ++i;
             }
             return LexicalContext.NEUTRAL;
-        }
-
-        /**
-         * Whether the point target falls in the closed range
-         * [{@code from}, {@code to}] whose interior carries
-         * {@code interiorCtx}. In bulk mode the range is recorded and
-         * the walk continues.
-         */
-        private boolean covers(int from, int to, LexicalContext interiorCtx) {
-            if (out != null) {
-                fill(from, Math.min(to, upto), interiorCtx);
-                return false;
-            }
-            return upto >= from && upto <= to;
-        }
-
-        private void fill(int from, int to, LexicalContext value) {
-            for (int j = from; j <= to; j++)
-                out[j] = value;
         }
     }
 
