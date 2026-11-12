@@ -499,17 +499,25 @@ be interpreted as parser states.
 **Mode dispatch and parse freshness.**
 `Mode.lexicalContext(Buffer, Position)` returns `LexicalContext`. The
 converted formatters (Java/C, Lisp, Python, Shell, Markdown) answer the
-query from their cursor. Modes whose legacy predicates remain (Xml, PHP
-and the `AbstractMode` defaults) fall back to `isInQuote`/`isInComment`
+query from their cursor. Modes whose legacy predicates remain (Xml and
+the `AbstractMode` defaults) fall back to `isInQuote`/`isInComment`
 only when the formatter cannot answer. The Java and Lisp predicates are
-now adapters to the formatter query rather than their own scans:
-`isInComment` is `lexicalContextAt(...) == COMMENT` and `isInQuote` is
-`lexicalContextAt(...) == STRING`, with the same parse preparation.
-Dependency flows from the mode to the formatter query, never back from a
-formatter to a mode predicate. Before invoking the pure decision
-function, callers refresh dirty parse metadata under the existing buffer
-lock so a preceding edit cannot leave stale entering context. The query
-itself only reads that metadata and scans text.
+adapters to the formatter query — `isInComment` is
+`lexicalContextAt(...) == COMMENT` and `isInQuote` is
+`lexicalContextAt(...) == STRING` — with the same parse preparation,
+but they keep the pre-adapter scan as a fallback for submodes whose
+formatter does not answer the query: `PHPMode` (whose `PHPFormatter`
+is unmigrated) and `LispShellMode` (whose `LispShellFormatter` is
+unmigrated) inherit the adapter and fall back to the legacy scan. The
+cursor reports the raw comment and string membership of the line, so a
+comment inside a disabled `#if 0` line still reads COMMENT to the
+predicate for `%` matching; the collapse of a whole disabled line to
+OPAQUE happens at `Mode.lexicalContext`, the pairing boundary, not in
+the cursor. Dependency flows from the mode to the formatter query,
+never back from a formatter to a mode predicate. Before invoking the
+pure decision function, callers refresh dirty parse metadata under the
+existing buffer lock so a preceding edit cannot leave stale entering
+context. The query itself only reads that metadata and scans text.
 
 **No offset conversion needed.** The query receives actual buffer
 characters and offsets. Its lexer helpers must accept those buffer
@@ -1385,10 +1393,12 @@ existing insert-mode behavior.
     boundary fixes below, not a new general lexer framework.
 
     **Naming.** Rename `LexicalState` to `LexicalContext`, including its
-    source file. Rename `Formatter.lexicalStateAt(Line, int)` and
-    `Mode.lexicalState(Buffer, Position)` to `lexicalContextAt`, and both
-    `lexicalStates` bulk methods to `lexicalContexts`. Update callers,
-    overrides, imports, Javadocs and tests together; rename
+    source file. Rename `Formatter.lexicalStateAt(Line, int)` to
+    `lexicalContextAt` and `Mode.lexicalState(Buffer, Position)` to
+    `lexicalContext` — the `At` suffix stays on the formatter's
+    line-and-offset query and drops from the mode's position-taking one —
+    and both `lexicalStates` bulk methods to `lexicalContexts`. Update
+    callers, overrides, imports, Javadocs and tests together; rename
     `LexicalStateTest` to `LexicalContextTest`. Do not retain aliases for
     the old API. Earlier completed steps describe the pre-refactor names;
     update the design sections to the new API when this step lands.
@@ -1470,9 +1480,70 @@ existing insert-mode behavior.
     quote character, so no caller reaches one. Full suite 2844/2844;
     conformance ratchet 168/253 unchanged.
 
+13. **Extend lexical context to CSS, Scheme, Properties and XML.
+    Planned.** Build on step 12's `LexicalContext` point/bulk API. Add
+    one local query cursor per formatter, with shared transitions for
+    the two queries, raw buffer offsets and complete entering context.
+    Point queries avoid a prefix-sized array; bulk queries fill every
+    boundary in one traversal. Reuse existing recognition helpers and
+    extract small helpers where highlighting and queries need the same
+    rule. Keep this to these four modes; broader highlighting rewrites
+    and additional language grammars are separate work.
+
+    **CSS.** Add queries to `CSSFormatter`, decoding the quote/comment
+    bits independently of selector, value and block bits. Carry block
+    comments across lines; handle both quote kinds and escapes, and
+    resume NEUTRAL after a complete closer. Fix the existing
+    `CSS_STATE_SINGLEQUOTE` branches in both `parseLine` and
+    `parseBuffer`: they currently close on a double quote. Pin the
+    correction with a closed single-quoted value followed by ordinary
+    properties and a comment, so highlighting, line flags and lexical
+    context agree. Leave CSS indentation and token colors intact.
+
+    **Scheme.** Add queries to the extension's `SchemeFormatter` for
+    double-quoted strings, escapes, semicolon comments and the existing
+    block-comment syntax. Use entering metadata for multiline strings
+    and comments. Adapt `SchemeMode.isInQuote` to the supported query,
+    following step 12's preparation and non-recursive adapter pattern.
+    Apostrophes remain reader syntax, not string openers. Test escaped
+    character literals containing quote/comment markers. Nested block
+    comments and datum-comment parsing remain separate grammar work;
+    do not imply those are implemented by this adapter.
+
+    **Properties.** Extract a small comment/continuation classifier
+    used by formatting and the queries. Preserve the mode's supported
+    `#`, `!` and `;` comment markers and section formatting. Ordinary
+    key/value text, including literal quotes and apostrophes, is
+    NEUTRAL. Determine continuation from an unescaped trailing
+    backslash, and test a continuation whose text starts with a comment
+    marker so it is not misclassified as a fresh comment. Pin leading
+    whitespace and odd/even trailing-backslash cases for both consumers.
+
+    **XML.** Add queries to `XmlFormatter` using its tag, attribute,
+    quote, comment and CDATA recognition. Attribute quotes yield STRING,
+    actual comments COMMENT, and CDATA OPAQUE; text and unquoted tag
+    context are NEUTRAL. A prose apostrophe outside an attribute does
+    not open a string. Preserve multiline attribute quote kind, and
+    resume the surrounding context immediately after a complete quote,
+    `-->` or `]]>` closer. Keep the existing quote-only pair table and
+    tag insertion/matching commands unchanged; HTML/PHP integration is
+    outside this step.
+
+    **Acceptance.** Add per-mode point/bulk agreement tests at every
+    offset, including empty lines, tabs, escapes, partial delimiters,
+    closing boundaries and carried context. Exercise real typing and
+    Backspace in neutral text, strings, comments and opaque regions,
+    including the empty attribute-string exception. Guard linear bulk
+    traversal with step 12's scan-count approach. Extend the existing
+    CSS/Properties/XML and Scheme golden fixtures only for intentional
+    parser corrections; add focused regressions rather than accepting
+    blanket golden updates. Run core checks through `bb test`, extension
+    checks through `bb test-extensions`, and the Vim conformance ratchet.
+    Keep each mode's change independently reviewable.
+
 Steps 1-4 are the core; 5-7 are the context and the two extra call
 sites; 8 is the literal-insertion contract; 9 is the cutover; 10-11
 are mode-specific polish; 12 consolidates lexical context after the
-behavior is pinned. Each step is independently shippable behind the
-property.
+behavior is pinned; 13 extends it to four more modes. Each step is
+independently shippable behind the property.
 
