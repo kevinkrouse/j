@@ -1472,13 +1472,32 @@ existing insert-mode behavior.
     assertion. Run focused tests and the full suite through `bb test`,
     plus the existing Vim conformance ratchet.
 
-    Landed as four commits: the rename; OPAQUE; one cursor per formatter
-    with the point/bulk differential and per-formatter scan guards; and
-    the Java/Lisp predicate adapters. A differential probe over the old
-    and new predicate logic confirmed every divergence sits on a comment
-    marker caret or a disabled-line interior, never on a bracket or
-    quote character, so no caller reaches one. Full suite 2844/2844;
-    conformance ratchet 168/253 unchanged.
+    Landed as the rename; OPAQUE; one cursor per formatter with the
+    point/bulk differential and per-formatter scan guards; and the Java
+    and Lisp predicate adapters. The adapter cutover introduced three
+    regressions, fixed in follow-up commits: PHPMode and LispShellMode
+    inherited the adapter over formatters that do not answer the query,
+    so their predicates went always-false; and collapsing a disabled line
+    to OPAQUE inside the cursor made isInComment miss a comment in an
+    #if 0 block, so a bracket in that comment counted for matching. The
+    fix splits the two questions: the cursor reports the raw comment and
+    string membership of the line (so isInComment finds a comment in
+    disabled code), and the collapse of a whole disabled line to OPAQUE
+    happens at Mode.lexicalContext, the pairing boundary. Unmigrated
+    submodes override the predicate with the legacy scan directly, so
+    the formatter query runs once per call. The earlier claim that no
+    divergence sat on a bracket or quote was wrong for the predicate on
+    a disabled comment; it holds only for the pairing query.
+
+    The cursor and the highlighting parser are two loops over the same
+    text. A differential guard (CursorHighlightAgreement) pins that they
+    agree on every comment and string run past the opening marker, for
+    Java, C, JavaScript, Lisp, Python and Shell; the only exempt position
+    is the caret between a two-character opener's characters, which the
+    boundary rule reads as before the marker. The review's JavaScript
+    regex-literal case does not diverge: the highlighting reads /"/g as
+    a string and so does the cursor. Full suite 2851/2851; conformance
+    ratchet 168/253 unchanged.
 
 13. **Extend lexical context to CSS, Scheme, Properties and XML.
     Planned.** Build on step 12's `LexicalContext` point/bulk API. Add
