@@ -3885,12 +3885,14 @@ plan with why it is left, before the next phase starts.
        though the menu shows the keys. No menu path acts on the picks.
        `StatusActions.fromMenu` is a static flag reset when the item
        returns, so a command that retargets after a diff read takes the
-       picks. Capturing the targets when the menu opens would fix it.
+       picks. Capturing the targets when the menu opens would fix it
+       (done in h).
      - `Selections.Builder.member` drops unknown hunk ids, and a null
        diff, without reporting a problem.
      - `Builder.line` accepts context-line indexes. A selection that
        starts in one hunk's trailing context makes a context-only target,
-       whose "Those lines change nothing" stops the rest of the stage.
+       whose "Those lines change nothing" stops the rest of the stage
+       (fixed in h).
      - A drag between models (the Changes tab and one repository's status
        buffer) is refused without a message. A status-buffer drag takes
        its source list from the line pressed, though the selection can
@@ -3949,17 +3951,165 @@ plan with why it is left, before the next phase starts.
      data needs migrating, and test loading a changelist store from
      before phase 11. Drive picks, same-file commit changes and
      drag/drop in simple and vim modes; review the final extraction.
-     The driver (`test/driver/org/armedbear/j/GuiDriver.java`) has only
-     key, type, exec and hover steps. Add press, drag and release at a
-     row or tree node, a right-click at a line, and a shell step, then
-     `test/driver/phase11.txt` with its fixture. Two status models over
-     one repository and drop locations (from 10 k) go in it. Record
-     whatever can't be driven as not driven.
+     The driver (`test/driver/org/armedbear/j/GuiDriver.java`) has
+     `click X Y` and `drag X1 Y1 X2 Y2`: the left button, no modifiers, at
+     pixels in the frame. `bb drive --wm` runs it under a real window
+     manager. Add:
+
+     - Targets in place of pixels, found from j's state when the step
+       runs: `line TEXT` (the start of the first shown line containing
+       it), `text TEXT` (where TEXT starts on screen, for a drag inside a
+       line), `node TEXT` (a sidebar tree row: Changes, Buffers or the
+       tag tree), and `button NAME` (a status-bar panel toggle). Pixels
+       stay for the window-decoration scripts.
+     - `click [right] [ctrl] [shift] TARGET`, for menus at a line or node
+       and multiple selection in the trees.
+     - `press TARGET`, `move TARGET` and `release`, a drag in steps, so a
+       script can check the drop hint and the drop caret before
+       releasing. `drag` becomes press, move and release.
+     - `menuitem LABEL`, a real click on an item of the open popup.
+     - New WHATs for `expect`: `popup` (the open popup's items, a dimmed
+       one marked and its tooltip), `sidebar` (the panels shown and the
+       tab on top), and `selection` (the focused tree's selected rows).
+     - `bb drive --home DIR`, so a second script run in the same home
+       checks the panels and state the first one saved.
+
+     No shell step. Fixtures are made before j starts. During the drive,
+     outside changes come from j itself, from another window or status
+     over the same repository. Hooks and racing writers stay in the unit
+     tests against real git. Then write `test/driver/phase11.txt` with its
+     fixture. It also drives what 10 k left: the sidebar panels, their
+     buttons and saved state; drop locations in the trees and the text;
+     text drag in ordinary buffers; and two status models over one
+     repository. Record whatever can't be driven as not driven.
 
      Checks: the focused tests from a-g, the full unit suite and an Xvfb
      drive through each UI surface. Record failures and environmental
      limitations explicitly. Completing this phase does not by itself
      complete phase 10 k or its separate outstanding review fixes.
+
+     Built (see the review of h below for what changed since):
+     `Target.Part` exposes its immutable `LineSet` directly;
+     the mutable-bit compatibility methods and `Selections.hunkIds` are
+     gone. `StatusLine.capture` is the text/tree presentation adapter,
+     with no synthetic rows constructed for actions. Other surfaces use
+     the shared builder. Context-only rows contribute no target.
+
+     Diff requests and their bookkeeping use `FileKey`, including pending
+     reads, viewed files, pick requests and listener requests. Renderer
+     strings remain only at presentation boundaries. The resolver accepts
+     an additional diff requirement for editor-list anchors, sharing the
+     bounded reads used by partial captures. Moves no longer repeat the
+     resolver's file-kind and rename checks or schedule a separate chooser
+     read. List commit plans use the same read/failure path for provisional
+     membership. Execution-time fresh-diff and patch checks remain.
+
+     Drop messages are generated once from resolution problems; the
+     separate `RepositoryStatus.Drop` enum is gone. Row picks take a file
+     and its typed location directly, without `RowPicks.Of`. Context-menu
+     actions capture their targets when built, shared by status text,
+     unified diffs and Changes nodes, without a global `fromMenu` flag.
+     The lower status tree offers the same clicked-node menu. Refreshes
+     preserve every selected Changes node, rather than only the first.
+
+     [VCS-SELECTIONS.md](VCS-SELECTIONS.md) describes ownership, resolution,
+     invalidation, commit review and capabilities. The selection package
+     imports no editor, Swing, status line or renderer type. Its use of
+     `StatusData` is intentional: it is the existing backend result record,
+     not presentation state. Removing the remaining Git section-name
+     assumptions belongs to phase 12. No stored data needs migration; a regression
+     loads phase 10's version 1 XML, places its saved anchors and edits its
+     draft without changing the format.
+
+     The driver supports named line/text/node/button targets, modified and
+     double clicks, stepped drags, real popup-item clicks, popup/sidebar/
+     selection expectations, and a persistent `--home`. It saves placement
+     through the normal shutdown methods. `test/driver/phase11.txt`, its
+     fixture generator and `phase11-saved.txt` exercise the selection flows
+     in simple and vim modes. See `test/driver/README.md` for the commands.
+     The saved-home drive exposed a startup crash when the Changes tab
+     rendered before the first editor existed; the renderer now handles
+     that state, with a regression test.
+
+     Validation: all 2,698 unit tests passed, with no uncaught event-thread
+     exceptions; the final build, formatting and diff checks passed too.
+     Complete GUI drives passed under Xvfb in simple and vim edit modes,
+     with the input handlers checked explicitly. They cover text, Changes
+     and lower status-tree moves and menus, changes to a same-file commit
+     review, comparison and source-buffer picks, ordinary text dragging,
+     sidebar buttons, and standalone and multi-repository views after a
+     save through j. Captured Pick/Unpick menu actions for multiple Changes
+     nodes passed in both modes. Relaunches in both saved homes restored
+     the Changes and Tree panels.
+
+     Screenshots were inspected for drop feedback, menus and picks. The
+     keyboard pick path in file buffers was driven; literal mouse clicks
+     on their gutter boxes were not. Hooks, racing writers and stale/failed
+     diff reads remain real-repository unit tests rather than shell steps
+     in the GUI script. These drives used bare Xvfb, not a window manager.
+     Phase 10 k and the separately recorded remaining review issues stay
+     open; this extraction does not close them.
+
+     Review of h (2026-11-11, four reviews: code, driver, plan and docs,
+     simplification). Fixed:
+
+     - The status menu's Pick took the raw capture: a selection from a
+       section or list heading picked every file under it, and lines that
+       can't be picked. It takes the pickable lines, as `;` does. Its label
+       is Unpick when they are all picked, as a file item's is.
+     - Menu items with no captured action moved the caret to the clicked
+       row first, which cleared the selection: Add to .gitignore took one
+       of two selected files. A selection the row is in is kept.
+     - The status tree's menu was built from the status caret after
+       revealing the node; where the reveal missed (a split file's second
+       list closed), Stage or Discard took the line the caret was on. No
+       menu is given unless the caret is on the node's line, and the
+       reveal opens a list for a split file's second key.
+     - `exec` ran any command, `shellCommand` and `saveAs` among them. It
+       runs only `GuiDriver.COMMANDS` and the `projectRoot` property.
+     - Drive checks that couldn't fail: each status model was refreshed by
+       hand before it was checked (now checked with `text@NAME`, unrefreshed,
+       after a save); the saved home ended with default panels (now
+       `tree=false`); multi-node Pick and Unpick, the comparison pick and
+       the file's own pick are checked through the menus' labels; a text
+       drag must move, not copy. `expect sidebar` reads the components
+       showing; `expect popup` marks each item `[enabled]` or `[disabled]`.
+       The Sidebar button is driven, and a vim run uses `\h;`.
+     - The stronger drive found that a file buffer's signs and picks kept
+       the status preferred under its old `projectRoot` after it changed:
+       `SignsUpdater.view` keys its cache on the root too.
+     - A failed step or a script's end lets go of a pressed mouse button.
+       The fixture's repositories carry their own identity and hooks
+       directory.
+     - The dependency check is a test of the package's own imports
+       (`SelectionDependenciesTest`). The closure isn't clean: `VcsRepository`
+       reaches `VcsBackend`, whose older hooks take `Buffer` and `Editor`.
+
+     Simplified: six types fewer, and with the fixes above, about 300
+     source lines and 570 lines in all fewer than step h's version:
+
+     - The commit review compares the staged versions alone. They differ
+       with any change to what is selected, so `Selections.sameChanges`,
+       `sameSelection` and their `Piece` and `Chosen` records are gone, as
+       is the background review's selection recheck.
+     - A hunk's id is its SHA-256 and occurrence; `Content` and its
+       re-check of the lines, and the twins map, are gone.
+     - `Target.Part` holds a copied `BitSet`; `LineSet` is gone.
+     - `Problem` carries a message; `Reason`, read by no command, is gone.
+     - Native changelist hooks (`readNativeChangelists`,
+       `moveToNativeChangelist`), `ListKind` and `Destination.kind` are
+       gone until a backend has native lists. One `Selections.resolve`
+       overload, `chooseMove`'s unused `picked`, and the dead
+       `ChangesTree.pickSelected` are gone too.
+
+     Left, minor: the split-file discard refusal reads the live caret,
+     not the menu's capture; `dropMessage` reports the first problem
+     only; `Builder.lines` still accepts context-only bit sets; the
+     expansion state still keys on renderer strings; targets match by
+     substring and skip rows scrolled out of view; mouse clicks on a
+     file buffer's gutter boxes aren't driven; a vim visual-mode stage in
+     the status isn't driven. Validation: 2,690 unit tests pass; both
+     drives (59 checks each) and both saved-home runs pass.
 12. **Subversion.** Its backend on the shared layer: status, diff, marks,
    blame, log (one lane), conflicts, and svn's own changelists. This proves
    the split. Any git-only leaks found here are fixed in the shared code.
@@ -3967,9 +4117,11 @@ plan with why it is left, before the next phase starts.
    capabilities checked per repository, section roles in place of Git
    section names, and native changelist membership, removal and drags.
    The hooks phase 11 added are `previewCommit`, `FileVersion`,
-   `ChangeVersion` and `CommitPreview`, the `reviewed` versions given to
-   `commitPrivately`, and `readNativeChangelists` and
-   `moveToNativeChangelist`.
+   `ChangeVersion` and `CommitPreview`, and the `reviewed` versions given to
+   `commitPrivately`. Native changelists get their hooks here, designed
+   with the backend. Split `VcsBackend`'s editor-facing hooks from the
+   rest, so the selection package's dependency closure is free of the
+   editor.
 
 Status comes before the log, although the log is first on the list. Both need
 phase 0, and the status buffer exercises the diff and hunk model that the

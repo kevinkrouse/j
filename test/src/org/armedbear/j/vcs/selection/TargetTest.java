@@ -36,25 +36,25 @@ public class TargetTest {
         BitSet bits = new BitSet();
         bits.set(3);
         Hunk hunk = new Hunk(1, 1, 1, 1, "", List.of());
-        Target.Part part = Target.Part.of(null, "working", null, hunk, bits);
+        Target.Part part = new Target.Part(null, "working", null, hunk, bits);
         bits.clear();
-        assertTrue(part.lines().get(3));
-        part.lines().clear();
-        assertTrue(part.lines().get(3));
-        BitSet moved = part.lines();
+        assertTrue(part.selection().get(3));
+        part.selection().clear();
+        assertTrue(part.selection().get(3));
+        BitSet moved = part.selection();
         moved.set(4);
-        Target.Part next = part.withLines(moved);
-        assertFalse(part.lines().get(4));
-        assertTrue(next.lines().get(4));
-        assertEquals(new LineSet(part.lines()), part.selection());
+        Target.Part next = new Target.Part(part.repository(), part.section(), part.file(), part.hunk(), moved);
+        assertFalse(part.selection().get(4));
+        assertTrue(next.selection().get(4));
+        assertEquals(part.selection(), part.selection());
     }
 
     @Test
     public void wholeHunksAndEmptyLineSelectionsStayDistinct() {
-        Target.Part whole = Target.Part.of(null, "working", null, null, null);
-        Target.Part empty = Target.Part.of(null, "working", null, null, new BitSet());
-        assertNull(whole.lines());
-        assertTrue(empty.lines().isEmpty());
+        Target.Part whole = new Target.Part(null, "working", null, null, null);
+        Target.Part empty = new Target.Part(null, "working", null, null, new BitSet());
+        assertNull(whole.selection());
+        assertTrue(empty.selection().isEmpty());
         assertNotEquals(whole, empty);
     }
 

@@ -23,6 +23,7 @@ package org.armedbear.j.vcs.status;
 import java.util.Set;
 import org.armedbear.j.Editor;
 import org.armedbear.j.vcs.VcsRepository;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 
 /** The status's diff beside it: the file at its caret, at the hunk there. */
@@ -108,7 +109,7 @@ final class StatusDiffBuffer extends DiffPane<VcsStatusBuffer> {
         // The displayed diff belongs to the same current status that
         // resolves actions; a pane must not keep a private successful read
         // while the model still treats that file as unread.
-        model.readDiffsThen(Set.of(StatusRenderer.fileKey(r, line.section(), f.path())), () -> {
+        model.readDiffsThen(Set.of(new FileKey(r, line.section(), f.path())), () -> {
             if (read != generation || !Editor.getBufferList().contains(this))
                 return;
             final FileItem current = model.files(r, line.section())

@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import org.armedbear.j.Editor;
@@ -165,6 +166,24 @@ final class VcsContextMenus {
         }
     }
 
+    /** Actions retain the menu's capture across caret movement and asynchronous reads. */
+    static Runnable targetAction(Editor editor, RepositoryStatus model, List<Target> targets, String command) {
+        return switch (command) {
+            case "vcsStage" -> () -> StatusActions.runOn(editor, model, Op.STAGE, targets, Map.of(), false);
+            case "vcsUnstage" -> () -> StatusActions.runOn(editor, model, Op.UNSTAGE, targets, Map.of(), false);
+            case "vcsDiscard" -> () -> StatusActions.runOn(editor, model, Op.DISCARD, targets, Map.of(), false);
+            case "vcsCommitFiles" -> () -> CommitCommands.commitTargets(editor, model, targets);
+            case "vcsStatusPick" -> () -> model.pickTargets(targets);
+            case "vcsResolveOurs" ->
+                    () -> ResolveCommands.resolveTargets(editor, model, targets, false, ResolveCommands.Take.OURS);
+            case "vcsResolveTheirs" ->
+                    () -> ResolveCommands.resolveTargets(editor, model, targets, false, ResolveCommands.Take.THEIRS);
+            case "vcsResolveKeep" ->
+                    () -> ResolveCommands.resolveTargets(editor, model, targets, false, ResolveCommands.Take.KEEP);
+            default -> null;
+        };
+    }
+
     /**
      * The changelist items: commit it alone, make it active, new, rename,
      * delete. Default can't be renamed or deleted; the active list needs
@@ -226,7 +245,7 @@ final class VcsContextMenus {
             "vcsChangelistMove",
             why == null,
             why,
-            e -> ChangelistCommands.chooseMove(editor, model, targets, picked, used));
+            e -> ChangelistCommands.chooseMove(editor, model, targets, used));
     }
 
     // Why take doesn't fit the unmerged targets, or null.

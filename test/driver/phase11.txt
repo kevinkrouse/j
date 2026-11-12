@@ -1,0 +1,243 @@
+# Generate with phase11-fixture.py; @FIXTURE@ is replaced before J starts.
+# Run this in both simple and vim homes, then phase11-saved.txt in the same home.
+timeout 10000
+expect buffer a.txt
+expect input @INPUT@
+exec projectRoot=@FIXTURE@/repo
+exec vcsStatus
+expect mode VcsStatus
+expect text Unstaged changes (1)
+exec vcsStatusDepth 4
+expect text +line three
+# Sidebar panels use actual painted status-bar buttons.
+expect sidebar top=Buffers tree=true
+click button Buffers
+expect sidebar top=none
+click button Buffers
+expect sidebar top=Buffers
+click button Changes
+expect sidebar top=Changes
+click button Tree
+expect sidebar tree=false
+click button Tree
+expect sidebar tree=true
+# The Sidebar button hides it all, and shows the panels it had.
+click button Sidebar
+expect sidebar hidden
+click button Sidebar
+expect sidebar top=Changes tree=true
+shot panels
+# A picked commit must show a new review when the same file's picked hunk changes.
+click line @@ -1,6
+key INSERT
+exec vcsCommitPicked
+expect mode VcsCommit
+exec insertString Review changed picks
+exec otherWindow
+expect mode VcsStatus
+exec vcsStatusUnpickAll
+exec bob
+click line @@ -47,7
+key INSERT
+exec otherWindow
+expect mode VcsCommit
+key ctrl ENTER
+expect status What it commits changed since it was shown
+expect mode VcsCommit
+exec vcsCommitAbort
+expect mode VcsStatus
+exec vcsStatusUnpickAll
+exec bob
+# Create a destination and move only the first hunk by picking it.
+click line Unstaged changes
+execlater vcsChangelistNew
+wait 300
+type Feature
+key ENTER
+expect text Feature (0)
+click line @@ -1,6
+key INSERT
+execlater vcsChangelistMove
+wait 300
+type Feature
+key ENTER
+expect text Feature (1)
+expect text Default (1)
+# A text-status drag resolves the file and moves only that list's part.
+press line @@ -1,6
+move line Default (1)
+expect status Drop to move to Default
+shot text-drop-hint
+release
+expect text Feature (0)
+# Picked second hunk remains independent of the clicked first hunk's menu.
+click line @@ -47,7
+key INSERT
+click right line @@ -1,6
+expect popup Commit alone… [enabled]
+expect popup Unstage [disabled]
+shot hunk-menu
+menuitem Commit alone…
+expect mode VcsCommit
+exec insertString First hunk alone
+# The explicit menu capture still commits the first hunk.
+expect mode VcsCommit
+key ctrl ENTER
+expect mode VcsStatus
+expect-not text +line three
+expect text +line fifty
+# Moves and menus in the Changes tab, including multi-selection.
+exec vcsStatusDepth 2
+exec bob
+exec sidebarListChanges
+expect sidebar top=Changes
+wait 300
+click node Default
+key RIGHT
+click right node a.txt
+expect popup Move to changelist… [enabled]
+shot changes-menu
+key ESCAPE
+# Tree drop locations use the native transfer handler.
+press node a.txt
+move node Feature
+shot tree-drop-hint
+release
+expect text Feature (1)
+# Bring it back through the text so there is still an unstaged change.
+click line Changelists
+exec bob
+press text M  a.txt
+move line Default (0)
+release
+expect text Default (1)
+# The lower status tree has its own menu and native drop locations.
+click button Changes
+expect sidebar top=none tree=true
+click double node Changelists
+click right node a.txt
+expect popup Stage [enabled]
+key ESCAPE
+press node a.txt
+move node Feature
+shot status-tree-drop-hint
+release
+expect text Feature (1)
+press node a.txt
+move node Default
+release
+expect text Default (1)
+# The Changes tab keeps multi-selection for its clicked-node menu, whose
+# Pick and Unpick take every node selected.
+exec vcsStatusUnpickAll
+exec sidebarListChanges
+click node Staged changes
+click ctrl node a.txt
+click ctrl node b.txt
+expect selection a.txt
+expect selection b.txt
+click right node b.txt
+expect popup Pick [enabled]
+shot changes-multi-selection
+menuitem Pick
+click right node a.txt
+expect popup Unpick [enabled]
+key ESCAPE
+click right node b.txt
+expect popup Unpick [enabled]
+shot changes-picked-files
+menuitem Unpick
+click right node a.txt
+expect popup Pick [enabled]
+key ESCAPE
+# Open the file's comparison, pick on its changed row, then return.
+exec vcsStatus
+exec bob
+exec vcsStatusDepth 4
+click line M  a.txt
+exec vcsStatusDiff
+exec vcsStatusDiffView
+wait 500
+click text line fifty
+key INSERT
+shot comparison-pick
+exec vcsStatus
+expect mode VcsStatus
+# The comparison's pick is the status's.
+click right line @@ -47,7
+expect popup Unpick [enabled]
+key ESCAPE
+exec vcsStatusUnpickAll
+# Two status models over this repository: a project of both repositories,
+# and this one alone, each at depth 4 before the save.
+exec openFile
+type @FIXTURE@/repo/a.txt
+key ENTER
+expect buffer a.txt
+exec projectRoot=@FIXTURE@
+exec vcsStatus
+exec vcsStatusDepth 4
+expect text d.txt
+shot multi-repository
+exec openFile
+type @FIXTURE@/repo/a.txt
+key ENTER
+exec projectRoot=@FIXTURE@/repo
+exec vcsStatus
+exec vcsStatusDepth 4
+expect-not text d.txt
+# A save through j: both show it, neither refreshed by the script.
+exec openFile
+type @FIXTURE@/repo/a.txt
+key ENTER
+exec bob
+exec insertString driver-edit:
+exec save
+expect text@repo +driver-edit:line 1
+expect text@repositories +driver-edit:line 1
+# The saved file's own pick command updates its change marks and shared picks.
+exec openFile
+type @FIXTURE@/repo/a.txt
+key ENTER
+exec bob
+simple: exec vcsPickHunk
+vim: type \h;
+expect status Picked a change of a.txt
+shot source-pick
+# Shared with the status.
+exec vcsStatus
+click right line @@ -1,
+expect popup Unpick [enabled]
+key ESCAPE
+exec openFile
+type @FIXTURE@/repo/a.txt
+key ENTER
+exec bob
+simple: exec vcsPickHunk
+vim: type \h;
+expect status Unpicked a change of a.txt
+# Ordinary text dragging keeps working, including its insertion caret.
+exec openFile
+type @FIXTURE@/repo/notes.txt
+key ENTER
+expect buffer notes.txt
+exec bob
+exec selectRight
+exec selectRight
+exec selectRight
+exec selectRight
+exec selectRight
+press text pha
+move text second
+shot ordinary-text-drop-caret
+release
+expect text alphasecond note
+# Moved, not copied.
+expect-not text alpha beta
+text
+# Leave panels other than the defaults for a second run in this home.
+exec sidebarListChanges
+click button Tree
+expect sidebar top=Changes tree=false
+log saved-panels
+shot final

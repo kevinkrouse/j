@@ -65,7 +65,7 @@ public class StatusPicksTest {
     }
 
     private Target.Part part(String section, StatusData.FileItem file, int hunk) {
-        return Target.Part.of(repository, section, file, file.diff().hunks().get(hunk), null);
+        return new Target.Part(repository, section, file, file.diff().hunks().get(hunk), null);
     }
 
     private Selections.Resolution resolve(StatusPicks picks, String section, StatusData.FileItem file) {
@@ -128,10 +128,12 @@ public class StatusPicksTest {
         // The picked repeated one gone, two others come; the unique one where it was.
         var after = file("a.txt", hunk(5, "repeated"), hunk(20, "repeated"), hunk(30, "unique"));
         var resolved = resolve(picks, "section", after);
-        assertEquals(Selections.Reason.AMBIGUOUS, resolved.problems().get(0).reason());
+        assertTrue(resolved.problems().get(0).message().contains("moved"), resolved.problems().get(0).message());
         picks.newRead();
         assertEquals(1, picks.retain(resolved));
-        assertEquals(Selections.Reason.AMBIGUOUS, picks.droppedProblems().get(0).reason());
+        assertTrue(
+            picks.droppedProblems().get(0).message().contains("moved"),
+            picks.droppedProblems().get(0).message());
         assertEquals(1, picks.targets().size());
         assertSame(after, ((Target.Part) picks.targets().get(0)).file());
         assertEquals("unique", ((Target.Part) picks.targets().get(0)).hunk().lines().get(1).text());
@@ -149,7 +151,9 @@ public class StatusPicksTest {
         assertFalse(picks.isEmpty());
         assertEquals(1, picks.retain(pending.readsFailed()));
         assertTrue(picks.isEmpty());
-        assertEquals(Selections.Reason.READ_FAILED, picks.droppedProblems().get(0).reason());
+        assertTrue(
+            picks.droppedProblems().get(0).message().matches("(?s).*(read|returned|failed|offline|unavailable).*"),
+            picks.droppedProblems().get(0).message());
     }
 
     @Test
@@ -183,7 +187,7 @@ public class StatusPicksTest {
         assertEquals(0, picks.retain(resolve(picks, "section", after)));
         assertEquals(PickState.SOME, picks.state(part("section", after, 0)));
         assertSame(after, ((Target.Part) picks.targets().get(0)).file());
-        assertEquals(BitSet.valueOf(new long[] { 8 }), ((Target.Part) picks.targets().get(0)).lines());
+        assertEquals(BitSet.valueOf(new long[] { 8 }), ((Target.Part) picks.targets().get(0)).selection());
     }
 
     @Test
@@ -192,13 +196,13 @@ public class StatusPicksTest {
             final Hunk first = hunk(1, "same");
             final Hunk second = hunk(row, "same");
             assertNotSame(first, second);
-            assertEquals(Selections.content(first), Selections.content(second));
+            assertEquals(Selections.fingerprint(first), Selections.fingerprint(second));
             // Equal record values must also retain occurrence identity.
             if (row == 1)
                 assertEquals(first, second);
             final var file = file("a.txt", first, second);
             final var picks = new StatusPicks();
-            final String prefix = Selections.content(first).fingerprint();
+            final String prefix = Selections.fingerprint(first);
             assertEquals(prefix + "#1", picks.hunkId(file, first));
             assertEquals(prefix + "#2", picks.hunkId(file, second));
             picks.set(List.of(part("section", file, 1)), true);

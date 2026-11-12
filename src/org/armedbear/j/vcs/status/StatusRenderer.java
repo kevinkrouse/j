@@ -36,6 +36,7 @@ import org.armedbear.j.vcs.changelists.Changelists.Changelist;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
@@ -74,12 +75,12 @@ public final class StatusRenderer {
      * @param expanded whether a node, by key and kind, is shown open
      * @param diffRead whether a file's diff, by key, has been read, so that
      *     none means it has none
-     * @param ids a diff's hunks by their ids, as {@link Selections#hunkIds}, read once
+     * @param ids a diff's hunks by their ids, as {@link Selections#index}, read once
      */
     static List<StatusLine> render(
             List<Part> parts,
             BiPredicate<String, Kind> expanded,
-            Predicate<String> diffRead,
+            Predicate<FileKey> diffRead,
             Function<FileDiff, Map<String, Hunk>> ids) {
         final StatusRenderer r = new StatusRenderer(expanded, diffRead, ids);
         for (Part part : parts)
@@ -99,7 +100,7 @@ public final class StatusRenderer {
             String section,
             List<FileItem> files,
             BiPredicate<String, Kind> expanded) {
-        return renderFiles(repository, key, section, files, expanded, Selections::hunkIds);
+        return renderFiles(repository, key, section, files, expanded, diff -> Selections.index(diff).hunks());
     }
 
     /**
@@ -121,14 +122,14 @@ public final class StatusRenderer {
     }
 
     private final BiPredicate<String, Kind> expanded;
-    private final Predicate<String> diffRead;
+    private final Predicate<FileKey> diffRead;
     private final Function<FileDiff, Map<String, Hunk>> ids;
     private final List<StatusLine> lines = new ArrayList<>();
     private int blanks;
 
     private StatusRenderer(
             BiPredicate<String, Kind> expanded,
-            Predicate<String> diffRead,
+            Predicate<FileKey> diffRead,
             Function<FileDiff, Map<String, Hunk>> ids) {
         this.expanded = expanded;
         this.diffRead = diffRead;
@@ -291,7 +292,9 @@ public final class StatusRenderer {
         if (!open)
             return;
         if (st.files() == null) {
-            final String message = diffRead.test(key) ? "No diff: see vcsCommandLog" : "Reading the stash…";
+            final String message = diffRead.test(new FileKey(repository, section, st.hash()))
+                    ? "No diff: see vcsCommandLog"
+                    : "Reading the stash…";
             add(new StatusLine(Kind.MESSAGE, INDENT + message, key + "|reading", key, repository, section));
             return;
         }
@@ -329,7 +332,9 @@ public final class StatusRenderer {
             return;
         final FileDiff diff = f.diff();
         if (diff == null) {
-            final String message = diffRead.test(fk) ? "No diff: see vcsCommandLog" : "Reading the diff…";
+            final String message = (section == null || diffRead.test(new FileKey(repository, section, f.path())))
+                    ? "No diff: see vcsCommandLog"
+                    : "Reading the diff…";
             add(new StatusLine(Kind.MESSAGE, in + INDENT + message, fk + "|reading", fk, repository, section).file(f));
             return;
         }

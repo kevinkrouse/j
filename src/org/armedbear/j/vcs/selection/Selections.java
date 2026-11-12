@@ -37,7 +37,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.armedbear.j.vcs.VcsBackend.ChangeVersion;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
@@ -49,98 +48,6 @@ import org.armedbear.j.vcs.status.StatusData.FileItem;
 /** Selection identity and line coordinates, without I/O or presentation state. */
 public final class Selections {
     private Selections() {}
-
-    /**
-     * Compares a repository's selections and the versions staging them produces.
-     * Versions include every selected path, even when a side is absent.
-     */
-    public static boolean sameChanges(
-            List<Target> reviewed,
-            Map<String, ChangeVersion> before,
-            List<Target> current,
-            Map<String, ChangeVersion> after) {
-        if (!before.equals(after))
-            return false;
-        return sameSelection(reviewed, current, before);
-    }
-
-    /** Compares the captured selection without repository reads. */
-    public static boolean sameSelection(List<Target> reviewed, List<Target> current) {
-        return sameSelection(reviewed, current, null);
-    }
-
-    private static boolean sameSelection(
-            List<Target> reviewed,
-            List<Target> current,
-            Map<String, ChangeVersion> versions) {
-        final Map<FileDiff, Hunks> indexes = new IdentityHashMap<>();
-        final Map<FileDiff, Map<Hunk, String>> reverse = new IdentityHashMap<>();
-        final Map<FileKey, Chosen> a = chosen(reviewed, versions, indexes, reverse);
-        final Map<FileKey, Chosen> b = chosen(current, versions, indexes, reverse);
-        return a != null && b != null && a.equals(b);
-    }
-
-    private record Piece(Content content, int twins, LineSet lines, List<Integer> baseRows) {}
-
-    private record Chosen(String original, char letter, boolean staged, Map<String, Piece> parts) {}
-
-    private static Map<FileKey, Chosen> chosen(
-            List<Target> targets,
-            Map<String, ChangeVersion> versions,
-            Map<FileDiff, Hunks> indexes,
-            Map<FileDiff, Map<Hunk, String>> reverse) {
-        final Builder builder = new Builder();
-        for (Target target : targets)
-            if (target instanceof Target.Files files)
-                for (FileItem file : files.files())
-                    builder.file(target.repository(), target.section(), file);
-            else {
-                final Target.Part part = (Target.Part) target;
-                builder.lines(part.repository(), part.section(), part.file(), part.hunk(), part.lines());
-            }
-        final Map<FileKey, Chosen> result = new HashMap<>();
-        for (Target target : builder.build()) {
-            for (FileItem file : target.files()) {
-                final FileKey key = new FileKey(target.repository(), target.section(), file.path());
-                if (file.diffError() != null || versions != null && !versions.containsKey(file.path()))
-                    return null;
-                final boolean whole = target instanceof Target.Files;
-                final Chosen chosen = result.computeIfAbsent(
-                    key,
-                    k -> new Chosen(file.change().origPath(),
-                            file.letter(),
-                            file.staged(),
-                            whole ? null : new HashMap<>()));
-                if (whole)
-                    continue;
-                final Target.Part part = (Target.Part) target;
-                final FileDiff diff = file.diff();
-                if (diff == null || diff.isBinary() || diff.isCombined())
-                    return null;
-                final Hunks index = indexes.computeIfAbsent(diff, Selections::index);
-                final Map<Hunk, String> ids = reverse.computeIfAbsent(diff, d -> {
-                    final Map<Hunk, String> map = new IdentityHashMap<>();
-                    index.hunks().forEach((id, hunk) -> map.put(hunk, id));
-                    return map;
-                });
-                final String id = ids.get(part.hunk());
-                if (id == null)
-                    return null;
-                final BitSet lines = part.lines();
-                final BitSet selected = lines == null ? new BitSet() : lines;
-                if (lines == null)
-                    selected.set(0, part.hunk().lines().size());
-                chosen.parts()
-                        .put(
-                            id,
-                            new Piece(index.contents().get(id),
-                                    index.twins().get(id),
-                                    changedLines(part.hunk(), selected),
-                                    baseRows(part.hunk(), selected)));
-            }
-        }
-        return result;
-    }
 
     // Removals identify a base row. Additions identify the gap before the
     // next base row. Context width and working-tree row shifts do not matter.
@@ -166,7 +73,7 @@ public final class Selections {
         private final Function<FileDiff, Map<String, Hunk>> lookup;
 
         public Builder() {
-            this(Selections::hunkIds);
+            this(diff -> index(diff).hunks());
         }
 
         public Builder(Function<FileDiff, Map<String, Hunk>> lookup) {
@@ -192,7 +99,7 @@ public final class Selections {
         private Lines part(VcsRepository repository, String section, FileItem file, Hunk hunk) {
             final FileKey key = new FileKey(repository, section, file.path());
             return parts.computeIfAbsent(key, k -> new IdentityHashMap<>()).computeIfAbsent(hunk, h -> {
-                final Target.Part target = Target.Part.of(repository, section, file, hunk, null);
+                final Target.Part target = new Target.Part(repository, section, file, hunk, null);
                 order.add(target);
                 return new Lines();
             });
@@ -209,8 +116,10 @@ public final class Selections {
         }
 
         public Builder line(VcsRepository repository, String section, FileItem file, Hunk hunk, int index) {
+            if (index < 0 || index >= hunk.lines().size() || hunk.lines().get(index).isContext())
+                return this;
             final Lines part = part(repository, section, file, hunk);
-            if (!part.whole && index >= 0)
+            if (!part.whole)
                 part.selected.set(index);
             return this;
         }
@@ -251,18 +160,14 @@ public final class Selections {
                 else {
                     final BitSet bits = (BitSet) selected.selected.clone();
                     Patch.pairChanges(part.hunk(), bits);
-                    result.add(part.withLines(bits));
+                    result.add(new Target.Part(part.repository(), part.section(), part.file(), part.hunk(), bits));
                 }
             }
             return List.copyOf(result);
         }
     }
 
-    public enum Reason {
-        GONE, CHANGED, AMBIGUOUS, UNSUPPORTED, READ_FAILED
-    }
-
-    public record Problem(FileKey file, Reason reason, String message) {}
+    public record Problem(FileKey file, String message) {}
 
     /**
      * Valid targets retain input order and may be kept by picks. A command
@@ -293,7 +198,7 @@ public final class Selections {
         public Resolution readsFailed() {
             final List<Problem> failed = new ArrayList<>(problems);
             for (FileKey file : unread)
-                failed.add(new Problem(file, Reason.READ_FAILED, "Could not read the selected diff"));
+                failed.add(new Problem(file, "Could not read the selected diff"));
             return new Resolution(targets, Set.of(), failed);
         }
     }
@@ -308,15 +213,20 @@ public final class Selections {
             List<Target> captured,
             Map<VcsRepository, StatusData> status,
             Predicate<FileKey> read) {
-        return resolve(captured, status, read, Selections::index);
+        return resolve(captured, status, read, Selections::index, key -> false);
     }
 
-    /** As resolve, sharing the caller's immutable-diff index cache. */
+    /**
+     * As resolve, sharing the caller's immutable-diff index cache, and
+     * requiring whole-file diffs where requireDiff says, as moves to local
+     * changelists do for their anchors.
+     */
     public static Resolution resolve(
             List<Target> captured,
             Map<VcsRepository, StatusData> status,
             Predicate<FileKey> read,
-            Function<FileDiff, Hunks> index) {
+            Function<FileDiff, Hunks> index,
+            Predicate<FileKey> requireDiff) {
         final List<Target> resolved = new ArrayList<>();
         final Set<FileKey> unread = new LinkedHashSet<>();
         final List<Problem> problems = new ArrayList<>();
@@ -335,9 +245,7 @@ public final class Selections {
             final List<FileItem> selected = target.files();
             if (selected.isEmpty()) {
                 problems.add(
-                    new Problem(new FileKey(target.repository(), target.section(), ""),
-                            Reason.UNSUPPORTED,
-                            "No files were selected"));
+                    new Problem(new FileKey(target.repository(), target.section(), ""), "No files were selected"));
                 continue;
             }
             final List<FileItem> currentFiles = new ArrayList<>();
@@ -346,45 +254,43 @@ public final class Selections {
                 final StatusData data = status.get(target.repository());
                 final FileItem current = files.get(key);
                 if (data == null || data.error() != null) {
-                    problems.add(
-                        new Problem(key,
-                                Reason.READ_FAILED,
-                                data == null ? "The status is unavailable" : data.error()));
+                    problems.add(new Problem(key, data == null ? "The status is unavailable" : data.error()));
                     continue;
                 }
                 if (current == null) {
-                    problems.add(new Problem(key, Reason.GONE, "The file is no longer in this section"));
+                    problems.add(new Problem(key, "The file is no longer in this section"));
                     continue;
                 }
-                if (target instanceof Target.Files) {
-                    // Its current changes, but of the same kind.
-                    if (!sameChange(selectedFile, current)) {
-                        problems.add(new Problem(key, Reason.CHANGED, "The selected file change has changed"));
+                if (!sameChange(selectedFile, current)) {
+                    problems.add(new Problem(key, "The selected file change has changed"));
+                    continue;
+                }
+                if (target instanceof Target.Part || requireDiff.test(key) && current.hasDiff()) {
+                    if (current.diffError() != null) {
+                        problems.add(new Problem(key, current.diffError()));
                         continue;
                     }
+                    if (current.diff() == null) {
+                        if (read.test(key))
+                            problems.add(new Problem(key, "The requested diff was not returned"));
+                        else if (!current.hasDiff())
+                            problems.add(new Problem(key, "This change cannot be selected in part"));
+                        else
+                            unread.add(key);
+                        continue;
+                    }
+                }
+                if (target instanceof Target.Files) {
                     currentFiles.add(current);
                     continue;
                 }
                 final Target.Part part = (Target.Part) target;
-                if (current.diffError() != null) {
-                    problems.add(new Problem(key, Reason.READ_FAILED, current.diffError()));
-                    continue;
-                }
-                if (current.diff() == null) {
-                    if (read.test(key))
-                        problems.add(new Problem(key, Reason.READ_FAILED, "The requested diff was not returned"));
-                    else if (!current.hasDiff())
-                        problems.add(new Problem(key, Reason.UNSUPPORTED, "This change cannot be selected in part"));
-                    else
-                        unread.add(key);
-                    continue;
-                }
                 if (current.diff().isBinary() || current.diff().isCombined()) {
-                    problems.add(new Problem(key, Reason.UNSUPPORTED, "This change cannot be selected in part"));
+                    problems.add(new Problem(key, "This change cannot be selected in part"));
                     continue;
                 }
-                if (part.file().diff() == null || !sameChange(part.file(), current)) {
-                    problems.add(new Problem(key, Reason.CHANGED, "The selected file change has changed"));
+                if (part.file().diff() == null) {
+                    problems.add(new Problem(key, "The selected file change has changed"));
                     continue;
                 }
                 // An immutable diff still used by the current read needs no
@@ -410,31 +316,29 @@ public final class Selections {
                     return reverse;
                 });
                 final String id = sourceIds.get(part.hunk());
-                final Content content = id == null ? null : before.contents().get(id);
-                if (content == null) {
-                    problems.add(new Problem(key, Reason.CHANGED, "The selected hunk is unavailable"));
+                if (id == null) {
+                    problems.add(new Problem(key, "The selected hunk is unavailable"));
                     continue;
                 }
+                final String fingerprint = id.substring(0, id.lastIndexOf('#'));
                 final Hunks now = indexes.computeIfAbsent(current.diff(), index);
-                final Hunk hunk = match(now, part.hunk(), content);
+                final Hunk hunk = match(now, part.hunk(), fingerprint);
                 if (hunk == null) {
                     problems.add(
                         new Problem(key,
-                                now.twins().containsKey(content.fingerprint() + "#1")
-                                        ? Reason.AMBIGUOUS
-                                        : Reason.CHANGED,
-                                now.twins().containsKey(content.fingerprint() + "#1")
+                                now.count(fingerprint) > 0
                                         ? "The selected hunk moved: select it again"
                                         : "The selected hunk has changed: select it again"));
                     continue;
                 }
                 resolved.add(
-                    Target.Part.of(
-                        target.repository(),
-                        target.section(),
-                        current,
-                        hunk,
-                        part.selection() == null ? null : hunkLines(hunk, changedLines(part.hunk(), part.lines()))));
+                    new Target.Part(target.repository(),
+                            target.section(),
+                            current,
+                            hunk,
+                            part.selection() == null
+                                    ? null
+                                    : hunkLines(hunk, changedLines(part.hunk(), part.selection()))));
             }
             if (target instanceof Target.Files && !currentFiles.isEmpty())
                 resolved.add(new Target.Files(target.repository(), target.section(), currentFiles));
@@ -449,39 +353,10 @@ public final class Selections {
     }
 
     /**
-     * The ordered changed bytes and their newline/combined-diff metadata.
-     * Context and row numbers are deliberately absent. The digest locates
-     * candidates; canonical equality confirms them. Hashing this value never
-     * walks a large diff again.
+     * A hunk's identity: a SHA-256 of its changed lines in order, with their
+     * newline and combined-diff marks. Context and rows are left out.
      */
-    public static final class Content {
-        private final List<DiffLine> lines;
-        private final String fingerprint;
-
-        private Content(List<DiffLine> lines, String fingerprint) {
-            this.lines = List.copyOf(lines);
-            this.fingerprint = fingerprint;
-        }
-
-        public String fingerprint() {
-            return fingerprint;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            return this == other
-                    || other instanceof Content content
-                            && fingerprint.equals(content.fingerprint)
-                            && lines.equals(content.lines);
-        }
-
-        @Override
-        public int hashCode() {
-            return fingerprint.hashCode();
-        }
-    }
-
-    public static Content content(Hunk hunk) {
+    public static String fingerprint(Hunk hunk) {
         final MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
@@ -489,18 +364,16 @@ public final class Selections {
         catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
-        final List<DiffLine> lines = new ArrayList<>();
         for (DiffLine line : hunk.lines()) {
             if (line.isContext())
                 continue;
-            lines.add(line);
             digest.update((byte) line.kind());
             // Diff text is the original bytes represented as ISO-8859-1.
             text(digest, line.text());
             digest.update((byte) (line.noNewline() ? 1 : 0));
             text(digest, line.marks());
         }
-        return new Content(lines, HexFormat.of().formatHex(digest.digest()));
+        return HexFormat.of().formatHex(digest.digest());
     }
 
     // Length-prefix each field, distinguishing null and empty without
@@ -516,33 +389,29 @@ public final class Selections {
             digest.update(bytes);
     }
 
-    /** One diff's occurrence ids, canonical contents, and duplicate counts. */
-    public record Hunks(Map<String, Hunk> hunks, Map<String, Content> contents, Map<String, Integer> twins) {
+    /** One diff's hunks by id: a fingerprint, # and its occurrence from 1. */
+    public record Hunks(Map<String, Hunk> hunks) {
         public Hunks {
             hunks = Collections.unmodifiableMap(new LinkedHashMap<>(hunks));
-            contents = Map.copyOf(contents);
-            twins = Map.copyOf(twins);
+        }
+
+        /** How many hunks have this fingerprint. */
+        public int count(String fingerprint) {
+            int n = 0;
+            while (hunks.containsKey(fingerprint + "#" + (n + 1)))
+                n++;
+            return n;
         }
     }
 
     public static Hunks index(FileDiff diff) {
         final Map<String, Hunk> hunks = new LinkedHashMap<>();
-        final Map<String, Content> contents = new LinkedHashMap<>();
         final Map<String, Integer> counts = new HashMap<>();
         for (Hunk hunk : diff.hunks()) {
-            final Content content = content(hunk);
-            final String digest = content.fingerprint();
-            final String id = digest + "#" + counts.merge(digest, 1, Integer::sum);
-            hunks.put(id, hunk);
-            contents.put(id, content);
+            final String digest = fingerprint(hunk);
+            hunks.put(digest + "#" + counts.merge(digest, 1, Integer::sum), hunk);
         }
-        final Map<String, Integer> twins = new HashMap<>();
-        contents.forEach((id, content) -> twins.put(id, counts.get(content.fingerprint())));
-        return new Hunks(hunks, contents, twins);
-    }
-
-    public static Map<String, Hunk> hunkIds(FileDiff diff) {
-        return index(diff).hunks();
+        return new Hunks(hunks);
     }
 
     /**
@@ -552,18 +421,13 @@ public final class Selections {
      * (both, as a line added above and committed). Null if none or several
      * do, so a change undone and made again elsewhere isn't followed.
      */
-    public static Hunk match(Hunks current, Hunk before, Content expected) {
-        if (expected == null)
-            return null;
+    public static Hunk match(Hunks current, Hunk before, String fingerprint) {
         final List<Integer> base = baseRows(before, null);
         final List<Integer> working = workingRows(before);
         Hunk found = null;
-        final int count = current.twins().getOrDefault(expected.fingerprint() + "#1", 0);
+        final int count = current.count(fingerprint);
         for (int i = 1; i <= count; i++) {
-            final String id = expected.fingerprint() + "#" + i;
-            final Hunk candidate = current.hunks().get(id);
-            if (!expected.equals(current.contents().get(id)))
-                continue;
+            final Hunk candidate = current.hunks().get(fingerprint + "#" + i);
             final boolean sameBase = base.equals(baseRows(candidate, null));
             final boolean sameWorking = working.equals(workingRows(candidate));
             if (sameBase && sameWorking)
@@ -623,7 +487,7 @@ public final class Selections {
     }
 
     /** Hunk indexes expressed as offsets among changed lines, excluding context. */
-    public static LineSet changedLines(Hunk hunk, BitSet indexes) {
+    public static BitSet changedLines(Hunk hunk, BitSet indexes) {
         final BitSet offsets = new BitSet();
         int changed = 0;
         for (int i = 0; i < hunk.lines().size(); i++)
@@ -632,12 +496,11 @@ public final class Selections {
                     offsets.set(changed);
                 changed++;
             }
-        return new LineSet(offsets);
+        return offsets;
     }
 
     /** Offsets among changed lines expressed in a current hunk's indexes. */
-    public static BitSet hunkLines(Hunk hunk, LineSet selected) {
-        final BitSet offsets = selected.toBitSet();
+    public static BitSet hunkLines(Hunk hunk, BitSet offsets) {
         final BitSet indexes = new BitSet();
         int changed = 0;
         for (int i = 0; i < hunk.lines().size(); i++)

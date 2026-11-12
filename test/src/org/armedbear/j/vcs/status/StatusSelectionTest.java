@@ -86,8 +86,7 @@ public class StatusSelectionTest {
         // Only selection construction is timed. The generous bound catches
         // hashing all 64,000 diff lines for each row (seconds of UI freeze),
         // while allowing ample time for the linear walk on slower machines.
-        final List<Target> targets =
-                assertTimeout(Duration.ofSeconds(5), () -> StatusActions.targetsOf(null, selection));
+        final List<Target> targets = assertTimeout(Duration.ofSeconds(5), () -> StatusLine.capture(null, selection));
         assertEquals(1, targets.size());
         assertEquals(List.of(item), ((Target.Files) targets.get(0)).files());
     }
@@ -98,7 +97,7 @@ public class StatusSelectionTest {
         final Hunk hunk = new Hunk(0, 0, 1, 1, "", List.of(new DiffLine('+', "new", false)));
         final FileItem partial = item(diff(hunk));
         final FileItem whole = item(null);
-        final List<Target> targets = StatusActions.targetsOf(
+        final List<Target> targets = StatusLine.capture(
             null,
             List.of(
                 hunk(repository, "unstaged", partial, hunk),
@@ -119,7 +118,7 @@ public class StatusSelectionTest {
         final FileItem a = item(null);
         final FileItem b =
                 new FileItem(new FileChange("b.txt", null, null, FileChange.Kind.MODIFIED, " M"), 'M', false, null);
-        final List<Target> targets = StatusActions.targetsOf(
+        final List<Target> targets = StatusLine.capture(
             null,
             List.of(
                 file(repository, "unstaged", b),

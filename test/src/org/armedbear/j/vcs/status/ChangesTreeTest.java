@@ -306,6 +306,29 @@ public class ChangesTreeTest {
         throw new AssertionError("no repository node in " + rows());
     }
 
+    @Test
+    public void aRefreshKeepsEverySelectedFileForTheContextMenu() throws Exception {
+        git = repository(tmp);
+        show(tmp);
+        onEdt(() -> {
+            for (int row = 0; row < tree.getRowCount(); row++)
+                tree.expandRow(row);
+            tree.setSelectionPaths(
+                new javax.swing.tree.TreePath[] { pathTo(file("Unstaged", "a.txt")), pathTo(file("Staged", "b.txt")) });
+            assertEquals(2, tree.getSelectionCount());
+        });
+        git.write("fresh.txt", "another change\n");
+        repo().invalidateFiles();
+        onEdt(tree::again);
+        until(() -> rows().stream().anyMatch(row -> row.contains("fresh.txt")));
+        onEdt(() -> {
+            assertEquals(2, tree.getSelectionCount());
+            assertEquals(
+                "Commit files…",
+                item(tree.menuFor(pathTo(file("Staged", "b.txt"))), "vcsCommitFiles").getText());
+        });
+    }
+
     // Several files selected: the menu takes them all, "Commit files…".
     @Test
     public void severalFilesSelectedCommitFilesAndGroupsStaySingle() throws Exception {
@@ -402,10 +425,12 @@ public class ChangesTreeTest {
                 }
             ChangelistCommands.moveTargets(
                 status,
-                StatusActions.listTargets(
-                    repo(),
-                    StatusRenderer.UNSTAGED,
-                    List.of(new org.armedbear.j.vcs.selection.Target.Member(a.file(), only))),
+                new org.armedbear.j.vcs.selection.Selections.Builder()
+                        .member(
+                            repo(),
+                            StatusRenderer.UNSTAGED,
+                            new org.armedbear.j.vcs.selection.Target.Member(a.file(), only))
+                        .build(),
                 new ChangelistCommands.Destination(repo(), "Feature"),
                 s -> {});
 
@@ -624,7 +649,10 @@ public class ChangesTreeTest {
             model.pick(List.of(heading));
             assertEquals(expected, model.picks().captured(), "status text and Changes tree");
             model.unpickAll();
-            final RowPicks rows = new RowPicks(model, () -> model.unstagedOf(repo(), "a.txt"), () -> "No change");
+            final RowPicks rows = new RowPicks(model,
+                    () -> new org.armedbear.j.vcs.selection.FileKey(repo(), "unstaged", "a.txt"),
+                    () -> model.unstaged(repo(), "a.txt"),
+                    () -> "No change");
             rows.setSigns(49, 49, true);
             assertEquals(expected, model.picks().captured(), "editor gutter");
             model.unpickAll();
@@ -660,6 +688,31 @@ public class ChangesTreeTest {
             assertEquals(List.of("Not in a repository"), rows());
         });
         assertEquals("outside a repository\n", Files.readString(file));
+    }
+
+    @Test
+    public void aRestoredChangesTabCanRenderBeforeTheFirstEditorExists() throws Exception {
+        onEdt(() -> {
+            // Startup constructs the sidebar while the first Frame is still being built.
+            // The public setter needs a complete editor, so preserve the startup field directly.
+            try {
+                final var field = Editor.class.getDeclaredField("currentEditor");
+                field.setAccessible(true);
+                final Object previous = field.get(null);
+                try {
+                    field.set(null, null);
+                    tree = new ChangesTree(null, kept);
+                    final var root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+                    tree.getCellRenderer().getTreeCellRendererComponent(tree, root, false, false, true, 0, false);
+                }
+                finally {
+                    field.set(null, previous);
+                }
+            }
+            catch (ReflectiveOperationException e) {
+                throw new AssertionError(e);
+            }
+        });
     }
 
     @Test

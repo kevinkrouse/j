@@ -46,6 +46,7 @@ import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.git.GitFixture;
+import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.junit.jupiter.api.AfterEach;
@@ -198,7 +199,7 @@ public class PartialCommitTest {
         final var member = new Target.Member(status.model().unstaged(repo(), "a.txt"), only);
         ChangelistCommands.moveTargets(
             status.model(),
-            StatusActions.listTargets(repo(), StatusRenderer.UNSTAGED, List.of(member)),
+            new Selections.Builder().member(repo(), StatusRenderer.UNSTAGED, member).build(),
             new ChangelistCommands.Destination(repo(), "Feature"),
             said::add);
     }
@@ -559,7 +560,7 @@ public class PartialCommitTest {
     }
 
     private Target.Part part(StatusData.FileItem file, int hunk) {
-        return Target.Part.of(repo(), StatusRenderer.UNSTAGED, file, file.diff().hunks().get(hunk), null);
+        return new Target.Part(repo(), StatusRenderer.UNSTAGED, file, file.diff().hunks().get(hunk), null);
     }
 
     @Test
@@ -601,8 +602,8 @@ public class PartialCommitTest {
         }
         assertFalse(three.isEmpty());
         assertFalse(four.isEmpty());
-        final var first = Target.Part.of(repo(), StatusRenderer.UNSTAGED, file, hunk, three);
-        final var second = Target.Part.of(repo(), StatusRenderer.UNSTAGED, file, hunk, four);
+        final var first = new Target.Part(repo(), StatusRenderer.UNSTAGED, file, hunk, three);
+        final var second = new Target.Part(repo(), StatusRenderer.UNSTAGED, file, hunk, four);
         onEdt(() -> {
             status.picks().set(List.of(first), true);
             CommitCommands.vcsCommitPicked(h.editor());

@@ -61,7 +61,6 @@ import org.armedbear.j.vcs.conflicts.ConflictMarkers;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.diff.Patch;
-import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Files;
 import org.armedbear.j.vcs.selection.Target.Part;
@@ -113,23 +112,7 @@ public final class StatusActions {
      * no selection, which is always meant, comes before it.
      */
     static boolean takesPicks(RepositoryStatus model, Editor editor) {
-        return !fromMenu && !model.picks().isEmpty() && !Region.isSelection(editor);
-    }
-
-    // Whether a context menu's item runs: it takes the line right-clicked,
-    // or the selection it is in, before the picks.
-    private static boolean fromMenu;
-
-    /** Runs a context menu's item: its command takes the line or selection, not the picks. */
-    static void fromMenu(Runnable item) {
-        final boolean was = fromMenu;
-        fromMenu = true;
-        try {
-            item.run();
-        }
-        finally {
-            fromMenu = was;
-        }
+        return !model.picks().isEmpty() && !Region.isSelection(editor);
     }
 
     /**
@@ -148,51 +131,7 @@ public final class StatusActions {
 
     /** As targets, picked whether it takes the picks, as takesPicks says. */
     static List<Target> targets(RepositoryStatus model, Editor editor, boolean picked) {
-        return picked ? model.picks().targets() : targetsOf(model, selected(editor));
-    }
-
-    /**
-     * What these status lines take, as the status's own lines would: whole
-     * files, a changelist heading its members, a hunk or some of its
-     * lines a Part. The text and status-tree adapter for shared capture.
-     */
-    static List<Target> targetsOf(RepositoryStatus model, List<StatusLine> lines) {
-        final Selections.Builder selected =
-                model == null ? new Selections.Builder() : new Selections.Builder(model.picks()::ids);
-        for (StatusLine line : lines) {
-            if (line == null || line.repository() == null || line.section() == null)
-                continue;
-            final VcsRepository repository = line.repository();
-            final String section = line.section();
-            switch (line.kind()) {
-                case SECTION ->
-                        model.files(repository, section).forEach(file -> selected.file(repository, section, file));
-                case LIST -> line.members().forEach(member -> selected.member(repository, section, member));
-                case FILE, MESSAGE -> {
-                    if (line.file() != null)
-                        selected.member(repository, section, new Target.Member(line.file(), line.only()));
-                }
-                case HUNK -> {
-                    if (line.only() != null)
-                        selected.member(repository, section, new Target.Member(line.file(), line.only()));
-                    else
-                        selected.lines(repository, section, line.file(), line.hunk(), null);
-                }
-                case DIFF -> {
-                    if (!line.isForeign())
-                        selected.line(repository, section, line.file(), line.hunk(), line.diffIndex());
-                }
-                default -> {}
-            }
-        }
-        return selected.build();
-    }
-
-    /** A changelist's current members captured as shared targets. */
-    static List<Target> listTargets(VcsRepository repository, String section, List<Target.Member> members) {
-        final Selections.Builder selected = new Selections.Builder();
-        members.forEach(member -> selected.member(repository, section, member));
-        return selected.build();
+        return picked ? model.picks().targets() : StatusLine.capture(model, selected(editor));
     }
 
     /**
@@ -407,7 +346,7 @@ public final class StatusActions {
                     else
                         changed.computeIfAbsent(f.repository(), r -> new ArrayList<>()).add(i.path());
             } else if (t instanceof Part p) {
-                n += markersAdded(p.hunk(), p.lines());
+                n += markersAdded(p.hunk(), p.selection());
             }
         for (Map.Entry<VcsRepository, List<String>> e : changed.entrySet())
             n += markersAdded(e.getKey(), e.getValue());
@@ -810,9 +749,9 @@ public final class StatusActions {
     }
 
     private static byte[] patch(Part p, boolean reverse) {
-        return p.lines() == null
+        return p.selection() == null
                 ? Patch.forHunk(p.file().diff(), p.hunk(), reverse)
-                : Patch.forLines(p.file().diff(), p.hunk(), p.lines(), reverse);
+                : Patch.forLines(p.file().diff(), p.hunk(), p.selection(), reverse);
     }
 
     private static boolean stillThere(VcsRepository r, Part p) {
@@ -921,7 +860,7 @@ public final class StatusActions {
         // As for staging: a patch from an old diff can apply elsewhere.
         if (!stillThere(r, p))
             return p.file().path() + " changed since it was shown; look again";
-        if (hasStaging(p) && p.lines() == null && p.file().diff().isNew()) {
+        if (hasStaging(p) && p.selection() == null && p.file().diff().isNew()) {
             steps.add(new Trash(r, p.file(), true));
             return null;
         }
@@ -1020,7 +959,7 @@ public final class StatusActions {
                     changes.add(new Files(f.repository(), f.section(), kept));
             } else if (t instanceof Part p
                     && hasStaging(p)
-                    && p.lines() == null
+                    && p.selection() == null
                     && p.file().diff() != null
                     && p.file().diff().isNew())
                 untracked.add(p.file().path());
@@ -1051,9 +990,10 @@ public final class StatusActions {
                 for (FileItem i : f.files())
                     names.add(i.path());
             else if (t instanceof Part p) {
-                final int n = p.lines() == null ? 0 : p.lines().cardinality();
+                final int n = p.selection() == null ? 0 : p.selection().cardinality();
                 names.add(
-                    (p.lines() == null ? "a hunk of " : n == 1 ? "a line of " : n + " lines of ") + p.file().path());
+                    (p.selection() == null ? "a hunk of " : n == 1 ? "a line of " : n + " lines of ")
+                            + p.file().path());
             }
         }
         return list(names);

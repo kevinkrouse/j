@@ -72,7 +72,7 @@ public class SelectionsResolveTest {
     }
 
     private Target.Part part(FileItem file) {
-        return Target.Part.of(repository, "section|opaque", file, file.diff().hunks().get(0), null);
+        return new Target.Part(repository, "section|opaque", file, file.diff().hunks().get(0), null);
     }
 
     private Selections.Resolution resolve(List<Target> targets, FileItem... files) {
@@ -112,7 +112,7 @@ public class SelectionsResolveTest {
         FileItem before = item("a.txt", diff(hunk(32, "new")));
         BitSet bits = new BitSet();
         bits.set(1);
-        var selected = Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(0), bits);
+        var selected = new Target.Part(repository, "section|opaque", before, before.diff().hunks().get(0), bits);
         Hunk moved = new Hunk(30,
                 3,
                 40,
@@ -125,8 +125,8 @@ public class SelectionsResolveTest {
                     new DiffLine('+', "new", false)));
         var resolved = resolve(List.of(selected), item("a.txt", diff(moved)));
         assertTrue(resolved.ready());
-        assertEquals(BitSet.valueOf(new long[] { 8 }), ((Target.Part) resolved.targets().get(0)).lines());
-        assertEquals(BitSet.valueOf(new long[] { 2 }), selected.lines());
+        assertEquals(BitSet.valueOf(new long[] { 8 }), ((Target.Part) resolved.targets().get(0)).selection());
+        assertEquals(BitSet.valueOf(new long[] { 2 }), selected.selection());
     }
 
     @Test
@@ -138,18 +138,24 @@ public class SelectionsResolveTest {
         assertFalse(pending.ready());
         assertFalse(pending.unread().isEmpty());
         var omitted = Selections.resolve(selected, status(unread), key -> true);
-        assertEquals(Selections.Reason.READ_FAILED, omitted.problems().get(0).reason());
+        assertTrue(
+            omitted.problems().get(0).message().matches("(?s).*(read|returned|failed|offline|unavailable).*"),
+            omitted.problems().get(0).message());
         assertTrue(omitted.unread().isEmpty());
         var exhausted = pending.readsFailed();
         assertTrue(exhausted.unread().isEmpty());
-        assertEquals(Selections.Reason.READ_FAILED, exhausted.problems().get(0).reason());
+        assertTrue(
+            exhausted.problems().get(0).message().matches("(?s).*(read|returned|failed|offline|unavailable).*"),
+            exhausted.problems().get(0).message());
         FileItem failed = new FileItem(unread.change(), 'M', false, null, "backend read failed");
         var failure = resolve(selected, failed);
-        assertEquals(Selections.Reason.READ_FAILED, failure.problems().get(0).reason());
+        assertTrue(
+            failure.problems().get(0).message().matches("(?s).*(read|returned|failed|offline|unavailable).*"),
+            failure.problems().get(0).message());
         assertTrue(failure.unread().isEmpty());
         assertTrue(failure.failure().contains("backend read failed"));
         var empty = resolve(selected, item("a.txt", FileDiff.EMPTY));
-        assertEquals(Selections.Reason.CHANGED, empty.problems().get(0).reason());
+        assertTrue(empty.problems().get(0).message().contains("changed"), empty.problems().get(0).message());
         assertTrue(empty.unread().isEmpty());
     }
 
@@ -160,7 +166,9 @@ public class SelectionsResolveTest {
             new FileDiff(List.of(), "a", "a", false, false, true, false, List.of(), false),
             FileDiff.NO_COMBINED)) {
             var result = resolve(selected, item("a.txt", unsupported));
-            assertEquals(Selections.Reason.UNSUPPORTED, result.problems().get(0).reason());
+            assertTrue(
+                result.problems().get(0).message().contains("cannot be selected in part"),
+                result.problems().get(0).message());
             assertTrue(result.unread().isEmpty());
         }
     }
@@ -169,9 +177,9 @@ public class SelectionsResolveTest {
     public void changedAndAmbiguousHunksCannotSilentlySelectAnotherOccurrence() {
         var selected = List.<Target>of(part(item("a.txt", diff(hunk(1, "Aa")))));
         var changed = resolve(selected, item("a.txt", diff(hunk(1, "BB"))));
-        assertEquals(Selections.Reason.CHANGED, changed.problems().get(0).reason());
+        assertTrue(changed.problems().get(0).message().contains("changed"), changed.problems().get(0).message());
         var moved = resolve(selected, item("a.txt", diff(hunk(30, "Aa"))));
-        assertEquals(Selections.Reason.AMBIGUOUS, moved.problems().get(0).reason());
+        assertTrue(moved.problems().get(0).message().contains("moved"), moved.problems().get(0).message());
         assertTrue(moved.targets().isEmpty());
     }
 
@@ -181,19 +189,19 @@ public class SelectionsResolveTest {
         final FileItem single = item("a.txt", diff(hunk(10, "X")));
         final var one = List.<Target>of(part(single));
         final var elsewhere = resolve(one, item("a.txt", diff(hunk(80, "X"))));
-        assertEquals(Selections.Reason.AMBIGUOUS, elsewhere.problems().get(0).reason());
+        assertTrue(elsewhere.problems().get(0).message().contains("moved"), elsewhere.problems().get(0).message());
         assertTrue(elsewhere.targets().isEmpty());
         // X at 10 and at 100, the one at 100 picked; then X at 10 gone and
         // one at 200 come: the pick stays at 100.
         final FileItem before = item("a.txt", diff(hunk(10, "X"), hunk(100, "X")));
         final var picked = List
-                .<Target>of(Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(1), null));
+                .<Target>of(new Target.Part(repository, "section|opaque", before, before.diff().hunks().get(1), null));
         final var moved = resolve(picked, item("a.txt", diff(hunk(100, "X"), hunk(200, "X"))));
         assertTrue(moved.problems().isEmpty());
         assertEquals(100, ((Target.Part) moved.targets().get(0)).hunk().oldStart());
         // The one at 10 picked instead: gone with it.
         final var first = List
-                .<Target>of(Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(0), null));
+                .<Target>of(new Target.Part(repository, "section|opaque", before, before.diff().hunks().get(0), null));
         assertFalse(resolve(first, item("a.txt", diff(hunk(100, "X"), hunk(200, "X")))).problems().isEmpty());
     }
 
@@ -202,7 +210,7 @@ public class SelectionsResolveTest {
         // Staging two lines above both: base rows move, working rows don't.
         final FileItem before = item("a.txt", diff(hunk(10, "X"), hunk(50, "X")));
         final var picked = List
-                .<Target>of(Target.Part.of(repository, "section|opaque", before, before.diff().hunks().get(1), null));
+                .<Target>of(new Target.Part(repository, "section|opaque", before, before.diff().hunks().get(1), null));
         final Hunk x = hunk(1, "X");
         final var shifted = resolve(
             picked,
@@ -219,7 +227,9 @@ public class SelectionsResolveTest {
         assertFalse(resolved.ready());
         assertEquals(1, resolved.targets().size());
         assertEquals("gone.txt", resolved.problems().get(0).file().path());
-        assertEquals(Selections.Reason.GONE, resolved.problems().get(0).reason());
+        assertTrue(
+            resolved.problems().get(0).message().contains("no longer in this section"),
+            resolved.problems().get(0).message());
         assertThrows(UnsupportedOperationException.class, () -> resolved.targets().clear());
     }
 
@@ -227,13 +237,17 @@ public class SelectionsResolveTest {
     public void statusErrorsAreReadFailuresAndSectionsStaySeparate() {
         var selected = List.<Target>of(part(item("a.txt", diff(hunk(1, "new")))));
         var failure = Selections.resolve(selected, Map.of(repository, StatusData.failed("offline")), key -> false);
-        assertEquals(Selections.Reason.READ_FAILED, failure.problems().get(0).reason());
+        assertTrue(
+            failure.problems().get(0).message().matches("(?s).*(read|returned|failed|offline|unavailable).*"),
+            failure.problems().get(0).message());
         var otherSection = new StatusData(List.of(),
                 null,
                 List.of(new StatusData.Section("other", "Other", List.of(((Target.Part) selected.get(0)).file()))),
                 null);
         var gone = Selections.resolve(selected, Map.of(repository, otherSection), key -> false);
-        assertEquals(Selections.Reason.GONE, gone.problems().get(0).reason());
+        assertTrue(
+            gone.problems().get(0).message().contains("no longer in this section"),
+            gone.problems().get(0).message());
     }
 
     @Test

@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,7 +43,6 @@ import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
-import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.changelists.Anchors;
 import org.armedbear.j.vcs.changelists.ChangelistStore;
 import org.armedbear.j.vcs.changelists.Changelists;
@@ -49,10 +50,10 @@ import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.ChangelistCommands.Destination;
-import org.armedbear.j.vcs.status.ChangelistCommands.ListKind;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -70,21 +71,16 @@ public class BackendBoundaryTest {
     private VcsStatusBuffer status;
     private VcsRepository repository;
 
-    private record Move(List<String> paths, String destination, boolean create) {}
-
     private static final class Fixture implements VcsBackend {
         private final String section;
         private final Set<Capability> capabilities;
         private final List<FileItem> files;
         final Set<String> diffsRequested = ConcurrentHashMap.newKeySet();
-        final Set<String> names = ConcurrentHashMap.newKeySet();
-        final AtomicReference<Move> moved = new AtomicReference<>();
 
         Fixture(String section, Set<Capability> capabilities, List<FileItem> files) {
             this.section = section;
             this.capabilities = capabilities;
             this.files = files;
-            names.add("Feature");
         }
 
         @Override
@@ -116,10 +112,7 @@ public class BackendBoundaryTest {
                 }
                 return new FileItem(file.change(), file.letter(), file.staged(), null);
             }).map(StatusData.Item.class::cast).toList();
-            final Move move = moved.get();
-            final List<StatusData.Field> header =
-                    move == null ? List.of() : List.of(new StatusData.Field("Changelist", move.destination()));
-            return new StatusData(header, null, List.of(new StatusData.Section(section, "Changes", shown)), null);
+            return new StatusData(List.of(), null, List.of(new StatusData.Section(section, "Changes", shown)), null);
         }
 
         @Override
@@ -127,25 +120,6 @@ public class BackendBoundaryTest {
             return r.root().resolve("editor-state");
         }
 
-        @Override
-        public List<String> readNativeChangelists(VcsRepository r) {
-            assertFalse(SwingUtilities.isEventDispatchThread());
-            return names.stream().sorted().toList();
-        }
-
-        @Override
-        public VcsResult moveToNativeChangelist(
-                VcsRepository r,
-                List<String> paths,
-                String destination,
-                boolean create) {
-            assertFalse(SwingUtilities.isEventDispatchThread());
-            if (!create && !names.contains(destination))
-                return new VcsResult(null, 1, new byte[0], "No such list", 0);
-            names.add(destination);
-            moved.set(new Move(List.copyOf(paths), destination, create));
-            return new VcsResult(null, 0, new byte[0], "", 0);
-        }
     }
 
     private static Hunk hunk(int row, String added) {
@@ -197,61 +171,103 @@ public class BackendBoundaryTest {
     }
 
     @Test
-    void opaqueSectionsResolveAndNativeMovesTakeWholePathsWithoutDiffs() throws Exception {
+    void diffReadKeysKeepLiteralSectionsAndPathsSeparate() throws Exception {
+        final FileItem first = file(
+            "c.txt",
+            null,
+            FileChange.Kind.MODIFIED,
+            new FileDiff(List.of(), "c.txt", "c.txt", false, false, false, false, List.of(FIRST), false));
+        final FileItem second = file(
+            "b|c.txt",
+            null,
+            FileChange.Kind.MODIFIED,
+            new FileDiff(List.of(), "b|c.txt", "b|c.txt", false, false, false, false, List.of(SECOND), false));
+        final Set<FileKey> requests = ConcurrentHashMap.newKeySet();
+        final VcsBackend backend = new VcsBackend() {
+            @Override
+            public int id() {
+                return -1;
+            }
+
+            @Override
+            public String name() {
+                return "literal sections";
+            }
+
+            @Override
+            public Set<Capability> capabilities() {
+                return Set.of();
+            }
+
+            @Override
+            public Snapshot readSnapshot(VcsRepository r) {
+                return new Snapshot(List.of());
+            }
+
+            @Override
+            public StatusData readStatus(VcsRepository r, BiPredicate<String, String> wants, Whitespace ignored) {
+                final List<StatusData.Section> sections = new ArrayList<>();
+                for (var entry : Map.of("a|b", first, "a", second).entrySet()) {
+                    final FileItem file = entry.getValue();
+                    final boolean read = wants.test(entry.getKey(), file.path());
+                    if (read)
+                        requests.add(new FileKey(r, entry.getKey(), file.path()));
+                    sections.add(
+                        new StatusData.Section(entry.getKey(),
+                                entry.getKey(),
+                                List.of(read ? file : new FileItem(file.change(), file.letter(), false, null))));
+                }
+                return new StatusData(List.of(), null, sections, null);
+            }
+        };
+        repository = BackendFixture.repository(tmp, backend);
+        final AtomicReference<RepositoryStatus> model = new AtomicReference<>();
+        onEdt(() -> {
+            model.set(RepositoryStatus.of(List.of(repository)));
+            model.get().hold(this, null);
+        });
+        until(() -> model.get().getData(repository) != null);
+        final FileKey one = new FileKey(repository, "a|b", "c.txt");
+        final FileKey two = new FileKey(repository, "a", "b|c.txt");
+        final java.util.concurrent.atomic.AtomicBoolean done = new java.util.concurrent.atomic.AtomicBoolean();
+        onEdt(() -> model.get().readDiffsThen(Set.of(one), () -> done.set(true)));
+        until(done::get);
+        onEdt(() -> {
+            assertTrue(model.get().diffRead(one));
+            assertFalse(model.get().diffRead(two));
+            assertNotNull(model.get().files(repository, "a|b").getFirst().diff());
+            assertNull(model.get().files(repository, "a").getFirst().diff());
+        });
+        assertEquals(Set.of(one), requests);
+        done.set(false);
+        onEdt(() -> model.get().readDiffsThen(Set.of(two), () -> done.set(true)));
+        until(done::get);
+        assertEquals(Set.of(one, two), requests);
+    }
+
+    @Test
+    void opaqueSectionsResolveAndMovesNeedTheEditorsChangelists() throws Exception {
         final FileItem text = file(
             TEXT,
             null,
             FileChange.Kind.MODIFIED,
             new FileDiff(List.of(), TEXT, TEXT, false, false, false, false, List.of(FIRST), false));
-        final FileItem binary = file(
-            "binary.bin",
-            null,
-            FileChange.Kind.MODIFIED,
-            new FileDiff(List.of(), "binary.bin", "binary.bin", false, false, true, false, List.of(), false));
-        final Fixture fixture = new Fixture(SECTION, Set.of(Capability.NATIVE_CHANGELISTS), List.of(text, binary));
+        final Fixture fixture = new Fixture(SECTION, Set.of(Capability.NATIVE_CHANGELISTS), List.of(text));
         repository = BackendFixture.repository(tmp, fixture);
         open();
         final AtomicReference<String> said = new AtomicReference<>();
-        final var to = new Destination(repository, "Feature", false, ListKind.NATIVE);
         onEdt(() -> {
             final var builder = new Selections.Builder();
             status.model().files(repository, SECTION).forEach(f -> builder.file(repository, SECTION, f));
             final List<Target> whole = builder.build();
             assertTrue(status.model().resolveTargets(whole).ready());
             assertTrue(StatusActions.refuse(StatusActions.Op.STAGE, whole.getFirst()).contains("no index"));
-            ChangelistCommands.moveTargets(status.model(), whole, to, said::set);
+            // Native changelists wait for a backend that has them.
+            ChangelistCommands.moveTargets(status.model(), whole, new Destination(repository, "Feature"), said::set);
+            assertEquals("No changelists here", said.get());
         });
-        until(() -> said.get() != null && !status.model().isWriting());
-        assertTrue(said.get().startsWith("Moved"), said.get());
-        assertEquals(new Move(List.of(TEXT, "binary.bin"), "Feature", false), fixture.moved.get());
-        assertTrue(fixture.diffsRequested.isEmpty());
         assertNull(RepositoryLists.of(repository));
         assertFalse(Files.exists(fixture.stateDirectory(repository)));
-
-        final BranchCommands.Choose choose = BranchCommands.choose;
-        BranchCommands.choose = (e, q, history, names, unavailable, chosen) -> {
-            assertEquals(List.of("Feature"), names);
-            chosen.accept("New list");
-        };
-        try {
-            onEdt(() -> {
-                for (Line line = status.getFirstLine(); line != null; line = line.next())
-                    if (line instanceof StatusLine row
-                            && row.kind() == StatusLine.Kind.FILE
-                            && row.file().path().equals("binary.bin")) {
-                        h.editor().setDot(line, 0);
-                        ChangelistCommands.vcsChangelistMove(h.editor());
-                        return;
-                    }
-                fail("No row for the binary file");
-            });
-            until(() -> fixture.names.contains("New list") && !status.model().isWriting());
-        }
-        finally {
-            BranchCommands.choose = choose;
-        }
-        assertTrue(fixture.diffsRequested.isEmpty());
-        assertEquals(new Move(List.of("binary.bin"), "New list", true), fixture.moved.get());
 
         final List<Target> lines = new Selections.Builder().line(repository, SECTION, text, FIRST, 1).build();
         final AtomicReference<Selections.Resolution> resolved = new AtomicReference<>();
@@ -259,20 +275,17 @@ public class BackendBoundaryTest {
         until(() -> resolved.get() != null);
         assertTrue(resolved.get().ready(), resolved.get().failure());
         assertEquals(SECTION, resolved.get().targets().getFirst().section());
-        assertEquals(2, ((Target.Part) resolved.get().targets().getFirst()).lines().cardinality());
+        assertEquals(2, ((Target.Part) resolved.get().targets().getFirst()).selection().cardinality());
         onEdt(() -> {
-            ChangelistCommands.moveTargets(status.model(), resolved.get().targets(), to, said::set);
-            assertTrue(said.get().contains("whole files"), said.get());
             final var refused = assertThrows(
                 PartialCommit.Refused.class,
                 () -> PartialCommit.ofTargets(status.model(), lines).plan());
             assertTrue(refused.getMessage().contains("does not support committing selected changes"));
         });
-        assertEquals(new Move(List.of("binary.bin"), "New list", true), fixture.moved.get());
     }
 
     @Test
-    void editorChangelistDropsUseTheLocalStoreWhenBothKindsAreSupported() throws Exception {
+    void editorChangelistDropsUseTheLocalStore() throws Exception {
         final FileItem text = file(
             TEXT,
             null,
@@ -300,56 +313,25 @@ public class BackendBoundaryTest {
         });
         until(() -> said.get() != null && !said.get().startsWith("Reading"));
         assertTrue(said.get().startsWith("Moved"), said.get());
-        assertNull(fixture.moved.get());
         assertEquals(
             List.of("Feature", "Feature"),
             store.read().assignment(TEXT).changes().stream().map(Changelists.Change::list).toList());
 
         onEdt(() -> {
             final FileItem current = model.unstaged(repository, TEXT);
-            final Target.Part first = Target.Part
-                    .of(repository, StatusRenderer.UNSTAGED, current, current.diff().hunks().getFirst(), null);
+            final Target.Part first = new Target.Part(repository,
+                    StatusRenderer.UNSTAGED,
+                    current,
+                    current.diff().hunks().getFirst(),
+                    null);
             final ChangelistDrag drag = ChangelistDrag.capture(model, "Feature", List.of(first));
             assertNotNull(drag);
             assertTrue(drag.drop(model, new Destination(repository, Changelists.DEFAULT), drag, said::set));
         });
         assertTrue(said.get().startsWith("Moved"), said.get());
-        assertNull(fixture.moved.get());
         assertEquals(
             List.of(Changelists.DEFAULT, "Feature"),
             store.read().assignment(TEXT).changes().stream().map(Changelists.Change::list).toList());
-    }
-
-    @Test
-    void nativeMoveRefreshesBothStandaloneAndMultiRepositoryStatus() throws Exception {
-        final FileItem text = file(TEXT, null, FileChange.Kind.MODIFIED, FileDiff.EMPTY);
-        final Fixture fixture = new Fixture(SECTION, Set.of(Capability.NATIVE_CHANGELISTS), List.of(text));
-        repository = BackendFixture.repository(tmp, fixture);
-        final VcsRepository other = BackendFixture
-                .repository(Files.createDirectory(tmp.resolve("other")), new Fixture(SECTION, Set.of(), List.of()));
-        open();
-        final RepositoryStatus standalone = status.model();
-        final AtomicReference<RepositoryStatus> combined = new AtomicReference<>();
-        onEdt(() -> {
-            final RepositoryStatus model = RepositoryStatus.of(List.of(repository, other));
-            model.hold(this, null);
-            combined.set(model);
-        });
-        until(() -> combined.get().getData(repository) != null);
-        onEdt(() -> assertTrue(combined.get().getData(repository).header().isEmpty()));
-
-        final AtomicReference<String> said = new AtomicReference<>();
-        onEdt(
-            () -> ChangelistCommands.moveTargets(
-                standalone,
-                List.of(new Target.Files(repository, SECTION, standalone.files(repository, SECTION))),
-                new Destination(repository, "Feature", false, ListKind.NATIVE),
-                said::set));
-        final List<StatusData.Field> expected = List.of(new StatusData.Field("Changelist", "Feature"));
-        until(
-            () -> expected.equals(standalone.getData(repository).header())
-                    && expected.equals(combined.get().getData(repository).header()));
-        assertTrue(said.get().startsWith("Moved"), said.get());
     }
 
     @Test

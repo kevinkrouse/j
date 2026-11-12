@@ -130,6 +130,17 @@ public final class StatusBar extends JComponent implements PreferencesChangeList
     private final Rectangle[] buttons = new Rectangle[BUTTONS.size()];
     private int hover = -1;
 
+    /** Screen point inside the named sidebar button, after painting. */
+    public java.awt.Point buttonScreenPoint(String name) {
+        for (int i = 0; i < BUTTONS.size(); i++)
+            if (BUTTONS.get(i).name().equalsIgnoreCase(name) && buttons[i] != null) {
+                final java.awt.Point p = getLocationOnScreen();
+                p.translate(buttons[i].x + buttons[i].width / 2, buttons[i].y + buttons[i].height / 2);
+                return p;
+            }
+        throw new IllegalArgumentException("No visible sidebar button: " + name);
+    }
+
     private int buttonAt(int x, int y) {
         for (int i = 0; i < buttons.length; i++)
             if (buttons[i] != null && buttons[i].contains(x, y))

@@ -31,6 +31,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.GutterColumn;
 import org.armedbear.j.Line;
+import org.armedbear.j.Property;
 import org.armedbear.j.Signs;
 import org.armedbear.j.mode.compare.Side;
 import org.armedbear.j.util.Background;
@@ -262,6 +263,7 @@ public final class SignsUpdater implements Buffer.Follower {
     private static volatile int sourcesChanged;
     private StatusView.Source preferred;
     private int preferredAt = -1;
+    private String preferredRoot;
 
     /**
      * The view of its file of the status its picks go to, as its buffer's
@@ -269,8 +271,11 @@ public final class SignsUpdater implements Buffer.Follower {
      * one; null for none.
      */
     public StatusView view() {
-        if (preferredAt != sourcesChanged) {
+        // Again when a status opens or closes, or the buffer's project root is set.
+        final String root = buffer.getStringProperty(Property.PROJECT_ROOT);
+        if (preferredAt != sourcesChanged || !Objects.equals(preferredRoot, root)) {
             preferredAt = sourcesChanged;
+            preferredRoot = root;
             preferred = null;
             for (StatusView.Source s : sources)
                 if (s.prefers(this)) {

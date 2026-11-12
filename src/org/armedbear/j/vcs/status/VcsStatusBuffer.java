@@ -77,6 +77,7 @@ import org.armedbear.j.vcs.log.CommitDetails;
 import org.armedbear.j.vcs.log.LogCommit;
 import org.armedbear.j.vcs.log.LogQuery;
 import org.armedbear.j.vcs.log.LogScope;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
 import org.armedbear.j.vcs.status.StatusData.Section;
@@ -119,8 +120,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         else
             return null;
         final StatusLine list = listOf(line);
-        activeDrag =
-                ChangelistDrag.capture(model, list == null ? null : list.list(), StatusActions.targetsOf(model, lines));
+        activeDrag = ChangelistDrag.capture(model, list == null ? null : list.list(), StatusLine.capture(model, lines));
         return activeDrag;
     }
 
@@ -171,8 +171,8 @@ public final class VcsStatusBuffer extends ViewBuffer
     // Told by the model as it reads and picks.
     private final RepositoryStatus.Listener shows = new RepositoryStatus.Listener() {
         @Override
-        public void read(int dropped, RepositoryStatus.Drop why) {
-            render(dropped, why);
+        public void read(String droppedMessage) {
+            render(droppedMessage);
         }
 
         @Override
@@ -181,8 +181,13 @@ public final class VcsStatusBuffer extends ViewBuffer
         }
 
         @Override
-        public boolean wantsDiff(String key) {
-            return isExpanded(key, Kind.FILE) || diff != null && key.equals(diff.fileKey());
+        public boolean wantsDiff(FileKey key) {
+            return isExpanded(StatusRenderer.fileKey(key.repository(), key.section(), key.path()), Kind.FILE)
+                    || diff != null
+                            && key.repository() == diff.repository()
+                            && key.section().equals(diff.section())
+                            && diff.item() != null
+                            && key.path().equals(diff.item().path());
         }
 
         // A file the status has closed may have changed with nothing it shows.
@@ -224,7 +229,12 @@ public final class VcsStatusBuffer extends ViewBuffer
             r.addListener(listener);
         model = RepositoryStatus.of(repositories);
         model.hold(this, shows);
-        comparedPicks = new RowPicks(model, this::comparedOf, this::nothingCompared);
+        comparedPicks = new RowPicks(model,
+                () -> diff == null || diff.item() == null
+                        ? null
+                        : new FileKey(diff.repository(), diff.section(), diff.item().path()),
+                this::comparedItem,
+                this::nothingCompared);
     }
 
     private static String title(List<VcsRepository> repositories) {
@@ -325,11 +335,6 @@ public final class VcsStatusBuffer extends ViewBuffer
         return model.readIgnoring();
     }
 
-    /** Reads the diffs of the files keyed keys, then runs then. */
-    void readDiffsThen(Set<String> keys, Runnable then) {
-        model.readDiffsThen(keys, then);
-    }
-
     // Its sections and files in each frame's sidebar it is in.
     private final PerFrame<StatusTree> trees = new PerFrame<>(frame -> {
         final StatusTree t = new StatusTree(this, frame);
@@ -370,11 +375,11 @@ public final class VcsStatusBuffer extends ViewBuffer
                 if (l instanceof StatusLine s
                         && s.kind() == Kind.LIST
                         && !s.isOpen()
-                        && s.members()
-                                .stream()
-                                .anyMatch(
-                                    m -> key.equals(
-                                        StatusRenderer.fileKey(s.repository(), s.section(), m.file().path())))) {
+                        && s.members().stream().anyMatch(m -> {
+                            final String file = StatusRenderer.fileKey(s.repository(), s.section(), m.file().path());
+                            // A split file's second list's key has a suffix.
+                            return key.equals(file) || key.equals(file + StatusRenderer.elsewhere(s.list()));
+                        })) {
                     expanded.put(s.key(), true);
                     render();
                     break;
@@ -451,7 +456,10 @@ public final class VcsStatusBuffer extends ViewBuffer
         final boolean unread = head.kind() == Kind.FILE && head.file() != null && head.file().diff() == null
                 || head.stash() != null && head.stash().files() == null;
         if (open && unread) {
-            model.readDiff(head.key());
+            model.readDiff(
+                new FileKey(head.repository(),
+                        head.section(),
+                        head.file() != null ? head.file().path() : head.stash().hash()));
             render(); // "Reading the diff..." until it is read.
         } else
             render();
@@ -481,12 +489,11 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     /** Lays the lines out again from what was read, keeping each window's caret on its thing. */
     void render() {
-        render(0, null);
+        render(null);
     }
 
     // As render, dropped picks the model's read dropped said so, why, unless null.
-    private void render(int dropped, RepositoryStatus.Drop why) {
-        final String droppedMessage = dropped > 0 && why != null ? model.dropMessage(dropped, why) : null;
+    private void render(String droppedMessage) {
         final List<StatusRenderer.Part> parts = new ArrayList<>();
         for (VcsRepository r : repositories) {
             final StatusData d = model.getData(r);
@@ -908,22 +915,6 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     // The buffer the comparison's new side follows, or null.
     private Buffer compared;
-
-    // The compared file, as its picks are of it, or null; the last kept,
-    // as side by side asks as it paints each row.
-    private RowPicks.Of comparedOf() {
-        final FileItem item = comparedItem();
-        if (item == null)
-            return null;
-        if (lastCompared == null
-                || lastCompared.item() != item
-                || lastCompared.repository() != diff.repository()
-                || !java.util.Objects.equals(lastCompared.section(), diff.section()))
-            lastCompared = new RowPicks.Of(diff.repository(), diff.section(), item);
-        return lastCompared;
-    }
-
-    private RowPicks.Of lastCompared;
 
     /** Whether the new side is a buffer's with edits unsaved. */
     boolean comparedEdited() {

@@ -39,6 +39,7 @@ import java.util.TreeMap;
 import javax.swing.DropMode;
 import javax.swing.Icon;
 import javax.swing.JComponent;
+import javax.swing.JPopupMenu;
 import javax.swing.JTree;
 import javax.swing.TransferHandler;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -408,6 +409,8 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     private void go(Object node, boolean visit) {
         switch (node) {
             case SectionNode s -> status.reveal(frame, s.key(), null);
+            case ListNode l ->
+                    visit(StatusRenderer.sectionKey(l.repository(), StatusRenderer.UNSTAGED), l.key(), false);
             case DirNode d -> status.reveal(frame, d.section(), d.first());
             case FileNode f -> visit(f.section(), f.key(), visit);
             case CommitNode c -> visit(c.section(), c.key(), visit);
@@ -454,10 +457,53 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     }
 
     @Override
-    public void mousePressed(MouseEvent e) {}
+    public void mousePressed(MouseEvent e) {
+        popup(e);
+    }
 
     @Override
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {
+        popup(e);
+    }
+
+    private void popup(MouseEvent e) {
+        if (!e.isPopupTrigger())
+            return;
+        final TreePath path = getPathForLocation(e.getX(), e.getY());
+        final JPopupMenu menu = menuFor(path);
+        if (menu != null)
+            menu.show(this, e.getX(), e.getY());
+    }
+
+    /** The clicked node is the capture source; picks elsewhere stay independent. */
+    JPopupMenu menuFor(TreePath path) {
+        if (path == null)
+            return null;
+        final Object node = userObject(path);
+        if (!(node instanceof FileNode
+                || node instanceof ListNode
+                || node instanceof SectionNode
+                || node instanceof CommitNode))
+            return null;
+        final Editor editor = frame == null ? Editor.windowShowing(status) : frame.findEditor(status);
+        if (editor == null)
+            return null;
+        editor.setMark(null);
+        setSelectionPath(path);
+        go(node, false);
+        // The status's line for the node, or no menu: never the line the
+        // caret was on before.
+        final String key = switch (node) {
+            case SectionNode n -> n.key();
+            case ListNode n -> n.key();
+            case FileNode n -> n.key();
+            case CommitNode n -> n.key();
+            default -> null;
+        };
+        if (!(editor.getDotLine() instanceof StatusLine line) || !line.key().equals(key))
+            return null;
+        return VcsStatusMode.menuFor(editor);
+    }
 
     @Override
     public void mouseEntered(MouseEvent e) {}

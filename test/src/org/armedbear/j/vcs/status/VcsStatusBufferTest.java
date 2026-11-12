@@ -218,7 +218,7 @@ public class VcsStatusBufferTest {
             final ChangelistDrag foreign = ChangelistDrag.capture(
                 status.model(),
                 "Default",
-                StatusActions.targetsOf(status.model(), List.of(StatusLine.head(source))));
+                StatusLine.capture(status.model(), List.of(StatusLine.head(source))));
             assertNotNull(foreign);
             assertFalse(status.canDropAt(h.editor(), to, foreign));
             assertFalse(status.dropAt(h.editor(), to, new StringSelection("a.txt")));
@@ -1070,7 +1070,7 @@ public class VcsStatusBufferTest {
             List.of(new StatusRenderer.Part(fake("/r/one"), data, 0), new StatusRenderer.Part(fake("/r/two"), data, 1)),
             (key, kind) -> true,
             key -> true,
-            Selections::hunkIds);
+            diff -> Selections.index(diff).hunks());
         final List<String> text = lines.stream().map(Line::getText).toList();
         assertEquals("one  /r/one", text.get(0));
         assertEquals(Kind.REPOSITORY, lines.get(0).kind());

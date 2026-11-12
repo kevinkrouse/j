@@ -32,7 +32,6 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Region;
 import org.armedbear.j.util.PickColumn.Trail;
 import org.armedbear.j.util.PickState;
-import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
 import org.armedbear.j.vcs.selection.FileKey;
@@ -50,13 +49,6 @@ import org.armedbear.j.vcs.status.StatusData.FileItem;
  * box the addition's. Rows count from 0. On the event thread.
  */
 final class RowPicks {
-    /** The file: its repository, section, item, read, and its typed file key. */
-    record Of(VcsRepository repository, String section, FileItem item, FileKey key) {
-        Of(VcsRepository repository, String section, FileItem item) {
-            this(repository, section, item, new FileKey(repository, section, item.path()));
-        }
-    }
-
     /**
      * A box in a side: the lines it picks, by hunk id, a change's, or one
      * line's if line, or a sign's row's, those whose signs are there; as
@@ -71,16 +63,18 @@ final class RowPicks {
 
     private final RepositoryStatus status;
     // The file now, null when its picks can't be shown.
-    private final Supplier<Of> of;
+    private final Supplier<FileItem> item;
+    private final Supplier<FileKey> key;
     // Why nothing is picked where nothing is there to pick.
     private final Supplier<String> nothingHere;
     // The rows of the diff last asked of, worked out once a diff.
     private FileDiff rowsOf;
     private Rows rows;
 
-    RowPicks(RepositoryStatus status, Supplier<Of> of, Supplier<String> nothingHere) {
+    RowPicks(RepositoryStatus status, Supplier<FileKey> key, Supplier<FileItem> item, Supplier<String> nothingHere) {
         this.status = status;
-        this.of = of;
+        this.key = key;
+        this.item = item;
         this.nothingHere = nothingHere;
     }
 
@@ -89,7 +83,7 @@ final class RowPicks {
      * as signs draw them, or the one nearest it in its hunk; null for none.
      */
     Map<String, BitSet> changeAt(int n) {
-        final Rows r = rows(of.get());
+        final Rows r = rows(item.get());
         final Change c = r == null ? null : r.changeAt(false, true, n);
         return c == null ? null : c.picks();
     }
@@ -97,7 +91,7 @@ final class RowPicks {
     /** How much of the change changeAt(n) gives is picked; NONE for none. */
     PickState changeState(int n) {
         final Map<String, BitSet> idx = changeAt(n);
-        return idx == null ? PickState.NONE : state(of.get(), idx);
+        return idx == null ? PickState.NONE : state(idx);
     }
 
     /**
@@ -108,20 +102,20 @@ final class RowPicks {
      * for none.
      */
     Box boxAt(boolean old, int n) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         final Rows r = rows(f);
         if (r == null)
             return null;
         final ChangedLine c = (old ? r.oldBoxes() : r.newChanged()).get(n);
-        if (c != null && state(f, c.change().picks()) == PickState.SOME) {
+        if (c != null && state(c.change().picks()) == PickState.SOME) {
             final BitSet one = new BitSet();
             one.set(c.i());
             return new Box(Map.of(c.change().id(), one),
                     true,
-                    status.picks().linePicked(f.key(), c.change().id(), c.i()) ? PickState.ALL : PickState.NONE);
+                    status.picks().linePicked(key.get(), c.change().id(), c.i()) ? PickState.ALL : PickState.NONE);
         }
         final Change first = r.firsts(old).get(n);
-        return first == null ? null : new Box(first.picks(), false, state(f, first.picks()));
+        return first == null ? null : new Box(first.picks(), false, state(first.picks()));
     }
 
     /**
@@ -131,18 +125,18 @@ final class RowPicks {
      * none.
      */
     Box signBoxAt(int n) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         final Rows r = rows(f);
         if (r == null)
             return null;
         final List<ChangedLine> signed = r.bySign().get(n);
-        if (signed != null && state(f, signed.get(0).change().picks()) == PickState.SOME) {
+        if (signed != null && state(signed.get(0).change().picks()) == PickState.SOME) {
             final Map<String, BitSet> idx = new LinkedHashMap<>();
             r.signs(n, n, idx);
-            return new Box(idx, true, state(f, idx));
+            return new Box(idx, true, state(idx));
         }
         final Change first = r.signFirsts().get(n);
-        return first == null ? null : new Box(first.picks(), false, state(f, first.picks()));
+        return first == null ? null : new Box(first.picks(), false, state(first.picks()));
     }
 
     /**
@@ -151,20 +145,20 @@ final class RowPicks {
      * box down through its lines, the change picked whole; null for none.
      */
     Trail trailAt(boolean old, boolean signs, int n) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         final Rows r = rows(f);
         final Change c = r == null ? null : (signs ? r.signRuns() : old ? r.oldRuns() : r.newRuns()).get(n);
-        if (c == null || state(f, c.picks()) != PickState.ALL)
+        if (c == null || state(c.picks()) != PickState.ALL)
             return null;
         return n == c.first(old, signs) ? Trail.FROM : n == c.last(old, signs) ? Trail.TO : Trail.THROUGH;
     }
 
     /** Whether the changed line on the old side's row n if old, else the new side's, is picked. */
     boolean isPicked(boolean old, int n) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         final Rows r = rows(f);
         final ChangedLine c = r == null ? null : r.changed(old).get(n);
-        return c != null && status.picks().linePicked(f.key(), c.change().id(), c.i());
+        return c != null && status.picks().linePicked(key.get(), c.change().id(), c.i());
     }
 
     /** Picks or unpicks what box is. */
@@ -178,7 +172,7 @@ final class RowPicks {
      * them.
      */
     void pick(Editor editor, boolean old) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         final Rows r = rows(f);
         final Map<String, BitSet> idx = new LinkedHashMap<>();
         final boolean selection = Region.isSelection(editor);
@@ -205,7 +199,7 @@ final class RowPicks {
 
     /** Picks what each of boxes is if on, else unpicks it. */
     void set(List<Box> boxes, boolean on) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         if (f == null)
             return;
         final Map<String, BitSet> idx = new LinkedHashMap<>();
@@ -223,12 +217,12 @@ final class RowPicks {
      */
     PickState signsState(int from, int to) {
         final Map<String, BitSet> idx = signs(from, to);
-        return idx == null ? null : state(of.get(), idx);
+        return idx == null ? null : state(idx);
     }
 
-    // How much of the lines idx, by hunk id, of f is picked.
-    private PickState state(Of f, Map<String, BitSet> idx) {
-        return status.picks().linesState(f.key(), idx);
+    // How much of this file's lines idx, by hunk id, is picked.
+    private PickState state(Map<String, BitSet> idx) {
+        return status.picks().linesState(key.get(), idx);
     }
 
     /** Picks the changes whose signs are on the new side's rows from to to if on, else unpicks them. */
@@ -238,7 +232,7 @@ final class RowPicks {
 
     /** Picks the changes whose signs are on the new side's rows in each of ranges, from and to, if on, else unpicks them. */
     void setSigns(List<int[]> ranges, boolean on) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         if (f == null)
             return;
         final Map<String, BitSet> idx = new LinkedHashMap<>();
@@ -252,7 +246,7 @@ final class RowPicks {
 
     /** The changed lines, by hunk id, whose signs are on rows from to to; null for none. */
     Map<String, BitSet> signs(int from, int to) {
-        final Of f = of.get();
+        final FileItem f = item.get();
         if (f == null)
             return null;
         final Map<String, BitSet> out = new LinkedHashMap<>();
@@ -262,21 +256,21 @@ final class RowPicks {
 
     /** Captures the same shared targets as text and tree selections. */
     List<Target> targets(Map<String, BitSet> lines) {
-        final Of file = of.get();
+        final FileItem file = item.get();
         if (file == null)
             return List.of();
         return new Selections.Builder(status.picks()::ids)
-                .member(file.repository(), file.section(), new Target.Member(file.item(), lines))
+                .member(key.get().repository(), key.get().section(), new Target.Member(file, lines))
                 .build();
     }
 
     // f's rows, or null for no file.
-    private Rows rows(Of f) {
-        if (f == null)
+    private Rows rows(FileItem f) {
+        if (f == null || f.diff() == null)
             return null;
-        if (f.item().diff() != rowsOf) {
-            rowsOf = f.item().diff();
-            rows = Rows.of(status.picks().ids(f.item().diff()));
+        if (f.diff() != rowsOf) {
+            rowsOf = f.diff();
+            rows = Rows.of(status.picks().ids(f.diff()));
         }
         return rows;
     }

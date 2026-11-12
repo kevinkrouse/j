@@ -21,7 +21,6 @@
 package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.armedbear.j.CommentRing;
 import org.armedbear.j.util.Whitespace;
@@ -42,6 +42,7 @@ import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
+import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Files;
@@ -121,22 +122,15 @@ final class PartialCommit {
             versions = Map.copyOf(versions);
         }
 
+        // The same commit: every repository's staged versions of the same
+        // paths, which differ with any change to what is selected.
         boolean sameChanges(Plan current, Collection<VcsRepository> repositories) {
-            for (VcsRepository r : repositories)
-                if (!Selections.sameChanges(
-                    targets.getOrDefault(r, List.of()),
-                    versions.getOrDefault(r, Map.of()),
-                    current.targets.getOrDefault(r, List.of()),
-                    current.versions.getOrDefault(r, Map.of())))
+            for (VcsRepository r : repositories) {
+                final Map<String, ChangeVersion> before = versions.get(r);
+                if (before == null && targets.containsKey(r) || !Objects.equals(before, current.versions.get(r)))
                     return false;
+            }
             return true;
-        }
-
-        // Check that the UI did not change its selection during the background preview.
-        boolean sameSelection(Plan current) {
-            final List<Target> before = targets.values().stream().flatMap(List::stream).toList();
-            final List<Target> after = current.targets.values().stream().flatMap(List::stream).toList();
-            return Selections.sameSelection(before, after);
         }
     }
 
@@ -208,12 +202,7 @@ final class PartialCommit {
                 throw new Refused("Not a hunk while whitespace is ignored: show it to commit a hunk alone");
             for (VcsRepository r : given.stream().map(Target::repository).distinct().toList())
                 refuseRepository(r);
-            final Selections.Resolution resolved = model.resolveTargets(given);
-            if (!resolved.ready()) {
-                if (resolved.problems().isEmpty())
-                    model.resolveTargets(given, ignored -> {});
-                throw new Refused(resolved.failure());
-            }
+            final Selections.Resolution resolved = resolve(given, Set.of());
             for (Target t : resolved.targets())
                 targets.computeIfAbsent(t.repository(), k -> new ArrayList<>()).add(t);
         } else {
@@ -242,17 +231,24 @@ final class PartialCommit {
         final List<Member> members = listed == null ? null : listed.members().get(list);
         if (members == null || members.isEmpty())
             throw new Refused("Nothing in changelist " + list + " to commit");
-        // A file kept change by change whose diff isn't read is listed whole
-        // under the list of most of it: its other lists' lines would go too.
-        final RepositoryLists lists = RepositoryLists.of(repository);
-        for (Member m : members) {
-            final Changelists.Assignment a = lists == null ? null : lists.lists().assignment(m.file().path());
-            if (m.file().diff() == null && m.file().hasDiff() && a != null && a.whole() == null) {
-                model.refresh();
-                throw new Refused("Wait: " + m.file().path() + "'s diff is being read");
-            }
+        final Selections.Builder selected = new Selections.Builder(model.picks()::ids);
+        members.forEach(member -> selected.member(repository, StatusRenderer.UNSTAGED, member));
+        final List<Target> captured = selected.build();
+        final RepositoryLists lists = RepositoryLists.shown(repository);
+        final Set<FileKey> required =
+                lists == null ? Set.of() : ChangelistCommands.unreadMembers(lists.lists(), captured);
+        return resolve(captured, required).targets();
+    }
+
+    private Selections.Resolution resolve(List<Target> captured, Set<FileKey> required) throws Refused {
+        final Selections.Resolution resolved = model.resolveTargetsRequiring(captured, required::contains);
+        if (!resolved.ready()) {
+            // Read what it waits on, for the next try.
+            if (resolved.problems().isEmpty())
+                model.readDiffsThen(resolved.unread(), () -> {});
+            throw new Refused(resolved.failure());
         }
-        return StatusActions.listTargets(repository, StatusRenderer.UNSTAGED, members);
+        return resolved;
     }
 
     // Why nothing of r can be committed alone, thrown.
@@ -322,7 +318,7 @@ final class PartialCommit {
                     final Part part = (Part) t;
                     final int[] count = counts.computeIfAbsent(part.file().path(), k -> new int[2]);
                     count[0]++;
-                    final BitSet selected = part.lines();
+                    final var selected = part.selection();
                     for (int i = 0; i < part.hunk().lines().size(); i++)
                         if (!part.hunk().lines().get(i).isContext() && (selected == null || selected.get(i)))
                             count[1]++;

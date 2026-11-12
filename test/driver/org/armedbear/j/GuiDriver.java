@@ -12,8 +12,11 @@
 package org.armedbear.j;
 
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dialog;
 import java.awt.KeyboardFocusManager;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Window;
 import java.awt.event.InputEvent;
@@ -32,7 +35,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import javax.imageio.ImageIO;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JTree;
+import javax.swing.MenuElement;
+import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
+import javax.swing.tree.TreePath;
 
 /**
  * Drives a running j from a script, for checking it with no one at the
@@ -49,8 +58,10 @@ import javax.swing.SwingUtilities;
  * exec COMMAND [ARGS]                    a command run, as Alt X runs it
  * execlater COMMAND [ARGS]               the same, not waited for: one that opens a dialog
  * hover X Y                              the mouse moved to X Y in the window's text area
- * click X Y                              a real mouse click at X Y in the focused window
- * drag X1 Y1 X2 Y2                       a real mouse drag between points in the focused window
+ * click [double] [right] [ctrl] [shift] TARGET      a real click; TARGET: X Y, line TEXT, text TEXT, node TEXT, button NAME
+ * press TARGET / move TARGET / release   a drag in steps
+ * drag TARGET -> TARGET                  press, move, release; X1 Y1 X2 Y2 also works
+ * menuitem LABEL                          a real click on an open popup item
  * movewin X Y                            move the focused window to X Y, to give a corner drag room to grow
  * sizewin W H                            resize the focused window, so a test controls the geometry a drag starts from
  * hovercursor X Y                         the pointer moved to X Y; prints CURSOR X Y <component:type>
@@ -70,10 +81,14 @@ import javax.swing.SwingUtilities;
  * </pre>
  *
  * <p>WHAT is status (the status bar's message), buffer (its name), mode,
- * text (the buffer's), line (the caret's line, the text of it),
+ * input (simple or the input handler's class name),
+ * text (the buffer's), text@NAME (the buffer whose name's last word is NAME,
+ * shown or not), line (the caret's line, the text of it),
  * location (the location bar), focus (the focused component's class),
  * title (j's title bar text), menuopen (the length of the open menu
- * selection path), framepos (the frame's screen position, x,y),
+ * selection path), popup (an item a line, LABEL [enabled] or LABEL [disabled]
+ * and why), sidebar (the panels showing: top=Buffers|Changes|none tree=BOOL),
+ * selection (the focused tree rows), framepos (the frame's screen position, x,y),
  * framesize (the frame's size, WxH), cursor (the component:cursor the last
  * hovercursor found), wm-managed (whether the WM advertises
  * _NET_WM_MOVERESIZE) or maximized (whether the frame is maximized).
@@ -129,9 +144,21 @@ public final class GuiDriver {
                 // After a Hung step a modal dialog still takes events: the next steps can picture or close it.
                 failures++;
                 System.out.println("FAIL " + line + ": " + (e instanceof Hung ? e.getMessage() : e));
+                // A failed step in a drag lets the button go.
+                letGo();
             }
             Thread.sleep(100);
         }
+        if (pressed != null) {
+            failures++;
+            System.out.println("FAIL the script ended with the mouse pressed");
+            letGo();
+        }
+        // Match normal shutdown's placement save without saving edited fixture buffers.
+        onEdt(() -> {
+            Editor.getSessionProperties().saveWindowPlacement();
+            Editor.getSessionProperties().save();
+        });
         synchronized (errors) {
             for (String e : errors)
                 System.out.println("ERROR " + e);
@@ -162,8 +189,14 @@ public final class GuiDriver {
                 for (char c : rest.toCharArray())
                     type(c);
             }
-            case "exec" -> onEdt(() -> Editor.currentEditor().executeCommand(rest));
-            case "execlater" -> SwingUtilities.invokeLater(() -> Editor.currentEditor().executeCommand(rest));
+            case "exec" -> {
+                checkCommand(rest);
+                onEdt(() -> Editor.currentEditor().executeCommand(rest));
+            }
+            case "execlater" -> {
+                checkCommand(rest);
+                SwingUtilities.invokeLater(() -> Editor.currentEditor().executeCommand(rest));
+            }
             case "shot" -> shot(out.resolve(rest + ".png"), false);
             case "shotwin" -> shot(out.resolve(rest + ".png"), true);
             case "log" -> System.out.println("LOG " + rest + (rest.isEmpty() ? "" : ": ") + onEdt(GuiDriver::state));
@@ -175,6 +208,10 @@ public final class GuiDriver {
             case "expect-not" -> expect(rest, false);
             case "click" -> click(rest);
             case "drag" -> drag(rest);
+            case "press" -> press(rest);
+            case "move" -> move(rest);
+            case "release" -> release();
+            case "menuitem" -> menuItem(rest);
             case "movewin" -> moveWindow(rest);
             case "sizewin" -> sizeWindow(rest);
             case "wmprobe" -> wmProbe();
@@ -185,6 +222,41 @@ public final class GuiDriver {
             case "hovercursor" -> hoverCursor(rest);
             default -> throw new IllegalArgumentException("no such step");
         }
+    }
+
+    // A typo should fail a step instead of opening an unknown-command modal dialog.
+    // The commands and properties exec may run: none that runs a shell,
+    // evaluates code or writes outside the fixture. Add one here to use it.
+    private static final java.util.Set<String> COMMANDS = java.util.Set.of(
+        "bob",
+        "incrementalFind",
+        "insertString",
+        "jumpToLine",
+        "openFile",
+        "otherWindow",
+        "save",
+        "selectRight",
+        "sidebarListChanges",
+        "vcsChangelistMove",
+        "vcsChangelistNew",
+        "vcsCommitAbort",
+        "vcsCommitList",
+        "vcsCommitPicked",
+        "vcsPickHunk",
+        "vcsStatus",
+        "vcsStatusDepth",
+        "vcsStatusDiff",
+        "vcsStatusDiffView",
+        "vcsStatusUnpickAll");
+    private static final java.util.Set<String> PROPERTIES = java.util.Set.of("projectRoot");
+
+    private static void checkCommand(String command) {
+        final String name = command.split("\\s+", 2)[0];
+        final int eq = name.indexOf('=');
+        if (eq >= 0 ? !PROPERTIES.contains(name.substring(0, eq)) : !COMMANDS.contains(name))
+            throw new IllegalArgumentException("exec doesn't run " + name + ": see GuiDriver.COMMANDS");
+        if (eq < 0 && CommandTable.getCommand(name) == null)
+            throw new IllegalArgumentException("unknown command: " + name);
     }
 
     // Polls until what contains (or not) the text, or the timeout passes.
@@ -212,8 +284,10 @@ public final class GuiDriver {
         return switch (what) {
             case "status" -> Objects.toString(ed.getFrame().getStatusBar().getText(), "");
             case "buffer" -> String.valueOf(ed.getBuffer());
+            case "input" -> ed.getInputHandler() == null ? "simple" : ed.getInputHandler().getClass().getSimpleName();
             case "mode" -> ed.getMode().getDisplayName();
             case "text" -> bufferText();
+            case String w when w.startsWith("text@") -> namedBufferText(w.substring(5));
             case "line" -> ed.getDotLine() == null ? "" : ed.getDotLine().getText();
             case "location" -> ed.getLocationBarTextField() == null ? "" : ed.getLocationBarTextField().getText();
             case "focus" -> name(focus());
@@ -221,8 +295,8 @@ public final class GuiDriver {
                 final TitleBar tb = ed.getFrame().getTitleBar();
                 yield tb == null ? "" : tb.getTitleText();
             }
-            case "menuopen" -> String.valueOf(
-                    javax.swing.MenuSelectionManager.defaultManager().getSelectedPath().length);
+            case "menuopen" ->
+                    String.valueOf(javax.swing.MenuSelectionManager.defaultManager().getSelectedPath().length);
             case "framepos" -> {
                 final java.awt.Point p = ed.getFrame().getLocationOnScreen();
                 yield p.x + "," + p.y;
@@ -231,6 +305,9 @@ public final class GuiDriver {
                 final java.awt.Dimension d = ed.getFrame().getSize();
                 yield d.width + "x" + d.height;
             }
+            case "popup" -> popupText();
+            case "sidebar" -> sidebarState();
+            case "selection" -> treeSelection();
             case "cursor" -> lastCursor;
             case "wm-managed" -> String.valueOf(X11WmHandoff.wmManages(ed.getFrame()));
             case "maximized" -> {
@@ -241,42 +318,283 @@ public final class GuiDriver {
         };
     }
 
-    // A real mouse click at x y in the focused window, via the screen robot, so
-    // the event travels the same path a user's click does.
+    // Targets are resolved on the EDT without moving the caret or making a selection.
+    // Coordinates remain frame-relative for the window decoration scripts.
+    private static Point target(String spec) throws Exception {
+        return onEdt(() -> targetOnEdt(spec));
+    }
+
+    private static Point targetOnEdt(String spec) {
+        final Editor editor = Editor.currentEditor();
+        final Frame frame = editor.getFrame();
+        if (spec.matches("-?\\d+\\s+-?\\d+")) {
+            final String[] xy = spec.split("\\s+");
+            final Point p = frame.getLocationOnScreen();
+            p.translate(Integer.parseInt(xy[0]), Integer.parseInt(xy[1]));
+            return p;
+        }
+        final String[] parts = spec.split("\\s+", 2);
+        if (parts.length < 2 || parts[1].isEmpty())
+            throw new IllegalArgumentException("target needs a kind and text: " + spec);
+        final String text = parts[1];
+        switch (parts[0]) {
+            case "button":
+                return frame.getStatusBar().buttonScreenPoint(text);
+            case "node":
+                for (JTree tree : trees(frame))
+                    for (int row = 0; row < tree.getRowCount(); row++) {
+                        final TreePath path = tree.getPathForRow(row);
+                        final String shown = tree.convertValueToText(
+                            path.getLastPathComponent(),
+                            false,
+                            tree.isExpanded(row),
+                            tree.getModel().isLeaf(path.getLastPathComponent()),
+                            row,
+                            false);
+                        if (!shown.contains(text))
+                            continue;
+                        final Rectangle bounds = tree.getRowBounds(row);
+                        if (bounds == null || !tree.getVisibleRect().contains(bounds.x, bounds.y + bounds.height / 2))
+                            continue;
+                        final Point p = tree.getLocationOnScreen();
+                        p.translate(bounds.x + Math.min(bounds.width / 2, 35), bounds.y + bounds.height / 2);
+                        return p;
+                    }
+                break;
+            case "line", "text":
+                // Prefer the current editor, then the other visible editors in its frame.
+                final List<Editor> editors = new ArrayList<>();
+                editors.add(editor);
+                for (Editor other : frame.getEditors())
+                    if (other != editor)
+                        editors.add(other);
+                for (Editor ed : editors) {
+                    final Display display = ed.getDisplay();
+                    if (!display.isShowing())
+                        continue;
+                    for (Line line = display.getTopLine(); line != null; line = line.nextVisible()) {
+                        final int y = display.getLineTop(line);
+                        if (y < 0)
+                            break;
+                        final int found = line.getText().indexOf(text);
+                        if (found < 0)
+                            continue;
+                        final int offset = parts[0].equals("line") ? 0 : found;
+                        // Use the display's mapping, so tabs, fonts and horizontal scroll agree with a click.
+                        final int middle = y + Display.getCharHeight() / 2;
+                        for (int x = 0; x < display.getWidth(); x++) {
+                            if (x < Display.getGutterWidth(ed.getBuffer()))
+                                continue;
+                            final Position pos = display.positionFromPoint(x, middle);
+                            if (pos.getLine() == line && pos.getOffset() == offset) {
+                                final Point p = display.getLocationOnScreen();
+                                p.translate(x + 1, middle);
+                                return p;
+                            }
+                        }
+                        throw new IllegalStateException("text is outside the display: " + spec);
+                    }
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("unknown target: " + spec);
+        }
+        throw new IllegalStateException("no visible target: " + spec);
+    }
+
+    private static List<JTree> trees(Container parent) {
+        final List<JTree> found = new ArrayList<>();
+        for (Component c : parent.getComponents()) {
+            if (!c.isShowing())
+                continue;
+            if (c instanceof JTree tree)
+                found.add(tree);
+            else if (c instanceof Container container)
+                found.addAll(trees(container));
+        }
+        return found;
+    }
+
+    // What the sidebar shows: its upper view, and whether its lower tree is showing.
+    private static String sidebarState() {
+        final Sidebar sidebar = Editor.currentEditor().getFrame().getSidebar();
+        if (sidebar == null || !sidebar.isShowing())
+            return "hidden";
+        final Component top = sidebar.getTopView();
+        final String shown =
+                top == null || !top.isShowing() ? "none" : top == sidebar.getBufferList() ? "Buffers" : "Changes";
+        return "top=" + shown + " tree=" + (sidebar.getBottomComponent() instanceof Component c && c.isShowing());
+    }
+
+    private static String treeSelection() {
+        final Component focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (!(focus instanceof JTree tree))
+            return "";
+        final TreePath[] paths = tree.getSelectionPaths();
+        if (paths == null)
+            return "";
+        final List<String> rows = new ArrayList<>();
+        for (TreePath path : paths) {
+            final int row = tree.getRowForPath(path);
+            rows.add(
+                tree.convertValueToText(
+                    path.getLastPathComponent(),
+                    true,
+                    tree.isExpanded(path),
+                    tree.getModel().isLeaf(path.getLastPathComponent()),
+                    row,
+                    true));
+        }
+        return String.join("\n", rows);
+    }
+
+    private static List<JMenuItem> popupItems() {
+        final List<JMenuItem> items = new ArrayList<>();
+        for (MenuElement element : MenuSelectionManager.defaultManager().getSelectedPath())
+            if (element instanceof JPopupMenu menu)
+                for (Component c : menu.getComponents())
+                    if (c instanceof JMenuItem item && item.isShowing())
+                        items.add(item);
+        return items;
+    }
+
+    private static String popupText() {
+        final List<String> text = new ArrayList<>();
+        for (JMenuItem item : popupItems())
+            text.add(
+                item.getText() + (item.isEnabled() ? " [enabled]" : " [disabled]")
+                        + (item.getToolTipText() == null ? "" : " — " + item.getToolTipText()));
+        return String.join("\n", text);
+    }
+
+    private static void menuItem(String label) throws Exception {
+        final Point p = onEdt(() -> {
+            for (JMenuItem item : popupItems())
+                if (item.getText().equals(label)) {
+                    if (!item.isEnabled())
+                        throw new IllegalStateException("disabled menu item: " + label);
+                    final Point point = item.getLocationOnScreen();
+                    point.translate(item.getWidth() / 2, item.getHeight() / 2);
+                    return point;
+                }
+            throw new IllegalStateException("no open menu item: " + label);
+        });
+        mouseClick(p, InputEvent.BUTTON1_DOWN_MASK, 0);
+    }
+
     private static void click(String spec) throws Exception {
-        final String[] xy = spec.split("\\s+");
-        final int x = Integer.parseInt(xy[0]);
-        final int y = Integer.parseInt(xy[1]);
-        final Window w = onEdt(() -> Editor.currentEditor().getFrame());
-        final java.awt.Point loc = w.getLocationOnScreen();
+        int modifiers = 0;
+        int clicks = 1;
+        int button = InputEvent.BUTTON1_DOWN_MASK;
+        while (true) {
+            final String[] word = spec.split("\\s+", 2);
+            if (word.length < 2)
+                break;
+            switch (word[0]) {
+                case "double" -> clicks = 2;
+                case "right" -> button = InputEvent.BUTTON3_DOWN_MASK;
+                case "ctrl" -> modifiers |= InputEvent.CTRL_DOWN_MASK;
+                case "shift" -> modifiers |= InputEvent.SHIFT_DOWN_MASK;
+                default -> {
+                    mouseClick(target(spec), button, modifiers, clicks);
+                    return;
+                }
+            }
+            spec = word[1];
+        }
+        mouseClick(target(spec), button, modifiers, clicks);
+    }
+
+    private static void mouseClick(Point p, int button, int modifiers) throws Exception {
+        mouseClick(p, button, modifiers, 1);
+    }
+
+    private static void mouseClick(Point p, int button, int modifiers, int clicks) throws Exception {
         final Robot robot = new Robot();
-        robot.mouseMove(loc.x + x, loc.y + y);
+        robot.mouseMove(p.x, p.y);
         Thread.sleep(80);
-        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-        Thread.sleep(60);
-        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        if ((modifiers & InputEvent.CTRL_DOWN_MASK) != 0)
+            robot.keyPress(KeyEvent.VK_CONTROL);
+        if ((modifiers & InputEvent.SHIFT_DOWN_MASK) != 0)
+            robot.keyPress(KeyEvent.VK_SHIFT);
+        try {
+            for (int i = 0; i < clicks; i++) {
+                robot.mousePress(button);
+                Thread.sleep(60);
+                robot.mouseRelease(button);
+                if (i + 1 < clicks)
+                    Thread.sleep(60);
+            }
+        }
+        finally {
+            if ((modifiers & InputEvent.SHIFT_DOWN_MASK) != 0)
+                robot.keyRelease(KeyEvent.VK_SHIFT);
+            if ((modifiers & InputEvent.CTRL_DOWN_MASK) != 0)
+                robot.keyRelease(KeyEvent.VK_CONTROL);
+        }
         Thread.sleep(120);
     }
 
-    // A real mouse drag from x1 y1 to x2 y2 in the focused window.
-    private static void drag(String spec) throws Exception {
-        final String[] xy = spec.split("\\s+");
-        final int x1 = Integer.parseInt(xy[0]);
-        final int y1 = Integer.parseInt(xy[1]);
-        final int x2 = Integer.parseInt(xy[2]);
-        final int y2 = Integer.parseInt(xy[3]);
-        final Window w = onEdt(() -> Editor.currentEditor().getFrame());
-        final java.awt.Point loc = w.getLocationOnScreen();
+    private static Point pressed;
+
+    private static void press(String spec) throws Exception {
+        if (pressed != null)
+            throw new IllegalStateException("mouse already pressed");
+        pressed = target(spec);
         final Robot robot = new Robot();
-        robot.mouseMove(loc.x + x1, loc.y + y1);
+        robot.mouseMove(pressed.x, pressed.y);
         Thread.sleep(80);
         robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-        for (int i = 1; i <= 10; i++) {
-            robot.mouseMove(loc.x + x1 + (x2 - x1) * i / 10, loc.y + y1 + (y2 - y1) * i / 10);
-            Thread.sleep(20);
+        Thread.sleep(80);
+    }
+
+    private static void move(String spec) throws Exception {
+        final Point to = target(spec);
+        final Point from = java.awt.MouseInfo.getPointerInfo().getLocation();
+        final Robot robot = new Robot();
+        for (int i = 1; i <= 12; i++) {
+            robot.mouseMove(from.x + (to.x - from.x) * i / 12, from.y + (to.y - from.y) * i / 12);
+            Thread.sleep(25);
         }
-        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
-        Thread.sleep(120);
+        Thread.sleep(100);
+    }
+
+    private static void letGo() {
+        if (pressed == null)
+            return;
+        try {
+            new Robot().mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        }
+        catch (java.awt.AWTException e) {
+            System.out.println("FAIL couldn't release the mouse: " + e);
+        }
+        pressed = null;
+    }
+
+    private static void release() throws Exception {
+        if (pressed == null)
+            throw new IllegalStateException("mouse is not pressed");
+        new Robot().mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        pressed = null;
+        Thread.sleep(150);
+    }
+
+    // Semantic endpoints are separated by ->; the old four-coordinate form still works.
+    private static void drag(String spec) throws Exception {
+        String[] endpoints = spec.split(" -> ", 2);
+        if (endpoints.length == 1 && spec.matches("-?\\d+\\s+-?\\d+\\s+-?\\d+\\s+-?\\d+")) {
+            final String[] xy = spec.split("\\s+");
+            endpoints = new String[] { xy[0] + " " + xy[1], xy[2] + " " + xy[3] };
+        }
+        if (endpoints.length != 2)
+            throw new IllegalArgumentException("drag takes TARGET -> TARGET, or X1 Y1 X2 Y2");
+        press(endpoints[0]);
+        try {
+            move(endpoints[1]);
+        }
+        finally {
+            release();
+        }
     }
 
     // A real mouse click on a named title-bar button: minimize, maximize,
@@ -318,8 +636,9 @@ public final class GuiDriver {
                 throw new IllegalStateException("no title bar");
             for (int i = 0; i < tb.getComponentCount(); i++) {
                 final Component c = tb.getComponent(i);
-                System.out.println("TITLECHILD " + c.getBounds() + " "
-                        + c.getClass().getSimpleName() + (c.isVisible() ? "" : " HIDDEN"));
+                System.out.println(
+                    "TITLECHILD " + c.getBounds() + " " + c.getClass().getSimpleName()
+                            + (c.isVisible() ? "" : " HIDDEN"));
             }
             return null;
         });
@@ -411,15 +730,29 @@ public final class GuiDriver {
             if (c == null)
                 return "none";
             final java.awt.Cursor cur = c.getCursor();
-            return c.getClass().getSimpleName() + ":" + (cur == null
-                    ? java.awt.Cursor.getDefaultCursor().getType()
-                    : cur.getType());
+            return c.getClass().getSimpleName() + ":"
+                    + (cur == null ? java.awt.Cursor.getDefaultCursor().getType() : cur.getType());
         });
         lastCursor = info;
         System.out.println("CURSOR " + x + " " + y + " " + info);
     }
 
     // Its lines, not Buffer.getText, which a buffer that redraws itself, as the status does, may leave stale.
+    // The text of the buffer whose name's last word is name, as "repo" in
+    // "Git status: repo": what another window or a hidden buffer shows.
+    private static String namedBufferText(String name) {
+        for (Buffer b : Editor.getBufferList()) {
+            final String title = String.valueOf(b);
+            if (title.equals(name) || title.endsWith(" " + name)) {
+                final StringBuilder sb = new StringBuilder();
+                for (Line l = b.getFirstLine(); l != null; l = l.next())
+                    sb.append(l.getText()).append('\n');
+                return sb.toString();
+            }
+        }
+        return "";
+    }
+
     private static String bufferText() {
         final StringBuilder sb = new StringBuilder();
         for (Line l = Editor.currentEditor().getBuffer().getFirstLine(); l != null; l = l.next())
@@ -430,13 +763,12 @@ public final class GuiDriver {
     private static String state() {
         final Editor ed = Editor.currentEditor();
         final java.awt.Point fp = ed.getFrame().getLocationOnScreen();
-        return "buffer=" + ed.getBuffer() + " mode=" + ed.getMode().getDisplayName() + " line="
-                + (ed.getDot() == null ? -1 : ed.getDotLineNumber() + 1) + " col="
+        return "buffer=" + ed.getBuffer() + " mode=" + ed.getMode().getDisplayName() + " input=" + read("input")
+                + " line=" + (ed.getDot() == null ? -1 : ed.getDotLineNumber() + 1) + " col="
                 + (ed.getDot() == null ? -1 : ed.getDotCol() + 1) + " focus=" + name(focus()) + " location=["
-                + read("location") + "] status=[" + read("status") + "] frame=" + fp.x + "," + fp.y
-                + " size=" + ed.getFrame().getWidth() + "x" + ed.getFrame().getHeight()
-                + " editors=" + Editor.getEditorList().size()
-                + " frames=" + Editor.getFrameCount();
+                + read("location") + "] status=[" + read("status") + "] frame=" + fp.x + "," + fp.y + " size="
+                + ed.getFrame().getWidth() + "x" + ed.getFrame().getHeight() + " editors="
+                + Editor.getEditorList().size() + " frames=" + Editor.getFrameCount();
     }
 
     private static <T> T onEdt(Supplier<T> s) throws Exception {

@@ -350,8 +350,7 @@ public final class CommitCommands {
         });
     }
 
-    // One bounded background read. A UI selection changed during the read
-    // requires a fresh invocation, rather than committing a mixture of both.
+    // One bounded background read of what captured selects, as it is now.
     private static void review(
             Editor editor,
             PartialCommit partial,
@@ -359,17 +358,10 @@ public final class CommitCommands {
             java.util.function.Consumer<PartialCommit.Plan> then) {
         Background.then("vcs commit review", () -> partial.review(captured), read -> {
             PartialCommit.Plan ready = null;
-            try {
-                if (read == null || read.failure() != null)
-                    editor.status(read == null ? "Could not read the selected changes" : read.failure());
-                else if (!captured.sameSelection(partial.plan()))
-                    editor.status("The selection changed while it was being read: review it again");
-                else
-                    ready = read.plan();
-            }
-            catch (PartialCommit.Refused e) {
-                editor.status(e.getMessage());
-            }
+            if (read == null || read.failure() != null)
+                editor.status(read == null ? "Could not read the selected changes" : read.failure());
+            else
+                ready = read.plan();
             then.accept(ready);
         });
     }

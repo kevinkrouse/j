@@ -2975,8 +2975,8 @@ public class StatusActionsTest {
         openFile("  M  a.txt", "  +line three");
         final List<Target> captured = new ArrayList<>();
         onEdt(
-            () -> captured.addAll(
-                StatusActions.targetsOf(status.model(), List.of(line("  +line three"), line("  ?  c.txt")))));
+            () -> captured
+                    .addAll(StatusLine.capture(status.model(), List.of(line("  +line three"), line("  ?  c.txt")))));
         git.write("a.txt", SIXTY.replace("line 3\n", "revised three\n"));
         onEdt(status::refresh);
         until(() -> text().contains("  +revised three"));
@@ -2995,7 +2995,7 @@ public class StatusActionsTest {
         assertEquals(null, unread.diff());
         final var diff = repository.backend().readDiff(repository, false, List.of("a.txt"), Whitespace.NONE).get(0);
         final FileItem captured = new FileItem(unread.change(), unread.letter(), unread.staged(), diff);
-        return Target.Part.of(repository, "unstaged", captured, diff.hunks().get(0), null);
+        return new Target.Part(repository, "unstaged", captured, diff.hunks().get(0), null);
     }
 
     @Test
@@ -3031,7 +3031,7 @@ public class StatusActionsTest {
             public void picked() {}
 
             @Override
-            public void read(int dropped, RepositoryStatus.Drop why) {}
+            public void read(String droppedMessage) {}
         };
         onEdt(() -> {
             status.model().hold(result, listener);
@@ -3041,7 +3041,9 @@ public class StatusActionsTest {
         onEdt(() -> {
             assertFalse(result.get().ready());
             assertTrue(result.get().unread().isEmpty());
-            assertEquals(Selections.Reason.READ_FAILED, result.get().problems().get(0).reason());
+            assertTrue(
+                result.get().problems().get(0).message().contains("diff.algorithm"),
+                result.get().problems().get(0).message());
             assertTrue(reads[0] <= 2, "bounded reads: " + reads[0]);
             status.model().release(result, listener);
         });
@@ -3054,9 +3056,8 @@ public class StatusActionsTest {
         openFile("  M  a.txt", "  +line three");
         final PartialCommit[] commit = new PartialCommit[1];
         onEdt(
-            () -> commit[0] = PartialCommit.ofTargets(
-                status.model(),
-                StatusActions.targetsOf(status.model(), List.of(line("  +line three")))));
+            () -> commit[0] = PartialCommit
+                    .ofTargets(status.model(), StatusLine.capture(status.model(), List.of(line("  +line three")))));
         git.write("a.txt", SIXTY.replace("line 3\n", "revised three\n"));
         onEdt(status::refresh);
         until(() -> text().contains("  +revised three"));
@@ -3073,7 +3074,7 @@ public class StatusActionsTest {
         open();
         openFile("  M  a.txt", "  +line three");
         final List<Target> captured = new ArrayList<>();
-        onEdt(() -> captured.addAll(StatusActions.targetsOf(status.model(), List.of(line("  +line three")))));
+        onEdt(() -> captured.addAll(StatusLine.capture(status.model(), List.of(line("  +line three")))));
         makeList("Feature");
         git.write("a.txt", SIXTY.replace("line 3\n", "revised three\n").replace("line 50\n", "line fifty\n"));
         onEdt(status::refresh);
@@ -3096,7 +3097,7 @@ public class StatusActionsTest {
         git.git("config", "diff.algorithm", "invalid-algorithm");
         final AtomicReference<String> said = new AtomicReference<>();
         onEdt(() -> {
-            final List<Target> captured = StatusActions.targetsOf(status.model(), List.of(line("    M  a.txt")));
+            final List<Target> captured = StatusLine.capture(status.model(), List.of(line("    M  a.txt")));
             ChangelistCommands.moveTargets(
                 status.model(),
                 captured,
@@ -3116,7 +3117,7 @@ public class StatusActionsTest {
         makeList("Feature");
         final AtomicReference<String> said = new AtomicReference<>();
         onEdt(() -> {
-            final List<Target> captured = StatusActions.targetsOf(status.model(), List.of(line("    M  a.txt")));
+            final List<Target> captured = StatusLine.capture(status.model(), List.of(line("    M  a.txt")));
             ChangelistCommands.moveTargets(
                 status.model(),
                 captured,

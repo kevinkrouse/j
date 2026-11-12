@@ -427,10 +427,10 @@
     [(str ":" n) proc]))
 
 (defn- fresh-home-env
-  "Empties home and returns the environment for a J that lives in it and
-  draws on display."
-  [display home]
-  (fs/delete-tree home)
+  "Returns the environment for J in a test home on display. The home is
+  emptied unless preserve is true."
+  [display home & {:keys [preserve]}]
+  (when-not preserve (fs/delete-tree home))
   (fs/create-dirs home)
   {"DISPLAY"         display
    "HOME"            home
@@ -502,23 +502,24 @@
   "Run J under Xvfb and drive it from a script of keys, commands, pictures and
   expectations (see test/driver/org/armedbear/j/GuiDriver.java): bb drive
   SCRIPT [FILE...]. Options: --out DIR for pictures (build/drive/shots),
-  --home-from DIR copied into the fresh home (build/drive/home), --screen
+  --home DIR reuses a test home; --home-from DIR seeds it, --screen
   1400x1000x24, --display :N to use a running X server, --wm to run a real
   window manager (openbox) so the EWMH move/resize handoff is exercised rather
   than the bare-X fallback. Fails when an expectation fails or J logs or throws
   an error."
   [{:keys [args opts]}]
   (let [[script & files] args
-        {:keys [out home-from screen display wm]
+        {:keys [out home home-from screen display wm]
          :or   {out "build/drive/shots" screen "1400x1000x24"}} opts]
     (when-not script
-      (throw (ex-info "Usage: bb drive SCRIPT [FILE...] [--out DIR] [--home-from DIR] [--screen WxHxD] [--display :N] [--wm]" {})))
+      (throw (ex-info "Usage: bb drive SCRIPT [FILE...] [--out DIR] [--home DIR] [--home-from DIR] [--screen WxHxD] [--display :N] [--wm]" {})))
     (build {})
     (extensions {})
     (javac-against! {:src-dirs [driver-src-dir] :class-dir driver-dir :basis (basis)} [(abs-path classes-dir)])
     (let [[display xvfb] (if display [(str display) nil] (start-xvfb :screen screen))
-          home           (abs-path (str build-dir "/drive/home"))
-          env            (fresh-home-env display home)
+          saved-home     home
+          home           (abs-path (or home (str build-dir "/drive/home")))
+          env            (fresh-home-env display home :preserve (some? saved-home))
           prefs          (fs/path home ".config" "j" "prefs")
           ;; The WM starts inside the try so a failed start still tears down the
           ;; Xvfb that was started for it.

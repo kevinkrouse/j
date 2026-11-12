@@ -31,7 +31,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
-import javax.swing.JComponent;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
@@ -238,6 +237,46 @@ public class VcsContextMenuTest {
     private static void assertRegistered(JPopupMenu menu) {
         for (String name : commands(menu))
             assertNotNull(org.armedbear.j.CommandTable.getCommand(name), "command " + name + " is registered");
+    }
+
+    @Test
+    public void theStatusTreesMenuUsesItsClickedNodeBeforePicks() throws Exception {
+        repository();
+        open();
+        final JPopupMenu[] menu = new JPopupMenu[1];
+        onEdt(() -> {
+            status.pick(List.of(line("  M  b.txt")));
+            final StatusTree tree = status.tree(null);
+            final var root = (javax.swing.tree.DefaultMutableTreeNode) tree.getModel().getRoot();
+            for (var nodes = root.depthFirstEnumeration(); nodes.hasMoreElements();) {
+                final var node = (javax.swing.tree.DefaultMutableTreeNode) nodes.nextElement();
+                if (node.getUserObject() instanceof StatusTree.FileNode file && file.path().equals("a.txt")) {
+                    menu[0] = tree.menuFor(new javax.swing.tree.TreePath(node.getPath()));
+                    break;
+                }
+            }
+            assertNotNull(menu[0]);
+            // A later caret move must not change the menu capture.
+            h.editor().setDot(line("  ?  c.txt"), 0);
+            item(menu[0], "vcsStage").doClick();
+        });
+        until(() -> git.index("a.txt").contains("line three\n"));
+        onEdt(() -> assertFalse(status.picks().isEmpty()));
+    }
+
+    @Test
+    public void aMenuKeepsItsFileCaptureWhenTheCaretAndPicksChange() throws Exception {
+        repository();
+        open();
+        final JPopupMenu menu = menuAt("  M  a.txt");
+        onEdt(() -> {
+            status.pick(List.of(line("  M  b.txt")));
+            h.editor().setDot(line("  ?  c.txt"), 0);
+            item(menu, "vcsStage").doClick();
+        });
+        until(() -> git.index("a.txt").contains("line three\n"));
+        assertFalse(git.git("ls-files", "--", "c.txt").contains("c.txt"));
+        onEdt(() -> assertFalse(status.picks().isEmpty()));
     }
 
     @Test
@@ -679,5 +718,65 @@ public class VcsContextMenuTest {
             if (b instanceof CommitMessageBuffer m)
                 return m;
         return null;
+    }
+
+    @Test
+    public void aMenuItemWithoutACaptureKeepsTheSelectionItIsIn() throws Exception {
+        repository();
+        git.write("d.txt", "d\n");
+        open();
+        until(() -> text().contains("  ?  d.txt"));
+        onEdt(() -> {
+            h.editor().setMark(new org.armedbear.j.Position(line("  ?  c.txt"), 0));
+            h.editor().setDot(line("  ?  d.txt"), 1);
+            item(VcsStatusMode.menuFor(h.editor()), "vcsIgnore").doClick();
+        });
+        final Path ignore = tmp.resolve(".gitignore");
+        until(() -> Files.exists(ignore));
+        until(() -> {
+            try {
+                final String got = Files.readString(ignore);
+                return got.contains("/c.txt") && got.contains("/d.txt");
+            }
+            catch (java.io.IOException e) {
+                return false;
+            }
+        });
+    }
+
+    @Test
+    public void aMenuPickTakesOnlyThePickableLinesSelected() throws Exception {
+        repository();
+        git.write("e.txt", "e\n");
+        git.git("add", "e.txt");
+        git.git("commit", "-m", "e", "--", "e.txt");
+        git.write("e.txt", "e changed\n");
+        open();
+        until(() -> text().contains("  M  e.txt"));
+        onEdt(() -> {
+            // From the section's heading to a.txt: a.txt alone, not the section.
+            h.editor().setMark(new org.armedbear.j.Position(lineOf(StatusLine.Kind.SECTION, "Unstaged"), 0));
+            h.editor().setDot(line("  M  a.txt"), 1);
+            item(VcsStatusMode.menuFor(h.editor()), "vcsStatusPick").doClick();
+            assertEquals(org.armedbear.j.util.PickState.ALL, status.picks().state(line("  M  a.txt")));
+            assertEquals(org.armedbear.j.util.PickState.NONE, status.picks().state(line("  M  e.txt")));
+        });
+    }
+
+    @Test
+    public void theStatusTreeGivesNoMenuForANodeTheStatusDoesNotShow() throws Exception {
+        repository();
+        open();
+        onEdt(() -> {
+            final StatusLine at = line("  ?  c.txt");
+            h.editor().setDot(at, 0);
+            final StatusTree tree = status.tree(null);
+            final var node = new javax.swing.tree.DefaultMutableTreeNode(
+                    new StatusTree.FileNode('M', "gone.txt", "no such key", at.section()));
+            final var root = new javax.swing.tree.DefaultMutableTreeNode("root");
+            root.add(node);
+            assertNull(tree.menuFor(new javax.swing.tree.TreePath(node.getPath())));
+            assertTrue(h.editor().getDotLine() == at);
+        });
     }
 }

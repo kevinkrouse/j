@@ -1165,7 +1165,32 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         if (status == null || line == null)
             return null;
         final RepositoryStatus model = status.model();
-        final Function<String, Runnable> run = name -> () -> StatusActions.fromMenu(() -> runNamed(editor, name));
+        final Buffer source = editor.getBuffer();
+        final List<Target> captured = StatusActions.targets(model, editor, false);
+        // As ; picks: only the lines that can be picked.
+        final List<Target> pickable = StatusLine
+                .capture(model, StatusActions.selected(editor).stream().filter(StatusPicks::pickable).toList());
+        final Function<String, Runnable> run = name -> {
+            final Runnable action = VcsContextMenus
+                    .targetAction(editor, model, name.equals("vcsStatusPick") ? pickable : captured, name);
+            if (action != null)
+                return action;
+            if (name.equals("vcsStatusVisit") && line.file() != null)
+                return () -> visit(editor, line.repository(), line.file(), lineNumber(line));
+            return () -> {
+                // The other commands run at the clicked row, even after a
+                // refresh; a selection it is in is kept.
+                if (editor.getBuffer() != source)
+                    return;
+                for (Line current = source.getFirstLine(); current != null; current = current.next())
+                    if (current instanceof StatusLine row && row.key().equals(line.key())) {
+                        if (editor.getDotLine() != current && !insideSelection(editor, current))
+                            editor.moveDotTo(current, 0);
+                        runNamed(editor, name);
+                        break;
+                    }
+            };
+        };
         final VcsMenu menu = new VcsMenu(editor, null);
         switch (line.kind()) {
             case FILE, MESSAGE -> {
@@ -1236,10 +1261,14 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
             VcsContextMenus.commitWhy(model, commitTargets) == null,
             VcsContextMenus.commitWhy(model, commitTargets),
             e -> run.apply("vcsCommitFiles").run());
+        final List<StatusLine> pickable =
+                StatusActions.selected(editor).stream().filter(l -> l != null && StatusPicks.pickable(l)).toList();
         menu.add(
-            "Pick",
+            !pickable.isEmpty() && pickable.stream().allMatch(l -> model.picks().state(l) != PickState.NONE)
+                    ? "Unpick"
+                    : "Pick",
             "vcsStatusPick",
-            StatusActions.selected(editor).stream().anyMatch(l -> l != null && StatusPicks.pickable(l)),
+            !pickable.isEmpty(),
             "Nothing to pick here",
             e -> run.apply("vcsStatusPick").run());
     }

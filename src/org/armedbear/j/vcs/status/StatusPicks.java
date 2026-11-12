@@ -76,7 +76,7 @@ final class StatusPicks {
         }
 
         Part target(FileKey key) {
-            return Part.of(key.repository(), key.section(), file, source, lines);
+            return new Part(key.repository(), key.section(), file, source, lines == null ? null : lines);
         }
     }
 
@@ -145,7 +145,7 @@ final class StatusPicks {
         targetKeys = null;
     }
 
-    /** diff's hunks by their ids, as {@link Selections#hunkIds}, read once a render. */
+    /** diff's hunks by their ids, as {@link Selections#index}, read once a render. */
     Map<String, Hunk> ids(FileDiff diff) {
         return idsOf(diff).hunks();
     }
@@ -271,7 +271,7 @@ final class StatusPicks {
                 if (part.selection() == null)
                     setHunk(key, id, part.file(), on);
                 else
-                    setLines(key, id, part.file(), part.hunk(), part.lines(), on);
+                    setLines(key, id, part.file(), part.hunk(), part.selection(), on);
             }
         }
     }
@@ -290,7 +290,7 @@ final class StatusPicks {
             final String id = hunkId(part.file(), part.hunk());
             return id == null ? PickState.NONE
                     : part.selection() == null ? hunkState(key, id)
-                    : linesState(key, Map.of(id, part.lines()));
+                    : linesState(key, Map.of(id, part.selection()));
         }
         return all ? PickState.ALL : any ? PickState.SOME : PickState.NONE;
     }
@@ -587,8 +587,9 @@ final class StatusPicks {
             } else {
                 final Part part = (Part) target;
                 final FileKey key = new FileKey(part.repository(), part.section(), part.file().path());
-                retained.computeIfAbsent(key, k -> new FilePicks(k, part.file())).hunks
-                        .put(hunkId(part.file(), part.hunk()), new HunkPick(part.lines(), part.file(), part.hunk()));
+                retained.computeIfAbsent(key, k -> new FilePicks(k, part.file())).hunks.put(
+                    hunkId(part.file(), part.hunk()),
+                    new HunkPick(part.selection(), part.file(), part.hunk()));
             }
         }
         final Map<FileKey, FilePicks> ordered = new LinkedHashMap<>();

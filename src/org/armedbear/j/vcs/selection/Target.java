@@ -43,25 +43,21 @@ public sealed interface Target permits Target.Files, Target.Part {
         }
     }
 
-    /** selection is null for a whole hunk. */
-    record Part(VcsRepository repository, String section, FileItem file, Hunk hunk, LineSet selection)
+    /** selection, indexes into the hunk's lines, is null for a whole hunk; held and given as copies. */
+    record Part(VcsRepository repository, String section, FileItem file, Hunk hunk, BitSet selection)
             implements Target {
-        public static Part of(VcsRepository repository, String section, FileItem file, Hunk hunk, BitSet lines) {
-            return new Part(repository, section, file, hunk, lines == null ? null : new LineSet(lines));
+        public Part {
+            selection = selection == null ? null : (BitSet) selection.clone();
+        }
+
+        @Override
+        public BitSet selection() {
+            return selection == null ? null : (BitSet) selection.clone();
         }
 
         @Override
         public List<FileItem> files() {
             return List.of(file);
-        }
-
-        /** A writable copy for the existing patch and selection builders. */
-        public BitSet lines() {
-            return selection == null ? null : selection.toBitSet();
-        }
-
-        public Part withLines(BitSet lines) {
-            return of(repository, section, file, hunk, lines);
         }
     }
 

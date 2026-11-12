@@ -30,6 +30,8 @@ import org.armedbear.j.TextLine;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.selection.Selections;
+import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Member;
 import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
@@ -40,6 +42,43 @@ import org.armedbear.j.vcs.status.StatusData.StashItem;
  * field, a section, a file, a hunk, a line of a diff, or a commit.
  */
 public final class StatusLine extends TextLine {
+    /**
+     * What these status lines take, as the status's own lines would: whole
+     * files, a changelist heading its members, a hunk or some of its
+     * lines a Part. The text and status-tree adapter for shared capture.
+     */
+    static List<Target> capture(RepositoryStatus model, List<StatusLine> lines) {
+        final Selections.Builder selected =
+                model == null ? new Selections.Builder() : new Selections.Builder(model.picks()::ids);
+        for (StatusLine line : lines) {
+            if (line == null || line.repository() == null || line.section() == null)
+                continue;
+            final VcsRepository repository = line.repository();
+            final String section = line.section();
+            switch (line.kind()) {
+                case SECTION ->
+                        model.files(repository, section).forEach(file -> selected.file(repository, section, file));
+                case LIST -> line.members().forEach(member -> selected.member(repository, section, member));
+                case FILE, MESSAGE -> {
+                    if (line.file() != null)
+                        selected.member(repository, section, new Target.Member(line.file(), line.only()));
+                }
+                case HUNK -> {
+                    if (line.only() != null)
+                        selected.member(repository, section, new Target.Member(line.file(), line.only()));
+                    else
+                        selected.lines(repository, section, line.file(), line.hunk(), null);
+                }
+                case DIFF -> {
+                    if (!line.isForeign())
+                        selected.line(repository, section, line.file(), line.hunk(), line.diffIndex());
+                }
+                default -> {}
+            }
+        }
+        return selected.build();
+    }
+
     public enum Kind {
         REPOSITORY, FIELD, MESSAGE, BLANK, SECTION, LIST, FILE, HUNK, DIFF, COMMIT, TEXT
     }

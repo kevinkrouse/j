@@ -70,17 +70,30 @@ public class SelectionsTest {
     }
 
     @Test
+    public void contextRowsDoNotBlockChangedRowsInAnotherHunk() throws Exception {
+        GitFixture.metadata(tmp);
+        final var repository = Repositories.forDirectory(tmp.toRealPath());
+        final Hunk context = hunk(1, "first", false, "context");
+        final Hunk changed = hunk(50, "second", false);
+        final FileItem file = new FileItem(new org.armedbear.j.vcs.FileChange("a.txt",
+                null,
+                null,
+                org.armedbear.j.vcs.FileChange.Kind.MODIFIED,
+                " M"), 'M', false, diff(context, changed));
+        final List<Target> targets = new Selections.Builder().line(repository, "working", file, context, 0)
+                .line(repository, "working", file, changed, 1)
+                .build();
+        assertEquals(1, targets.size());
+        assertSame(changed, ((Target.Part) targets.getFirst()).hunk());
+    }
+
+    @Test
     public void hashCollisionsAndNewlineChangesHaveDifferentIdentities() {
         assertEquals("Aa".hashCode(), "BB".hashCode());
-        var aa = Selections.content(hunk(1, "Aa", false));
-        var bb = Selections.content(hunk(1, "BB", false));
-        assertNotEquals(aa.fingerprint(), bb.fingerprint());
-        assertNotEquals(aa, bb);
-        var noNewline = Selections.content(hunk(1, "Aa", true));
-        assertNotEquals(aa.fingerprint(), noNewline.fingerprint());
-        assertNotEquals(aa, noNewline);
-        var binaryBytes = Selections.content(hunk(1, "\u0080\u00ff", false));
-        assertNotEquals(aa, binaryBytes);
+        var aa = Selections.fingerprint(hunk(1, "Aa", false));
+        assertNotEquals(aa, Selections.fingerprint(hunk(1, "BB", false)));
+        assertNotEquals(aa, Selections.fingerprint(hunk(1, "Aa", true)));
+        assertNotEquals(aa, Selections.fingerprint(hunk(1, "\u0080\u00ff", false)));
     }
 
     @Test
@@ -91,14 +104,13 @@ public class SelectionsTest {
         var after = Selections.index(diff(moved));
         String id = firstId(before);
         assertEquals(id, firstId(after));
-        assertEquals(before.contents().get(id), after.contents().get(id));
-        assertSame(moved, Selections.match(after, original, before.contents().get(id)));
+        assertSame(moved, Selections.match(after, original, Selections.fingerprint(original)));
     }
 
     @Test
     public void aChangeIsFoundWhereEitherSideKeepsItsRows() {
         Hunk original = at(10, 10, "new");
-        var content = Selections.content(original);
+        var content = Selections.fingerprint(original);
         var baseKept = at(10, 14, "new");
         var workingKept = at(13, 10, "new");
         var neither = at(13, 14, "new");
@@ -110,17 +122,6 @@ public class SelectionsTest {
     }
 
     @Test
-    public void canonicalContentsMustMatchEvenWhenACandidateIdMatches() {
-        Hunk original = hunk(1, "Aa", false);
-        var before = Selections.index(diff(original));
-        String id = firstId(before);
-        Hunk different = hunk(1, "BB", false);
-        var candidate =
-                new Selections.Hunks(Map.of(id, different), Map.of(id, Selections.content(different)), Map.of(id, 1));
-        assertNull(Selections.match(candidate, original, before.contents().get(id)));
-    }
-
-    @Test
     public void identicalOccurrencesAreFoundWhereTheyWere() {
         var original = diff(hunk(1, "new", false), hunk(20, "new", false));
         var before = Selections.index(original);
@@ -129,7 +130,7 @@ public class SelectionsTest {
         var moved = Selections.index(diff(hunk(10, "new", false), hunk(30, "new", false)));
         final Hunk first = original.hunks().get(0);
         final Hunk second = original.hunks().get(1);
-        final var content = Selections.content(first);
+        final var content = Selections.fingerprint(first);
         assertNull(Selections.match(fewer, first, content));
         assertEquals(20, Selections.match(fewer, second, content).oldStart());
         assertEquals(1, Selections.match(more, first, content).oldStart());
@@ -146,8 +147,8 @@ public class SelectionsTest {
         BitSet bits = new BitSet();
         bits.set(0); // A context line never becomes part of the selection.
         bits.set(2); // The added line.
-        LineSet selection = Selections.changedLines(before, bits);
-        assertEquals(BitSet.valueOf(new long[] { 2 }), selection.toBitSet());
+        BitSet selection = Selections.changedLines(before, bits);
+        assertEquals(BitSet.valueOf(new long[] { 2 }), selection);
         assertEquals(BitSet.valueOf(new long[] { 16 }), Selections.hunkLines(after, selection));
         assertEquals("new", after.lines().get(Selections.hunkLines(after, selection).nextSetBit(0)).text());
     }
@@ -162,9 +163,9 @@ public class SelectionsTest {
         var separate = Selections.index(diff(one, two));
         var together = Selections.index(diff(joined));
         for (String id : separate.hunks().keySet())
-            assertNull(Selections.match(together, separate.hunks().get(id), separate.contents().get(id)));
-        String joinedId = firstId(together);
-        assertNull(Selections.match(separate, joined, together.contents().get(joinedId)));
+            assertNull(
+                Selections.match(together, separate.hunks().get(id), Selections.fingerprint(separate.hunks().get(id))));
+        assertNull(Selections.match(separate, joined, Selections.fingerprint(joined)));
     }
 
     @Test
@@ -202,10 +203,10 @@ public class SelectionsTest {
                 diff(hunk));
         var capture = new Selections.Builder().line(repository, "section", file, hunk, 2);
         var first = capture.build();
-        assertEquals(BitSet.valueOf(new long[] { 5 }), ((Target.Part) first.get(0)).lines());
+        assertEquals(BitSet.valueOf(new long[] { 5 }), ((Target.Part) first.get(0)).selection());
         capture.line(repository, "section", file, hunk, 3);
-        assertEquals(BitSet.valueOf(new long[] { 5 }), ((Target.Part) first.get(0)).lines());
-        assertEquals(BitSet.valueOf(new long[] { 15 }), ((Target.Part) capture.build().get(0)).lines());
+        assertEquals(BitSet.valueOf(new long[] { 5 }), ((Target.Part) first.get(0)).selection());
+        assertEquals(BitSet.valueOf(new long[] { 15 }), ((Target.Part) capture.build().get(0)).selection());
         capture.file(repository, "section", file);
         assertEquals(1, capture.build().size());
         assertInstanceOf(Target.Files.class, capture.build().get(0));
@@ -233,11 +234,11 @@ public class SelectionsTest {
         var repository = Repositories.forDirectory(tmp.toRealPath());
         var diff = diff(hunk(1, "one", false), hunk(30, "two", false));
         var file = new FileItem(new FileChange("a.txt", null, null, FileChange.Kind.MODIFIED, " M"), 'M', false, diff);
-        var ids = Selections.hunkIds(diff).keySet().stream().toList();
+        var ids = Selections.index(diff).hunks().keySet().stream().toList();
         int[] indexes = { 0 };
         var capture = new Selections.Builder(d -> {
             indexes[0]++;
-            return Selections.hunkIds(d);
+            return Selections.index(d).hunks();
         });
         for (String id : ids)
             capture.member(
@@ -276,11 +277,11 @@ public class SelectionsTest {
         supplied.clear();
         supplied.set(0);
         final var selected = (Target.Part) capture.build().get(0);
-        assertEquals(BitSet.valueOf(new long[] { 2 }), selected.lines());
+        assertEquals(BitSet.valueOf(new long[] { 2 }), selected.selection());
         // Neither later caller edits nor a writable accessor may change it.
         supplied.set(2);
-        selected.lines().clear();
-        assertEquals(BitSet.valueOf(new long[] { 2 }), selected.lines());
-        assertEquals(BitSet.valueOf(new long[] { 2 }), ((Target.Part) capture.build().get(0)).lines());
+        selected.selection().clear();
+        assertEquals(BitSet.valueOf(new long[] { 2 }), selected.selection());
+        assertEquals(BitSet.valueOf(new long[] { 2 }), ((Target.Part) capture.build().get(0)).selection());
     }
 }

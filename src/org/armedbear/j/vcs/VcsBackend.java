@@ -392,23 +392,6 @@ public interface VcsBackend {
         return null;
     }
 
-    /** Names of the system's own changelists, read off the event thread. Null if unavailable. */
-    default List<String> readNativeChangelists(VcsRepository repository) {
-        return null;
-    }
-
-    /**
-     * Moves whole working-copy paths to a native changelist, off the event
-     * thread. A missing destination may be created only if create is true.
-     */
-    default VcsResult moveToNativeChangelist(
-            VcsRepository repository,
-            List<String> paths,
-            String destination,
-            boolean create) {
-        return null;
-    }
-
     /** Stashes the changes, with message if not null. */
     default VcsResult stash(VcsRepository repository, String message, Set<StashOption> options) {
         return null;

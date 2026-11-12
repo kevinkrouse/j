@@ -347,6 +347,14 @@ buffer: the status, the sidebar's Changes tab and a file's own buffer share
 them, and they stay when the status is closed, until unpicked or committed.
 
 <p>
+A changed or ambiguous hunk asks you to select it again. A context-only edit
+can keep a pick; splitting or joining hunks can drop it. A whole-file pick
+takes that file's current changes, including edits made after it was picked.
+Right-click menus take the clicked line or node, or the selection containing
+it, before picks. The menu keeps that selection while a diff is being read,
+even if the caret moves. A failed diff read stops the action and says why.
+
+<p>
 In a file's own buffer, the change popup and the hunk preview have
 <b>pick</b> (<code>&lt;leader&gt;h;</code> in vim edit mode,
 <a href="commands.html#vcsPickHunk">vcsPickHunk</a>): it picks the change at
@@ -446,6 +454,10 @@ undo puts a change back in the list it had. The lists are kept in
 which no other tool reads. Concurrent saves from another j are checked
 under a lock; a list change that cannot be saved is reported rather than
 silently replacing the other writer's version.
+
+<p>
+Existing changelist files need no migration. Picks remain in memory; the
+saved list assignments and drafts keep their existing format.
 
 <h3><a name="changelist-workflow">Preparing separate commits</a></h3>
 

@@ -45,10 +45,12 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import javax.swing.DropMode;
 import javax.swing.Icon;
 import javax.swing.JPopupMenu;
@@ -200,7 +202,7 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     // Told by its status as it reads and picks.
     private final RepositoryStatus.Listener shows = new RepositoryStatus.Listener() {
         @Override
-        public void read(int dropped, RepositoryStatus.Drop why) {
+        public void read(String droppedMessage) {
             update();
         }
 
@@ -326,12 +328,18 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         parts = List.copyOf(now);
         partsOf = status;
         partsSaid = said;
-        final String selected = key(getSelectionPath());
+        final Set<String> selected = new HashSet<>();
+        final TreePath[] selection = getSelectionPaths();
+        if (selection != null)
+            for (TreePath path : selection) {
+                final String key = key(path);
+                if (key != null)
+                    selected.add(key);
+            }
         final DefaultMutableTreeNode root = said != null ? message(said) : build(now);
         setModel(new DefaultTreeModel(root));
         open.restore(new TreePath(root));
-        if (selected != null)
-            select(selected);
+        select(selected);
         if (getSelectionPath() == null && followed != null)
             selectFile(followed);
     }
@@ -445,17 +453,16 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         };
     }
 
-    // The node keyed key selected, if it is shown.
-    private void select(String key) {
+    // Restore all surviving visible selections, including files in different groups.
+    private void select(Set<String> keys) {
+        final List<TreePath> selected = new ArrayList<>();
         final Enumeration<TreeNode> nodes = ((DefaultMutableTreeNode) getModel().getRoot()).preorderEnumeration();
         while (nodes.hasMoreElements()) {
             final TreePath path = new TreePath(((DefaultMutableTreeNode) nodes.nextElement()).getPath());
-            if (key.equals(key(path))) {
-                if (isVisible(path))
-                    setSelectionPath(path);
-                return;
-            }
+            if (keys.contains(key(path)) && isVisible(path))
+                selected.add(path);
         }
+        setSelectionPaths(selected.toArray(new TreePath[0]));
     }
 
     // b's file's first node selected and shown, if it has one.
@@ -820,15 +827,10 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
     // What a file item's command does to the targets, in place.
     private Runnable fileAction(String command, List<Target> targets, FileNode line) {
         final Editor editor = editor();
+        final Runnable captured = VcsContextMenus.targetAction(editor, status, targets, command);
+        if (captured != null)
+            return captured;
         switch (command) {
-            case "vcsCommitFiles":
-                return () -> CommitCommands.commitTargets(editor, status, targets);
-            case "vcsDiscard":
-                return () -> StatusActions.runOn(editor, status, StatusActions.Op.DISCARD, targets, Map.of(), false);
-            case "vcsStage":
-                return () -> StatusActions.runOn(editor, status, StatusActions.Op.STAGE, targets, Map.of(), false);
-            case "vcsUnstage":
-                return () -> StatusActions.runOn(editor, status, StatusActions.Op.UNSTAGE, targets, Map.of(), false);
             case "vcsShowDiff":
                 return () -> showDiff(line);
             case "vcsLogFileAt":
@@ -837,19 +839,10 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 return () -> blame(line);
             case "vcsStatusVisit":
                 return () -> open(line);
-            case "vcsStatusPick":
-                return () -> pickSelected();
             case "vcsCopyPath":
                 return () -> VcsContextMenus.copyPath(editor, line.file().path());
             case "vcsIgnore":
                 return () -> StatusActions.ignore(editor, status, line.repository(), line.file().path());
-            case "vcsResolveOurs":
-                return () -> ResolveCommands.resolveTargets(editor, status, targets, false, ResolveCommands.Take.OURS);
-            case "vcsResolveTheirs":
-                return () -> ResolveCommands
-                        .resolveTargets(editor, status, targets, false, ResolveCommands.Take.THEIRS);
-            case "vcsResolveKeep":
-                return () -> ResolveCommands.resolveTargets(editor, status, targets, false, ResolveCommands.Take.KEEP);
             default:
                 return () -> editor.status("Nothing to do");
         }
@@ -902,13 +895,6 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         final Selections.Builder selected = new Selections.Builder(status.picks()::ids);
         files.forEach(file -> selected.member(file.repository(), file.section(), file.member()));
         return selected.build();
-    }
-
-    // A mixed selection toggles together, preserving selection before picks before caret.
-    private void pickSelected() {
-        final List<Target> targets = targetsFor(selectedFiles());
-        if (!targets.isEmpty())
-            status.pickTargets(targets);
     }
 
     private void discardSelected() {
@@ -1090,7 +1076,8 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 case RepositoryNode r -> setIcon(expanded ? getOpenIcon() : getClosedIcon());
                 case null, default -> setIcon(null);
             }
-            final Frame frame = Editor.getCurrentFrame();
+            final Editor current = editor();
+            final Frame frame = current == null ? null : current.getFrame();
             setBackgroundSelectionColor(
                 frame != null && frame.getFocusedComponent() == tree
                         ? focusedSelection
