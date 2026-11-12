@@ -49,8 +49,40 @@ mode Java
 46: string"            " string"line one"
 47: string"            " string"line "two" with {braces}"
 48: string"            " string""""" text";"
-49: text"    " brace"}"
-50: brace"}"
+49: text"        " keyword"double" text" " identifier"small" text" " operator"=" text" " number"1.e5" text" " operator"+" text" " number"1." text" " operator"+" text" " number"2.f" text";"
+50: text"        " identifier"String" text" " identifier"escaped" text" " operator"=" text" " string""a"" text" " operator"+" text" " string"""""
+51: string"            " string"esc \""" still inside"
+52: string"            " string""""" text";"
+53: text"        " identifier"List" operator"<" annotation"@NonNull" text" " identifier"String" operator">" text" " identifier"names" text" " operator"=" text" " identifier"List" text"." function"of" text"();"
+54: text"        " identifier"Thread" text"." function"yield" text"();"
+55: text"        " keyword"int" text" " identifier"permits" text" " operator"=" text" " identifier"record" text"." function"size" text"();"
+56: text"        " keyword"int" text" " identifier"kind" text" " operator"=" text" " keyword"switch" text" (" identifier"total" text") " brace"{"
+57: text"            " keyword"default" text" " operator"->" text" " brace"{"
+58: text"                " keyword"yield" text" " identifier"permits" text";"
+59: text"            " brace"}"
+60: text"        " brace"}" text";"
+61: text"    " brace"}"
+62:
+63: text"    " keyword"record" text" " function"Point" text"(" keyword"int" text" " identifier"x" text", " keyword"int" text" " identifier"y" text") " brace"{"
+64: text"        " identifier"Point" text" " brace"{"
+65: text"            " keyword"if" text" (" identifier"x" text" " operator"<" text" " number"0" text")"
+66: text"                " keyword"throw" text" " keyword"new" text" " function"IllegalArgumentException" text"();"
+67: text"        " brace"}"
+68: text"        " keyword"int" text" " function"sum" text"() " brace"{"
+69: text"            " keyword"return" text" " identifier"x" text" " operator"+" text" " identifier"y" text";"
+70: text"        " brace"}"
+71: text"    " brace"}"
+72:
+73: text"    " keyword"enum" text" " identifier"Color" text" " brace"{"
+74: text"        " identifier"RED" text", " identifier"GREEN" text";"
+75: text"        " identifier"String" text" " function"label" text"() " brace"{"
+76: text"            " keyword"return" text" " string""x"" text";"
+77: text"        " brace"}"
+78: text"    " brace"}"
+79:
+80: text"    " keyword"sealed" text" " keyword"interface" text" " identifier"Shape" text" " keyword"permits" text" " identifier"Circle" text" " brace"{"
+81: text"    " brace"}"
+82: brace"}"
 
 ## indent
 1: 0
@@ -101,8 +133,40 @@ mode Java
 46: 12
 47: 12
 48: 12
-49: 4
-50: 0
+49: 8
+50: 8
+51: 12
+52: 12
+53: 8
+54: 8
+55: 8
+56: 8
+57: 12
+58: 16
+59: 12
+60: 8
+61: 4
+62: 4
+63: 4
+64: 8
+65: 12
+66: 16
+67: 8
+68: 8
+69: 12
+70: 8
+71: 4
+72: 4
+73: 4
+74: 8
+75: 8
+76: 12
+77: 8
+78: 4
+79: 4
+80: 4
+81: 4
+82: 0
 
 ## tags
 6: class Sample (2)
@@ -114,6 +178,13 @@ mode Java
 12: Sample.Sample (3)
 24: Sample.run (3)
 37: Sample.modern (3)
+63: record Point (2)
+68: Point.sum (3)
+73: enum Color (2)
+74: Color.RED (8)
+74: Color.GREEN (8)
+75: Color.label (3)
+80: interface Shape (1)
 
 ## comment
 // package demo;
@@ -164,6 +235,38 @@ mode Java
 //             line one
 //             line "two" with {braces}
 //             """;
+//         double small = 1.e5 + 1. + 2.f;
+//         String escaped = "a" + """
+//             esc \""" still inside
+//             """;
+//         List<@NonNull String> names = List.of();
+//         Thread.yield();
+//         int permits = record.size();
+//         int kind = switch (total) {
+//             default -> {
+//                 yield permits;
+//             }
+//         };
+//     }
+
+//     record Point(int x, int y) {
+//         Point {
+//             if (x < 0)
+//                 throw new IllegalArgumentException();
+//         }
+//         int sum() {
+//             return x + y;
+//         }
+//     }
+
+//     enum Color {
+//         RED, GREEN;
+//         String label() {
+//             return "x";
+//         }
+//     }
+
+//     sealed interface Shape permits Circle {
 //     }
 // }
 

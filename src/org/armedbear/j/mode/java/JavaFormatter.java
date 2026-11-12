@@ -23,6 +23,7 @@ package org.armedbear.j.mode.java;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -75,6 +76,11 @@ public class JavaFormatter extends Formatter {
         return language != LANGUAGE_JAVA;
     }
 
+    /** Whether """ opens a text block, as in Java; elsewhere it is two strings, or one and a quote. */
+    protected boolean supportsTextBlocks() {
+        return language == LANGUAGE_JAVA;
+    }
+
     protected boolean isOperatorChar(char c) {
         return "!&|<>=+/*-^".indexOf(c) >= 0;
     }
@@ -119,7 +125,7 @@ public class JavaFormatter extends Formatter {
     // A number's end: the offset one past the last character of the literal
     // starting at `start`. Handles hex (0x, with p-exponent), binary (0b),
     // decimal with a fraction and an e-exponent, underscores between digits,
-    // and the f/F/d/D/l/L suffixes.
+    // and the suffixes: one of f/F/d/D, or a run of l/L/u/U for C's "10UL".
     private static int scanNumber(String text, int start, int limit) {
         int i = start;
         if (text.charAt(i) == '0' && i + 1 < limit && (text.charAt(i + 1) == 'x' || text.charAt(i + 1) == 'X')) {
@@ -135,19 +141,15 @@ public class JavaFormatter extends Formatter {
                     ++i;
                 i = scanDigits(text, i, limit, "0123456789_");
             }
-            if (i < limit && isNumberSuffix(text.charAt(i)))
-                ++i;
-            return i;
+            return scanSuffix(text, i, limit);
         }
         if (text.charAt(i) == '0' && i + 1 < limit && (text.charAt(i + 1) == 'b' || text.charAt(i + 1) == 'B')) {
             i += 2;
             i = scanDigits(text, i, limit, "01_");
-            if (i < limit && isNumberSuffix(text.charAt(i)))
-                ++i;
-            return i;
+            return scanSuffix(text, i, limit);
         }
         i = scanDigits(text, i, limit, "0123456789_");
-        if (i < limit && text.charAt(i) == '.' && i + 1 < limit && Character.isDigit(text.charAt(i + 1))) {
+        if (i < limit && text.charAt(i) == '.' && isFractionStart(text, i + 1, limit)) {
             ++i;
             i = scanDigits(text, i, limit, "0123456789_");
         }
@@ -161,7 +163,29 @@ public class JavaFormatter extends Formatter {
             else
                 i = save;
         }
-        if (i < limit && isNumberSuffix(text.charAt(i)))
+        return scanSuffix(text, i, limit);
+    }
+
+    // Whether the '.' before `i` belongs to the number: "1.5", "1.", "1.e5"
+    // and "1.f" are numbers, but "1..2" and "1.foo" are not.
+    private static boolean isFractionStart(String text, int i, int limit) {
+        if (i >= limit)
+            return true;
+        final char c = text.charAt(i);
+        final char after = i + 1 < limit ? text.charAt(i + 1) : '\0';
+        if (Character.isDigit(c))
+            return true;
+        if (c == 'e' || c == 'E')
+            return Character.isDigit(after) || after == '+' || after == '-';
+        if ("fFdD".indexOf(c) >= 0)
+            return !Character.isJavaIdentifierPart(after);
+        return c != '.' && !Character.isJavaIdentifierStart(c);
+    }
+
+    private static int scanSuffix(String text, int i, int limit) {
+        if (i < limit && "fFdD".indexOf(text.charAt(i)) >= 0)
+            return i + 1;
+        while (i < limit && "lLuU".indexOf(text.charAt(i)) >= 0)
             ++i;
         return i;
     }
@@ -174,10 +198,6 @@ public class JavaFormatter extends Formatter {
             ++i;
         }
         return i;
-    }
-
-    private static boolean isNumberSuffix(char c) {
-        return c == 'f' || c == 'F' || c == 'd' || c == 'D' || c == 'l' || c == 'L' || c == 'u' || c == 'U';
     }
 
     protected void parseLine(Line line) {
@@ -242,13 +262,17 @@ public class JavaFormatter extends Formatter {
                     endToken(text, i + 3, state);
                     state = STATE_NEUTRAL;
                     i += 3;
+                } else if (c == '\\' && i < limit - 1) {
+                    // An escape, as \" or \\, never closes the block.
+                    i += 2;
                 } else {
                     ++i;
                 }
                 continue;
             }
             // Reaching here, we're not in a comment or a quoted string.
-            if (state == STATE_NEUTRAL
+            // After an operator or brace too: "List<@NonNull String>".
+            if ((state == STATE_NEUTRAL || state == STATE_OPERATOR || state == STATE_BRACE)
                     && supportsAnnotations()
                     && !isPreprocessorLine
                     && c == '@'
@@ -263,9 +287,11 @@ public class JavaFormatter extends Formatter {
                 addSegment(text, i, j, JAVA_FORMAT_ANNOTATION);
                 tokenBegin = j;
                 i = j;
+                state = STATE_NEUTRAL;
                 continue;
             }
-            if (state == STATE_NEUTRAL
+            // In any state left here, as after an operator: x +""".
+            if (supportsTextBlocks()
                     && c == '"'
                     && i + 2 < limit
                     && text.charAt(i + 1) == '"'
@@ -304,7 +330,7 @@ public class JavaFormatter extends Formatter {
                     endToken(text, i, state);
                     // Check for keyword (as in e.g. "char*").
                     LineSegment segment = getLastSegment();
-                    if (segment != null && isKeyword(segment.getText()))
+                    if (segment != null && isKeywordAt(text, segment))
                         segment.setFormat(JAVA_FORMAT_KEYWORD);
                     state = STATE_OPERATOR;
                 }
@@ -316,7 +342,7 @@ public class JavaFormatter extends Formatter {
                     endToken(text, i, state);
                     // Check for keyword (e.g. "try").
                     LineSegment segment = getLastSegment();
-                    if (!isPreprocessorLine && segment != null && isKeyword(segment.getText()))
+                    if (!isPreprocessorLine && segment != null && isKeywordAt(text, segment))
                         segment.setFormat(JAVA_FORMAT_KEYWORD);
                     state = STATE_BRACE;
                 }
@@ -345,8 +371,7 @@ public class JavaFormatter extends Formatter {
                     // Check for keyword or function.
                     LineSegment segment = getLastSegment();
                     if (segment != null) {
-                        String segmentText = segment.getText();
-                        if (!isPreprocessorLine && isKeyword(segmentText))
+                        if (!isPreprocessorLine && isKeywordAt(text, segment))
                             segment.setFormat(JAVA_FORMAT_KEYWORD);
                         else if (c == '(')
                             segment.setFormat(JAVA_FORMAT_FUNCTION);
@@ -384,9 +409,47 @@ public class JavaFormatter extends Formatter {
         if (state == STATE_IDENTIFIER && !isPreprocessorLine) {
             // Last token might be a keyword.
             LineSegment segment = getLastSegment();
-            if (segment != null && isKeyword(segment.getText()))
+            if (segment != null && isKeywordAt(text, segment))
                 segment.setFormat(JAVA_FORMAT_KEYWORD);
         }
+    }
+
+    // Java's contextual keywords: keywords only where the grammar expects
+    // one, ordinary names elsewhere, as in "int record = 0" or
+    // "Thread.yield()".
+    private static final Set<String> CONTEXTUAL_KEYWORDS = Set.of("permits", "record", "sealed", "var", "yield");
+
+    // Whether segment, the last one on the line so far and so ending at
+    // tokenBegin, is a keyword where it stands in text.
+    private boolean isKeywordAt(String text, LineSegment segment) {
+        final String word = segment.getText();
+        if (!isKeyword(word))
+            return false;
+        if (language != LANGUAGE_JAVA || !CONTEXTUAL_KEYWORDS.contains(word))
+            return true;
+        final int end = tokenBegin;
+        int before = end - word.length() - 1;
+        while (before >= 0 && Character.isWhitespace(text.charAt(before)))
+            --before;
+        if (before >= 0 && text.charAt(before) == '.')
+            return false; // A member: "Thread.yield".
+        final int limit = text.length();
+        int j = end;
+        while (j < limit && Character.isWhitespace(text.charAt(j)))
+            ++j;
+        if (j == limit)
+            return true; // As "permits", its names on the next line.
+        final char next = text.charAt(j);
+        if (word.equals("yield")) {
+            // "yield x;", "yield -1;" and "yield (a + b);" yield a value;
+            // "yield(" is a call, and "yield = 1" or "yield;" a name.
+            if (next == '(' && j == end)
+                return false;
+            return "=;,.)]}?:".indexOf(next) < 0;
+        }
+        // The others are followed by a name: "record Point", "var x",
+        // "sealed interface", "permits A".
+        return isIdentifierStart(next);
     }
 
     @Override
@@ -475,7 +538,11 @@ public class JavaFormatter extends Formatter {
                         break;
                     } else if (c == '*')
                         state = STATE_COMMENT;
-                } else if (c == '"' && i + 2 < limit && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
+                } else if (c == '"'
+                        && supportsTextBlocks()
+                        && i + 2 < limit
+                        && line.charAt(i + 1) == '"'
+                        && line.charAt(i + 2) == '"') {
                     // A text block opening.
                     i += 2;
                     state = STATE_TEXT_BLOCK;

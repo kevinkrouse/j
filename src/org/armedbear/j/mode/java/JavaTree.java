@@ -54,6 +54,7 @@ import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.SidebarTree;
+import org.armedbear.j.TagCommands;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
@@ -198,15 +199,8 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
                 String name = t.getName();
                 switch (t.getType()) {
                     case TAG_CLASS:
-                        if (name.startsWith("class "))
-                            name = name.substring(6);
-                        if (name.equals(parentName))
-                            return node;
-                        break;
                     case TAG_INTERFACE:
-                        if (name.startsWith("interface "))
-                            name = name.substring(10);
-                        if (name.equals(parentName))
+                        if (TagCommands.withoutTypeKeyword(name).equals(parentName))
                             return node;
                         break;
                     default:
@@ -405,10 +399,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
         ClassNode(JavaTag tag, boolean arrangeByType) {
             super(tag);
             String s = tag.getName();
-            if (s.startsWith("class "))
-                className = s.substring(6);
-            else
-                className = s;
+            className = TagCommands.withoutTypeKeyword(s);
             this.arrangeByType = arrangeByType;
             if (arrangeByType) {
                 fields = new DefaultMutableTreeNode(CAPTION_FIELDS);
@@ -439,6 +430,10 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
                     insert(new DefaultMutableTreeNode(tag), index++);
                     break;
                 case TAG_FIELD:
+                    addField(tag);
+                    break;
+                case TAG_CONSTANT:
+                    // An enum constant, like a field.
                     addField(tag);
                     break;
                 default:

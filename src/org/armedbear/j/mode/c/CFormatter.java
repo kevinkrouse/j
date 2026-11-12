@@ -36,7 +36,7 @@ public final class CFormatter extends JavaFormatter {
 
     /** For C, C++ or Objective-C, as mode says. */
     public CFormatter(Buffer buffer, Mode mode) {
-        super(buffer);
+        super(buffer, LANGUAGE_C);
         setLanguageMode(mode);
     }
 

@@ -46,5 +46,37 @@ public class Sample extends Base implements Runnable {
             line one
             line "two" with {braces}
             """;
+        double small = 1.e5 + 1. + 2.f;
+        String escaped = "a" + """
+            esc \""" still inside
+            """;
+        List<@NonNull String> names = List.of();
+        Thread.yield();
+        int permits = record.size();
+        int kind = switch (total) {
+            default -> {
+                yield permits;
+            }
+        };
+    }
+
+    record Point(int x, int y) {
+        Point {
+            if (x < 0)
+                throw new IllegalArgumentException();
+        }
+        int sum() {
+            return x + y;
+        }
+    }
+
+    enum Color {
+        RED, GREEN;
+        String label() {
+            return "x";
+        }
+    }
+
+    sealed interface Shape permits Circle {
     }
 }

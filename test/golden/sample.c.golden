@@ -11,18 +11,22 @@ mode C
 8: disabled"int disabled(void);"
 9: disabled"#endif"
 10:
-11: keyword"int" text" " function"main" text"(" keyword"int" text" " identifier"argc" text", " keyword"char" text" " operator"**" identifier"argv" text")"
-12: brace"{"
-13: text"    " comment"// line comment"
-14: text"    " keyword"const" text" " keyword"char" text" " operator"*" identifier"s" text" " operator"=" text" " string""hello\n"" text";"
-15: text"    " keyword"for" text" (" keyword"int" text" " identifier"i" text" " operator"=" text" " number"0" text"; " identifier"i" text" " operator"<" text" " identifier"argc" text"; " identifier"i" operator"++" text") " brace"{"
-16: text"        " keyword"if" text" (" identifier"argv" text"[" identifier"i" text"][" number"0" text"] " operator"==" text" " string"'-'" text")"
-17: text"            " identifier"count" operator"++" text";"
-18: text"        " keyword"else"
-19: text"            " function"printf" text"(" string""%s %d\n"" text", " identifier"s" text", " identifier"MAX" text");"
-20: text"    " brace"}"
-21: text"    " keyword"return" text" " number"0" text";"
-22: brace"}"
+11: keyword"unsigned" text" " keyword"long" text" " keyword"long" text" " identifier"big" text" " operator"=" text" " number"0xFFFFFFFFULL" text" " operator"+" text" " number"10UL" text" " operator"+" text" " number"5LL" text";"
+12: keyword"const" text" " keyword"char" text" " operator"*" identifier"pair" text" " operator"=" text" " string"""" string"""" text";"
+13: keyword"int" text" " identifier"afterPair" text";"
+14:
+15: keyword"int" text" " function"main" text"(" keyword"int" text" " identifier"argc" text", " keyword"char" text" " operator"**" identifier"argv" text")"
+16: brace"{"
+17: text"    " comment"// line comment"
+18: text"    " keyword"const" text" " keyword"char" text" " operator"*" identifier"s" text" " operator"=" text" " string""hello\n"" text";"
+19: text"    " keyword"for" text" (" keyword"int" text" " identifier"i" text" " operator"=" text" " number"0" text"; " identifier"i" text" " operator"<" text" " identifier"argc" text"; " identifier"i" operator"++" text") " brace"{"
+20: text"        " keyword"if" text" (" identifier"argv" text"[" identifier"i" text"][" number"0" text"] " operator"==" text" " string"'-'" text")"
+21: text"            " identifier"count" operator"++" text";"
+22: text"        " keyword"else"
+23: text"            " function"printf" text"(" string""%s %d\n"" text", " identifier"s" text", " identifier"MAX" text");"
+24: text"    " brace"}"
+25: text"    " keyword"return" text" " number"0" text";"
+26: brace"}"
 
 ## indent
 1: 0
@@ -37,19 +41,23 @@ mode C
 10: 0
 11: 0
 12: 0
-13: 4
-14: 4
-15: 4
-16: 8
-17: 12
-18: 8
-19: 12
-20: 4
-21: 4
-22: 0
+13: 0
+14: 0
+15: 0
+16: 0
+17: 4
+18: 4
+19: 4
+20: 8
+21: 12
+22: 8
+23: 12
+24: 4
+25: 4
+26: 0
 
 ## tags
-11: main (3)
+15: main (3)
 
 ## comment
 /*#include <stdio.h>*/
@@ -61,6 +69,10 @@ mode C
 /*#if 0*/
 /*int disabled(void);*/
 /*#endif*/
+
+/*unsigned long long big = 0xFFFFFFFFULL + 10UL + 5LL;*/
+/*const char *pair = """";*/
+/*int afterPair;*/
 
 /*int main(int argc, char **argv)*/
 /*{*/

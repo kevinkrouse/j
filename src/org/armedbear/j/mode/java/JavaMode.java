@@ -238,7 +238,7 @@ public class JavaMode extends AbstractMode implements Mode {
 
     @Override
     public Tagger getTagger(SystemBuffer buffer) {
-        return new JavaTagger(buffer);
+        return new JavaTagger(buffer, getId() == JAVASCRIPT_MODE);
     }
 
     @Override
@@ -281,8 +281,7 @@ public class JavaMode extends AbstractMode implements Mode {
         if (line.flags() == STATE_COMMENT)
             return indentComment(line, buffer);
         if (line.flags() == STATE_TEXT_BLOCK)
-            // A text block's content is literal; keep the line's own indent.
-            return buffer.getIndentation(line);
+            return indentTextBlockLine(line, buffer);
         final String text = line.trim();
         final char textFirstChar = text.length() > 0 ? text.charAt(0) : 0;
         if (textFirstChar == '}')
@@ -568,6 +567,18 @@ public class JavaMode extends AbstractMode implements Mode {
             }
         }
         return model;
+    }
+
+    // A text block's content is literal, so a line keeps its own indent.
+    // A blank one, as a new line, takes the previous line's: at column 0 it
+    // would change the block's value, whose common indent Java strips.
+    private static int indentTextBlockLine(Line line, Buffer buffer) {
+        if (!line.isBlank())
+            return buffer.getIndentation(line);
+        final Line previous = line.previous();
+        if (previous == null)
+            return buffer.getIndentation(line);
+        return buffer.getIndentation(previous);
     }
 
     private static final boolean isAcceptableModel(Line line) {

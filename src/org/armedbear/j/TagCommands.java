@@ -281,11 +281,7 @@ public final class TagCommands {
                         JavaTag tag = (JavaTag) localTag;
                         int type = tag.getType();
                         if (type == TAG_CLASS || type == TAG_INTERFACE) {
-                            String name = tag.getMethodName();
-                            if (name.startsWith("class"))
-                                name = name.substring(5).trim();
-                            else if (name.startsWith("interface"))
-                                name = name.substring(9).trim();
+                            String name = withoutTypeKeyword(tag.getMethodName());
                             if (name.equals(className)) {
                                 pos = tag.getPosition();
                                 break;
