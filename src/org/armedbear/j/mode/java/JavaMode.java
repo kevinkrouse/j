@@ -44,6 +44,7 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.IndentCommands;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MenuItem;
@@ -974,65 +975,15 @@ public class JavaMode extends AbstractMode implements Mode {
             Debug.bug();
             return false;
         }
-        final Line line = pos.getLine();
-        final String text = line.getText();
-        if (text == null)
-            return false;
-        final char[] chars = text.toCharArray();
-        final int offset = pos.getOffset();
-        if (buffer.needsParsing())
-            buffer.getFormatter().parseBuffer();
-        int state = line.flags();
-        final int length = chars.length;
-        for (int i = 0; i < length; i++) {
-            if (i == offset)
-                return state == STATE_COMMENT;
-            char c = chars[i];
-            if (c == '\\' && i < length - 1) {
-                // Escape character.
-                continue;
-            }
-            if (state == STATE_QUOTE) {
-                if (c == '"')
-                    state = STATE_NEUTRAL;
-                continue;
-            }
-            if (state == STATE_SINGLEQUOTE) {
-                if (c == '\'')
-                    state = STATE_NEUTRAL;
-                continue;
-            }
-            if (state == STATE_COMMENT) {
-                if (c == '*' && i < length - 1 && chars[i + 1] == '/') {
-                    // /* */ comment ending
-                    state = STATE_NEUTRAL;
-                }
-                continue;
-            }
-            // Reaching here, STATE_NEUTRAL...
-            if (c == '"') {
-                state = STATE_QUOTE;
-                continue;
-            }
-            if (c == '\'') {
-                state = STATE_SINGLEQUOTE;
-                continue;
-            }
-            if (c == '/') {
-                if (i < length - 1) {
-                    if (chars[i + 1] == '*') {
-                        // /* */ comment starting
-                        state = STATE_COMMENT;
-                        continue;
-                    }
-                    if (chars[i + 1] == '/') {
-                        // "//" comment starting
-                        return true;
-                    }
-                }
-            }
-        }
-        return state == STATE_COMMENT;
+        // The formatter's lexical query is the single source of comment
+        // transitions; this predicate is an adapter to it. A disabled
+        // line reads OPAQUE, not COMMENT, as before: pairing and these
+        // callers both treat inactive code as not-a-comment.
+        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
+            buffer.repaint();
+        return buffer.getFormatter()
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
+                .orElse(LexicalContext.NEUTRAL) == LexicalContext.COMMENT;
     }
 
     @Override

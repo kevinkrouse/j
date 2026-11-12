@@ -37,6 +37,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MessageDialog;
@@ -320,56 +321,24 @@ public class LispMode extends AbstractMode implements Mode {
 
     @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
-        final Line line = pos.getLine();
-        final int offset = pos.getOffset();
-        boolean inQuote = (line.flags() == STATE_QUOTE);
-        for (int i = 0; i < offset; i++) {
-            char c = line.charAt(i);
-            if (c == '\\') {
-                // Escape.
-                ++i;
-            } else if (inQuote) {
-                if (c == '"')
-                    inQuote = false;
-            } else if (c == '"') {
-                inQuote = true;
-            }
-        }
-        return inQuote;
+        // The formatter's lexical query is the single source of quote
+        // transitions; this predicate is an adapter to it.
+        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
+            buffer.repaint();
+        return buffer.getFormatter()
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
+                .orElse(LexicalContext.NEUTRAL) == LexicalContext.STRING;
     }
 
     @Override
     public boolean isInComment(Buffer buffer, Position pos) {
-        if (buffer.needsParsing()) {
-            if (buffer.getFormatter().parseBuffer())
-                // Always call repaint() if parseBuffer() returns true!
-                buffer.repaint();
-        }
-        final Line line = pos.getLine();
-        final int offset = pos.getOffset();
-        int state = line.flags();
-        for (int i = 0; i < offset; i++) {
-            char c = line.charAt(i);
-            if (c == '\\') {
-                // Escape.
-                ++i;
-            } else if (state == STATE_COMMENT) {
-                if (c == '|' && i < offset && line.charAt(i + 1) == '#') {
-                    state = STATE_NEUTRAL; // FIXME nested #| |# comments
-                    ++i; // skip '#'
-                }
-            } else if (state == STATE_QUOTE) {
-                if (c == '"')
-                    state = STATE_NEUTRAL;
-            } else if (c == '"') {
-                state = STATE_QUOTE;
-            } else if (c == '#' && i < offset && line.charAt(i + 1) == '|') {
-                state = STATE_COMMENT;
-                ++i; // skip '|'
-            } else if (c == ';')
-                return true;
-        }
-        return state == STATE_COMMENT;
+        // The formatter's lexical query is the single source of comment
+        // transitions; this predicate is an adapter to it.
+        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
+            buffer.repaint();
+        return buffer.getFormatter()
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
+                .orElse(LexicalContext.NEUTRAL) == LexicalContext.COMMENT;
     }
 
     @Override
