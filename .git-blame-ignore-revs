@@ -181,3 +181,6 @@ b0f9e873779926840838d61e99cac934768edb6c
 
 # reformat: SessionProperties, which phase 10 of the git tooling changes
 f6789442af3b4e2e41044ba39c4f651e5b68d463
+
+# reformat: the files the java mode branch changes
+e5d5bfddc661c02b2efdcc941d7f5c17c32af97e
