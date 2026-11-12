@@ -221,9 +221,23 @@ public final class EditCommands {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             if (editor.getMark() != null)
                 editor.deleteRegion();
+            final Mode mode = editor.getMode();
+            if (ElectricPairs
+                    .decide(
+                        mode,
+                        editor.getBuffer(),
+                        editor.getDot(),
+                        ElectricPairs.Operation.ENTER,
+                        '\n',
+                        false,
+                        false)
+                    .action() == ElectricPairs.Action.OPEN_LINE) {
+                openLineBetweenPair(editor);
+                editor.endCompoundEdit(compoundEdit);
+                return;
+            }
             editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
             insertLineSeparator(editor);
-            final Mode mode = editor.getMode();
             final Line dotLine = editor.getDotLine();
             int indent;
             if (mode.canIndent()) {
@@ -251,6 +265,58 @@ public final class EditCommands {
         }))
             return;
         editor.setUpdateFlag(REFRAME);
+    }
+
+    /**
+     * Enter between an empty pair: {@code {|}} becomes three lines,
+     * the caret on the indented interior, the closer on the third at
+     * the outer indent. Both lines are created before any indentation
+     * is computed. If the interior were indented after only the first
+     * split, the closer would still be on it, {@code
+     * getCorrectIndentation} would see the closer and return the
+     * outer indent, and the middle line would land at the wrong
+     * column. The closer is reindented on its own line with its own
+     * call, the way {@code insertBraces} does.
+     */
+    private static void openLineBetweenPair(Editor editor) {
+        final Display display = editor.getDisplay();
+        final Mode mode = editor.getMode();
+        final Buffer buffer = editor.getBuffer();
+        // The closer moves to the line below the opener.
+        editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
+        insertLineSeparator(editor);
+        // The caret is at the start of the closer's line; a second
+        // separator there opens the empty interior above it.
+        editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
+        insertLineSeparator(editor);
+        final Line closer = editor.getDotLine();
+        final Line interior = closer.previous();
+        if (mode.canIndent()) {
+            if (buffer.needsRenumbering())
+                buffer.renumber();
+            buffer.getFormatter().parseBuffer();
+            // The closer has content, so it takes a real indent.
+            int closerIndent = mode.getCorrectIndentation(closer, buffer);
+            if (closerIndent != buffer.getIndentation(closer)) {
+                editor.addUndo(SimpleEdit.LINE_EDIT);
+                buffer.setIndentation(closer, closerIndent);
+            }
+            // The interior is blank: a blank line carries no real
+            // indent, so the caret goes to the body indent virtually,
+            // as the ordinary newlineAndIndent leaves it.
+            int interiorIndent = mode.getCorrectIndentation(interior, buffer);
+            editor.addUndo(SimpleEdit.MOVE);
+            editor.getDot().moveTo(interior, 0);
+            display.setCaretCol(interiorIndent - display.getShift());
+            if (buffer.getBooleanProperty(Property.RESTRICT_CARET))
+                editor.fillToCaret();
+            return;
+        }
+        // No context indent: match the opener's indentation.
+        int indent = buffer.getIndentation(interior.previous());
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().moveTo(interior, 0);
+        display.setCaretCol(indent - display.getShift());
     }
 
     public static void insertNormalChar(Editor editor, char c) {

@@ -85,12 +85,14 @@ public final class ElectricPairs {
             char c,
             boolean hasSelection,
             boolean pairingSuppressed) {
-        // BACKSPACE and ENTER use their own structural rules, which
-        // arrive with their call sites; nothing pair-aware applies here
-        // until then, so the answer is the plain edit.
-        if (operation != Operation.INSERT)
-            return Decision.plain();
         if (pairingSuppressed || !buffer.getBooleanProperty(Property.ELECTRIC_PAIRS))
+            return Decision.plain();
+        if (operation == Operation.ENTER)
+            return decideEnter(mode, buffer, dot, hasSelection);
+        // BACKSPACE uses its own structural rule, which arrives with its
+        // call site as deleteBoth; nothing else pair-aware applies here,
+        // so the answer is the plain edit.
+        if (operation != Operation.INSERT)
             return Decision.plain();
         PairTable table = mode.getPairTable();
         if (hasSelection) {
@@ -134,6 +136,33 @@ public final class ElectricPairs {
             return Decision.plain();
         }
         return Decision.plain();
+    }
+
+    /**
+     * Whether Enter at {@code dot} should open a line between an
+     * empty pair — {@code {|}} — rather than split the line as
+     * ordinary. The caret must sit between a configured asymmetric
+     * pair: a quote or other symmetric delimiter does not expand, so
+     * Enter inside {@code ""} stays a plain split. The lexical state
+     * at the caret must be NEUTRAL; a pair inside a string or comment
+     * is content, not a structure to open. The empty-quote Backspace
+     * exception does not apply here.
+     */
+    private static Decision decideEnter(Mode mode, Buffer buffer, Position dot, boolean hasSelection) {
+        if (hasSelection || !buffer.getBooleanProperty(Property.ELECTRIC_PAIRS_OPEN_LINE))
+            return Decision.plain();
+        Line line = dot.getLine();
+        int offset = dot.getOffset();
+        char left = charBefore(line, offset);
+        char right = charAt(line, offset);
+        if (left == 0 || right == 0 || left == right)
+            return Decision.plain();
+        PairTable.Pair pair = mode.getPairTable().pairFor(left);
+        if (pair == null || pair.opener() != left || pair.closer() != right)
+            return Decision.plain();
+        if (mode.lexicalState(buffer, dot) != LexicalState.NEUTRAL)
+            return Decision.plain();
+        return Decision.of(Action.OPEN_LINE, pair);
     }
 
     /**

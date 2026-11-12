@@ -1191,6 +1191,37 @@ existing insert-mode behavior.
    2753/2753, vim conformance 168/253. Tried in j under Xvfb:
    `(` → `()` → BS → empty; `"` → `""` → BS → empty.
 7. Enter-between, with the create-then-indent ordering. Test 15.
+   **Done.** `decideEnter` returns OPEN_LINE when the caret sits
+   between a configured asymmetric pair (`{|}`, `(|)`, `[|]`), the
+   lexical state at the caret is NEUTRAL, there is no selection, and
+   `electricPairs.openLine` is on. A symmetric delimiter (`""`) does
+   not expand — Enter inside it is a plain split. The empty-quote
+   Backspace exception does not apply to Enter.
+   `openLineBetweenPair` in `EditCommands`: two separators first
+   (the closer moves to line 2, then the empty interior opens above
+   it), then the closer is reindented with its own
+   `getCorrectIndentation` call, then the interior caret is placed at
+   the body indent. The interior line is blank by construction, and
+   `Buffer.setIndentation` no-ops on a blank line, so the interior
+   gets a virtual caret at the body indent — the same house pattern
+   the ordinary `newlineAndIndent` uses for a blank line. The closer
+   line has content and takes a real indent.
+   Java's indent is alignment-based: `{}` gives interior 4 / closer 0;
+   `()` gives interior 4 / closer 4 (the closer aligns under the
+   first-argument column). The create-then-indent ordering is what
+   makes the closer land at the outer indent: indenting after only
+   the first split would leave the closer on the interior line and
+   `getCorrectIndentation` would return the outer indent for it.
+   New property `electricPairs.openLine` (default true); the
+   `electricPairs` master switch also gates it.
+   Tests: 9 enter-between cases (three-line structure for braces and
+   parens, closer at outer indent, one-step undo, quotes stay a plain
+   split, a pair inside a string stays a plain split, the openLine
+   and pairing settings both fall back to the ordinary split, and a
+   non-pair caret is ordinary). Full suite 2762/2762, vim conformance
+   168/253. Tried in j under Xvfb on a .java file: `{}` with the
+   caret between, Enter gives `{` / `    ` / `}` with the caret on
+   the indented interior.
 8. Literal insertion: the scoped `literalInsertionDepth` on `Editor`,
    the block-insert session holding it open, the Ctrl-R literal-run
    token with the text snapshot, and the replay path reusing

@@ -395,4 +395,98 @@ public class ElectricPairsTest {
         // the opener only.
         h.assertText(")\n");
     }
+
+    // Enter between an empty pair. The create-then-indent ordering:
+    // both lines exist before the interior is indented, so the closer
+    // is not on the interior line when getCorrectIndentation runs.
+
+    @Test
+    public void enterBetweenBracesOpensThreeLines() {
+        h = EditorHarness.create("{}").mode(JavaMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        h.assertText("{\n    \n}\n");
+        // Caret at the end of the indented interior line.
+        h.assertCursorAt(1, 4);
+    }
+
+    @Test
+    public void enterBetweenBracesCloserAtOuterIndent() {
+        // The closer must not be pulled to the interior indent: it
+        // sits at column 0 on its own line.
+        h = EditorHarness.create("{}").mode(JavaMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        assertEquals("}", h.buffer().getLine(2).getText());
+    }
+
+    @Test
+    public void enterBetweenBracesOneUndo() {
+        h = EditorHarness.create("{}").mode(JavaMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        EditCommands.undo(h.editor());
+        h.assertText("{}\n");
+    }
+
+    @Test
+    public void enterBetweenParensOpensThreeLines() {
+        // Java's paren indent is alignment-based: the closer aligns
+        // under the first-argument column, and the interior body
+        // indent matches it.
+        h = EditorHarness.create("()").mode(JavaMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        h.assertText("(\n    \n    )\n");
+        h.assertCursorAt(1, 4);
+    }
+
+    @Test
+    public void enterInsideQuotesIsOrdinary() {
+        // A symmetric delimiter does not expand: Enter inside "" is
+        // a plain split.
+        h = EditorHarness.create("\"\"").mode(JavaMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        h.assertText("\"\n\"\n");
+    }
+
+    @Test
+    public void enterBetweenBracesInStringIsOrdinary() {
+        // {|} inside a string is content, not a structure to open:
+        // the ordinary split cuts between the braces, leaving the
+        // string broken across the lines as the user typed it.
+        h = EditorHarness.create("\"{}\"").mode(JavaMode.getMode());
+        h.cursor(0, 2);
+        EditCommands.newlineAndIndent(h.editor());
+        h.assertText("\"{\n}\"\n");
+    }
+
+    @Test
+    public void enterBetweenBracesRespectsOpenLineSetting() {
+        h = EditorHarness.create("{}").mode(JavaMode.getMode());
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_OPEN_LINE, false);
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        // The ordinary split: the closer stays on the line below.
+        h.assertText("{\n}\n");
+    }
+
+    @Test
+    public void enterBetweenBracesRespectsPairingSetting() {
+        h = EditorHarness.create("{}").mode(JavaMode.getMode());
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS, false);
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        h.assertText("{\n}\n");
+    }
+
+    @Test
+    public void enterNotBetweenPairIsOrdinary() {
+        // No pair around the caret: ordinary newlineAndIndent.
+        h = EditorHarness.create("ab").mode(JavaMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        h.assertText("a\nb\n");
+    }
 }

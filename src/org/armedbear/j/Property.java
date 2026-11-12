@@ -113,6 +113,7 @@ public final class Property implements Comparable<Property> {
     public static final Property DIR_SORT_DIRECTORIES_FIRST = createProperty("dirSortDirectoriesFirst", true);
     public static final Property DIR_USE_NATIVE_FORMAT = createProperty("dirUseNativeFormat", false);
     public static final Property ELECTRIC_PAIRS = createProperty("electricPairs", true);
+    public static final Property ELECTRIC_PAIRS_OPEN_LINE = createProperty("electricPairs.openLine", true);
     public static final Property EMULATE_BOLD = createProperty("emulateBold", false);
     public static final Property ENABLE_CACHE = createProperty("enableCache", false);
     public static final Property ENABLE_DRAG_TEXT = createProperty("enableDragText", true);
