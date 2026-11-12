@@ -10,79 +10,80 @@ mode Java
 7: text"    " keyword"private" text" " keyword"static" text" " keyword"final" text" " keyword"int" text" " identifier"MASK" text" " operator"=" text" " number"0XFF" text" " operator"|" text" " number"0x0f" text";"
 8: text"    " keyword"private" text" " keyword"final" text" " identifier"String" text" " identifier"name" text" " operator"=" text" " string""a \"quoted\" string"" text";"
 9: text"    " keyword"private" text" " keyword"char" text" " identifier"c" text" " operator"=" text" " string"'\''" text";"
-10:
-11: text"    " comment"// A line comment."
-12: text"    " keyword"public" text" " function"Sample" text"(" keyword"int" text" " identifier"count" text") " brace"{"
-13: text"        " keyword"super" text"(" identifier"count" text");"
-14: text"        " keyword"for" text" (" keyword"int" text" " identifier"i" text" " operator"=" text" " number"0" text"; " identifier"i" text" " operator"<" text" " identifier"count" text"; " identifier"i" operator"++" text") " brace"{"
-15: text"            " keyword"if" text" (" identifier"i" text" % " number"2" text" " operator"==" text" " number"0" text")"
-16: text"                " function"run" text"();"
-17: text"            " keyword"else" text" " brace"{"
-18: text"                " keyword"long" text" " identifier"big" text" " operator"=" text" " number"123L" text" " operator"+" text" " number"4.5e3" text";"
-19: text"            " brace"}"
-20: text"        " brace"}"
-21: text"    " brace"}"
-22:
-23: text"    " annotation"@Override"
-24: text"    " keyword"public" text" " keyword"void" text" " function"run" text"() " brace"{"
-25: text"        " comment"/* a block"
-26: comment"           " comment"comment */"
-27: text"        " keyword"switch" text" (" identifier"name" text"." function"length" text"()) " brace"{"
-28: text"        " keyword"case" text" " number"1" text":"
-29: text"            " keyword"break" text";"
-30: text"        " keyword"default" text":"
-31: text"            " identifier"List" text"." function"of" text"(" number"1" text", " number"2" text");"
-32: text"        " brace"}"
-33: text"    " brace"}"
-34:
-35: text"    " annotation"@java.lang.Override"
-36: text"    " annotation"@SuppressWarnings" text"(" string""unchecked"" text")"
-37: text"    " keyword"public" text" " keyword"void" text" " function"modern" text"() " brace"{"
-38: text"        " keyword"var" text" " identifier"total" text" " operator"=" text" " number"0" text";"
-39: text"        " identifier"Runnable" text" " identifier"r" text" " operator"=" text" () " operator"->" text" " identifier"System" text"." identifier"out" text"." function"println" text"(" string""hi"" text");"
-40: text"        " identifier"Runnable" text" " identifier"r2" text" " operator"=" text" " keyword"this" text"::" identifier"run" text";"
-41: text"        " keyword"int" text" " identifier"binary" text" " operator"=" text" " number"0b1010_1010" text";"
-42: text"        " keyword"long" text" " identifier"million" text" " operator"=" text" " number"1_000_000L" text";"
-43: text"        " keyword"float" text" " identifier"pi" text" " operator"=" text" " number"3.14f" text";"
-44: text"        " keyword"double" text" " identifier"hexFloat" text" " operator"=" text" " number"0x1.8p1" text";"
-45: text"        " identifier"String" text" " identifier"block" text" " operator"=" text" " string"""""
-46: string"            " string"line one"
-47: string"            " string"line "two" with {braces}"
-48: string"            " string""""" text";"
-49: text"        " keyword"double" text" " identifier"small" text" " operator"=" text" " number"1.e5" text" " operator"+" text" " number"1." text" " operator"+" text" " number"2.f" text";"
-50: text"        " identifier"String" text" " identifier"escaped" text" " operator"=" text" " string""a"" text" " operator"+" text" " string"""""
-51: string"            " string"esc \""" still inside"
-52: string"            " string""""" text";"
-53: text"        " identifier"List" operator"<" annotation"@NonNull" text" " identifier"String" operator">" text" " identifier"names" text" " operator"=" text" " identifier"List" text"." function"of" text"();"
-54: text"        " identifier"Thread" text"." function"yield" text"();"
-55: text"        " keyword"int" text" " identifier"permits" text" " operator"=" text" " identifier"record" text"." function"size" text"();"
-56: text"        " keyword"int" text" " identifier"kind" text" " operator"=" text" " keyword"switch" text" (" identifier"total" text") " brace"{"
-57: text"            " keyword"default" text" " operator"->" text" " brace"{"
-58: text"                " keyword"yield" text" " identifier"permits" text";"
-59: text"            " brace"}"
-60: text"        " brace"}" text";"
-61: text"    " brace"}"
-62:
-63: text"    " keyword"record" text" " function"Point" text"(" keyword"int" text" " identifier"x" text", " keyword"int" text" " identifier"y" text") " brace"{"
-64: text"        " identifier"Point" text" " brace"{"
-65: text"            " keyword"if" text" (" identifier"x" text" " operator"<" text" " number"0" text")"
-66: text"                " keyword"throw" text" " keyword"new" text" " function"IllegalArgumentException" text"();"
-67: text"        " brace"}"
-68: text"        " keyword"int" text" " function"sum" text"() " brace"{"
-69: text"            " keyword"return" text" " identifier"x" text" " operator"+" text" " identifier"y" text";"
-70: text"        " brace"}"
-71: text"    " brace"}"
-72:
-73: text"    " keyword"enum" text" " identifier"Color" text" " brace"{"
-74: text"        " identifier"RED" text", " identifier"GREEN" text";"
-75: text"        " identifier"String" text" " function"label" text"() " brace"{"
-76: text"            " keyword"return" text" " string""x"" text";"
-77: text"        " brace"}"
-78: text"    " brace"}"
-79:
-80: text"    " keyword"sealed" text" " keyword"interface" text" " identifier"Shape" text" " keyword"permits" text" " identifier"Circle" text" " brace"{"
-81: text"    " brace"}"
-82: brace"}"
+10: text"    " keyword"private" text" " keyword"final" text" " identifier"Hashtable" operator"<" identifier"SystemBuffer" text", " identifier"View" operator">" text" " identifier"views" text" " operator"=" text" " keyword"new" text" " identifier"Hashtable" operator"<" identifier"SystemBuffer" text", " identifier"View" operator">" text"();"
+11:
+12: text"    " comment"// A line comment."
+13: text"    " keyword"public" text" " function"Sample" text"(" keyword"int" text" " identifier"count" text") " brace"{"
+14: text"        " keyword"super" text"(" identifier"count" text");"
+15: text"        " keyword"for" text" (" keyword"int" text" " identifier"i" text" " operator"=" text" " number"0" text"; " identifier"i" text" " operator"<" text" " identifier"count" text"; " identifier"i" operator"++" text") " brace"{"
+16: text"            " keyword"if" text" (" identifier"i" text" % " number"2" text" " operator"==" text" " number"0" text")"
+17: text"                " function"run" text"();"
+18: text"            " keyword"else" text" " brace"{"
+19: text"                " keyword"long" text" " identifier"big" text" " operator"=" text" " number"123L" text" " operator"+" text" " number"4.5e3" text";"
+20: text"            " brace"}"
+21: text"        " brace"}"
+22: text"    " brace"}"
+23:
+24: text"    " annotation"@Override"
+25: text"    " keyword"public" text" " keyword"void" text" " function"run" text"() " brace"{"
+26: text"        " comment"/* a block"
+27: comment"           " comment"comment */"
+28: text"        " keyword"switch" text" (" identifier"name" text"." function"length" text"()) " brace"{"
+29: text"        " keyword"case" text" " number"1" text":"
+30: text"            " keyword"break" text";"
+31: text"        " keyword"default" text":"
+32: text"            " identifier"List" text"." function"of" text"(" number"1" text", " number"2" text");"
+33: text"        " brace"}"
+34: text"    " brace"}"
+35:
+36: text"    " annotation"@java.lang.Override"
+37: text"    " annotation"@SuppressWarnings" text"(" string""unchecked"" text")"
+38: text"    " keyword"public" text" " keyword"void" text" " function"modern" text"() " brace"{"
+39: text"        " keyword"var" text" " identifier"total" text" " operator"=" text" " number"0" text";"
+40: text"        " identifier"Runnable" text" " identifier"r" text" " operator"=" text" () " operator"->" text" " identifier"System" text"." identifier"out" text"." function"println" text"(" string""hi"" text");"
+41: text"        " identifier"Runnable" text" " identifier"r2" text" " operator"=" text" " keyword"this" text"::" identifier"run" text";"
+42: text"        " keyword"int" text" " identifier"binary" text" " operator"=" text" " number"0b1010_1010" text";"
+43: text"        " keyword"long" text" " identifier"million" text" " operator"=" text" " number"1_000_000L" text";"
+44: text"        " keyword"float" text" " identifier"pi" text" " operator"=" text" " number"3.14f" text";"
+45: text"        " keyword"double" text" " identifier"hexFloat" text" " operator"=" text" " number"0x1.8p1" text";"
+46: text"        " identifier"String" text" " identifier"block" text" " operator"=" text" " string"""""
+47: string"            " string"line one"
+48: string"            " string"line "two" with {braces}"
+49: string"            " string""""" text";"
+50: text"        " keyword"double" text" " identifier"small" text" " operator"=" text" " number"1.e5" text" " operator"+" text" " number"1." text" " operator"+" text" " number"2.f" text";"
+51: text"        " identifier"String" text" " identifier"escaped" text" " operator"=" text" " string""a"" text" " operator"+" text" " string"""""
+52: string"            " string"esc \""" still inside"
+53: string"            " string""""" text";"
+54: text"        " identifier"List" operator"<" annotation"@NonNull" text" " identifier"String" operator">" text" " identifier"names" text" " operator"=" text" " identifier"List" text"." function"of" text"();"
+55: text"        " identifier"Thread" text"." function"yield" text"();"
+56: text"        " keyword"int" text" " identifier"permits" text" " operator"=" text" " identifier"record" text"." function"size" text"();"
+57: text"        " keyword"int" text" " identifier"kind" text" " operator"=" text" " keyword"switch" text" (" identifier"total" text") " brace"{"
+58: text"            " keyword"default" text" " operator"->" text" " brace"{"
+59: text"                " keyword"yield" text" " identifier"permits" text";"
+60: text"            " brace"}"
+61: text"        " brace"}" text";"
+62: text"    " brace"}"
+63:
+64: text"    " keyword"record" text" " function"Point" text"(" keyword"int" text" " identifier"x" text", " keyword"int" text" " identifier"y" text") " brace"{"
+65: text"        " identifier"Point" text" " brace"{"
+66: text"            " keyword"if" text" (" identifier"x" text" " operator"<" text" " number"0" text")"
+67: text"                " keyword"throw" text" " keyword"new" text" " function"IllegalArgumentException" text"();"
+68: text"        " brace"}"
+69: text"        " keyword"int" text" " function"sum" text"() " brace"{"
+70: text"            " keyword"return" text" " identifier"x" text" " operator"+" text" " identifier"y" text";"
+71: text"        " brace"}"
+72: text"    " brace"}"
+73:
+74: text"    " keyword"enum" text" " identifier"Color" text" " brace"{"
+75: text"        " identifier"RED" text", " identifier"GREEN" text";"
+76: text"        " identifier"String" text" " function"label" text"() " brace"{"
+77: text"            " keyword"return" text" " string""x"" text";"
+78: text"        " brace"}"
+79: text"    " brace"}"
+80:
+81: text"    " keyword"sealed" text" " keyword"interface" text" " identifier"Shape" text" " keyword"permits" text" " identifier"Circle" text" " brace"{"
+82: text"    " brace"}"
+83: brace"}"
 
 ## indent
 1: 0
@@ -97,32 +98,32 @@ mode Java
 10: 4
 11: 4
 12: 4
-13: 8
+13: 4
 14: 8
-15: 12
-16: 16
-17: 12
-18: 16
-19: 12
-20: 8
-21: 4
+15: 8
+16: 12
+17: 16
+18: 12
+19: 16
+20: 12
+21: 8
 22: 4
 23: 4
 24: 4
-25: 8
+25: 4
 26: 8
 27: 8
-28: 12
+28: 8
 29: 12
 30: 12
 31: 12
-32: 8
-33: 4
+32: 12
+33: 8
 34: 4
 35: 4
 36: 4
 37: 4
-38: 8
+38: 4
 39: 8
 40: 8
 41: 8
@@ -130,43 +131,44 @@ mode Java
 43: 8
 44: 8
 45: 8
-46: 12
+46: 8
 47: 12
 48: 12
-49: 8
+49: 12
 50: 8
-51: 12
+51: 8
 52: 12
-53: 8
+53: 12
 54: 8
 55: 8
 56: 8
-57: 12
-58: 16
-59: 12
-60: 8
-61: 4
+57: 8
+58: 12
+59: 16
+60: 12
+61: 8
 62: 4
 63: 4
-64: 8
-65: 12
-66: 16
-67: 8
+64: 4
+65: 8
+66: 12
+67: 16
 68: 8
-69: 12
-70: 8
-71: 4
+69: 8
+70: 12
+71: 8
 72: 4
 73: 4
-74: 8
+74: 4
 75: 8
-76: 12
-77: 8
-78: 4
+76: 8
+77: 12
+78: 8
 79: 4
 80: 4
 81: 4
-82: 0
+82: 4
+83: 0
 
 ## tags
 6: class Sample (2)
@@ -175,16 +177,17 @@ mode Java
 7: Sample.MASK (4)
 8: Sample.name (4)
 9: Sample.c (4)
-12: Sample.Sample (3)
-24: Sample.run (3)
-37: Sample.modern (3)
-63: record Point (2)
-68: Point.sum (3)
-73: enum Color (2)
-74: Color.RED (8)
-74: Color.GREEN (8)
-75: Color.label (3)
-80: interface Shape (1)
+10: Sample.views (4)
+13: Sample.Sample (3)
+25: Sample.run (3)
+38: Sample.modern (3)
+64: record Point (2)
+69: Point.sum (3)
+74: enum Color (2)
+75: Color.RED (8)
+75: Color.GREEN (8)
+76: Color.label (3)
+81: interface Shape (1)
 
 ## comment
 // package demo;
@@ -196,6 +199,7 @@ mode Java
 //     private static final int MASK = 0XFF | 0x0f;
 //     private final String name = "a \"quoted\" string";
 //     private char c = '\'';
+//     private final Hashtable<SystemBuffer, View> views = new Hashtable<SystemBuffer, View>();
 
 //     // A line comment.
 //     public Sample(int count) {
