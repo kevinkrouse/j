@@ -1071,7 +1071,26 @@ existing insert-mode behavior.
    Includes the symmetric-delimiter ordering, the typed-closer
    type-over match, the escape-run parity guard, the WRAP membership
    gate with normalized pairs for typed closers, and the two distinct
-   balance actions. Tests 2-9.
+   balance actions. Tests 2-9. **Done.**
+   `ElectricPairs.decide(mode, buffer, dot, operation, c,
+   hasSelection, pairingSuppressed)` returns a `Decision(action, pair)`
+   with the eight actions and the normalized pair for INSERT_PAIR and
+   WRAP. BACKSPACE and ENTER return PLAIN until their structural rules
+   arrive with their call sites (steps 6-7). Two small hooks added:
+   `Mode.getEscapeChar()` (default backslash) for the parity guard,
+   and `Property.ELECTRIC_PAIRS` (default true, mode-scoped) for the
+   off switch. `ElectricPairsTest`: 15 tests covering the decision
+   table — insert pair, symmetric delimiters, type-over matching the
+   typed closer (not `pair(c)`), both balance actions, the word-char
+   inhibits, odd and even escape runs, WRAP for either delimiter with
+   the pair resolved opener-first, the non-pair replace, suppression,
+   the Lisp apostrophe, nesting openers, and BACKSPACE/ENTER staying
+   plain. Full suite 2693/2693, vim conformance 168/253.
+   One bug found and fixed during the run: `Character.isJavaIdentifierPart('\0')`
+   is true, so the "no character" sentinel was counted as a word char
+   and inhibited the pair at the start of an empty line; the guard now
+   skips the 0 sentinel. Nothing calls `decide` yet, so there is no
+   user-visible behavior to try in j until step 3 wires it.
 3. Wire into `insertNormalChar`: INSERT_PAIR + TYPE_OVER + WRAP,
    compound-edit discipline, and the caret-sync epilogue on every
    early return. Tests 1, 9, 10, 16, 17.

@@ -349,6 +349,15 @@ public interface Mode extends Folds {
     }
 
     /**
+     * The character that escapes the next one in this mode, or 0 if
+     * the mode has no escape character. Backslash in C-family and
+     * Lisp modes.
+     */
+    default char getEscapeChar() {
+        return '\\';
+    }
+
+    /**
      * Returns a string that signifies the start of a comment for the
      * given mode, or <code>null</code> if the concept of comments is
      * not applicable to this mode.
