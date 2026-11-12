@@ -7,6 +7,7 @@ public class Sample extends Base implements Runnable {
     private static final int MASK = 0XFF | 0x0f;
     private final String name = "a \"quoted\" string";
     private char c = '\'';
+    private final Hashtable<SystemBuffer, View> views = new Hashtable<SystemBuffer, View>();
 
     // A line comment.
     public Sample(int count) {
