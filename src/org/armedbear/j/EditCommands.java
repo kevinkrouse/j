@@ -336,68 +336,79 @@ public final class EditCommands {
         try {
             c = editor.getMode().fixCase(editor, c);
             final Mode mode = editor.getMode();
-            // The electric-brace coordinator: a brace typed in a mode that
-            // formats braces electrically gets its blank-line preparation
-            // before the pair decision and its reindentation after, so the
-            // live keystroke and the vim/j replay of the same key run the
-            // same sequence. Literal insertion is suppressed, so it bypasses
-            // the brace transformations as well as pairing.
-            final boolean electricBrace =
-                    mode.electricBraces() && !editor.isPairingSuppressed() && (c == '{' || c == '}');
-            final boolean wasBlank = electricBrace && editor.getMark() == null && editor.getDotLine().isBlank();
-            final CompoundEdit compoundEdit = electricBrace ? editor.beginCompoundEdit() : null;
-            try {
-                if (wasBlank) {
-                    editor.addUndo(SimpleEdit.LINE_EDIT);
-                    editor.getDotLine().setText("");
-                    editor.getDot().setOffset(0);
+            // The mode's own electric rule, consulted before the generic
+            // decision: a fence or a delimiter run whose behavior the flat
+            // pair table cannot express. The mode owns its insertion and its
+            // compound edit. A selection wraps generically, and a literal
+            // insertion is suppressed, so neither reaches the override.
+            if (editor.isPairingSuppressed()
+                    || editor.getMark() != null
+                    || !editor.getBuffer().getBooleanProperty(Property.ELECTRIC_PAIRS)
+                    || !mode.electricOverride(editor, c)) {
+                // The electric-brace coordinator: a brace typed in a mode
+                // that formats braces electrically gets its blank-line
+                // preparation before the pair decision and its
+                // reindentation after, so the live keystroke and the vim/j
+                // replay of the same key run the same sequence. Literal
+                // insertion is suppressed, so it bypasses the brace
+                // transformations as well as pairing.
+                final boolean electricBrace =
+                        mode.electricBraces() && !editor.isPairingSuppressed() && (c == '{' || c == '}');
+                final boolean wasBlank = electricBrace && editor.getMark() == null && editor.getDotLine().isBlank();
+                final CompoundEdit compoundEdit = electricBrace ? editor.beginCompoundEdit() : null;
+                try {
+                    if (wasBlank) {
+                        editor.addUndo(SimpleEdit.LINE_EDIT);
+                        editor.getDotLine().setText("");
+                        editor.getDot().setOffset(0);
+                    }
+                    ElectricPairs.Decision decision = ElectricPairs.decide(
+                        mode,
+                        editor.getBuffer(),
+                        editor.getDot(),
+                        ElectricPairs.Operation.INSERT,
+                        c,
+                        editor.getMark() != null,
+                        editor.isPairingSuppressed());
+                    switch (decision.action()) {
+                        case INSERT_PAIR:
+                            insertPair(editor, decision.pair().opener(), decision.pair().closer());
+                            break;
+                        case INSERT_OPENER:
+                            editor.insertChar(c);
+                            break;
+                        case TYPE_OVER:
+                            typeOverCloser(editor);
+                            break;
+                        case WRAP:
+                            wrapSelection(editor, decision.pair().opener(), decision.pair().closer());
+                            break;
+                        case SUPPRESS:
+                            break;
+                        default:
+                            plainInsert(editor, c);
+                            break;
+                    }
+                    // The close-paren flash: the match for the `)` just inserted
+                    // or typed over, shown for a moment. Never on a suppressed or
+                    // wrapped paren; the caret is not beside it.
+                    if (c == ')'
+                            && !editor.isPairingSuppressed()
+                            && decision.action() != ElectricPairs.Action.SUPPRESS
+                            && decision.action() != ElectricPairs.Action.WRAP)
+                        ElectricCommands.flashMatchingParen(editor);
+                    if (electricBrace && decision.action() != ElectricPairs.Action.SUPPRESS)
+                        IndentCommands.indentLine(editor);
+                    // Auto-newline on an originally blank line: the Enter
+                    // decision splits the generated pair from the inside, so the
+                    // caret never moves past the closer first.
+                    if (wasBlank && editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
+                        newlineAndIndent(editor);
                 }
-                ElectricPairs.Decision decision = ElectricPairs.decide(
-                    mode,
-                    editor.getBuffer(),
-                    editor.getDot(),
-                    ElectricPairs.Operation.INSERT,
-                    c,
-                    editor.getMark() != null,
-                    editor.isPairingSuppressed());
-                switch (decision.action()) {
-                    case INSERT_PAIR:
-                        insertPair(editor, decision.pair().opener(), decision.pair().closer());
-                        break;
-                    case INSERT_OPENER:
-                        editor.insertChar(c);
-                        break;
-                    case TYPE_OVER:
-                        typeOverCloser(editor);
-                        break;
-                    case WRAP:
-                        wrapSelection(editor, decision.pair().opener(), decision.pair().closer());
-                        break;
-                    case SUPPRESS:
-                        break;
-                    default:
-                        plainInsert(editor, c);
-                        break;
+                finally {
+                    if (compoundEdit != null)
+                        editor.endCompoundEdit(compoundEdit);
                 }
-                // The close-paren flash: the match for the `)` just inserted
-                // or typed over, shown for a moment. Never on a suppressed or
-                // wrapped paren; the caret is not beside it.
-                if (c == ')'
-                        && !editor.isPairingSuppressed()
-                        && decision.action() != ElectricPairs.Action.SUPPRESS
-                        && decision.action() != ElectricPairs.Action.WRAP)
-                    ElectricCommands.flashMatchingParen(editor);
-                if (electricBrace && decision.action() != ElectricPairs.Action.SUPPRESS)
-                    IndentCommands.indentLine(editor);
-                // Auto-newline on an originally blank line: the Enter
-                // decision splits the generated pair from the inside, so the
-                // caret never moves past the closer first.
-                if (wasBlank && editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
-                    newlineAndIndent(editor);
-            }
-            finally {
-                if (compoundEdit != null)
-                    editor.endCompoundEdit(compoundEdit);
             }
         }
         finally {

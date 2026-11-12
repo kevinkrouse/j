@@ -360,6 +360,22 @@ public interface Mode extends Folds {
     }
 
     /**
+     * A mode-specific electric insertion, consulted by the
+     * {@code insertNormalChar} coordinator before the generic pair
+     * decision. The mode performs the whole insertion itself and
+     * returns {@code true} to stop the generic path, or {@code false}
+     * to let the generic decision proceed. Used where the flat pair
+     * table cannot express the behavior — Markdown's fence, which
+     * inserts on another line, and its delimiter runs, whose role
+     * depends on the surrounding text. The call is made under the
+     * buffer's write lock with the caret at the insertion point; the
+     * mode owns its compound edit.
+     */
+    default boolean electricOverride(Editor editor, char c) {
+        return false;
+    }
+
+    /**
      * The character that escapes the next one in this mode, or 0 if
      * the mode has no escape character. Backslash in C-family and
      * Lisp modes.

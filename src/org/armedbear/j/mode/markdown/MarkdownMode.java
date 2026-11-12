@@ -23,17 +23,20 @@ package org.armedbear.j.mode.markdown;
 import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
+import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
+import org.armedbear.j.LexicalState;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.SidebarTagTree;
+import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.TextLink;
@@ -55,6 +58,137 @@ public final class MarkdownMode extends AbstractMode implements Mode {
     @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new MarkdownFormatter(buffer);
+    }
+
+    /**
+     * The single backtick pairs inline (`` `code` ``); the emphasis runs
+     * and the fence are not in this table — they need the surrounding
+     * text to classify, so they go through {@link #electricOverride}.
+     */
+    @Override
+    public String getPairs() {
+        return "()[]{}\"\"``";
+    }
+
+    /**
+     * The Markdown electric rules the flat pair table cannot express:
+     * the triple-backtick fence, which closes on the line below, and
+     * the emphasis delimiter runs, whose role — opener, closer, or
+     * literal — depends on the text around them.
+     *
+     * <p>Each rule reads the buffer at the moment of the keystroke, so
+     * the live keystroke and the vim {@code .} replay of the same key
+     * see the same state and reach the same result. The mode owns its
+     * compound edit; the coordinator has already excluded a selection
+     * and a suppressed (literal) insertion.
+     */
+    @Override
+    public boolean electricOverride(Editor editor, char c) {
+        final Buffer buffer = editor.getBuffer();
+        final Line line = editor.getDotLine();
+        final int offset = editor.getDotOffset();
+        // Inside a fence, an HTML comment or a code span, nothing pairs.
+        if (lexicalState(buffer, editor.getDot()) != LexicalState.NEUTRAL)
+            return false;
+        final String text = line.getText();
+        final int end = text.length();
+        if (c == '`')
+            return fenceOverride(editor, line, text, offset, end);
+        if (MarkdownDelimiters.isMarker(c))
+            return markerOverride(editor, text, offset, end, c);
+        return contentOverride(editor, text, offset, end, c);
+    }
+
+    /**
+     * The third backtick of a fence at line start: insert it, then a
+     * matching closing fence on the line below, and leave the caret
+     * after the opening fence for the language name. The first two
+     * backticks arrived through the generic pair and type-over, so the
+     * caret sits at the end of a line whose content is exactly two
+     * backticks, optionally after up to three leading spaces.
+     */
+    private boolean fenceOverride(Editor editor, Line line, String text, int offset, int end) {
+        if (offset != end || offset < 2 || text.charAt(offset - 1) != '`' || text.charAt(offset - 2) != '`')
+            return false;
+        // What precedes the two backticks must be at most three spaces,
+        // so the fence is at the line start, not mid-sentence.
+        for (int i = 0; i < offset - 2; i++)
+            if (text.charAt(i) != ' ' || i >= 3)
+                return false;
+        final CompoundEdit compoundEdit = editor.beginCompoundEdit();
+        try {
+            editor.insertChar('`');
+            // The closing fence goes on the line below; the caret stays
+            // after the opening fence for the language name.
+            editor.getBuffer().insertString(new Position(editor.getDot()), "\n```");
+            editor.getDot().moveTo(line, offset + 1);
+        }
+        finally {
+            editor.endCompoundEdit(compoundEdit);
+        }
+        return true;
+    }
+
+    /**
+     * A marker typed with the caret immediately before a run of the
+     * same marker steps over one delimiter, not the whole run:
+     * {@code **bold|**} + {@code *} → {@code **bold*|*}. Growing the
+     * opener run (caret after the run, nothing before) needs no rule
+     * here — the marker is not in the pair table, so the generic path
+     * inserts it plainly.
+     */
+    private boolean markerOverride(Editor editor, String text, int offset, int end, char c) {
+        if (offset < end && text.charAt(offset) == c) {
+            editor.addUndo(SimpleEdit.MOVE);
+            editor.getDot().skip(1);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * The first content character after an unmatched opener run
+     * generates the closer: {@code **|} + {@code b} → {@code **b|**}.
+     * The opener run is the run of the marker just before the caret;
+     * its role is decided by the shared delimiter analysis with the
+     * prospective content in place. A space is not content, so
+     * {@code ** } generates nothing.
+     */
+    private boolean contentOverride(Editor editor, String text, int offset, int end, char c) {
+        if (offset == 0 || Character.isWhitespace(c))
+            return false;
+        final char marker = text.charAt(offset - 1);
+        final int run = MarkdownDelimiters.unmatchedOpenerRun(text, offset, marker, end, c);
+        if (run == 0)
+            return false;
+        final CompoundEdit compoundEdit = editor.beginCompoundEdit();
+        try {
+            editor.insertChar(c);
+            // The caret is just after the content char. The closer goes
+            // there too; insertChars moves its own position copy, not the
+            // editor's dot, so the caret stays between the content and
+            // its closer.
+            editor.getBuffer().insertChars(new Position(editor.getDot()), repeat(marker, run));
+        }
+        finally {
+            editor.endCompoundEdit(compoundEdit);
+        }
+        return true;
+    }
+
+    private static String repeat(char c, int n) {
+        final StringBuilder sb = new StringBuilder(n);
+        for (int i = 0; i < n; i++)
+            sb.append(c);
+        return sb.toString();
+    }
+
+    private static void buffer_insertString(Editor editor, Position pos, String s) {
+        editor.getBuffer().insertString(pos, s);
+    }
+
+    private static void buffer_insertChars(Editor editor, Position pos, String s) {
+        editor.getBuffer().insertChars(pos, s);
     }
 
     @Override

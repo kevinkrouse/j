@@ -837,7 +837,7 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     private static boolean isAsciiPunctuation(char c) {
-        return c < 128 && "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".indexOf(c) >= 0;
+        return MarkdownDelimiters.isAsciiPunctuation(c);
     }
 
     /**
@@ -900,11 +900,7 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     private static int runLength(String text, int i, int end) {
-        final char c = text.charAt(i);
-        int j = i;
-        while (j < end && text.charAt(j) == c)
-            ++j;
-        return j - i;
+        return MarkdownDelimiters.runLength(text, i, end);
     }
 
     // `code`: a run of backticks to the next run as long. Returns where the
@@ -924,18 +920,7 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     static int findCodeSpanClose(String text, int from, int end, int run) {
-        int j = from;
-        while (j < end) {
-            if (text.charAt(j) == '`') {
-                final int n = runLength(text, j, end);
-                if (n == run)
-                    return j;
-                j += n;
-            } else {
-                ++j;
-            }
-        }
-        return -1;
+        return MarkdownDelimiters.findCodeSpanClose(text, from, end, run);
     }
 
     // <url>, <!-- comment -->, or an HTML tag.
@@ -1049,35 +1034,13 @@ public final class MarkdownFormatter extends Formatter {
     // A run opens emphasis if what follows it is not white space, and for
     // '_', if it does not follow a letter or digit.
     private static boolean opens(String text, int i, int run, int end) {
-        if (i + run >= end || Character.isWhitespace(text.charAt(i + run)))
-            return false;
-        return text.charAt(i) != '_' || i == 0 || !Character.isLetterOrDigit(text.charAt(i - 1));
+        return MarkdownDelimiters.opens(text, i, run, end);
     }
 
     // A run of exactly run c's that closes: after something other than white
     // space, and for '_', not before a letter or digit. Skips code spans.
     private static int findEmphasisClose(String text, int from, int end, char c, int run) {
-        int j = from;
-        while (j < end) {
-            final char ch = text.charAt(j);
-            if (ch == '\\') {
-                j += 2;
-            } else if (ch == '`') {
-                final int n = runLength(text, j, end);
-                final int close = findCodeSpanClose(text, j + n, end, n);
-                j = close < 0 ? j + n : close + n;
-            } else if (ch == c) {
-                final int n = runLength(text, j, end);
-                if (n == run
-                        && !Character.isWhitespace(text.charAt(j - 1))
-                        && (c != '_' || j + n >= end || !Character.isLetterOrDigit(text.charAt(j + n))))
-                    return j;
-                j += n;
-            } else {
-                ++j;
-            }
-        }
-        return -1;
+        return MarkdownDelimiters.findEmphasisClose(text, from, end, c, run);
     }
 
     @Override

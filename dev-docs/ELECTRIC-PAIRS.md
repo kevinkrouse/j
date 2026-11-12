@@ -1296,6 +1296,43 @@ existing insert-mode behavior.
     including shared delimiter matching for opener/closer roles,
     punctuation-ending content, closer generation, the single-char
     closer skip, and `](`. Tests 29-33.
+    **Done.** `Mode.electricOverride(editor, c)` is consulted by the
+    `insertNormalChar` coordinator before the generic decision, only
+    when pairing is live (no selection, no literal suppression,
+    `electricPairs` on); the mode owns its compound edit and returns
+    true to stop the generic path. `MarkdownMode` overrides it for the
+    three rules the flat table cannot express: the third backtick at
+    line start opens a fence with a matching closer on the line below
+    and the caret left after the opening fence for the language name;
+    a marker typed just before a run of the same marker steps over one
+    delimiter, not the whole run; and the first non-whitespace content
+    char after an unmatched opener run generates the matching closer
+    run (`**|` + `b` → `**b|**`). `MarkdownMode.getPairs()` is
+    `"()[]{}\"\"``"` — the single backtick pairs inline; `*`, `_`,
+    `~` are deliberately absent so the generic opener rule never
+    fires on them.
+    `MarkdownDelimiters` is the shared read-only recognition helper:
+    `runLength`, `findCodeSpanClose`, `isAsciiPunctuation`, `opens`,
+    `findEmphasisClose` lifted out of `MarkdownFormatter` (which now
+    delegates to them, so highlighting and the override cannot
+    disagree), plus `unmatchedOpenerRun(text, caret, c, end,
+    prospective)` — the role the override needs: the run of `c` ending
+    at the caret is an opener only if it opens, is not escaped (odd
+    backslash run), is not already closing an earlier opener, and has
+    no closer of its own later on the line. The `prospective` char is
+    the content about to be typed, so an empty opener at the caret is
+    classified without mutating the buffer. Every transition reads the
+    buffer at the keystroke, so live typing and `.` replay agree.
+    The `](` link trigger needs no special rule: the `(` pairs to `()`
+    through the generic table, so `[link](` becomes `[link]()`.
+    Tests: `MarkdownElectricPairsTest` (16) covers closer generation
+    for `*`/`**`/`_`/`~~`, the no-closer-on-space rule, the closer
+    role (second `*` closes, punctuation before a matched closer does
+    not reopen), the full `**bold**` typing alongside the incremental
+    case, the single-char closer skip, run replay, the fence, the
+    inline backtick, the link trigger, the escaped marker, a marker in
+    inline code, and the list-marker exclusion. Full suite 2807/2807;
+    conformance ratchet 168/253 unchanged.
 11. Settings pass: `electricPairs` + the four sub-rules,
     mode-scoped.
 
