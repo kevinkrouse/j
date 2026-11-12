@@ -308,6 +308,22 @@ public class JavaMode extends AbstractMode implements Mode {
                 return 0;
         }
 
+        // A fluent chain wrapped at the dots:
+        //     list.stream()
+        //         .filter(x -> x > 0)
+        //         .toList();
+        // Checked before the paren/model dispatch, because the model line
+        // ends in ')' ("stream()") and would otherwise be treated as a
+        // close-paren continuation. Off by default (indentDotChain), so the
+        // C family, which shares this code, is unaffected. The dot must be
+        // followed by an identifier: a leading-dot numeric literal (".5")
+        // is a value, not a chain, and ".."/"..." are not chains either.
+        if (buffer.getBooleanProperty(Property.INDENT_DOT_CHAIN)
+                && textFirstChar == '.'
+                && (text.length() == 1
+                    || Character.isJavaIdentifierStart(text.charAt(1))))
+            return getIndentationOfEnclosingScope(line, buffer) + buffer.getIndentSize();
+
         Position paren = findEnclosingParen(new Position(line, 0));
         if (paren != null)
             return indentInParen(paren, buffer);
@@ -771,13 +787,19 @@ public class JavaMode extends AbstractMode implements Mode {
     }
 
     // Scan backwards from line, looking for the start of a switch statement.
+    // The 'switch' may be the first identifier of its line, as in a switch
+    // statement, or mid-line, as in a switch expression: "int x = switch (i)
+    // {". A word-boundary match on the syntactically trimmed text, so a
+    // "switch" in a string or comment, or a name like "switchCount", is not
+    // mistaken for the keyword.
+    private static final Pattern SWITCH_TOKEN = Pattern.compile("\\bswitch\\b");
+
     protected final Line findSwitch(Line line) {
         Position pos = findEnclosingBrace(new Position(line, 0));
         if (pos != null) {
             line = pos.getLine();
             do {
-                String s = getFirstIdentifier(line);
-                if (s.equals("switch"))
+                if (SWITCH_TOKEN.matcher(trimSyntacticWhitespace(line.getText())).find())
                     return line;
             } while ((line = line.previous()) != null);
         }

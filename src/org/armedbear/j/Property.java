@@ -141,6 +141,7 @@ public final class Property implements Comparable<Property> {
     public static final Property INDENT_AFTER_BRACE = createProperty("indentAfterBrace", true);
     public static final Property INDENT_AFTER_OPENING_BRACE = createProperty("indentAfterOpeningBrace", true);
     public static final Property INDENT_BEFORE_BRACE = createProperty("indentBeforeBrace", false);
+    public static final Property INDENT_DOT_CHAIN = createProperty("indentDotChain", false);
     public static final Property INDENT_LINE_FIX_WHITESPACE = createProperty("indentLineFixWhitespace", false);
     public static final Property INDENT_STRINGS = createProperty("indentStrings", false);
     public static final Property LINEUP_ARGLIST = createProperty("lineupArglist", true);

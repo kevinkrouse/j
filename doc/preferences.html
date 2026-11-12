@@ -1425,6 +1425,26 @@ If true, lines that start with '{' are indented, like this:
 <b>Default value:</b> false
 </dl>
 
+<code><a name="indentDotChain">indentDotChain</a></code>
+<dl>
+<dd>
+If true, a line that starts with '.' is indented one step under the
+enclosing statement, so a fluent method chain wrapped at the dots lines
+up like this:
+<pre>
+        List&lt;Integer&gt; r = list.stream()
+            .filter(x -&gt; x &gt; 0)
+            .map(x -&gt; x * 2)
+            .toList();
+</pre>
+A leading-dot numeric literal such as <code>.5</code> is a value, not a
+chain, and is left to the ordinary continuation rules.
+<p>
+<b>See also:</b> <a href="#lineupArglist">lineupArglist</a>
+<p>
+<b>Default value:</b> false
+</dl>
+
 <code><a name="indentLineFixWhitespace">indentLineFixWhitespace</a></code>
 <dl>
 <dd>
