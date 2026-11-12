@@ -64,14 +64,11 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
     private static final String CAPTION_METHODS = "Methods";
     private static final String CAPTION_NESTED_CLASSES = "Nested Classes";
 
-    private static final String KEY_ARRANGE_BY_TYPE =
-        "JavaMode.tree.arrangeByType";
+    private static final String KEY_ARRANGE_BY_TYPE = "JavaMode.tree.arrangeByType";
     private static final String KEY_SORT = "JavaMode.tree.sort";
 
-    private static boolean arrangeByType =
-        Editor.getSessionProperties().getBooleanProperty(KEY_ARRANGE_BY_TYPE, true);
-    private static boolean sort =
-        Editor.getSessionProperties().getBooleanProperty(KEY_SORT, false);
+    private static boolean arrangeByType = Editor.getSessionProperties().getBooleanProperty(KEY_ARRANGE_BY_TYPE, true);
+    private static boolean sort = Editor.getSessionProperties().getBooleanProperty(KEY_SORT, false);
 
     private final Editor editor;
     private List<LocalTag> tags;
@@ -114,9 +111,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
 
     @Override
     public void refresh() {
-        boolean force = (arrangedByType != arrangeByType)
-            ||
-            (sorted != sort);
+        boolean force = (arrangedByType != arrangeByType) || (sorted != sort);
         refresh(force);
     }
 
@@ -133,8 +128,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
         if (bufferTags == null)
             bufferTags = buffer.getTags(true); // Runs tagger synchronously.
         if (bufferTags != null) {
-            final TreeModel model =
-                getDefaultModel(bufferTags, arrangeByType, sort);
+            final TreeModel model = getDefaultModel(bufferTags, arrangeByType, sort);
             final List<LocalTag> finalBufferTags = bufferTags;
             Runnable completionRunnable = () -> {
                 setModel(model);
@@ -149,11 +143,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
     }
 
     // Never returns null!
-    private static TreeModel getDefaultModel(
-        List<LocalTag> bufferTags,
-        boolean arrangeByType,
-        boolean sort
-    ) {
+    private static TreeModel getDefaultModel(List<LocalTag> bufferTags, boolean arrangeByType, boolean sort) {
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
         List<LocalTag> list;
         if (sort)
@@ -167,8 +157,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
             if (parent == null) {
                 addNode(rootNode, tag, arrangeByType);
             } else {
-                DefaultMutableTreeNode parentNode =
-                    findParentNodeForTag(tag, rootNode);
+                DefaultMutableTreeNode parentNode = findParentNodeForTag(tag, rootNode);
                 addNode(parentNode, tag, arrangeByType);
             }
         }
@@ -191,26 +180,19 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
                     break;
             }
         }
-        Collections.sort(
-            methodsAndFields,
-            (t1, t2) -> t1.toString().compareTo(t2.toString())
-        );
+        Collections.sort(methodsAndFields, (t1, t2) -> t1.toString().compareTo(t2.toString()));
         allTags.addAll(methodsAndFields);
         return allTags;
     }
 
-    private static DefaultMutableTreeNode findParentNodeForTag(
-        JavaTag tag,
-        DefaultMutableTreeNode rootNode
-    ) {
+    private static DefaultMutableTreeNode findParentNodeForTag(JavaTag tag, DefaultMutableTreeNode rootNode) {
         JavaClass parent = tag.getParent();
         if (parent == null)
             return rootNode;
         final String parentName = parent.getName();
         Enumeration<TreeNode> nodes = rootNode.breadthFirstEnumeration();
         while (nodes.hasMoreElements()) {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) nodes.nextElement();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodes.nextElement();
             Object obj = node.getUserObject();
             if (obj instanceof JavaTag t) {
                 String name = t.getName();
@@ -235,11 +217,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
         return rootNode;
     }
 
-    private static void addNode(
-        DefaultMutableTreeNode parentNode,
-        JavaTag tag,
-        boolean arrangeByType
-    ) {
+    private static void addNode(DefaultMutableTreeNode parentNode, JavaTag tag, boolean arrangeByType) {
         if (parentNode instanceof ClassNode classNode) {
             classNode.addTag(tag);
         } else {
@@ -266,8 +244,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
                     DefaultMutableTreeNode selectedNode = null;
                     TreePath oldPath = getSelectionPath();
                     if (oldPath != null) {
-                        selectedNode =
-                            (DefaultMutableTreeNode) oldPath.getLastPathComponent();
+                        selectedNode = (DefaultMutableTreeNode) oldPath.getLastPathComponent();
                     }
                     if (node != selectedNode)
                         scrollNodeToCenter(node);
@@ -303,14 +280,10 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
         return tag;
     }
 
-    private DefaultMutableTreeNode findNode(
-        DefaultMutableTreeNode root,
-        JavaTag tag
-    ) {
+    private DefaultMutableTreeNode findNode(DefaultMutableTreeNode root, JavaTag tag) {
         Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) nodes.nextElement();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodes.nextElement();
             if (node.getUserObject() instanceof JavaTag) {
                 JavaTag t = (JavaTag) node.getUserObject();
                 if (t == tag)
@@ -324,8 +297,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
         for (int i = 0; i < getRowCount(); i++) {
             TreePath path = getPathForRow(i);
             if (path != null) {
-                DefaultMutableTreeNode node =
-                    (DefaultMutableTreeNode) path.getLastPathComponent();
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                 Object obj = node.getUserObject();
                 if (obj instanceof String && obj.equals(CAPTION_METHODS)) {
                     expandRow(i);
@@ -350,8 +322,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
     private JavaTag getJavaTagAtPoint(Point point) {
         TreePath treePath = getPathForLocation(point.x, point.y);
         if (treePath != null) {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
             Object obj = node.getUserObject();
             if (obj instanceof JavaTag javaTag)
                 return javaTag;
@@ -364,8 +335,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
         final TreePath path = getSelectionPath();
         LocalTag selected = null;
         if (path != null) {
-            final Object obj =
-                ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
+            final Object obj = ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
             if (obj instanceof LocalTag localTag)
                 selected = localTag;
         }
@@ -456,8 +426,7 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
                 case TAG_CLASS:
                 case TAG_INTERFACE:
                     if (nestedClasses == null) {
-                        nestedClasses =
-                            new DefaultMutableTreeNode(CAPTION_NESTED_CLASSES);
+                        nestedClasses = new DefaultMutableTreeNode(CAPTION_NESTED_CLASSES);
                         add(nestedClasses);
                     }
                     nestedClasses.add(new ClassNode(tag, arrangeByType));
@@ -504,23 +473,14 @@ public final class JavaTree extends SidebarTree implements NavigationComponent, 
 
         @Override
         public Component getTreeCellRendererComponent(
-            JTree tree,
-            Object value,
-            boolean selected,
-            boolean expanded,
-            boolean leaf,
-            int row,
-            boolean hasFocus
-        ) {
-            super.getTreeCellRendererComponent(
-                tree,
-                value,
-                selected,
-                expanded,
-                leaf,
-                row,
-                hasFocus
-            );
+                JTree tree,
+                Object value,
+                boolean selected,
+                boolean expanded,
+                boolean leaf,
+                int row,
+                boolean hasFocus) {
+            super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
             if (selected)
                 super.setForeground(getTextSelectionColor());
             else

@@ -32,15 +32,12 @@ public final class ElectricCommands {
     public static void closeParen(Editor editor) {
         final Display display = editor.getDisplay();
         EditCommands.insertNormalChar(editor, ')');
-        if (
-            Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET)
-                ||
-                Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_BRACKETS)
-        )
+        if (Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET)
+                || Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_BRACKETS))
             return;
         // Limit search to 50 lines.
-        Position match =
-            CaretCommands.findMatchInternal(editor, new Position(editor.getDotLine(), editor.getDotOffset() - 1), 50);
+        Position match = CaretCommands
+                .findMatchInternal(editor, new Position(editor.getDotLine(), editor.getDotOffset() - 1), 50);
         if (match == null)
             return;
         // We don't want to reframe.
@@ -68,12 +65,9 @@ public final class ElectricCommands {
     public static void electricSemi(Editor editor) {
         if (!editor.checkReadOnly())
             return;
-        if (
-            editor.getMark() != null
+        if (editor.getMark() != null
                 || editor.getDotLine().flags() == STATE_COMMENT
-                ||
-                editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())
-        ) {
+                || editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())) {
             EditCommands.insertNormalChar(editor, ';');
         } else {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
@@ -198,15 +192,8 @@ public final class ElectricCommands {
                 editor.insertChar('>');
                 editor.moveCaretToDotCol();
                 if (editor.getBuffer().getBooleanProperty(Property.AUTO_INDENT)) {
-                    if (
-                        modeId == HTML_MODE
-                            &&
-                            editor.getDotLine()
-                                .substring(0, editor.getDotOffset())
-                                .endsWith(
-                                    "</pre>"
-                                )
-                    ) {
+                    if (modeId == HTML_MODE
+                            && editor.getDotLine().substring(0, editor.getDotOffset()).endsWith("</pre>")) {
                         ; // No autoindent after "</pre>" in HTML mode.
                     } else {
                         IndentCommands.indentLine(editor);
@@ -237,8 +224,7 @@ public final class ElectricCommands {
     public static void insertParentheses(Editor editor) {
         if (!editor.checkReadOnly())
             return;
-        boolean parensRequireSpaces =
-            editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
+        boolean parensRequireSpaces = editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
         if (editor.getMark() != null) {
             Position begin, end;

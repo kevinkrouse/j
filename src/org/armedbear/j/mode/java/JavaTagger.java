@@ -234,14 +234,7 @@ public class JavaTagger extends Tagger {
                     state = CLASS_PROLOG;
                     // Add a tag for the class itself.
                     tags.add(
-                        new JavaTag(
-                            "interface ".concat(token),
-                            tokenStart,
-                            TAG_INTERFACE,
-                            visibility,
-                            parentClass
-                        )
-                    );
+                        new JavaTag("interface ".concat(token), tokenStart, TAG_INTERFACE, visibility, parentClass));
                     visibility = 0;
                 } else if (state == CLASS_NAME) {
                     if (currentClass != null)
@@ -250,37 +243,13 @@ public class JavaTagger extends Tagger {
                     currentClass = new JavaClass(token, TAG_CLASS);
                     state = CLASS_PROLOG;
                     // Add a tag for the class itself.
-                    tags.add(
-                        new JavaTag(
-                            "class ".concat(token),
-                            tokenStart,
-                            TAG_CLASS,
-                            visibility,
-                            parentClass
-                        )
-                    );
+                    tags.add(new JavaTag("class ".concat(token), tokenStart, TAG_CLASS, visibility, parentClass));
                     visibility = 0;
                 } else if (state == EXTENDS) {
-                    tags.add(
-                        new JavaTag(
-                            token,
-                            tokenStart,
-                            TAG_EXTENDS,
-                            visibility,
-                            currentClass
-                        )
-                    );
+                    tags.add(new JavaTag(token, tokenStart, TAG_EXTENDS, visibility, currentClass));
                     state = CLASS_PROLOG;
                 } else if (state == IMPLEMENTS)
-                    tags.add(
-                        new JavaTag(
-                            token,
-                            tokenStart,
-                            TAG_IMPLEMENTS,
-                            visibility,
-                            currentClass
-                        )
-                    );
+                    tags.add(new JavaTag(token, tokenStart, TAG_IMPLEMENTS, visibility, currentClass));
                 else if (token.equals("package") || token.equals("import"))
                     skipSemi();
                 else if (token.equals("interface"))
@@ -359,8 +328,7 @@ public class JavaTagger extends Tagger {
     }
 
     protected final LocalTag checkForExplicitTag(Position pos, int modeId) {
-        final String explicitTag =
-            Editor.preferences().getStringProperty(Property.EXPLICIT_TAG);
+        final String explicitTag = Editor.preferences().getStringProperty(Property.EXPLICIT_TAG);
         if (explicitTag != null && explicitTag.length() > 0) {
             pos = pos.copy();
             String s = pos.getString(); // Substring to end of line.
