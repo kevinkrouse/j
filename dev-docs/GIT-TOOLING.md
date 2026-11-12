@@ -2538,7 +2538,7 @@ plan with why it is left, before the next phase starts.
      ediff. Neovim's git-conflict.nvim: `co`, `ct`, `cb`, `c0` (none),
      and `]x`/`[x`, buffer-local in conflicted files; vim-unimpaired
      moves by marker with `]n`/`[n`.
-10. **Next. Changelists.** Picking files, hunks and lines for any command
+10. **Done. Changelists.** Picking files, hunks and lines for any command
    (in the directory buffer too), then the store, ranges as markers,
    re-anchoring, the status section, moving, outlined marks, a Changes
    tab, committing with a private index, and drag and drop, as
@@ -3458,6 +3458,14 @@ plan with why it is left, before the next phase starts.
      their saved state, drop locations in the trees and the text, and text
      drag in ordinary buffers; a status model for a project's two
      repositories beside one for one of them (fix 7). Left for the drive.
+
+     Driven in 11 h's `test/driver/phase11.txt` and `phase11-saved.txt`,
+     simple and vim: the panels, their buttons and their state across a
+     relaunch; drops in the Changes tab, the status tree and the status
+     text; a text drag in an ordinary buffer, moved not copied; and both
+     status models showing a save neither was refreshed for. The drop
+     caret and the trees' drop rows are pictured, not asserted. Phase 10
+     closes with it.
 11. **Shared selections.** Extract the existing selection machinery from
    the status's presentation code before adding another backend. Keep
    `RepositoryStatus` and its reads, `StatusData`, and the existing action
@@ -4048,7 +4056,8 @@ plan with why it is left, before the next phase starts.
      diff reads remain real-repository unit tests rather than shell steps
      in the GUI script. These drives used bare Xvfb, not a window manager.
      Phase 10 k and the separately recorded remaining review issues stay
-     open; this extraction does not close them.
+     open; this extraction does not close them. (Phase 10 closed after the
+     review of h below, its drive items covered by these scripts.)
 
      Review of h (2026-11-11, four reviews: code, driver, plan and docs,
      simplification). Fixed:
