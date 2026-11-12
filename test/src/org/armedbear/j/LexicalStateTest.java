@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.armedbear.j.ElectricPairs.Action;
 import org.armedbear.j.ElectricPairs.Decision;
 import org.armedbear.j.ElectricPairs.Operation;
+import org.armedbear.j.mode.c.CMode;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.lisp.LispMode;
 import org.armedbear.j.mode.markdown.MarkdownMode;
@@ -301,6 +302,55 @@ public class LexicalStateTest {
         assertState(STRING, PlainTextMode.getMode(), "\"x", 0, 2);
     }
 
+    // A disabled line reads as COMMENT: pairing has no business inside
+    // a #if 0 block, so a delimiter there must not open a pair. The
+    // disabled state is line-based, set by CMode's formatter.
+
+    @Test
+    public void disabledLineIsComment() {
+        String text = "#if 0\nint x = (1);\n#endif\n";
+        assertState(COMMENT, CMode.getMode(), text, 1, 9);
+    }
+
+    // A line that enters inside a multiline HTML comment is COMMENT
+    // only until the closing marker is consumed; the prose after it
+    // pairs normally.
+    @Test
+    public void markdownResumesAfterMultilineComment() {
+        String text = "<!-- open\nstill --> prose (here\n";
+        // Before the marker: still inside the comment.
+        assertState(COMMENT, MarkdownMode.getMode(), text, 1, 3);
+        // Just past the marker: the comment closed, prose is NEUTRAL.
+        assertState(NEUTRAL, MarkdownMode.getMode(), text, 1, 12);
+    }
+
+    // The exact boundary: the caret one past the closing marker of a
+    // multiline comment is prose, not comment. Typing ( there must
+    // insert the pair, not only the opener.
+    @Test
+    public void markdownCaretRightAfterMultilineCommentMarker() {
+        String text = "<!-- hidden\n-->";
+        // Inside the marker: still COMMENT.
+        assertState(COMMENT, MarkdownMode.getMode(), text, 1, 2);
+        // One past the marker: NEUTRAL, and ( pairs.
+        assertState(NEUTRAL, MarkdownMode.getMode(), text, 1, 3);
+        Decision d = typeAt(MarkdownMode.getMode(), text, 1, 3, '(');
+        assertEquals(INSERT_PAIR, d.action());
+    }
+
+    // An unmatched backtick run is literal: a caret between the
+    // backticks is NEUTRAL, not left unset. If it fell through to the
+    // generic quote scanner, the apostrophe in "don't" earlier on the
+    // line would read as an open string and inhibit pairing.
+    @Test
+    public void markdownUnmatchedBackticksAreNeutral() {
+        String text = "don't ``";
+        // Between the two backticks: NEUTRAL, and ( pairs.
+        assertState(NEUTRAL, MarkdownMode.getMode(), text, 0, 7);
+        Decision d = typeAt(MarkdownMode.getMode(), text, 0, 7, '(');
+        assertEquals(INSERT_PAIR, d.action());
+    }
+
     // The empty-quote-pair exception: the caret between two quotes of
     // a configured symmetric pair, with NEUTRAL before the left one.
     // The guard that lets Backspace delete both despite the STRING
@@ -366,5 +416,25 @@ public class LexicalStateTest {
         // Open a triple-quoted string on line 0; line 1 is now body.
         h.buffer().insertString(new Position(h.buffer().getLine(0), 5), " \"\"\"open");
         assertEquals(STRING, h.buffer().getMode().lexicalState(h.buffer(), new Position(h.buffer().getLine(1), 3)));
+    }
+
+    // The refresh inside the query rewrote line flags downstream of
+    // the edit. The insert itself schedules no repaint, so without the
+    // repaint in the refresh path the idle parser finds the flags
+    // already correct and never schedules one, leaving the old
+    // highlighting on the lines this keystroke changed the state of.
+    @Test
+    public void queryRepaintsWhenRefreshChangesFlags() {
+        if (h != null)
+            h.close();
+        h = EditorHarness.create("x = 1\nsecond line\n").mode(PythonMode.getMode());
+        h.clearRepaintPending();
+        h.buffer().insertString(new Position(h.buffer().getLine(0), 5), " \"\"\"open");
+        // The insert alone owes no repaint.
+        assertFalse(h.repaintPending());
+        h.clearRepaintPending();
+        // The query refreshes the parse and must ask for a repaint.
+        assertEquals(STRING, h.buffer().getMode().lexicalState(h.buffer(), new Position(h.buffer().getLine(1), 3)));
+        assertTrue(h.repaintPending());
     }
 }

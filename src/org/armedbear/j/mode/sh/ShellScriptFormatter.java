@@ -75,44 +75,78 @@ public final class ShellScriptFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
-        if (line.flags() == STATE_HERE_DOCUMENT)
-            return Optional.of(LexicalState.STRING);
+        // An offset past the line's end reads as the state after the
+        // whole line, as the per-offset scan answered.
+        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+    }
+
+    /**
+     * One forward pass recording the state at every offset to
+     * {@code end}. A heredoc declaration or a comment runs to the end
+     * of the line; the state before the marker is kept at the marker's
+     * own offset, as the per-offset scan answers.
+     */
+    @Override
+    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
         final int limit = line.length();
+        final int upto = Math.min(end, limit);
+        final LexicalState[] states = new LexicalState[upto + 1];
+        if (line.flags() == STATE_HERE_DOCUMENT) {
+            java.util.Arrays.fill(states, LexicalState.STRING);
+            return Optional.of(states);
+        }
         // parseBuffer carries an open quote across lines, so a line
         // inside a multi-line string enters in that string.
         int state = line.flags() == STATE_QUOTE || line.flags() == STATE_SINGLEQUOTE ? line.flags() : STATE_NEUTRAL;
-        for (int i = 0; i < offset && i < limit; i++) {
-            char c = line.charAt(i);
+        int i = 0;
+        while (i <= upto) {
+            states[i] = toLexical(state);
+            if (i == upto)
+                break;
+            final char c = line.charAt(i);
             if (c == '\\' && i < limit - 1) {
-                // Escape: consumes the next character.
-                ++i;
+                // Escape: consumes the next character; the state is
+                // unchanged across it.
+                if (i + 1 <= upto)
+                    states[i + 1] = toLexical(state);
+                i += 2;
                 continue;
             }
             if (state == STATE_QUOTE) {
                 if (c == '"')
                     state = STATE_NEUTRAL;
+                ++i;
                 continue;
             }
             if (state == STATE_SINGLEQUOTE) {
                 if (c == '\'')
                     state = STATE_NEUTRAL;
+                ++i;
                 continue;
             }
             // Not in a quoted string.
             if (c == '<' && i < limit - 2 && line.charAt(i + 1) == '<') {
-                if (heredocTerminator(line, i) != null)
+                if (heredocTerminator(line, i) != null) {
                     // The rest of the line declares the terminator.
-                    return Optional.of(LexicalState.STRING);
+                    for (int j = i + 1; j <= upto; j++)
+                        states[j] = LexicalState.STRING;
+                    return Optional.of(states);
+                }
+                ++i;
                 continue;
             }
-            if (c == '#')
-                return Optional.of(LexicalState.COMMENT);
+            if (c == '#') {
+                for (int j = i + 1; j <= upto; j++)
+                    states[j] = LexicalState.COMMENT;
+                return Optional.of(states);
+            }
             if (c == '"')
                 state = STATE_QUOTE;
             else if (c == '\'')
                 state = STATE_SINGLEQUOTE;
+            ++i;
         }
-        return Optional.of(toLexical(state));
+        return Optional.of(states);
     }
 
     /**

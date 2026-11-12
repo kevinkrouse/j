@@ -73,29 +73,55 @@ public class JavaFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        // An offset past the line's end reads as the state after the
+        // whole line, as the per-offset scan answered.
+        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+    }
+
+    /**
+     * One forward pass recording the state at every offset to
+     * {@code end}, so a caller that needs many positions on the line
+     * pays for one scan. The transitions are the same as
+     * {@link #parseBuffer}'s; the state is recorded before each token
+     * is consumed, and the position between a two-character token's
+     * characters carries the state before the token, exactly as the
+     * per-offset query answers.
+     */
+    @Override
+    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
         final int limit = line.length();
+        final int upto = Math.min(end, limit);
+        final LexicalState[] states = new LexicalState[upto + 1];
         int state = line.flags();
+        // A disabled line is disabled whole: the #if 0 block is
+        // line-based, so no token on it can leave the disabled state.
+        // Running the ordinary transitions would let a closed string or
+        // comment on the line report NEUTRAL and pair inside disabled
+        // code.
+        if (state == STATE_DISABLED) {
+            java.util.Arrays.fill(states, LexicalState.COMMENT);
+            return Optional.of(states);
+        }
         char quoteChar = state == STATE_QUOTE ? '"' : '\0';
         int i = 0;
-        while (i < limit) {
-            if (i == offset)
-                return Optional.of(toLexical(state));
-            char c = line.charAt(i);
+        while (i <= upto) {
+            states[i] = toLexical(state);
+            if (i == upto)
+                break;
+            final char c = line.charAt(i);
             // A two-character token (an escape, or a comment marker)
             // with the caret between its characters: the caret is
             // still in the state before the token.
-            final boolean caretInside = offset == i + 1;
             if (c == '\\' && i < limit - 1) {
-                // Escape: consumes the next character.
-                if (caretInside)
-                    return Optional.of(toLexical(state));
+                if (i + 1 <= upto)
+                    states[i + 1] = toLexical(state);
                 i += 2;
                 continue;
             }
             if (state == STATE_COMMENT) {
                 if (c == '*' && i < limit - 1 && line.charAt(i + 1) == '/') {
-                    if (caretInside)
-                        return Optional.of(toLexical(state));
+                    if (i + 1 <= upto)
+                        states[i + 1] = toLexical(state);
                     i += 2;
                     state = STATE_NEUTRAL;
                 } else
@@ -112,13 +138,19 @@ public class JavaFormatter extends Formatter {
             }
             // Not in comment or quoted string.
             if (c == '/' && i < limit - 1) {
-                char next = line.charAt(i + 1);
-                if ((next == '/' || next == '*') && caretInside)
-                    return Optional.of(toLexical(state));
-                if (next == '/')
-                    // A line comment: everything from here on is COMMENT.
-                    return Optional.of(LexicalState.COMMENT);
+                final char next = line.charAt(i + 1);
+                if (next == '/') {
+                    // A line comment: the caret between the slashes is
+                    // still before it, everything after is COMMENT.
+                    if (i + 1 <= upto)
+                        states[i + 1] = toLexical(state);
+                    for (int j = i + 2; j <= upto; j++)
+                        states[j] = LexicalState.COMMENT;
+                    return Optional.of(states);
+                }
                 if (next == '*') {
+                    if (i + 1 <= upto)
+                        states[i + 1] = toLexical(state);
                     state = STATE_COMMENT;
                     i += 2;
                     continue;
@@ -129,7 +161,7 @@ public class JavaFormatter extends Formatter {
             }
             ++i;
         }
-        return Optional.of(toLexical(state));
+        return Optional.of(states);
     }
 
     private static LexicalState toLexical(int state) {

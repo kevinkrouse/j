@@ -85,30 +85,65 @@ public final class LispFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        // An offset past the line's end reads as the state after the
+        // whole line, as the per-offset scan answered.
+        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+    }
+
+    /**
+     * One forward pass recording the state at every offset to
+     * {@code end}. A block comment's `#|` opener or `|#` closer is two
+     * characters: the caret between them carries the state before the
+     * marker, as the per-offset scan answers.
+     */
+    @Override
+    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
+        final int limit = line.length();
+        final int upto = Math.min(end, limit);
+        final LexicalState[] states = new LexicalState[upto + 1];
         int state = line.flags();
-        for (int i = 0; i < offset; i++) {
-            char c = line.charAt(i);
+        int i = 0;
+        while (i <= upto) {
+            states[i] = toLexical(state);
+            if (i == upto)
+                break;
+            final char c = line.charAt(i);
             if (c == '\\') {
-                // Escape: consumes the next character.
-                ++i;
+                // Escape: consumes the next character; the state is
+                // unchanged across it.
+                if (i + 1 <= upto)
+                    states[i + 1] = toLexical(state);
+                i += 2;
             } else if (state == STATE_COMMENT) {
-                if (c == '|' && i + 1 < offset && line.charAt(i + 1) == '#') {
+                if (c == '|' && i + 1 < limit && line.charAt(i + 1) == '#') {
+                    if (i + 1 <= upto)
+                        states[i + 1] = toLexical(state);
                     state = STATE_NEUTRAL;
-                    ++i; // skip '#'
-                }
+                    i += 2; // skip '#'
+                } else
+                    ++i;
             } else if (state == STATE_QUOTE) {
                 if (c == '"')
                     state = STATE_NEUTRAL;
+                ++i;
             } else if (c == '"') {
                 state = STATE_QUOTE;
-            } else if (c == '#' && i + 1 < offset && line.charAt(i + 1) == '|') {
+                ++i;
+            } else if (c == '#' && i + 1 < limit && line.charAt(i + 1) == '|') {
+                if (i + 1 <= upto)
+                    states[i + 1] = toLexical(state);
                 state = STATE_COMMENT;
-                ++i; // skip '|'
-            } else if (c == ';')
-                // A line comment: everything from here on is COMMENT.
-                return Optional.of(LexicalState.COMMENT);
+                i += 2; // skip '|'
+            } else if (c == ';') {
+                // A line comment: the caret on the ';' is before it,
+                // everything after is COMMENT.
+                for (int j = i + 1; j <= upto; j++)
+                    states[j] = LexicalState.COMMENT;
+                return Optional.of(states);
+            } else
+                ++i;
         }
-        return Optional.of(toLexical(state));
+        return Optional.of(states);
     }
 
     private static LexicalState toLexical(int state) {

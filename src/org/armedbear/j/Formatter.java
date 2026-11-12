@@ -71,6 +71,38 @@ public abstract class Formatter {
         return Optional.empty();
     }
 
+    /**
+     * The lexical state at every offset from zero to {@code end}
+     * inclusive, in one forward pass: {@code states[i]} is what
+     * {@link #lexicalStateAt} would answer for offset {@code i}.
+     *
+     * <p>This exists because callers such as the electric-pairs balance
+     * check need the state at many offsets on the same line. Asking for
+     * them one at a time rescans the prefix each time and is quadratic;
+     * a formatter whose scan is linear overrides this to answer them
+     * all at once. The default derives each offset from
+     * {@link #lexicalStateAt}, which is correct but keeps the
+     * quadratic cost, so it suits only formatters that cannot answer
+     * cheaply.
+     *
+     * @param line the line to scan
+     * @param end  the last offset to answer for, clamped to the line's
+     *             length
+     * @return the states, or empty when this formatter cannot answer
+     *         for the line
+     */
+    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
+        final int limit = Math.min(end, line.length());
+        final LexicalState[] states = new LexicalState[limit + 1];
+        for (int i = 0; i <= limit; i++) {
+            final Optional<LexicalState> state = lexicalStateAt(line, i);
+            if (!state.isPresent())
+                return Optional.empty();
+            states[i] = state.get();
+        }
+        return Optional.of(states);
+    }
+
     // The mode whose language this formats: the buffer's, unless the
     // formatter is lent to a buffer in another, as Markdown lends one a
     // fenced block of Java.

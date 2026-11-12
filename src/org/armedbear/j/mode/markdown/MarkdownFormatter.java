@@ -877,55 +877,99 @@ public final class MarkdownFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        // An offset past the line's end reads as the state after the
+        // whole line, as the per-offset scan answered.
+        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+    }
+
+    /**
+     * One forward pass recording the state at every offset to
+     * {@code end}. Outside a block the state is NEUTRAL except inside
+     * a code span or an inline HTML comment, where it is COMMENT; the
+     * caret on a span's or comment's own delimiters carries the state
+     * before them, exactly as the per-offset scan answers. A line that
+     * enters inside a multiline comment is COMMENT until its closing
+     * marker is consumed, then the prose after it pairs normally.
+     */
+    @Override
+    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
         final int block = line.flags() & BLOCK_MASK;
-        if (block == IN_FENCE || block == IN_COMMENT || block == IN_FRONT_MATTER)
-            return Optional.of(LexicalState.COMMENT);
         final String text = line.getText();
-        // The scan stops at the caret, but a delimiter's close may lie
-        // beyond it, so the helpers see the whole line.
-        final int end = text.length();
+        // The helpers see the whole line: a delimiter's close may lie
+        // beyond the last offset asked for.
+        final int limit = text.length();
+        final int upto = Math.min(end, limit);
+        final LexicalState[] states = new LexicalState[upto + 1];
+        if (block == IN_FENCE || block == IN_FRONT_MATTER) {
+            java.util.Arrays.fill(states, LexicalState.COMMENT);
+            return Optional.of(states);
+        }
         int i = 0;
-        while (i < offset) {
+        if (block == IN_COMMENT) {
+            final int close = text.indexOf("-->");
+            if (close < 0) {
+                java.util.Arrays.fill(states, LexicalState.COMMENT);
+                return Optional.of(states);
+            }
+            // The comment runs through the closing marker's last
+            // character; the position just past the marker is prose
+            // and pairs normally, so the fill stops at close + 2 and
+            // the scan resumes there.
+            fill(states, 0, Math.min(close + 2, upto), LexicalState.COMMENT);
+            i = close + 3;
+        }
+        while (i <= upto) {
+            states[i] = LexicalState.NEUTRAL;
+            if (i == upto)
+                break;
             final char c = text.charAt(i);
-            if (c == '\\' && i + 1 < end && isAsciiPunctuation(text.charAt(i + 1))) {
-                // The escape consumes the next character; a caret on
-                // that character is inside the escape, not on a
-                // delimiter.
-                if (offset <= i + 1)
-                    return Optional.of(LexicalState.NEUTRAL);
+            if (c == '\\' && i + 1 < limit && isAsciiPunctuation(text.charAt(i + 1))) {
+                // The escape consumes the next character; the caret on
+                // it is inside the escape, not on a delimiter.
+                if (i + 1 <= upto)
+                    states[i + 1] = LexicalState.NEUTRAL;
                 i += 2;
                 continue;
             }
             if (c == '`') {
-                final int run = runLength(text, i, end);
-                final int close = findCodeSpanClose(text, i + run, end, run);
+                final int run = runLength(text, i, limit);
+                final int close = findCodeSpanClose(text, i + run, limit, run);
                 if (close < 0) {
-                    // Nothing closes the run: the backticks are literal,
-                    // and a later span or comment may still hold the
-                    // caret.
+                    // Nothing closes the run: the backticks are
+                    // literal. Every position they cover is NEUTRAL,
+                    // so a caret between them is not left unset and
+                    // does not fall through to the generic quote
+                    // scanner (which would read an apostrophe earlier
+                    // on the line as an open string).
+                    fill(states, i + 1, Math.min(i + run, upto), LexicalState.NEUTRAL);
                     i += run;
                     continue;
                 }
                 // The span is [i, close+run): inside it is COMMENT,
                 // the position at or after the closing run is not.
-                if (offset < close + run)
-                    return Optional.of(LexicalState.COMMENT);
+                fill(states, i + 1, Math.min(close + run - 1, upto), LexicalState.COMMENT);
                 i = close + run;
                 continue;
             }
             if (c == '<' && text.startsWith("<!--", i)) {
                 final int close = text.indexOf("-->", i + 4);
-                if (close < 0)
+                if (close < 0) {
                     // Unclosed: everything from here on is COMMENT.
-                    return Optional.of(LexicalState.COMMENT);
-                if (offset < close + 3)
-                    return Optional.of(LexicalState.COMMENT);
+                    fill(states, i + 1, upto, LexicalState.COMMENT);
+                    return Optional.of(states);
+                }
+                fill(states, i + 1, Math.min(close + 2, upto), LexicalState.COMMENT);
                 i = close + 3;
                 continue;
             }
             ++i;
         }
-        return Optional.of(LexicalState.NEUTRAL);
+        return Optional.of(states);
+    }
+
+    private static void fill(LexicalState[] states, int from, int to, LexicalState value) {
+        for (int i = from; i <= to; i++)
+            states[i] = value;
     }
 
     private static int runLength(String text, int i, int end) {

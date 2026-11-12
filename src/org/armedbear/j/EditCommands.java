@@ -223,7 +223,12 @@ public final class EditCommands {
             return;
         if (!editor.getBuffer().withWriteLock(() -> {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
-            if (editor.getMark() != null)
+            // The decision must see the selection the user had, not the
+            // caret left after deleting it: Enter with a selection
+            // replaces the selection with one newline, it does not
+            // expand an empty pair around the deleted text.
+            final boolean hadSelection = editor.getMark() != null;
+            if (hadSelection)
                 editor.deleteRegion();
             final Mode mode = editor.getMode();
             if (ElectricPairs
@@ -233,7 +238,7 @@ public final class EditCommands {
                         editor.getDot(),
                         ElectricPairs.Operation.ENTER,
                         '\n',
-                        false,
+                        hadSelection,
                         editor.isPairingSuppressed())
                     .action() == ElectricPairs.Action.OPEN_LINE) {
                 openLineBetweenPair(editor);

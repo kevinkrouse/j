@@ -392,6 +392,10 @@ the register.
 
 ## Lexical context
 
+Step 5 introduced the normalized query below. Build step 12 consolidates
+its implementation with the existing formatter scanners and clarifies
+the classification of regions such as Markdown code and disabled C.
+
 Rule 5 uses `mode.lexicalState`; reusing only the existing
 `isInQuote`/`isInComment` defaults would be inaccurate:
 
@@ -1355,8 +1359,93 @@ existing insert-mode behavior.
     including the type-over-off-plus-balance composition. Full suite
     2812/2812; conformance ratchet 168/253 unchanged.
 
+12. **Consolidate lexical context. Planned.** Rename the normalized
+    query API to `LexicalContext`; remove duplicated context transitions
+    in the five converted formatters (Java/C, Lisp, Python, Shell and
+    Markdown). This is an implementation refactor with the boundary
+    fixes below, not a new general lexer framework.
+
+    **Naming.** Rename `LexicalState` to `LexicalContext`, including its
+    source file. Rename `Formatter.lexicalStateAt(Line, int)` and
+    `Mode.lexicalState(Buffer, Position)` to `lexicalContextAt`, and both
+    `lexicalStates` bulk methods to `lexicalContexts`. Update callers,
+    overrides, imports, Javadocs and tests together; rename
+    `LexicalStateTest` to `LexicalContextTest`. Do not retain aliases for
+    the old API. Earlier completed steps describe the pre-refactor names;
+    update the design sections to the new API when this step lands.
+
+    **Result and boundaries.** `LexicalContext` describes the normalized
+    surroundings of an insertion position. Keep NEUTRAL,
+    STRING and COMMENT; add OPAQUE for Markdown code spans, fences and
+    front matter, and inactive C code. Reserve COMMENT for actual
+    comments. Pairing continues to require NEUTRAL, including the
+    empty-quote rule's query before the opening quote. Rich language
+    state (quote kind, delimiter lengths, heredoc terminators) stays
+    private to its formatter. Raw `STATE_*` values, format IDs and
+    `Line.flags()` are not interchangeable with this result.
+
+    A query describes the insertion boundary after consuming the
+    prefix, at offsets zero through line length inclusive. Document
+    partial multi-character delimiters explicitly: a caret inside a
+    closing delimiter retains the enclosed context; the position after
+    its complete close resumes the surrounding context. Every supported
+    bulk query fills every requested entry; null is never a context.
+
+    **One source of transitions per formatter.** Extract a private
+    cursor/context helper in each formatter, using its existing token
+    recognition and complete entering context. It consumes whole tokens
+    with lookahead and exposes their source spans and context changes.
+    Use it from the context-sensitive parts of `parseBuffer`, line
+    formatting and both lexical queries. Keep keyword coloring, segment
+    creation and display-column conversion in formatting adapters.
+    Markdown reuses its block parser and `MarkdownDelimiters`; Shell
+    keeps heredoc state in its own context. No shared public token class
+    or character-at-a-time state machine is required.
+
+    Point queries stop at the requested boundary without constructing
+    a prefix-sized array. Bulk queries record boundaries during one
+    forward traversal. Both use the same transitions and local context;
+    neither changes the formatter's mutable rendering state or line
+    flags. `parseBuffer` remains responsible for carried metadata.
+    `Mode` prepares dirty metadata under the existing lock and schedules
+    repaint when parsing changes flags, before invoking either query.
+
+    **Existing APIs and unsupported modes.** In Java and Lisp, replace
+    the old predicate scans with adapters to the supported formatter
+    query, using the same parse preparation. They do not call the
+    fallback-enabled `Mode.lexicalContextAt`; dependency flows from modes
+    to formatter queries, never back from a formatter to mode predicates.
+    Keep legacy predicates for unmigrated modes as compatibility fallbacks.
+    Leave `SyntaxIterator` and its masking semantics unchanged in this
+    step; sharing its scans can follow once these transitions are stable.
+
+    Unsupported bulk queries return `Optional.empty()` directly.
+    Propagate that capability through `Mode` rather than synthesizing
+    an array with a point query at every offset. The balance check uses
+    a supported bulk result once, or checks only candidate delimiters
+    through the legacy point path. This avoids introducing quadratic
+    work on a long line with no relevant delimiters; it does not claim
+    linear performance for unmigrated legacy scanners. Do not add a
+    cross-edit cache in this step.
+
+    **Acceptance.** Compare point and bulk results at every offset in
+    representative fixtures, including empty lines, tabs, escapes,
+    Python triple quotes, sequential heredocs, and unmatched Markdown
+    backtick runs after prose apostrophes. Pin NEUTRAL immediately after
+    a carried HTML comment's `-->`, and OPAQUE throughout a disabled C
+    line containing completed strings and block comments. Check that
+    highlighting and carried flags remain consistent with those token
+    boundaries, and that queries leave rendering state unchanged.
+    Exercise the unsupported bulk path on long Plain Text lines with
+    and without candidate delimiters. Use scan/visit counts to guard
+    linear traversal in the converted formatters; keep the 8,000-pair
+    timing probe as diagnostic evidence, not a machine-dependent time
+    assertion. Run focused tests and the full suite through `bb test`,
+    plus the existing Vim conformance ratchet.
+
 Steps 1-4 are the core; 5-7 are the context and the two extra call
 sites; 8 is the literal-insertion contract; 9 is the cutover; 10-11
-are mode-specific polish. Each step is independently shippable
-behind the property.
+are mode-specific polish; 12 consolidates lexical context after the
+behavior is pinned. Each step is independently shippable behind the
+property.
 

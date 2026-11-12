@@ -24,6 +24,7 @@ package org.armedbear.j;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Optional;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.transients.Transient;
 
@@ -569,14 +570,42 @@ public interface Mode extends Folds {
      * leave stale entering context.
      */
     default LexicalState lexicalState(Buffer buffer, Position pos) {
-        if (buffer.needsParsing())
-            buffer.getFormatter().parseBuffer();
+        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
+            // The refresh rewrote line flags downstream of the edit;
+            // without a repaint the idle parser finds them already
+            // correct and never schedules one, leaving the old
+            // highlighting on lines this keystroke changed the state of.
+            buffer.repaint();
         return buffer.getFormatter()
                 .lexicalStateAt(pos.getLine(), pos.getOffset())
                 .orElseGet(
                     () -> isInComment(buffer, pos) ? LexicalState.COMMENT
                             : isInQuote(buffer, pos) ? LexicalState.STRING
                             : LexicalState.NEUTRAL);
+    }
+
+    /**
+     * The lexical state at every offset from zero to {@code end}
+     * inclusive on {@code line}, in one pass where the formatter can
+     * manage it. Same contract as {@link #lexicalState}, including the
+     * parse refresh, but the whole line is answered at once so a caller
+     * that needs many positions on it pays for one scan instead of one
+     * per position.
+     *
+     * <p>Empty when the formatter cannot answer in bulk. The fallback
+     * predicates are O(offset) each, so building the whole array with
+     * them would be quadratic; a caller that needs only some offsets
+     * asks for them one at a time with {@link #lexicalState} instead.
+     *
+     * @return the states indexed by offset, {@code states[end]} the
+     *         state at {@code end}; or empty if the formatter cannot
+     *         answer the line
+     */
+    default Optional<LexicalState[]> lexicalStates(Buffer buffer, Line line, int end) {
+        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
+            buffer.repaint();
+        final int limit = Math.min(end, line.length());
+        return buffer.getFormatter().lexicalStates(line, limit);
     }
 
     /**

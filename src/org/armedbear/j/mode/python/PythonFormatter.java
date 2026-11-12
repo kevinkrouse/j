@@ -71,14 +71,35 @@ public final class PythonFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+        // An offset past the line's end reads as the state after the
+        // whole line, as the per-offset scan answered.
+        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+    }
+
+    /**
+     * One forward pass recording the state at every offset to
+     * {@code end}. A caret inside a multi-character token — an escape,
+     * or a triple-quote delimiter — carries the state before the
+     * token, so a caret inside a closing triple quote is still inside
+     * the string.
+     */
+    @Override
+    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
         final String text = line.getText();
-        final int limit = Math.min(offset, text.length());
+        final int limit = text.length();
+        final int upto = Math.min(end, limit);
+        final LexicalState[] states = new LexicalState[upto + 1];
         int state = line.flags();
         int i = 0;
-        while (i < limit) {
-            char c = text.charAt(i);
-            if (c == '\\' && i < text.length() - 1) {
-                // Escape: consumes the next character.
+        while (i <= upto) {
+            states[i] = toLexical(state);
+            if (i == upto)
+                break;
+            final char c = text.charAt(i);
+            if (c == '\\' && i < limit - 1) {
+                // Escape: consumes the next character; the caret
+                // between them is before the escape.
+                fill(states, i + 1, Math.min(i + 1, upto), toLexical(state));
                 i += 2;
                 continue;
             }
@@ -96,6 +117,9 @@ public final class PythonFormatter extends Formatter {
             }
             if (state == PYTHON_STATE_TRIPLE_SINGLE) {
                 if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
+                    // The closer is three characters; a caret inside it
+                    // is still inside the string.
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
                     state = PYTHON_STATE_NEUTRAL;
                     i += 3;
                 } else
@@ -104,6 +128,7 @@ public final class PythonFormatter extends Formatter {
             }
             if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
                 if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
                     state = PYTHON_STATE_NEUTRAL;
                     i += 3;
                 } else
@@ -113,6 +138,10 @@ public final class PythonFormatter extends Formatter {
             // Not in a quoted string.
             if (c == '\'') {
                 if (text.regionMatches(i, "'''", 0, 3)) {
+                    // The opener is consumed whole; a caret inside it
+                    // reads as inside the string, as the per-offset
+                    // scan answers.
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
                     state = PYTHON_STATE_TRIPLE_SINGLE;
                     i += 3;
                 } else {
@@ -123,6 +152,7 @@ public final class PythonFormatter extends Formatter {
             }
             if (c == '"') {
                 if (text.regionMatches(i, "\"\"\"", 0, 3)) {
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
                     state = PYTHON_STATE_TRIPLE_DOUBLE;
                     i += 3;
                 } else {
@@ -131,13 +161,21 @@ public final class PythonFormatter extends Formatter {
                 }
                 continue;
             }
-            if (c == '#')
-                // A line comment: the caret inside it is COMMENT, at
-                // its first character still the state before it.
-                return Optional.of(i < offset ? LexicalState.COMMENT : toLexical(state));
+            if (c == '#') {
+                // A line comment: the caret on the '#' is before it,
+                // everything after is COMMENT.
+                for (int j = i + 1; j <= upto; j++)
+                    states[j] = LexicalState.COMMENT;
+                return Optional.of(states);
+            }
             ++i;
         }
-        return Optional.of(toLexical(state));
+        return Optional.of(states);
+    }
+
+    private static void fill(LexicalState[] states, int from, int to, LexicalState value) {
+        for (int i = from; i <= to; i++)
+            states[i] = value;
     }
 
     private static LexicalState toLexical(int state) {

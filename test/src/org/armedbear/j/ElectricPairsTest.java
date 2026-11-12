@@ -457,6 +457,20 @@ public class ElectricPairsTest {
     }
 
     @Test
+    public void enterWithSelectionReplacesItWithOneNewline() {
+        // (x) with x selected: Enter replaces the selection with a
+        // single newline. The decision must see the selection the user
+        // had, not the caret left after deleting it -- otherwise the
+        // deleted text leaves (|) and Enter wrongly expands the pair
+        // into three lines.
+        h = EditorHarness.create("(x)").mode(PlainTextMode.getMode());
+        h.cursor(0, 2);
+        h.editor().setMark(0, 1);
+        EditCommands.newlineAndIndent(h.editor());
+        h.assertText("(\n)\n");
+    }
+
+    @Test
     public void enterBetweenBracesInStringIsOrdinary() {
         // {|} inside a string is content, not a structure to open:
         // the ordinary split cuts between the braces, leaving the

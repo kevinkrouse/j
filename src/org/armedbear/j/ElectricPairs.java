@@ -11,6 +11,8 @@
 
 package org.armedbear.j;
 
+import java.util.Optional;
+
 /**
  * The electric-pairs decision: what to do when a character is typed,
  * backspaced or entered, given the buffer and the mode's pair table.
@@ -252,6 +254,11 @@ public final class ElectricPairs {
      * Delimiters inside a string or a comment are not code and do not
      * count: in {@code foo(| "x)"} the {@code )} is inside the string,
      * so the opener still gets its own closer.
+     *
+     * <p>The lexical state for the whole span is taken in one pass.
+     * Asking for it per delimiter rescans the line prefix each time,
+     * which on a line with thousands of balanced pairs stalls the input
+     * path.
      */
     private static boolean hasUnmatchedCloserAhead(
             Mode mode,
@@ -260,13 +267,20 @@ public final class ElectricPairs {
             int from,
             char closer,
             char opener) {
+        final Optional<LexicalState[]> bulk = mode.lexicalStates(buffer, line, line.length());
         int depth = 0;
         for (int i = from; i < line.length(); i++) {
             char ch = line.charAt(i);
             if (ch != opener && ch != closer)
                 continue;
-            Position pos = new Position(line, i);
-            if (mode.lexicalState(buffer, pos) != LexicalState.NEUTRAL)
+            // The bulk array answers every offset in one pass. Without
+            // it, ask only at the delimiters: the fallback predicates
+            // are O(offset) each, so a line with no delimiters costs
+            // no predicate work at all, and one with few of them pays
+            // for few instead of for every position on the line.
+            final LexicalState state =
+                    bulk.isPresent() ? bulk.get()[i] : mode.lexicalState(buffer, new Position(line, i));
+            if (state != LexicalState.NEUTRAL)
                 continue;
             if (ch == opener)
                 depth++;
