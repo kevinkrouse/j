@@ -41,14 +41,21 @@ import org.armedbear.j.vcs.selection.Target.Member;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 
 /**
- * A repository's unstaged files sorted into its changelists, as the status
+ * A repository's working files sorted into its changelists, as the status
  * shows them: each list, in order, with its files, a file split across
  * lists in each, with its lines there. A file whose diff is unread is in
  * its list kept whole, or of most of its kept changes, else the active one.
+ *
+ * @param section the id of the WORKING section its files are of; null if
+ *     no read has shown one
  */
-record ListedChanges(List<Changelist> lists, String active, Map<String, List<Member>> members) {
-    /** The unstaged files, files, in c's lists, their diffs' hunks by id as ids gives them. */
-    static ListedChanges of(Changelists c, List<FileItem> files, Function<FileDiff, Map<String, Hunk>> ids) {
+record ListedChanges(List<Changelist> lists, String active, String section, Map<String, List<Member>> members) {
+    /** The files of the working section, files, in c's lists, their diffs' hunks by id as ids gives them. */
+    static ListedChanges of(
+            Changelists c,
+            String section,
+            List<FileItem> files,
+            Function<FileDiff, Map<String, Hunk>> ids) {
         final Map<String, List<Member>> members = new LinkedHashMap<>();
         for (Changelist l : c.lists())
             members.put(l.name(), new ArrayList<>());
@@ -61,7 +68,7 @@ record ListedChanges(List<Changelist> lists, String active, Map<String, List<Mem
             for (Map.Entry<String, Map<String, BitSet>> e : byList.entrySet())
                 members.get(e.getKey()).add(new Member(f, e.getValue()));
         }
-        return new ListedChanges(c.lists(), c.active(), members);
+        return new ListedChanges(c.lists(), c.active(), section, members);
     }
 
     // f's changed lines by list, then hunk id; a list with all of f its own.

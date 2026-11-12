@@ -22,6 +22,7 @@ package org.armedbear.j.vcs.status;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import org.armedbear.j.vcs.FileChange;
 import org.armedbear.j.vcs.diff.FileDiff;
@@ -38,16 +39,40 @@ import org.armedbear.j.vcs.log.LogRef;
 public record StatusData(List<Field> header, String inProgress, List<Section> sections, String error) {
     public record Field(String label, String value) {}
 
+    /** What a section holds, whatever its backend calls it. */
+    public enum Role {
+        /** Changes in the working tree, not staged; j's changelists sort a repository's first. */
+        WORKING,
+        /** Changes staged for the next commit. */
+        STAGED,
+        UNTRACKED,
+        /** Files in a conflict. */
+        UNMERGED,
+        COMMITS,
+        STASHES
+    }
+
     /**
-     * @param id stable across refreshes: "untracked", "unstaged", "staged",
-     *     UNMERGED, STASHES, "recent", or one of RANGES
+     * @param id stable across refreshes and opaque: the backend's name for it
      * @param total how many it has, of which items are the first
      * @param range the revisions its commits are, for the log; or null
      */
-    public record Section(String id, String title, List<Item> items, int total, String range) {
-        public Section(String id, String title, List<Item> items) {
-            this(id, title, items, items.size(), null);
+    public record Section(String id, String title, Role role, List<Item> items, int total, String range) {
+        public Section {
+            Objects.requireNonNull(role);
         }
+
+        public Section(String id, String title, Role role, List<Item> items) {
+            this(id, title, role, items, items.size(), null);
+        }
+    }
+
+    /** Its first section with role, or null. */
+    public Section section(Role role) {
+        for (Section s : sections)
+            if (s.role() == role)
+                return s;
+        return null;
     }
 
     /**
@@ -63,11 +88,6 @@ public record StatusData(List<Field> header, String inProgress, List<Section> se
 
     /** The section of stashes, each a StashItem. */
     public static final String STASHES = "stashes";
-
-    /** Whether section id's items are commits. */
-    public static boolean isCommits(String id) {
-        return id.equals("recent") || RANGES.contains(id);
-    }
 
     public sealed interface Item permits FileItem, CommitItem, StashItem {}
 

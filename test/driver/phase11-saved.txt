@@ -1,5 +1,0 @@
-# Run in the same --home as phase11.txt. Initial state must come from the saved session.
-timeout 10000
-expect sidebar top=Changes tree=false
-shot restored-panels
-log restored

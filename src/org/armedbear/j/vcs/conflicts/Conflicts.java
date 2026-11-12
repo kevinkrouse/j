@@ -128,14 +128,29 @@ public final class Conflicts implements Buffer.Follower {
         }
     }
 
-    // A local text file the repository reports unmerged.
+    // A local text file the repository reports unmerged: by its entry, or
+    // by the repository's last snapshot, as for a backend whose entry can't say.
     private static boolean wants(Buffer buffer) {
         final File file = buffer.getFile();
-        return file != null
-                && file.isLocal()
-                && buffer.getType() == SystemBuffer.TYPE_NORMAL
-                && buffer.getModeId() != Constants.BINARY_MODE
-                && buffer.getVCStatusKind() == Constants.VCS_CONFLICT;
+        if (file == null
+                || !file.isLocal()
+                || buffer.getType() != SystemBuffer.TYPE_NORMAL
+                || buffer.getModeId() == Constants.BINARY_MODE)
+            return false;
+        if (buffer.getVCStatusKind() == Constants.VCS_CONFLICT)
+            return true;
+        final VcsRepository r = Repositories.forFile(file);
+        if (r == null)
+            return false;
+        // Looked at again as its repository changes; once read, if it hasn't been.
+        org.armedbear.j.vcs.VersionControl.follow(r);
+        final org.armedbear.j.vcs.Snapshot s = r.snapshot();
+        if (s == null) {
+            r.refresh();
+            return false;
+        }
+        final org.armedbear.j.vcs.FileChange c = s.change(r.relativePath(file));
+        return c != null && c.isConflicted();
     }
 
     // Whether the file's repository is in the middle of the merge, rebase

@@ -3260,12 +3260,12 @@ plan with why it is left, before the next phase starts.
      In progress, not complete: `doc/git.html` now has a separate-commits
      walkthrough, both edit modes' pick keys, and recovery after concurrent
      staging or an index lock; `doc/directories.html` distinguishes directory
-     picks from Git picks. `test/driver/phase10.txt` exercises creating a
+     picks from Git picks. `test/driver/changelists.txt` exercises creating a
      list, picking and moving one hunk, the context menu, committing the
      list with another file staged, and the Changes tab. Its fixture is a
      sixty-line a.txt with lines 3 and 50 changed, b.txt staged and c.txt
      untracked, with no custom lists. Run with `bb drive
-     test/driver/phase10.txt <fixture>/a.txt --out <shots>`; vim uses a fresh
+     test/driver/changelists.txt <fixture>/a.txt --out <shots>`; vim uses a fresh
      home with `editMode=vim` via `--home-from`, and `insertString` can fill
      the message independently of the text entry mode.
 
@@ -3459,14 +3459,14 @@ plan with why it is left, before the next phase starts.
      drag in ordinary buffers; a status model for a project's two
      repositories beside one for one of them (fix 7). Left for the drive.
 
-     Driven in 11 h's `test/driver/phase11.txt` and `phase11-saved.txt`,
+     Driven in 11 h's `test/driver/selections.txt` and `selections-saved.txt`,
      simple and vim: the panels, their buttons and their state across a
      relaunch; drops in the Changes tab, the status tree and the status
      text; a text drag in an ordinary buffer, moved not copied; and both
      status models showing a save neither was refreshed for. The drop
      caret and the trees' drop rows are pictured, not asserted. Phase 10
      closes with it.
-11. **Shared selections.** Extract the existing selection machinery from
+11. **Done. Shared selections.** Extract the existing selection machinery from
    the status's presentation code before adding another backend. Keep
    `RepositoryStatus` and its reads, `StatusData`, and the existing action
    implementations. A selection is a list of the existing whole-file or
@@ -3985,7 +3985,7 @@ plan with why it is left, before the next phase starts.
      No shell step. Fixtures are made before j starts. During the drive,
      outside changes come from j itself, from another window or status
      over the same repository. Hooks and racing writers stay in the unit
-     tests against real git. Then write `test/driver/phase11.txt` with its
+     tests against real git. Then write `test/driver/selections.txt` with its
      fixture. It also drives what 10 k left: the sidebar panels, their
      buttons and saved state; drop locations in the trees and the text;
      text drag in ordinary buffers; and two status models over one
@@ -4032,8 +4032,8 @@ plan with why it is left, before the next phase starts.
      The driver supports named line/text/node/button targets, modified and
      double clicks, stepped drags, real popup-item clicks, popup/sidebar/
      selection expectations, and a persistent `--home`. It saves placement
-     through the normal shutdown methods. `test/driver/phase11.txt`, its
-     fixture generator and `phase11-saved.txt` exercise the selection flows
+     through the normal shutdown methods. `test/driver/selections.txt`, its
+     fixture generator and `selections-saved.txt` exercise the selection flows
      in simple and vim modes. See `test/driver/README.md` for the commands.
      The saved-home drive exposed a startup crash when the Changes tab
      rendered before the first editor existed; the renderer now handles
@@ -4119,18 +4119,457 @@ plan with why it is left, before the next phase starts.
      file buffer's gutter boxes aren't driven; a vim visual-mode stage in
      the status isn't driven. Validation: 2,690 unit tests pass; both
      drives (59 checks each) and both saved-home runs pass.
-12. **Subversion.** Its backend on the shared layer: status, diff, marks,
-   blame, log (one lane), conflicts, and svn's own changelists. This proves
-   the split. Any git-only leaks found here are fixed in the shared code.
-   Known before it starts (11's review): commits without an index,
-   capabilities checked per repository, section roles in place of Git
-   section names, and native changelist membership, removal and drags.
-   The hooks phase 11 added are `previewCommit`, `FileVersion`,
-   `ChangeVersion` and `CommitPreview`, and the `reviewed` versions given to
-   `commitPrivately`. Native changelists get their hooks here, designed
-   with the backend. Split `VcsBackend`'s editor-facing hooks from the
-   rest, so the selection package's dependency closure is free of the
-   editor.
+12. **Done. Subversion.** svn's backend on the shared layer: status,
+   diffs, change marks, writes, commits, the log (one lane), blame,
+   conflicts and svn's own changelists. It proves the split. A shared
+   feature that misbehaves for svn is fixed in the shared code, with a
+   capability or a section role, never with `instanceof GitBackend` or a
+   backend name. The design is in the table under "The split" and in the
+   changelist design (choice 2): svn has no index, its changelists are its
+   own and by file, and `svn commit --changelist` commits one.
+
+   Known before it starts (11's reviews): committing is tied to Git's
+   index; capabilities are checked with allMatch across repositories;
+   shared code names Git's sections ("staged", "unstaged"); native
+   changelists have no hooks; `VcsBackend`'s editor-facing hooks keep the
+   selection package's dependency closure from being free of the editor.
+   The hooks phase 11 added (`previewCommit`, `FileVersion`,
+   `ChangeVersion`, `CommitPreview`, the `reviewed` versions given to
+   `commitPrivately`) are Git's private-index path; svn gets its own
+   whole-path commit (e).
+
+   Out of scope: `svn update`, switch, merge, branches and tags as refs,
+   locks, externals, `svn patch` for applying another's patch, and the
+   old `svn*` commands (`vcs/svn/SVN.java`, `SVNEntry`), which stay.
+   Each step is its own commit and its own review; each ends with the
+   full suite passing.
+
+   - **a. Fixture, runner and the svn binary.** `svn` and `svnadmin` come
+     from nix: add `pkgs.subversion` to the default dev shell's
+     `buildInputs` in `flake.nix`. Tests that need svn start with
+     `assumeTrue(SvnFixture.available())`, so the suite still passes
+     without it, and say so in the test's output.
+
+     `test/src/org/armedbear/j/vcs/svn/SvnFixture.java`, after
+     `GitFixture`: `init(Path tmp)` runs `svnadmin create repo` and
+     `svn checkout file://…/repo wc`; helpers `write`, `add`, `commit`,
+     `propset`, `changelist`, `update`, `run(String... args)`. Every svn
+     call it makes passes `--non-interactive --config-dir <tmp>/config`,
+     so the host's config and auth are never read. `second()` checks out
+     another working copy of the same repository, for conflicts (h).
+
+     `src/org/armedbear/j/vcs/svn/SvnCli.java`, after `GitCli`: builds
+     `VcsCommand`s for `VcsRunner` with `svn --non-interactive`, reads
+     (`read`) and writes (`write`, which take the runner's write lock),
+     and the command log. Output is UTF-8 XML where svn offers `--xml`;
+     parse it with the JDK's DOM (`DocumentBuilderFactory`, external
+     entities off), as `SvnIgnores` does. No JSON, no new library.
+
+     Checks: `SvnFixtureTest` makes a repository, commits a file and
+     reads `svn info --xml` through `SvnCli`.
+
+     Done. svn runs with `LC_CTYPE=C.UTF-8` (`UTF-8` on macOS) and
+     `LC_MESSAGES=C`: under `C` it refuses non-ASCII paths, and nix's svn
+     can't load the host's `en_US.UTF-8`. Errors are told apart by code.
+     `SvnFixture.commitAt` dates a revision (a `pre-revprop-change` hook
+     allows it). `SvnIgnores`' propget runs with `SvnCli`'s options and
+     parser.
+
+   - **b. Section roles.** `StatusData.Section` gains a `Role role`
+     field: `WORKING`, `STAGED`, `UNTRACKED`, `UNMERGED`, `COMMITS`,
+     `STASHES`. The id stays opaque: a backend may name a section
+     anything. `GitStatusReader` gives its sections their roles. Then
+     replace every shared use of a Git section name with the role. Find
+     them with `grep -rn '"staged"\|"unstaged"\|"untracked"\|UNSTAGED\|STAGED'
+     src/org/armedbear/j/vcs --include=*.java | grep -v /git/`; 11's review
+     counted about 30: `ChangesTree`, `StatusTree`, `RepositoryStatus`
+     (pruning, wanted diffs, the unstaged re-read), `PartialCommit`,
+     `CommitCommands`, `StashCommands`, `StatusActions`, `StatusRenderer`,
+     `RepositoryStatus.unstaged`. Changelists (j's) group the `WORKING`
+     section. Keep `StatusRenderer.UNSTAGED` only inside the Git backend,
+     or remove it.
+
+     Checks: the suite unchanged. In `BackendBoundaryTest`, the fixture
+     backend's section `"working|vendor"` with role `WORKING` and
+     `HUNK_CHANGELISTS` shows changelist headings in the status and the
+     Changes tab (a new test).
+
+     Done. `RepositoryStatus` learns each repository's section roles from
+     its reads (`role`, `workingSection`, `workingKey`); while a read runs,
+     a section no read has shown yet may be WORKING, so listed and viewed
+     paths want its diffs. `ListedChanges` carries the section it sorts.
+     Section depth and a stash's lines no longer parse ids. Left: with
+     several WORKING sections and j's changelists, `pruned` and `wants`
+     look at the first, or every, one (unreachable: svn has no
+     `HUNK_CHANGELISTS`).
+
+   - **c. Capabilities per repository.** `VcsStatusMode` lines that use
+     `allMatch(... STAGING)` (the Commit popup and the menu's Commit…)
+     become per repository: a mixed Git and svn status offers committing
+     whenever any repository can commit, and each repository commits its
+     own way (e). Staging keys stay refused per target
+     (`StatusActions.hasStaging`). Find the rest with `grep -rn
+     'capabilities()' src/org/armedbear/j/vcs`. Add `Capability.COMMIT`
+     only if a backend that can't commit at all needs it; otherwise every
+     backend with `readStatus` can commit.
+
+     Checks: a status over a Git and a fixture (no `STAGING`) repository
+     offers Commit; staging a fixture file is refused with its message.
+
+     Done, with `Capability.COMMIT`: CVS and Darcs (vcs-legacy) can't
+     commit from the status, and svn gets it in e. `stages` is any
+     repository with `STAGING`; stage all and unstage all take those
+     alone; amend, extend and reword follow the caret's repository. Left
+     for e: `c c` on a repository without `STAGING` still says "Nothing
+     is staged", and `-a` offers to stage.
+
+   - **d. Status and diffs.** `SvnBackend`:
+     - `capabilities()`: none now; `BLAME` in g, `NATIVE_CHANGELISTS` in i.
+     - `readSnapshot`: `svn status --xml` into `FileChange`s. Map
+       `wc-status item`: modified, added, deleted, replaced (as
+       modified), missing (deleted, kept as missing in `code`),
+       unversioned (untracked), ignored (left out), conflicted (with
+       `Conflict.BOTH_MODIFIED`, a tree conflict refused in h),
+       obstructed and external (left out). A property-only change
+       (`props="modified"`) is modified. Every change is unstaged:
+       `staged` is null.
+     - `readStatus`: sections `working` (role `WORKING`), `untracked`
+       (`UNTRACKED`), `unmerged` (`UNMERGED`, `StatusData.UNMERGED`),
+       each item's diff read only when `wantsDiff` says. A header of
+       the working copy's URL and revision (`svn info --xml`).
+     - `readDiff(r, staged, paths, ws)`: none if staged; else `svn diff
+       --git --internal-diff --ignore-properties` with `-x -w` or `-x -b`
+       for the whitespace mode, parsed by `DiffParser` (git-style headers,
+       a/ b/ prefixes). Check that a property-only change parses as no
+       hunks (`FileDiff.EMPTY`) and a binary file as binary. Batch long
+       path lists as `GitWrites.batched` does.
+     - `readBases(r, path)`: `svn cat -r BASE -- path` for both `head` and
+       `index` (no index: the same bytes); `head` null for an added file;
+       null for unversioned.
+     - `watches`: the working copy's `.svn` directory, not the tree.
+     Discard, and its tests, come in e.
+
+     Checks: `SvnStatusTest` against `SvnFixture`: modified, added,
+     deleted, missing, untracked, ignored, property-only, binary and
+     conflicted files map as above; whitespace modes; a path with spaces
+     and one with `@` (svn's peg-revision trap: pass `path@` for a
+     literal `@`); `readBases` for modified, added and unversioned files.
+     Open a working copy in j: the status buffer, Tab to a diff, change
+     marks in a file. Record what looks wrong for later steps.
+
+     Done. `svn diff` takes a working copy's path literally (no peg
+     revision: `file@2x.png@` is not found), unlike `cat` and `info`.
+     `DiffParser` reads svn's `--git` output (its "Index:" heading, and
+     "\t(revision N)" after a/ and b/ paths). svn's `-x -b` sees white
+     space added at a line's end, and it has no option for trailing white
+     space alone, so that mode ignores nothing; a change it ignored comes
+     as a header alone, dropped. A missing file's diff, which svn doesn't
+     give, is made from BASE. An unversioned directory is "dir/", as git
+     names one. Seen in j: the status hints offer s, u and x for an svn
+     status (`VcsStatusMode.HINTS` is the same for every backend).
+     From its reviews: a copy or move fails `svn diff --git` (E155010)
+     unless `--show-copies-as-adds`, which in turn gives a replaced file
+     as a deletion and an add, so a replaced file is diffed in svn's own
+     format; `-x -u` always, so the config's `diff-extensions` don't
+     apply; a missing directory has no diff. Left: directories, the root
+     too, are items, and wanting their diff runs a recursive `svn diff`;
+     a property-only change reads as whitespace-only while whitespace is
+     ignored; a copy's bases are empty, not its source; the editor's
+     stage-hunk commands and "staged" labels show for svn.
+
+   - **e. Writes and whole-path commits.** Writes on `SvnBackend`:
+     `discard(paths)` is `svn revert --`; a hunk's discard comes through
+     `apply` and `applies` (index false, working tree true, reverse true),
+     as `svn patch --reverse-diff`, with `--dry-run` for `applies`, on a
+     temporary file; `stage`/`unstage` stay
+     null (no `STAGING`). Untracked files go to the trash by the shared
+     code, as for Git.
+
+     Committing: add to `VcsBackend`
+     `CommitPreview previewPaths(VcsRepository r, List<String> paths)`,
+     versions of the working files (SHA-256 of the bytes, and of
+     `svn proplist -v --xml`), and
+     `VcsResult commitPaths(VcsRepository r, List<String> paths,
+     Map<String, ChangeVersion> reviewed, String message)`, which
+     previews again and refuses if the versions differ from `reviewed`,
+     then runs `svn commit -F <tempfile> -- paths`, adding any added
+     parent directories not among them (else svn refuses with E200009).
+     Git doesn't implement
+     them. `PartialCommit` uses them for a repository without `STAGING`:
+     whole files only (a hunk or lines refused: "svn commits whole files:
+     select the file"); `review` calls `previewPaths`, and the commit
+     calls `commitPaths`. `CommitCommands`' plain commit (c c) on svn
+     commits every working change: `commitPaths` with the `WORKING`
+     section's paths. An out-of-date working copy (E155011, E160028,
+     E160024 or E170004, by access method and kind) says "Update
+     the working copy first: svn update". The message draft survives a
+     refusal, as for Git.
+
+     Checks: `SvnCommitTest`: commit two of three modified files; an edit
+     between review and Ctrl Enter is refused; out of date refused; a
+     hunk refused; a file in an added directory; discard of a file and
+     of a hunk. Drive: c c on svn.
+
+     Done. svn has `COMMIT`. `PartialCommit` takes whole files of a
+     repository with `COMMIT` and no `STAGING`; an untracked file is
+     refused ("add it"); svn's commit runs `--depth empty --targets`, so a
+     directory selected is that directory alone, with added parent
+     directories; a missing file is `svn delete`d first, as svn leaves one
+     out. `svn patch` says success for a hunk rejected or already applied,
+     so apply and applies read its report, dry-run first. The commit's
+     "Committed revision N." is what's said. Left: the header's Revision
+     is the root's, unchanged by a commit (svn's mixed revisions); no
+     command adds a file to svn.
+
+     From its reviews: svn reverts an added directory only after what is
+     in it, so discard goes deepest first; a commit that fails undoes the
+     `svn delete` of its missing files, and an added file since deleted
+     is refused; svn trims a `--targets` line, so a path with white
+     space at an end goes on the command line; svn's revert of a copy
+     deletes it, and reversing an added file's one hunk deletes it, so
+     an added file, as git's, goes to the trash, then is reverted; a
+     deleted file's hunk is reverted whole, as reversing it would add the
+     file anew; amend is refused without an index. Left: c c commits the
+     working changes as the status has them at Ctrl Enter, with no
+     version check; a moment between the version check and `svn commit`
+     or the dry run and `svn patch`; one `svn proplist` per path; the
+     template's "staged" wording; -v shows no diff for svn.
+
+   - **f. Log, one lane.** `svn log --xml` into `LogCommit`s: id the
+     revision number as a string, `parents` the next older revision in
+     the result (none for r1; read one revision past `max`, so a page's
+     last commit has its parent), `graphParents` the same, so one lane;
+     author, date and subject (the message's first line); no refs.
+     `LogQuery`: `path` passes the path, `since` is `-r {date}:HEAD` in
+     reverse, leaving out the first entry if it is older (svn takes
+     `{date}` as the last revision at or before it), `author` and `grep`
+     filter client-side (svn's `--search` is a substring match over
+     author and message: use it, then filter), `skip`/`max` with
+     `--limit` and the last revision seen, `skip` counting what passes
+     the filter and reading on until `max` pass or the history ends. The rest of
+     `LogQuery` is ignored and the log's popups leave out what svn lacks
+     (no `BRANCHES`, `STASH`, `MERGE_GRAPH`); fix any popup that doesn't.
+     `readMessage`, `readCommitChanges` (`svn log -v --xml -r N`),
+     `readChangeDiff` (`svn diff -c N --git --internal-diff`),
+     `readFileAt` (`svn cat -r N -- url/path@N`), `readCommit`.
+
+     Done. The log is of the working copy's URL at HEAD; `since` takes a
+     date, an instant or "N units ago" (svn has no "last tuesday"); author
+     and text are svn's `--search`, matched again, the page read on until
+     full; a change's diff is against the revision before, its paths the
+     working copy's. The log's branch filter, tags and stashes, and its b
+     and m, and the status's b, m, f and z, show only where a repository
+     has `BRANCHES` or `STASH`. An empty email isn't shown as "<>". Left:
+     `-S` (pickaxe) is offered and ignored.
+
+     From its reviews: svn's `--limit` limits what `--search` searches,
+     and `--search` is a glob, so author and text are matched in j alone
+     over the history read in growing chunks; `parents` is the next older
+     revision of the history read, the filters aside, and `graphParents`
+     the next listed; a time keeps whole seconds, as svn refuses more than
+     six digits; a revision with no author has ""; `relative-url` is
+     escaped where log paths aren't; a `%` in a path is escaped; a path
+     not at HEAD is read at the working copy's revision, and one with no
+     history has an empty log; the working copy's log stops where its URL
+     was copied (`--stop-on-copy`), and a revision's text and a file in it
+     from before a copy are found from HEAD; a directory's change is "d/";
+     a replaced file's diff is in svn's own format. Left: the b, m, f and
+     z keys stay bound with the popups' entries gone; pages are read from
+     HEAD each time; one `svn info` a read; `LogQuery.revisions` is
+     ignored but for a revision number, where the log starts.
+
+     Checks: `SvnLogTest`: five commits, paths, a rename (`svn mv`), a
+     date between two commits and an author filter, paging (a page's last
+     commit has its parent; a filtered page fills); the log buffer and a commit's
+     files and diff open in j.
+
+   - **g. Blame.** `svn blame --xml -- path` (or `-r N` for a revision)
+     into `BlameCommit.Sink` runs. svn can't blame stdin: for the
+     working text, blame BASE, then diff BASE against `contents`
+     (`util/Diff`) and mark lines not in BASE uncommitted. Whitespace:
+     `-x -w`/`-x -b`. A file with no history calls `noHistory()`.
+     `capabilities()` gains `BLAME`.
+
+     Checks: `SvnBlameTest`: committed lines, an edited line uncommitted,
+     a revision's blame; blame and its hovers in j.
+
+     Done. A commit's summary and the one before it come from the file's
+     log, one `svn log`; svn blame gives no line's number in its commit,
+     so a line's source is -1, told a line at a time (the Sink's contract
+     now allows it), and the commands take the caret's line. An added or
+     unversioned file (E195002, E200009) has no history.
+
+     From its reviews: a revision blamed from before the file was copied
+     or moved, as on a branch, is blamed where the file is now traced
+     back (`-r N url@HEAD`), as its log for the summaries, and a copy not
+     committed has its log by its working copy path; `--force`, so a
+     file svn takes as binary by its mime type is blamed; a commit from
+     before the working copy's URL was copied lists its files under
+     where it was copied from, and its diff is found from HEAD. Left:
+     `previousPath` is the path now; three svn runs a blame, the file's
+     whole log among them, on each save; a line of a file with lone CRs.
+
+   - **h. Conflicts.** A text conflict after `svn update` leaves markers
+     in the file and `.mine`, `.rOLD` and `.rNEW` beside it; `svn info
+     --xml` names them (`prev-wc-file`, `cur-base-file`).
+     `readConflictSides`: ours the `.mine` text, theirs the `.rNEW` text.
+     `checkoutSide(ours)` is `svn resolve --accept mine-full`, theirs
+     `theirs-full`; marking resolved (`stage` of a conflicted file, as
+     the shared resolve calls it, or a backend method if the shared code
+     needs one) is `svn resolve --accept working`. A tree conflict or a
+     property conflict is refused with a message, not shown as text.
+
+     Done, with `Capability.RESOLVE`, which the resolve popup and x on
+     an unmerged file now ask for, not `STAGING`. svn's `stage` marks a
+     conflict resolved; `svn resolve` of a file with none does nothing,
+     so ours and theirs, which resolve already, may stage after. "Conflict
+     again" says svn can't. Left: a tree conflict shows as "both
+     modified"; its refusal shows in the command log.
+
+     From its reviews: a text conflict with a property conflict is
+     refused too, as `svn resolve` would take a side of both; the conflict
+     buffer attaches by the repository's snapshot where the file's entry
+     can't say (svn's old `SVNEntry`), the repository tracked, and read
+     first if it hasn't been; s on an unmerged file marks it resolved
+     where the backend resolves with no index. Left: "Conflict again", and
+     ours and theirs for a tree conflict, are offered and copy the file
+     aside before they're refused; ours is labeled "(HEAD)"; a binary
+     conflict has no sides to compare (svn names no .mine).
+
+     Checks: `SvnConflictTest` with `SvnFixture.second()`: the conflict
+     is listed, its sides read, take ours, take theirs, resolve as
+     edited; a tree conflict refused. The conflict commands in j.
+
+   - **i. svn's changelists.** `svn status --xml` groups items in
+     `<changelist name="…">` elements. Show each as its own section,
+     role `WORKING`, id `changelist|NAME`, title the name; files in no
+     list stay in `working`. Add to `VcsBackend` `VcsResult
+     setChangelist(VcsRepository r, List<String> paths, String name)`,
+     `svn changelist NAME -- paths`, or with name null `svn changelist
+     --remove -- paths`. With `NATIVE_CHANGELISTS`, `C m` and the menus'
+     Move offer the list names from those sections and a new name, take
+     whole files only (a hunk refused), and refresh after; dragging a
+     file onto a list section moves it. Commit a list: `commitPaths` with
+     its section's paths (svn's `--changelist` is equivalent and not
+     needed). j's own changelist store is never written for svn
+     (`HUNK_CHANGELISTS` off).
+
+     Done. `VcsBackend.nativeChangelist(section)` names the list a
+     section is, so the shared code doesn't parse ids, and
+     `setChangelist`. "(no changelist)" is the destination out of lists.
+     `C m`, a drag in the status between sections, and c l on a list's
+     section (or a list asked for) work for `NATIVE_CHANGELISTS` without
+     `HUNK_CHANGELISTS`. Left: the Changes tab and the sidebar tree don't
+     take native drags.
+
+     From its reviews: the conflict buffer's repository is watched by a
+     listener of its own, which attaches conflicts by the snapshot (not
+     `VersionControl.track`, whose `checkVCS` runs svn per buffer on the
+     event thread); a moved file's picks, which are a section's, are
+     unpicked and said; a directory is refused (svn skips one, saying
+     nothing); a list name goes after `--`. Left: "(no changelist)" and
+     a name with edge white space as real list names; a list of unchanged
+     files is never shown (svn keeps one after a revert); the changelist
+     popup's n, a, r, d and a file buffer's m say "No changelists here"
+     for svn; c l over several repositories doesn't name the repository.
+
+     Checks: `SvnChangelistTest`: move to a new list, to another, out of
+     lists; a hunk refused; commit a list. Drive: `C m`, a drag, a list
+     commit.
+
+   - **j. Split `VcsBackend`'s editor hooks.** `getEntry(Buffer)`,
+     `replaceComment(Editor, …)`, `extractComment(CheckinBuffer)`,
+     `finish(Editor, CheckinBuffer)`, `autoEdit(Editor)`, `autoEdit(File)`
+     and `gotoDiffSource(Editor, DiffOutputBuffer)` move to an interface
+     the old per-system commands use (in `vcs`, for example
+     `VersionControlHooks`), implemented by `GitBackend` and
+     `SvnBackend` beside `VcsBackend`. Callers get it with
+     `backend instanceof VersionControlHooks h`. After this, `VcsBackend`
+     imports no `Buffer`, `Editor`, `CheckinBuffer` or `DiffOutputBuffer`.
+     Extend `SelectionDependenciesTest` to follow imports through
+     `org.armedbear.j.vcs` and fail on any editor, Swing or AWT type.
+
+     Checks: the suite; the old `svnCommit`/`gitCommit` and diff-source
+     commands still work in j.
+
+     Done. `VersionControlHooks` holds the seven, and `GitBackend`,
+     `SvnBackend` and vcs-legacy's backends implement it. The test follows
+     imports from the selection package and from `VcsBackend`, which
+     `VcsRepository.backend()` hands out: same-package types pull in
+     `VcsBackends`, the registry of every backend, and so all of j. j's
+     `File`, `Log` and utilities count as not the editor's. Seen in j:
+     svnDiff and going to a diff line's source work; the old svnCommit
+     reaches `SVN.finish`, which fails as it did before (it gives svn the
+     message on stdin with no -F, so svn wants an editor).
+
+     From its reviews: the test also reads names written out, wildcard
+     imports, and a vcs or util file's own package's types by name, and
+     follows the utilities: what it reaches stops at `VcsBackends`, the
+     registry of every backend, and j's `File`, `Log` and `Constants`,
+     whose own references aren't followed, as they are the main
+     package's; `Background`'s hand-off to the event thread is the one
+     Swing use. Free of those, the closure would need `Ignores` off
+     `VcsBackends`, and `Log` and `Background` off the editor and Swing.
+     `VersionControl.follow`, for a repository `track` doesn't follow (svn),
+     tells its open buffers after each refresh with `Buffer.repositoryChanged`,
+     `checkVCS` less reading the entry: change marks and conflicts worked
+     out again, no svn run a buffer; it ends when none of its files is open.
+     Left: svn's status-bar text, from the old `SVNEntry`, isn't read again
+     after a refresh; a backend built against the old `VcsBackend` with the
+     hooks, not `VersionControlHooks`, loses them silently.
+
+   - **k. Document, drive and review.** `doc/git.html` (or a new
+     `doc/svn.html` linked from it): what works for svn, what doesn't
+     (staging, hunk commits, stash, branches) and why. A
+     `test/driver/svn.txt` with a fixture generator like
+     `selections-fixture.py` (repositories made before j starts; `exec` only
+     through `GuiDriver.COMMANDS`, adding the commands it needs): the
+     status, a diff, a discard, a whole-file commit, the log, blame, a
+     conflict taken, a changelist move and commit, and a status mixing a
+     Git and an svn working copy. Then a fault-finding review by a fresh
+     agent of the whole phase, its findings fixed or recorded.
+
+     Checks: the full suite with and without svn on the PATH, the drive
+     in simple and vim modes.
+
+     Done. `doc/svn.html`, linked from the contents and `git.html`;
+     `test/driver/svn.txt` with `svn-fixture.py`: a conflict taken
+     and marked resolved, blame, then from a status of two svn working
+     copies and a Git repository the diffs, a discard, a whole-file commit,
+     a changelist move and its commit, and the log; it passes in simple and
+     vim modes. The suite passes with svn on the PATH and without it (the
+     svn tests skipped).
+
+     From the closing review: an svn added file's discard asks the
+     delete question, as Git's; with no desktop trash an added directory
+     is deleted with what is in it (Git's untracked directory too, which
+     failed before), and a path a directory before it took is passed
+     over; c c of working copies alone is a reviewed whole-file commit,
+     refused if a file changed since shown, and in a status with Git it
+     takes a working copy's changes with -a or when nothing is staged in
+     Git.
+
+     Left, minor, from the closing reviews:
+     - The commit popup offers -s, -n and -e to svn, which ignores them;
+       c c with -a in a mixed status commits svn's changes unchecked.
+     - Amend follows `STAGING`, not a capability of its own.
+     - The status popup leaves out x, and s on an unmerged file, for a
+       status of svn alone (they sit with staging).
+     - `ParentCommands` checks `GitSnapshot` by class (from phase 7).
+     - Shared text names git: "The git status's diff" (`HunkCommands`),
+       and a log or commit of several repositories is titled by the
+       first's system; svn's popups' help links go to `git.html`.
+     - A native changelist's commit is "the changes selected" in its
+       template and title, which says "what is staged stays staged".
+     - A deleted directory's discard restores it alone; its files then
+       show deleted, each to discard.
+     - With no section role known yet, a status's first read takes the
+       diffs of viewed and listed files in every section; a Git
+       repository's empty changelists are keyed apart until a change
+       shows its working section.
+     - `SvnIgnores`' propget runs without `SvnCli`'s environment.
+     - A single-repository c c on a backend without `COMMIT` opens a
+       message that can't commit.
 
 Status comes before the log, although the log is first on the list. Both need
 phase 0, and the status buffer exercises the diff and hunk model that the

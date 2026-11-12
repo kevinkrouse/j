@@ -494,7 +494,7 @@ public final class StatusActions {
     }
 
     private static boolean hasStaging(Target t) {
-        return t.repository().backend().capabilities().contains(Capability.STAGING);
+        return VcsStatusMode.stages(t.repository());
     }
 
     // Why op can't be done to targets in model, seen from editor,
@@ -530,7 +530,7 @@ public final class StatusActions {
                 && targets.stream().flatMap(t -> t.files().stream()).anyMatch(f -> f.change().isConflicted())) {
             if (!allUnmerged(targets))
                 return "Resolve the conflicts on their own";
-            if (targets.stream().anyMatch(t -> !hasStaging(t)))
+            if (targets.stream().anyMatch(t -> !t.repository().backend().capabilities().contains(Capability.RESOLVE)))
                 return "Resolve the conflicts before discarding changes";
             if (ResolveCommands.offered(targets).isEmpty())
                 return "Those conflicts differ: resolve them one at a time";
@@ -560,10 +560,10 @@ public final class StatusActions {
     // none is.
     private static String splitWhole(RepositoryStatus model, List<Target> targets) {
         for (Target t : targets) {
-            if (!(t instanceof Files f) || !StatusRenderer.UNSTAGED.equals(f.section()))
+            if (!(t instanceof Files f))
                 continue;
             final ListedChanges listed = model.listed(f.repository());
-            if (listed == null)
+            if (listed == null || !f.section().equals(listed.section()))
                 continue;
             final RepositoryLists lists = RepositoryLists.of(f.repository());
             for (FileItem file : f.files()) {
@@ -602,7 +602,8 @@ public final class StatusActions {
         }
         // git reset ends a merge, a rebase's step, or a stash pop's
         // conflicts, keeping their conflict markers.
-        if (!stage && buffer.getRepositories().stream().anyMatch(r -> {
+        final List<VcsRepository> staging = buffer.getRepositories().stream().filter(VcsStatusMode::stages).toList();
+        if (!stage && staging.stream().anyMatch(r -> {
             final StatusData d = buffer.getData(r);
             return d != null && d.inProgress() != null;
         })) {
@@ -611,7 +612,7 @@ public final class StatusActions {
         }
         final Runnable all =
                 () -> write(editor, buffer.model(), "vcs " + (stage ? "stage" : "unstage") + " all", () -> {
-                    for (VcsRepository r : buffer.getRepositories()) {
+                    for (VcsRepository r : staging) {
                         final VcsBackend b = r.backend();
                         final String failed = failure(b, stage ? b.stageAll(r) : b.unstageAll(r));
                         if (failed != null)
@@ -626,11 +627,11 @@ public final class StatusActions {
         // Asked first with conflict markers in what it stages, as s asks;
         // the count holds the gate, as below.
         final List<Target> targets = new ArrayList<>();
-        for (VcsRepository r : buffer.getRepositories()) {
+        for (VcsRepository r : staging) {
             final StatusData d = buffer.getData(r);
             if (d != null)
                 for (StatusData.Section section : d.sections())
-                    if (section.id().equals(StatusData.UNMERGED))
+                    if (section.role() == StatusData.Role.UNMERGED)
                         targets.add(
                             new Files(r,
                                     section.id(),
@@ -643,7 +644,7 @@ public final class StatusActions {
         buffer.startWriting();
         Background.then("vcs count conflicts", () -> {
             int n = markersStaged(targets, false);
-            for (VcsRepository r : buffer.getRepositories())
+            for (VcsRepository r : staging)
                 n += markersAdded(r, List.of());
             return n;
         }, left -> {
@@ -677,7 +678,10 @@ public final class StatusActions {
 
     // Why op can't be done to t, or null.
     static String refuse(Op op, Target t) {
-        if (op != Op.DISCARD && !hasStaging(t))
+        // With no index, staging an unmerged file marks it resolved, as svn's.
+        final boolean marks =
+                op == Op.STAGE && isUnmerged(t) && t.repository().backend().capabilities().contains(Capability.RESOLVE);
+        if (op != Op.DISCARD && !hasStaging(t) && !marks)
             return t.repository().backend().name() + " has no index to stage to";
         if (t instanceof Part p && p.hunk().isCombined())
             return "Not in part: x on the unmerged file resolves it";
@@ -769,7 +773,10 @@ public final class StatusActions {
     // A discard is worked out whole, and checked, before any of it is done.
     private sealed interface Step permits Trash, Checkout, Apply {}
 
-    /** A file not in HEAD, to the trash; taken out of the index first if it is there. */
+    /**
+     * A file not in HEAD, to the trash; taken out of the index first if it
+     * is there, or with no index unversioned after, as svn reverts an add.
+     */
     private record Trash(VcsRepository repository, FileItem file, boolean inIndex) implements Step {}
 
     /** Files back as they are staged. */
@@ -808,9 +815,16 @@ public final class StatusActions {
             final String failed = switch (steps.get(k)) {
                 case Trash t -> {
                     final VcsBackend b = t.repository().backend();
-                    final String unstaged =
-                            t.inIndex() ? failure(b, b.unstage(t.repository(), List.of(t.file().change()))) : null;
-                    yield unstaged != null ? unstaged : trash(t.repository(), List.of(t.file().path()));
+                    final boolean index = VcsStatusMode.stages(t.repository());
+                    final String unstaged = t.inIndex() && index
+                            ? failure(b, b.unstage(t.repository(), List.of(t.file().change())))
+                            : null;
+                    final String trashed =
+                            unstaged != null ? unstaged : trash(t.repository(), List.of(t.file().path()));
+                    // Trashed first: svn's revert of a copy deletes it, edits and all.
+                    yield trashed != null || !t.inIndex() || index
+                            ? trashed
+                            : failure(b, b.discard(t.repository(), List.of(t.file().path())));
                 }
                 case Checkout c ->
                         failure(c.repository().backend(), c.repository().backend().discard(c.repository(), c.paths()));
@@ -841,7 +855,7 @@ public final class StatusActions {
                 final FileChange c = i.change();
                 if (c.isUntracked())
                     steps.add(new Trash(r, i, false));
-                else if (hasStaging(t) && isNew(i))
+                else if (isNew(i))
                     steps.add(new Trash(r, i, true));
                 else if (i.staged()) {
                     final String why = stagedSteps(r, i, steps);
@@ -860,7 +874,14 @@ public final class StatusActions {
         // As for staging: a patch from an old diff can apply elsewhere.
         if (!stillThere(r, p))
             return p.file().path() + " changed since it was shown; look again";
-        if (hasStaging(p) && p.selection() == null && p.file().diff().isNew()) {
+        // A deleted file's text back whole, as reversing its hunk would add it anew.
+        if (!hasStaging(p) && p.file().diff().isDeleted()) {
+            if (p.selection() != null || p.file().diff().hunks().size() > 1)
+                return "Discard all of " + p.file().path() + ": it is deleted";
+            steps.add(new Checkout(r, List.of(p.file().path())));
+            return null;
+        }
+        if (p.selection() == null && p.file().diff().isNew()) {
             steps.add(new Trash(r, p.file(), true));
             return null;
         }
@@ -909,11 +930,20 @@ public final class StatusActions {
         final boolean trash = canTrash();
         for (String path : paths) {
             final Path p = r.root().resolve(path);
+            // Gone already, as in a directory trashed before it.
+            if (!java.nio.file.Files.exists(p, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+                continue;
             try {
                 if (trash) {
                     if (!Desktop.getDesktop().moveToTrash(p.toFile()))
                         return "Couldn't move " + path + " to the trash";
-                } else
+                } else if (java.nio.file.Files.isDirectory(p, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+                    // A directory with what is in it, as svn lists an added one.
+                    try (var all = java.nio.file.Files.walk(p)) {
+                        for (Path q : all.sorted(java.util.Comparator.reverseOrder()).toList())
+                            java.nio.file.Files.delete(q);
+                    }
+                else
                     java.nio.file.Files.deleteIfExists(p);
             }
             catch (IOException | RuntimeException e) {
@@ -951,14 +981,13 @@ public final class StatusActions {
             if (t instanceof Files f) {
                 final List<FileItem> kept = new ArrayList<>();
                 for (FileItem i : f.files())
-                    if (i.change().isUntracked() || hasStaging(t) && isNew(i))
+                    if (i.change().isUntracked() || isNew(i))
                         untracked.add(i.path());
                     else
                         kept.add(i);
                 if (!kept.isEmpty())
                     changes.add(new Files(f.repository(), f.section(), kept));
             } else if (t instanceof Part p
-                    && hasStaging(p)
                     && p.selection() == null
                     && p.file().diff() != null
                     && p.file().diff().isNew())

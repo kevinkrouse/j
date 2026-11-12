@@ -22,6 +22,8 @@ package org.armedbear.j.vcs;
 
 /** What a backend's system can do, so shared tools leave out what it can't. */
 public enum Capability {
+    /** Committing from the status, each backend its own way. */
+    COMMIT,
     /** An index between the working tree and the next commit. */
     STAGING,
     STASH,
@@ -34,6 +36,8 @@ public enum Capability {
     NATIVE_CHANGELISTS,
     /** Committing part of a file's changes. */
     PARTIAL_COMMIT,
+    /** Taking a side of a conflict, and marking one resolved (stage). */
+    RESOLVE,
     /** The commit each line was last changed in. */
     BLAME
 }

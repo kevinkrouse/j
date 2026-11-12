@@ -67,7 +67,8 @@ public class SelectionsResolveTest {
             repository,
             new StatusData(List.of(),
                     null,
-                    List.of(new StatusData.Section("section|opaque", "Changes", List.of(files))),
+                    List.of(
+                        new StatusData.Section("section|opaque", "Changes", StatusData.Role.WORKING, List.of(files))),
                     null));
     }
 
@@ -242,7 +243,11 @@ public class SelectionsResolveTest {
             failure.problems().get(0).message());
         var otherSection = new StatusData(List.of(),
                 null,
-                List.of(new StatusData.Section("other", "Other", List.of(((Target.Part) selected.get(0)).file()))),
+                List.of(
+                    new StatusData.Section("other",
+                            "Other",
+                            StatusData.Role.WORKING,
+                            List.of(((Target.Part) selected.get(0)).file()))),
                 null);
         var gone = Selections.resolve(selected, Map.of(repository, otherSection), key -> false);
         assertTrue(

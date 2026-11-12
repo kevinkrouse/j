@@ -52,6 +52,7 @@ import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.Transient.Option;
+import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.status.StatusLine;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
 import org.armedbear.j.vcs.status.VcsStatusFormatter;
@@ -337,9 +338,13 @@ public final class VcsLogMode extends AbstractMode implements Mode {
             groups.add(1, Group.of("View", LogFilters.TIME_STYLE, LogFilters.COLLAPSE, LogFilters.REFS_ORDER));
         }
         final List<Transient.Item> log = new ArrayList<>();
-        if (editor == null || editor.getBuffer() instanceof LogBuffer)
+        // Branching and merging for a log with branches.
+        final boolean branches = editor == null
+                || editor.getBuffer() instanceof LogBuffer
+                        && LogFilters.can(LogCommands.scopeOf(editor), Capability.BRANCHES);
+        if (branches)
             log.add(Command.of("b", "vcsBranchPopup", "branch…"));
-        if (editor == null || editor.getBuffer() instanceof LogBuffer)
+        if (branches)
             log.add(Command.of("m", "vcsMergePopup", "merge…"));
         log.add(new Command(Transient.ctrl('r'), "vcsLogRefresh", "refresh", true));
         log.add(Command.of("$", "vcsCommandLog", "command log"));

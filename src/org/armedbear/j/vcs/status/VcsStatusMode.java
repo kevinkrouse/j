@@ -327,7 +327,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         tb.addButton("Unstage", ICON_MINUS, "vcsUnstage").enabledWhen(() -> able.get().contains(Op.UNSTAGE));
         tb.addButton("Discard", ICON_DELETE, "vcsDiscard").enabledWhen(() -> able.get().contains(Op.DISCARD));
         tb.addSeparator();
-        tb.addButton("Commit", ICON_COMMIT, "vcsCommitPopup").enabledWhen(() -> stages(status.get()));
+        tb.addButton("Commit", ICON_COMMIT, "vcsCommitPopup").enabledWhen(() -> commits(status.get()));
         tb.addButton("Log", ICON_HISTORY, "vcsLogPopup");
         tb.addSeparator();
         tb.addButton("Show Diff", ICON_DIFF, "vcsStatusDiff").selectedWhen(diffShown);
@@ -349,6 +349,8 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final Editor at = FrameView.target(editor, "vcsStage");
         final VcsStatusBuffer b = owner(at);
         final boolean stages = stages(b);
+        final boolean commits = commits(b);
+        final boolean amends = amends(at, b);
         final boolean diffShown = b != null && b.isDiffShown(at.getFrame());
         final boolean sides = b != null && b.getCompare() != null;
         final Set<Op> able = StatusActions.able(at);
@@ -358,10 +360,10 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         menu.add(editor, "Stage All", 'A', "vcsStageAll", stages);
         menu.add(editor, "Unstage All", 'L', "vcsUnstageAll", stages);
         menu.addSeparator();
-        menu.add(editor, "Commit", 'C', "vcsCommit", stages);
-        menu.add(editor, "Amend", 'M', "vcsCommitAmend", stages);
-        menu.add(editor, "Extend", 'E', "vcsCommitExtend", stages);
-        menu.add(editor, "Reword", 'W', "vcsCommitReword", stages);
+        menu.add(editor, "Commit", 'C', "vcsCommit", commits);
+        menu.add(editor, "Amend", 'M', "vcsCommitAmend", amends);
+        menu.add(editor, "Extend", 'E', "vcsCommitExtend", amends);
+        menu.add(editor, "Reword", 'W', "vcsCommitReword", amends);
         menu.addSeparator();
         menu.addCheckBox(editor, "Show Diff", 'F', "vcsStatusDiff", diffShown);
         menu.addCheckBox(editor, "Side by Side", 'B', "vcsStatusDiffView", sides);
@@ -412,7 +414,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
                 new Command("p", "vcsStatusPrevious", "previous", true),
                 new Command(vim ? "]]" : "N", "vcsStatusNextSection", "next section", true),
                 new Command(vim ? "[[" : "P", "vcsStatusPreviousSection", "previous section", true)));
-        // Staging, and so committing what is staged, is for a backend that has an index.
+        // Staging is for a backend that has an index.
         final List<Transient.Item> changes = new ArrayList<>();
         if (stages)
             changes.addAll(
@@ -428,12 +430,16 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         final List<Transient.Item> commands = new ArrayList<>();
         commands.add(new Prefix("l", "log…", () -> LogCommands.openingPopup(editor)));
         commands.add(Command.of("D", "vcsStatusDiff", "diff"));
-        if (stages)
+        if (editor == null || commits(editor.getBuffer()))
             commands.add(new Prefix("c", "commit…", () -> CommitCommands.popup(editor)));
-        commands.add(Command.of("b", "vcsBranchPopup", "branch…"));
-        commands.add(Command.of("m", "vcsMergePopup", "merge…"));
-        commands.add(Command.of("f", "vcsFetchPopup", "fetch…"));
-        commands.add(Command.of(vim ? "Z" : "z", "vcsStashPopup", "stash…"));
+        // Branches, and fetching and merging them, and stashes, where a repository has them.
+        if (can(editor, Capability.BRANCHES)) {
+            commands.add(Command.of("b", "vcsBranchPopup", "branch…"));
+            commands.add(Command.of("m", "vcsMergePopup", "merge…"));
+            commands.add(Command.of("f", "vcsFetchPopup", "fetch…"));
+        }
+        if (can(editor, Capability.STASH))
+            commands.add(Command.of(vim ? "Z" : "z", "vcsStashPopup", "stash…"));
         commands.add(Command.of("C", "vcsChangelistPopup", "changelists…"));
         commands.add(Command.of("$", "vcsCommandLog", "command log"));
         commands.add(Command.of("=", "vcsStatusDiffView", "diff layout"));
@@ -476,9 +482,35 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         return new Transient("vcs.status.diff", "Diff", "git.html#status-diff", groups);
     }
 
+    /** Whether a repository of the status buffer has an index; each target is refused or taken by its own. */
     static boolean stages(Buffer buffer) {
-        return buffer instanceof VcsStatusBuffer b
-                && b.getRepositories().stream().allMatch(r -> r.backend().capabilities().contains(Capability.STAGING));
+        return buffer instanceof VcsStatusBuffer b && b.getRepositories().stream().anyMatch(VcsStatusMode::stages);
+    }
+
+    // Whether a repository of editor's status can; any can with no status.
+    private static boolean can(Editor editor, Capability c) {
+        return editor == null
+                || !(editor.getBuffer() instanceof VcsStatusBuffer b)
+                || b.getRepositories().stream().anyMatch(r -> r.backend().capabilities().contains(c));
+    }
+
+    static boolean stages(VcsRepository r) {
+        return r.backend().capabilities().contains(Capability.STAGING);
+    }
+
+    /** Whether a repository of the status buffer commits; each its own way. */
+    static boolean commits(Buffer buffer) {
+        return buffer instanceof VcsStatusBuffer b && b.getRepositories().stream().anyMatch(VcsStatusMode::commits);
+    }
+
+    static boolean commits(VcsRepository r) {
+        return r.backend().capabilities().contains(Capability.COMMIT);
+    }
+
+    // Whether the last commit of the repository at the caret can be changed: amended, as git does.
+    static boolean amends(Editor editor, VcsStatusBuffer b) {
+        final VcsRepository r = editor != null && editor.getDotLine() instanceof StatusLine s ? s.repository() : null;
+        return b != null && stages(r != null ? r : b.getRepositories().get(0));
     }
 
     @Override
@@ -609,13 +641,7 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         menu.add(editor, "Log", 'L', "vcsLog", inRepository);
         menu.add(editor, "Diff with What Is Staged", 'D', "vcsDiff", tracked);
         BlameCommands.addMenuItem(editor, menu);
-        menu.add(
-            editor,
-            "Commit...",
-            'C',
-            "vcsCommitPopup",
-            inRepository
-                    && repositories.stream().allMatch(r -> r.backend().capabilities().contains(Capability.STAGING)));
+        menu.add(editor, "Commit...", 'C', "vcsCommitPopup", repositories.stream().anyMatch(VcsStatusMode::commits));
         menu.addSeparator();
         menu.add(editor, "Command Log", 'O', "vcsCommandLog");
     }

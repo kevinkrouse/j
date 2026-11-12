@@ -56,6 +56,7 @@ import org.armedbear.j.vcs.signs.SignsUpdater;
 import org.armedbear.j.vcs.signs.StatusView;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
+import org.armedbear.j.vcs.status.StatusData.Role;
 import org.armedbear.j.vcs.status.StatusData.Section;
 
 /**
@@ -94,6 +95,10 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     private final List<VcsRepository> repositories;
     // What was last read of each repository, on the event thread.
     private final Map<VcsRepository, StatusData> data = new LinkedHashMap<>();
+    // The roles of each repository's sections, by id, as reads have shown
+    // them, and its first WORKING section's; ids are stable.
+    private final Map<VcsRepository, Map<String, Role>> roles = new ConcurrentHashMap<>();
+    private final Map<VcsRepository, String> workingIds = new ConcurrentHashMap<>();
     // Files whose diffs have been read, so that none means there is none.
     private final Set<FileKey> diffsRead = new HashSet<>();
     // Requests made in the status currently shown; earlier reads cannot
@@ -222,9 +227,14 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         Background.start("vcs status", this::readLoop);
     }
 
-    // Whether a read takes the diff of the file keyed key.
+    // Whether a read takes the diff of the file keyed key. Those listed
+    // and viewed are in the working section, which a section no read has
+    // shown may be.
     private boolean wants(FileKey key) {
-        if (partlyPicked.contains(key) || listedKeys.contains(key) || wanted.contains(key) || viewed.contains(key))
+        if (partlyPicked.contains(key) || wanted.contains(key))
+            return true;
+        final Map.Entry<VcsRepository, String> at = Map.entry(key.repository(), key.path());
+        if ((listedPaths.contains(at) || viewed.contains(at)) && maybeWorking(key))
             return true;
         for (Listener l : listeners)
             if (l.wantsDiff(key))
@@ -255,9 +265,11 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
                         Log.error(e);
                         d = StatusData.failed(e.toString());
                     }
+                    if (d != null)
+                        learnRoles(r, d);
                     // Changelists take the work tree's changes whitespace and all.
                     if (d != null && d.error() == null && ignored != Whitespace.NONE && listing.contains(r))
-                        d = withFullUnstaged(r, d, diffs);
+                        d = withFullWorking(r, d, diffs);
                     read.put(r, d != null ? d : StatusData.failed(r.backend().name() + " has no status"));
                 }
                 SwingUtilities.invokeLater(() -> show(read, diffs, startedAt, wallAt, ignored));
@@ -279,14 +291,60 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         }
     }
 
-    // d with its unstaged section read again with whitespace shown, the
+    // The roles of d's sections, learned.
+    private void learnRoles(VcsRepository r, StatusData d) {
+        final Map<String, Role> known = roles.computeIfAbsent(r, k -> new ConcurrentHashMap<>());
+        for (Section s : d.sections())
+            known.put(s.id(), s.role());
+        final Section working = d.section(Role.WORKING);
+        if (working != null)
+            workingIds.put(r, working.id());
+    }
+
+    // Whether key's section is WORKING, or of a role no read has shown.
+    private boolean maybeWorking(FileKey key) {
+        final Role role = role(key.repository(), key.section());
+        return role == null || role == Role.WORKING;
+    }
+
+    /** The role of r's section id, as a read has shown it; null if none has. */
+    Role role(VcsRepository r, String section) {
+        final Map<String, Role> known = roles.get(r);
+        return known == null ? null : known.get(section);
+    }
+
+    /** The id of r's first WORKING section, which j's changelists sort; null if no read has shown one. */
+    String workingSection(VcsRepository r) {
+        final StatusData d = data.get(r);
+        final Section s = d == null ? null : d.section(Role.WORKING);
+        return s != null ? s.id() : workingIds.get(r);
+    }
+
+    /**
+     * The key of r's file at path among its working changes: in the
+     * WORKING section that has it, else the first; null if no read has
+     * shown one.
+     */
+    FileKey workingKey(VcsRepository r, String path) {
+        final StatusData d = data.get(r);
+        if (d != null)
+            for (Section s : d.sections())
+                if (s.role() == Role.WORKING)
+                    for (Item i : s.items())
+                        if (i instanceof FileItem f && f.path().equals(path))
+                            return new FileKey(r, s.id(), path);
+        final String id = workingSection(r);
+        return id == null ? null : new FileKey(r, id, path);
+    }
+
+    // d with its WORKING sections read again with whitespace shown, the
     // diffs it takes added to diffs; d as it is if that read fails.
-    private StatusData withFullUnstaged(VcsRepository r, StatusData d, Set<FileKey> diffs) {
+    private StatusData withFullWorking(VcsRepository r, StatusData d, Set<FileKey> diffs) {
         final StatusData full;
         try {
             full = r.backend().readStatus(r, (section, path) -> {
                 final FileKey key = new FileKey(r, section, path);
-                if (!StatusRenderer.UNSTAGED.equals(section) || !wants(key))
+                if (role(r, section) != Role.WORKING || !wants(key))
                     return false;
                 diffs.add(key);
                 return true;
@@ -298,11 +356,13 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         }
         if (full == null || full.error() != null)
             return d;
-        final Section unstaged =
-                full.sections().stream().filter(x -> x.id().equals(StatusRenderer.UNSTAGED)).findFirst().orElse(null);
+        final Map<String, Section> working = new HashMap<>();
+        for (Section x : full.sections())
+            if (x.role() == Role.WORKING)
+                working.put(x.id(), x);
         final List<Section> sections = new ArrayList<>();
         for (Section x : d.sections())
-            sections.add(x.id().equals(StatusRenderer.UNSTAGED) && unstaged != null ? unstaged : x);
+            sections.add(x.role() == Role.WORKING ? working.getOrDefault(x.id(), x) : x);
         return new StatusData(d.header(), d.inProgress(), sections, d.error());
     }
 
@@ -423,6 +483,19 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     void readDiff(FileKey key) {
         diffsRead.remove(key);
         refresh();
+    }
+
+    /** The files of a repository's sections with role, as last read. */
+    List<FileItem> files(VcsRepository repository, Role role) {
+        final List<FileItem> files = new ArrayList<>();
+        final StatusData d = data.get(repository);
+        if (d != null)
+            for (Section s : d.sections())
+                if (s.role() == role)
+                    for (Item item : s.items())
+                        if (item instanceof FileItem f)
+                            files.add(f);
+        return files;
     }
 
     /** The files of a section of a repository, as last read. */
@@ -552,9 +625,9 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
     // Changelists.
 
-    // The keys of the unstaged files whose changes are kept in changelists
-    // one by one, whose diffs a read takes to sort them.
-    private volatile Set<FileKey> listedKeys = Set.of();
+    // The working files whose changes are kept in changelists one by one,
+    // by repository and path, whose diffs a read takes to sort them.
+    private volatile Set<Map.Entry<VcsRepository, String>> listedPaths = Set.of();
     // The repositories whose changelists it shows; read with their work
     // trees' changes whitespace and all.
     private volatile Set<VcsRepository> listing = Set.of();
@@ -617,16 +690,17 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
             c = lists.lists();
             SignsUpdater.listsChanged(r);
         }
-        final List<FileItem> files = files(r, StatusRenderer.UNSTAGED);
-        final Set<FileKey> keys = keysOf(r, c);
+        final String working = workingSection(r);
+        final List<FileItem> files = working == null ? List.of() : files(r, working);
+        final Set<Map.Entry<VcsRepository, String>> paths = pathsOf(r, c);
         for (FileItem f : files) {
-            final FileKey key = new FileKey(r, StatusRenderer.UNSTAGED, f.path());
-            if (keys.contains(key) && f.diff() == null && !diffsRead.contains(key)) {
+            final FileKey key = new FileKey(r, working, f.path());
+            if (paths.contains(Map.entry(r, f.path())) && f.diff() == null && !diffsRead.contains(key)) {
                 SwingUtilities.invokeLater(this::refresh);
                 break;
             }
         }
-        final ListedChanges sorted = ListedChanges.of(c, files, picks::ids);
+        final ListedChanges sorted = ListedChanges.of(c, working, files, picks::ids);
         lastListed.put(r, new Listed(c, d, sorted));
         return sorted;
     }
@@ -649,8 +723,8 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     }
 
     static Changelists pruned(Changelists c, StatusData d, Whitespace ignored) {
-        final Section unstaged = section(d, StatusRenderer.UNSTAGED);
-        final Section staged = section(d, "staged");
+        final Section unstaged = d.section(Role.WORKING);
+        final Section staged = d.section(Role.STAGED);
         final boolean whole = (unstaged == null || unstaged.total() == unstaged.items().size())
                 && (staged == null || staged.total() == staged.items().size());
         Changelists out = c;
@@ -683,13 +757,6 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         return out;
     }
 
-    private static Section section(StatusData d, String id) {
-        for (Section s : d.sections())
-            if (s.id().equals(id))
-                return s;
-        return null;
-    }
-
     // s's file at path, or renamed from it; null for none.
     private static FileItem fileAt(Section s, String path) {
         if (s != null)
@@ -699,12 +766,12 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         return null;
     }
 
-    // The keys of r's files c keeps change by change, whose diffs a read takes.
-    private static Set<FileKey> keysOf(VcsRepository r, Changelists c) {
-        final Set<FileKey> out = new HashSet<>();
+    // r's files c keeps change by change, whose diffs a read takes.
+    private static Set<Map.Entry<VcsRepository, String>> pathsOf(VcsRepository r, Changelists c) {
+        final Set<Map.Entry<VcsRepository, String>> out = new HashSet<>();
         for (Map.Entry<String, Changelists.Assignment> e : c.files().entrySet())
             if (e.getValue().whole() == null)
-                out.add(new FileKey(r, StatusRenderer.UNSTAGED, e.getKey()));
+                out.add(Map.entry(r, e.getKey()));
         return out;
     }
 
@@ -712,16 +779,16 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     // want read, as they are now: read again if a repository's lists now
     // show while whitespace is ignored, as they take the full diff.
     private void knowLists() {
-        final Set<FileKey> keys = new HashSet<>();
+        final Set<Map.Entry<VcsRepository, String>> paths = new HashSet<>();
         final Set<VcsRepository> shown = new HashSet<>();
         for (VcsRepository r : repositories) {
             final RepositoryLists lists = RepositoryLists.shown(r);
             if (lists != null) {
                 shown.add(r);
-                keys.addAll(keysOf(r, lists.lists()));
+                paths.addAll(pathsOf(r, lists.lists()));
             }
         }
-        listedKeys = Set.copyOf(keys);
+        listedPaths = Set.copyOf(paths);
         final boolean more = !listing.containsAll(shown);
         listing = Set.copyOf(shown);
         if (more && readIgnoring != Whitespace.NONE)
@@ -821,7 +888,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         for (var it = views.entrySet().iterator(); it.hasNext();) {
             final Map.Entry<Buffer, FileView> e = it.next();
             if (!bufferList.contains(e.getKey())) {
-                viewed.remove(e.getValue().file);
+                viewed.remove(e.getValue().at);
                 it.remove();
             }
         }
@@ -849,30 +916,31 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
      * of its unstaged changes picked; null for none.
      */
     StatusView.Picked pickedRows(VcsRepository r, String path) {
-        final FileItem item = unstaged(r, path);
-        return item == null ? null : picks.rows(new FileKey(r, UNSTAGED, path), item);
+        final FileKey key = workingKey(r, path);
+        final FileItem item = key == null ? null : picks.item(this, key);
+        return item == null ? null : picks.rows(key, item);
     }
 
     // Its views of its files' buffers, those closed dropped as it tells
     // the signs; and the keys of their files, whose diffs each read
-    // takes, so that their signs are by git's diff.
+    // takes, so that their signs are by the backend's diff.
     private final Map<Buffer, FileView> views = new HashMap<>();
-    private final Set<FileKey> viewed = ConcurrentHashMap.newKeySet();
+    private final Set<Map.Entry<VcsRepository, String>> viewed = ConcurrentHashMap.newKeySet();
 
     @Override
     public StatusView viewOf(SignsUpdater u) {
         if (disposed || !repositories.contains(u.getRepository()))
             return null;
         final FileView v = views.get(u.getBuffer());
-        if (v != null && v.file.repository() == u.getRepository() && v.file.path().equals(u.getPath()))
+        if (v != null && v.repository == u.getRepository() && v.path.equals(u.getPath()))
             return v;
         if (v != null)
-            viewed.remove(v.file);
+            viewed.remove(v.at);
         final FileView made = new FileView(u.getBuffer(), u.getRepository(), u.getPath());
         views.put(u.getBuffer(), made);
         // Its diff read, if it has the file and hasn't.
-        if (viewed.add(made.file)) {
-            final FileItem item = unstaged(made.file.repository(), made.file.path());
+        if (viewed.add(made.at)) {
+            final FileItem item = unstaged(made.repository, made.path);
             if (item != null && item.diff() == null)
                 refresh();
         }
@@ -880,23 +948,32 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     }
 
     /**
-     * Its view of r's file at path, shown in buffer: git's diff of its
-     * unstaged changes, as read, its picks, and its boxes. The diff and the
-     * picks none while the buffer is edited, or saved since the read.
+     * Its view of r's file at path, shown in buffer: the backend's diff of
+     * its working changes, as read, its picks, and its boxes. The diff and
+     * the picks none while the buffer is edited, or saved since the read.
      */
     private final class FileView implements StatusView {
         final Buffer buffer;
-        final FileKey file;
+        final VcsRepository repository;
+        final String path;
+        final Map.Entry<VcsRepository, String> at;
         final RowPicks rows;
         private EditorPickColumn column;
 
         FileView(Buffer buffer, VcsRepository r, String path) {
             this.buffer = buffer;
-            file = new FileKey(r, UNSTAGED, path);
-            rows = new RowPicks(RepositoryStatus.this, () -> file, () -> {
-                final FileItem item = current() ? unstaged(file.repository(), file.path()) : null;
+            repository = r;
+            this.path = path;
+            at = Map.entry(r, path);
+            rows = new RowPicks(RepositoryStatus.this, this::key, () -> {
+                final FileItem item = current() ? unstaged(repository, path) : null;
                 return item == null || item.diff() == null ? null : item;
             }, () -> "No change to pick here");
+        }
+
+        // Its file's key in the section that has its working changes; null for none.
+        FileKey key() {
+            return workingKey(repository, path);
         }
 
         // Whether its diff, as read, may be the buffer's.
@@ -906,7 +983,7 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
         @Override
         public List<Diff.Edit> edits() {
-            final FileItem item = current() ? unstaged(file.repository(), file.path()) : null;
+            final FileItem item = current() ? unstaged(repository, path) : null;
             if (item == null || item.diff() == null)
                 return null;
             final List<Diff.Edit> out = new ArrayList<>();
@@ -917,12 +994,13 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
 
         @Override
         public StatusView.Picked picked() {
-            return current() ? pickedRows(file.repository(), file.path()) : null;
+            return current() ? pickedRows(repository, path) : null;
         }
 
         @Override
         public boolean hasPicks() {
-            return !disposed && picks.has(file);
+            final FileKey key = key();
+            return !disposed && key != null && picks.has(key);
         }
 
         @Override
@@ -943,12 +1021,10 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         }
     }
 
-    // The section of the work tree's changes, as git's backend names it.
-    private static final String UNSTAGED = StatusRenderer.UNSTAGED;
-
-    /** r's file at path as the unstaged section has it, or null. */
+    /** r's file at path as its WORKING section has it, or null. */
     FileItem unstaged(VcsRepository r, String path) {
-        return picks.item(this, new FileKey(r, UNSTAGED, path));
+        final FileKey key = workingKey(r, path);
+        return key == null ? null : picks.item(this, key);
     }
 
     // A pick from a file's buffer, view's, the caret at row caret: of the
@@ -979,13 +1055,13 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
     // for the next, its diff then the file's.
     private void pickUnstagedAt(PendingPick p, Set<FileKey> read) {
         final FileView v = p.view();
-        final FileKey fk = v.file;
-        if (data.get(v.file.repository()) == null || savedSinceRead(v.buffer)) {
+        if (data.get(v.repository) == null || savedSinceRead(v.buffer)) {
             pendingPicks.add(p);
             refresh();
             return;
         }
-        final FileItem item = unstaged(v.file.repository(), v.file.path());
+        final FileKey fk = v.key();
+        final FileItem item = fk == null ? null : picks.item(this, fk);
         if (item != null && item.diff() == null) {
             if (read == null || !read.contains(fk)) {
                 wanted.add(fk);
@@ -994,10 +1070,11 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
                 return;
             }
             wanted.remove(fk);
-            done(p, "Couldn't read " + v.file.path() + "'s diff");
+            done(p, "Couldn't read " + v.path + "'s diff");
             return;
         }
-        wanted.remove(fk);
+        if (fk != null)
+            wanted.remove(fk);
         done(p, item == null ? "No unstaged change here to pick" : pick(p, item));
     }
 
@@ -1018,8 +1095,6 @@ public final class RepositoryStatus implements StatusView.Source, DiffWhitespace
         picks.toggle(v.rows.targets(idx));
         showPicks();
         final String what = p.lines() ? " lines of " : " a change of ";
-        return (picks.linesState(new FileKey(v.file.repository(), UNSTAGED, item.path()), idx) == PickState.NONE
-                ? "Unpicked"
-                : "Picked") + what + v.file.path();
+        return (picks.linesState(v.key(), idx) == PickState.NONE ? "Unpicked" : "Picked") + what + v.path;
     }
 }

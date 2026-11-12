@@ -11,7 +11,6 @@
 
 package org.armedbear.j.vcs.svn;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.ProcessRunner;
@@ -132,10 +130,11 @@ public final class SvnIgnores implements Ignores {
 
     // The property on every directory of the working copy that has it, as XML; "" if svn can't say.
     private static String propget(Path root, String property) {
-        final ProcessRunner.Result r = ProcessRunner.of("svn", "propget", "-R", "--xml", property, root.toString())
-                .discardErrors()
-                .timeout(TIMEOUT)
-                .run();
+        final ProcessRunner.Result r =
+                ProcessRunner.of(SvnCli.argv("propget", "-R", "--xml", property, "--", SvnCli.target(root.toString())))
+                        .discardErrors()
+                        .timeout(TIMEOUT)
+                        .run();
         return r.succeeded() ? r.output() : "";
     }
 
@@ -145,11 +144,7 @@ public final class SvnIgnores implements Ignores {
         if (xml == null || xml.isBlank())
             return map;
         try {
-            final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            final NodeList targets = factory.newDocumentBuilder()
-                    .parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)))
-                    .getElementsByTagName("target");
+            final NodeList targets = SvnCli.xml(xml.getBytes(StandardCharsets.UTF_8)).getElementsByTagName("target");
             for (int i = 0; i < targets.getLength(); i++) {
                 final Element target = (Element) targets.item(i);
                 final NodeList properties = target.getElementsByTagName("property");

@@ -76,6 +76,7 @@ import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
+import org.armedbear.j.vcs.VersionControlHooks;
 import org.armedbear.j.vim.KeyNotation;
 import org.armedbear.j.vim.VimInputHandler;
 import org.jdesktop.swingx.MultiSplitLayout;
@@ -3347,7 +3348,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         boolean readOnly = buffer.isReadOnly();
         if (readOnly) {
             for (VcsBackend backend : VcsBackends.all()) {
-                if (backend.autoEdit(this)) {
+                if (backend instanceof VersionControlHooks hooks && hooks.autoEdit(this)) {
                     readOnly = buffer.isReadOnly();
                     break;
                 }

@@ -50,6 +50,7 @@ import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VcsResult;
 import org.armedbear.j.vcs.VersionControlEntry;
+import org.armedbear.j.vcs.VersionControlHooks;
 import org.armedbear.j.vcs.blame.BlameCommit;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.log.CommitChange;
@@ -59,7 +60,7 @@ import org.armedbear.j.vcs.log.LogRef;
 import org.armedbear.j.vcs.log.LogRefTip;
 import org.armedbear.j.vcs.status.StatusData;
 
-public final class GitBackend implements VcsBackend {
+public final class GitBackend implements VcsBackend, VersionControlHooks {
     @Override
     public int id() {
         return VC_GIT;
@@ -71,7 +72,9 @@ public final class GitBackend implements VcsBackend {
     }
 
     private static final Set<Capability> CAPABILITIES = EnumSet.of(
+        Capability.COMMIT,
         Capability.STAGING,
+        Capability.RESOLVE,
         Capability.STASH,
         Capability.BRANCHES,
         Capability.MERGE_GRAPH,

@@ -40,6 +40,7 @@ import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.BackendFixture;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.FileChange;
+import org.armedbear.j.vcs.Repositories;
 import org.armedbear.j.vcs.Snapshot;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsRepository;
@@ -50,6 +51,7 @@ import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.diff.DiffLine;
 import org.armedbear.j.vcs.diff.FileDiff;
 import org.armedbear.j.vcs.diff.Hunk;
+import org.armedbear.j.vcs.git.GitFixture;
 import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Selections;
 import org.armedbear.j.vcs.selection.Target;
@@ -112,7 +114,10 @@ public class BackendBoundaryTest {
                 }
                 return new FileItem(file.change(), file.letter(), file.staged(), null);
             }).map(StatusData.Item.class::cast).toList();
-            return new StatusData(List.of(), null, List.of(new StatusData.Section(section, "Changes", shown)), null);
+            return new StatusData(List.of(),
+                    null,
+                    List.of(new StatusData.Section(section, "Changes", StatusData.Role.WORKING, shown)),
+                    null);
         }
 
         @Override
@@ -131,13 +136,17 @@ public class BackendBoundaryTest {
     }
 
     private void open() throws Exception {
+        open(List.of(repository));
+    }
+
+    private void open(List<VcsRepository> repositories) throws Exception {
         h = EditorHarness.create();
         Editor.setCurrentEditor(h.editor());
         onEdt(() -> {
-            status = VcsStatusBuffer.of(List.of(repository));
+            status = VcsStatusBuffer.of(repositories);
             h.showBuffer(status);
         });
-        until(() -> status.model().getData(repository) != null);
+        until(() -> repositories.stream().allMatch(r -> status.model().getData(r) != null));
     }
 
     @AfterEach
@@ -215,6 +224,7 @@ public class BackendBoundaryTest {
                     sections.add(
                         new StatusData.Section(entry.getKey(),
                                 entry.getKey(),
+                                StatusData.Role.WORKING,
                                 List.of(read ? file : new FileItem(file.change(), file.letter(), false, null))));
                 }
                 return new StatusData(List.of(), null, sections, null);
@@ -262,10 +272,11 @@ public class BackendBoundaryTest {
             final List<Target> whole = builder.build();
             assertTrue(status.model().resolveTargets(whole).ready());
             assertTrue(StatusActions.refuse(StatusActions.Op.STAGE, whole.getFirst()).contains("no index"));
-            // Native changelists wait for a backend that has them.
+            // Native changelists go through the backend, which this one hasn't.
             ChangelistCommands.moveTargets(status.model(), whole, new Destination(repository, "Feature"), said::set);
-            assertEquals("No changelists here", said.get());
         });
+        until(() -> said.get() != null);
+        assertTrue(said.get().contains("can't"), said.get());
         assertNull(RepositoryLists.of(repository));
         assertFalse(Files.exists(fixture.stateDirectory(repository)));
 
@@ -291,9 +302,8 @@ public class BackendBoundaryTest {
             null,
             FileChange.Kind.MODIFIED,
             new FileDiff(List.of(), TEXT, TEXT, false, false, false, false, List.of(FIRST, SECOND), false));
-        final Fixture fixture = new Fixture(StatusRenderer.UNSTAGED,
-                Set.of(Capability.HUNK_CHANGELISTS, Capability.NATIVE_CHANGELISTS),
-                List.of(text));
+        final Fixture fixture =
+                new Fixture(SECTION, Set.of(Capability.HUNK_CHANGELISTS, Capability.NATIVE_CHANGELISTS), List.of(text));
         repository = BackendFixture.repository(tmp, fixture);
         final ChangelistStore store = ChangelistStore.of(repository);
         assertTrue(store.write(Changelists.initial().withList("Feature")));
@@ -302,12 +312,8 @@ public class BackendBoundaryTest {
         final RepositoryStatus model = status.model();
         onEdt(() -> {
             final FileItem current = model.unstaged(repository, TEXT);
-            final ChangelistDrag drag = ChangelistDrag.capture(
-                model,
-                repository,
-                StatusRenderer.UNSTAGED,
-                Changelists.DEFAULT,
-                new Target.Member(current, null));
+            final ChangelistDrag drag = ChangelistDrag
+                    .capture(model, repository, SECTION, Changelists.DEFAULT, new Target.Member(current, null));
             assertNotNull(drag);
             assertTrue(drag.drop(model, new Destination(repository, "Feature"), drag, said::set));
         });
@@ -319,11 +325,8 @@ public class BackendBoundaryTest {
 
         onEdt(() -> {
             final FileItem current = model.unstaged(repository, TEXT);
-            final Target.Part first = new Target.Part(repository,
-                    StatusRenderer.UNSTAGED,
-                    current,
-                    current.diff().hunks().getFirst(),
-                    null);
+            final Target.Part first =
+                    new Target.Part(repository, SECTION, current, current.diff().hunks().getFirst(), null);
             final ChangelistDrag drag = ChangelistDrag.capture(model, "Feature", List.of(first));
             assertNotNull(drag);
             assertTrue(drag.drop(model, new Destination(repository, Changelists.DEFAULT), drag, said::set));
@@ -332,6 +335,99 @@ public class BackendBoundaryTest {
         assertEquals(
             List.of(Changelists.DEFAULT, "Feature"),
             store.read().assignment(TEXT).changes().stream().map(Changelists.Change::list).toList());
+    }
+
+    @Test
+    void changelistsSortAWorkingSectionOfAnyName() throws Exception {
+        final FileItem text = file(
+            TEXT,
+            null,
+            FileChange.Kind.MODIFIED,
+            new FileDiff(List.of(), TEXT, TEXT, false, false, false, false, List.of(FIRST), false));
+        final Fixture fixture = new Fixture(SECTION, Set.of(Capability.HUNK_CHANGELISTS), List.of(text));
+        repository = BackendFixture.repository(tmp, fixture);
+        assertTrue(ChangelistStore.of(repository).write(Changelists.initial().withList("Feature")));
+        open();
+        until(() -> status.model().listed(repository) != null);
+        onEdt(() -> {
+            final List<String> lists = new ArrayList<>();
+            for (Line line = status.getFirstLine(); line != null; line = line.next())
+                if (line instanceof StatusLine row && row.kind() == StatusLine.Kind.LIST) {
+                    assertEquals(SECTION, row.section());
+                    lists.add(row.list());
+                }
+            assertEquals(List.of(Changelists.DEFAULT, "Feature"), lists);
+
+            final var root = ChangesTree.build(
+                List.of(
+                    new ChangesTree.Part(repository,
+                            repository.name(),
+                            status.model().getData(repository),
+                            status.model().listed(repository))));
+            final List<String> groups = new ArrayList<>();
+            for (var e = root.preorderEnumeration(); e.hasMoreElements();)
+                if (((javax.swing.tree.DefaultMutableTreeNode) e.nextElement())
+                        .getUserObject() instanceof ChangesTree.GroupNode g) {
+                    assertEquals(SECTION, g.section());
+                    groups.add(g.list());
+                }
+            assertEquals(List.of(Changelists.DEFAULT, "Feature"), groups);
+        });
+    }
+
+    @Test
+    void aStatusWithARepositoryWithoutAnIndexStillCommits() throws Exception {
+        final GitFixture git = GitFixture.init(Files.createDirectories(tmp.resolve("git")));
+        try {
+            git.write("a.txt", "one\n");
+            git.commitAll("one");
+            git.write("a.txt", "two\n");
+            final FileItem working = file(TEXT, null, FileChange.Kind.MODIFIED, FileDiff.EMPTY);
+            repository = BackendFixture.repository(
+                Files.createDirectories(tmp.resolve("fixture")),
+                new Fixture(SECTION, Set.of(Capability.COMMIT), List.of(working)));
+            open(List.of(Repositories.forDirectory(git.root), repository));
+            onEdt(() -> {
+                assertTrue(VcsStatusMode.commits(status));
+                assertTrue(VcsStatusMode.stages(status), "the Git repository stages");
+                assertNotNull(VcsStatusMode.getMode().getTransient(h.editor()).item("c"), "offers commit");
+                final Target.Files target = new Target.Files(repository, SECTION, List.of(working));
+                assertTrue(StatusActions.refuse(StatusActions.Op.STAGE, target).contains("no index"));
+                // Stage all stages the Git repository's changes alone.
+                StatusActions.all(h.editor(), true);
+            });
+            until(() -> "two\n".equals(git.index("a.txt")) && !status.isWriting());
+            onEdt(() -> assertFalse(h.status().contains("can't"), h.status()));
+        }
+        finally {
+            GitFixture.reset();
+        }
+    }
+
+    @Test
+    void aStatusWithoutAnIndexCommitsButDoesNotStage() throws Exception {
+        final FileItem working = file(TEXT, null, FileChange.Kind.MODIFIED, FileDiff.EMPTY);
+        repository = BackendFixture.repository(tmp, new Fixture(SECTION, Set.of(Capability.COMMIT), List.of(working)));
+        open();
+        onEdt(() -> {
+            assertTrue(VcsStatusMode.commits(status));
+            assertFalse(VcsStatusMode.stages(status));
+            final var t = VcsStatusMode.getMode().getTransient(h.editor());
+            assertNotNull(t.item("c"), "offers commit");
+            assertNull(t.item("s"), "offers no staging");
+            assertNull(CommitCommands.popup(h.editor()).item("a"), "nor amending");
+        });
+    }
+
+    @Test
+    void aStatusOfABackendThatCannotCommitOffersNoCommit() throws Exception {
+        final FileItem working = file(TEXT, null, FileChange.Kind.MODIFIED, FileDiff.EMPTY);
+        repository = BackendFixture.repository(tmp, new Fixture(SECTION, Set.of(), List.of(working)));
+        open();
+        onEdt(() -> {
+            assertFalse(VcsStatusMode.commits(status));
+            assertNull(VcsStatusMode.getMode().getTransient(h.editor()).item("c"));
+        });
     }
 
     @Test
@@ -359,8 +455,7 @@ public class BackendBoundaryTest {
             "old.txt",
             FileChange.Kind.RENAMED,
             new FileDiff(List.of(), "old.txt", "new.txt", false, false, false, false, List.of(FIRST, SECOND), false));
-        final Fixture fixture =
-                new Fixture(StatusRenderer.UNSTAGED, Set.of(Capability.HUNK_CHANGELISTS), List.of(renamed));
+        final Fixture fixture = new Fixture(SECTION, Set.of(Capability.HUNK_CHANGELISTS), List.of(renamed));
         repository = BackendFixture.repository(tmp, fixture);
         final var assignment = Anchors.assignment(
             List.of(

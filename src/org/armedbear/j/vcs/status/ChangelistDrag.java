@@ -52,6 +52,8 @@ final class ChangelistDrag implements Transferable {
     static ChangelistDrag capture(RepositoryStatus model, String from, List<Target> targets) {
         if (model == null || from == null || ChangelistCommands.moveWhy(model, targets) != null)
             return null;
+        if (ChangelistCommands.nativeLists(targets.get(0).repository()))
+            return new ChangelistDrag(model, from, targets);
         final RepositoryLists lists = RepositoryLists.shown(targets.get(0).repository());
         if (lists == null)
             return null;
@@ -69,7 +71,7 @@ final class ChangelistDrag implements Transferable {
             String section,
             String from,
             Target.Member member) {
-        if (model == null || from == null || member == null)
+        if (model == null || section == null || from == null || member == null)
             return null;
         return capture(
             model,
@@ -112,6 +114,8 @@ final class ChangelistDrag implements Transferable {
                 || from.equals(to.name())
                 || !matches(transfer))
             return false;
+        if (ChangelistCommands.nativeLists(to.repository()))
+            return true;
         final RepositoryLists lists = RepositoryLists.shown(to.repository());
         return lists != null && to.missingFrom(lists.lists()) == null;
     }

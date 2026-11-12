@@ -1,0 +1,63 @@
+# Generate with svn-fixture.py; @FIXTURE@ is replaced before J starts.
+# Run this in both simple and vim homes.
+timeout 15000
+expect buffer a.txt
+expect input @INPUT@
+exec projectRoot=@FIXTURE@
+# A conflict svn update left, taken in its buffer and marked resolved.
+expect text <<<<<<< .mine
+shot conflict
+exec vcsConflictAllTheirs
+expect-not text <<<<<<<
+exec vcsConflictResolved
+expect status Marked a.txt resolved
+# Blame of the svn file, as resolved.
+exec vcsBlame
+expect status Blamed
+shot blame
+# The status of the project: the svn working copy and the Git repository.
+exec vcsStatus
+expect mode VcsStatus
+expect text Changes (3)
+expect text Unstaged changes (1)
+exec vcsStatusDepth 4
+expect text +b changed
+expect text +g changed
+shot status
+# A discard, whole file.
+click line M  b.txt
+execlater vcsDiscard
+wait 500
+key ENTER
+expect-not text M  b.txt
+# A whole-file commit of the files at the caret.
+click line M  c.txt
+exec vcsCommitFiles
+expect mode VcsCommit
+exec insertString Commit c alone
+key ctrl ENTER
+expect mode VcsStatus
+expect status Committed revision
+expect-not text M  c.txt
+# A changelist: e.txt moved to a new one, then the list committed.
+click line M  e.txt
+execlater vcsChangelistMove
+wait 300
+type feature
+key ENTER
+expect text feature (1)
+shot changelist
+click line feature (1)
+exec vcsCommitList
+expect mode VcsCommit
+exec insertString Commit the list
+key ctrl ENTER
+expect mode VcsStatus
+expect status Committed revision
+expect-not text feature (
+# The log, of both: the svn commits in one lane, and Git's.
+exec vcsLog
+expect text Commit the list
+expect text Commit c alone
+expect text Git base
+shot log

@@ -2,8 +2,9 @@
 
 `vcs.selection` owns captures, typed file keys, hunk identity and
 resolution. It does no I/O. Its own imports are the repository, diffs and
-status data (`SelectionDependenciesTest`), but `VcsRepository` reaches the
-editor through `VcsBackend`'s older hooks, a split left for phase 12. Its use
+status data (`SelectionDependenciesTest`); with `VcsBackend`, they reach no
+editor, Swing or AWT type, the older hooks being `VersionControlHooks` since
+phase 12. Its use
 of `StatusData` is deliberate:
 that record and its file items are the existing backend result, without UI
 state. Moving that data to another package would rename the dependency

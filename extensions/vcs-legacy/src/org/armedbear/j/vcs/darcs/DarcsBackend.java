@@ -23,8 +23,9 @@ import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VersionControlHooks;
 
-public final class DarcsBackend implements VcsBackend {
+public final class DarcsBackend implements VcsBackend, VersionControlHooks {
     @Override
     public int id() {
         return VC_DARCS;

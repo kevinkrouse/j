@@ -53,6 +53,7 @@ import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
+import org.armedbear.j.vcs.status.StatusData.Role;
 import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusData.StashItem;
 
@@ -277,15 +278,19 @@ public final class StashCommands {
             boolean unpick,
             Set<StashOption> options) {
         final Map<VcsRepository, List<FileKey>> byRepository = new LinkedHashMap<>();
-        for (FileKey p : files.values())
+        final Set<VcsRepository> untracked = new HashSet<>();
+        for (FileKey p : files.values()) {
             byRepository.computeIfAbsent(p.repository(), k -> new ArrayList<>()).add(p);
+            if (status.model().role(p.repository(), p.section()) == Role.UNTRACKED)
+                untracked.add(p.repository());
+        }
         final TransientArgs args = Transients.args(editor, ID);
         final String message = args.get(MESSAGE);
         EachRepository.write(editor, new ArrayList<>(byRepository.keySet()), r -> r, "Stashing", "Stashed", r -> {
             final List<FileKey> ps = byRepository.get(r);
             final Set<StashOption> o = EnumSet.noneOf(StashOption.class);
             o.addAll(options);
-            if (ps.stream().anyMatch(p -> "untracked".equals(p.section())))
+            if (untracked.contains(r))
                 o.add(StashOption.UNTRACKED);
             final List<String> paths = ps.stream().map(FileKey::path).distinct().toList();
             final VcsResult result = r.backend().stash(r, message, o, paths);
@@ -341,12 +346,12 @@ public final class StashCommands {
     // Whether r has what a stash with options takes: what is staged, or
     // that or the tracked changes, or those or the untracked files.
     static boolean hasToStash(VcsStatusBuffer status, VcsRepository r, Set<StashOption> options) {
-        if (!status.files(r, "staged").isEmpty())
+        if (!status.files(r, Role.STAGED).isEmpty())
             return true;
         if (options.contains(StashOption.STAGED))
             return false;
-        return !status.files(r, "unstaged").isEmpty()
-                || options.contains(StashOption.UNTRACKED) && !status.files(r, "untracked").isEmpty();
+        return !status.files(r, Role.WORKING).isEmpty()
+                || options.contains(StashOption.UNTRACKED) && !status.files(r, Role.UNTRACKED).isEmpty();
     }
 
     private static void apply(Editor editor, boolean pop) {
@@ -401,7 +406,7 @@ public final class StashCommands {
         final StatusData d = status.getData(r);
         if (d != null)
             for (Section s : d.sections())
-                if (s.id().equals(StatusData.STASHES))
+                if (s.role() == StatusData.Role.STASHES)
                     for (Item i : s.items())
                         if (i instanceof StashItem st)
                             return st;

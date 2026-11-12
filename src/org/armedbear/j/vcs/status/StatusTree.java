@@ -88,7 +88,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     }
 
     /** A section: its id, title and how many it has, keyed as the status's line. */
-    record SectionNode(String id, String title, int count, String key) {
+    record SectionNode(String id, String title, int count, String key, boolean closed) {
         @Override
         public String toString() {
             return title + " (" + count + ")";
@@ -131,9 +131,13 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         }
     }
 
-    // The sections closed to begin with.
-    private static boolean closed(String id) {
-        return id.equals("untracked") || id.equals("unstaged") || id.equals("staged") || StatusData.RANGES.contains(id);
+    // The sections closed to begin with: of files, and of the commits of a range.
+    private static boolean closed(Section s) {
+        return switch (s.role()) {
+            case WORKING, STAGED, UNTRACKED -> true;
+            case COMMITS -> s.range() != null;
+            case UNMERGED, STASHES -> false;
+        };
     }
 
     private final VcsStatusBuffer status;
@@ -164,7 +168,7 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
         open = new TreeOpenState(this,
                 new HashMap<>(),
                 StatusTree::key,
-                o -> !(o instanceof SectionNode s && closed(s.id())));
+                o -> !(o instanceof SectionNode s && s.closed()));
         setModel(new DefaultTreeModel(new DefaultMutableTreeNode()));
     }
 
@@ -184,15 +188,14 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
                     parts.size() > 1 ? new DefaultMutableTreeNode(new Repository(p.name(), rk)) : root;
             for (Section s : p.sections()) {
                 final String sk = rk + "|" + s.id();
-                final DefaultMutableTreeNode section = new DefaultMutableTreeNode(new SectionNode(s.id(),
-                        s.id().equals(StatusRenderer.UNSTAGED) && p.listed() != null ? "Changelists" : s.title(),
-                        s.total(),
-                        sk));
-                if (s.id().equals(StatusRenderer.UNSTAGED) && p.listed() != null) {
+                final boolean lists = p.listed() != null && s.id().equals(p.listed().section());
+                final DefaultMutableTreeNode section = new DefaultMutableTreeNode(
+                        new SectionNode(s.id(), lists ? "Changelists" : s.title(), s.total(), sk, closed(s)));
+                if (lists) {
                     java.util.Set<String> shown = new java.util.HashSet<>();
                     for (org.armedbear.j.vcs.changelists.Changelists.Changelist list : p.listed().lists()) {
                         List<Target.Member> members = p.listed().members().get(list.name());
-                        String lk = StatusRenderer.listKey(p.repository(), list.name());
+                        String lk = StatusRenderer.listKey(p.repository(), s.id(), list.name());
                         DefaultMutableTreeNode group = new DefaultMutableTreeNode(new ListNode(p.repository(),
                                 list.name(),
                                 list.name(),
@@ -307,8 +310,12 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     private ChangelistDrag dragged;
 
     ChangelistDrag dragFor(FileNode file) {
-        return ChangelistDrag
-                .capture(status.model(), file.repository(), StatusRenderer.UNSTAGED, file.list(), file.member());
+        return ChangelistDrag.capture(
+            status.model(),
+            file.repository(),
+            status.model().workingSection(file.repository()),
+            file.list(),
+            file.member());
     }
 
     private static ChangelistCommands.Destination destination(TreePath path) {
@@ -409,8 +416,10 @@ public final class StatusTree extends SidebarTree implements NavigationComponent
     private void go(Object node, boolean visit) {
         switch (node) {
             case SectionNode s -> status.reveal(frame, s.key(), null);
-            case ListNode l ->
-                    visit(StatusRenderer.sectionKey(l.repository(), StatusRenderer.UNSTAGED), l.key(), false);
+            case ListNode l -> visit(
+                StatusRenderer.sectionKey(l.repository(), status.model().workingSection(l.repository())),
+                l.key(),
+                false);
             case DirNode d -> status.reveal(frame, d.section(), d.first());
             case FileNode f -> visit(f.section(), f.key(), visit);
             case CommitNode c -> visit(c.section(), c.key(), visit);

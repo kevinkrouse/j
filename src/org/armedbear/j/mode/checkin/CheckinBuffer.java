@@ -35,6 +35,7 @@ import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 import org.armedbear.j.vcs.VersionControlBuffer;
+import org.armedbear.j.vcs.VersionControlHooks;
 
 public class CheckinBuffer extends VersionControlBuffer {
     private final boolean editOnly;
@@ -107,8 +108,8 @@ public class CheckinBuffer extends VersionControlBuffer {
         }
         commentIndex = index;
         VcsBackend backend = VcsBackends.get(getVCType());
-        if (backend != null)
-            backend.replaceComment(editor, comment);
+        if (backend instanceof VersionControlHooks hooks)
+            hooks.replaceComment(editor, comment);
         else
             Debug.bug();
     }
@@ -118,9 +119,9 @@ public class CheckinBuffer extends VersionControlBuffer {
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof CheckinBuffer cb) {
             VcsBackend backend = VcsBackends.get(cb.getVCType());
-            if (backend != null) {
-                CommentRing.getInstance().appendNew(backend.extractComment(cb));
-                backend.finish(editor, cb);
+            if (backend instanceof VersionControlHooks hooks) {
+                CommentRing.getInstance().appendNew(hooks.extractComment(cb));
+                hooks.finish(editor, cb);
             }
         }
     }

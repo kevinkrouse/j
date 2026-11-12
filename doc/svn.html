@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<title>J User's Guide - Subversion</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+
+<body>
+
+<a href="contents.html">Top</a>
+
+<hr>
+
+<h1>Subversion</h1>
+
+<hr>
+
+<p>
+A Subversion working copy has the status buffer, the log, change marks,
+blame and conflicts that a Git repository has (see <a href="git.html">Git</a>),
+with what Subversion can't do left out. j runs the <code>svn</code> on your
+path, never asking for a password: a server that needs one needs it saved
+first, by running <code>svn</code> yourself. The commands j runs are in
+<a href="commands.html#vcsCommandLog">vcsCommandLog</a>. A project can hold
+Git repositories and Subversion working copies side by side: each status,
+log and commit names the one an item is in.
+
+<h2><a name="status">The status buffer</a></h2>
+
+<p>
+The header gives the working copy's URL and its revision. The sections are
+<b>Unmerged</b>, <b>Untracked files</b>, <b>Changes</b>, the files changed in
+no changelist, and one for each of Subversion's own changelists, titled with
+its name. A file whose properties alone changed is listed, with no text
+diff. Files <code>svn:ignore</code> or the global ignores leave out aren't
+listed. Each file's diff is against the revision it was last updated to
+(BASE); there is no index, so nothing is staged: the stage keys and
+"Stage all" do nothing here, but <b>s</b> on a conflicted file marks it
+resolved (see <a href="#conflicts">Conflicts</a>).
+
+<h2><a name="discarding">Discarding</a></h2>
+
+<p>
+<b>x</b> on a file reverts it (<code>svn revert</code>); on an added file,
+a copy or an added directory, it goes to the trash first, or is deleted where
+there is none, as Git's does, then the add is reverted. <b>x</b> on a hunk or lines takes them out with
+<code>svn patch</code>, tried first so that nothing changes if it can't apply
+whole. A deleted file's hunk is reverted whole. An untracked file goes to the
+trash.
+
+<h2><a name="committing">Committing</a></h2>
+
+<p>
+Subversion commits whole files. <b>c c</b> commits every change in the
+working copy's sections, the changelists' too, checked unchanged since the
+message showed them. In a status with Git repositories, it takes a working
+copy's changes with <b>-a</b>, or when nothing is staged in Git. Committing files you select,
+from the Changes tab, the right-click menu or <b>c p</b> on picked files,
+commits those files alone: a hunk or lines are refused. A file in an added
+directory takes the directory with it. Between opening the message and
+<b>Ctrl Enter</b>, j checks that the files haven't changed since it showed
+them; if they have, it says so and keeps the message. A commit refused as out
+of date says to run <code>svn update</code>, which j doesn't run. An untracked
+file is refused: <code>svn add</code> it first.
+
+<h2><a name="changelists">Changelists</a></h2>
+
+<p>
+Subversion keeps its own changelists, of whole files. <b>C m</b> (or
+<a href="commands.html#vcsChangelistMove">vcsChangelistMove</a>) moves the
+files at the caret, or picked, to a list named, made if it is new, or to
+"(no changelist)"; dragging a file onto a list's section moves it too.
+<b>c l</b> on a list's section commits that list. j's own changelists, which
+split a file's changes, are Git's alone. A file's picks are dropped when it
+moves to another list.
+
+<h2><a name="log">The log</a></h2>
+
+<p>
+The log is of the working copy's URL, from the repository's newest
+revision, in one lane: Subversion has no branches or merges j draws, so the
+branch filter, tags, stashes and the branch, merge and fetch popups are left
+out. A revision's id is its number. The log of the working copy stops where
+its URL was copied, as where a branch was made; a file's log goes on through
+copies and renames. <b>-s</b> takes a date, as 2024-01-31, or "3 weeks ago".
+The author and message filters match the text anywhere in them, ignoring
+case.
+
+<h2><a name="blame">Blame</a></h2>
+
+<p>
+Blame works as for Git. Subversion can't blame text it is given, so j blames
+the file as last updated and marks the lines your edits added as not
+committed. It doesn't give a line's place in an old revision, so blaming the
+parent or a revision opens at the caret's line.
+
+<h2><a name="conflicts">Conflicts</a></h2>
+
+<p>
+A conflict <code>svn update</code> left is in the Unmerged section, and its
+file shows the markers with the same links and keys as Git's. Ours is the
+file as it was here before the update (<code>.mine</code>), theirs as the
+update brought it. Taking a side runs <code>svn resolve</code>; marking it
+resolved, from the buffer or with <b>s</b> on the file, takes the file as it
+is now. A tree conflict, or a conflict of properties, isn't text: j refuses
+it, for <code>svn resolve</code> outside j. "Conflict again" can't be done.
+
+<h2><a name="not">What isn't here</a></h2>
+
+<p>
+Staging and committing part of a file, stashes, branches and switching,
+merging, and updating are Subversion commands j doesn't run, or that
+Subversion doesn't have. The older <code>svn*</code> commands
+(<a href="commands.html#svnCommit">svnCommit</a>,
+<a href="commands.html#svnDiff">svnDiff</a> and the rest) are still there.
+
+<p>
+See also: <a href="git.html">Git</a>, <a href="vcs.html">Version Control</a>.
+
+</body>
+</html>

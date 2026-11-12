@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Create a fresh phase 11 drive fixture; refuses an existing destination.
+"""Create a fresh selections drive fixture; refuses an existing destination.
 
-python3 test/driver/phase11-fixture.py /tmp/j-phase11-simple
-bb drive /tmp/j-phase11-simple/phase11.txt /tmp/j-phase11-simple/repo/a.txt \
-  --home /tmp/j-phase11-simple/home --out /tmp/j-phase11-simple/shots
-bb drive test/driver/phase11-saved.txt /tmp/j-phase11-simple/repo/a.txt \
-  --home /tmp/j-phase11-simple/home --out /tmp/j-phase11-simple/saved-shots
+python3 test/driver/selections-fixture.py /tmp/j-selections-simple
+bb drive /tmp/j-selections-simple/selections.txt /tmp/j-selections-simple/repo/a.txt \
+  --home /tmp/j-selections-simple/home --out /tmp/j-selections-simple/shots
+bb drive test/driver/selections-saved.txt /tmp/j-selections-simple/repo/a.txt \
+  --home /tmp/j-selections-simple/home --out /tmp/j-selections-simple/saved-shots
 
 Pass --vim to create a home with editMode=vim. No command in the drive runs a shell.
 """
@@ -64,12 +64,12 @@ prefs.write_text("blinkCaret=false\nshowSidebar=true\neditMode=" + ("vim" if arg
 mode = "vim" if args.vim else "simple"
 script = []
 # A line starting "vim: " or "simple: " is that mode's alone.
-for line in Path(__file__).with_name("phase11.txt").read_text().splitlines():
+for line in Path(__file__).with_name("selections.txt").read_text().splitlines():
     if line.startswith(("vim: ", "simple: ")):
         if not line.startswith(mode + ": "):
             continue
         line = line.split(": ", 1)[1]
     script.append(line)
 text = "\n".join(script) + "\n"
-(root / "phase11.txt").write_text(text.replace("@FIXTURE@", str(root)).replace("@INPUT@", "VimInputHandler" if args.vim else "simple"))
-print(root / "phase11.txt")
+(root / "selections.txt").write_text(text.replace("@FIXTURE@", str(root)).replace("@INPUT@", "VimInputHandler" if args.vim else "simple"))
+print(root / "selections.txt")

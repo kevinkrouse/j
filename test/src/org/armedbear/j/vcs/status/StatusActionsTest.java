@@ -715,9 +715,7 @@ public class StatusActionsTest {
                 // Default closed: the file under Feature keyed as it was.
                 status.toggle(line("  Default (1)  active"));
                 assertEquals(key, after(line("  Feature (1)"), "    M  a.txt").key());
-                assertEquals(
-                    StatusRenderer.fileKey(repo(), StatusRenderer.UNSTAGED, "a.txt"),
-                    StatusRenderer.first(key));
+                assertEquals(StatusRenderer.fileKey(repo(), "unstaged", "a.txt"), StatusRenderer.first(key));
                 // A path that starts as the mark might look is its own.
                 assertEquals("r|unstaged|~notes.txt", StatusRenderer.first("r|unstaged|~notes.txt"));
             });
@@ -742,8 +740,8 @@ public class StatusActionsTest {
             onEdt(() -> {
                 status.toggle(line("  Feature (1)"));
                 assertFalse(text().contains("    M  a.txt"));
-                final String fk = StatusRenderer.fileKey(repo(), StatusRenderer.UNSTAGED, "a.txt");
-                status.reveal(null, StatusRenderer.sectionKey(repo(), StatusRenderer.UNSTAGED), fk);
+                final String fk = StatusRenderer.fileKey(repo(), "unstaged", "a.txt");
+                status.reveal(null, StatusRenderer.sectionKey(repo(), "unstaged"), fk);
                 assertEquals("    M  a.txt", h.editor().getDotLine().getText());
             });
         });

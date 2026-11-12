@@ -68,6 +68,39 @@ public abstract class VersionControl {
             repository.addListener(r -> SwingUtilities.invokeLater(() -> updateBuffers(r)));
     }
 
+    // The repositories followed, by the listener that does it.
+    private static final java.util.Map<VcsRepository, Consumer<VcsRepository>> followed = new ConcurrentHashMap<>();
+
+    /**
+     * After each refresh of the repository, its open buffers' change marks
+     * and conflicts worked out again from its snapshot, their entries not
+     * read again, as a backend's may run a command a buffer; no longer once
+     * none of its files is open. For a repository track doesn't follow.
+     */
+    public static void follow(VcsRepository repository) {
+        if (tracked.contains(repository))
+            return;
+        followed.computeIfAbsent(repository, k -> {
+            final Consumer<VcsRepository> listener = changed -> SwingUtilities.invokeLater(() -> {
+                boolean any = false;
+                for (Buffer buffer : Editor.getBufferList()) {
+                    final File file = buffer.getFile();
+                    if (file == null || file.isRemote() || Repositories.forFile(file) != changed)
+                        continue;
+                    any = true;
+                    buffer.repositoryChanged();
+                }
+                if (!any) {
+                    final Consumer<VcsRepository> self = followed.remove(changed);
+                    if (self != null)
+                        changed.removeListener(self);
+                }
+            });
+            k.addListener(listener);
+            return listener;
+        });
+    }
+
     private static void updateBuffers(VcsRepository repository) {
         boolean changed = false;
         for (Buffer buffer : Editor.getBufferList()) {
@@ -128,7 +161,7 @@ public abstract class VersionControl {
         final VersionControlEntry prevEntry = buffer.getVCSEntry();
         final int vc = prevEntry != null ? prevEntry.getVersionControl() : guessVCS(buffer);
         final VcsBackend backend = VcsBackends.get(vc);
-        return backend == null ? null : backend.getEntry(buffer);
+        return backend instanceof VersionControlHooks hooks ? hooks.getEntry(buffer) : null;
     }
 
     /**

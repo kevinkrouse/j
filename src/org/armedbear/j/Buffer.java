@@ -3249,7 +3249,15 @@ public class Buffer extends SystemBuffer {
     public final void checkVCS() {
         vcsEntry = VersionControl.getEntry(this);
         vcsChecked = true;
-        // Change marks for its file, or none; then each follower told, the marks among them.
+        repositoryChanged();
+    }
+
+    /**
+     * What its file's repository says of it changed: its change marks, or
+     * none, and its conflicts; then each follower told, the marks among
+     * them. Its entry, which checkVCS reads, as it was.
+     */
+    public final void repositoryChanged() {
         VersionControl.attachSigns(this);
         Conflicts.attach(this);
         for (Follower f : followers)

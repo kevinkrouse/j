@@ -90,6 +90,7 @@ import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.selection.Target.Member;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
+import org.armedbear.j.vcs.status.StatusData.Role;
 import org.armedbear.j.vcs.status.StatusData.Section;
 
 /**
@@ -353,12 +354,11 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
 
     // The sections' order: what a commit is made of first, the untracked
     // last; any other after.
-    private static final List<String> ORDER =
-            List.of(StatusData.UNMERGED, StatusRenderer.UNSTAGED, "staged", "untracked");
+    private static final List<Role> ORDER = List.of(Role.UNMERGED, Role.WORKING, Role.STAGED, Role.UNTRACKED);
 
     // Whether s is a section of files a commit takes: not commits nor stashes.
     private static boolean isFiles(Section s) {
-        return !StatusData.isCommits(s.id()) && !StatusData.STASHES.equals(s.id());
+        return s.role() != Role.COMMITS && s.role() != Role.STASHES;
     }
 
     /**
@@ -379,11 +379,11 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
             boolean any = false;
             final List<Section> sections = new ArrayList<>(p.data().sections());
             sections.removeIf(s -> !isFiles(s));
-            sections.sort(Comparator.comparingInt(s -> ORDER.indexOf(s.id()) & Integer.MAX_VALUE));
+            sections.sort(Comparator.comparingInt(s -> ORDER.indexOf(s.role()) & Integer.MAX_VALUE));
             for (Section s : sections) {
                 any = true;
                 final String sk = rk + "|" + s.id();
-                if (StatusRenderer.UNSTAGED.equals(s.id()) && p.listed() != null) {
+                if (p.listed() != null && s.id().equals(p.listed().section())) {
                     lists(under, r, sk, s.id(), p.listed());
                     continue;
                 }
@@ -395,9 +395,11 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
                 under.add(section);
             }
             // The lists, empty, as nothing is changed.
-            if (!any && p.listed() != null)
-                lists(under, r, rk + "|" + StatusRenderer.UNSTAGED, StatusRenderer.UNSTAGED, p.listed());
-            else if (!any && p.data().error() == null)
+            if (!any && p.listed() != null) {
+                // Their section none if no read has shown one: they have no files.
+                final String section = p.listed().section();
+                lists(under, r, section == null ? rk : rk + "|" + section, section, p.listed());
+            } else if (!any && p.data().error() == null)
                 under.add(new DefaultMutableTreeNode(new MessageNode("No changes")));
             if (under != root)
                 root.add(under);

@@ -44,6 +44,7 @@ import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.Field;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
+import org.armedbear.j.vcs.status.StatusData.Role;
 import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusData.StashItem;
 
@@ -99,17 +100,17 @@ final class GitStatusReader {
                 readDiffs(repository, true, wanted("staged", staged, true, wantsDiff), Set.of(), ignored);
         final List<Section> sections = new ArrayList<>();
         if (!unmerged.isEmpty())
-            sections.add(new Section(StatusData.UNMERGED, "Unmerged", items(unmerged, false, diffs)));
+            sections.add(new Section(StatusData.UNMERGED, "Unmerged", Role.UNMERGED, items(unmerged, false, diffs)));
         if (!untracked.isEmpty())
-            sections.add(new Section("untracked", "Untracked files", untracked));
+            sections.add(new Section("untracked", "Untracked files", Role.UNTRACKED, untracked));
         if (!unstaged.isEmpty())
-            sections.add(new Section("unstaged", "Unstaged changes", items(unstaged, false, diffs)));
+            sections.add(new Section("unstaged", "Unstaged changes", Role.WORKING, items(unstaged, false, diffs)));
         if (!staged.isEmpty())
-            sections.add(new Section("staged", "Staged changes", items(staged, true, stagedDiffs)));
+            sections.add(new Section("staged", "Staged changes", Role.STAGED, items(staged, true, stagedDiffs)));
         // The count says whether to list them, where this git gives one.
         final List<Item> stashes = git.stashes() == 0 ? List.of() : stashes(repository, wantsDiff, ignored);
         if (stashes != null && !stashes.isEmpty())
-            sections.add(new Section(StatusData.STASHES, "Stashes", stashes));
+            sections.add(new Section(StatusData.STASHES, "Stashes", Role.STASHES, stashes));
         sections.addAll(ranges(repository, git));
         // Recent ones when none are on this branch alone, as just after
         // branching, or on the parent itself.
@@ -117,7 +118,7 @@ final class GitStatusReader {
         if (parent == null || parent.ahead() <= 0) {
             final List<Item> recent = git.head() == null ? List.of() : commits(repository, null);
             if (!recent.isEmpty())
-                sections.add(new Section("recent", "Recent commits", recent));
+                sections.add(new Section("recent", "Recent commits", Role.COMMITS, recent));
         }
         final List<Field> header = header(repository, git);
         if (stashes == null)
@@ -437,7 +438,8 @@ final class GitStatusReader {
                 continue;
             final List<Item> items = commits(repository, w.range());
             if (!items.isEmpty())
-                sections.add(new Section(w.id(), w.title(), items, Math.max(w.total(), items.size()), w.range()));
+                sections.add(
+                    new Section(w.id(), w.title(), Role.COMMITS, items, Math.max(w.total(), items.size()), w.range()));
         }
         return sections;
     }

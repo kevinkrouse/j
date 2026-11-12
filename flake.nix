@@ -70,6 +70,7 @@
               jdk
               babashka
               pkgs.gcc          # jpty
+              pkgs.subversion   # svn backend tests
             ] ++ lib.optional (jfmtDist != null) jfmt
               # bb fuzz-windows runs J on a virtual display.
               ++ lib.optional pkgs.stdenv.isLinux pkgs.xvfb;

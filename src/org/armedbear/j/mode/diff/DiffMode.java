@@ -46,6 +46,7 @@ import org.armedbear.j.ShellCommand;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
+import org.armedbear.j.vcs.VersionControlHooks;
 
 public final class DiffMode extends AbstractMode implements Mode {
     private static final DiffMode mode = new DiffMode();
@@ -187,7 +188,7 @@ public final class DiffMode extends AbstractMode implements Mode {
             editor.mouseMoveDotToPoint(mouseEvent);
 
         VcsBackend backend = VcsBackends.get(diffOutputBuffer.getVCType());
-        if (backend == null || !backend.gotoDiffSource(editor, diffOutputBuffer))
+        if (!(backend instanceof VersionControlHooks hooks) || !hooks.gotoDiffSource(editor, diffOutputBuffer))
             localGotoFile(editor, diffOutputBuffer);
     }
 

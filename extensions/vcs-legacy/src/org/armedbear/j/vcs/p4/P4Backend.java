@@ -23,8 +23,9 @@ import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VersionControlHooks;
 
-public final class P4Backend implements VcsBackend {
+public final class P4Backend implements VcsBackend, VersionControlHooks {
     @Override
     public int id() {
         return VC_P4;

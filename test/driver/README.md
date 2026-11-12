@@ -37,20 +37,20 @@ and `PROPERTIES`; none runs a shell or evaluates code. Keys and typed text
 reach j as a user's would, so a script is trusted code, reviewed as a test
 is. Create fixtures before starting j.
 
-## Phase 11
+## Selections
 
 Create a fresh fixture and run the generated script:
 
 ```sh
-python3 test/driver/phase11-fixture.py /tmp/j-phase11-simple
-bb drive /tmp/j-phase11-simple/phase11.txt /tmp/j-phase11-simple/repo/a.txt \
-  --home /tmp/j-phase11-simple/home --out /tmp/j-phase11-simple/shots
-bb drive test/driver/phase11-saved.txt /tmp/j-phase11-simple/repo/a.txt \
-  --home /tmp/j-phase11-simple/home --out /tmp/j-phase11-simple/saved-shots
+python3 test/driver/selections-fixture.py /tmp/j-selections-simple
+bb drive /tmp/j-selections-simple/selections.txt /tmp/j-selections-simple/repo/a.txt \
+  --home /tmp/j-selections-simple/home --out /tmp/j-selections-simple/shots
+bb drive test/driver/selections-saved.txt /tmp/j-selections-simple/repo/a.txt \
+  --home /tmp/j-selections-simple/home --out /tmp/j-selections-simple/saved-shots
 ```
 
 Repeat with a different fixture directory and `--vim` on the fixture command.
-The fixture refuses an existing destination. `phase11.txt` is the template;
+The fixture refuses an existing destination. `selections.txt` is the template;
 the generator substitutes the absolute fixture path and keeps a line starting
 `vim: ` or `simple: ` for that mode alone. The repositories carry their own
 identity and hooks directory, so j's git doesn't use the host's. All changes
@@ -58,3 +58,21 @@ during the drive come from j. The fixture includes two repositories, a
 two-hunk file, staged content, an untracked file, and ordinary text for
 dragging. Hooks and concurrent writers are covered by unit tests against real
 git repositories.
+
+## Subversion
+
+Create a fresh fixture and run the generated script, in each mode:
+
+```sh
+python3 test/driver/svn-fixture.py /tmp/j-svn-simple
+bb drive /tmp/j-svn-simple/svn.txt /tmp/j-svn-simple/svn/a.txt \
+  --home /tmp/j-svn-simple/home --out /tmp/j-svn-simple/shots
+```
+
+Repeat with a different fixture directory and `--vim` on the fixture command.
+The fixture needs `svn` and `svnadmin` (the dev shell has them). Its project
+holds an svn working copy, a second one of the same repository whose commit
+left a conflict in the first's `a.txt`, and a Git repository. The drive takes
+the conflict and marks it resolved, blames the file, then from the status of
+all three shows the diffs, discards a file, commits a file whole, moves a
+file to a new svn changelist and commits the list, and shows the log.

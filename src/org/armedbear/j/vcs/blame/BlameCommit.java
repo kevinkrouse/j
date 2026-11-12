@@ -50,7 +50,8 @@ public record BlameCommit(String hash, String author, String authorMail, long au
         /**
          * count lines from first, counted from 0, were last changed in
          * commit; count may run past the last. source is first's line in
-         * commit's version of the file, counted from 0.
+         * commit's version of the file, counted from 0, or -1, with count
+         * 1, where the backend can't say.
          */
         void lines(int first, int count, BlameCommit commit, int source);
 

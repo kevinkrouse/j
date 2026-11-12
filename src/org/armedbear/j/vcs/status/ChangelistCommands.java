@@ -33,15 +33,18 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocationBar;
+import org.armedbear.j.Log;
 import org.armedbear.j.Property;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.transients.Transient.Command;
 import org.armedbear.j.transients.Transient.Group;
 import org.armedbear.j.transients.TransientPopup;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.changelists.Anchors;
@@ -202,7 +205,110 @@ public final class ChangelistCommands {
                             && line.key().equals(at));
     }
 
-    // Native changelists, as svn's, wait for phase 12's backend.
+    /** A move's destination of the changes in none of the system's own changelists. */
+    static final String NO_LIST = "(no changelist)";
+
+    /** Whether r's changelists are the system's own, of whole files, as svn's, not j's. */
+    static boolean nativeLists(VcsRepository r) {
+        final var c = r.backend().capabilities();
+        return c.contains(Capability.NATIVE_CHANGELISTS) && !c.contains(Capability.HUNK_CHANGELISTS);
+    }
+
+    /**
+     * The system's own changelist r's section is, NO_LIST for its changes
+     * in none; null for a section of no changes or where j keeps the lists.
+     */
+    static String nativeList(RepositoryStatus model, VcsRepository r, String section) {
+        if (r == null || section == null || !nativeLists(r) || model.role(r, section) != StatusData.Role.WORKING)
+            return null;
+        final String name = r.backend().nativeChangelist(section);
+        return name != null ? name : NO_LIST;
+    }
+
+    // r's own changelists, as its status's sections have them.
+    private static List<String> nativeNames(RepositoryStatus model, VcsRepository r) {
+        final List<String> names = new ArrayList<>();
+        final StatusData d = model.getData(r);
+        if (d != null)
+            for (StatusData.Section s : d.sections()) {
+                final String name = s.role() == StatusData.Role.WORKING ? r.backend().nativeChangelist(s.id()) : null;
+                if (name != null)
+                    names.add(name);
+            }
+        return names;
+    }
+
+    // Why targets can't move between the system's own changelists, or null.
+    private static String nativeMoveWhy(RepositoryStatus model, VcsRepository r, List<Target> targets) {
+        if (model.isWriting())
+            return "Wait: the last change is still being made";
+        for (Target target : targets) {
+            if (target instanceof Part)
+                return r.backend().name() + "'s changelists take whole files: select the file";
+            for (FileItem file : target.files()) {
+                if (file.change().isConflicted())
+                    return "Resolve the conflicts first";
+                if (file.readOnly() || file.change().isUntracked() || file.change().unstaged() == null)
+                    return "Only changed versioned files go in a changelist";
+                if (java.nio.file.Files.isDirectory(r.root().resolve(file.path())))
+                    return r.backend().name() + "'s changelists take files, not directories";
+            }
+        }
+        return null;
+    }
+
+    // targets, whole files, put in to's list, or none; said, did run once moved.
+    private static void moveNative(
+            RepositoryStatus model,
+            List<Target> targets,
+            Destination to,
+            Consumer<String> said,
+            Runnable did) {
+        final VcsRepository r = to.repository();
+        final String name = NO_LIST.equals(to.name()) ? null : to.name();
+        if (name != null && name.isBlank()) {
+            said.accept("A changelist needs a name");
+            return;
+        }
+        final List<String> paths = new ArrayList<>();
+        final Set<FileKey> keys = new HashSet<>();
+        for (Target t : targets)
+            for (FileItem f : t.files()) {
+                if (!paths.contains(f.path()))
+                    paths.add(f.path());
+                keys.add(new FileKey(r, t.section(), f.path()));
+            }
+        model.startWriting();
+        Background.start("vcs changelist", () -> {
+            String failed;
+            try {
+                failed = StatusActions.failure(r.backend(), r.backend().setChangelist(r, paths, name));
+            }
+            catch (RuntimeException e) {
+                Log.error(e);
+                failed = "Failed: " + e;
+            }
+            final String result = failed;
+            model.wrote();
+            r.invalidate();
+            r.refresh();
+            SwingUtilities.invokeLater(() -> {
+                // Picks are of a file in its section: those of the moved, unpicked, said.
+                final boolean unpicked = result == null && model.picks().dropFiles(keys);
+                if (unpicked)
+                    model.showPicks();
+                if (result == null)
+                    did.run();
+                said.accept(
+                    result != null
+                            ? result
+                            : "Moved " + (paths.size() == 1 ? paths.get(0) : paths.size() + " files")
+                                    + (name == null ? " out of the changelists" : " to " + name)
+                                    + (unpicked ? "; unpicked, as picks are a section's" : ""));
+            });
+        });
+    }
+
     record Destination(VcsRepository repository, String name, boolean create) {
         /** A destination rendered by one of the editor's changelist views. */
         Destination(VcsRepository repository, String name) {
@@ -224,6 +330,8 @@ public final class ChangelistCommands {
         if (!model.getRepositories().contains(repository)
                 || targets.stream().anyMatch(t -> t.repository() != repository))
             return "A move takes one repository's changes";
+        if (nativeLists(repository))
+            return nativeMoveWhy(model, repository, targets);
         if (!repository.backend().capabilities().contains(Capability.HUNK_CHANGELISTS))
             return "No changelists here";
         if (!Editor.preferences().getBooleanProperty(Property.VCS_CHANGELISTS))
@@ -268,6 +376,19 @@ public final class ChangelistCommands {
             return;
         }
         final VcsRepository repository = targets.get(0).repository();
+        if (nativeLists(repository)) {
+            final List<String> names = new ArrayList<>(nativeNames(model, repository));
+            names.add(NO_LIST);
+            // Where all of them are already, if one list.
+            final Map<String, String> unavailable = new HashMap<>();
+            final Set<String> at = new HashSet<>();
+            for (Target t : targets)
+                at.add(nativeList(model, repository, t.section()));
+            if (at.size() == 1 && at.iterator().next() != null)
+                unavailable.put(at.iterator().next(), HERE);
+            offerMove(editor, model, targets, used, names, unavailable);
+            return;
+        }
         resolveMove(model, targets, editor::status, resolved -> {
             if (!stillHere.getAsBoolean()) {
                 editor.status("Moved on while the diffs were read: move again");
@@ -343,6 +464,10 @@ public final class ChangelistCommands {
         }
         if (targets.get(0).repository() != to.repository()) {
             said.accept("A move takes one repository's changes");
+            return;
+        }
+        if (nativeLists(to.repository())) {
+            moveNative(model, targets, to, said, did);
             return;
         }
         final RepositoryLists lists = RepositoryLists.of(to.repository());
@@ -701,7 +826,7 @@ public final class ChangelistCommands {
         if (lists == null)
             return null;
         for (Changelist l : lists.lists().lists())
-            if (s.key().equals(StatusRenderer.listKey(s.repository(), l.name())))
+            if (s.key().equals(StatusRenderer.listKey(s.repository(), s.section(), l.name())))
                 return l.name();
         return null;
     }

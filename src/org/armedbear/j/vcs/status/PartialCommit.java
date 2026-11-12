@@ -166,8 +166,11 @@ final class PartialCommit {
             if (!resolved.ready())
                 return new Review(null, resolved.failure());
             final List<Target> selected = resolved.targets();
-            final VcsBackend.CommitPreview preview =
-                    r.backend().previewCommit(r, snapshot.head(), paths(selected), () -> stage(r, selected, true));
+            final VcsBackend.CommitPreview preview = wholeFiles(r)
+                    ? r.backend().previewPaths(r, paths(selected))
+                    : r.backend().previewCommit(r, snapshot.head(), paths(selected), () -> stage(r, selected, true));
+            if (preview == null)
+                return new Review(null, r.backend().name() + " can't commit these here");
             if (preview.failure() != null)
                 return new Review(null, preview.failure());
             targets.put(r, selected);
@@ -232,7 +235,7 @@ final class PartialCommit {
         if (members == null || members.isEmpty())
             throw new Refused("Nothing in changelist " + list + " to commit");
         final Selections.Builder selected = new Selections.Builder(model.picks()::ids);
-        members.forEach(member -> selected.member(repository, StatusRenderer.UNSTAGED, member));
+        members.forEach(member -> selected.member(repository, listed.section(), member));
         final List<Target> captured = selected.build();
         final RepositoryLists lists = RepositoryLists.shown(repository);
         final Set<FileKey> required =
@@ -251,8 +254,16 @@ final class PartialCommit {
         return resolved;
     }
 
+    // Whether r commits whole files, its working files as they are, having no index.
+    private static boolean wholeFiles(VcsRepository r) {
+        final var capabilities = r.backend().capabilities();
+        return capabilities.contains(Capability.COMMIT) && !capabilities.contains(Capability.STAGING);
+    }
+
     // Why nothing of r can be committed alone, thrown.
     private void refuseRepository(VcsRepository r) throws Refused {
+        if (wholeFiles(r))
+            return;
         final var capabilities = r.backend().capabilities();
         if (!capabilities.contains(Capability.PARTIAL_COMMIT) || !capabilities.contains(Capability.STAGING))
             throw new Refused(r.backend().name() + " does not support committing selected changes here");
@@ -266,6 +277,18 @@ final class PartialCommit {
 
     // Why r's targets ts can't be committed alone, thrown.
     private void refuse(VcsRepository r, List<Target> ts) throws Refused {
+        if (wholeFiles(r)) {
+            for (Target t : ts) {
+                if (t instanceof Part)
+                    throw new Refused(r.backend().name() + " commits whole files: select the file");
+                for (FileItem f : t.files())
+                    if (f.change().isConflicted())
+                        throw new Refused("Resolve the conflict in " + f.path() + " first");
+                    else if (f.change().isUntracked())
+                        throw new Refused(f.path() + " isn't under version control: add it to commit it");
+            }
+            return;
+        }
         final Set<String> staged = new HashSet<>();
         for (FileItem f : statusFiles(r))
             if (f.staged() && !f.readOnly()) {
@@ -359,6 +382,8 @@ final class PartialCommit {
     Done commit(Plan plan, VcsRepository r, String message, Set<CommitOption> options) {
         final List<Target> ts = plan.targets().get(r);
         final VcsBackend b = r.backend();
+        if (wholeFiles(r))
+            return new Done(b.commitPaths(r, paths(ts), plan.versions().get(r), message), null);
         final VcsBackend.PrivateCommit done =
                 b.commitPrivately(r, paths(ts), plan.versions().get(r), () -> stage(r, ts, false), message, options);
         return done == null ? new Done(null, null) : new Done(done.result(), done.trouble());

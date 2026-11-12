@@ -40,6 +40,7 @@ import org.armedbear.j.transients.Transient.Pick;
 import org.armedbear.j.transients.Transient.Switch;
 import org.armedbear.j.transients.TransientArgs;
 import org.armedbear.j.util.TimeStyle;
+import org.armedbear.j.vcs.Capability;
 import org.armedbear.j.vcs.RepositoryColors;
 import org.armedbear.j.vcs.VcsRepository;
 
@@ -195,13 +196,35 @@ final class LogFilters {
     static final List<Option> ARGUMENTS =
             ALL.stream().map(o -> new Option(o.key(), o.name(), o.description(), o.chooser(), null)).toList();
 
-    /** The filters of a log of scope: the repository's only for several. */
+    /** The filters of a log of scope: the repository's only for several; a branch's only with branches. */
     static List<Option> of(LogScope scope) {
-        return scope != null && scope.isSeveral() ? ALL : ALL.subList(0, ALL.size() - 1);
+        return able(scope, scope != null && scope.isSeveral() ? ALL : ALL.subList(0, ALL.size() - 1));
     }
 
     private static List<Option> arguments(LogScope scope) {
-        return scope != null && scope.isSeveral() ? ARGUMENTS : ARGUMENTS.subList(0, ARGUMENTS.size() - 1);
+        return able(scope, scope != null && scope.isSeveral() ? ARGUMENTS : ARGUMENTS.subList(0, ARGUMENTS.size() - 1));
+    }
+
+    // options less the branch filter, if no repository of scope has branches.
+    private static List<Option> able(LogScope scope, List<Option> options) {
+        return can(scope, Capability.BRANCHES)
+                ? options
+                : options.stream().filter(o -> !o.key().equals(BRANCH.key())).toList();
+    }
+
+    /** Whether a repository of scope can; any can with none. */
+    static boolean can(LogScope scope, Capability c) {
+        return scope == null || scope.repositories().stream().anyMatch(r -> r.backend().capabilities().contains(c));
+    }
+
+    // The switches of scope: tags with branches, stashes with stashes.
+    private static Switch[] switches(LogScope scope, Switch tags, Switch stashes) {
+        final List<Switch> out = new ArrayList<>();
+        if (can(scope, Capability.BRANCHES))
+            out.add(tags);
+        if (can(scope, Capability.STASH))
+            out.add(stashes);
+        return out.toArray(new Switch[0]);
     }
 
     /** The filter described as name ("author"), or null. */
@@ -214,7 +237,7 @@ final class LogFilters {
 
     /** An open log's filters, in its popup, with x to clear them all. */
     static Group group(LogScope scope) {
-        final List<Transient.Item> items = items(of(scope), TAGS, STASHES);
+        final List<Transient.Item> items = items(of(scope), switches(scope, TAGS, STASHES));
         items.add(new Command("x", "vcsLogClearFilters", "clear the filters", true));
         return new Group("Filters", items);
     }
@@ -234,7 +257,7 @@ final class LogFilters {
                 "Log",
                 "git.html#log-filters",
                 List.of(
-                    new Group("Filter", items(arguments(scope), TAGS_ARGUMENT, STASHES_ARGUMENT)),
+                    new Group("Filter", items(arguments(scope), switches(scope, TAGS_ARGUMENT, STASHES_ARGUMENT))),
                     Group.of("Log", Command.of("l", "vcsLog", "log"), Command.of("q", "vcsLogQuick", "quick log"))));
     }
 

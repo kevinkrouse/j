@@ -186,7 +186,10 @@ final class BlameColumn implements GutterColumn {
             readMessage(commit.hash());
         final StringBuilder tip = new StringBuilder();
         tip.append(commit.hash()).append('\n');
-        tip.append(commit.author()).append(" <").append(commit.authorMail()).append(">\n");
+        tip.append(commit.author());
+        if (commit.authorMail() != null && !commit.authorMail().isEmpty())
+            tip.append(" <").append(commit.authorMail()).append(">");
+        tip.append('\n');
         tip.append(TIMESTAMP.format(Instant.ofEpochSecond(commit.authorTime())));
         if (commit.committerTime() != commit.authorTime())
             tip.append("  (committed ")

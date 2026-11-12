@@ -80,6 +80,7 @@ import org.armedbear.j.vcs.log.LogScope;
 import org.armedbear.j.vcs.selection.FileKey;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
+import org.armedbear.j.vcs.status.StatusData.Role;
 import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusData.StashItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
@@ -104,7 +105,8 @@ public final class VcsStatusBuffer extends ViewBuffer
         activeDrag = null;
         if (pos == null
                 || !(pos.getLine() instanceof StatusLine line)
-                || !StatusRenderer.UNSTAGED.equals(line.section()))
+                || line.section() == null
+                || model.role(line.repository(), line.section()) != Role.WORKING)
             return null;
         if (line.kind() == Kind.DIFF && line.isForeign())
             return null;
@@ -120,7 +122,9 @@ public final class VcsStatusBuffer extends ViewBuffer
         else
             return null;
         final StatusLine list = listOf(line);
-        activeDrag = ChangelistDrag.capture(model, list == null ? null : list.list(), StatusLine.capture(model, lines));
+        final String from =
+                list != null ? list.list() : ChangelistCommands.nativeList(model, line.repository(), line.section());
+        activeDrag = ChangelistDrag.capture(model, from, StatusLine.capture(model, lines));
         return activeDrag;
     }
 
@@ -146,7 +150,11 @@ public final class VcsStatusBuffer extends ViewBuffer
         if (pos == null || !(pos.getLine() instanceof StatusLine line))
             return null;
         final StatusLine list = listOf(line);
-        return list == null ? null : new ChangelistCommands.Destination(list.repository(), list.list());
+        if (list != null)
+            return new ChangelistCommands.Destination(list.repository(), list.list());
+        // A section of the system's own changelist, or of the changes in none.
+        final String name = ChangelistCommands.nativeList(model, line.repository(), line.section());
+        return name == null ? null : new ChangelistCommands.Destination(line.repository(), name);
     }
 
     StatusLine listOf(StatusLine line) {
@@ -407,6 +415,18 @@ public final class VcsStatusBuffer extends ViewBuffer
 
     // Expanding.
 
+    // Whether key is a section's of the commits of a range, as between branches.
+    private boolean isRange(String key) {
+        for (VcsRepository r : repositories) {
+            final StatusData d = model.getData(r);
+            if (d != null)
+                for (Section s : d.sections())
+                    if (s.range() != null && StatusRenderer.sectionKey(r, s.id()).equals(key))
+                        return true;
+        }
+        return false;
+    }
+
     boolean isExpanded(String key, Kind kind) {
         final Boolean b = expanded.get(key);
         if (b != null)
@@ -418,7 +438,7 @@ public final class VcsStatusBuffer extends ViewBuffer
             return isExpanded(first, kind);
         return switch (kind) {
             // A section of commits between branches only deeper.
-            case SECTION -> depth >= (StatusData.RANGES.contains(key.substring(key.lastIndexOf('|') + 1)) ? 3 : 2);
+            case SECTION -> depth >= (isRange(key) ? 3 : 2);
             // A stash opens to its files as a file to its hunks.
             case FILE, COMMIT -> depth >= 3;
             case HUNK -> depth != 3; // A file opened by hand shows its hunks.
@@ -939,10 +959,11 @@ public final class VcsStatusBuffer extends ViewBuffer
     static StatusLine commitOf(StatusLine line) {
         if (line.kind() == StatusLine.Kind.COMMIT)
             return line.commit() != null ? line : null;
-        if (!StatusData.STASHES.equals(line.section()))
-            return null;
+        // Back to the nearest commit, not past its section's heading.
         for (Line l = line.previous(); l != null; l = l.previous())
-            if (l instanceof StatusLine s && s.kind() == StatusLine.Kind.COMMIT)
+            if (l instanceof StatusLine s && s.kind() == StatusLine.Kind.SECTION)
+                return null;
+            else if (l instanceof StatusLine s && s.kind() == StatusLine.Kind.COMMIT)
                 return s.stash() != null && line.key().startsWith(s.key() + "|") ? s : null;
         return null;
     }
@@ -1038,7 +1059,7 @@ public final class VcsStatusBuffer extends ViewBuffer
     public boolean isStash(LogCommit c) {
         for (StatusData d : repositories.stream().map(model::getData).filter(d -> d != null).toList())
             for (Section s : d.sections())
-                if (s.id().equals(StatusData.STASHES))
+                if (s.role() == Role.STASHES)
                     for (Item i : s.items())
                         if (i instanceof StashItem st && st.hash().equals(c.id()))
                             return true;
@@ -1120,10 +1141,8 @@ public final class VcsStatusBuffer extends ViewBuffer
      * staged to follow, nor for a file deleted from the working tree, which
      * is not its buffer's text. The disk looked at only for an open buffer.
      */
-    private static Buffer followed(VcsRepository r, String section, FileItem item) {
-        if ("staged".equals(section)
-                || StatusData.UNMERGED.equals(section)
-                || item.change().unstaged() == FileChange.Kind.DELETED)
+    private static Buffer followed(VcsRepository r, Role role, FileItem item) {
+        if (role == Role.STAGED || role == Role.UNMERGED || item.change().unstaged() == FileChange.Kind.DELETED)
             return null;
         final File f = File.getInstance(r.root().resolve(item.path()).toString());
         final Buffer b = Editor.getBufferList().findBuffer(f);
@@ -1193,7 +1212,7 @@ public final class VcsStatusBuffer extends ViewBuffer
             return;
         final String file = item == null ? null : fileKey(r, section, item);
         final boolean moved = file == null || !sides.isAsked(file);
-        final Buffer buffer = item == null ? null : followed(r, section, item);
+        final Buffer buffer = item == null ? null : followed(r, model.role(r, section), item);
         // Read again only for a new file, or when the status is and what
         // the comparison follows has changed, as when a file is deleted; a
         // buffer's comparison follows the buffer itself.
@@ -1213,7 +1232,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         }
         final String path = item.path();
         final File f = File.getInstance(r.root().resolve(path).toString());
-        final boolean staged = "staged".equals(section);
+        final boolean staged = model.role(r, section) == Role.STAGED;
         if (buffer != null) {
             compared = buffer;
             if (!moved && c.isFollowing()) {
@@ -1255,7 +1274,7 @@ public final class VcsStatusBuffer extends ViewBuffer
         }
         final Mode mode = SideBySide.modeFor(f.getName());
         final Charset charset = SideBySide.charset();
-        final boolean conflicted = StatusData.UNMERGED.equals(section);
+        final boolean conflicted = model.role(r, section) == Role.UNMERGED;
         final Whitespace ignored = DiffWhitespace.ignored();
         final Whitespace diffIgnoring = model.readIgnoring();
         Background.start("vcs status compare", () -> {
@@ -1491,5 +1510,10 @@ public final class VcsStatusBuffer extends ViewBuffer
     /** The files of a section of a repository, as last read. */
     List<FileItem> files(VcsRepository repository, String section) {
         return model.files(repository, section);
+    }
+
+    /** The files of a repository's sections with role, as last read. */
+    List<FileItem> files(VcsRepository repository, Role role) {
+        return model.files(repository, role);
     }
 }

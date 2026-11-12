@@ -58,6 +58,7 @@ import org.armedbear.j.vcs.changelists.Changelists;
 import org.armedbear.j.vcs.changelists.RepositoryLists;
 import org.armedbear.j.vcs.selection.Target;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
+import org.armedbear.j.vcs.status.StatusData.Role;
 import org.armedbear.j.vim.VimInputHandler;
 import org.armedbear.j.vim.VimMode;
 
@@ -93,27 +94,28 @@ public final class CommitCommands {
             extend = "extend " + last + ", keeping its message";
             reword = "reword " + last;
         }
-        return new Transient(ID,
-                "Commit",
-                "git.html#committing",
-                List.of(
-                    Group.of(
-                        "Arguments",
-                        Switch.of("-a", "--all", "stage every change first"),
-                        Switch.of("-e", "--allow-empty", "allow an empty commit"),
-                        Switch.of("-n", "--no-verify", "skip the hooks"),
-                        Switch.of("-s", "--signoff", "sign off"),
-                        Switch.of("-v", "--verbose", "show the diff under the message")),
-                    Group.of(
-                        "Create",
-                        Command.of("c", "vcsCommit", commit),
-                        Command.of("l", "vcsCommitList", "commit a changelist alone"),
-                        Command.of("p", "vcsCommitPicked", "commit what is picked alone")),
-                    Group.of(
-                        "Edit the last commit",
-                        Command.of("a", "vcsCommitAmend", amend),
-                        Command.of("e", "vcsCommitExtend", extend),
-                        Command.of("w", "vcsCommitReword", reword))));
+        final List<Group> groups = new ArrayList<>(List.of(
+            Group.of(
+                "Arguments",
+                Switch.of("-a", "--all", "stage every change first"),
+                Switch.of("-e", "--allow-empty", "allow an empty commit"),
+                Switch.of("-n", "--no-verify", "skip the hooks"),
+                Switch.of("-s", "--signoff", "sign off"),
+                Switch.of("-v", "--verbose", "show the diff under the message")),
+            Group.of(
+                "Create",
+                Command.of("c", "vcsCommit", commit),
+                Command.of("l", "vcsCommitList", "commit a changelist alone"),
+                Command.of("p", "vcsCommitPicked", "commit what is picked alone"))));
+        // The caret's repository's last commit, for a backend that changes one.
+        if (editor == null || !(editor.getBuffer() instanceof VcsStatusBuffer b) || VcsStatusMode.amends(editor, b))
+            groups.add(
+                Group.of(
+                    "Edit the last commit",
+                    Command.of("a", "vcsCommitAmend", amend),
+                    Command.of("e", "vcsCommitExtend", extend),
+                    Command.of("w", "vcsCommitReword", reword)));
+        return new Transient(ID, "Commit", "git.html#committing", groups);
     }
 
     /** "x", or "3 repositories: x, y, z". */
@@ -137,10 +139,28 @@ public final class CommitCommands {
             return List.of(caret);
         final List<VcsRepository> out = new ArrayList<>();
         for (VcsRepository r : status.getRepositories())
-            if (!status.files(r, "staged").isEmpty()
-                    || options.contains(CommitOption.ALL) && !status.files(r, "unstaged").isEmpty())
+            if (VcsStatusMode.commits(r) && VcsStatusMode.stages(r) && hasToCommit(status, r, options))
                 out.add(r);
-        return out.isEmpty() && options.contains(CommitOption.ALLOW_EMPTY) ? List.of(caret) : out;
+        // A repository with no index, whose working changes a commit takes,
+        // with -a, or when nothing is staged elsewhere: as -a is to git.
+        final boolean whole = options.contains(CommitOption.ALL) || out.isEmpty();
+        for (VcsRepository r : status.getRepositories())
+            if (whole && VcsStatusMode.commits(r) && !VcsStatusMode.stages(r) && hasToCommit(status, r, options))
+                out.add(r);
+        return out.isEmpty() && options.contains(CommitOption.ALLOW_EMPTY) && VcsStatusMode.commits(caret)
+                ? List.of(caret)
+                : out;
+    }
+
+    /**
+     * Whether r has what a commit with options takes: what is staged, or
+     * with -a any tracked change; with no index, its working changes.
+     */
+    static boolean hasToCommit(RepositoryStatus status, VcsRepository r, Set<CommitOption> options) {
+        if (!VcsStatusMode.stages(r))
+            return !status.files(r, Role.WORKING).isEmpty();
+        return !status.files(r, Role.STAGED).isEmpty()
+                || options.contains(CommitOption.ALL) && !status.files(r, Role.WORKING).isEmpty();
     }
 
     /** Shows a message buffer in a window of its own, beside the status; tests show it their own way. */
@@ -151,8 +171,8 @@ public final class CommitCommands {
         final Editor at = statusWindow(editor);
         if (at == null)
             return;
-        if (!VcsStatusMode.stages(at.getBuffer())) {
-            at.status("Nothing here stages to commit");
+        if (!VcsStatusMode.commits(at.getBuffer())) {
+            at.status("Nothing here to commit");
             return;
         }
         TransientPopup.open(at, () -> popup(at));
@@ -199,6 +219,56 @@ public final class CommitCommands {
         start(editor, EnumSet.noneOf(CommitOption.class));
     }
 
+    // Commits one of r's own changelists, whole files: the one the caret is
+    // in, else one asked for.
+    private static void commitNativeList(Editor at, VcsStatusBuffer status, VcsRepository r) {
+        final StatusData d = status.getData(r);
+        if (d == null) {
+            at.status("Wait: the status is being read");
+            return;
+        }
+        final Map<String, StatusData.Section> byName = new java.util.LinkedHashMap<>();
+        for (StatusData.Section s : d.sections()) {
+            final String name = s.role() == Role.WORKING ? r.backend().nativeChangelist(s.id()) : null;
+            if (name != null)
+                byName.put(name, s);
+        }
+        if (byName.isEmpty()) {
+            at.status("No changelist has a change to commit: C m puts files in one");
+            return;
+        }
+        final java.util.function.Consumer<String> commit = name -> {
+            final StatusData.Section s = byName.get(name);
+            if (s == null) {
+                at.status(name + ": no such changelist");
+                return;
+            }
+            final List<FileItem> files = new ArrayList<>();
+            for (StatusData.Item i : s.items())
+                if (i instanceof FileItem f)
+                    files.add(f);
+            startPartial(
+                at,
+                status.model(),
+                PartialCommit.ofTargets(status.model(), List.of(new Target.Files(r, s.id(), files))),
+                "");
+        };
+        final String here = at.getDotLine() instanceof StatusLine line
+                ? ChangelistCommands.nativeList(status.model(), r, line.section())
+                : null;
+        if (here != null && byName.containsKey(here)) {
+            commit.accept(here);
+            return;
+        }
+        BranchCommands.choose.choose(
+            at,
+            COMMIT_LIST,
+            "vcsCommitList",
+            List.copyOf(byName.keySet()),
+            Map.of(),
+            name -> commit.accept(name.strip()));
+    }
+
     /**
      * vcsCommitList: commits a changelist's changes alone, what is staged
      * left staged: the list whose heading the caret is on, else one asked
@@ -209,6 +279,10 @@ public final class CommitCommands {
         if (at == null || !(at.getBuffer() instanceof VcsStatusBuffer status))
             return;
         final VcsRepository r = repository(at, status.model());
+        if (ChangelistCommands.nativeLists(r)) {
+            commitNativeList(at, status, r);
+            return;
+        }
         final RepositoryLists lists = RepositoryLists.shown(r);
         if (lists == null) {
             at.status("No changelists here: n in the changelist popup makes one");
@@ -401,10 +475,22 @@ public final class CommitCommands {
         final boolean takesStaged = !options.contains(CommitOption.MESSAGE_ONLY)
                 && !(options.contains(CommitOption.AMEND) && !options.contains(CommitOption.KEEP_MESSAGE));
         final List<VcsRepository> targets = targets(status, caret, options);
+        if (options.contains(CommitOption.AMEND) && !VcsStatusMode.stages(caret)) {
+            editor.status(caret.backend().name() + " can't change a commit");
+            return;
+        }
+        if (takesStaged
+                && !options.contains(CommitOption.ALLOW_EMPTY)
+                && !targets.isEmpty()
+                && !VcsStatusMode.stages(targets.get(0))
+                && !hasToCommit(status, targets.get(0), options)) {
+            editor.status("Nothing to commit");
+            return;
+        }
         if (takesStaged
                 && !options.contains(CommitOption.ALL)
                 && !options.contains(CommitOption.ALLOW_EMPTY)
-                && (targets.isEmpty() || status.files(targets.get(0), "staged").isEmpty())) {
+                && (targets.isEmpty() || !hasToCommit(status, targets.get(0), options))) {
             editor.status(
                 (status.getRepositories().size() > 1 ? "Nothing is staged in any repository" : "Nothing is staged")
                         + ": s stages the thing at the caret, or -a in the popup every change");
@@ -412,6 +498,26 @@ public final class CommitCommands {
         }
         if (targets.isEmpty()) {
             editor.status("Nothing to commit in any repository");
+            return;
+        }
+        // Repositories with no index alone: their working files, whole, as
+        // a commit of those selected, checked unchanged since shown.
+        if (!options.contains(CommitOption.AMEND) && targets.stream().noneMatch(VcsStatusMode::stages)) {
+            final List<Target> whole = new ArrayList<>();
+            for (VcsRepository r : targets) {
+                final StatusData d = status.getData(r);
+                if (d != null)
+                    for (StatusData.Section s : d.sections())
+                        if (s.role() == Role.WORKING) {
+                            final List<FileItem> files = new ArrayList<>();
+                            for (StatusData.Item i : s.items())
+                                if (i instanceof FileItem f)
+                                    files.add(f);
+                            if (!files.isEmpty())
+                                whole.add(new Target.Files(r, s.id(), files));
+                        }
+            }
+            startPartial(editor, status, PartialCommit.ofTargets(status, whole), "");
             return;
         }
         if (options.contains(CommitOption.KEEP_MESSAGE)) {
@@ -482,14 +588,15 @@ public final class CommitCommands {
             return sb + below;
         }
         for (VcsRepository repository : repositories) {
-            final List<FileItem> files = new ArrayList<>(status.files(repository, "staged"));
-            if (options.contains(CommitOption.ALL))
-                for (FileItem f : status.files(repository, "unstaged"))
+            final boolean stages = VcsStatusMode.stages(repository);
+            final List<FileItem> files = new ArrayList<>(status.files(repository, Role.STAGED));
+            if (options.contains(CommitOption.ALL) || !stages)
+                for (FileItem f : status.files(repository, Role.WORKING))
                     if (files.stream().noneMatch(s -> s.path().equals(f.path())))
                         files.add(f);
             if (files.isEmpty())
                 continue;
-            final String what = options.contains(CommitOption.ALL) ? "to commit" : "staged";
+            final String what = options.contains(CommitOption.ALL) || !stages ? "to commit" : "staged";
             sb.append("# ")
                     .append(repositories.size() > 1 ? repository.name() + ", " + what : capitalized(what))
                     .append(":\n");
@@ -645,6 +752,12 @@ public final class CommitCommands {
         if (status != null)
             status.startWriting();
         editor.status(committing.size() == 1 ? "Committing…" : "Committing to " + names(committing) + "…");
+        // With no index, a repository's working changes, whole, as shown.
+        final Map<VcsRepository, List<String>> whole = new HashMap<>();
+        if (partial == null && status != null)
+            for (VcsRepository r : committing)
+                if (!VcsStatusMode.stages(r))
+                    whole.put(r, status.files(r, Role.WORKING).stream().map(FileItem::path).toList());
         Background.start("vcs commit", () -> {
             // One after another; whatever happens, the message and the
             // status take keys again.
@@ -653,7 +766,9 @@ public final class CommitCommands {
             for (VcsRepository repository : committing) {
                 VcsResult result = null;
                 try {
-                    if (partial == null)
+                    if (whole.containsKey(repository))
+                        result = repository.backend().commitPaths(repository, whole.get(repository), null, message);
+                    else if (partial == null)
                         result = repository.backend().commit(repository, message, options);
                     else {
                         final PartialCommit.Done done = partial.commit(plan, repository, message, options);

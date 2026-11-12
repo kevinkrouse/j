@@ -252,7 +252,7 @@ final class VcsContextMenus {
     private static String resolveWhy(List<Target> targets, ResolveCommands.Take take) {
         if (targets.isEmpty() || targets.stream().anyMatch(t -> !StatusActions.isUnmerged(t)))
             return "Nothing to resolve here";
-        if (targets.stream().anyMatch(t -> !t.repository().backend().capabilities().contains(Capability.STAGING)))
+        if (targets.stream().anyMatch(t -> !t.repository().backend().capabilities().contains(Capability.RESOLVE)))
             return "This backend does not support resolving conflicts here";
         return take.fits(targets) ? null : "That choice doesn't fit these conflicts";
     }

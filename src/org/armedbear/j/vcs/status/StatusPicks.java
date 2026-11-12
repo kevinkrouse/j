@@ -112,6 +112,16 @@ final class StatusPicks {
         return out;
     }
 
+    /** Unpicks all of each of files, whole or in part; whether any was picked. */
+    boolean dropFiles(Set<FileKey> keys) {
+        boolean any = false;
+        for (FileKey k : keys)
+            any |= files.remove(k) != null;
+        if (any)
+            dirty();
+        return any;
+    }
+
     /** Unpicks those of keys, files' and hunks', still picked. */
     void remove(Set<Key> keys) {
         dirty();

@@ -19,11 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
-import org.armedbear.j.Buffer;
-import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.mode.checkin.CheckinBuffer;
-import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Whitespace;
 import org.armedbear.j.vcs.blame.BlameCommit;
 import org.armedbear.j.vcs.diff.FileDiff;
@@ -36,7 +32,9 @@ import org.armedbear.j.vcs.status.StatusData;
 
 /**
  * A version control system. Core provides git and svn; an extension declares
- * others in META-INF/services/org.armedbear.j.vcs.VcsBackend.
+ * others in META-INF/services/org.armedbear.j.vcs.VcsBackend. What the old
+ * per-system commands ask of a buffer or an editor is a backend's
+ * VersionControlHooks.
  */
 public interface VcsBackend {
     /** A Constants VC_ id, unique among backends. */
@@ -189,6 +187,45 @@ public interface VcsBackend {
 
     /** Commits what is staged with message (null to keep the last's, with AMEND and KEEP_MESSAGE). */
     default VcsResult commit(VcsRepository repository, String message, Set<CommitOption> options) {
+        return null;
+    }
+
+    /**
+     * Versions of paths' working files as a commit of them whole would
+     * take them, their content and versioned properties, a ChangeVersion's
+     * staged side; or why not. Null where commits go through an index.
+     * Off the event thread.
+     */
+    default CommitPreview previewPaths(VcsRepository repository, List<String> paths) {
+        return null;
+    }
+
+    /**
+     * Commits paths' working files whole with message, refused if reviewed
+     * isn't null and previewPaths now differs from it. Null where commits
+     * go through an index. Off the event thread.
+     */
+    default VcsResult commitPaths(
+            VcsRepository repository,
+            List<String> paths,
+            Map<String, ChangeVersion> reviewed,
+            String message) {
+        return null;
+    }
+
+    /**
+     * The name of the system's own changelist a status section, by its id,
+     * holds; null for one that is no changelist. For NATIVE_CHANGELISTS.
+     */
+    default String nativeChangelist(String section) {
+        return null;
+    }
+
+    /**
+     * Puts paths, whole, in the system's own changelist name, made if new,
+     * or with name null in none. Off the event thread.
+     */
+    default VcsResult setChangelist(VcsRepository repository, List<String> paths, String name) {
         return null;
     }
 
@@ -554,39 +591,9 @@ public interface VcsBackend {
         return false;
     }
 
-    /** The file's status, or null. */
-    default VersionControlEntry getEntry(Buffer buffer) {
-        return null;
-    }
-
-    default void replaceComment(Editor editor, String comment) {
-        CheckinBuffer.replaceText(editor, comment);
-    }
-
-    default String extractComment(CheckinBuffer buffer) {
-        return buffer.getText();
-    }
-
-    /** Commits what the checkin buffer describes. */
-    default void finish(Editor editor, CheckinBuffer buffer) {}
-
-    /** Opens the editor's read-only file for editing, as "p4 edit" does. True if it did. */
-    default boolean autoEdit(Editor editor) {
-        return false;
-    }
-
-    /** Like {@link #autoEdit(Editor)}, for a file not in a buffer. */
-    default boolean autoEdit(File file) {
-        return false;
-    }
-
     /** A line for the properties dialog, or null. */
     default String getStatusString(File file) {
         return null;
     }
 
-    /** Goes to the source of the diff line at the caret. False if it can't. */
-    default boolean gotoDiffSource(Editor editor, DiffOutputBuffer buffer) {
-        return false;
-    }
 }

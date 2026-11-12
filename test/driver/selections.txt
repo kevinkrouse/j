@@ -1,5 +1,5 @@
-# Generate with phase11-fixture.py; @FIXTURE@ is replaced before J starts.
-# Run this in both simple and vim homes, then phase11-saved.txt in the same home.
+# Generate with selections-fixture.py; @FIXTURE@ is replaced before J starts.
+# Run this in both simple and vim homes, then selections-saved.txt in the same home.
 timeout 10000
 expect buffer a.txt
 expect input @INPUT@

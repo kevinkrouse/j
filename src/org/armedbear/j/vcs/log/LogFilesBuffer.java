@@ -131,7 +131,11 @@ final class LogFilesBuffer extends ViewPane<Buffer> {
         if (!badges.isEmpty())
             lines.add(StatusLine.of(Kind.TEXT, LogDetailsFormatter.text(badges), BADGES));
         lines.add(StatusLine.of(Kind.FIELD, field("Commit:", c.id()), "commit"));
-        lines.add(StatusLine.of(Kind.FIELD, field("Author:", c.author() + " <" + c.email() + ">"), "author"));
+        lines.add(
+            StatusLine.of(
+                Kind.FIELD,
+                field("Author:", c.email().isEmpty() ? c.author() : c.author() + " <" + c.email() + ">"),
+                "author"));
         lines.add(StatusLine.of(Kind.FIELD, field("Date:", date(c)), "date"));
         if (details.host().isStash(c))
             lines.add(StatusLine.of(Kind.FIELD, field("Stash:", stashParents(c.parents())), "merge"));

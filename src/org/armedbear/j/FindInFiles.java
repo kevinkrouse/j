@@ -45,6 +45,7 @@ import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.Ignores;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
+import org.armedbear.j.vcs.VersionControlHooks;
 
 public final class FindInFiles extends Replacement implements BackgroundProcess {
     private static FindInFiles findInFiles;
@@ -876,7 +877,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         boolean writable = file.canWrite();
         if (!writable) {
             for (VcsBackend backend : VcsBackends.all()) {
-                if (backend.autoEdit(file)) {
+                if (backend instanceof VersionControlHooks hooks && hooks.autoEdit(file)) {
                     writable = file.canWrite();
                     break;
                 }

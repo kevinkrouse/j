@@ -20,9 +20,10 @@ import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VersionControlHooks;
 import org.armedbear.j.vcs.VersionControlEntry;
 
-public final class CvsBackend implements VcsBackend {
+public final class CvsBackend implements VcsBackend, VersionControlHooks {
     @Override
     public int id() {
         return VC_CVS;

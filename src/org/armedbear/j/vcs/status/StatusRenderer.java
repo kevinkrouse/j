@@ -43,6 +43,7 @@ import org.armedbear.j.vcs.status.StatusData.CommitItem;
 import org.armedbear.j.vcs.status.StatusData.Field;
 import org.armedbear.j.vcs.status.StatusData.FileItem;
 import org.armedbear.j.vcs.status.StatusData.Item;
+import org.armedbear.j.vcs.status.StatusData.Role;
 import org.armedbear.j.vcs.status.StatusData.Section;
 import org.armedbear.j.vcs.status.StatusData.StashItem;
 import org.armedbear.j.vcs.status.StatusLine.Kind;
@@ -59,7 +60,7 @@ public final class StatusRenderer {
 
     /**
      * A repository and what was read of it; colorIndex is -1 when it is the
-     * only one; its unstaged files in its changelists, null to show them as
+     * only one; its working files in its changelists, null to show them as
      * one section.
      */
     record Part(VcsRepository repository, StatusData data, int colorIndex, ListedChanges listed) {
@@ -67,9 +68,6 @@ public final class StatusRenderer {
             this(repository, data, colorIndex, null);
         }
     }
-
-    /** The section of the work tree's changes, which changelists sort. */
-    static final String UNSTAGED = "unstaged";
 
     /**
      * @param expanded whether a node, by key and kind, is shown open
@@ -181,8 +179,9 @@ public final class StatusRenderer {
                         repository,
                         null));
         }
+        final Section working = data.section(Role.WORKING);
         for (Section s : data.sections())
-            if (part.listed() != null && s.id().equals(UNSTAGED))
+            if (part.listed() != null && s == working)
                 changelists(repository, rk, s, part.listed());
             else
                 section(repository, rk, s);
@@ -212,9 +211,9 @@ public final class StatusRenderer {
     // starts with, so a path such as "|x" isn't taken for list x.
     static final String LIST = "|\u0002";
 
-    /** The key of the heading of r's changelist name, in the section of the work tree's changes. */
-    static String listKey(VcsRepository r, String name) {
-        return sectionKey(r, UNSTAGED) + LIST + name;
+    /** The key of the heading of r's changelist name, in its working section, section. */
+    static String listKey(VcsRepository r, String section, String name) {
+        return sectionKey(r, section) + LIST + name;
     }
 
     // The work tree's changes, s, as changelists: a heading for each, with
@@ -231,7 +230,7 @@ public final class StatusRenderer {
         final Set<String> shown = new HashSet<>();
         for (Changelist l : listed.lists()) {
             final List<Target.Member> members = listed.members().get(l.name());
-            final String lk = listKey(repository, l.name());
+            final String lk = listKey(repository, s.id(), l.name());
             final boolean open = expanded.test(lk, Kind.LIST);
             final String text = INDENT + l.name() + " (" + members.size() + ")"
                     + (l.name().equals(listed.active()) ? "  active" : "");

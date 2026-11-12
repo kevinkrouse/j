@@ -75,7 +75,7 @@ public class StatusPicksTest {
                 repository,
                 new StatusData(List.of(),
                         null,
-                        List.of(new StatusData.Section(section, section, List.of(file))),
+                        List.of(new StatusData.Section(section, section, StatusData.Role.WORKING, List.of(file))),
                         null)),
             key -> false);
     }

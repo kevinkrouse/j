@@ -426,10 +426,7 @@ public class ChangesTreeTest {
             ChangelistCommands.moveTargets(
                 status,
                 new org.armedbear.j.vcs.selection.Selections.Builder()
-                        .member(
-                            repo(),
-                            StatusRenderer.UNSTAGED,
-                            new org.armedbear.j.vcs.selection.Target.Member(a.file(), only))
+                        .member(repo(), "unstaged", new org.armedbear.j.vcs.selection.Target.Member(a.file(), only))
                         .build(),
                 new ChangelistCommands.Destination(repo(), "Feature"),
                 s -> {});
@@ -547,7 +544,7 @@ public class ChangesTreeTest {
             assertSame(PickState.NONE, tree.pickState(a));
             tree.pick(a);
             assertSame(PickState.ALL, tree.pickState(a));
-            assertTrue(tree.status().picks().has(new FileKey(repo(), StatusRenderer.UNSTAGED, "a.txt")));
+            assertTrue(tree.status().picks().has(new FileKey(repo(), "unstaged", "a.txt")));
             tree.pick(a);
             assertSame(PickState.NONE, tree.pickState(a));
         });
@@ -575,7 +572,7 @@ public class ChangesTreeTest {
         onEdt(() -> {
             opened[0] = VcsStatusBuffer.of(List.of(repo()));
             assertSame(status, opened[0].model());
-            assertTrue(opened[0].picks().has(new FileKey(repo(), StatusRenderer.UNSTAGED, "a.txt")));
+            assertTrue(opened[0].picks().has(new FileKey(repo(), "unstaged", "a.txt")));
         });
         // The tab hidden and the status closed, what is picked keeps it.
         onEdt(() -> {
@@ -632,8 +629,8 @@ public class ChangesTreeTest {
             model.unpickAll();
             final var lines = StatusRenderer.renderFiles(
                 repo(),
-                StatusRenderer.sectionKey(repo(), StatusRenderer.UNSTAGED),
-                StatusRenderer.UNSTAGED,
+                StatusRenderer.sectionKey(repo(), "unstaged"),
+                "unstaged",
                 List.of(feature.file()),
                 (key, kind) -> true,
                 model.picks()::ids);

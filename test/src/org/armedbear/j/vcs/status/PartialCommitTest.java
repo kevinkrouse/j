@@ -176,9 +176,9 @@ public class PartialCommitTest {
         until(() -> text().contains("  Feature (0)"));
         // Its diff read, the file opened.
         onEdt(() -> status.toggle(line("    M  a.txt")));
-        until(() -> status.files(repo(), StatusRenderer.UNSTAGED).get(0).diff() != null);
+        until(() -> status.files(repo(), "unstaged").get(0).diff() != null);
         onEdt(() -> {
-            final StatusData.FileItem a = status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+            final StatusData.FileItem a = status.files(repo(), "unstaged").get(0);
             final Map<String, BitSet> only = new HashMap<>();
             for (Map.Entry<String, Hunk> e : status.picks().ids(a.diff()).entrySet())
                 if (e.getValue().lines().stream().anyMatch(l -> l.text().equals("line fifty"))) {
@@ -199,7 +199,7 @@ public class PartialCommitTest {
         final var member = new Target.Member(status.model().unstaged(repo(), "a.txt"), only);
         ChangelistCommands.moveTargets(
             status.model(),
-            new Selections.Builder().member(repo(), StatusRenderer.UNSTAGED, member).build(),
+            new Selections.Builder().member(repo(), "unstaged", member).build(),
             new ChangelistCommands.Destination(repo(), "Feature"),
             said::add);
     }
@@ -440,11 +440,11 @@ public class PartialCommitTest {
         until(() -> text().contains("  Feature (0)"));
         onEdt(() -> status.toggle(line("    M  a.txt")));
         until(() -> {
-            final StatusData.FileItem a = status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+            final StatusData.FileItem a = status.files(repo(), "unstaged").get(0);
             return a.diff() != null && a.diff().hunks().size() == 1;
         });
         onEdt(() -> {
-            final StatusData.FileItem a = status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+            final StatusData.FileItem a = status.files(repo(), "unstaged").get(0);
             final Map.Entry<String, Hunk> e = status.picks().ids(a.diff()).entrySet().iterator().next();
             // Line 6's removal and addition alone.
             final BitSet bits = new BitSet();
@@ -480,12 +480,12 @@ public class PartialCommitTest {
         until(() -> text().contains("  Feature (0)"));
         onEdt(() -> status.toggle(line("    M  a.txt")));
         until(() -> {
-            final StatusData.FileItem a = status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+            final StatusData.FileItem a = status.files(repo(), "unstaged").get(0);
             return a.diff() != null && a.diff().hunks().size() == 3;
         });
         // Lines 3's and 50's hunks to Feature, line 30's left in Default.
         onEdt(() -> {
-            final StatusData.FileItem a = status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+            final StatusData.FileItem a = status.files(repo(), "unstaged").get(0);
             final Map<String, BitSet> only = new HashMap<>();
             for (Map.Entry<String, Hunk> e : status.picks().ids(a.diff()).entrySet())
                 if (e.getValue().lines().stream().noneMatch(l -> l.text().startsWith("line thirty"))) {
@@ -555,12 +555,12 @@ public class PartialCommitTest {
 
     private StatusData.FileItem readA() throws Exception {
         onEdt(() -> status.toggle(line("  M  a.txt")));
-        until(() -> status.files(repo(), StatusRenderer.UNSTAGED).get(0).diff() != null);
-        return status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+        until(() -> status.files(repo(), "unstaged").get(0).diff() != null);
+        return status.files(repo(), "unstaged").get(0);
     }
 
     private Target.Part part(StatusData.FileItem file, int hunk) {
-        return new Target.Part(repo(), StatusRenderer.UNSTAGED, file, file.diff().hunks().get(hunk), null);
+        return new Target.Part(repo(), "unstaged", file, file.diff().hunks().get(hunk), null);
     }
 
     @Test
@@ -602,8 +602,8 @@ public class PartialCommitTest {
         }
         assertFalse(three.isEmpty());
         assertFalse(four.isEmpty());
-        final var first = new Target.Part(repo(), StatusRenderer.UNSTAGED, file, hunk, three);
-        final var second = new Target.Part(repo(), StatusRenderer.UNSTAGED, file, hunk, four);
+        final var first = new Target.Part(repo(), "unstaged", file, hunk, three);
+        final var second = new Target.Part(repo(), "unstaged", file, hunk, four);
         onEdt(() -> {
             status.picks().set(List.of(first), true);
             CommitCommands.vcsCommitPicked(h.editor());
@@ -627,7 +627,7 @@ public class PartialCommitTest {
         fiftyInFeature();
         onEdt(() -> CommitCommands.startPartialList(h.editor(), status.model(), repo(), "Feature"));
         until(() -> message() != null);
-        final var file = status.files(repo(), StatusRenderer.UNSTAGED).get(0);
+        final var file = status.files(repo(), "unstaged").get(0);
         final Map<String, BitSet> first = new HashMap<>();
         status.picks().ids(file.diff()).forEach((id, hunk) -> {
             if (hunk.lines().stream().anyMatch(l -> l.text().equals("line three"))) {

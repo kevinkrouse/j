@@ -129,7 +129,8 @@ public final class DiffParser {
 
     // What a file's header lines say, read as they come.
     private static final class Header {
-        final boolean git;
+        // Git's headers, or svn's diff --git's after its "Index:" heading.
+        boolean git;
         final List<String> lines = new ArrayList<>();
         String oldPath;
         String newPath;
@@ -147,18 +148,20 @@ public final class DiffParser {
 
         void add(String line) {
             lines.add(line);
-            if (line.startsWith("--- ")) {
+            if (line.startsWith("diff --git ")) {
+                git = true;
+            } else if (line.startsWith("--- ")) {
                 sawOld = true;
                 oldPath = path(line.substring(4), git, "a/");
                 // svn marks the side a file is not on: added, the old side.
-                if (!git && absent(line)) {
+                if (absent(line)) {
                     isNew = true;
                     oldPath = null;
                 }
             } else if (line.startsWith("+++ ")) {
                 sawNew = true;
                 newPath = path(line.substring(4), git, "b/");
-                if (!git && absent(line)) {
+                if (absent(line)) {
                     isDeleted = true;
                     newPath = null;
                 }
@@ -181,7 +184,9 @@ public final class DiffParser {
         h.add(lines[i++]);
         while (i < lines.length) {
             String line = lines[i];
-            if (line.startsWith("@@ ") || line.startsWith("diff --git ") || line.startsWith("Index: "))
+            // svn's "Index:" heading, then with --git its git header.
+            final boolean heading = !h.git && !h.sawOld && h.lines.get(0).startsWith("Index: ");
+            if (line.startsWith("@@ ") || line.startsWith("diff --git ") && !heading || line.startsWith("Index: "))
                 break;
             if (line.startsWith("--- ") && h.sawOld)
                 break; // the next file of a bare diff
@@ -194,7 +199,7 @@ public final class DiffParser {
             h.newPath = h.renameTo;
         if (h.git && !h.sawOld && !h.sawNew && h.renameFrom == null) {
             // No "---"/"+++": a mode change, or an empty or binary file.
-            String[] both = gitHeaderPaths(h.lines.get(0));
+            String[] both = gitHeaderPaths(h.lines.stream().filter(l -> l.startsWith("diff --git ")).findFirst().get());
             if (both != null) {
                 h.oldPath = h.isNew ? null : both[0];
                 h.newPath = h.isDeleted ? null : both[1];
@@ -258,16 +263,13 @@ public final class DiffParser {
         return line.endsWith("\t(nonexistent)") || line.endsWith("\t(revision 0)");
     }
 
-    // "--- a/x", "+++ b/x", "--- /dev/null", svn's "--- x\t(revision 5)".
-    // Git ends a path with a space in it with a tab.
+    // "--- a/x", "+++ b/x", "--- /dev/null", svn's "--- x\t(revision 5)"
+    // or with --git "--- a/x\t(revision 5)". Git ends a path with a space in
+    // it with a tab, and quotes one with a tab in it.
     private static String path(String s, boolean git, String prefix) {
-        if (!git) {
-            int tab = s.indexOf('\t');
-            if (tab >= 0)
-                s = s.substring(0, tab);
-        } else if (s.endsWith("\t")) {
-            s = s.substring(0, s.length() - 1);
-        }
+        int tab = s.indexOf('\t');
+        if (tab >= 0)
+            s = s.substring(0, tab);
         s = unquote(s);
         if (s.equals("/dev/null"))
             return null;
