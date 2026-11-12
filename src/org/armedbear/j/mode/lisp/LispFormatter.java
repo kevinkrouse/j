@@ -52,8 +52,8 @@ public final class LispFormatter extends Formatter {
 
     // Formats.
     private static final int LISP_FORMAT_TEXT = 0;
-    private static final int LISP_FORMAT_COMMENT = 1;
-    private static final int LISP_FORMAT_STRING = 2;
+    static final int LISP_FORMAT_COMMENT = 1;
+    static final int LISP_FORMAT_STRING = 2;
     private static final int LISP_FORMAT_KEYWORD = 3;
     private static final int LISP_FORMAT_DEFUN = 4;
     private static final int LISP_FORMAT_NAME = 5;

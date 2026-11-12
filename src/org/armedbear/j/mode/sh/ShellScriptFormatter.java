@@ -42,9 +42,9 @@ public final class ShellScriptFormatter extends Formatter {
     private static final int STATE_ECHO = STATE_LAST + 4;
 
     private static final int SHELLSCRIPT_FORMAT_TEXT = 0;
-    private static final int SHELLSCRIPT_FORMAT_COMMENT = 2;
+    static final int SHELLSCRIPT_FORMAT_COMMENT = 2;
 
-    private static final int SHELLSCRIPT_FORMAT_STRING = 4;
+    static final int SHELLSCRIPT_FORMAT_STRING = 4;
     private static final int SHELLSCRIPT_FORMAT_KEYWORD = 5;
     private static final int SHELLSCRIPT_FORMAT_FUNCTION = 6;
     private static final int SHELLSCRIPT_FORMAT_OPERATOR = 7;

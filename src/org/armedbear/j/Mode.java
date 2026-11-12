@@ -577,12 +577,7 @@ public interface Mode extends Folds {
      * leave stale entering context.
      */
     default LexicalContext lexicalContext(Buffer buffer, Position pos) {
-        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
-            // The refresh rewrote line flags downstream of the edit;
-            // without a repaint the idle parser finds them already
-            // correct and never schedules one, leaving the old
-            // highlighting on lines this keystroke changed the state of.
-            buffer.repaint();
+        buffer.refreshParse();
         // A disabled line is disabled whole: the #if 0 block is
         // line-based, so no token on it can leave the disabled state.
         // The formatter's cursor reports the raw comment/string
@@ -617,8 +612,7 @@ public interface Mode extends Folds {
      *         answer the line
      */
     default Optional<LexicalContext[]> lexicalContexts(Buffer buffer, Line line, int end) {
-        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
-            buffer.repaint();
+        buffer.refreshParse();
         final int limit = Math.min(end, line.length());
         // Same disabled-line collapse as the point query: the cursor
         // reports raw membership so isInComment can find a comment in

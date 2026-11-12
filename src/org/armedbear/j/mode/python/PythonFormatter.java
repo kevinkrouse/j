@@ -46,8 +46,8 @@ public final class PythonFormatter extends Formatter {
     private static final int PYTHON_STATE_TRIPLE_DOUBLE = 10;
 
     private static final int PYTHON_FORMAT_TEXT = 0;
-    private static final int PYTHON_FORMAT_COMMENT = 1;
-    private static final int PYTHON_FORMAT_STRING = 2;
+    static final int PYTHON_FORMAT_COMMENT = 1;
+    static final int PYTHON_FORMAT_STRING = 2;
     private static final int PYTHON_FORMAT_IDENTIFIER = 3;
     private static final int PYTHON_FORMAT_KEYWORD = 4;
     private static final int PYTHON_FORMAT_FUNCTION = 5;

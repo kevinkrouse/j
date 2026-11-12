@@ -25,7 +25,6 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.JMenuItem;
@@ -978,21 +977,19 @@ public class JavaMode extends AbstractMode implements Mode {
         }
         if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
             buffer.repaint();
-        // Migrated formatters answer the query; the cursor reports the
-        // raw comment membership, so a comment inside a disabled line
-        // still reads COMMENT here for % matching. Unmigrated formatters
-        // (PHP) return empty and fall back to the legacy scan, as the
-        // spec requires.
-        Optional<LexicalContext> ctx = buffer.getFormatter().lexicalContextAt(pos.getLine(), pos.getOffset());
-        if (ctx.isPresent())
-            return ctx.get() == LexicalContext.COMMENT;
-        return legacyIsInComment(pos.getLine(), pos.getOffset());
+        // The cursor reports the raw comment membership, so a comment
+        // inside a disabled line still reads COMMENT here for % matching.
+        // Java, C and JavaScript all answer the query; a submode whose
+        // formatter does not (PHP) overrides this with the legacy scan.
+        return buffer.getFormatter()
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
+                .orElse(LexicalContext.NEUTRAL) == LexicalContext.COMMENT;
     }
 
-    // The pre-adapter scan, kept as the fallback for formatters that do
-    // not answer the lexical query. Walks the line from its entering
-    // flags to the offset and reports whether the caret is in a comment.
-    private static boolean legacyIsInComment(Line line, int offset) {
+    // The pre-adapter scan, used by submodes whose formatter does not
+    // answer the lexical query. Walks the line from its entering flags
+    // to the offset and reports whether the caret is in a comment.
+    protected static boolean legacyIsInComment(Line line, int offset) {
         final String text = line.getText();
         if (text == null)
             return false;

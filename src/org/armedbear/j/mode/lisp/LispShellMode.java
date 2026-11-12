@@ -69,6 +69,20 @@ public final class LispShellMode extends LispMode implements Mode {
     }
 
     @Override
+    public boolean isInQuote(Buffer buffer, Position pos) {
+        buffer.refreshParse();
+        // LispShellFormatter does not answer the lexical query, so this
+        // mode keeps the legacy scan directly rather than the adapter.
+        return legacyIsInQuote(pos.getLine(), pos.getOffset());
+    }
+
+    @Override
+    public boolean isInComment(Buffer buffer, Position pos) {
+        buffer.refreshParse();
+        return legacyIsInComment(pos.getLine(), pos.getOffset());
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_HOME, 0, "shellHome");
         km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "shellBackspace");

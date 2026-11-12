@@ -2255,6 +2255,21 @@ public class Buffer extends SystemBuffer {
         return needsParsing;
     }
 
+    /**
+     * Parses the buffer if a preceding edit left it dirty, and repaints
+     * if the parse changed line flags. Callers that read lexical state
+     * must do this first so they see the current parse, not a stale one.
+     *
+     * <p>The repaint matters: the refresh rewrote line flags downstream
+     * of the edit; without it the idle parser finds them already correct
+     * and never schedules one, leaving the old highlighting on lines the
+     * edit changed the state of.
+     */
+    public final void refreshParse() {
+        if (needsParsing() && getFormatter().parseBuffer())
+            repaint();
+    }
+
     public final void setNeedsParsing(boolean b) {
         needsParsing = b;
     }
