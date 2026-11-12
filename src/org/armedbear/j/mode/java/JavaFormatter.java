@@ -99,7 +99,8 @@ public class JavaFormatter extends Formatter {
         // comment on the line report NEUTRAL and pair inside disabled
         // code.
         if (state == STATE_DISABLED) {
-            java.util.Arrays.fill(states, LexicalContext.COMMENT);
+            // Inactive code is neither prose nor a comment: OPAQUE.
+            java.util.Arrays.fill(states, LexicalContext.OPAQUE);
             return Optional.of(states);
         }
         char quoteChar = state == STATE_QUOTE ? '"' : '\0';
@@ -164,12 +165,13 @@ public class JavaFormatter extends Formatter {
         return Optional.of(states);
     }
 
+    // STATE_DISABLED never reaches here: a disabled line is answered by
+    // the OPAQUE fill before the scan runs.
     private static LexicalContext toContext(int state) {
         switch (state) {
             case STATE_QUOTE:
                 return LexicalContext.STRING;
             case STATE_COMMENT:
-            case STATE_DISABLED:
                 return LexicalContext.COMMENT;
             default:
                 return LexicalContext.NEUTRAL;

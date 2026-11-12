@@ -901,7 +901,10 @@ public final class MarkdownFormatter extends Formatter {
         final int upto = Math.min(end, limit);
         final LexicalContext[] states = new LexicalContext[upto + 1];
         if (block == IN_FENCE || block == IN_FRONT_MATTER) {
-            java.util.Arrays.fill(states, LexicalContext.COMMENT);
+            // A fence body or front matter is neither prose nor a
+            // comment: OPAQUE, so pairing is excluded without calling
+            // code a comment.
+            java.util.Arrays.fill(states, LexicalContext.OPAQUE);
             return Optional.of(states);
         }
         int i = 0;
@@ -945,9 +948,9 @@ public final class MarkdownFormatter extends Formatter {
                     i += run;
                     continue;
                 }
-                // The span is [i, close+run): inside it is COMMENT,
-                // the position at or after the closing run is not.
-                fill(states, i + 1, Math.min(close + run - 1, upto), LexicalContext.COMMENT);
+                // The span is [i, close+run): inside it is OPAQUE, the
+                // position at or after the closing run is not.
+                fill(states, i + 1, Math.min(close + run - 1, upto), LexicalContext.OPAQUE);
                 i = close + run;
                 continue;
             }

@@ -15,6 +15,7 @@ import static org.armedbear.j.ElectricPairs.Action.INSERT_PAIR;
 import static org.armedbear.j.ElectricPairs.Action.PLAIN;
 import static org.armedbear.j.LexicalContext.COMMENT;
 import static org.armedbear.j.LexicalContext.NEUTRAL;
+import static org.armedbear.j.LexicalContext.OPAQUE;
 import static org.armedbear.j.LexicalContext.STRING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -197,21 +198,21 @@ public class LexicalContextTest {
         assertEquals(PLAIN, d.action());
     }
 
-    // Markdown: a blank fence body at offset zero is COMMENT; an HTML
-    // comment and inline code are COMMENT; after their closers,
-    // NEUTRAL. Prose with an apostrophe stays NEUTRAL.
+    // Markdown: a fence body and inline code are OPAQUE, not comments;
+    // an HTML comment is COMMENT; after their closers, NEUTRAL. Prose
+    // with an apostrophe stays NEUTRAL.
 
     @Test
     public void markdownBlankFenceAtOffsetZero() {
         String text = "```\n\ncode\n```";
         // The blank line inside the fence, at offset zero.
-        assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 0);
+        assertContext(OPAQUE, MarkdownMode.getMode(), text, 1, 0);
     }
 
     @Test
     public void markdownFenceWithLanguage() {
         String text = "```python\n\ncode\n```";
-        assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 0);
+        assertContext(OPAQUE, MarkdownMode.getMode(), text, 1, 0);
     }
 
     @Test
@@ -219,7 +220,7 @@ public class LexicalContextTest {
         // The `` has no closer, so it is literal; the caret is inside
         // the single-backtick span after it.
         String text = "Use `` and `f()` here";
-        assertContext(COMMENT, MarkdownMode.getMode(), text, 0, 13);
+        assertContext(OPAQUE, MarkdownMode.getMode(), text, 0, 13);
     }
 
     @Test
@@ -233,7 +234,7 @@ public class LexicalContextTest {
     @Test
     public void markdownInlineCode() {
         String text = "a `code` b";
-        assertContext(COMMENT, MarkdownMode.getMode(), text, 0, 4);
+        assertContext(OPAQUE, MarkdownMode.getMode(), text, 0, 4);
         // After the closing backtick: NEUTRAL.
         assertContext(NEUTRAL, MarkdownMode.getMode(), text, 0, 9);
     }
@@ -302,14 +303,20 @@ public class LexicalContextTest {
         assertContext(STRING, PlainTextMode.getMode(), "\"x", 0, 2);
     }
 
-    // A disabled line reads as COMMENT: pairing has no business inside
+    // A disabled line reads as OPAQUE: pairing has no business inside
     // a #if 0 block, so a delimiter there must not open a pair. The
-    // disabled state is line-based, set by CMode's formatter.
+    // disabled state is line-based, set by CMode's formatter. It is
+    // not a comment, so it is OPAQUE rather than COMMENT.
 
     @Test
-    public void disabledLineIsComment() {
-        String text = "#if 0\nint x = (1);\n#endif\n";
-        assertContext(COMMENT, CMode.getMode(), text, 1, 9);
+    public void disabledLineIsOpaque() {
+        // A completed string and a closed block comment on a disabled
+        // line must not make any position NEUTRAL: the whole line stays
+        // OPAQUE, so a delimiter anywhere on it cannot pair.
+        String text = "#if 0\nint x = \"s\"; /* c */ (1);\n#endif\n";
+        assertContext(OPAQUE, CMode.getMode(), text, 1, 9);
+        assertContext(OPAQUE, CMode.getMode(), text, 1, 18);
+        assertContext(OPAQUE, CMode.getMode(), text, 1, 24);
     }
 
     // A line that enters inside a multiline HTML comment is COMMENT
