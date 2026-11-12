@@ -26,7 +26,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.LexicalState;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -70,10 +70,10 @@ public final class PythonFormatter extends Formatter {
      * matter. Raw text, real offsets: no detabbing.
      */
     @Override
-    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
         // An offset past the line's end reads as the state after the
         // whole line, as the per-offset scan answered.
-        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
     }
 
     /**
@@ -84,22 +84,22 @@ public final class PythonFormatter extends Formatter {
      * the string.
      */
     @Override
-    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
         final String text = line.getText();
         final int limit = text.length();
         final int upto = Math.min(end, limit);
-        final LexicalState[] states = new LexicalState[upto + 1];
+        final LexicalContext[] states = new LexicalContext[upto + 1];
         int state = line.flags();
         int i = 0;
         while (i <= upto) {
-            states[i] = toLexical(state);
+            states[i] = toContext(state);
             if (i == upto)
                 break;
             final char c = text.charAt(i);
             if (c == '\\' && i < limit - 1) {
                 // Escape: consumes the next character; the caret
                 // between them is before the escape.
-                fill(states, i + 1, Math.min(i + 1, upto), toLexical(state));
+                fill(states, i + 1, Math.min(i + 1, upto), toContext(state));
                 i += 2;
                 continue;
             }
@@ -119,7 +119,7 @@ public final class PythonFormatter extends Formatter {
                 if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
                     // The closer is three characters; a caret inside it
                     // is still inside the string.
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
                     state = PYTHON_STATE_NEUTRAL;
                     i += 3;
                 } else
@@ -128,7 +128,7 @@ public final class PythonFormatter extends Formatter {
             }
             if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
                 if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
                     state = PYTHON_STATE_NEUTRAL;
                     i += 3;
                 } else
@@ -141,7 +141,7 @@ public final class PythonFormatter extends Formatter {
                     // The opener is consumed whole; a caret inside it
                     // reads as inside the string, as the per-offset
                     // scan answers.
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
                     state = PYTHON_STATE_TRIPLE_SINGLE;
                     i += 3;
                 } else {
@@ -152,7 +152,7 @@ public final class PythonFormatter extends Formatter {
             }
             if (c == '"') {
                 if (text.regionMatches(i, "\"\"\"", 0, 3)) {
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalState.STRING);
+                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
                     state = PYTHON_STATE_TRIPLE_DOUBLE;
                     i += 3;
                 } else {
@@ -165,7 +165,7 @@ public final class PythonFormatter extends Formatter {
                 // A line comment: the caret on the '#' is before it,
                 // everything after is COMMENT.
                 for (int j = i + 1; j <= upto; j++)
-                    states[j] = LexicalState.COMMENT;
+                    states[j] = LexicalContext.COMMENT;
                 return Optional.of(states);
             }
             ++i;
@@ -173,22 +173,22 @@ public final class PythonFormatter extends Formatter {
         return Optional.of(states);
     }
 
-    private static void fill(LexicalState[] states, int from, int to, LexicalState value) {
+    private static void fill(LexicalContext[] states, int from, int to, LexicalContext value) {
         for (int i = from; i <= to; i++)
             states[i] = value;
     }
 
-    private static LexicalState toLexical(int state) {
+    private static LexicalContext toContext(int state) {
         switch (state) {
             case PYTHON_STATE_SINGLE_QUOTE:
             case PYTHON_STATE_DOUBLE_QUOTE:
             case PYTHON_STATE_TRIPLE_SINGLE:
             case PYTHON_STATE_TRIPLE_DOUBLE:
-                return LexicalState.STRING;
+                return LexicalContext.STRING;
             case PYTHON_STATE_COMMENT:
-                return LexicalState.COMMENT;
+                return LexicalContext.COMMENT;
             default:
-                return LexicalState.NEUTRAL;
+                return LexicalContext.NEUTRAL;
         }
     }
 

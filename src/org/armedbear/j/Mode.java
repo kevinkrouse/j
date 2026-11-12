@@ -559,7 +559,7 @@ public interface Mode extends Folds {
     public boolean isInComment(Buffer buffer, Position pos);
 
     /**
-     * The lexical state at {@code pos} for pairing purposes: NEUTRAL,
+     * The lexical context at {@code pos} for pairing purposes: NEUTRAL,
      * STRING or COMMENT. Consults the buffer's formatter query, which
      * consumes the line prefix up to the offset rather than reading the
      * entering flags or the segment under the caret. Falls back to
@@ -569,7 +569,7 @@ public interface Mode extends Folds {
      * <p>Refreshes a dirty parse first, so a preceding edit cannot
      * leave stale entering context.
      */
-    default LexicalState lexicalState(Buffer buffer, Position pos) {
+    default LexicalContext lexicalContext(Buffer buffer, Position pos) {
         if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
             // The refresh rewrote line flags downstream of the edit;
             // without a repaint the idle parser finds them already
@@ -577,17 +577,17 @@ public interface Mode extends Folds {
             // highlighting on lines this keystroke changed the state of.
             buffer.repaint();
         return buffer.getFormatter()
-                .lexicalStateAt(pos.getLine(), pos.getOffset())
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
                 .orElseGet(
-                    () -> isInComment(buffer, pos) ? LexicalState.COMMENT
-                            : isInQuote(buffer, pos) ? LexicalState.STRING
-                            : LexicalState.NEUTRAL);
+                    () -> isInComment(buffer, pos) ? LexicalContext.COMMENT
+                            : isInQuote(buffer, pos) ? LexicalContext.STRING
+                            : LexicalContext.NEUTRAL);
     }
 
     /**
-     * The lexical state at every offset from zero to {@code end}
+     * The lexical context at every offset from zero to {@code end}
      * inclusive on {@code line}, in one pass where the formatter can
-     * manage it. Same contract as {@link #lexicalState}, including the
+     * manage it. Same contract as {@link #lexicalContext}, including the
      * parse refresh, but the whole line is answered at once so a caller
      * that needs many positions on it pays for one scan instead of one
      * per position.
@@ -595,17 +595,17 @@ public interface Mode extends Folds {
      * <p>Empty when the formatter cannot answer in bulk. The fallback
      * predicates are O(offset) each, so building the whole array with
      * them would be quadratic; a caller that needs only some offsets
-     * asks for them one at a time with {@link #lexicalState} instead.
+     * asks for them one at a time with {@link #lexicalContext} instead.
      *
      * @return the states indexed by offset, {@code states[end]} the
      *         state at {@code end}; or empty if the formatter cannot
      *         answer the line
      */
-    default Optional<LexicalState[]> lexicalStates(Buffer buffer, Line line, int end) {
+    default Optional<LexicalContext[]> lexicalContexts(Buffer buffer, Line line, int end) {
         if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
             buffer.repaint();
         final int limit = Math.min(end, line.length());
-        return buffer.getFormatter().lexicalStates(line, limit);
+        return buffer.getFormatter().lexicalContexts(line, limit);
     }
 
     /**

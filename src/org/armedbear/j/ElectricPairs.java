@@ -112,7 +112,7 @@ public final class ElectricPairs {
                 && table.isCloser(c)
                 && charAt(line, offset) == c)
             return Decision.typeOver();
-        if (mode.lexicalState(buffer, dot) != LexicalState.NEUTRAL)
+        if (mode.lexicalContext(buffer, dot) != LexicalContext.NEUTRAL)
             return Decision.plain();
         final boolean balance = buffer.getBooleanProperty(Property.ELECTRIC_PAIRS_BALANCE);
         if (table.isOpener(c)) {
@@ -153,7 +153,7 @@ public final class ElectricPairs {
      * empty pair — {@code {|}} — rather than split the line as
      * ordinary. The caret must sit between a configured asymmetric
      * pair: a quote or other symmetric delimiter does not expand, so
-     * Enter inside {@code ""} stays a plain split. The lexical state
+     * Enter inside {@code ""} stays a plain split. The lexical context
      * at the caret must be NEUTRAL; a pair inside a string or comment
      * is content, not a structure to open. The empty-quote Backspace
      * exception does not apply here.
@@ -170,7 +170,7 @@ public final class ElectricPairs {
         PairTable.Pair pair = mode.getPairTable().pairFor(left);
         if (pair == null || pair.opener() != left || pair.closer() != right)
             return Decision.plain();
-        if (mode.lexicalState(buffer, dot) != LexicalState.NEUTRAL)
+        if (mode.lexicalContext(buffer, dot) != LexicalContext.NEUTRAL)
             return Decision.plain();
         return Decision.of(Action.OPEN_LINE, pair);
     }
@@ -183,7 +183,7 @@ public final class ElectricPairs {
      *
      * <p>For an asymmetric pair a NEUTRAL context is enough: {@code
      * (|)} is an empty pair the user just typed. A symmetric pair goes
-     * by the empty-quote rule alone, since the lexical state cannot
+     * by the empty-quote rule alone, since the lexical context cannot
      * tell {@code "|"} from a quote inside a longer string, or from
      * the quotes between two strings.
      */
@@ -205,13 +205,13 @@ public final class ElectricPairs {
         // string rather than opening an empty one.
         if (pair.opener() == pair.closer())
             return isEmptyQuotePair(mode, buffer, line, offset);
-        return mode.lexicalState(buffer, new Position(line, offset)) == LexicalState.NEUTRAL;
+        return mode.lexicalContext(buffer, new Position(line, offset)) == LexicalContext.NEUTRAL;
     }
 
     /**
      * Whether the caret sits between the two characters of an empty
      * quote pair — {@code "|"} — so that Backspace may delete both.
-     * The lexical state at the caret reports STRING there, which
+     * The lexical context at the caret reports STRING there, which
      * would otherwise block the delete; this identifies the real
      * empty string.
      *
@@ -234,7 +234,7 @@ public final class ElectricPairs {
             return false;
         if (oddEscapeRunBefore(mode, line, offset - 1))
             return false;
-        return mode.lexicalState(buffer, new Position(line, offset - 1)) == LexicalState.NEUTRAL;
+        return mode.lexicalContext(buffer, new Position(line, offset - 1)) == LexicalContext.NEUTRAL;
     }
 
     /** Whether the run of the mode's escape character ending just before offset is odd. */
@@ -255,7 +255,7 @@ public final class ElectricPairs {
      * count: in {@code foo(| "x)"} the {@code )} is inside the string,
      * so the opener still gets its own closer.
      *
-     * <p>The lexical state for the whole span is taken in one pass.
+     * <p>The lexical context for the whole span is taken in one pass.
      * Asking for it per delimiter rescans the line prefix each time,
      * which on a line with thousands of balanced pairs stalls the input
      * path.
@@ -267,7 +267,7 @@ public final class ElectricPairs {
             int from,
             char closer,
             char opener) {
-        final Optional<LexicalState[]> bulk = mode.lexicalStates(buffer, line, line.length());
+        final Optional<LexicalContext[]> bulk = mode.lexicalContexts(buffer, line, line.length());
         int depth = 0;
         for (int i = from; i < line.length(); i++) {
             char ch = line.charAt(i);
@@ -278,9 +278,9 @@ public final class ElectricPairs {
             // are O(offset) each, so a line with no delimiters costs
             // no predicate work at all, and one with few of them pays
             // for few instead of for every position on the line.
-            final LexicalState state =
-                    bulk.isPresent() ? bulk.get()[i] : mode.lexicalState(buffer, new Position(line, i));
-            if (state != LexicalState.NEUTRAL)
+            final LexicalContext state =
+                    bulk.isPresent() ? bulk.get()[i] : mode.lexicalContext(buffer, new Position(line, i));
+            if (state != LexicalContext.NEUTRAL)
                 continue;
             if (ch == opener)
                 depth++;

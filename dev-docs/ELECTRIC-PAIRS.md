@@ -242,7 +242,7 @@ is what makes that work.
    A symmetric delimiter like `"` is in the closer set, so `"` at
    dot on `"` steps over; `"` with a non-quote at dot fails this
    rule and falls through to opener handling (rule 6).
-5. **In string or comment**: `mode.lexicalState(buffer, dot)` is
+5. **In string or comment**: `mode.lexicalContext(buffer, dot)` is
    STRING or COMMENT → PLAIN. This generalizes the
    `electricSemi` context-check pattern (ElectricCommands.java:72-76)
    and the nvim-autopairs `check_ts` rule. See "Lexical context"
@@ -396,7 +396,7 @@ Step 5 introduced the normalized query below. Build step 12 consolidates
 its implementation with the existing formatter scanners and clarifies
 the classification of regions such as Markdown code and disabled C.
 
-Rule 5 uses `mode.lexicalState`; reusing only the existing
+Rule 5 uses `mode.lexicalContext`; reusing only the existing
 `isInQuote`/`isInComment` defaults would be inaccurate:
 
 - `AbstractMode.isInComment` returns `false` always (:782). Only
@@ -433,13 +433,13 @@ This is exactly what the correct existing overrides do
 `pos.getOffset()`). Generalize that pattern:
 
 ```java
-enum LexicalState { NEUTRAL, STRING, COMMENT }
+enum LexicalContext { NEUTRAL, STRING, COMMENT }
 ```
 
 **Formatter interface: query a position with the full parser context.**
 
 ```java
-Optional<LexicalState> Formatter.lexicalStateAt(Line line, int bufferOffset)
+Optional<LexicalContext> Formatter.lexicalContextAt(Line line, int bufferOffset)
 ```
 
 The default returns `Optional.empty()` for an unsupported query;
@@ -482,7 +482,7 @@ text remain NEUTRAL. `CODE`, `CODE_BLOCK` and `FENCE` are display
 format IDs and must never be interpreted as parser states.
 
 **Mode dispatch and parse freshness.**
-`Mode.lexicalState(Buffer, Position)` returns `LexicalState`. Modes
+`Mode.lexicalContext(Buffer, Position)` returns `LexicalContext`. Modes
 with correct existing overrides (Java, Lisp, Xml) can adapt their
 current scans directly. Otherwise consult the buffer's formatter
 query, falling back to `isInQuote`/`isInComment` only when unsupported.

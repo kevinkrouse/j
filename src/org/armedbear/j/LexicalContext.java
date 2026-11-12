@@ -1,5 +1,5 @@
 /*
- * LexicalState.java
+ * LexicalContext.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -17,6 +17,6 @@ package org.armedbear.j;
  * electric-pairs decision needs; the formatters' richer parser
  * states collapse into these.
  */
-public enum LexicalState {
+public enum LexicalContext {
     NEUTRAL, STRING, COMMENT
 }

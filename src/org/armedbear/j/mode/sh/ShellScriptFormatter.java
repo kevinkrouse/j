@@ -29,7 +29,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.LexicalState;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -74,10 +74,10 @@ public final class ShellScriptFormatter extends Formatter {
      * {@code <<} opener, mirroring {@link #parseBuffer}.
      */
     @Override
-    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
         // An offset past the line's end reads as the state after the
         // whole line, as the per-offset scan answered.
-        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
     }
 
     /**
@@ -87,12 +87,12 @@ public final class ShellScriptFormatter extends Formatter {
      * own offset, as the per-offset scan answers.
      */
     @Override
-    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
         final int limit = line.length();
         final int upto = Math.min(end, limit);
-        final LexicalState[] states = new LexicalState[upto + 1];
+        final LexicalContext[] states = new LexicalContext[upto + 1];
         if (line.flags() == STATE_HERE_DOCUMENT) {
-            java.util.Arrays.fill(states, LexicalState.STRING);
+            java.util.Arrays.fill(states, LexicalContext.STRING);
             return Optional.of(states);
         }
         // parseBuffer carries an open quote across lines, so a line
@@ -100,7 +100,7 @@ public final class ShellScriptFormatter extends Formatter {
         int state = line.flags() == STATE_QUOTE || line.flags() == STATE_SINGLEQUOTE ? line.flags() : STATE_NEUTRAL;
         int i = 0;
         while (i <= upto) {
-            states[i] = toLexical(state);
+            states[i] = toContext(state);
             if (i == upto)
                 break;
             final char c = line.charAt(i);
@@ -108,7 +108,7 @@ public final class ShellScriptFormatter extends Formatter {
                 // Escape: consumes the next character; the state is
                 // unchanged across it.
                 if (i + 1 <= upto)
-                    states[i + 1] = toLexical(state);
+                    states[i + 1] = toContext(state);
                 i += 2;
                 continue;
             }
@@ -129,7 +129,7 @@ public final class ShellScriptFormatter extends Formatter {
                 if (heredocTerminator(line, i) != null) {
                     // The rest of the line declares the terminator.
                     for (int j = i + 1; j <= upto; j++)
-                        states[j] = LexicalState.STRING;
+                        states[j] = LexicalContext.STRING;
                     return Optional.of(states);
                 }
                 ++i;
@@ -137,7 +137,7 @@ public final class ShellScriptFormatter extends Formatter {
             }
             if (c == '#') {
                 for (int j = i + 1; j <= upto; j++)
-                    states[j] = LexicalState.COMMENT;
+                    states[j] = LexicalContext.COMMENT;
                 return Optional.of(states);
             }
             if (c == '"')
@@ -171,18 +171,18 @@ public final class ShellScriptFormatter extends Formatter {
         return null;
     }
 
-    private static LexicalState toLexical(int state) {
+    private static LexicalContext toContext(int state) {
         switch (state) {
             case STATE_QUOTE:
             case STATE_SINGLEQUOTE:
             case STATE_BACKQUOTE:
             case STATE_HERE_DOCUMENT:
             case STATE_ECHO:
-                return LexicalState.STRING;
+                return LexicalContext.STRING;
             case STATE_COMMENT:
-                return LexicalState.COMMENT;
+                return LexicalContext.COMMENT;
             default:
-                return LexicalState.NEUTRAL;
+                return LexicalContext.NEUTRAL;
         }
     }
 

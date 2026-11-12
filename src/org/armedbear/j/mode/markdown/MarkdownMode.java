@@ -29,7 +29,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
-import org.armedbear.j.LexicalState;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
@@ -88,7 +88,7 @@ public final class MarkdownMode extends AbstractMode implements Mode {
         final Line line = editor.getDotLine();
         final int offset = editor.getDotOffset();
         // Inside a fence, an HTML comment or a code span, nothing pairs.
-        if (lexicalState(buffer, editor.getDot()) != LexicalState.NEUTRAL)
+        if (lexicalContext(buffer, editor.getDot()) != LexicalContext.NEUTRAL)
             return false;
         final String text = line.getText();
         final int end = text.length();

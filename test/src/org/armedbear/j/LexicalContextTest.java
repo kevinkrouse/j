@@ -1,5 +1,5 @@
 /*
- * LexicalStateTest.java
+ * LexicalContextTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -13,9 +13,9 @@ package org.armedbear.j;
 
 import static org.armedbear.j.ElectricPairs.Action.INSERT_PAIR;
 import static org.armedbear.j.ElectricPairs.Action.PLAIN;
-import static org.armedbear.j.LexicalState.COMMENT;
-import static org.armedbear.j.LexicalState.NEUTRAL;
-import static org.armedbear.j.LexicalState.STRING;
+import static org.armedbear.j.LexicalContext.COMMENT;
+import static org.armedbear.j.LexicalContext.NEUTRAL;
+import static org.armedbear.j.LexicalContext.STRING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,12 +34,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The lexical-state query: the state at a position after consuming
+ * The lexical-context query: the state at a position after consuming
  * the line prefix through the caret, not the entering flags and not
  * the segment under the caret. The electric-pairs decision reads this
  * instead of the old {@code isInQuote}/{@code isInComment} pair.
  */
-public class LexicalStateTest {
+public class LexicalContextTest {
     private EditorHarness h;
 
     @AfterEach
@@ -49,17 +49,17 @@ public class LexicalStateTest {
     }
 
     /** The state at {@code line}:{@code offset} in {@code text} under {@code mode}. */
-    private LexicalState stateAt(Mode mode, String text, int line, int offset) {
+    private LexicalContext contextAt(Mode mode, String text, int line, int offset) {
         if (h != null)
             h.close();
         h = EditorHarness.create(text).mode(mode);
-        return mode.lexicalState(h.buffer(), new Position(h.buffer().getLine(line), offset));
+        return mode.lexicalContext(h.buffer(), new Position(h.buffer().getLine(line), offset));
     }
 
-    private void assertState(LexicalState expected, Mode mode, String text, int line, int offset) {
+    private void assertContext(LexicalContext expected, Mode mode, String text, int line, int offset) {
         assertEquals(
             expected,
-            stateAt(mode, text, line, offset),
+            contextAt(mode, text, line, offset),
             mode.getDisplayName() + " at " + line + ":" + offset + " of [" + text + "]");
     }
 
@@ -84,23 +84,23 @@ public class LexicalStateTest {
     @Test
     public void pythonCommentAtEol() {
         // "# comment|" — the caret after the whole comment.
-        assertState(COMMENT, PythonMode.getMode(), "# comment", 0, 9);
+        assertContext(COMMENT, PythonMode.getMode(), "# comment", 0, 9);
     }
 
     @Test
     public void pythonInsideComment() {
-        assertState(COMMENT, PythonMode.getMode(), "# comment", 0, 4);
+        assertContext(COMMENT, PythonMode.getMode(), "# comment", 0, 4);
     }
 
     @Test
     public void pythonClosedStringIsNeutral() {
         // "\"foo\"|" — the closing quote's transition consumed the string.
-        assertState(NEUTRAL, PythonMode.getMode(), "\"foo\"", 0, 5);
+        assertContext(NEUTRAL, PythonMode.getMode(), "\"foo\"", 0, 5);
     }
 
     @Test
     public void pythonInsideString() {
-        assertState(STRING, PythonMode.getMode(), "\"foo\"", 0, 2);
+        assertContext(STRING, PythonMode.getMode(), "\"foo\"", 0, 2);
     }
 
     @Test
@@ -108,18 +108,18 @@ public class LexicalStateTest {
         // A triple-quoted string with an isolated " and an escaped
         // quote inside stays STRING across continuation lines.
         String text = "x = \"\"\"a \" b \\\" c\nstill inside\nd\"\"\" done";
-        assertState(STRING, PythonMode.getMode(), text, 0, 12);
-        assertState(STRING, PythonMode.getMode(), text, 1, 5);
+        assertContext(STRING, PythonMode.getMode(), text, 0, 12);
+        assertContext(STRING, PythonMode.getMode(), text, 1, 5);
         // After the closing triple delimiter: NEUTRAL.
-        assertState(NEUTRAL, PythonMode.getMode(), text, 2, 8);
+        assertContext(NEUTRAL, PythonMode.getMode(), text, 2, 8);
     }
 
     @Test
     public void pythonTripleQuoteTabbedPrefix() {
         String text = "\t\"\"\"tabbed\ninside\"\"\"";
-        assertState(STRING, PythonMode.getMode(), text, 0, 5);
-        assertState(STRING, PythonMode.getMode(), text, 1, 2);
-        assertState(NEUTRAL, PythonMode.getMode(), text, 1, 10);
+        assertContext(STRING, PythonMode.getMode(), text, 0, 5);
+        assertContext(STRING, PythonMode.getMode(), text, 1, 2);
+        assertContext(NEUTRAL, PythonMode.getMode(), text, 1, 10);
     }
 
     @Test
@@ -142,12 +142,12 @@ public class LexicalStateTest {
     @Test
     public void shellHeredocBodyIsString() {
         String text = "cat <<EOF\nbody line\nEOF\ndone";
-        assertState(STRING, ShellScriptMode.getMode(), text, 1, 4);
+        assertContext(STRING, ShellScriptMode.getMode(), text, 1, 4);
         // The terminator line itself: the body ended before it, so
         // the line entering HERE_DOCUMENT is the body; the terminator
         // line enters NEUTRAL.
-        assertState(NEUTRAL, ShellScriptMode.getMode(), text, 2, 0);
-        assertState(NEUTRAL, ShellScriptMode.getMode(), text, 3, 0);
+        assertContext(NEUTRAL, ShellScriptMode.getMode(), text, 2, 0);
+        assertContext(NEUTRAL, ShellScriptMode.getMode(), text, 3, 0);
     }
 
     @Test
@@ -155,7 +155,7 @@ public class LexicalStateTest {
         // A line that starts with the terminator but is longer is
         // still body.
         String text = "cat <<EOF\nEOFextra\nEOF\n";
-        assertState(STRING, ShellScriptMode.getMode(), text, 1, 3);
+        assertContext(STRING, ShellScriptMode.getMode(), text, 1, 3);
     }
 
     @Test
@@ -163,32 +163,32 @@ public class LexicalStateTest {
         // Two heredocs with distinct terminators: the second must see
         // its own, not a leaked one.
         String text = "cat <<AAA\nfirst\nAAA\ncat <<BBB\nsecond\nBBB\n";
-        assertState(STRING, ShellScriptMode.getMode(), text, 1, 2);
-        assertState(STRING, ShellScriptMode.getMode(), text, 4, 2);
-        assertState(NEUTRAL, ShellScriptMode.getMode(), text, 3, 0);
+        assertContext(STRING, ShellScriptMode.getMode(), text, 1, 2);
+        assertContext(STRING, ShellScriptMode.getMode(), text, 4, 2);
+        assertContext(NEUTRAL, ShellScriptMode.getMode(), text, 3, 0);
     }
 
     @Test
     public void shellMultiLineSingleQuoteCarriesAcrossLines() {
         String text = "awk '\n  { print $1 }\n' | grep \"x(\"";
         // Line 2 is inside the single-quoted string.
-        assertState(STRING, ShellScriptMode.getMode(), text, 1, 2);
+        assertContext(STRING, ShellScriptMode.getMode(), text, 1, 2);
         // On line 3 the quote closes it: after it, NEUTRAL.
-        assertState(NEUTRAL, ShellScriptMode.getMode(), text, 2, 2);
+        assertContext(NEUTRAL, ShellScriptMode.getMode(), text, 2, 2);
     }
 
     @Test
     public void javaCaretAfterABackslashInAStringIsInTheString() {
         // s = "a\| b"; : the caret sits between the backslash and the
         // character it escapes.
-        assertState(STRING, JavaMode.getMode(), "s = \"a\\ b\";", 0, 7);
+        assertContext(STRING, JavaMode.getMode(), "s = \"a\\ b\";", 0, 7);
     }
 
     @Test
     public void javaCaretBetweenCommentMarkerCharsIsBeforeTheComment() {
-        assertState(NEUTRAL, JavaMode.getMode(), "x /* c */", 0, 3);
-        assertState(NEUTRAL, JavaMode.getMode(), "x // c", 0, 3);
-        assertState(COMMENT, JavaMode.getMode(), "/* c */ x", 0, 6);
+        assertContext(NEUTRAL, JavaMode.getMode(), "x /* c */", 0, 3);
+        assertContext(NEUTRAL, JavaMode.getMode(), "x // c", 0, 3);
+        assertContext(COMMENT, JavaMode.getMode(), "/* c */ x", 0, 6);
     }
 
     @Test
@@ -205,13 +205,13 @@ public class LexicalStateTest {
     public void markdownBlankFenceAtOffsetZero() {
         String text = "```\n\ncode\n```";
         // The blank line inside the fence, at offset zero.
-        assertState(COMMENT, MarkdownMode.getMode(), text, 1, 0);
+        assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 0);
     }
 
     @Test
     public void markdownFenceWithLanguage() {
         String text = "```python\n\ncode\n```";
-        assertState(COMMENT, MarkdownMode.getMode(), text, 1, 0);
+        assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 0);
     }
 
     @Test
@@ -219,35 +219,35 @@ public class LexicalStateTest {
         // The `` has no closer, so it is literal; the caret is inside
         // the single-backtick span after it.
         String text = "Use `` and `f()` here";
-        assertState(COMMENT, MarkdownMode.getMode(), text, 0, 13);
+        assertContext(COMMENT, MarkdownMode.getMode(), text, 0, 13);
     }
 
     @Test
     public void markdownHtmlComment() {
         String text = "<!-- hidden -->";
-        assertState(COMMENT, MarkdownMode.getMode(), text, 0, 5);
+        assertContext(COMMENT, MarkdownMode.getMode(), text, 0, 5);
         // After the closing marker: NEUTRAL.
-        assertState(NEUTRAL, MarkdownMode.getMode(), text, 0, 15);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), text, 0, 15);
     }
 
     @Test
     public void markdownInlineCode() {
         String text = "a `code` b";
-        assertState(COMMENT, MarkdownMode.getMode(), text, 0, 4);
+        assertContext(COMMENT, MarkdownMode.getMode(), text, 0, 4);
         // After the closing backtick: NEUTRAL.
-        assertState(NEUTRAL, MarkdownMode.getMode(), text, 0, 9);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), text, 0, 9);
     }
 
     @Test
     public void markdownUnclosedBacktickIsLiteral() {
         // No close anywhere: the backticks are literal, not a span.
-        assertState(NEUTRAL, MarkdownMode.getMode(), "a ` not code", 0, 8);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), "a ` not code", 0, 8);
     }
 
     @Test
     public void markdownApostropheStaysNeutral() {
         // "don't |" — the apostrophe is prose, not a string.
-        assertState(NEUTRAL, MarkdownMode.getMode(), "don't ", 0, 6);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), "don't ", 0, 6);
         Decision d = typeAt(MarkdownMode.getMode(), "don't ", 0, 6, '(');
         assertEquals(INSERT_PAIR, d.action());
     }
@@ -255,7 +255,7 @@ public class LexicalStateTest {
     @Test
     public void markdownEscapedBacktickIsLiteral() {
         // A backslash-escaped backtick does not open a code span.
-        assertState(NEUTRAL, MarkdownMode.getMode(), "a \\` not code", 0, 8);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), "a \\` not code", 0, 8);
     }
 
     // Java and Lisp: the existing overrides adapt; the query agrees
@@ -263,34 +263,34 @@ public class LexicalStateTest {
 
     @Test
     public void javaLineComment() {
-        assertState(COMMENT, JavaMode.getMode(), "// x ", 0, 4);
+        assertContext(COMMENT, JavaMode.getMode(), "// x ", 0, 4);
     }
 
     @Test
     public void javaString() {
-        assertState(STRING, JavaMode.getMode(), "\"x\"", 0, 2);
+        assertContext(STRING, JavaMode.getMode(), "\"x\"", 0, 2);
     }
 
     @Test
     public void javaClosedStringIsNeutral() {
-        assertState(NEUTRAL, JavaMode.getMode(), "\"x\" ", 0, 4);
+        assertContext(NEUTRAL, JavaMode.getMode(), "\"x\" ", 0, 4);
     }
 
     @Test
     public void lispLineComment() {
-        assertState(COMMENT, LispMode.getMode(), "; x ", 0, 4);
+        assertContext(COMMENT, LispMode.getMode(), "; x ", 0, 4);
     }
 
     @Test
     public void lispString() {
-        assertState(STRING, LispMode.getMode(), "\"x\"", 0, 2);
+        assertContext(STRING, LispMode.getMode(), "\"x\"", 0, 2);
     }
 
     @Test
     public void lispBlockComment() {
-        assertState(COMMENT, LispMode.getMode(), "#| block |# x", 0, 5);
+        assertContext(COMMENT, LispMode.getMode(), "#| block |# x", 0, 5);
         // After the closing |#: NEUTRAL.
-        assertState(NEUTRAL, LispMode.getMode(), "#| block |# x", 0, 11);
+        assertContext(NEUTRAL, LispMode.getMode(), "#| block |# x", 0, 11);
     }
 
     // The plain-text default: the formatter has no query, so the
@@ -299,7 +299,7 @@ public class LexicalStateTest {
     @Test
     public void plainTextFallsBackToDefaults() {
         // The default isInQuote treats " as a quote.
-        assertState(STRING, PlainTextMode.getMode(), "\"x", 0, 2);
+        assertContext(STRING, PlainTextMode.getMode(), "\"x", 0, 2);
     }
 
     // A disabled line reads as COMMENT: pairing has no business inside
@@ -309,7 +309,7 @@ public class LexicalStateTest {
     @Test
     public void disabledLineIsComment() {
         String text = "#if 0\nint x = (1);\n#endif\n";
-        assertState(COMMENT, CMode.getMode(), text, 1, 9);
+        assertContext(COMMENT, CMode.getMode(), text, 1, 9);
     }
 
     // A line that enters inside a multiline HTML comment is COMMENT
@@ -319,9 +319,9 @@ public class LexicalStateTest {
     public void markdownResumesAfterMultilineComment() {
         String text = "<!-- open\nstill --> prose (here\n";
         // Before the marker: still inside the comment.
-        assertState(COMMENT, MarkdownMode.getMode(), text, 1, 3);
+        assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 3);
         // Just past the marker: the comment closed, prose is NEUTRAL.
-        assertState(NEUTRAL, MarkdownMode.getMode(), text, 1, 12);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), text, 1, 12);
     }
 
     // The exact boundary: the caret one past the closing marker of a
@@ -331,9 +331,9 @@ public class LexicalStateTest {
     public void markdownCaretRightAfterMultilineCommentMarker() {
         String text = "<!-- hidden\n-->";
         // Inside the marker: still COMMENT.
-        assertState(COMMENT, MarkdownMode.getMode(), text, 1, 2);
+        assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 2);
         // One past the marker: NEUTRAL, and ( pairs.
-        assertState(NEUTRAL, MarkdownMode.getMode(), text, 1, 3);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), text, 1, 3);
         Decision d = typeAt(MarkdownMode.getMode(), text, 1, 3, '(');
         assertEquals(INSERT_PAIR, d.action());
     }
@@ -346,7 +346,7 @@ public class LexicalStateTest {
     public void markdownUnmatchedBackticksAreNeutral() {
         String text = "don't ``";
         // Between the two backticks: NEUTRAL, and ( pairs.
-        assertState(NEUTRAL, MarkdownMode.getMode(), text, 0, 7);
+        assertContext(NEUTRAL, MarkdownMode.getMode(), text, 0, 7);
         Decision d = typeAt(MarkdownMode.getMode(), text, 0, 7, '(');
         assertEquals(INSERT_PAIR, d.action());
     }
@@ -412,10 +412,10 @@ public class LexicalStateTest {
             h.close();
         h = EditorHarness.create("x = 1\nsecond line\n").mode(PythonMode.getMode());
         // Before the edit: line 1 is ordinary code.
-        assertEquals(NEUTRAL, h.buffer().getMode().lexicalState(h.buffer(), new Position(h.buffer().getLine(1), 3)));
+        assertEquals(NEUTRAL, h.buffer().getMode().lexicalContext(h.buffer(), new Position(h.buffer().getLine(1), 3)));
         // Open a triple-quoted string on line 0; line 1 is now body.
         h.buffer().insertString(new Position(h.buffer().getLine(0), 5), " \"\"\"open");
-        assertEquals(STRING, h.buffer().getMode().lexicalState(h.buffer(), new Position(h.buffer().getLine(1), 3)));
+        assertEquals(STRING, h.buffer().getMode().lexicalContext(h.buffer(), new Position(h.buffer().getLine(1), 3)));
     }
 
     // The refresh inside the query rewrote line flags downstream of
@@ -434,7 +434,7 @@ public class LexicalStateTest {
         assertFalse(h.repaintPending());
         h.clearRepaintPending();
         // The query refreshes the parse and must ask for a repaint.
-        assertEquals(STRING, h.buffer().getMode().lexicalState(h.buffer(), new Position(h.buffer().getLine(1), 3)));
+        assertEquals(STRING, h.buffer().getMode().lexicalContext(h.buffer(), new Position(h.buffer().getLine(1), 3)));
         assertTrue(h.repaintPending());
     }
 }

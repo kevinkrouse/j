@@ -30,7 +30,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.FollowLink;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.LexicalState;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -876,10 +876,10 @@ public final class MarkdownFormatter extends Formatter {
      * a backtick or a less-than so escaped is literal.
      */
     @Override
-    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
         // An offset past the line's end reads as the state after the
         // whole line, as the per-offset scan answered.
-        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
     }
 
     /**
@@ -892,34 +892,34 @@ public final class MarkdownFormatter extends Formatter {
      * marker is consumed, then the prose after it pairs normally.
      */
     @Override
-    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
         final int block = line.flags() & BLOCK_MASK;
         final String text = line.getText();
         // The helpers see the whole line: a delimiter's close may lie
         // beyond the last offset asked for.
         final int limit = text.length();
         final int upto = Math.min(end, limit);
-        final LexicalState[] states = new LexicalState[upto + 1];
+        final LexicalContext[] states = new LexicalContext[upto + 1];
         if (block == IN_FENCE || block == IN_FRONT_MATTER) {
-            java.util.Arrays.fill(states, LexicalState.COMMENT);
+            java.util.Arrays.fill(states, LexicalContext.COMMENT);
             return Optional.of(states);
         }
         int i = 0;
         if (block == IN_COMMENT) {
             final int close = text.indexOf("-->");
             if (close < 0) {
-                java.util.Arrays.fill(states, LexicalState.COMMENT);
+                java.util.Arrays.fill(states, LexicalContext.COMMENT);
                 return Optional.of(states);
             }
             // The comment runs through the closing marker's last
             // character; the position just past the marker is prose
             // and pairs normally, so the fill stops at close + 2 and
             // the scan resumes there.
-            fill(states, 0, Math.min(close + 2, upto), LexicalState.COMMENT);
+            fill(states, 0, Math.min(close + 2, upto), LexicalContext.COMMENT);
             i = close + 3;
         }
         while (i <= upto) {
-            states[i] = LexicalState.NEUTRAL;
+            states[i] = LexicalContext.NEUTRAL;
             if (i == upto)
                 break;
             final char c = text.charAt(i);
@@ -927,7 +927,7 @@ public final class MarkdownFormatter extends Formatter {
                 // The escape consumes the next character; the caret on
                 // it is inside the escape, not on a delimiter.
                 if (i + 1 <= upto)
-                    states[i + 1] = LexicalState.NEUTRAL;
+                    states[i + 1] = LexicalContext.NEUTRAL;
                 i += 2;
                 continue;
             }
@@ -941,13 +941,13 @@ public final class MarkdownFormatter extends Formatter {
                     // does not fall through to the generic quote
                     // scanner (which would read an apostrophe earlier
                     // on the line as an open string).
-                    fill(states, i + 1, Math.min(i + run, upto), LexicalState.NEUTRAL);
+                    fill(states, i + 1, Math.min(i + run, upto), LexicalContext.NEUTRAL);
                     i += run;
                     continue;
                 }
                 // The span is [i, close+run): inside it is COMMENT,
                 // the position at or after the closing run is not.
-                fill(states, i + 1, Math.min(close + run - 1, upto), LexicalState.COMMENT);
+                fill(states, i + 1, Math.min(close + run - 1, upto), LexicalContext.COMMENT);
                 i = close + run;
                 continue;
             }
@@ -955,10 +955,10 @@ public final class MarkdownFormatter extends Formatter {
                 final int close = text.indexOf("-->", i + 4);
                 if (close < 0) {
                     // Unclosed: everything from here on is COMMENT.
-                    fill(states, i + 1, upto, LexicalState.COMMENT);
+                    fill(states, i + 1, upto, LexicalContext.COMMENT);
                     return Optional.of(states);
                 }
-                fill(states, i + 1, Math.min(close + 2, upto), LexicalState.COMMENT);
+                fill(states, i + 1, Math.min(close + 2, upto), LexicalContext.COMMENT);
                 i = close + 3;
                 continue;
             }
@@ -967,7 +967,7 @@ public final class MarkdownFormatter extends Formatter {
         return Optional.of(states);
     }
 
-    private static void fill(LexicalState[] states, int from, int to, LexicalState value) {
+    private static void fill(LexicalContext[] states, int from, int to, LexicalContext value) {
         for (int i = from; i <= to; i++)
             states[i] = value;
     }

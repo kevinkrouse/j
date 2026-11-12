@@ -27,7 +27,7 @@ import java.util.Optional;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.LexicalState;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -72,10 +72,10 @@ public class JavaFormatter extends Formatter {
      * Raw text, real offsets.
      */
     @Override
-    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
         // An offset past the line's end reads as the state after the
         // whole line, as the per-offset scan answered.
-        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
     }
 
     /**
@@ -88,10 +88,10 @@ public class JavaFormatter extends Formatter {
      * per-offset query answers.
      */
     @Override
-    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
         final int limit = line.length();
         final int upto = Math.min(end, limit);
-        final LexicalState[] states = new LexicalState[upto + 1];
+        final LexicalContext[] states = new LexicalContext[upto + 1];
         int state = line.flags();
         // A disabled line is disabled whole: the #if 0 block is
         // line-based, so no token on it can leave the disabled state.
@@ -99,13 +99,13 @@ public class JavaFormatter extends Formatter {
         // comment on the line report NEUTRAL and pair inside disabled
         // code.
         if (state == STATE_DISABLED) {
-            java.util.Arrays.fill(states, LexicalState.COMMENT);
+            java.util.Arrays.fill(states, LexicalContext.COMMENT);
             return Optional.of(states);
         }
         char quoteChar = state == STATE_QUOTE ? '"' : '\0';
         int i = 0;
         while (i <= upto) {
-            states[i] = toLexical(state);
+            states[i] = toContext(state);
             if (i == upto)
                 break;
             final char c = line.charAt(i);
@@ -114,14 +114,14 @@ public class JavaFormatter extends Formatter {
             // still in the state before the token.
             if (c == '\\' && i < limit - 1) {
                 if (i + 1 <= upto)
-                    states[i + 1] = toLexical(state);
+                    states[i + 1] = toContext(state);
                 i += 2;
                 continue;
             }
             if (state == STATE_COMMENT) {
                 if (c == '*' && i < limit - 1 && line.charAt(i + 1) == '/') {
                     if (i + 1 <= upto)
-                        states[i + 1] = toLexical(state);
+                        states[i + 1] = toContext(state);
                     i += 2;
                     state = STATE_NEUTRAL;
                 } else
@@ -143,14 +143,14 @@ public class JavaFormatter extends Formatter {
                     // A line comment: the caret between the slashes is
                     // still before it, everything after is COMMENT.
                     if (i + 1 <= upto)
-                        states[i + 1] = toLexical(state);
+                        states[i + 1] = toContext(state);
                     for (int j = i + 2; j <= upto; j++)
-                        states[j] = LexicalState.COMMENT;
+                        states[j] = LexicalContext.COMMENT;
                     return Optional.of(states);
                 }
                 if (next == '*') {
                     if (i + 1 <= upto)
-                        states[i + 1] = toLexical(state);
+                        states[i + 1] = toContext(state);
                     state = STATE_COMMENT;
                     i += 2;
                     continue;
@@ -164,15 +164,15 @@ public class JavaFormatter extends Formatter {
         return Optional.of(states);
     }
 
-    private static LexicalState toLexical(int state) {
+    private static LexicalContext toContext(int state) {
         switch (state) {
             case STATE_QUOTE:
-                return LexicalState.STRING;
+                return LexicalContext.STRING;
             case STATE_COMMENT:
             case STATE_DISABLED:
-                return LexicalState.COMMENT;
+                return LexicalContext.COMMENT;
             default:
-                return LexicalState.NEUTRAL;
+                return LexicalContext.NEUTRAL;
         }
     }
 

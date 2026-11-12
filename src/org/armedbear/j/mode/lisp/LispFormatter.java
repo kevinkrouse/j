@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.LexicalState;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -84,10 +84,10 @@ public final class LispFormatter extends Formatter {
      * makes the rest of the line COMMENT.
      */
     @Override
-    public Optional<LexicalState> lexicalStateAt(Line line, int offset) {
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
         // An offset past the line's end reads as the state after the
         // whole line, as the per-offset scan answered.
-        return lexicalStates(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
     }
 
     /**
@@ -97,14 +97,14 @@ public final class LispFormatter extends Formatter {
      * marker, as the per-offset scan answers.
      */
     @Override
-    public Optional<LexicalState[]> lexicalStates(Line line, int end) {
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
         final int limit = line.length();
         final int upto = Math.min(end, limit);
-        final LexicalState[] states = new LexicalState[upto + 1];
+        final LexicalContext[] states = new LexicalContext[upto + 1];
         int state = line.flags();
         int i = 0;
         while (i <= upto) {
-            states[i] = toLexical(state);
+            states[i] = toContext(state);
             if (i == upto)
                 break;
             final char c = line.charAt(i);
@@ -112,12 +112,12 @@ public final class LispFormatter extends Formatter {
                 // Escape: consumes the next character; the state is
                 // unchanged across it.
                 if (i + 1 <= upto)
-                    states[i + 1] = toLexical(state);
+                    states[i + 1] = toContext(state);
                 i += 2;
             } else if (state == STATE_COMMENT) {
                 if (c == '|' && i + 1 < limit && line.charAt(i + 1) == '#') {
                     if (i + 1 <= upto)
-                        states[i + 1] = toLexical(state);
+                        states[i + 1] = toContext(state);
                     state = STATE_NEUTRAL;
                     i += 2; // skip '#'
                 } else
@@ -131,14 +131,14 @@ public final class LispFormatter extends Formatter {
                 ++i;
             } else if (c == '#' && i + 1 < limit && line.charAt(i + 1) == '|') {
                 if (i + 1 <= upto)
-                    states[i + 1] = toLexical(state);
+                    states[i + 1] = toContext(state);
                 state = STATE_COMMENT;
                 i += 2; // skip '|'
             } else if (c == ';') {
                 // A line comment: the caret on the ';' is before it,
                 // everything after is COMMENT.
                 for (int j = i + 1; j <= upto; j++)
-                    states[j] = LexicalState.COMMENT;
+                    states[j] = LexicalContext.COMMENT;
                 return Optional.of(states);
             } else
                 ++i;
@@ -146,14 +146,14 @@ public final class LispFormatter extends Formatter {
         return Optional.of(states);
     }
 
-    private static LexicalState toLexical(int state) {
+    private static LexicalContext toContext(int state) {
         switch (state) {
             case STATE_QUOTE:
-                return LexicalState.STRING;
+                return LexicalContext.STRING;
             case STATE_COMMENT:
-                return LexicalState.COMMENT;
+                return LexicalContext.COMMENT;
             default:
-                return LexicalState.NEUTRAL;
+                return LexicalContext.NEUTRAL;
         }
     }
 
