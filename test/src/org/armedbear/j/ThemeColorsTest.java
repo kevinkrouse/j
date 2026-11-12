@@ -60,10 +60,7 @@ public class ThemeColorsTest {
     @Test
     public void aHexPreferenceIsAColor() {
         Editor.preferences().setProperty("color.heading", "#123");
-        assertEquals(
-            new Color(0x11, 0x22, 0x33),
-            Editor.preferences().getColorProperty("color.heading")
-        );
+        assertEquals(new Color(0x11, 0x22, 0x33), Editor.preferences().getColorProperty("color.heading"));
     }
 
     private Line line(int lineNumber) {
@@ -79,15 +76,12 @@ public class ThemeColorsTest {
 
     @Test
     public void aPropertiesLineThatSetsAColorShowsIt() {
-        h = EditorHarness.create(
-            "# color.text = 1 2 3\n" +
-                "color.text = 0 255 0\n" +
-                "JavaMode.color.comment = #808080\n" +
-                "XmlMode.color.tag: #f00\n" +
-                "color.text = not a color\n" +
-                "fontSize = 12\n" +
-                "style.keyword = 1\n"
-        ).mode(PropertiesMode.getMode());
+        h = EditorHarness
+                .create(
+                    "# color.text = 1 2 3\n" + "color.text = 0 255 0\n" + "JavaMode.color.comment = #808080\n"
+                            + "XmlMode.color.tag: #f00\n" + "color.text = not a color\n" + "fontSize = 12\n"
+                            + "style.keyword = 1\n")
+                .mode(PropertiesMode.getMode());
         assertNull(gutter(0));
         assertEquals(new Color(0, 255, 0), gutter(1));
         assertEquals(new Color(0x80, 0x80, 0x80), gutter(2));
@@ -127,25 +121,13 @@ public class ThemeColorsTest {
             if (l.getText().startsWith("  heading "))
                 heading = l;
         // name, color, style, links to (none), color from, style from.
-        assertTrue(
-            heading.getText()
-                .matches(
-                    "  heading +#010203  bold italic +color\\.heading +default"
-                ),
-            text
-        );
+        assertTrue(heading.getText().matches("  heading +#010203  bold italic +color\\.heading +default"), text);
         assertTrue(text.contains("Shared styles (light background)"), text);
         Line emphasis = null;
         for (Line l = buf.getFirstLine(); l != null; l = l.next())
             if (l.getText().startsWith("  emphasis "))
                 emphasis = l;
-        assertTrue(
-            emphasis.getText()
-                .matches(
-                    "  emphasis +#[0-9a-f]{6}  italic +\u2192 text +.*default"
-                ),
-            text
-        );
+        assertTrue(emphasis.getText().matches("  emphasis +#[0-9a-f]{6}  italic +\u2192 text +.*default"), text);
         Formatter f = buf.getFormatter();
         assertEquals(new Color(1, 2, 3), f.getGutterColor(heading));
         LineSegmentList segments = f.formatLine(heading);
@@ -162,12 +144,8 @@ public class ThemeColorsTest {
     @Test
     public void aThemeWithoutAModeLineIsAPropertiesFile() throws Exception {
         java.nio.file.Path tmp = java.nio.file.Files.createTempDirectory("j-themes");
-        java.nio.file.Path themes = java.nio.file.Files.createDirectory(
-            tmp.resolve("themes")
-        );
-        java.nio.file.Path other = java.nio.file.Files.createDirectory(
-            tmp.resolve("other")
-        );
+        java.nio.file.Path themes = java.nio.file.Files.createDirectory(tmp.resolve("themes"));
+        java.nio.file.Path other = java.nio.file.Files.createDirectory(tmp.resolve("other"));
         try {
             java.nio.file.Path theme = themes.resolve("Bright");
             java.nio.file.Files.write(theme, "# Bright\ncolor.text = 0 0 0\n".getBytes(StandardCharsets.UTF_8));
@@ -187,10 +165,8 @@ public class ThemeColorsTest {
         }
         finally {
             Editor.preferences().removeProperty(Property.THEME_PATH.key());
-            try (java.util.stream.Stream<java.nio.file.Path> walk =
-                java.nio.file.Files.walk(tmp)) {
-                walk.sorted(java.util.Comparator.reverseOrder())
-                    .forEach(p -> p.toFile().delete());
+            try (java.util.stream.Stream<java.nio.file.Path> walk = java.nio.file.Files.walk(tmp)) {
+                walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
             }
         }
     }
@@ -211,15 +187,7 @@ public class ThemeColorsTest {
         assertTrue(background != null, text);
         Formatter f = buf.getFormatter();
         // Its swatch shows the color; its name is in the text's.
-        assertEquals(
-            Colors.parseColor(
-                background.getText().trim().split(" +")[1]
-            ),
-            f.getGutterColor(background)
-        );
-        assertEquals(
-            f.getColor(0),
-            f.getColor(f.formatLine(background).getSegment(1).getFormat())
-        );
+        assertEquals(Colors.parseColor(background.getText().trim().split(" +")[1]), f.getGutterColor(background));
+        assertEquals(f.getColor(0), f.getColor(f.formatLine(background).getSegment(1).getFormat()));
     }
 }

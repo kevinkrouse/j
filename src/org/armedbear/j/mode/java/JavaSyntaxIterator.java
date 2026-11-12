@@ -61,14 +61,12 @@ public final class JavaSyntaxIterator extends DefaultSyntaxIterator {
                 ++i;
                 continue;
             }
-            if (chars[i] == '"' && i + 2 < length
-                    && chars[i + 1] == '"' && chars[i + 2] == '"') {
+            if (chars[i] == '"' && i + 2 < length && chars[i + 1] == '"' && chars[i + 2] == '"') {
                 chars[i] = 'X';
                 chars[i + 1] = 'X';
                 chars[i + 2] = 'X';
                 // Past the close: ordinary code.
-                final char[] rest = hideSyntacticWhitespace(
-                    s.substring(i + 3), STATE_NEUTRAL);
+                final char[] rest = hideSyntacticWhitespace(s.substring(i + 3), STATE_NEUTRAL);
                 System.arraycopy(rest, 0, chars, i + 3, rest.length);
                 return chars;
             }

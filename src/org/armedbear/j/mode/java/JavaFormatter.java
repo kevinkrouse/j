@@ -122,8 +122,7 @@ public class JavaFormatter extends Formatter {
     // and the f/F/d/D/l/L suffixes.
     private static int scanNumber(String text, int start, int limit) {
         int i = start;
-        if (text.charAt(i) == '0' && i + 1 < limit
-                && (text.charAt(i + 1) == 'x' || text.charAt(i + 1) == 'X')) {
+        if (text.charAt(i) == '0' && i + 1 < limit && (text.charAt(i + 1) == 'x' || text.charAt(i + 1) == 'X')) {
             i += 2;
             i = scanDigits(text, i, limit, "0123456789abcdefABCDEF_");
             if (i < limit && text.charAt(i) == '.') {
@@ -140,8 +139,7 @@ public class JavaFormatter extends Formatter {
                 ++i;
             return i;
         }
-        if (text.charAt(i) == '0' && i + 1 < limit
-                && (text.charAt(i + 1) == 'b' || text.charAt(i + 1) == 'B')) {
+        if (text.charAt(i) == '0' && i + 1 < limit && (text.charAt(i + 1) == 'b' || text.charAt(i + 1) == 'B')) {
             i += 2;
             i = scanDigits(text, i, limit, "01_");
             if (i < limit && isNumberSuffix(text.charAt(i)))
@@ -149,8 +147,7 @@ public class JavaFormatter extends Formatter {
             return i;
         }
         i = scanDigits(text, i, limit, "0123456789_");
-        if (i < limit && text.charAt(i) == '.'
-                && i + 1 < limit && Character.isDigit(text.charAt(i + 1))) {
+        if (i < limit && text.charAt(i) == '.' && i + 1 < limit && Character.isDigit(text.charAt(i + 1))) {
             ++i;
             i = scanDigits(text, i, limit, "0123456789_");
         }
@@ -172,8 +169,7 @@ public class JavaFormatter extends Formatter {
     // Digits from `i`, with '_' allowed only between them, never trailing.
     private static int scanDigits(String text, int i, int limit, String allowed) {
         while (i < limit && allowed.indexOf(text.charAt(i)) >= 0) {
-            if (text.charAt(i) == '_'
-                    && !(i + 1 < limit && allowed.indexOf(text.charAt(i + 1)) >= 0))
+            if (text.charAt(i) == '_' && !(i + 1 < limit && allowed.indexOf(text.charAt(i + 1)) >= 0))
                 break;
             ++i;
         }
@@ -181,8 +177,7 @@ public class JavaFormatter extends Formatter {
     }
 
     private static boolean isNumberSuffix(char c) {
-        return c == 'f' || c == 'F' || c == 'd' || c == 'D'
-                || c == 'l' || c == 'L' || c == 'u' || c == 'U';
+        return c == 'f' || c == 'F' || c == 'd' || c == 'D' || c == 'l' || c == 'L' || c == 'u' || c == 'U';
     }
 
     protected void parseLine(Line line) {
@@ -243,8 +238,7 @@ public class JavaFormatter extends Formatter {
             }
             if (state == STATE_TEXT_BLOCK) {
                 // A text block's content is all string until the closing """.
-                if (c == '"' && i + 2 < limit
-                        && text.charAt(i + 1) == '"' && text.charAt(i + 2) == '"') {
+                if (c == '"' && i + 2 < limit && text.charAt(i + 1) == '"' && text.charAt(i + 2) == '"') {
                     endToken(text, i + 3, state);
                     state = STATE_NEUTRAL;
                     i += 3;
@@ -255,23 +249,27 @@ public class JavaFormatter extends Formatter {
             }
             // Reaching here, we're not in a comment or a quoted string.
             if (state == STATE_NEUTRAL
-                    && supportsAnnotations() && !isPreprocessorLine
-                    && c == '@' && i + 1 < limit
+                    && supportsAnnotations()
+                    && !isPreprocessorLine
+                    && c == '@'
+                    && i + 1 < limit
                     && isIdentifierStart(text.charAt(i + 1))) {
                 endToken(text, i, state);
                 int j = i + 1;
                 while (j < limit
                         && (isIdentifierPart(text.charAt(j))
-                            || (text.charAt(j) == '.' && j + 1 < limit
-                                && isIdentifierStart(text.charAt(j + 1)))))
+                                || (text.charAt(j) == '.' && j + 1 < limit && isIdentifierStart(text.charAt(j + 1)))))
                     ++j;
                 addSegment(text, i, j, JAVA_FORMAT_ANNOTATION);
                 tokenBegin = j;
                 i = j;
                 continue;
             }
-            if (state == STATE_NEUTRAL && c == '"' && i + 2 < limit
-                    && text.charAt(i + 1) == '"' && text.charAt(i + 2) == '"') {
+            if (state == STATE_NEUTRAL
+                    && c == '"'
+                    && i + 2 < limit
+                    && text.charAt(i + 1) == '"'
+                    && text.charAt(i + 2) == '"') {
                 // A text block opening.
                 endToken(text, i, state);
                 state = STATE_TEXT_BLOCK;
@@ -462,8 +460,7 @@ public class JavaFormatter extends Formatter {
                     continue;
                 }
                 if (state == STATE_TEXT_BLOCK) {
-                    if (c == '"' && i + 2 < limit
-                            && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
+                    if (c == '"' && i + 2 < limit && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
                         i += 2;
                         state = STATE_NEUTRAL;
                     }
@@ -478,8 +475,7 @@ public class JavaFormatter extends Formatter {
                         break;
                     } else if (c == '*')
                         state = STATE_COMMENT;
-                } else if (c == '"' && i + 2 < limit
-                        && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
+                } else if (c == '"' && i + 2 < limit && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
                     // A text block opening.
                     i += 2;
                     state = STATE_TEXT_BLOCK;
