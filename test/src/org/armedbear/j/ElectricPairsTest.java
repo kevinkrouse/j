@@ -490,6 +490,69 @@ public class ElectricPairsTest {
         h.assertText("a\nb\n");
     }
 
+    // The sub-rule settings: each turns off one behavior while the rest
+    // of pairing stays on.
+
+    @Test
+    public void typeOverOffInsertsTheCloser() {
+        h = EditorHarness.create("()").mode(PlainTextMode.getMode());
+        // Balance is off too, so the closer that waits ahead does not
+        // suppress the insert; this isolates the step-over rule.
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_TYPE_OVER, false);
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_BALANCE, false);
+        h.cursor(0, 1);
+        h.keys(")");
+        // No step-over: the typed ) inserts, giving ()).
+        h.assertText("())\n");
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void typeOverOffStillBalancesAgainstACloserAhead() {
+        h = EditorHarness.create("(foo)").mode(PlainTextMode.getMode());
+        // Step-over is off, but a different closer waits later on the
+        // line, so balance still suppresses the insert.
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_TYPE_OVER, false);
+        h.cursor(0, 1);
+        h.keys(")");
+        h.assertText("(foo)\n");
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void balanceOffGeneratesTheCloserAnyway() {
+        h = EditorHarness.create("()").mode(PlainTextMode.getMode());
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_BALANCE, false);
+        h.cursor(0, 1);
+        h.keys("(");
+        // Balance off: the opener generates its closer even though a
+        // closer already waits ahead.
+        h.assertText("(())\n");
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void balanceOffInsertsTheCloserWhenOneWaits() {
+        h = EditorHarness.create("(foo)").mode(PlainTextMode.getMode());
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_BALANCE, false);
+        h.cursor(0, 0);
+        h.keys(")");
+        // Balance off: the typed closer inserts rather than being
+        // suppressed.
+        h.assertText(")(foo)\n");
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void deletePairsOffTakesOnlyTheOpener() {
+        h = EditorHarness.create("()").mode(PlainTextMode.getMode());
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_DELETE_PAIRS, false);
+        h.cursor(0, 1);
+        EditCommands.backspace(h.editor());
+        // The empty pair is not deleted as one: only the opener goes.
+        h.assertText(")\n");
+    }
+
     @Test
     public void keyboardMacroReproducesThePair() throws Exception {
         // j's keyboard macro records the typed character and replays it

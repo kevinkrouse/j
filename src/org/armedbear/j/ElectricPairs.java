@@ -110,10 +110,13 @@ public final class ElectricPairs {
         // Type over the closer that is already under the caret. Match the
         // typed closer itself, not pair(c): an opener before a closer
         // must not skip it.
-        if (table.isCloser(c) && charAt(line, offset) == c)
+        if (buffer.getBooleanProperty(Property.ELECTRIC_PAIRS_TYPE_OVER)
+                && table.isCloser(c)
+                && charAt(line, offset) == c)
             return Decision.typeOver();
         if (mode.lexicalState(buffer, dot) != LexicalState.NEUTRAL)
             return Decision.plain();
+        final boolean balance = buffer.getBooleanProperty(Property.ELECTRIC_PAIRS_BALANCE);
         if (table.isOpener(c)) {
             char before = charBefore(line, offset);
             char at = charAt(line, offset);
@@ -126,12 +129,17 @@ public final class ElectricPairs {
                 return Decision.plain();
             if (at != 0 && mode.isIdentifierPart(at))
                 return Decision.plain();
-            if (hasUnmatchedCloserAhead(mode, buffer, line, offset, pair.closer(), pair.opener()))
+            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, offset, pair.closer(), pair.opener()))
                 return Decision.of(Action.INSERT_OPENER, pair);
             return Decision.of(Action.INSERT_PAIR, pair);
         }
         if (table.isCloser(c)) {
-            if (hasUnmatchedCloserAhead(mode, buffer, line, offset, c, table.pairFor(c).opener()))
+            // Scan strictly ahead of the caret. The closer under the caret
+            // is the one being typed, not one already waiting: with
+            // type-over on, rule 4 already stepped over it; with
+            // type-over off, the typed closer inserts and only a
+            // different closer later on the line should suppress it.
+            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, offset + 1, c, table.pairFor(c).opener()))
                 return Decision.suppress();
             return Decision.plain();
         }
@@ -179,7 +187,8 @@ public final class ElectricPairs {
      * from a quote inside a longer string.
      */
     static boolean deleteBoth(Mode mode, Buffer buffer, Line line, int offset) {
-        if (!buffer.getBooleanProperty(Property.ELECTRIC_PAIRS))
+        if (!buffer.getBooleanProperty(Property.ELECTRIC_PAIRS)
+                || !buffer.getBooleanProperty(Property.ELECTRIC_PAIRS_DELETE_PAIRS))
             return false;
         char left = charBefore(line, offset);
         char right = charAt(line, offset);

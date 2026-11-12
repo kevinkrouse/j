@@ -138,6 +138,8 @@ public final class MarkdownMode extends AbstractMode implements Mode {
      * inserts it plainly.
      */
     private boolean markerOverride(Editor editor, String text, int offset, int end, char c) {
+        if (!editor.getBuffer().getBooleanProperty(Property.ELECTRIC_PAIRS_TYPE_OVER))
+            return false;
         if (offset < end && text.charAt(offset) == c) {
             editor.addUndo(SimpleEdit.MOVE);
             editor.getDot().skip(1);

@@ -1335,6 +1335,23 @@ existing insert-mode behavior.
     conformance ratchet 168/253 unchanged.
 11. Settings pass: `electricPairs` + the four sub-rules,
     mode-scoped.
+    **Done.** `electricPairs` (master) and the four sub-rules
+    `electricPairs.typeOver`, `.balance`, `.deletePairs`,
+    `.openLine`, all default true and scoped like any other property
+    (buffer → mode → global), so `JavaMode.electricPairs.balance=false`
+    turns off one rule in one mode. Each gates its own decision point in
+    `ElectricPairs.decide`/`deleteBoth`: type-over the closer under the
+    caret; the two balance actions (opener-only insert, closer
+    suppress); the empty-pair Backspace; the Enter-between. The
+    Markdown marker step-over honors `typeOver` too. The balance
+    closer-scan starts strictly ahead of the caret (`offset + 1`): the
+    closer under the caret is the one being typed, not one already
+    waiting, so with type-over off a typed closer inserts rather than
+    being suppressed by itself. Documented in
+    `doc/preferences.html`. Tests: four new cases in
+    `ElectricPairsTest` pin each sub-rule off while the rest stays on,
+    including the type-over-off-plus-balance composition. Full suite
+    2812/2812; conformance ratchet 168/253 unchanged.
 
 Steps 1-4 are the core; 5-7 are the context and the two extra call
 sites; 8 is the literal-insertion contract; 9 is the cutover; 10-11

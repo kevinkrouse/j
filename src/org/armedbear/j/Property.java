@@ -113,6 +113,11 @@ public final class Property implements Comparable<Property> {
     public static final Property DIR_SORT_DIRECTORIES_FIRST = createProperty("dirSortDirectoriesFirst", true);
     public static final Property DIR_USE_NATIVE_FORMAT = createProperty("dirUseNativeFormat", false);
     public static final Property ELECTRIC_PAIRS = createProperty("electricPairs", true);
+    // The sub-rules, each on by default and scoped like the master: a
+    // mode or buffer can turn one off without losing the rest.
+    public static final Property ELECTRIC_PAIRS_TYPE_OVER = createProperty("electricPairs.typeOver", true);
+    public static final Property ELECTRIC_PAIRS_BALANCE = createProperty("electricPairs.balance", true);
+    public static final Property ELECTRIC_PAIRS_DELETE_PAIRS = createProperty("electricPairs.deletePairs", true);
     public static final Property ELECTRIC_PAIRS_OPEN_LINE = createProperty("electricPairs.openLine", true);
     public static final Property EMULATE_BOLD = createProperty("emulateBold", false);
     public static final Property ENABLE_CACHE = createProperty("enableCache", false);

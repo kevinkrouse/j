@@ -920,6 +920,64 @@ affected.
 <b>Default value:</b> simple
 </dl>
 
+<code><a name="electricPairs">electricPairs</a></code>
+<dl>
+<dd>
+If true, typing an opening bracket, quote or backtick inserts its matching
+closer with the caret between them, and typing a closer that is already there
+steps over it instead of inserting a second one. The pairs a mode uses come
+from its own pair table, so a mode that does not want a character to pair
+simply leaves it out. Nothing pairs inside a string or a comment.
+<p>
+Like every property, this is scoped per buffer and per mode: setting
+<code>JavaMode.electricPairs=false</code> turns pairing off in Java without
+affecting any other mode.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="electricPairs.typeOver">electricPairs.typeOver</a></code>
+<dl>
+<dd>
+If true, typing a closer with the caret already sitting on that closer steps
+over it rather than inserting another. Turn this off to always insert the
+typed closer.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="electricPairs.balance">electricPairs.balance</a></code>
+<dl>
+<dd>
+If true, the pair stays balanced: typing an opener when an unmatched closer
+of the same kind already waits later on the line inserts the opener but
+generates no closer, and typing a closer when one is already unmatched
+inserts nothing. Turn this off to always generate the closer and always
+insert the typed closer.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="electricPairs.deletePairs">electricPairs.deletePairs</a></code>
+<dl>
+<dd>
+If true, Backspace with the caret between an empty pair (<code>(|)</code> or
+<code>"|"</code>) deletes both characters in one step.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="electricPairs.openLine">electricPairs.openLine</a></code>
+<dl>
+<dd>
+If true, Enter with the caret between an empty pair (<code>{|}</code>) opens
+a line between the two, with the closer on the line below at the outer
+indent. A symmetric delimiter such as a quote does not expand; Enter inside
+it is a plain split.
+<p>
+<b>Default value:</b> true
+</dl>
+
 <code><a name="vimKeyMap">vimKeyMap</a></code>
 <dl>
 <dd>
