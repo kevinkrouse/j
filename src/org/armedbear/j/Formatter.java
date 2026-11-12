@@ -285,6 +285,19 @@ public abstract class Formatter {
         return null;
     }
 
+    /** A rule across the middle of line's text, as a Markdown thematic break is drawn; or null for none. */
+    public Color getMiddleRule(Line line) {
+        return null;
+    }
+
+    /**
+     * Whether the caret on caret hides line's rules, as it shows the markup
+     * they are drawn for; false unless overridden.
+     */
+    public boolean caretHidesRules(Line line, Line caret) {
+        return false;
+    }
+
     /** Whether getLineRule's rules cross the gutter too, as a comparison's do; across the text alone unless overridden. */
     public boolean isLineRuleThroughGutter() {
         return false;

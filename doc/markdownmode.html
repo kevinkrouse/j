@@ -169,6 +169,16 @@ Markdown mode only, prefix it with <code>MarkdownMode.</code>:
     MarkdownMode.style.heading1 = bold
 </pre>
 <p>
+Each heading level has a color of its own, from <code>heading1</code>,
+which is <code>heading</code>'s, down to <code>heading6</code>; the themes
+j comes with set all six from their palettes.
+<p>
+A thematic break, such as <code>---</code>, is drawn as a light rule across
+the window, and a rule underlines each heading of level 1 and 2, unless
+<code>conceal</code> is <code>none</code>. The caret on the line, or on a
+setext heading's underline, takes the rule away, as it shows hidden markup.
+To choose its color, set <code>color.ruleLine</code>.
+<p>
 The shaded background of code is a shade of the theme's background, made
 not to be mistaken for the current line's highlight. To choose it yourself,
 set <code>color.codeBackground</code>.

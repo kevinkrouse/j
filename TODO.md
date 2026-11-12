@@ -109,6 +109,10 @@
     - we have a file tree but only when looking at a directory buffer
         - when on a directory buffer, what would the structure tree show? maybe just hide it.
     - allow basic file operations: move, rename, delete, copy, open folder in desktop file tool
+- [ ] line decorations
+- [/] line decorations
+    - [x] underline
+    - [ ] others: overline, double-underline, dotted-underline, dashed-underline, wavy-underline
 
 
 ## Syntaxes/Modes
@@ -122,6 +126,8 @@
     - markdown in javadoc comments
     - markdown blocks with syntax specified
     - highlight color strings in the color
+    - [x] `---` horizontal rule draws thin line all the way across
+    - [x] h1, h2 headers draw light underline all the way across
 - [ ] svg, render inline preview?
 - [ ] inline mermaid diagram editor? el-easydraw like
 - [ ] man sidebar/tagger seems broken

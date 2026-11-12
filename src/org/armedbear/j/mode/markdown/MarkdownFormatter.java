@@ -26,6 +26,7 @@ import java.util.function.ObjIntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.DefaultTheme;
 import org.armedbear.j.FollowLink;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -406,8 +407,8 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     /**
-     * A fence's lines, its markup shown with the caret anywhere in it; with
-     * headings concealed, a setext heading's text and underline.
+     * A fence's lines, its markup shown with the caret anywhere in it; a
+     * setext heading's text and underline, whose markup or rule it hides.
      */
     @Override
     public Line[] getHiddenBlock(Line line) {
@@ -416,14 +417,20 @@ public final class MarkdownFormatter extends Formatter {
             if (fence != null)
                 return fence;
         }
-        if (conceals("headings")) {
-            if (isSetextHeading(line) && line.next() != null)
-                return new Line[] { line, line.next() };
-            final Line previous = line.previous();
-            if (previous != null && isSetextHeading(previous))
-                return new Line[] { previous, line };
-        }
+        if (!hidesMarkup())
+            return null;
+        if (isSetextHeading(line) && line.next() != null)
+            return new Line[] { line, line.next() };
+        final Line previous = line.previous();
+        if (previous != null && isSetextHeading(previous))
+            return new Line[] { previous, line };
         return null;
+    }
+
+    /** The caret on a rule or a heading, or a setext heading's underline. */
+    @Override
+    public boolean caretHidesRules(Line line, Line caret) {
+        return caret == line || (caret == line.next() && isSetextHeading(line));
     }
 
     /**
@@ -591,10 +598,65 @@ public final class MarkdownFormatter extends Formatter {
         return null;
     }
 
+    // The light rule drawn for a thematic break and under a heading.
+    private Color ruleLine;
+
+    private Color ruleLine() {
+        if (ruleLine == null) {
+            final Color color = getFormatTable().resolveColor("ruleLine", false);
+            ruleLine = color != null
+                ? color
+                : DefaultTheme.blend(getBackgroundColor(), getColor(TEXT), 0.2);
+        }
+        return ruleLine;
+    }
+
+    /**
+     * A thematic break, drawn across the window, unless nothing is
+     * concealed: then the markup is all there is.
+     */
+    @Override
+    public Color getMiddleRule(Line line) {
+        return hidesMarkup() && isThematicBreak(line) ? ruleLine() : null;
+    }
+
+    /**
+     * A rule under a heading of level 1 or 2, as GitHub draws one; as
+     * getMiddleRule's, not with nothing concealed.
+     */
+    @Override
+    public Color getLineRule(Line line, boolean bottom) {
+        if (!bottom || !hidesMarkup())
+            return null;
+        final int level = getHeadingLevel(line);
+        return level == 1 || level == 2 ? ruleLine() : null;
+    }
+
+    // Whether line is a thematic break, as formatBlock colors it RULE: not
+    // front matter's opening line or a setext heading's underline.
+    private static boolean isThematicBreak(Line line) {
+        if ((line.flags() & BLOCK_MASK) != NORMAL)
+            return false;
+        final String text = line.getText();
+        if (!RULE_LINE.matcher(text).matches())
+            return false;
+        final Line previous = line.previous();
+        if (previous == null) {
+            final Line next = line.next();
+            return !(
+                text.equals("---")
+                    && next != null
+                    && (next.flags() & BLOCK_MASK) == IN_FRONT_MATTER
+            );
+        }
+        return !isSetextHeading(previous);
+    }
+
     @Override
     public void reset() {
         super.reset();
         codeBackground = null;
+        ruleLine = null;
         for (Formatter formatter : languages)
             if (formatter != null)
                 formatter.reset();
@@ -651,7 +713,10 @@ public final class MarkdownFormatter extends Formatter {
             return;
         }
         if (RULE_LINE.matcher(text).matches()) {
+            // Drawn as a rule, getMiddleRule's, the caret on it showing it.
             set(0, length, RULE);
+            newItem(0, length);
+            hide(0, length);
             return;
         }
         if (isIndentedCodeBlock(line)) {

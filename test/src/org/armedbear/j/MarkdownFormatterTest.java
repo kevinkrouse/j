@@ -12,6 +12,10 @@
 package org.armedbear.j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.mode.markdown.MarkdownFormatter;
 import org.armedbear.j.mode.markdown.MarkdownMode;
@@ -229,6 +233,29 @@ public class MarkdownFormatterTest {
         assertEquals("frontMatter(title: *x*)", runs(1));
         assertEquals("frontMatter(---)", runs(2));
         assertEquals("headingMarker(# )heading1(H)", runs(3));
+    }
+
+    @Test
+    public void rulesDrawn() {
+        on("---\nt: x\n---\n# One\n## Two\n### Three\nSub\n---\n\n***\n- x\n---\n");
+        final Formatter f = h.buffer().getFormatter();
+        assertNull(f.getMiddleRule(line(9)), "none with nothing concealed");
+        Editor.preferences().setProperty("MarkdownMode.conceal", "markup");
+        f.reset();
+        assertNull(f.getMiddleRule(line(0)), "front matter's opening");
+        assertNull(f.getMiddleRule(line(2)), "front matter's closing");
+        assertNotNull(f.getLineRule(line(3), true), "under a heading 1");
+        assertNull(f.getLineRule(line(3), false));
+        assertNotNull(f.getLineRule(line(4), true), "under a heading 2");
+        assertNull(f.getLineRule(line(5), true), "none under a heading 3");
+        assertNotNull(f.getLineRule(line(6), true), "under a setext heading's text");
+        assertNull(f.getMiddleRule(line(7)), "a setext underline");
+        assertNotNull(f.getMiddleRule(line(9)));
+        assertNotNull(f.getMiddleRule(line(11)), "under a list item");
+        assertNull(f.getMiddleRule(line(10)));
+        assertTrue(f.caretHidesRules(line(9), line(9)), "the caret on a rule");
+        assertTrue(f.caretHidesRules(line(6), line(7)), "on a setext underline");
+        assertFalse(f.caretHidesRules(line(3), line(4)));
     }
 
     @Test

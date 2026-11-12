@@ -236,6 +236,19 @@ public final class DefaultTheme {
                     return new Color(dark ? 0x56d364 : 0x116329);
                 if (thing == "date")
                     return new Color(dark ? 0x79c0ff : 0x0550ae);
+            } else if (mode == "MarkdownMode") {
+                // Below heading1, which is heading's: Primer's purple, green,
+                // yellow, pink, then gray.
+                if (thing == "heading2")
+                    return new Color(dark ? 0xd2a8ff : 0x8250df);
+                if (thing == "heading3")
+                    return new Color(dark ? 0x3fb950 : 0x1a7f37);
+                if (thing == "heading4")
+                    return new Color(dark ? 0xe3b341 : 0x9a6700);
+                if (thing == "heading5")
+                    return new Color(dark ? 0xf778ba : 0xbf3989);
+                if (thing == "heading6")
+                    return new Color(dark ? 0x8b949e : 0x6e7781);
             } else if (mode == "HtmlMode") {
                 if (thing == "tag")
                     return new Color(0, 0, 153);

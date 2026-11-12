@@ -1765,10 +1765,18 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         return foreground ? last.foreground() : last.background();
     }
 
-    // The formatter's rules across line's top and bottom, over its text.
+    // The formatter's rules across line's top, middle and bottom, over its
+    // text.
     private void drawLineRules(Graphics2D g2d, Line line, int y) {
         final Formatter f = editor.getFormatter();
+        if (editor.getDot() != null && f.caretHidesRules(line, editor.getDotLine()))
+            return;
         final int h = Math.max(1, UIScale.scale(1));
+        final Color middle = f.getMiddleRule(line);
+        if (middle != null) {
+            g2d.setColor(middle);
+            g2d.fillRect(gutterWidth, y + (line.getHeight() - h) / 2, getWidth() - gutterWidth, h);
+        }
         for (boolean bottom : new boolean[] { false, true }) {
             final Color c = f.getLineRule(line, bottom);
             if (c != null) {

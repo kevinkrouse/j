@@ -120,6 +120,12 @@ DiffMode.color.header            = #859289
 DiffMode.color.inserted          = #a7c080
 DiffMode.color.deleted           = #e67e80
 DiffMode.color.changed           = #7fbbb3
+MarkdownMode.color.heading1      = #e69875
+MarkdownMode.color.heading2      = #dbbc7f
+MarkdownMode.color.heading3      = #a7c080
+MarkdownMode.color.heading4      = #7fbbb3
+MarkdownMode.color.heading5      = #d699b6
+MarkdownMode.color.heading6      = #859289
 
 # 0 plain, 1 bold, 2 italic
 style.comment                    = 0
