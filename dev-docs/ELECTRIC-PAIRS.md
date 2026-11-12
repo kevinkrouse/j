@@ -1093,7 +1093,22 @@ existing insert-mode behavior.
    user-visible behavior to try in j until step 3 wires it.
 3. Wire into `insertNormalChar`: INSERT_PAIR + TYPE_OVER + WRAP,
    compound-edit discipline, and the caret-sync epilogue on every
-   early return. Tests 1, 9, 10, 16, 17.
+   early return. Tests 1, 9, 10, 16, 17. **Done.**
+   The decision switch sits between `fixCase` and the mark branch.
+   Three helpers: `insertPair` (one compound edit, `MOVE` undo for the
+   caret-back, `moveCaretToDotCol` at the end), `typeOverCloser`
+   (`MOVE` undo + skip), `wrapSelection` (the `insertParentheses`
+   shape, `PARENS_REQUIRE_SPACES` honored for `(`).
+   `pairingSuppressed` is hardcoded false until step 8.
+   `ElectricPairsTest` gained 7 wired tests through the real command
+   path: insert pair, caret sync (display column), type-over,
+   insert-opener (caret between a pair), wrap, the Lisp apostrophe,
+   and one-step pair undo. Full suite 2703/2703, vim conformance
+   168/253. Tried in j under Xvfb: `(` → `()`, `b` → `(b)`,
+   backspace → `()`, `)` steps over (no `(())`), `"` → `""`,
+   `hi` → `"hi"`. No existing test broke — the modes that bind `)`
+   and `{` to electric commands intercept before the catch-all, so
+   the migration (step 9) is still pending.
 4. Vim repeat tests 18-19 — the truncation trap. Fix before going
    further; everything else depends on replay being clean.
 5. Lexical context: the `LexicalState` enum, per-formatter
