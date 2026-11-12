@@ -146,9 +146,8 @@ public final class EditCommands {
         editor.getBuffer().withWriteLock(() -> {
             if (editor.getMark() != null) {
                 delete(editor);
-            } else if (
-                display.getCaretCol() > editor.getBuffer().getCol(editor.getDotLine(), editor.getDotLine().length())
-            ) {
+            } else if (display.getCaretCol() > editor.getBuffer()
+                    .getCol(editor.getDotLine(), editor.getDotLine().length())) {
                 // The caret is beyond the end of the actual text on the current line.
                 editor.addUndo(SimpleEdit.MOVE);
                 display.setCaretCol(display.getCaretCol() - 1);
@@ -257,6 +256,33 @@ public final class EditCommands {
         }
         try {
             c = editor.getMode().fixCase(editor, c);
+            ElectricPairs.Decision decision = ElectricPairs.decide(
+                editor.getMode(),
+                editor.getBuffer(),
+                editor.getDot(),
+                ElectricPairs.Operation.INSERT,
+                c,
+                editor.getMark() != null,
+                // The literal-insertion depth arrives with step 8.
+                false);
+            switch (decision.action()) {
+                case INSERT_PAIR:
+                    insertPair(editor, decision.pair().opener(), decision.pair().closer());
+                    return;
+                case INSERT_OPENER:
+                    editor.insertChar(c);
+                    return;
+                case TYPE_OVER:
+                    typeOverCloser(editor);
+                    return;
+                case WRAP:
+                    wrapSelection(editor, decision.pair().opener(), decision.pair().closer());
+                    return;
+                case SUPPRESS:
+                    return;
+                default:
+                    break;
+            }
             if (editor.getMark() != null) {
                 CompoundEdit compoundEdit = editor.beginCompoundEdit();
                 editor.deleteRegion();
@@ -264,11 +290,8 @@ public final class EditCommands {
                 editor.endCompoundEdit(compoundEdit);
             } else {
                 // No selection.
-                if (
-                    editor.getBuffer().getBooleanProperty(Property.WRAP)
-                        &&
-                        editor.getDotCol() >= editor.getBuffer().getIntegerProperty(Property.WRAP_COL)
-                ) {
+                if (editor.getBuffer().getBooleanProperty(Property.WRAP)
+                        && editor.getDotCol() >= editor.getBuffer().getIntegerProperty(Property.WRAP_COL)) {
                     CompoundEdit compoundEdit = editor.beginCompoundEdit();
                     editor.insertChar(c);
                     new WrapText(editor).wrapLine();
@@ -280,6 +303,61 @@ public final class EditCommands {
         finally {
             editor.getBuffer().unlockWrite();
         }
+        editor.moveCaretToDotCol();
+    }
+
+    /**
+     * Insert a pair with the caret between: one undo step for both
+     * characters. {@link Editor#insertChar} adds its own LINE_EDIT, so
+     * the compound edit is what makes the two inserts one step. The
+     * caret is synced here because the caller's epilogue is bypassed.
+     */
+    private static void insertPair(Editor editor, char opener, char closer) {
+        CompoundEdit compoundEdit = editor.beginCompoundEdit();
+        editor.insertChar(opener);
+        editor.insertChar(closer);
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().skip(-1);
+        editor.endCompoundEdit(compoundEdit);
+        editor.moveCaretToDotCol();
+    }
+
+    /** Step over the closer under the caret; the text does not change. */
+    private static void typeOverCloser(Editor editor) {
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().skip(1);
+        editor.moveCaretToDotCol();
+    }
+
+    /**
+     * Wrap the selection in a pair, leaving the caret after the opener.
+     * The shape of {@code insertParentheses}: insert the closer at the
+     * end of the region, then the opener at its start, in one edit.
+     */
+    private static void wrapSelection(Editor editor, char opener, char closer) {
+        boolean parensRequireSpaces =
+                opener == '(' && editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
+        CompoundEdit compoundEdit = editor.beginCompoundEdit();
+        Position begin, end;
+        if (editor.getMark().isBefore(editor.getDot())) {
+            begin = new Position(editor.getMark());
+            end = new Position(editor.getDot());
+        } else {
+            begin = new Position(editor.getDot());
+            end = new Position(editor.getMark());
+        }
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.setMark(null);
+        editor.getDot().moveTo(end);
+        if (parensRequireSpaces)
+            editor.insertChar(' ');
+        editor.insertChar(closer);
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().moveTo(begin);
+        editor.insertChar(opener);
+        if (parensRequireSpaces)
+            editor.insertChar(' ');
+        editor.endCompoundEdit(compoundEdit);
         editor.moveCaretToDotCol();
     }
 
@@ -301,18 +379,10 @@ public final class EditCommands {
             }
             catch (UnsupportedEncodingException e) {
                 Log.error(e);
-                MessageDialog.showMessageDialog(
-                    editor,
-                    "Unsupported encoding \"" + encoding + "\"",
-                    "Insert Byte"
-                );
+                MessageDialog.showMessageDialog(editor, "Unsupported encoding \"" + encoding + "\"", "Insert Byte");
             }
         } else
-            MessageDialog.showMessageDialog(
-                editor,
-                "Invalid byte \"" + input + "\"",
-                "Insert Byte"
-            );
+            MessageDialog.showMessageDialog(editor, "Invalid byte \"" + input + "\"", "Insert Byte");
     }
 
     public static void stamp(Editor editor) {

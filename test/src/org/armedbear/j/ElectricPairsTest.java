@@ -237,4 +237,75 @@ public class ElectricPairsTest {
         Decision d = type("(|", '(');
         assertAction(INSERT_PAIR, d);
     }
+
+    // The wiring: typing through the real command path, asserting the
+    // buffer, the caret and the undo step. The pure-function tests
+    // above prove the decision; these prove insertNormalChar acts on it.
+
+    @Test
+    public void insertPairWired() {
+        h = EditorHarness.create("").mode(PlainTextMode.getMode());
+        h.keys("(");
+        h.assertText("()\n");
+        h.assertCursorAt(0, 1);
+        EditCommands.undo(h.editor());
+        h.assertText("\n");
+    }
+
+    @Test
+    public void caretSyncWired() {
+        // The displayed caret sits between the pair, not after the
+        // closer: the early return bypasses the epilogue, so the
+        // helper must sync it.
+        h = EditorHarness.create("").mode(PlainTextMode.getMode());
+        h.keys("(");
+        assertEquals(1, h.editor().getDisplay().getCaretCol());
+    }
+
+    @Test
+    public void typeOverWired() {
+        h = EditorHarness.create("()").mode(PlainTextMode.getMode());
+        h.cursor(0, 1);
+        h.keys(")");
+        h.assertText("()\n");
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void insertOpenerWired() {
+        // The caret sits between a pair, so a closer already waits
+        // ahead and the opener inserts alone.
+        h = EditorHarness.create("()").mode(PlainTextMode.getMode());
+        h.cursor(0, 1);
+        h.keys("(");
+        h.assertText("(()\n");
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void wrapWired() {
+        h = EditorHarness.create("foo").mode(PlainTextMode.getMode());
+        h.cursor(0, 3);
+        h.editor().setMark(0, 0);
+        h.keys("(");
+        h.assertText("(foo)\n");
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void lispApostropheNeverPairsWired() {
+        h = EditorHarness.create("").mode(LispMode.getMode());
+        h.keys("'");
+        h.assertText("'\n");
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void pairUndoIsOneStepWired() {
+        h = EditorHarness.create("").mode(PlainTextMode.getMode());
+        h.keys("(");
+        EditCommands.undo(h.editor());
+        // One undo takes the whole pair back; nothing is left.
+        h.assertText("\n");
+    }
 }
