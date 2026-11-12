@@ -121,6 +121,11 @@ public class JavaMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public boolean electricBraces() {
+        return true;
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");
@@ -133,7 +138,6 @@ public class JavaMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_COMMA, ALT_MASK, "listMatchingTagsAtDot");
         km.mapKey(KeyEvent.VK_PERIOD, CTRL_MASK | ALT_MASK, "findTagAtDotOtherWindow");
-        km.mapKey(')', "closeParen");
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
 
         km.mapKey(KeyEvent.VK_9, CTRL_MASK | SHIFT_MASK, "insertParentheses");

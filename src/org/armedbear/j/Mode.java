@@ -349,6 +349,17 @@ public interface Mode extends Folds {
     }
 
     /**
+     * Whether this mode formats braces electrically: typing an opening
+     * brace on a blank line opens a block, and the brace line is
+     * reindented after the character is inserted or typed over. The
+     * Java family, Perl and Tcl turn this on; other modes get generic
+     * brace pairing without the block formatting or reindentation.
+     */
+    default boolean electricBraces() {
+        return false;
+    }
+
+    /**
      * The character that escapes the next one in this mode, or 0 if
      * the mode has no escape character. Backslash in C-family and
      * Lisp modes.

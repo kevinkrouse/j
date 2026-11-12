@@ -85,7 +85,6 @@ public final class PerlMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_L, CTRL_MASK | SHIFT_MASK, "listTags");
-        km.mapKey(')', "closeParen");
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
 
         km.mapKey(KeyEvent.VK_OPEN_BRACKET, CTRL_MASK | SHIFT_MASK, "insertBraces");

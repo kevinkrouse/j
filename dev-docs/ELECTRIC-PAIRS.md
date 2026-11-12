@@ -1264,6 +1264,34 @@ existing insert-mode behavior.
    reindentation into the shared mode-aware coordinator, including
    extension modes. Test 28 and a Lisp shell close-paren smoke test.
    Run the full suite + conformance ratchet.
+   **Done.** `Mode.electricBraces()` (default false) gates the brace
+   formatting; Java, Perl and Tcl return true. The `)` bindings are
+   removed from Java/Lisp/Perl/Shell and the Scheme extension, so a
+   typed `)` falls through to the catch-all and pairs. The Lisp shell
+   keeps its own `)` → `electricCloseParen` binding (it renumbers and
+   checks the end of output); `closeParen` is now a one-line wrapper
+   around `insertNormalChar(')')`, and the coordinator calls only the
+   extracted `flashMatchingParen`, never the wrapper, so the shell
+   inserts once and flashes once with no recursion.
+   `insertNormalChar` is the coordinator: for a brace in an
+   electric-brace mode it opens one compound edit, clears a blank line
+   before the decision, applies the pair decision once, flashes a
+   typed `)`, reindents the brace line once (including a typed-over
+   `}`), and on an originally blank line runs the Enter decision for
+   `AUTO_NEWLINE` so the caret never moves past a generated closer.
+   Literal suppression bypasses the brace transformations as well as
+   pairing. `electricOpenBrace`/`electricCloseBrace` are now thin
+   wrappers around `insertNormalChar`; the old `electricBraceInternal`
+   is gone.
+   Tests: `ElectricBraceReplayTest` (13) pins live-vs-`.`-replay
+   parity on blank, under-indented and type-over contexts, plus
+   `AUTO_NEWLINE`, `electricPairs` off, `openLine` off, generic
+   plain-text braces and the literal bypass, with text, caret and undo.
+   `CloseParenCutoverTest` (3) pins the keymap wiring — `)` unbound in
+   the ordinary modes, `electricCloseParen` in the shell — and the
+   wrapper's single insert-and-flash. A live abcl shell driven under
+   Xvfb evaluates `(* 6 7)` to 42 through the typed `)`. Full suite
+   2791/2791; conformance ratchet 168/253 unchanged.
 10. Markdown overrides: the fence, the delimiter-run transitions
     including shared delimiter matching for opener/closer roles,
     punctuation-ending content, closer generation, the single-char

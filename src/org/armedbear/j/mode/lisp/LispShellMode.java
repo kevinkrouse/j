@@ -81,6 +81,9 @@ public final class LispShellMode extends LispMode implements Mode {
         km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_R, CTRL_MASK, "resetLisp");
         km.mapKey(KeyEvent.VK_TAB, 0, "indentLineOrRegion");
+        // The shell's close paren renumbers and checks the end of output,
+        // so it keeps its own binding rather than the generic Lisp one.
+        km.mapKey(')', "electricCloseParen");
         if (!Platform.isPlatformWindows())
             km.mapKey(KeyEvent.VK_C, CTRL_MASK | ALT_MASK, "shellInterrupt");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");

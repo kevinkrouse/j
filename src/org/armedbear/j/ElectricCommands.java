@@ -30,17 +30,25 @@ public final class ElectricCommands {
     private ElectricCommands() {}
 
     public static void closeParen(Editor editor) {
-        final Display display = editor.getDisplay();
         EditCommands.insertNormalChar(editor, ')');
-        if (
-            Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET)
-                ||
-                Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_BRACKETS)
-        )
+    }
+
+    /**
+     * Flash the paren matching the `)` just inserted or typed over, at
+     * {@code dotOffset - 1}. Never inserts and never calls back into the
+     * insertion path, so the coordinator and the {@link #closeParen}
+     * wrapper share one flash with no recursion. Silent when the display
+     * already highlights brackets continuously, or when the match is
+     * off-screen.
+     */
+    static void flashMatchingParen(Editor editor) {
+        final Display display = editor.getDisplay();
+        if (Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET)
+                || Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_BRACKETS))
             return;
         // Limit search to 50 lines.
-        Position match =
-            CaretCommands.findMatchInternal(editor, new Position(editor.getDotLine(), editor.getDotOffset() - 1), 50);
+        Position match = CaretCommands
+                .findMatchInternal(editor, new Position(editor.getDotLine(), editor.getDotOffset() - 1), 50);
         if (match == null)
             return;
         // We don't want to reframe.
@@ -68,12 +76,9 @@ public final class ElectricCommands {
     public static void electricSemi(Editor editor) {
         if (!editor.checkReadOnly())
             return;
-        if (
-            editor.getMark() != null
+        if (editor.getMark() != null
                 || editor.getDotLine().flags() == STATE_COMMENT
-                ||
-                editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())
-        ) {
+                || editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())) {
             EditCommands.insertNormalChar(editor, ';');
         } else {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
@@ -160,32 +165,18 @@ public final class ElectricCommands {
             EditCommands.insertNormalChar(editor, '#');
     }
 
+    /**
+     * Compatibility wrapper: the blank-line preparation and the
+     * reindentation now live in the {@code insertNormalChar} coordinator,
+     * so this delegates once. The coordinator never calls back here.
+     */
     public static void electricOpenBrace(Editor editor) {
-        electricBraceInternal(editor, '{');
+        EditCommands.insertNormalChar(editor, '{');
     }
 
+    /** Compatibility wrapper; see {@link #electricOpenBrace}. */
     public static void electricCloseBrace(Editor editor) {
-        electricBraceInternal(editor, '}');
-    }
-
-    private static void electricBraceInternal(Editor editor, char c) {
-        if (!editor.checkReadOnly())
-            return;
-        CompoundEdit compoundEdit = editor.beginCompoundEdit();
-        if (editor.getMark() == null && editor.getDotLine().isBlank()) {
-            editor.addUndo(SimpleEdit.LINE_EDIT);
-            editor.getDotLine().setText("");
-            editor.getDot().setOffset(0);
-            editor.insertChar(c);
-            IndentCommands.indentLine(editor);
-            MotionCommands.eol(editor);
-            if (editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
-                EditCommands.newlineAndIndent(editor);
-        } else {
-            EditCommands.insertNormalChar(editor, c);
-            IndentCommands.indentLine(editor);
-        }
-        editor.endCompoundEdit(compoundEdit);
+        EditCommands.insertNormalChar(editor, '}');
     }
 
     public static void electricCloseAngleBracket(Editor editor) {
@@ -198,15 +189,8 @@ public final class ElectricCommands {
                 editor.insertChar('>');
                 editor.moveCaretToDotCol();
                 if (editor.getBuffer().getBooleanProperty(Property.AUTO_INDENT)) {
-                    if (
-                        modeId == HTML_MODE
-                            &&
-                            editor.getDotLine()
-                                .substring(0, editor.getDotOffset())
-                                .endsWith(
-                                    "</pre>"
-                                )
-                    ) {
+                    if (modeId == HTML_MODE
+                            && editor.getDotLine().substring(0, editor.getDotOffset()).endsWith("</pre>")) {
                         ; // No autoindent after "</pre>" in HTML mode.
                     } else {
                         IndentCommands.indentLine(editor);
@@ -237,8 +221,7 @@ public final class ElectricCommands {
     public static void insertParentheses(Editor editor) {
         if (!editor.checkReadOnly())
             return;
-        boolean parensRequireSpaces =
-            editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
+        boolean parensRequireSpaces = editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
         if (editor.getMark() != null) {
             Position begin, end;

@@ -335,53 +335,92 @@ public final class EditCommands {
         }
         try {
             c = editor.getMode().fixCase(editor, c);
-            ElectricPairs.Decision decision = ElectricPairs.decide(
-                editor.getMode(),
-                editor.getBuffer(),
-                editor.getDot(),
-                ElectricPairs.Operation.INSERT,
-                c,
-                editor.getMark() != null,
-                editor.isPairingSuppressed());
-            switch (decision.action()) {
-                case INSERT_PAIR:
-                    insertPair(editor, decision.pair().opener(), decision.pair().closer());
-                    return;
-                case INSERT_OPENER:
-                    editor.insertChar(c);
-                    return;
-                case TYPE_OVER:
-                    typeOverCloser(editor);
-                    return;
-                case WRAP:
-                    wrapSelection(editor, decision.pair().opener(), decision.pair().closer());
-                    return;
-                case SUPPRESS:
-                    return;
-                default:
-                    break;
+            final Mode mode = editor.getMode();
+            // The electric-brace coordinator: a brace typed in a mode that
+            // formats braces electrically gets its blank-line preparation
+            // before the pair decision and its reindentation after, so the
+            // live keystroke and the vim/j replay of the same key run the
+            // same sequence. Literal insertion is suppressed, so it bypasses
+            // the brace transformations as well as pairing.
+            final boolean electricBrace =
+                    mode.electricBraces() && !editor.isPairingSuppressed() && (c == '{' || c == '}');
+            final boolean wasBlank = electricBrace && editor.getMark() == null && editor.getDotLine().isBlank();
+            final CompoundEdit compoundEdit = electricBrace ? editor.beginCompoundEdit() : null;
+            try {
+                if (wasBlank) {
+                    editor.addUndo(SimpleEdit.LINE_EDIT);
+                    editor.getDotLine().setText("");
+                    editor.getDot().setOffset(0);
+                }
+                ElectricPairs.Decision decision = ElectricPairs.decide(
+                    mode,
+                    editor.getBuffer(),
+                    editor.getDot(),
+                    ElectricPairs.Operation.INSERT,
+                    c,
+                    editor.getMark() != null,
+                    editor.isPairingSuppressed());
+                switch (decision.action()) {
+                    case INSERT_PAIR:
+                        insertPair(editor, decision.pair().opener(), decision.pair().closer());
+                        break;
+                    case INSERT_OPENER:
+                        editor.insertChar(c);
+                        break;
+                    case TYPE_OVER:
+                        typeOverCloser(editor);
+                        break;
+                    case WRAP:
+                        wrapSelection(editor, decision.pair().opener(), decision.pair().closer());
+                        break;
+                    case SUPPRESS:
+                        break;
+                    default:
+                        plainInsert(editor, c);
+                        break;
+                }
+                // The close-paren flash: the match for the `)` just inserted
+                // or typed over, shown for a moment. Never on a suppressed or
+                // wrapped paren; the caret is not beside it.
+                if (c == ')'
+                        && !editor.isPairingSuppressed()
+                        && decision.action() != ElectricPairs.Action.SUPPRESS
+                        && decision.action() != ElectricPairs.Action.WRAP)
+                    ElectricCommands.flashMatchingParen(editor);
+                if (electricBrace && decision.action() != ElectricPairs.Action.SUPPRESS)
+                    IndentCommands.indentLine(editor);
+                // Auto-newline on an originally blank line: the Enter
+                // decision splits the generated pair from the inside, so the
+                // caret never moves past the closer first.
+                if (wasBlank && editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
+                    newlineAndIndent(editor);
             }
-            if (editor.getMark() != null) {
-                CompoundEdit compoundEdit = editor.beginCompoundEdit();
-                editor.deleteRegion();
-                editor.insertChar(c);
-                editor.endCompoundEdit(compoundEdit);
-            } else {
-                // No selection.
-                if (editor.getBuffer().getBooleanProperty(Property.WRAP)
-                        && editor.getDotCol() >= editor.getBuffer().getIntegerProperty(Property.WRAP_COL)) {
-                    CompoundEdit compoundEdit = editor.beginCompoundEdit();
-                    editor.insertChar(c);
-                    new WrapText(editor).wrapLine();
+            finally {
+                if (compoundEdit != null)
                     editor.endCompoundEdit(compoundEdit);
-                } else
-                    editor.insertChar(c);
             }
         }
         finally {
             editor.getBuffer().unlockWrite();
         }
         editor.moveCaretToDotCol();
+    }
+
+    /** The ordinary insertion: a selection is replaced, wrap may reflow. */
+    private static void plainInsert(Editor editor, char c) {
+        if (editor.getMark() != null) {
+            CompoundEdit compoundEdit = editor.beginCompoundEdit();
+            editor.deleteRegion();
+            editor.insertChar(c);
+            editor.endCompoundEdit(compoundEdit);
+        } else if (editor.getBuffer().getBooleanProperty(Property.WRAP)
+                && editor.getDotCol() >= editor.getBuffer().getIntegerProperty(Property.WRAP_COL)) {
+            CompoundEdit compoundEdit = editor.beginCompoundEdit();
+            editor.insertChar(c);
+            new WrapText(editor).wrapLine();
+            editor.endCompoundEdit(compoundEdit);
+        } else
+            editor.insertChar(c);
     }
 
     /**
