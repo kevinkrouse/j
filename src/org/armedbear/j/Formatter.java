@@ -80,10 +80,10 @@ public abstract class Formatter {
      * check need the state at many offsets on the same line. Asking for
      * them one at a time rescans the prefix each time and is quadratic;
      * a formatter whose scan is linear overrides this to answer them
-     * all at once. The default derives each offset from
-     * {@link #lexicalContextAt}, which is correct but keeps the
-     * quadratic cost, so it suits only formatters that cannot answer
-     * cheaply.
+     * all at once. The default reports that this formatter cannot answer
+     * in bulk, so a caller falls back to the point query at only the
+     * offsets it actually needs rather than paying for a full
+     * per-offset scan it cannot get cheaply.
      *
      * @param line the line to scan
      * @param end  the last offset to answer for, clamped to the line's
@@ -92,15 +92,7 @@ public abstract class Formatter {
      *         for the line
      */
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
-        final int limit = Math.min(end, line.length());
-        final LexicalContext[] states = new LexicalContext[limit + 1];
-        for (int i = 0; i <= limit; i++) {
-            final Optional<LexicalContext> state = lexicalContextAt(line, i);
-            if (!state.isPresent())
-                return Optional.empty();
-            states[i] = state.get();
-        }
-        return Optional.of(states);
+        return Optional.empty();
     }
 
     // The mode whose language this formats: the buffer's, unless the

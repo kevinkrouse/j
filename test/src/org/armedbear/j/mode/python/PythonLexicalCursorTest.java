@@ -21,15 +21,17 @@ import org.junit.jupiter.api.Test;
 /**
  * The Python lexical cursor walks the line once: the number of token
  * advances is linear in the line's length, and a point query stops
- * advancing at its boundary instead of walking the whole line.
+ * advancing at its boundary instead of walking the whole line. The
+ * fixture carries a string with an escape, a line comment and a triple
+ * quote so the walk exercises the multi-character delimiter and
+ * escape paths.
  */
 public class PythonLexicalCursorTest {
+    private static final String TOKENS = "x = \"a\\\"b\" # c '''d''' e";
+
     @Test
     public void bulkWalkIsLinear() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 10000; i++)
-            sb.append("a ");
-        EditorHarness h = EditorHarness.create(sb.toString()).mode(PythonMode.getMode());
+        EditorHarness h = EditorHarness.create(TOKENS).mode(PythonMode.getMode());
         try {
             Line line = h.buffer().getFirstLine();
             int len = line.length();
@@ -37,8 +39,10 @@ public class PythonLexicalCursorTest {
             PythonFormatter.Cursor bulk = new PythonFormatter.Cursor(line, len, out);
             bulk.run();
             // One step per character at most; multi-character tokens
-            // advance by more, so the count never exceeds the length.
+            // (the triple quote, the escape) advance by more, so the
+            // count never exceeds the length.
             assertTrue(bulk.steps <= len, "bulk steps " + bulk.steps + " exceeds len " + len);
+            assertTrue(bulk.steps > 0, "bulk made no progress");
         }
         finally {
             h.close();
@@ -47,16 +51,15 @@ public class PythonLexicalCursorTest {
 
     @Test
     public void pointQueryStopsAtBoundary() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 10000; i++)
-            sb.append("a ");
-        EditorHarness h = EditorHarness.create(sb.toString()).mode(PythonMode.getMode());
+        EditorHarness h = EditorHarness.create(TOKENS).mode(PythonMode.getMode());
         try {
             Line line = h.buffer().getFirstLine();
-            // A point query near the front must not walk the whole line.
-            PythonFormatter.Cursor point = new PythonFormatter.Cursor(line, 5, null);
+            // A point query in the middle of the token-bearing line
+            // must not walk the whole line.
+            int boundary = TOKENS.indexOf("'''");
+            PythonFormatter.Cursor point = new PythonFormatter.Cursor(line, boundary, null);
             point.run();
-            assertTrue(point.steps <= 5, "point steps " + point.steps + " exceeds boundary 5");
+            assertTrue(point.steps <= boundary, "point steps " + point.steps + " exceeds boundary " + boundary);
         }
         finally {
             h.close();

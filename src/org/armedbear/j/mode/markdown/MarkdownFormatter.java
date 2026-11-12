@@ -978,6 +978,11 @@ public final class MarkdownFormatter extends Formatter {
                 if (c == '`') {
                     final int run = runLength(text, i, limit);
                     final int close = findCodeSpanClose(text, i + run, limit, run);
+                    // The lookahead examined every character from the
+                    // run's end to the close (or the line's end when
+                    // nothing closes it). Count it so the guard covers
+                    // the search, not just the main loop.
+                    steps += (close < 0 ? limit : close) - (i + run);
                     if (close < 0) {
                         // Nothing closes the run: the backticks are
                         // literal. Every position they cover is NEUTRAL,
