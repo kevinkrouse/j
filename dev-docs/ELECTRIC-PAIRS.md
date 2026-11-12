@@ -428,13 +428,19 @@ query are all wrong. Three facts force the design:
 state the typed character inherits is the parser state *after*
 consuming the line's text from its entering state up to the caret
 offset — not the entering state, not the segment under the caret.
-This is exactly what the correct existing overrides do
-(`JavaMode.isInComment` :968 walks chars from `line.flags()` to
-`pos.getOffset()`). Generalize that pattern:
+The formatter's lexical query generalizes the pattern the old
+`JavaMode.isInComment` scan followed by hand: walk the line from
+`line.flags()` to the offset with the real token rules and report the
+context at the boundary.
 
 ```java
-enum LexicalContext { NEUTRAL, STRING, COMMENT }
+enum LexicalContext { NEUTRAL, STRING, COMMENT, OPAQUE }
 ```
+
+COMMENT is reserved for actual comments. OPAQUE names a region that is
+neither prose nor a comment but still not a place to pair: a Markdown
+code span, fence or front matter, or inactive C code. Pairing requires
+NEUTRAL, so STRING, COMMENT and OPAQUE all inhibit.
 
 **Formatter interface: query a position with the full parser context.**
 
@@ -461,36 +467,49 @@ checkpoint; do not assume that the flags alone are sufficient. Query
 scans use local state and do not overwrite the highlighting parser's
 mutable fields.
 
-The cursor consumes the prefix up to the caret using those token
-rules, preserving context when the caret is within a multi-character
-delimiter. A closing quote consumed before dot yields NEUTRAL;
-the caret inside a string or a trailing line comment yields STRING
-or COMMENT. At offset zero use the complete entering context. At
-EOL use the result after consuming the whole line, not `line.flags()`.
+Each converted formatter keeps one private cursor that consumes the
+prefix using those token rules. The point query runs it to the caret and
+stops there, without building a prefix-sized array; the bulk query runs
+it to the end of the line recording the context at every offset. Both
+views come from the same transitions, so they cannot drift. A caret
+inside a multi-character delimiter retains the enclosed context: a caret
+between a closing `*/` or `|#` is still inside the comment, while a
+caret between the opening `//`, `/*` or `#|` reads as before the marker.
+A closing quote consumed before dot yields NEUTRAL; the caret inside a
+string or a trailing line comment yields STRING or COMMENT. At offset
+zero use the complete entering context. At EOL use the result after
+consuming the whole line, not `line.flags()`. The cursor counts its
+token advances so a test can assert the walk stays linear in the line's
+length; Markdown's lookahead for a code span's close is bounded by the
+line, so unmatched runs stay linear rather than quadratic.
 
 **Markdown block and inline context.** Its query decodes the actual
 parser flags: `flags & BLOCK_MASK` identifies `IN_FENCE`,
 `IN_COMMENT` and `IN_FRONT_MATTER`; the remaining fence bits carry
-delimiter kind, length and language. A fence body is COMMENT for
+delimiter kind, length and language. A fence body is OPAQUE for
 pairing purposes, including an empty line at offset zero. An HTML
 comment remains COMMENT until its closing marker is consumed, and
-the position after that marker is NEUTRAL. Front matter is also
-excluded from prose pairing. Outside those blocks, scan inline code
-delimiters with their run lengths and escapes; an insertion position
-inside a code span is COMMENT for pairing purposes. Emphasis and link
-text remain NEUTRAL. `CODE`, `CODE_BLOCK` and `FENCE` are display
-format IDs and must never be interpreted as parser states.
+the position after that marker is NEUTRAL. Front matter is OPAQUE.
+Outside those blocks, scan inline code delimiters with their run
+lengths and escapes; an insertion position inside a code span is
+OPAQUE for pairing purposes. Emphasis and link text remain NEUTRAL.
+`CODE`, `CODE_BLOCK` and `FENCE` are display format IDs and must never
+be interpreted as parser states.
 
 **Mode dispatch and parse freshness.**
-`Mode.lexicalContext(Buffer, Position)` returns `LexicalContext`. Modes
-with correct existing overrides (Java, Lisp, Xml) can adapt their
-current scans directly. Otherwise consult the buffer's formatter
-query, falling back to `isInQuote`/`isInComment` only when unsupported.
-Python, Shell and Markdown implement the position query as part of
-this feature. Before invoking the pure decision function, callers
-refresh dirty parse metadata under the existing buffer lock so a
-preceding edit cannot leave stale entering context. The query itself
-only reads that metadata and scans text.
+`Mode.lexicalContext(Buffer, Position)` returns `LexicalContext`. The
+converted formatters (Java/C, Lisp, Python, Shell, Markdown) answer the
+query from their cursor. Modes whose legacy predicates remain (Xml, PHP
+and the `AbstractMode` defaults) fall back to `isInQuote`/`isInComment`
+only when the formatter cannot answer. The Java and Lisp predicates are
+now adapters to the formatter query rather than their own scans:
+`isInComment` is `lexicalContextAt(...) == COMMENT` and `isInQuote` is
+`lexicalContextAt(...) == STRING`, with the same parse preparation.
+Dependency flows from the mode to the formatter query, never back from a
+formatter to a mode predicate. Before invoking the pure decision
+function, callers refresh dirty parse metadata under the existing buffer
+lock so a preceding edit cannot leave stale entering context. The query
+itself only reads that metadata and scans text.
 
 **No offset conversion needed.** The query receives actual buffer
 characters and offsets. Its lexer helpers must accept those buffer
@@ -500,7 +519,7 @@ coordinates rather than indexing detabbed display segments.
 quotes (`"|"`), both the default scanner and LispMode report STRING.
 Allow DELETE_BOTH only when the adjacent characters form a configured
 symmetric quote pair, the left quote is unescaped, and the lexical
-state immediately before that left quote is NEUTRAL. This identifies
+context immediately before that left quote is NEUTRAL. This identifies
 an actual empty string rather than quote characters within another
 string or comment. The mode's lexer must also identify the quotes as
 complete single-character opening/closing delimiters, not part of a
@@ -1359,11 +1378,11 @@ existing insert-mode behavior.
     including the type-over-off-plus-balance composition. Full suite
     2812/2812; conformance ratchet 168/253 unchanged.
 
-12. **Consolidate lexical context. Planned.** Rename the normalized
-    query API to `LexicalContext`; remove duplicated context transitions
-    in the five converted formatters (Java/C, Lisp, Python, Shell and
-    Markdown). This is an implementation refactor with the boundary
-    fixes below, not a new general lexer framework.
+12. **Consolidate lexical context. Done.** Renamed the normalized
+    query API to `LexicalContext`; removed duplicated context
+    transitions in the five converted formatters (Java/C, Lisp, Python,
+    Shell and Markdown). This is an implementation refactor with the
+    boundary fixes below, not a new general lexer framework.
 
     **Naming.** Rename `LexicalState` to `LexicalContext`, including its
     source file. Rename `Formatter.lexicalStateAt(Line, int)` and
@@ -1442,6 +1461,14 @@ existing insert-mode behavior.
     timing probe as diagnostic evidence, not a machine-dependent time
     assertion. Run focused tests and the full suite through `bb test`,
     plus the existing Vim conformance ratchet.
+
+    Landed as four commits: the rename; OPAQUE; one cursor per formatter
+    with the point/bulk differential and per-formatter scan guards; and
+    the Java/Lisp predicate adapters. A differential probe over the old
+    and new predicate logic confirmed every divergence sits on a comment
+    marker caret or a disabled-line interior, never on a bracket or
+    quote character, so no caller reaches one. Full suite 2844/2844;
+    conformance ratchet 168/253 unchanged.
 
 Steps 1-4 are the core; 5-7 are the context and the two extra call
 sites; 8 is the literal-insertion contract; 9 is the cutover; 10-11
