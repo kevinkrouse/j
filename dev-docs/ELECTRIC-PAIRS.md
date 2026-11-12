@@ -1047,7 +1047,25 @@ existing insert-mode behavior.
 
 1. `PairTable` with opener-only and either-delimiter lookup returning
    normalized pairs, `Mode.getPairs()` default and per-mode overrides
-   (Lisp drops `'`). No behavior change yet.
+   (Lisp drops `'`). No behavior change yet. **Done.**
+   `PairTable.forPairs` caches by the pairs string and rejects an
+   odd-length one; `closerFor` is the opener-only lookup (0 when the
+   char opens nothing), `isOpener` and `isCloser` the role tests, and
+   `pairFor` resolves either end to the same normalized `Pair` —
+   `(` and `)` both give `Pair('(', ')')`, so a closer-triggered WRAP
+   or type-over has the pair. `Mode.getPairs()` returns
+   `"()[]{}\"\""` and `getPairTable()` builds the table. Overrides:
+   `LispMode` `"()[]\"\""` (the apostrophe quotes, never pairs),
+   `HtmlMode` and `XmlMode` `"\"\""` (`<>` is tag syntax, not a
+   pair). `PairTableTest` covers the lookups, the symmetric and
+   asymmetric roles, the either-end resolution, the odd-length
+   rejection, the empty table, the cache, and the four modes: 13
+   tests. Full suite 2678/2678, vim conformance 168/253, matching
+   `passing.txt`. Nothing calls `getPairs` yet, so there is no
+   user-visible behavior to try in j until step 3 wires the handler.
+   Note: `HtmlMode.java` carries pre-existing jfmt drift at lines 159
+   and 364 (unformatted at HEAD, unrelated to this change); left
+   alone rather than mixing a reformat in.
 2. `ElectricPairs.decide` pure function + unit tests on the decision
    table (no editor needed — construct positions in a buffer).
    Includes the symmetric-delimiter ordering, the typed-closer

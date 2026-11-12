@@ -128,6 +128,12 @@ public final class XmlMode extends AbstractMode implements Mode {
         return XmlPairMatcher.XML;
     }
 
+    /** Only the double quote pairs; {@code <>} is tag syntax, not a pair. */
+    @Override
+    public String getPairs() {
+        return "\"\"";
+    }
+
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");

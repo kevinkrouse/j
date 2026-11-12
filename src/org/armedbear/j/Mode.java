@@ -333,6 +333,22 @@ public interface Mode extends Folds {
     }
 
     /**
+     * The mode's electric pairs: a string of two-character pairs, the
+     * opener then its closer. A symmetric delimiter pairs with itself.
+     * Typing an opener inserts its closer; typing a closer steps over
+     * it. Modes override to drop pairs they don't want, such as the
+     * apostrophe in Lisp, where it quotes.
+     */
+    default String getPairs() {
+        return "()[]{}\"\"";
+    }
+
+    /** The mode's electric pairs as a lookup table. */
+    default PairTable getPairTable() {
+        return PairTable.forPairs(getPairs());
+    }
+
+    /**
      * Returns a string that signifies the start of a comment for the
      * given mode, or <code>null</code> if the concept of comments is
      * not applicable to this mode.

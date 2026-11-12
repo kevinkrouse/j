@@ -86,6 +86,12 @@ public class LispMode extends AbstractMode implements Mode {
         return new LispFormatter(buffer);
     }
 
+    /** No {@code '}: in Lisp it quotes, so it must never pair. */
+    @Override
+    public String getPairs() {
+        return "()[]\"\"";
+    }
+
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");

@@ -81,6 +81,12 @@ public final class HtmlMode extends AbstractMode implements Mode {
         return new HtmlFormatter(buffer);
     }
 
+    /** Only the double quote pairs; {@code <>} is tag syntax, not a pair. */
+    @Override
+    public String getPairs() {
+        return "\"\"";
+    }
+
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
