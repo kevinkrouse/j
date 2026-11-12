@@ -75,78 +75,143 @@ public final class ShellScriptFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
-        // An offset past the line's end reads as the state after the
-        // whole line, as the per-offset scan answered.
-        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
     }
 
     /**
-     * One forward pass recording the state at every offset to
+     * One forward pass recording the context at every offset to
      * {@code end}. A heredoc declaration or a comment runs to the end
      * of the line; the state before the marker is kept at the marker's
      * own offset, as the per-offset scan answers.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
-        final int limit = line.length();
-        final int upto = Math.min(end, limit);
-        final LexicalContext[] states = new LexicalContext[upto + 1];
-        if (line.flags() == STATE_HERE_DOCUMENT) {
-            java.util.Arrays.fill(states, LexicalContext.STRING);
-            return Optional.of(states);
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of Shell lexical transitions. Walks the line
+     * from its entering flags to {@code upto}. With an output array it
+     * records the context at every offset (bulk); without one it stops
+     * at {@code upto} and returns the context there (point), never
+     * allocating the prefix. {@code steps} counts token advances so a
+     * test can assert the walk stays linear in the line's length.
+     */
+    static final class Cursor {
+        private final Line line;
+        private final String text;
+        private final int limit;
+        private final int upto;
+        private final LexicalContext[] out;
+        private int state;
+        private int i;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            this.line = line;
+            this.text = line.getText();
+            this.limit = text.length();
+            this.upto = upto;
+            this.out = out;
+            // parseBuffer carries an open quote across lines, so a
+            // line inside a multi-line string enters in that string.
+            this.state =
+                    line.flags() == STATE_QUOTE || line.flags() == STATE_SINGLEQUOTE ? line.flags() : STATE_NEUTRAL;
         }
-        // parseBuffer carries an open quote across lines, so a line
-        // inside a multi-line string enters in that string.
-        int state = line.flags() == STATE_QUOTE || line.flags() == STATE_SINGLEQUOTE ? line.flags() : STATE_NEUTRAL;
-        int i = 0;
-        while (i <= upto) {
-            states[i] = toContext(state);
-            if (i == upto)
-                break;
-            final char c = line.charAt(i);
-            if (c == '\\' && i < limit - 1) {
-                // Escape: consumes the next character; the state is
-                // unchanged across it.
-                if (i + 1 <= upto)
-                    states[i + 1] = toContext(state);
-                i += 2;
-                continue;
+
+        LexicalContext run() {
+            // A line entering in HERE_DOCUMENT is body: the whole line
+            // is STRING. The terminator is not needed — the flag
+            // already says the heredoc is open, and the line after the
+            // terminator carries a NEUTRAL flag, so the query never
+            // reads the formatter's mutable endOfText and cannot leak
+            // a stale terminator between heredocs.
+            if (line.flags() == STATE_HERE_DOCUMENT) {
+                if (out != null)
+                    java.util.Arrays.fill(out, LexicalContext.STRING);
+                return LexicalContext.STRING;
             }
-            if (state == STATE_QUOTE) {
-                if (c == '"')
-                    state = STATE_NEUTRAL;
-                ++i;
-                continue;
-            }
-            if (state == STATE_SINGLEQUOTE) {
-                if (c == '\'')
-                    state = STATE_NEUTRAL;
-                ++i;
-                continue;
-            }
-            // Not in a quoted string.
-            if (c == '<' && i < limit - 2 && line.charAt(i + 1) == '<') {
-                if (heredocTerminator(line, i) != null) {
-                    // The rest of the line declares the terminator.
-                    for (int j = i + 1; j <= upto; j++)
-                        states[j] = LexicalContext.STRING;
-                    return Optional.of(states);
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                if (c == '\\' && i < limit - 1) {
+                    // Escape: consumes the next character; the state
+                    // is unchanged across it.
+                    if (inside(2, ctx))
+                        return ctx;
+                    i += 2;
+                    continue;
                 }
+                if (state == STATE_QUOTE) {
+                    if (c == '"')
+                        state = STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                if (state == STATE_SINGLEQUOTE) {
+                    if (c == '\'')
+                        state = STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                // Not in a quoted string.
+                if (c == '<' && i < limit - 2 && text.charAt(i + 1) == '<') {
+                    if (heredocTerminator(line, i) != null) {
+                        // The rest of the line declares the terminator.
+                        if (out != null) {
+                            for (int j = i + 1; j <= upto; j++)
+                                out[j] = LexicalContext.STRING;
+                            return null;
+                        }
+                        return LexicalContext.STRING;
+                    }
+                    ++i;
+                    continue;
+                }
+                if (c == '#') {
+                    if (out != null) {
+                        for (int j = i + 1; j <= upto; j++)
+                            out[j] = LexicalContext.COMMENT;
+                        return null;
+                    }
+                    return LexicalContext.COMMENT;
+                }
+                if (c == '"')
+                    state = STATE_QUOTE;
+                else if (c == '\'')
+                    state = STATE_SINGLEQUOTE;
                 ++i;
-                continue;
             }
-            if (c == '#') {
-                for (int j = i + 1; j <= upto; j++)
-                    states[j] = LexicalContext.COMMENT;
-                return Optional.of(states);
-            }
-            if (c == '"')
-                state = STATE_QUOTE;
-            else if (c == '\'')
-                state = STATE_SINGLEQUOTE;
-            ++i;
+            return toContext(state);
         }
-        return Optional.of(states);
+
+        /**
+         * Whether the point target falls inside a token of length
+         * {@code len} starting at the cursor, whose interior carries
+         * {@code interiorCtx}. In bulk mode the interior offsets are
+         * recorded and the walk continues.
+         */
+        private boolean inside(int len, LexicalContext interiorCtx) {
+            if (out != null) {
+                for (int j = i + 1; j <= Math.min(i + len - 1, upto); j++)
+                    out[j] = interiorCtx;
+                return false;
+            }
+            return upto >= i + 1 && upto <= i + len - 1;
+        }
     }
 
     /**

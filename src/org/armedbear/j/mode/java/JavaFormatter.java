@@ -62,24 +62,27 @@ public class JavaFormatter extends Formatter {
     }
 
     /**
-     * The state at {@code offset}, consuming the line from its
+     * The context at {@code offset}, consuming the line from its
      * entering flags with the same transitions {@link #parseBuffer}
      * uses to write those flags. The offset is checked before each
      * character is consumed, so a closing quote or comment marker
      * consumed before the caret yields NEUTRAL and the caret inside a
      * string or comment yields STRING or COMMENT. A disabled block
-     * reads as COMMENT: pairing has no business inside {@code #if 0}.
+     * reads as OPAQUE: pairing has no business inside {@code #if 0}.
      * Raw text, real offsets.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
-        // An offset past the line's end reads as the state after the
-        // whole line, as the per-offset scan answered.
-        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
     }
 
     /**
-     * One forward pass recording the state at every offset to
+     * One forward pass recording the context at every offset to
      * {@code end}, so a caller that needs many positions on the line
      * pays for one scan. The transitions are the same as
      * {@link #parseBuffer}'s; the state is recorded before each token
@@ -89,80 +92,131 @@ public class JavaFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
-        final int limit = line.length();
-        final int upto = Math.min(end, limit);
-        final LexicalContext[] states = new LexicalContext[upto + 1];
-        int state = line.flags();
-        // A disabled line is disabled whole: the #if 0 block is
-        // line-based, so no token on it can leave the disabled state.
-        // Running the ordinary transitions would let a closed string or
-        // comment on the line report NEUTRAL and pair inside disabled
-        // code.
-        if (state == STATE_DISABLED) {
-            // Inactive code is neither prose nor a comment: OPAQUE.
-            java.util.Arrays.fill(states, LexicalContext.OPAQUE);
-            return Optional.of(states);
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of Java lexical transitions. Walks the line
+     * from its entering flags to {@code upto}. With an output array it
+     * records the context at every offset (bulk); without one it stops
+     * at {@code upto} and returns the context there (point), never
+     * allocating the prefix. {@code steps} counts token advances so a
+     * test can assert the walk stays linear in the line's length.
+     */
+    static final class Cursor {
+        private final String text;
+        private final int limit;
+        private final int upto;
+        private final LexicalContext[] out;
+        private int state;
+        private char quoteChar;
+        private int i;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            this.text = line.getText();
+            this.limit = text.length();
+            this.upto = upto;
+            this.out = out;
+            this.state = line.flags();
+            this.quoteChar = state == STATE_QUOTE ? '"' : '\0';
         }
-        char quoteChar = state == STATE_QUOTE ? '"' : '\0';
-        int i = 0;
-        while (i <= upto) {
-            states[i] = toContext(state);
-            if (i == upto)
-                break;
-            final char c = line.charAt(i);
-            // A two-character token (an escape, or a comment marker)
-            // with the caret between its characters: the caret is
-            // still in the state before the token.
-            if (c == '\\' && i < limit - 1) {
-                if (i + 1 <= upto)
-                    states[i + 1] = toContext(state);
-                i += 2;
-                continue;
+
+        LexicalContext run() {
+            // A disabled line is disabled whole: the #if 0 block is
+            // line-based, so no token on it can leave the disabled
+            // state. Running the ordinary transitions would let a
+            // closed string or comment on the line report NEUTRAL and
+            // pair inside disabled code.
+            if (state == STATE_DISABLED) {
+                if (out != null)
+                    java.util.Arrays.fill(out, LexicalContext.OPAQUE);
+                return LexicalContext.OPAQUE;
             }
-            if (state == STATE_COMMENT) {
-                if (c == '*' && i < limit - 1 && line.charAt(i + 1) == '/') {
-                    if (i + 1 <= upto)
-                        states[i + 1] = toContext(state);
-                    i += 2;
-                    state = STATE_NEUTRAL;
-                } else
-                    ++i;
-                continue;
-            }
-            if (state == STATE_QUOTE) {
-                if (c == quoteChar) {
-                    state = STATE_NEUTRAL;
-                    quoteChar = '\0';
-                }
-                ++i;
-                continue;
-            }
-            // Not in comment or quoted string.
-            if (c == '/' && i < limit - 1) {
-                final char next = line.charAt(i + 1);
-                if (next == '/') {
-                    // A line comment: the caret between the slashes is
-                    // still before it, everything after is COMMENT.
-                    if (i + 1 <= upto)
-                        states[i + 1] = toContext(state);
-                    for (int j = i + 2; j <= upto; j++)
-                        states[j] = LexicalContext.COMMENT;
-                    return Optional.of(states);
-                }
-                if (next == '*') {
-                    if (i + 1 <= upto)
-                        states[i + 1] = toContext(state);
-                    state = STATE_COMMENT;
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                // A two-character token (an escape, or a comment
+                // marker) with the caret between its characters: the
+                // caret is still in the state before the token.
+                if (c == '\\' && i < limit - 1) {
+                    if (inside(2, ctx))
+                        return ctx;
                     i += 2;
                     continue;
                 }
-            } else if (c == '"' || c == '\'') {
-                state = STATE_QUOTE;
-                quoteChar = c;
+                if (state == STATE_COMMENT) {
+                    if (c == '*' && i < limit - 1 && text.charAt(i + 1) == '/') {
+                        if (inside(2, ctx))
+                            return ctx;
+                        i += 2;
+                        state = STATE_NEUTRAL;
+                    } else
+                        ++i;
+                    continue;
+                }
+                if (state == STATE_QUOTE) {
+                    if (c == quoteChar) {
+                        state = STATE_NEUTRAL;
+                        quoteChar = '\0';
+                    }
+                    ++i;
+                    continue;
+                }
+                // Not in comment or quoted string.
+                if (c == '/' && i < limit - 1) {
+                    final char next = text.charAt(i + 1);
+                    if (next == '/') {
+                        // A line comment: the caret between the
+                        // slashes is still before it, everything after
+                        // is COMMENT.
+                        if (inside(2, ctx))
+                            return ctx;
+                        if (out != null) {
+                            for (int j = i + 2; j <= upto; j++)
+                                out[j] = LexicalContext.COMMENT;
+                            return null;
+                        }
+                        return LexicalContext.COMMENT;
+                    }
+                    if (next == '*') {
+                        if (inside(2, ctx))
+                            return ctx;
+                        state = STATE_COMMENT;
+                        i += 2;
+                        continue;
+                    }
+                } else if (c == '"' || c == '\'') {
+                    state = STATE_QUOTE;
+                    quoteChar = c;
+                }
+                ++i;
             }
-            ++i;
+            return toContext(state);
         }
-        return Optional.of(states);
+
+        /**
+         * Whether the point target falls inside a token of length
+         * {@code len} starting at the cursor, whose interior carries
+         * {@code interiorCtx}. In bulk mode the interior offsets are
+         * recorded and the walk continues.
+         */
+        private boolean inside(int len, LexicalContext interiorCtx) {
+            if (out != null) {
+                for (int j = i + 1; j <= Math.min(i + len - 1, upto); j++)
+                    out[j] = interiorCtx;
+                return false;
+            }
+            return upto >= i + 1 && upto <= i + len - 1;
+        }
     }
 
     // STATE_DISABLED never reaches here: a disabled line is answered by

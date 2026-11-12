@@ -71,111 +71,161 @@ public final class PythonFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
-        // An offset past the line's end reads as the state after the
-        // whole line, as the per-offset scan answered.
-        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
     }
 
     /**
-     * One forward pass recording the state at every offset to
+     * One forward pass recording the context at every offset to
      * {@code end}. A caret inside a multi-character token — an escape,
      * or a triple-quote delimiter — carries the state before the
      * token, so a caret inside a closing triple quote is still inside
      * the string.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
-        final String text = line.getText();
-        final int limit = text.length();
-        final int upto = Math.min(end, limit);
-        final LexicalContext[] states = new LexicalContext[upto + 1];
-        int state = line.flags();
-        int i = 0;
-        while (i <= upto) {
-            states[i] = toContext(state);
-            if (i == upto)
-                break;
-            final char c = text.charAt(i);
-            if (c == '\\' && i < limit - 1) {
-                // Escape: consumes the next character; the caret
-                // between them is before the escape.
-                fill(states, i + 1, Math.min(i + 1, upto), toContext(state));
-                i += 2;
-                continue;
-            }
-            if (state == PYTHON_STATE_SINGLE_QUOTE) {
-                if (c == '\'')
-                    state = PYTHON_STATE_NEUTRAL;
-                ++i;
-                continue;
-            }
-            if (state == PYTHON_STATE_DOUBLE_QUOTE) {
-                if (c == '"')
-                    state = PYTHON_STATE_NEUTRAL;
-                ++i;
-                continue;
-            }
-            if (state == PYTHON_STATE_TRIPLE_SINGLE) {
-                if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
-                    // The closer is three characters; a caret inside it
-                    // is still inside the string.
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
-                    state = PYTHON_STATE_NEUTRAL;
-                    i += 3;
-                } else
-                    ++i;
-                continue;
-            }
-            if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
-                if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
-                    state = PYTHON_STATE_NEUTRAL;
-                    i += 3;
-                } else
-                    ++i;
-                continue;
-            }
-            // Not in a quoted string.
-            if (c == '\'') {
-                if (text.regionMatches(i, "'''", 0, 3)) {
-                    // The opener is consumed whole; a caret inside it
-                    // reads as inside the string, as the per-offset
-                    // scan answers.
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
-                    state = PYTHON_STATE_TRIPLE_SINGLE;
-                    i += 3;
-                } else {
-                    state = PYTHON_STATE_SINGLE_QUOTE;
-                    ++i;
-                }
-                continue;
-            }
-            if (c == '"') {
-                if (text.regionMatches(i, "\"\"\"", 0, 3)) {
-                    fill(states, i + 1, Math.min(i + 2, upto), LexicalContext.STRING);
-                    state = PYTHON_STATE_TRIPLE_DOUBLE;
-                    i += 3;
-                } else {
-                    state = PYTHON_STATE_DOUBLE_QUOTE;
-                    ++i;
-                }
-                continue;
-            }
-            if (c == '#') {
-                // A line comment: the caret on the '#' is before it,
-                // everything after is COMMENT.
-                for (int j = i + 1; j <= upto; j++)
-                    states[j] = LexicalContext.COMMENT;
-                return Optional.of(states);
-            }
-            ++i;
-        }
-        return Optional.of(states);
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
     }
 
-    private static void fill(LexicalContext[] states, int from, int to, LexicalContext value) {
-        for (int i = from; i <= to; i++)
-            states[i] = value;
+    /**
+     * The single source of Python lexical transitions. Walks the line
+     * from its entering flags to {@code upto}. With an output array it
+     * records the context at every offset (bulk); without one it stops
+     * at {@code upto} and returns the context there (point), never
+     * allocating the prefix. {@code steps} counts token advances so a
+     * test can assert the walk stays linear in the line's length.
+     */
+    static final class Cursor {
+        private final String text;
+        private final int limit;
+        private final int upto;
+        private final LexicalContext[] out;
+        private int state;
+        private int i;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            this.text = line.getText();
+            this.limit = text.length();
+            this.upto = upto;
+            this.out = out;
+            this.state = line.flags();
+        }
+
+        LexicalContext run() {
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                if (c == '\\' && i < limit - 1) {
+                    // Escape: consumes the next character; the caret
+                    // between them is before the escape.
+                    if (inside(2, ctx))
+                        return ctx;
+                    i += 2;
+                    continue;
+                }
+                if (state == PYTHON_STATE_SINGLE_QUOTE) {
+                    if (c == '\'')
+                        state = PYTHON_STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                if (state == PYTHON_STATE_DOUBLE_QUOTE) {
+                    if (c == '"')
+                        state = PYTHON_STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                if (state == PYTHON_STATE_TRIPLE_SINGLE) {
+                    if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
+                        // The closer is three characters; a caret
+                        // inside it is still inside the string.
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_NEUTRAL;
+                        i += 3;
+                    } else
+                        ++i;
+                    continue;
+                }
+                if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
+                    if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_NEUTRAL;
+                        i += 3;
+                    } else
+                        ++i;
+                    continue;
+                }
+                // Not in a quoted string.
+                if (c == '\'') {
+                    if (text.regionMatches(i, "'''", 0, 3)) {
+                        // The opener is consumed whole; a caret inside
+                        // it reads as inside the string.
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_TRIPLE_SINGLE;
+                        i += 3;
+                    } else {
+                        state = PYTHON_STATE_SINGLE_QUOTE;
+                        ++i;
+                    }
+                    continue;
+                }
+                if (c == '"') {
+                    if (text.regionMatches(i, "\"\"\"", 0, 3)) {
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_TRIPLE_DOUBLE;
+                        i += 3;
+                    } else {
+                        state = PYTHON_STATE_DOUBLE_QUOTE;
+                        ++i;
+                    }
+                    continue;
+                }
+                if (c == '#') {
+                    // A line comment: the caret on the '#' is before
+                    // it, everything after is COMMENT.
+                    if (out != null) {
+                        for (int j = i + 1; j <= upto; j++)
+                            out[j] = LexicalContext.COMMENT;
+                        return null;
+                    }
+                    return LexicalContext.COMMENT;
+                }
+                ++i;
+            }
+            return toContext(state);
+        }
+
+        /**
+         * Whether the point target falls inside a token of length
+         * {@code len} starting at the cursor, whose interior carries
+         * {@code interiorCtx}. In bulk mode the interior offsets are
+         * recorded and the walk continues.
+         */
+        private boolean inside(int len, LexicalContext interiorCtx) {
+            if (out != null) {
+                for (int j = i + 1; j <= Math.min(i + len - 1, upto); j++)
+                    out[j] = interiorCtx;
+                return false;
+            }
+            return upto >= i + 1 && upto <= i + len - 1;
+        }
     }
 
     private static LexicalContext toContext(int state) {

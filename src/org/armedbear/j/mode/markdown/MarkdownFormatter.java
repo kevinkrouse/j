@@ -877,102 +877,162 @@ public final class MarkdownFormatter extends Formatter {
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
-        // An offset past the line's end reads as the state after the
-        // whole line, as the per-offset scan answered.
-        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
     }
 
     /**
-     * One forward pass recording the state at every offset to
-     * {@code end}. Outside a block the state is NEUTRAL except inside
-     * a code span or an inline HTML comment, where it is COMMENT; the
-     * caret on a span's or comment's own delimiters carries the state
-     * before them, exactly as the per-offset scan answers. A line that
-     * enters inside a multiline comment is COMMENT until its closing
-     * marker is consumed, then the prose after it pairs normally.
+     * One forward pass recording the context at every offset to
+     * {@code end}. Outside a block the context is NEUTRAL except inside
+     * a code span, where it is OPAQUE, or an inline HTML comment,
+     * where it is COMMENT; the caret on a span's or comment's own
+     * delimiters carries the state before them, exactly as the
+     * per-offset scan answers. A line that enters inside a multiline
+     * comment is COMMENT until its closing marker is consumed, then the
+     * prose after it pairs normally.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
-        final int block = line.flags() & BLOCK_MASK;
-        final String text = line.getText();
-        // The helpers see the whole line: a delimiter's close may lie
-        // beyond the last offset asked for.
-        final int limit = text.length();
-        final int upto = Math.min(end, limit);
-        final LexicalContext[] states = new LexicalContext[upto + 1];
-        if (block == IN_FENCE || block == IN_FRONT_MATTER) {
-            // A fence body or front matter is neither prose nor a
-            // comment: OPAQUE, so pairing is excluded without calling
-            // code a comment.
-            java.util.Arrays.fill(states, LexicalContext.OPAQUE);
-            return Optional.of(states);
-        }
-        int i = 0;
-        if (block == IN_COMMENT) {
-            final int close = text.indexOf("-->");
-            if (close < 0) {
-                java.util.Arrays.fill(states, LexicalContext.COMMENT);
-                return Optional.of(states);
-            }
-            // The comment runs through the closing marker's last
-            // character; the position just past the marker is prose
-            // and pairs normally, so the fill stops at close + 2 and
-            // the scan resumes there.
-            fill(states, 0, Math.min(close + 2, upto), LexicalContext.COMMENT);
-            i = close + 3;
-        }
-        while (i <= upto) {
-            states[i] = LexicalContext.NEUTRAL;
-            if (i == upto)
-                break;
-            final char c = text.charAt(i);
-            if (c == '\\' && i + 1 < limit && isAsciiPunctuation(text.charAt(i + 1))) {
-                // The escape consumes the next character; the caret on
-                // it is inside the escape, not on a delimiter.
-                if (i + 1 <= upto)
-                    states[i + 1] = LexicalContext.NEUTRAL;
-                i += 2;
-                continue;
-            }
-            if (c == '`') {
-                final int run = runLength(text, i, limit);
-                final int close = findCodeSpanClose(text, i + run, limit, run);
-                if (close < 0) {
-                    // Nothing closes the run: the backticks are
-                    // literal. Every position they cover is NEUTRAL,
-                    // so a caret between them is not left unset and
-                    // does not fall through to the generic quote
-                    // scanner (which would read an apostrophe earlier
-                    // on the line as an open string).
-                    fill(states, i + 1, Math.min(i + run, upto), LexicalContext.NEUTRAL);
-                    i += run;
-                    continue;
-                }
-                // The span is [i, close+run): inside it is OPAQUE, the
-                // position at or after the closing run is not.
-                fill(states, i + 1, Math.min(close + run - 1, upto), LexicalContext.OPAQUE);
-                i = close + run;
-                continue;
-            }
-            if (c == '<' && text.startsWith("<!--", i)) {
-                final int close = text.indexOf("-->", i + 4);
-                if (close < 0) {
-                    // Unclosed: everything from here on is COMMENT.
-                    fill(states, i + 1, upto, LexicalContext.COMMENT);
-                    return Optional.of(states);
-                }
-                fill(states, i + 1, Math.min(close + 2, upto), LexicalContext.COMMENT);
-                i = close + 3;
-                continue;
-            }
-            ++i;
-        }
-        return Optional.of(states);
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
     }
 
-    private static void fill(LexicalContext[] states, int from, int to, LexicalContext value) {
-        for (int i = from; i <= to; i++)
-            states[i] = value;
+    /**
+     * The single source of Markdown inline lexical transitions. Walks
+     * the line from its entering block flags to {@code upto}. With an
+     * output array it records the context at every offset (bulk);
+     * without one it stops at {@code upto} and returns the context
+     * there (point), never allocating the prefix. Resolving a code
+     * span's close inspects ahead of the boundary either way — that is
+     * lookahead, not extra passes — and {@code steps} counts token
+     * advances so a test can assert the walk stays linear in the
+     * line's length.
+     */
+    static final class Cursor {
+        private final int block;
+        private final String text;
+        private final int limit;
+        private final int upto;
+        private final LexicalContext[] out;
+        private int i;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            this.block = line.flags() & BLOCK_MASK;
+            this.text = line.getText();
+            this.limit = text.length();
+            this.upto = upto;
+            this.out = out;
+        }
+
+        LexicalContext run() {
+            if (block == IN_FENCE || block == IN_FRONT_MATTER) {
+                // A fence body or front matter is neither prose nor a
+                // comment: OPAQUE, so pairing is excluded without
+                // calling code a comment.
+                if (out != null)
+                    java.util.Arrays.fill(out, LexicalContext.OPAQUE);
+                return LexicalContext.OPAQUE;
+            }
+            if (block == IN_COMMENT) {
+                final int close = text.indexOf("-->");
+                if (close < 0) {
+                    if (out != null)
+                        java.util.Arrays.fill(out, LexicalContext.COMMENT);
+                    return LexicalContext.COMMENT;
+                }
+                // The comment runs through the closing marker's last
+                // character; the position just past the marker is prose
+                // and pairs normally, so the covered range stops at
+                // close + 2 and the scan resumes there.
+                if (upto <= close + 2) {
+                    if (out != null)
+                        fill(0, upto, LexicalContext.COMMENT);
+                    return LexicalContext.COMMENT;
+                }
+                if (out != null)
+                    fill(0, close + 2, LexicalContext.COMMENT);
+                i = close + 3;
+            }
+            while (i <= upto) {
+                if (out != null)
+                    out[i] = LexicalContext.NEUTRAL;
+                if (i == upto)
+                    return LexicalContext.NEUTRAL;
+                steps++;
+                final char c = text.charAt(i);
+                if (c == '\\' && i + 1 < limit && isAsciiPunctuation(text.charAt(i + 1))) {
+                    // The escape consumes the next character; the caret
+                    // on it is inside the escape, not on a delimiter.
+                    if (covers(i + 1, i + 1, LexicalContext.NEUTRAL))
+                        return LexicalContext.NEUTRAL;
+                    i += 2;
+                    continue;
+                }
+                if (c == '`') {
+                    final int run = runLength(text, i, limit);
+                    final int close = findCodeSpanClose(text, i + run, limit, run);
+                    if (close < 0) {
+                        // Nothing closes the run: the backticks are
+                        // literal. Every position they cover is NEUTRAL,
+                        // so a caret between them is not left unset and
+                        // does not fall through to the generic quote
+                        // scanner (which would read an apostrophe
+                        // earlier on the line as an open string).
+                        if (covers(i + 1, i + run, LexicalContext.NEUTRAL))
+                            return LexicalContext.NEUTRAL;
+                        i += run;
+                        continue;
+                    }
+                    // The span is [i, close+run): inside it is OPAQUE,
+                    // the position at or after the closing run is not.
+                    if (covers(i + 1, close + run - 1, LexicalContext.OPAQUE))
+                        return LexicalContext.OPAQUE;
+                    i = close + run;
+                    continue;
+                }
+                if (c == '<' && text.startsWith("<!--", i)) {
+                    final int close = text.indexOf("-->", i + 4);
+                    if (close < 0) {
+                        // Unclosed: everything from here on is COMMENT.
+                        if (out != null)
+                            fill(i + 1, upto, LexicalContext.COMMENT);
+                        return LexicalContext.COMMENT;
+                    }
+                    if (covers(i + 1, close + 2, LexicalContext.COMMENT))
+                        return LexicalContext.COMMENT;
+                    i = close + 3;
+                    continue;
+                }
+                ++i;
+            }
+            return LexicalContext.NEUTRAL;
+        }
+
+        /**
+         * Whether the point target falls in the closed range
+         * [{@code from}, {@code to}] whose interior carries
+         * {@code interiorCtx}. In bulk mode the range is recorded and
+         * the walk continues.
+         */
+        private boolean covers(int from, int to, LexicalContext interiorCtx) {
+            if (out != null) {
+                fill(from, Math.min(to, upto), interiorCtx);
+                return false;
+            }
+            return upto >= from && upto <= to;
+        }
+
+        private void fill(int from, int to, LexicalContext value) {
+            for (int j = from; j <= to; j++)
+                out[j] = value;
+        }
     }
 
     private static int runLength(String text, int i, int end) {

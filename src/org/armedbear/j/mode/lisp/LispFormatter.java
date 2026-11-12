@@ -76,74 +76,126 @@ public final class LispFormatter extends Formatter {
     }
 
     /**
-     * The state at {@code offset}, consuming the line from its
+     * The context at {@code offset}, consuming the line from its
      * entering flags. Only QUOTE and COMMENT persist across lines;
      * the paren and list states are line-local and all read as
      * NEUTRAL for pairing. {@code #| |#} block comments are not
      * nested here, matching the formatter's own FIXME. A {@code ;}
      * makes the rest of the line COMMENT.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
-        // An offset past the line's end reads as the state after the
-        // whole line, as the per-offset scan answered.
-        return lexicalContexts(line, offset).map(states -> states[Math.min(offset, states.length - 1)]);
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
     }
 
     /**
-     * One forward pass recording the state at every offset to
+     * One forward pass recording the context at every offset to
      * {@code end}. A block comment's `#|` opener or `|#` closer is two
      * characters: the caret between them carries the state before the
      * marker, as the per-offset scan answers.
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
-        final int limit = line.length();
-        final int upto = Math.min(end, limit);
-        final LexicalContext[] states = new LexicalContext[upto + 1];
-        int state = line.flags();
-        int i = 0;
-        while (i <= upto) {
-            states[i] = toContext(state);
-            if (i == upto)
-                break;
-            final char c = line.charAt(i);
-            if (c == '\\') {
-                // Escape: consumes the next character; the state is
-                // unchanged across it.
-                if (i + 1 <= upto)
-                    states[i + 1] = toContext(state);
-                i += 2;
-            } else if (state == STATE_COMMENT) {
-                if (c == '|' && i + 1 < limit && line.charAt(i + 1) == '#') {
-                    if (i + 1 <= upto)
-                        states[i + 1] = toContext(state);
-                    state = STATE_NEUTRAL;
-                    i += 2; // skip '#'
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of Lisp lexical transitions. Walks the line
+     * from its entering flags to {@code upto}. With an output array it
+     * records the context at every offset (bulk); without one it stops
+     * at {@code upto} and returns the context there (point), never
+     * allocating the prefix. {@code steps} counts token advances so a
+     * test can assert the walk stays linear in the line's length.
+     */
+    static final class Cursor {
+        private final String text;
+        private final int limit;
+        private final int upto;
+        private final LexicalContext[] out;
+        private int state;
+        private int i;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            this.text = line.getText();
+            this.limit = text.length();
+            this.upto = upto;
+            this.out = out;
+            this.state = line.flags();
+        }
+
+        LexicalContext run() {
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                if (c == '\\') {
+                    // Escape: consumes the next character; the state
+                    // is unchanged across it.
+                    if (inside(2, ctx))
+                        return ctx;
+                    i += 2;
+                } else if (state == STATE_COMMENT) {
+                    if (c == '|' && i + 1 < limit && text.charAt(i + 1) == '#') {
+                        if (inside(2, ctx))
+                            return ctx;
+                        state = STATE_NEUTRAL;
+                        i += 2; // skip '#'
+                    } else
+                        ++i;
+                } else if (state == STATE_QUOTE) {
+                    if (c == '"')
+                        state = STATE_NEUTRAL;
+                    ++i;
+                } else if (c == '"') {
+                    state = STATE_QUOTE;
+                    ++i;
+                } else if (c == '#' && i + 1 < limit && text.charAt(i + 1) == '|') {
+                    if (inside(2, ctx))
+                        return ctx;
+                    state = STATE_COMMENT;
+                    i += 2; // skip '|'
+                } else if (c == ';') {
+                    // A line comment: the caret on the ';' is before
+                    // it, everything after is COMMENT.
+                    if (out != null) {
+                        for (int j = i + 1; j <= upto; j++)
+                            out[j] = LexicalContext.COMMENT;
+                        return null;
+                    }
+                    return LexicalContext.COMMENT;
                 } else
                     ++i;
-            } else if (state == STATE_QUOTE) {
-                if (c == '"')
-                    state = STATE_NEUTRAL;
-                ++i;
-            } else if (c == '"') {
-                state = STATE_QUOTE;
-                ++i;
-            } else if (c == '#' && i + 1 < limit && line.charAt(i + 1) == '|') {
-                if (i + 1 <= upto)
-                    states[i + 1] = toContext(state);
-                state = STATE_COMMENT;
-                i += 2; // skip '|'
-            } else if (c == ';') {
-                // A line comment: the caret on the ';' is before it,
-                // everything after is COMMENT.
-                for (int j = i + 1; j <= upto; j++)
-                    states[j] = LexicalContext.COMMENT;
-                return Optional.of(states);
-            } else
-                ++i;
+            }
+            return toContext(state);
         }
-        return Optional.of(states);
+
+        /**
+         * Whether the point target falls inside a token of length
+         * {@code len} starting at the cursor, whose interior carries
+         * {@code interiorCtx}. In bulk mode the interior offsets are
+         * recorded and the walk continues.
+         */
+        private boolean inside(int len, LexicalContext interiorCtx) {
+            if (out != null) {
+                for (int j = i + 1; j <= Math.min(i + len - 1, upto); j++)
+                    out[j] = interiorCtx;
+                return false;
+            }
+            return upto >= i + 1 && upto <= i + len - 1;
+        }
     }
 
     private static LexicalContext toContext(int state) {

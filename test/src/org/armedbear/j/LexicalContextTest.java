@@ -444,4 +444,73 @@ public class LexicalContextTest {
         assertEquals(STRING, h.buffer().getMode().lexicalContext(h.buffer(), new Position(h.buffer().getLine(1), 3)));
         assertTrue(h.repaintPending());
     }
+
+    // The point and bulk queries are two views of one scan. At every
+    // offset of every fixture line, the bulk array's entry must equal
+    // what the point query answers. A drift between them means the two
+    // no longer share the same transitions.
+    @Test
+    public void pointAndBulkAgreeAtEveryOffset() {
+        Mode[] modes = {
+            JavaMode.getMode(),
+            CMode.getMode(),
+            LispMode.getMode(),
+            PythonMode.getMode(),
+            ShellScriptMode.getMode(),
+            MarkdownMode.getMode() };
+        String[] fixtures = {
+            "",
+            "x",
+            "  \t  ",
+            "// c",
+            "\"s\"",
+            "\"a\\\"b\"",
+            "/* b */ x",
+            "#if 0\nint x=\"s\"; /* c */ (1);\n#endif\n",
+            "; c",
+            "#| blk |# x",
+            "'q'",
+            "(a b)",
+            "\"unterminated",
+            "# c\nx",
+            "x = 'a'",
+            "x = '''t'''",
+            "x = \"\"\"a\\\"b\"\"\"",
+            "x = \"a\" # c",
+            "echo hi # c",
+            "cat <<EOF\nbody\nEOF",
+            "x='a' y=\"b\"",
+            "a `code` b",
+            "`` lit `x`",
+            "<!-- c -->",
+            "```\nfence\n```",
+            "---\nfront\n---\nprose",
+            "don't ``",
+            "<!-- a\nb --> c",
+            "a\\`b",
+            "```` ````",
+            "x `` y `z` w" };
+        for (Mode mode : modes) {
+            for (String text : fixtures) {
+                if (h != null)
+                    h.close();
+                h = EditorHarness.create(text).mode(mode);
+                Buffer buffer = h.buffer();
+                int lineNo = 0;
+                for (Line line = buffer.getFirstLine(); line != null; line = line.next(), lineNo++) {
+                    int len = line.length();
+                    LexicalContext[] bulk = mode.lexicalContexts(buffer, line, len).orElse(null);
+                    if (bulk == null)
+                        continue; // a fallback mode with no bulk answer
+                    for (int off = 0; off <= len; off++) {
+                        LexicalContext point = mode.lexicalContext(buffer, new Position(line, off));
+                        assertEquals(
+                            bulk[off],
+                            point,
+                            mode.getDisplayName() + " at " + lineNo + ":" + off + " of [" + text + "]");
+                    }
+                }
+            }
+        }
+    }
 }
