@@ -13,6 +13,7 @@ package org.armedbear.j.mode.markdown;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.EditorHarness;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -144,6 +145,32 @@ public class MarkdownElectricPairsTest {
         // the opening fence for the language name.
         h.assertText("```\n```\n");
         assertEquals(3, caret());
+    }
+
+    @Test
+    public void undoingTheFenceTakesTheCloserBackToo() {
+        h = EditorHarness.create("").mode(MarkdownMode.getMode());
+        h.keys("```");
+        h.assertText("```\n```\n");
+        EditCommands.undo(h.editor());
+        // One step: the third backtick and the closing fence line.
+        h.assertText("``\n");
+    }
+
+    @Test
+    public void retypingAnOpeningFenceAddsNoSecondCloser() {
+        md("``\ncode\n```\n");
+        h.cursor(0, 1).keys("a`");
+        // The fence is already closed below: just the backtick.
+        h.assertText("```\ncode\n```\n");
+    }
+
+    @Test
+    public void aFenceTypedInsideAFenceAddsNoCloser() {
+        md("```\n\n```\n");
+        h.cursor(1, 0).keys("i```");
+        // Inside a fence the line would close it, not open one.
+        h.assertText("```\n```\n```\n");
     }
 
     @Test

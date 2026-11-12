@@ -152,8 +152,12 @@ public final class EditCommands {
                 editor.addUndo(SimpleEdit.MOVE);
                 display.setCaretCol(display.getCaretCol() - 1);
                 editor.updateDotLine();
-            } else if (ElectricPairs
-                    .deleteBoth(editor.getMode(), editor.getBuffer(), editor.getDotLine(), editor.getDotOffset())) {
+            } else if (!editor.isPairingSuppressed()
+                    && ElectricPairs.deleteBoth(
+                        editor.getMode(),
+                        editor.getBuffer(),
+                        editor.getDotLine(),
+                        editor.getDotOffset())) {
                 // The caret sits between an empty pair: take both
                 // characters as one undo step. The closer is at the
                 // caret, the opener one left; delete the closer, step
@@ -230,7 +234,7 @@ public final class EditCommands {
                         ElectricPairs.Operation.ENTER,
                         '\n',
                         false,
-                        false)
+                        editor.isPairingSuppressed())
                     .action() == ElectricPairs.Action.OPEN_LINE) {
                 openLineBetweenPair(editor);
                 editor.endCompoundEdit(compoundEdit);
@@ -312,11 +316,18 @@ public final class EditCommands {
                 editor.fillToCaret();
             return;
         }
-        // No context indent: match the opener's indentation.
+        // No context indent: both lines match the opener's
+        // indentation, as a plain split would give them.
         int indent = buffer.getIndentation(interior.previous());
+        if (indent != buffer.getIndentation(closer)) {
+            editor.addUndo(SimpleEdit.LINE_EDIT);
+            buffer.setIndentation(closer, indent);
+        }
         editor.addUndo(SimpleEdit.MOVE);
         editor.getDot().moveTo(interior, 0);
         display.setCaretCol(indent - display.getShift());
+        if (buffer.getBooleanProperty(Property.RESTRICT_CARET))
+            editor.fillToCaret();
     }
 
     public static void insertNormalChar(Editor editor, char c) {
@@ -458,11 +469,11 @@ public final class EditCommands {
     }
 
     /**
-     * Wrap the selection in a pair, leaving the caret after the opener.
-     * The shape of {@code insertParentheses}: insert the closer at the
-     * end of the region, then the opener at its start, in one edit.
+     * Wrap the selection in a pair, leaving the caret after the opener:
+     * insert the closer at the end of the region, then the opener at
+     * its start, in one edit. {@code insertParentheses} shares it.
      */
-    private static void wrapSelection(Editor editor, char opener, char closer) {
+    static void wrapSelection(Editor editor, char opener, char closer) {
         boolean parensRequireSpaces =
                 opener == '(' && editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
         CompoundEdit compoundEdit = editor.beginCompoundEdit();

@@ -120,13 +120,15 @@ ElectricPairs.decide(Mode mode, Buffer buffer, Position dot, Operation operation
                      boolean hasSelection, boolean pairingSuppressed)
     -> Decision(action, pair)
 action = INSERT_PAIR | INSERT_OPENER | TYPE_OVER | WRAP | SUPPRESS
-       | DELETE_BOTH | OPEN_LINE | PLAIN
+       | OPEN_LINE | PLAIN
 ```
 
 `Decision.pair` carries a normalized `{opener, closer}` for INSERT_PAIR
 and WRAP; other actions need no pair payload. In particular, WRAP must
 not treat a typed closer as the opening character.
-`Operation` is INSERT, BACKSPACE or ENTER; `c` is used only for INSERT.
+`Operation` is INSERT or ENTER; `c` is used only for INSERT. Backspace
+is not an operation of `decide`: it asks `ElectricPairs.deleteBoth`,
+which answers whether to delete both characters.
 Backspace and Enter use the structural rules in their insertion-point
 sections after the common off/suppression guard, with selection,
 read-only and virtual-caret handling retained by their callers. They
@@ -151,7 +153,7 @@ The call sites (forward Delete remains an optional future hook):
 | Typed/pressed | Site | Decision used |
 |---|---|---|
 | any printable char | `EditCommands.insertNormalChar` (:244) | INSERT_PAIR / INSERT_OPENER / TYPE_OVER / WRAP / SUPPRESS / PLAIN |
-| Backspace | `EditCommands.backspace` (:142) | DELETE_BOTH / PLAIN |
+| Backspace | `EditCommands.backspace` (:142) | `deleteBoth` true / false |
 | Enter | `EditCommands.newlineAndIndent` (:200) | OPEN_LINE / PLAIN |
 | Delete | `EditCommands.delete` (:112) | (optional) DELETE_CLOSER / PLAIN |
 

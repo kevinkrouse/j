@@ -62,6 +62,11 @@ public final class PerlMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public boolean electricBraces() {
+        return true;
+    }
+
+    @Override
     public final String getCommentStart() {
         return "# ";
     }

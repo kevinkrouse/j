@@ -78,7 +78,9 @@ public final class ShellScriptFormatter extends Formatter {
         if (line.flags() == STATE_HERE_DOCUMENT)
             return Optional.of(LexicalState.STRING);
         final int limit = line.length();
-        int state = STATE_NEUTRAL;
+        // parseBuffer carries an open quote across lines, so a line
+        // inside a multi-line string enters in that string.
+        int state = line.flags() == STATE_QUOTE || line.flags() == STATE_SINGLEQUOTE ? line.flags() : STATE_NEUTRAL;
         for (int i = 0; i < offset && i < limit; i++) {
             char c = line.charAt(i);
             if (c == '\\' && i < limit - 1) {

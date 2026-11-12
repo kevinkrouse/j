@@ -168,6 +168,29 @@ public class LexicalStateTest {
     }
 
     @Test
+    public void shellMultiLineSingleQuoteCarriesAcrossLines() {
+        String text = "awk '\n  { print $1 }\n' | grep \"x(\"";
+        // Line 2 is inside the single-quoted string.
+        assertState(STRING, ShellScriptMode.getMode(), text, 1, 2);
+        // On line 3 the quote closes it: after it, NEUTRAL.
+        assertState(NEUTRAL, ShellScriptMode.getMode(), text, 2, 2);
+    }
+
+    @Test
+    public void javaCaretAfterABackslashInAStringIsInTheString() {
+        // s = "a\| b"; : the caret sits between the backslash and the
+        // character it escapes.
+        assertState(STRING, JavaMode.getMode(), "s = \"a\\ b\";", 0, 7);
+    }
+
+    @Test
+    public void javaCaretBetweenCommentMarkerCharsIsBeforeTheComment() {
+        assertState(NEUTRAL, JavaMode.getMode(), "x /* c */", 0, 3);
+        assertState(NEUTRAL, JavaMode.getMode(), "x // c", 0, 3);
+        assertState(COMMENT, JavaMode.getMode(), "/* c */ x", 0, 6);
+    }
+
+    @Test
     public void shellCommentBlocksPair() {
         Decision d = typeAt(ShellScriptMode.getMode(), "# x ", 0, 4, '(');
         assertEquals(PLAIN, d.action());
@@ -188,6 +211,14 @@ public class LexicalStateTest {
     public void markdownFenceWithLanguage() {
         String text = "```python\n\ncode\n```";
         assertState(COMMENT, MarkdownMode.getMode(), text, 1, 0);
+    }
+
+    @Test
+    public void markdownCodeSpanAfterAnUnclosedBacktickRun() {
+        // The `` has no closer, so it is literal; the caret is inside
+        // the single-backtick span after it.
+        String text = "Use `` and `f()` here";
+        assertState(COMMENT, MarkdownMode.getMode(), text, 0, 13);
     }
 
     @Test

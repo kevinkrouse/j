@@ -81,13 +81,21 @@ public class JavaFormatter extends Formatter {
             if (i == offset)
                 return Optional.of(toLexical(state));
             char c = line.charAt(i);
+            // A two-character token (an escape, or a comment marker)
+            // with the caret between its characters: the caret is
+            // still in the state before the token.
+            final boolean caretInside = offset == i + 1;
             if (c == '\\' && i < limit - 1) {
                 // Escape: consumes the next character.
+                if (caretInside)
+                    return Optional.of(toLexical(state));
                 i += 2;
                 continue;
             }
             if (state == STATE_COMMENT) {
                 if (c == '*' && i < limit - 1 && line.charAt(i + 1) == '/') {
+                    if (caretInside)
+                        return Optional.of(toLexical(state));
                     i += 2;
                     state = STATE_NEUTRAL;
                 } else
@@ -105,6 +113,8 @@ public class JavaFormatter extends Formatter {
             // Not in comment or quoted string.
             if (c == '/' && i < limit - 1) {
                 char next = line.charAt(i + 1);
+                if ((next == '/' || next == '*') && caretInside)
+                    return Optional.of(toLexical(state));
                 if (next == '/')
                     // A line comment: everything from here on is COMMENT.
                     return Optional.of(LexicalState.COMMENT);

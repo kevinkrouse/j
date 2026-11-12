@@ -22,9 +22,12 @@ package org.armedbear.j;
 public final class ElectricPairs {
     private ElectricPairs() {}
 
-    /** What the user did. {@code c} is used only for INSERT. */
+    /**
+     * What the user did. {@code c} is used only for INSERT. Backspace
+     * is not here: it has its own structural rule, {@link #deleteBoth}.
+     */
     public enum Operation {
-        INSERT, BACKSPACE, ENTER
+        INSERT, ENTER
     }
 
     /** What the caller should do. */
@@ -39,8 +42,6 @@ public final class ElectricPairs {
         WRAP,
         /** Insert nothing; the typed closer would leave one unbalanced. */
         SUPPRESS,
-        /** Backspace deletes an empty pair. */
-        DELETE_BOTH,
         /** Enter opens a line between a pair. */
         OPEN_LINE,
         /** Insert the typed character unchanged. */
@@ -72,7 +73,7 @@ public final class ElectricPairs {
      * @param mode             the buffer's mode
      * @param buffer           the buffer
      * @param dot              the caret position
-     * @param operation        INSERT, BACKSPACE or ENTER
+     * @param operation        INSERT or ENTER
      * @param c                the character typed (INSERT only)
      * @param hasSelection     whether a region is selected
      * @param pairingSuppressed the caller's literal-insertion state
@@ -89,11 +90,6 @@ public final class ElectricPairs {
             return Decision.plain();
         if (operation == Operation.ENTER)
             return decideEnter(mode, buffer, dot, hasSelection);
-        // BACKSPACE uses its own structural rule, which arrives with its
-        // call site as deleteBoth; nothing else pair-aware applies here,
-        // so the answer is the plain edit.
-        if (operation != Operation.INSERT)
-            return Decision.plain();
         PairTable table = mode.getPairTable();
         if (hasSelection) {
             PairTable.Pair wrapped = table.pairFor(c);
@@ -134,12 +130,16 @@ public final class ElectricPairs {
             return Decision.of(Action.INSERT_PAIR, pair);
         }
         if (table.isCloser(c)) {
-            // Scan strictly ahead of the caret. The closer under the caret
-            // is the one being typed, not one already waiting: with
-            // type-over on, rule 4 already stepped over it; with
-            // type-over off, the typed closer inserts and only a
-            // different closer later on the line should suppress it.
-            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, offset + 1, c, table.pairFor(c).opener()))
+            // A closer of the same kind under the caret is the one being
+            // typed, not one already waiting: with type-over on, rule 4
+            // already stepped over it; with type-over off, the typed
+            // closer inserts and only a closer later on the line should
+            // suppress it, so the scan starts past it. Anything else
+            // under the caret, an opener in particular, takes part in
+            // the balance: in (|() the ( at the caret matches the ) after
+            // it, so the typed ) is not suppressed.
+            int from = charAt(line, offset) == c ? offset + 1 : offset;
+            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, from, c, table.pairFor(c).opener()))
                 return Decision.suppress();
             return Decision.plain();
         }
@@ -179,12 +179,11 @@ public final class ElectricPairs {
      * step. The left character must be a configured opener and the
      * character at the caret its closer.
      *
-     * <p>In a NEUTRAL context that is enough: {@code (|)} is an
-     * empty pair the user just typed. In a STRING or COMMENT context
-     * the ordinary rule blocks the delete, so only the empty-quote
-     * exception lets it through — the {@code "|"} between two quotes
-     * of a symmetric pair, which the lexical state alone cannot tell
-     * from a quote inside a longer string.
+     * <p>For an asymmetric pair a NEUTRAL context is enough: {@code
+     * (|)} is an empty pair the user just typed. A symmetric pair goes
+     * by the empty-quote rule alone, since the lexical state cannot
+     * tell {@code "|"} from a quote inside a longer string, or from
+     * the quotes between two strings.
      */
     static boolean deleteBoth(Mode mode, Buffer buffer, Line line, int offset) {
         if (!buffer.getBooleanProperty(Property.ELECTRIC_PAIRS)
@@ -195,11 +194,16 @@ public final class ElectricPairs {
         if (left == 0 || right == 0)
             return false;
         PairTable.Pair pair = mode.getPairTable().pairFor(left);
-        if (pair == null || pair.closer() != right)
+        // pairFor matches either end, so check the roles: in )|) the
+        // left is a closer, not the opener of an empty pair.
+        if (pair == null || pair.opener() != left || pair.closer() != right)
             return false;
-        if (mode.lexicalState(buffer, new Position(line, offset)) == LexicalState.NEUTRAL)
-            return true;
-        return isEmptyQuotePair(mode, buffer, line, offset);
+        // A quote pair is empty only by the empty-quote rule: between
+        // "a"|"b" the state is NEUTRAL, but the left quote closes a
+        // string rather than opening an empty one.
+        if (pair.opener() == pair.closer())
+            return isEmptyQuotePair(mode, buffer, line, offset);
+        return mode.lexicalState(buffer, new Position(line, offset)) == LexicalState.NEUTRAL;
     }
 
     /**

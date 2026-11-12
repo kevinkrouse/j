@@ -243,4 +243,42 @@ public class VimLiteralInsertTest {
         h.cursor(0, 0).keys("2i<C-r>a<Esc>");
         assertEquals("((\n", h.text(), "every repetition keeps the text and the suppression");
     }
+
+    @Test
+    public void dotWithACountRepeatsTheLiteralRunEachTime() {
+        vim("\n\n");
+        Registers.setText("a", "x");
+        h.cursor(0, 0).keys("2i<C-r>a<Esc>");
+        h.assertText("xx\n\n");
+        // The replay notes the run like any key, so the count types it
+        // three times rather than once.
+        h.cursor(1, 0).keys("3.");
+        h.assertText("xx\nxxx\n");
+    }
+
+    @Test
+    public void ctrlRNewlineBetweenBracesIsLiteral() {
+        // The pasted line break is text, not Enter between a pair: no
+        // extra indented line is opened.
+        vim("{}\n");
+        Registers.setText("a", "\nfoo\n");
+        h.cursor(0, 0).keys("a<C-r>a<Esc>");
+        h.assertText("{\nfoo\n}\n");
+    }
+
+    @Test
+    public void literalRunsNoChangeRefersToAreDropped() throws Exception {
+        vim("\n");
+        Registers.setText("a", "x");
+        for (int i = 0; i < 20; i++)
+            h.keys("a<C-r>a<Esc>");
+        final java.lang.reflect.Field f = VimInputHandler.class.getDeclaredField("literalRuns");
+        f.setAccessible(true);
+        final java.util.Map<?, ?> runs = (java.util.Map<?, ?>) f.get(h.editor().getInputHandler());
+        // Only the runs the last change can still replay are kept.
+        assertTrue(runs.size() <= 2, "kept " + runs.size());
+        // And the last change still replays its run.
+        h.keys(".");
+        assertEquals(21, h.buffer().getLine(0).length());
+    }
 }

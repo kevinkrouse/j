@@ -221,35 +221,17 @@ public final class ElectricCommands {
     public static void insertParentheses(Editor editor) {
         if (!editor.checkReadOnly())
             return;
+        if (editor.getMark() != null) {
+            EditCommands.wrapSelection(editor, '(', ')');
+            return;
+        }
         boolean parensRequireSpaces = editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
-        if (editor.getMark() != null) {
-            Position begin, end;
-            if (editor.getMark().isBefore(editor.getDot())) {
-                begin = new Position(editor.getMark());
-                end = new Position(editor.getDot());
-            } else {
-                begin = new Position(editor.getDot());
-                end = new Position(editor.getMark());
-            }
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.setMark(null);
-            editor.getDot().moveTo(end);
-            if (parensRequireSpaces)
-                editor.insertChar(' ');
-            editor.insertChar(')');
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.getDot().moveTo(begin);
-            editor.insertChar('(');
-            if (parensRequireSpaces)
-                editor.insertChar(' ');
-        } else {
-            editor.fillToCaret();
-            editor.addUndo(SimpleEdit.INSERT_STRING);
-            editor.insertStringInternal(parensRequireSpaces ? "(  )" : "()");
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.getDot().skip(parensRequireSpaces ? -2 : -1);
-        }
+        editor.fillToCaret();
+        editor.addUndo(SimpleEdit.INSERT_STRING);
+        editor.insertStringInternal(parensRequireSpaces ? "(  )" : "()");
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().skip(parensRequireSpaces ? -2 : -1);
         editor.moveCaretToDotCol();
         editor.endCompoundEdit(compoundEdit);
     }

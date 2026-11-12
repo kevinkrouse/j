@@ -14,7 +14,9 @@ package org.armedbear.j.vim;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
@@ -814,6 +816,9 @@ public final class VimInputHandler implements InputHandler {
             // suppression held so nothing pairs and recording off so the
             // repeat does not re-record. The register is never consulted.
             if (key.startsWith("<literal:")) {
+                // Noted like any other key, so a count on the repeat
+                // types the run each time.
+                state.noteInsertKey(key);
                 try (Editor.PairSuppression suppression = editor.suppressPairing()) {
                     // replaying is true here, so the loop records nothing.
                     typeText(editor, literalRun(key));
@@ -836,11 +841,13 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /**
-     * The literal texts a {@code <literal:N>} token stands for, append-only:
-     * a recording or counted-insert key may still refer to an index, so
-     * none is ever reused.
+     * The literal texts a {@code <literal:N>} token stands for. A number
+     * is never reused, so a token always means the text it was made for;
+     * a run no change string refers to any more is dropped when the next
+     * one is added (see {@link #pruneLiteralRuns}).
      */
-    private final List<String> literalRuns = new ArrayList<>();
+    private final Map<Integer, String> literalRuns = new HashMap<>();
+    private int nextLiteralRun;
 
     /**
      * Types text in insert mode as though its keys were typed, so that a
@@ -858,8 +865,10 @@ public final class VimInputHandler implements InputHandler {
      * '.' repeats this text, unpaired, whatever the register holds now.
      */
     void typeLiteralText(Editor editor, String text) {
-        final int run = literalRuns.size();
-        literalRuns.add(text);
+        if (!replaying)
+            pruneLiteralRuns();
+        final int run = nextLiteralRun++;
+        literalRuns.put(run, text);
         final String token = "<literal:" + run + ">";
         if (!replaying) {
             if (recordingEdit)
@@ -888,6 +897,26 @@ public final class VimInputHandler implements InputHandler {
             }
             typeInsertKey(editor, KeyNotation.parseOne(key));
         }
+    }
+
+    /**
+     * Drops the runs that no longer appear in any string a repeat can
+     * replay: the open recording, the last change, the held insert and
+     * the change before it, and the insert session's keys. Only called
+     * live, never mid-replay, when the string being replayed is one of
+     * these and still refers to its runs.
+     */
+    private void pruneLiteralRuns() {
+        final String insertKeys = state.getInsertKeys();
+        final String recorded = recording.toString();
+        literalRuns.keySet().removeIf(run -> {
+            final String token = "<literal:" + run + ">";
+            return !recorded.contains(token)
+                    && !insertKeys.contains(token)
+                    && (lastChange == null || !lastChange.contains(token))
+                    && (heldInsert == null || !heldInsert.contains(token))
+                    && (changeBeforeCommand == null || !changeBeforeCommand.contains(token));
+        });
     }
 
     /** The text a {@code <literal:N>} token stands for. */

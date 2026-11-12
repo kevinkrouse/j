@@ -181,6 +181,31 @@ public final class MarkdownFormatter extends Formatter {
         return (line.flags() & BLOCK_MASK) == NORMAL && FENCE_OPEN.matcher(line.getText()).matches();
     }
 
+    /**
+     * Whether line, as it now reads, opens a fence that no later line
+     * closes. A line inside a fence, which would close it, does not
+     * open one.
+     */
+    static boolean opensUnclosedFence(Line line) {
+        Line first = line;
+        while (first.previous() != null)
+            first = first.previous();
+        // 0: before line; 1: line opened a fence, looking for its
+        // closer; 2: decided.
+        final int[] state = { 0 };
+        final boolean[] unclosed = { false };
+        scan(first, (l, flags) -> {
+            if (state[0] == 0 && l == line) {
+                unclosed[0] = (flags & BLOCK_MASK) == NORMAL && FENCE_OPEN.matcher(l.getText()).matches();
+                state[0] = unclosed[0] ? 1 : 2;
+            } else if (state[0] == 1 && closesFence(l.getText(), flags)) {
+                unclosed[0] = false;
+                state[0] = 2;
+            }
+        });
+        return unclosed[0];
+    }
+
     /** Whether line is the text of a heading underlined on the next. */
     static boolean isSetextHeading(Line line) {
         return (line.flags() & BLOCK_MASK) == NORMAL && (line.flags() & HEADING_MASK) != 0;
@@ -874,9 +899,13 @@ public final class MarkdownFormatter extends Formatter {
             if (c == '`') {
                 final int run = runLength(text, i, end);
                 final int close = findCodeSpanClose(text, i + run, end, run);
-                if (close < 0)
-                    // Nothing closes the run: the backticks are literal.
-                    return Optional.of(LexicalState.NEUTRAL);
+                if (close < 0) {
+                    // Nothing closes the run: the backticks are literal,
+                    // and a later span or comment may still hold the
+                    // caret.
+                    i += run;
+                    continue;
+                }
                 // The span is [i, close+run): inside it is COMMENT,
                 // the position at or after the closing run is not.
                 if (offset < close + run)

@@ -27,10 +27,9 @@ import org.junit.jupiter.api.Test;
  * The close-paren cutover. The {@code )} bindings are gone from the
  * ordinary modes, so a typed {@code )} falls through to the catch-all
  * and reaches the electric-pairs handler in {@code insertNormalChar}
- * rather than the old {@code closeParen} command. The Lisp shell keeps
- * its own binding, because its close paren renumbers and checks the end
- * of output; it reaches the insertion through the {@code closeParen}
- * wrapper, which delegates once.
+ * rather than the old {@code closeParen} command. The Lisp shell has
+ * no binding either: its {@code electricCloseParen}, which sends a
+ * complete form at once, is opt-in through {@code map-key-for-mode}.
  */
 public class CloseParenCutoverTest {
 
@@ -49,10 +48,10 @@ public class CloseParenCutoverTest {
     }
 
     @Test
-    public void theLispShellKeepsItsCloseParenCommand() {
-        // The shell's ) renumbers and checks the end of output, so it
-        // keeps its own binding rather than the generic catch-all.
-        assertEquals("electricCloseParen", commandFor(LispShellMode.getMode(), ')'));
+    public void theLispShellLeavesCloseParenUnbound() {
+        // As on master: a typed ) does not send the form; the
+        // electricCloseParen binding is the user's to add.
+        assertNull(commandFor(LispShellMode.getMode(), ')'));
     }
 
     @Test

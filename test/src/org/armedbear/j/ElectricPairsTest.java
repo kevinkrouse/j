@@ -11,7 +11,6 @@
 
 package org.armedbear.j;
 
-import static org.armedbear.j.ElectricPairs.Action.DELETE_BOTH;
 import static org.armedbear.j.ElectricPairs.Action.INSERT_OPENER;
 import static org.armedbear.j.ElectricPairs.Action.INSERT_PAIR;
 import static org.armedbear.j.ElectricPairs.Action.PLAIN;
@@ -200,35 +199,10 @@ public class ElectricPairsTest {
     }
 
     @Test
-    public void backspaceAndEnterArePlainUntilWired() {
-        // The structural rules for BACKSPACE and ENTER arrive with
-        // their call sites; the table returns PLAIN for them now.
-        h = EditorHarness.create("(|)").mode(PlainTextMode.getMode());
-        h.cursor(0, 1);
-        assertEquals(
-            PLAIN,
-            ElectricPairs
-                    .decide(
-                        PlainTextMode.getMode(),
-                        h.buffer(),
-                        new Position(h.buffer().getLine(0), 1),
-                        Operation.BACKSPACE,
-                        '\0',
-                        false,
-                        false)
-                    .action());
-        assertEquals(
-            PLAIN,
-            ElectricPairs
-                    .decide(
-                        PlainTextMode.getMode(),
-                        h.buffer(),
-                        new Position(h.buffer().getLine(0), 1),
-                        Operation.ENTER,
-                        '\0',
-                        false,
-                        false)
-                    .action());
+    public void closerBeforeAnOpenerThatItMatchesIsNotSuppressed() {
+        // (|() : the ( at the caret matches the ) after it, so the
+        // typed ) closes the first ( and the line balances.
+        assertAction(PLAIN, type("(|()", ')'));
     }
 
     @Test
@@ -375,6 +349,37 @@ public class ElectricPairsTest {
         h.cursor(0, 3);
         EditCommands.backspace(h.editor());
         h.assertText("# \"\n");
+    }
+
+    @Test
+    public void backspaceBetweenTwoClosersIsOrdinary() {
+        // )|) is not an empty pair: the left ) is a closer.
+        h = EditorHarness.create("foo(bar())").mode(PlainTextMode.getMode());
+        h.cursor(0, 9);
+        EditCommands.backspace(h.editor());
+        h.assertText("foo(bar()\n");
+    }
+
+    @Test
+    public void backspaceBetweenClosingAndOpeningQuotesIsOrdinary() {
+        // "a"|"b" : the quotes either side end one string and start
+        // the next; the left one does not open an empty pair.
+        h = EditorHarness.create("\"a\"\"b\"").mode(PlainTextMode.getMode());
+        h.cursor(0, 3);
+        EditCommands.backspace(h.editor());
+        h.assertText("\"a\"b\"\n");
+    }
+
+    @Test
+    public void enterBetweenBracesWithoutContextIndentKeepsTheOpenersIndent() {
+        // Plain text cannot indent by context: the interior and the
+        // closer both match the opener's line, as a plain split would.
+        h = EditorHarness.create("    foo() {}").mode(PlainTextMode.getMode());
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS_OPEN_LINE, true);
+        h.cursor(0, 11);
+        EditCommands.newlineAndIndent(h.editor());
+        assertEquals("    }", h.buffer().getLine(2).getText());
+        assertEquals(4, h.editor().getDisplay().getAbsoluteCaretCol());
     }
 
     @Test

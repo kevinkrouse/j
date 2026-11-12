@@ -118,10 +118,17 @@ public final class MarkdownMode extends AbstractMode implements Mode {
         final CompoundEdit compoundEdit = editor.beginCompoundEdit();
         try {
             editor.insertChar('`');
-            // The closing fence goes on the line below; the caret stays
-            // after the opening fence for the language name.
-            editor.getBuffer().insertString(new Position(editor.getDot()), "\n```");
-            editor.getDot().moveTo(line, offset + 1);
+            // A fence that a later line already closes, or a line inside
+            // a fence, needs no closer: just the backtick.
+            if (MarkdownFormatter.opensUnclosedFence(line)) {
+                // The closing fence goes on the line below; the caret
+                // stays after the opening fence for the language name.
+                // INSERT_STRING, so undo takes the new line back too.
+                editor.addUndo(SimpleEdit.INSERT_STRING);
+                editor.insertStringInternal("\n```");
+                editor.addUndo(SimpleEdit.MOVE);
+                editor.getDot().moveTo(line, offset + 1);
+            }
         }
         finally {
             editor.endCompoundEdit(compoundEdit);
@@ -183,14 +190,6 @@ public final class MarkdownMode extends AbstractMode implements Mode {
         for (int i = 0; i < n; i++)
             sb.append(c);
         return sb.toString();
-    }
-
-    private static void buffer_insertString(Editor editor, Position pos, String s) {
-        editor.getBuffer().insertString(pos, s);
-    }
-
-    private static void buffer_insertChars(Editor editor, Position pos, String s) {
-        editor.getBuffer().insertChars(pos, s);
     }
 
     @Override

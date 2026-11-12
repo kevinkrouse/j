@@ -125,7 +125,7 @@
 (defn- junit!
   "Run test classes on the JUnit Platform, headless: a unit test must not
   depend on a display, or open a window on a machine that has one."
-  [basis cp classes what]
+  [basis cp selectors what]
   (when-not (zero? (:exit (java! {:basis     basis
                                   :cp        cp
                                   :java-opts ["-Djava.awt.headless=true"]
@@ -136,8 +136,8 @@
                                   :main-args (into ["execute" "--disable-banner"
                                                     "--details=summary"
                                                     "--config=junit.jupiter.extensions.autodetection.enabled=true"]
-                                                   (mapcat #(vector "--select-class" %))
-                                                   classes)})))
+                                                   (mapcat (fn [[kind sel]] [(str "--select-" (name kind)) sel]))
+                                                   selectors)})))
     (throw (ex-info (str what " failed") {}))))
 
 
@@ -340,15 +340,66 @@
   (b/copy-dir {:src-dirs [src] :target-dir target
                :include "{META-INF/**,junit-platform.properties}"}))
 
-(defn test "Build and run the unit tests."
-  [opts]
+(defn- class-selectors
+  "JUnit selectors for every class."
+  [classes]
+  (map #(vector :class %) classes))
+
+(defn- only-selectors
+  "JUnit selectors for the tests named in only, each Class or Class#method,
+  where Class is a test class's simple or fully qualified name."
+  [classes only]
+  (for [arg only
+        :let [[cls method] (str/split arg #"#" 2)
+              matches (filter #(or (= % cls) (str/ends-with? % (str "." cls))) classes)]]
+    (cond
+      (empty? matches)
+      (throw (ex-info (str "no test class matches " cls) {}))
+
+      (next matches)
+      (throw (ex-info (str cls " is ambiguous: " (str/join ", " matches)) {}))
+
+      method [:method (str (first matches) "#" method)]
+      :else  [:class (first matches)])))
+
+(defn- changed-test-classes
+  "The class names of the tests under dir that git sees as modified, staged
+  or untracked."
+  [dir]
+  (let [root (fs/path (b/resolve-path dir))
+        {:keys [out]} (shell {:out :string} "git" "status" "--porcelain"
+                             "--untracked-files=all" "--" dir)]
+    (->> (str/split-lines out)
+         (keep #(when (> (count %) 3)
+                  ;; a rename is "R  old -> new"
+                  (last (str/split (subs % 3) #" -> "))))
+         (filter #(str/ends-with? % "Test.java"))
+         (map #(fs/path (b/resolve-path %)))
+         (filter fs/exists?)
+         (map #(-> (str (fs/relativize root %))
+                   (str/replace #"\.java$" "")
+                   (str/replace File/separator ".")))
+         distinct
+         sort)))
+
+(defn test "Build and run the unit tests. With :only, just those named (see
+  only-selectors); with :changed, just those git sees as modified; with both,
+  the union."
+  [{:keys [only changed] :as opts}]
   (build opts)
   (if-let [classes (test-classes test-src-dir)]
-    (let [basis (basis :test)
-          cp    [(abs-path classes-dir) (abs-path test-dir)]]
-      (javac-against! {:src-dirs [test-src-dir] :class-dir test-dir :basis basis} cp)
-      (copy-test-resources! test-src-dir test-dir)
-      (junit! basis cp classes "unit tests"))
+    (let [selectors (if (or (seq only) changed)
+                      (vec (distinct (concat (only-selectors classes only)
+                                             (when changed
+                                               (class-selectors (changed-test-classes test-src-dir))))))
+                      (class-selectors classes))
+          basis     (basis :test)
+          cp        [(abs-path classes-dir) (abs-path test-dir)]]
+      (if (empty? selectors)
+        (println "no modified tests under" test-src-dir)
+        (do (javac-against! {:src-dirs [test-src-dir] :class-dir test-dir :basis basis} cp)
+            (copy-test-resources! test-src-dir test-dir)
+            (junit! basis cp selectors "unit tests"))))
     (println "no tests found under" test-src-dir))
   opts)
 
@@ -729,7 +780,7 @@
 (defn test-extensions "Build and run the extensions' unit tests."
   [opts]
   (extensions opts)
-  (test opts)
+  (test (dissoc opts :only :changed))
   (doseq [name (extension-names)]
     (let [{:keys [test-src classes test]} (extension-paths name)]
       (if-let [tests (test-classes test-src)]
@@ -738,7 +789,7 @@
               cp    [(abs-path classes-dir) (abs-path classes) (abs-path test) (abs-path test-dir)]]
           (javac-against! {:src-dirs [test-src] :class-dir test :basis basis} cp)
           (copy-test-resources! test-src test)
-          (junit! basis cp tests (str name " extension tests")))
+          (junit! basis cp (class-selectors tests) (str name " extension tests")))
         (println "no tests found under" test-src))))
   opts)
 

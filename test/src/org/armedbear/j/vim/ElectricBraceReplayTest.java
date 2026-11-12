@@ -18,6 +18,7 @@ import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Property;
 import org.armedbear.j.Registers;
 import org.armedbear.j.mode.java.JavaMode;
+import org.armedbear.j.mode.perl.PerlMode;
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,15 @@ public class ElectricBraceReplayTest {
         // Replay on the next blank line: identical shape.
         h.cursor(2, 0).keys(".<Esc>");
         h.assertText("class A {\n    {}\n    {}\n}\n");
+    }
+
+    @Test
+    public void perlCloseBraceOutdents() {
+        // Perl formats braces electrically too: a typed } on an
+        // over-indented line moves to the block's indent.
+        h = EditorHarness.create("sub f {\n    x;\n        \n").mode(PerlMode.getMode()).vim();
+        h.cursor(2, 8).keys("a}<Esc>");
+        assertEquals("}", h.buffer().getLine(2).getText());
     }
 
     @Test
