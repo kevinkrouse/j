@@ -152,6 +152,19 @@ public final class EditCommands {
                 editor.addUndo(SimpleEdit.MOVE);
                 display.setCaretCol(display.getCaretCol() - 1);
                 editor.updateDotLine();
+            } else if (ElectricPairs
+                    .deleteBoth(editor.getMode(), editor.getBuffer(), editor.getDotLine(), editor.getDotOffset())) {
+                // The caret sits between an empty pair: take both
+                // characters as one undo step. The closer is at the
+                // caret, the opener one left; delete the closer, step
+                // onto the opener, delete it. The caret lands where
+                // the opener was.
+                CompoundEdit compoundEdit = editor.beginCompoundEdit();
+                deleteNormalChar(editor);
+                editor.getDot().moveLeft();
+                deleteNormalChar(editor);
+                editor.endCompoundEdit(compoundEdit);
+                editor.moveCaretToDotCol();
             } else if (editor.getDot().getOffset() > 0) {
                 editor.addUndo(SimpleEdit.LINE_EDIT);
                 editor.getDot().moveLeft();

@@ -26,6 +26,7 @@ import org.armedbear.j.ElectricPairs.Operation;
 import org.armedbear.j.mode.html.HtmlMode;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.lisp.LispMode;
+import org.armedbear.j.mode.python.PythonMode;
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.mode.xml.XmlMode;
 import org.junit.jupiter.api.AfterEach;
@@ -307,5 +308,91 @@ public class ElectricPairsTest {
         EditCommands.undo(h.editor());
         // One undo takes the whole pair back; nothing is left.
         h.assertText("\n");
+    }
+
+    // Backspace delete-both through the real command path.
+
+    @Test
+    public void backspaceDeletesEmptyBracketPair() {
+        h = EditorHarness.create("()").mode(PlainTextMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.backspace(h.editor());
+        h.assertText("\n");
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void backspaceDeletesEmptyQuotePair() {
+        // The in-string guard must not block the delete here.
+        h = EditorHarness.create("\"\"").mode(PlainTextMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.backspace(h.editor());
+        h.assertText("\n");
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void backspaceEmptyQuotePairOneUndo() {
+        h = EditorHarness.create("\"\"").mode(PlainTextMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.backspace(h.editor());
+        EditCommands.undo(h.editor());
+        h.assertText("\"\"\n");
+    }
+
+    @Test
+    public void backspaceEmptyPairAfterClosedString() {
+        // The second pair follows a closed string on the same line.
+        h = EditorHarness.create("\"\" \"\"").mode(PlainTextMode.getMode());
+        h.cursor(0, 4);
+        EditCommands.backspace(h.editor());
+        h.assertText("\"\" \n");
+    }
+
+    @Test
+    public void backspaceInsideStringIsOrdinary() {
+        // A quote inside a longer string: ordinary single-character
+        // backspace, not delete-both.
+        h = EditorHarness.create("\"ab\"").mode(PlainTextMode.getMode());
+        h.cursor(0, 3);
+        EditCommands.backspace(h.editor());
+        h.assertText("\"a\"\n");
+    }
+
+    @Test
+    public void backspaceBracketInsideStringIsOrdinary() {
+        // (|) inside a string is content, not an empty pair: the
+        // ordinary single-character backspace takes the opener.
+        h = EditorHarness.create("\"()\"").mode(PlainTextMode.getMode());
+        h.cursor(0, 2);
+        EditCommands.backspace(h.editor());
+        h.assertText("\")\"\n");
+    }
+
+    @Test
+    public void backspaceQuotesInCommentIsOrdinary() {
+        h = EditorHarness.create("# \"\"").mode(PythonMode.getMode());
+        h.cursor(0, 3);
+        EditCommands.backspace(h.editor());
+        h.assertText("# \"\n");
+    }
+
+    @Test
+    public void backspaceNonPairIsOrdinary() {
+        h = EditorHarness.create("ab").mode(PlainTextMode.getMode());
+        h.cursor(0, 1);
+        EditCommands.backspace(h.editor());
+        h.assertText("b\n");
+    }
+
+    @Test
+    public void backspaceDeleteBothRespectsTheSetting() {
+        h = EditorHarness.create("()").mode(PlainTextMode.getMode());
+        h.buffer().setProperty(Property.ELECTRIC_PAIRS, false);
+        h.cursor(0, 1);
+        EditCommands.backspace(h.editor());
+        // Pairing off: the ordinary single-character backspace takes
+        // the opener only.
+        h.assertText(")\n");
     }
 }

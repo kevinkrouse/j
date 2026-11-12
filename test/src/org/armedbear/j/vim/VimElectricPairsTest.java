@@ -101,4 +101,46 @@ public class VimElectricPairsTest {
         h.keys(".");
         h.assertText("\"\"\n\"\"\n");
     }
+
+    @Test
+    public void backspaceDeletesPairThroughVimPath() {
+        // i( then BS: the pair collapses to empty, and the repeat
+        // reproduces the collapse.
+        vim("\n\n").cursor(0, 0).keys("i(");
+        h.assertText("()\n\n");
+        h.keys("<BS>");
+        h.assertText("\n\n");
+        h.assertCursorAt(0, 0);
+        h.keys("<Esc>");
+        h.cursor(1, 0);
+        h.keys(".");
+        h.assertText("\n\n");
+    }
+
+    @Test
+    public void ctrlWAfterPairRespectsTheStop() {
+        // i(abc then Ctrl-W: the word abc goes, the pair remains,
+        // and the stop at the insert start keeps the opener from
+        // being taken by the delete-both rule.
+        vim("\n\n").cursor(0, 0).keys("i(abc");
+        h.assertText("(abc)\n\n");
+        h.keys("<C-w>");
+        h.assertText("()\n\n");
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void ctrlWAfterEmptyPairTakesTheOpenerAsVimDoes() {
+        // i( then Ctrl-W: the opener is a non-word char before the
+        // caret, so Ctrl-W deletes it, as vim does. The delete-both
+        // rule never fires here — Ctrl-W deletes a region, not a
+        // single character — so the closer is left behind, exactly
+        // as a plain Ctrl-W after a lone ( would.
+        vim("\n\n").cursor(0, 0).keys("i(");
+        h.assertText("()\n\n");
+        h.assertCursorAt(0, 1);
+        h.keys("<C-w>");
+        h.assertText(")\n\n");
+        h.assertCursorAt(0, 0);
+    }
 }

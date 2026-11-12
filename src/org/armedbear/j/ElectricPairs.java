@@ -137,6 +137,34 @@ public final class ElectricPairs {
     }
 
     /**
+     * Whether Backspace at {@code offset} should delete the pair on
+     * either side of the caret — {@code (|)} or {@code "|"} — as one
+     * step. The left character must be a configured opener and the
+     * character at the caret its closer.
+     *
+     * <p>In a NEUTRAL context that is enough: {@code (|)} is an
+     * empty pair the user just typed. In a STRING or COMMENT context
+     * the ordinary rule blocks the delete, so only the empty-quote
+     * exception lets it through — the {@code "|"} between two quotes
+     * of a symmetric pair, which the lexical state alone cannot tell
+     * from a quote inside a longer string.
+     */
+    static boolean deleteBoth(Mode mode, Buffer buffer, Line line, int offset) {
+        if (!buffer.getBooleanProperty(Property.ELECTRIC_PAIRS))
+            return false;
+        char left = charBefore(line, offset);
+        char right = charAt(line, offset);
+        if (left == 0 || right == 0)
+            return false;
+        PairTable.Pair pair = mode.getPairTable().pairFor(left);
+        if (pair == null || pair.closer() != right)
+            return false;
+        if (mode.lexicalState(buffer, new Position(line, offset)) == LexicalState.NEUTRAL)
+            return true;
+        return isEmptyQuotePair(mode, buffer, line, offset);
+    }
+
+    /**
      * Whether the caret sits between the two characters of an empty
      * quote pair — {@code "|"} — so that Backspace may delete both.
      * The lexical state at the caret reports STRING there, which

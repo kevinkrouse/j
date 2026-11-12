@@ -1162,6 +1162,34 @@ existing insert-mode behavior.
    empty-pair exception six ways, and parse freshness after an
    edit. Full suite 2741/2741, vim conformance 168/253.
 6. Backspace delete-both + Ctrl-W stop fix. Tests 13-14, 20-21.
+   **Done.** `ElectricPairs.deleteBoth(mode, buffer, line, offset)`:
+   the left character is a configured opener and the character at the
+   caret its closer, and either the lexical state at the caret is
+   NEUTRAL (the `(|)` case) or the empty-quote exception holds (the
+   `"|"` case). Gated on `electricPairs` so a user who turns pairing
+   off keeps the ordinary single-character backspace.
+   `EditCommands.backspace` checks it before the ordinary char-delete
+   branch: one compound edit, delete the closer at the caret, step
+   left onto the opener, delete it, caret lands where the opener was.
+   The Ctrl-W stop fix the spec flagged as highest-risk does not
+   materialize: `insertStartOffset` is a position, not a per-
+   backspace count, and `insertDeletedBack` only handles the
+   line-join case, so a delete-both that moves the caret two left
+   within a line is no different in kind from a normal backspace
+   moving it one. The existing `ctrlWStopsOnceWhereTypingBegan`
+   contract passes unchanged. Ctrl-W deletes a region, not a single
+   character, so the delete-both rule never fires there — a lone
+   `(` before the caret is taken as a non-word character, exactly as
+   plain vim would.
+   Tests: 8 wired delete-both cases through `EditCommands.backspace`
+   (empty bracket pair, empty quote pair with the in-string guard
+   bypassed, one-step undo, after a closed string on the same line,
+   inside a longer string, a bracket inside a string, quotes in a
+   comment, a non-pair, and the property gate) plus 3 vim-path cases
+   (delete-both through the vim backspace path and its repeat,
+   Ctrl-W after a pair, Ctrl-W after an empty pair). Full suite
+   2753/2753, vim conformance 168/253. Tried in j under Xvfb:
+   `(` → `()` → BS → empty; `"` → `""` → BS → empty.
 7. Enter-between, with the create-then-indent ordering. Test 15.
 8. Literal insertion: the scoped `literalInsertionDepth` on `Editor`,
    the block-insert session holding it open, the Ctrl-R literal-run
