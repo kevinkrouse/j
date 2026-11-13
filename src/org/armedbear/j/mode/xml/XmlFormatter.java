@@ -50,6 +50,9 @@ public final class XmlFormatter extends Formatter {
     // In a tag after its name; XmlMode indents a line that starts here as an attribute.
     static final byte STATE_ATTRIBUTE = STATE_LAST + 4;
     private static final byte STATE_EQUALS = STATE_LAST + 5;
+    private static final byte STATE_DOCTYPE = STATE_LAST + 6;
+    private static final byte STATE_DOCTYPE_QUOTE = STATE_LAST + 7;
+    private static final byte STATE_DOCTYPE_SINGLEQUOTE = STATE_LAST + 8;
 
     private StringBuilder sb = new StringBuilder();
 
@@ -82,6 +85,8 @@ public final class XmlFormatter extends Formatter {
                     break;
                 case STATE_QUOTE:
                 case STATE_SINGLEQUOTE:
+                case STATE_DOCTYPE_QUOTE:
+                case STATE_DOCTYPE_SINGLEQUOTE:
                     format = XML_FORMAT_QUOTE;
                     break;
                 case STATE_CDATA:
@@ -144,6 +149,17 @@ public final class XmlFormatter extends Formatter {
                 ++i;
                 continue;
             }
+            if (isDoctypeState(state)) {
+                final int nextState = doctypeStateAfter(state, c);
+                if (nextState != state && state == STATE_DOCTYPE)
+                    endToken(state);
+                sb.append(c);
+                if (nextState != state && state != STATE_DOCTYPE)
+                    endToken(state);
+                state = nextState;
+                ++i;
+                continue;
+            }
             if (state == STATE_TAG_STARTING) {
                 if (c == '/' || c == '?') {
                     sb.append(c);
@@ -167,7 +183,7 @@ public final class XmlFormatter extends Formatter {
                         endToken(state);
                         sb.append("DOCTYPE");
                         endToken(STATE_TAG);
-                        state = STATE_NEUTRAL;
+                        state = STATE_DOCTYPE;
                         i += 8;
                         continue;
                     }
@@ -394,6 +410,10 @@ public final class XmlFormatter extends Formatter {
                     }
                     continue;
                 }
+                if (isDoctypeState(state)) {
+                    state = doctypeStateAfter(state, c);
+                    continue;
+                }
                 if (state == STATE_TAG) {
                     if (!isWhitespace(c)) {
                         // OK, we shouldn't really be in STATE_ATTRIBUTE just
@@ -438,8 +458,7 @@ public final class XmlFormatter extends Formatter {
                         continue;
                     }
                     if (pos.lookingAt("<!DOCTYPE")) {
-                        // There is no STATE_DOCTYPE...
-                        state = STATE_NEUTRAL;
+                        state = STATE_DOCTYPE;
                         i += 8;
                         continue;
                     }
@@ -455,6 +474,27 @@ public final class XmlFormatter extends Formatter {
 
     private static final boolean isWhitespace(char c) {
         return c <= ' ';
+    }
+
+    private static boolean isDoctypeState(int state) {
+        return state == STATE_DOCTYPE || state == STATE_DOCTYPE_QUOTE
+                || state == STATE_DOCTYPE_SINGLEQUOTE;
+    }
+
+    // External identifiers are quoted literals, even though they are not
+    // attributes. Quotes protect '>' and '[' inside their contents. An
+    // unquoted '[' starts the internal subset, whose declarations and
+    // comments are handled by the ordinary markup states.
+    private static int doctypeStateAfter(int state, char c) {
+        if (state == STATE_DOCTYPE_QUOTE)
+            return c == '"' ? STATE_DOCTYPE : state;
+        if (state == STATE_DOCTYPE_SINGLEQUOTE)
+            return c == '\'' ? STATE_DOCTYPE : state;
+        if (c == '"')
+            return STATE_DOCTYPE_QUOTE;
+        if (c == '\'')
+            return STATE_DOCTYPE_SINGLEQUOTE;
+        return c == '[' || c == '>' ? STATE_NEUTRAL : state;
     }
 
     @Override
@@ -487,11 +527,11 @@ public final class XmlFormatter extends Formatter {
      * state is the line's flags as {@code parseBuffer} wrote them, and
      * every transition is the same test. The state maps to a
      * {@link LexicalContext} for pairing: a comment is COMMENT, an
-     * attribute value is STRING, a CDATA section is OPAQUE, and a tag,
-     * an attribute name or ordinary text is NEUTRAL.
+     * attribute value or DOCTYPE literal is STRING, a CDATA section is
+     * OPAQUE, and a tag, an attribute name or ordinary text is NEUTRAL.
      *
      * <p>A prose apostrophe in text is NEUTRAL: only a quote reached
-     * from inside a tag opens a string, so {@code don't} in content
+     * from inside a tag or DOCTYPE opens a string, so {@code don't} in content
      * never does. The multi-character markers use {@code covers} so the
      * caret on a marker character reads as inside the construct and the
      * caret just past a complete closer ({@code -->}, {@code ]]>) reads
@@ -535,6 +575,11 @@ public final class XmlFormatter extends Formatter {
                         i += 3;
                     } else
                         ++i;
+                    continue;
+                }
+                if (isDoctypeState(state)) {
+                    state = doctypeStateAfter(state, c);
+                    ++i;
                     continue;
                 }
                 if (state == STATE_QUOTE) {
@@ -581,12 +626,11 @@ public final class XmlFormatter extends Formatter {
                         i += 9;
                         continue;
                     }
-                    if (text.regionMatches(i, "<!DOCTYPE", 0, 8)) {
-                        // A DOCTYPE is not a string, comment or CDATA,
-                        // and its quotes are not attribute strings, so
-                        // it stays neutral. Consume only the '<'; the
-                        // rest are neutral no-ops.
-                        ++i;
+                    if (text.startsWith("<!DOCTYPE", i)) {
+                        if (inside(9, LexicalContext.NEUTRAL))
+                            return LexicalContext.NEUTRAL;
+                        state = STATE_DOCTYPE;
+                        i += 9;
                         continue;
                     }
                     state = STATE_TAG;
@@ -603,7 +647,8 @@ public final class XmlFormatter extends Formatter {
                 return LexicalContext.COMMENT;
             if (state == STATE_CDATA)
                 return LexicalContext.OPAQUE;
-            if (state == STATE_QUOTE || state == STATE_SINGLEQUOTE)
+            if (state == STATE_QUOTE || state == STATE_SINGLEQUOTE
+                    || state == STATE_DOCTYPE_QUOTE || state == STATE_DOCTYPE_SINGLEQUOTE)
                 return LexicalContext.STRING;
             return LexicalContext.NEUTRAL;
         }

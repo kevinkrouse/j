@@ -52,6 +52,12 @@ public class CursorHighlightAgreementTest {
         "<e a=\"one\nvalue\">x</e>",
         "<e a='one\nvalue'>x</e>",
         "<!-- c1 --><e a=\"v\"/><!-- c2 -->",
+        "<!DOCTYPE e SYSTEM \"file:/schema.dtd\"><e/>",
+        "<!DOCTYPE e PUBLIC '-//Example//DTD Example//EN' 'file:/schema.dtd'><e/>",
+        "<!DOCTYPE e SYSTEM\n  \"file:/schema.dtd\">\n<e/>",
+        "<!DOCTYPE e SYSTEM \"file:/\n  schema.dtd\">\n<e/>",
+        "<!DOCTYPE e [\n<!-- internal comment -->\n<!ENTITY msg 'a value'>\n]>\n<e a=\"v\"/>",
+        "<!DOCTYPE e SYSTEM \"unterminated at eof",
     };
 
     @Test
