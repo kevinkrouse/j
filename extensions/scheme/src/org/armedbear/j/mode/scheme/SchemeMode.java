@@ -30,10 +30,11 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
-import org.armedbear.j.Line;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
@@ -103,23 +104,16 @@ public final class SchemeMode extends AbstractMode implements Mode {
 
     @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
-        // This implementation only considers the current line.
-        Line line = pos.getLine();
-        int offset = pos.getOffset();
-        boolean inQuote = false;
-        for (int i = 0; i < offset; i++) {
-            char c = line.charAt(i);
-            if (c == '\\') {
-                // Escape.
-                ++i;
-            } else if (inQuote) {
-                if (c == '"')
-                    inQuote = false;
-            } else {
-                if (c == '"')
-                    inQuote = true;
-            }
-        }
-        return inQuote;
+        return lexicalContextAt(buffer, pos) == LexicalContext.STRING;
+    }
+
+    @Override
+    public boolean isInComment(Buffer buffer, Position pos) {
+        return lexicalContextAt(buffer, pos) == LexicalContext.COMMENT;
+    }
+
+    @Override
+    public SyntaxIterator getSyntaxIterator(Position pos) {
+        return new SchemeSyntaxIterator(pos);
     }
 }

@@ -9,6 +9,14 @@ mode Scheme
 6: text"        " text"#" text"f" text")))"
 7:
 8: text"(" keyword"define" text" " function"mask" text" #" text"xFF" text")"
+9:
+10: comment"#| a block"
+11: comment"comment |#"
+12:
+13: text"(" keyword"define" text" " function"msg" text" " string""a"
+14: string"multiline string"" text")"
+15:
+16: text"(" keyword"display" text" #\x) " comment"; a line comment after a char literal"
 
 ## indent
 1: 0
@@ -19,10 +27,19 @@ mode Scheme
 6: 0
 7: 0
 8: 0
+9: 0
+10: 0
+11: 0
+12: 0
+13: 0
+14: 0
+15: 0
+16: 0
 
 ## tags
 2: greet (3)
 8: mask (3)
+13: msg (3)
 
 ## comment
 ; ;; A comment.
@@ -33,6 +50,14 @@ mode Scheme
 ;         #f)))
 
 ; (define mask #xFF)
+
+; #| a block
+; comment |#
+
+; (define msg "a
+; multiline string")
+
+; (display #\x) ; a line comment after a char literal
 
 ## uncomment
 (restored)
