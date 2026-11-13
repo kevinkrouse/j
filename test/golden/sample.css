@@ -7,3 +7,8 @@ body {
 a:hover, .nav > li {
     font-family: "Helvetica", sans-serif;
 }
+
+.quote {
+    content: 'x'; /* a comment after a closed single quote */
+    color: #000;
+}

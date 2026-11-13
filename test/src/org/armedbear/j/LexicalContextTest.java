@@ -25,6 +25,7 @@ import org.armedbear.j.ElectricPairs.Action;
 import org.armedbear.j.ElectricPairs.Decision;
 import org.armedbear.j.ElectricPairs.Operation;
 import org.armedbear.j.mode.c.CMode;
+import org.armedbear.j.mode.css.CSSMode;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.lisp.LispMode;
 import org.armedbear.j.mode.markdown.MarkdownMode;
@@ -457,7 +458,8 @@ public class LexicalContextTest {
             LispMode.getMode(),
             PythonMode.getMode(),
             ShellScriptMode.getMode(),
-            MarkdownMode.getMode() };
+            MarkdownMode.getMode(),
+            CSSMode.getMode() };
         String[] fixtures = {
             "",
             "x",
@@ -489,7 +491,11 @@ public class LexicalContextTest {
             "<!-- a\nb --> c",
             "a\\`b",
             "```` ````",
-            "x `` y `z` w" };
+            "x `` y `z` w",
+            "a { content: 'x'; color: \"y\"; }",
+            "a { content: 'it\\'s'; } /* c */",
+            "/* c */ a { b: 'x'; }",
+            "a { b: 'x /* not closer */; }" };
         for (Mode mode : modes) {
             for (String text : fixtures) {
                 if (h != null)

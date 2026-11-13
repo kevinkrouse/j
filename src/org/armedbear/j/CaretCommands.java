@@ -387,7 +387,26 @@ public final class CaretCommands {
         final Mode mode = editor.getBuffer().getMode();
         final int offset = start.getOffset();
         if (!vim) {
-            if (mode.isInComment(editor.getBuffer(), start) || mode.isInQuote(editor.getBuffer(), start))
+            // One raw lexical walk, not two. The old isInComment +
+            // isInQuote pair scanned the line twice per % press. The
+            // formatter answers both memberships in one pass for a
+            // migrated mode; an unmigrated formatter (PHP, the Lisp
+            // shell) returns empty and falls back to the mode's own
+            // predicates, which carry the legacy scan. This is the raw
+            // membership, not Mode.lexicalContext: the disabled-line
+            // OPAQUE collapse is a pairing-decision concern this match
+            // path never applied, and the raw query keeps isInComment
+            // finding a comment inside disabled code, as the spec wants.
+            editor.getBuffer().refreshParse();
+            final LexicalContext raw = editor.getBuffer().getFormatter()
+                    .lexicalContextAt(start.getLine(), offset)
+                    .orElse(null);
+            if (raw != null) {
+                if (raw == LexicalContext.STRING || raw == LexicalContext.COMMENT)
+                    return null;
+            }
+            else if (mode.isInComment(editor.getBuffer(), start)
+                    || mode.isInQuote(editor.getBuffer(), start))
                 return null;
             if (offset > 0 && start.getLine().charAt(offset - 1) == '\\') {
                 // It's escaped.

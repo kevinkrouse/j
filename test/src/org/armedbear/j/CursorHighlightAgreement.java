@@ -108,6 +108,43 @@ public final class CursorHighlightAgreement {
                     i = b;
                 }
             }
+            // The reverse direction: every offset the cursor calls a
+            // comment or string must be highlighted as one. The forward
+            // check alone lets the cursor over-report — a position the
+            // cursor claims is COMMENT but the highlighting paints as
+            // text is invisible to it. This catches the cursor lingering
+            // past a closer (the offset just after */ still read as
+            // COMMENT) or opening a comment/string the parser never
+            // saw. The opening-marker interior needs no exemption here:
+            // the cursor reports NEUTRAL there, so it imposes no
+            // highlighting requirement.
+            for (Line line = h.buffer().getFirstLine(); line != null; line = line.next()) {
+                int len = line.length();
+                if (len == 0)
+                    continue;
+                int[] fmt = new int[len];
+                java.util.Arrays.fill(fmt, -1);
+                LineSegmentList segs = formatter.formatLine(line);
+                int pos = 0;
+                for (int s = 0; s < segs.size(); s++) {
+                    LineSegment sg = segs.getSegment(s);
+                    String t = sg.getText();
+                    for (int k = 0; k < t.length() && pos + k < len; k++)
+                        fmt[pos + k] = sg.getFormat();
+                    pos += t.length();
+                }
+                for (int j = 0; j < len; j++) {
+                    LexicalContext got = mode.lexicalContext(h.buffer(), new Position(line, j));
+                    if (got == LexicalContext.COMMENT)
+                        assertEquals(commentFormat, fmt[j],
+                                mode.getDisplayName() + " [" + text + "] cursor COMMENT at " + j
+                                        + " but fmt=" + fmt[j]);
+                    else if (got == LexicalContext.STRING)
+                        assertEquals(stringFormat, fmt[j],
+                                mode.getDisplayName() + " [" + text + "] cursor STRING at " + j
+                                        + " but fmt=" + fmt[j]);
+                }
+            }
         }
         finally {
             h.close();

@@ -1509,6 +1509,17 @@ existing insert-mode behavior.
     rule. Keep this to these four modes; broader highlighting rewrites
     and additional language grammars are separate work.
 
+    **Legacy predicates.** Adapt both `isInQuote(Buffer, Position)` and
+    `isInComment(Buffer, Position)` in CSS, Scheme and Properties to
+    their formatter's point query, following step 12's parse preparation
+    and non-recursive adapter pattern. Compare the raw query result to
+    STRING or COMMENT respectively; do not introduce another scanner
+    or call `Mode.lexicalContext` from these adapters, since its fallback
+    calls the predicates. Matching and other legacy consumers should
+    agree with pairing about string/comment membership. XML's existing
+    position-only comment/CDATA helpers and tag-matching predicates stay
+    unchanged; this step does not migrate them to the new API.
+
     **CSS.** Add queries to `CSSFormatter`, decoding the quote/comment
     bits independently of selector, value and block bits. Carry block
     comments across lines; handle both quote kinds and escapes, and
@@ -1522,8 +1533,7 @@ existing insert-mode behavior.
     **Scheme.** Add queries to the extension's `SchemeFormatter` for
     double-quoted strings, escapes, semicolon comments and the existing
     block-comment syntax. Use entering metadata for multiline strings
-    and comments. Adapt `SchemeMode.isInQuote` to the supported query,
-    following step 12's preparation and non-recursive adapter pattern.
+    and comments. Adapt both Scheme predicates as specified above.
     Apostrophes remain reader syntax, not string openers. Test escaped
     character literals containing quote/comment markers. Nested block
     comments and datum-comment parsing remain separate grammar work;
@@ -1553,7 +1563,13 @@ existing insert-mode behavior.
     closing boundaries and carried context. Exercise real typing and
     Backspace in neutral text, strings, comments and opaque regions,
     including the empty attribute-string exception. Guard linear bulk
-    traversal with step 12's scan-count approach. Extend the existing
+    traversal with step 12's scan-count approach. Pin predicate/query
+    agreement for both adapters in CSS, Scheme and Properties, including
+    dirty entering metadata, CSS comments, Scheme reader apostrophes and
+    character literals, and Properties literal quotes and continuations.
+    Add focused matching regressions for CSS comments and Properties
+    literal quotes; retain XML's existing tag/comment/CDATA matching
+    tests. Extend the existing
     CSS/Properties/XML and Scheme golden fixtures only for intentional
     parser corrections; add focused regressions rather than accepting
     blanket golden updates. Run core checks through `bb test`, extension
