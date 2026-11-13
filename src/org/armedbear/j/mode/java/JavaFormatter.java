@@ -23,9 +23,11 @@ package org.armedbear.j.mode.java;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.List;
 import java.util.Set;
 import java.util.Optional;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Escapes;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.LexicalContext;
@@ -49,9 +51,11 @@ public class JavaFormatter extends Formatter {
     protected static final int JAVA_FORMAT_BRACE = 7;
     protected static final int JAVA_FORMAT_NUMBER = 8;
     protected static final int JAVA_FORMAT_ANNOTATION = 9;
+    protected static final int JAVA_FORMAT_ESCAPE = 10;
+    protected static final int JAVA_FORMAT_ESCAPE_ERROR = 11;
 
     /** The last format JavaFormatter uses; CFormatter and HtmlFormatter number theirs after it. */
-    public static final int JAVA_FORMAT_LAST = 9;
+    public static final int JAVA_FORMAT_LAST = 11;
 
     private final int language;
 
@@ -81,7 +85,7 @@ public class JavaFormatter extends Formatter {
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
         final int upto = Math.min(offset, line.length());
-        return Optional.of(new Cursor(line, upto, null).run());
+        return Optional.of(new Cursor(line, upto, null, supportsTextBlocks()).run());
     }
 
     /**
@@ -97,7 +101,7 @@ public class JavaFormatter extends Formatter {
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
         final int upto = Math.min(end, line.length());
         final LexicalContext[] out = new LexicalContext[upto + 1];
-        new Cursor(line, upto, out).run();
+        new Cursor(line, upto, out, supportsTextBlocks()).run();
         return Optional.of(out);
     }
 
@@ -112,12 +116,14 @@ public class JavaFormatter extends Formatter {
     static final class Cursor extends LexicalCursor {
         private int state;
         private char quoteChar;
+        private final boolean textBlocks;
         long steps;
 
-        Cursor(Line line, int upto, LexicalContext[] out) {
+        Cursor(Line line, int upto, LexicalContext[] out, boolean textBlocks) {
             super(line, upto, out);
             this.state = line.flags();
             this.quoteChar = state == STATE_QUOTE ? '"' : '\0';
+            this.textBlocks = textBlocks;
         }
 
         LexicalContext run() {
@@ -165,6 +171,16 @@ public class JavaFormatter extends Formatter {
                     ++i;
                     continue;
                 }
+                if (state == STATE_TEXT_BLOCK) {
+                    if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        i += 3;
+                        state = STATE_NEUTRAL;
+                    } else
+                        ++i;
+                    continue;
+                }
                 // Not in comment or quoted string.
                 if (c == '/' && i < limit - 1) {
                     final char next = text.charAt(i + 1);
@@ -188,6 +204,12 @@ public class JavaFormatter extends Formatter {
                         i += 2;
                         continue;
                     }
+                } else if (c == '"' && textBlocks && text.regionMatches(i, "\"\"\"", 0, 3)) {
+                    if (inside(3, LexicalContext.STRING))
+                        return LexicalContext.STRING;
+                    i += 3;
+                    state = STATE_TEXT_BLOCK;
+                    continue;
                 } else if (c == '"' || c == '\'') {
                     state = STATE_QUOTE;
                     quoteChar = c;
@@ -207,6 +229,7 @@ public class JavaFormatter extends Formatter {
     private static LexicalContext toContext(int state) {
         switch (state) {
             case STATE_QUOTE:
+            case STATE_TEXT_BLOCK:
                 return LexicalContext.STRING;
             case STATE_COMMENT:
                 return LexicalContext.COMMENT;
@@ -228,6 +251,18 @@ public class JavaFormatter extends Formatter {
     /** Whether a string open at the end of a line continues on the next. */
     protected boolean quoteContinues(boolean backslashAtEnd) {
         return language != LANGUAGE_JAVA;
+    }
+
+    /** The escapes this language's ordinary strings take. */
+    protected Escapes.Syntax escapeProfile() {
+        switch (language) {
+            case LANGUAGE_JAVASCRIPT:
+                return Escapes.Syntax.JAVASCRIPT;
+            case LANGUAGE_C:
+                return Escapes.Syntax.C;
+            default:
+                return Escapes.Syntax.JAVA;
+        }
     }
 
     /** Whether """ opens a text block, as in Java; elsewhere it is two strings, or one and a quote. */
@@ -261,11 +296,50 @@ public class JavaFormatter extends Formatter {
 
     private int tokenBegin = 0;
 
+    // The closing delimiter the token just consumed: one quote, or the
+    // three of a text block. Zero when the literal was still open at
+    // the token's end, so its last characters are content, not a
+    // delimiter. Set only where the parser closes a literal.
+    private int closingDelim = 0;
+
+    // Whether the line being formatted ends at a physical line break
+    // the literal continues across; set as parseLine begins.
+    private boolean lineEndContinues = false;
+
+    /** Whether the string whose opening quote is at quote is raw, its body free of escapes, as C++'s R"(...)". */
+    protected boolean isRawLiteralAt(String text, int quote) {
+        return false;
+    }
+
     private void endToken(String text, int tokenEnd, int state) {
-        if (tokenEnd - tokenBegin > 0) {
-            addSegment(text, tokenBegin, tokenEnd, format(state));
+        final int delim = closingDelim;
+        closingDelim = 0;
+        if (tokenEnd - tokenBegin <= 0)
+            return;
+        final int format = format(state);
+        if ((state != STATE_QUOTE && state != STATE_TEXT_BLOCK) || isRawLiteralAt(text, tokenBegin)) {
+            addSegment(text, tokenBegin, tokenEnd, format);
             tokenBegin = tokenEnd;
+            return;
         }
+        // Escapes are found in the content, the token without the closing
+        // delimiter it consumed; the delimiter joins the last plain piece.
+        final Escapes.Syntax syntax =
+            state == STATE_TEXT_BLOCK ? Escapes.Syntax.JAVA_TEXT_BLOCK : escapeProfile();
+        final List<Escapes.Span> spans =
+            Escapes.scan(text, tokenBegin, tokenEnd - delim, syntax, lineContinues(state));
+        addEscapedSegment(text, tokenBegin, tokenEnd, spans,
+            format, JAVA_FORMAT_ESCAPE, JAVA_FORMAT_ESCAPE_ERROR);
+        tokenBegin = tokenEnd;
+    }
+
+    // Whether the content ends at a physical line break the literal
+    // continues across: a text block does whenever a line follows it;
+    // an ordinary string only where the language lets it.
+    private boolean lineContinues(int state) {
+        if (state == STATE_TEXT_BLOCK)
+            return lineEndContinues;
+        return lineEndContinues && quoteContinues(true);
     }
 
     private boolean isIdentifierStart(char c) {
@@ -356,6 +430,7 @@ public class JavaFormatter extends Formatter {
 
     protected void parseLine(Line line) {
         final String text = getDetabbedText(line);
+        lineEndContinues = line.next() != null;
         tokenBegin = 0;
         boolean isPreprocessorLine = false;
         char quoteChar = '\0';
@@ -401,6 +476,7 @@ public class JavaFormatter extends Formatter {
             }
             if (state == STATE_QUOTE) {
                 if (c == quoteChar) {
+                    closingDelim = 1;
                     endToken(text, i + 1, state);
                     state = STATE_NEUTRAL;
                 } else if (c == '\\' && i < limit - 1) {
@@ -413,6 +489,7 @@ public class JavaFormatter extends Formatter {
             if (state == STATE_TEXT_BLOCK) {
                 // A text block's content is all string until the closing """.
                 if (c == '"' && i + 2 < limit && text.charAt(i + 1) == '"' && text.charAt(i + 2) == '"') {
+                    closingDelim = 3;
                     endToken(text, i + 3, state);
                     state = STATE_NEUTRAL;
                     i += 3;
@@ -733,5 +810,7 @@ public class JavaFormatter extends Formatter {
         table.addEntryFromPrefs(JAVA_FORMAT_BRACE, "brace");
         table.addEntryFromPrefs(JAVA_FORMAT_NUMBER, "number");
         table.addEntryFromPrefs(JAVA_FORMAT_ANNOTATION, "annotation", "keyword");
+        table.addEntryFromPrefs(JAVA_FORMAT_ESCAPE, "escape");
+        table.addEntryFromPrefs(JAVA_FORMAT_ESCAPE_ERROR, "escapeError");
     }
 }

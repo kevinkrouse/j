@@ -109,6 +109,16 @@ public class LineSegment
         this.item = item;
     }
 
+    public final int getBegin()
+    {
+        return begin;
+    }
+
+    public final int getEnd()
+    {
+        return end;
+    }
+
     public final int length()
     {
         return end - begin;

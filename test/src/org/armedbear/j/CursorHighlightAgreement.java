@@ -21,6 +21,7 @@
 package org.armedbear.j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The cursor and the highlighting parser must agree on where comments and
@@ -81,13 +82,17 @@ public final class CursorHighlightAgreement {
                 }
                 for (int i = 0; i < len; i++) {
                     int f0 = fmt[i];
-                    if (f0 != commentFormat && f0 != stringFormat)
+                    boolean inString = f0 == stringFormat || isEscape(f0, formatter);
+                    boolean inComment = f0 == commentFormat;
+                    if (!inComment && !inString)
                         continue;
                     int a = i;
                     int b = i;
-                    while (b + 1 < len && fmt[b + 1] == f0)
+                    while (b + 1 < len
+                            && (inComment ? fmt[b + 1] == commentFormat
+                                         : fmt[b + 1] == stringFormat || isEscape(fmt[b + 1], formatter)))
                         b++;
-                    LexicalContext want = f0 == commentFormat
+                    LexicalContext want = inComment
                             ? LexicalContext.COMMENT
                             : LexicalContext.STRING;
                     // A comment run that opens with a two-character marker
@@ -140,7 +145,7 @@ public final class CursorHighlightAgreement {
                                 mode.getDisplayName() + " [" + text + "] cursor COMMENT at " + j
                                         + " but fmt=" + fmt[j]);
                     else if (got == LexicalContext.STRING)
-                        assertEquals(stringFormat, fmt[j],
+                        assertTrue(fmt[j] == stringFormat || isEscape(fmt[j], formatter),
                                 mode.getDisplayName() + " [" + text + "] cursor STRING at " + j
                                         + " but fmt=" + fmt[j]);
                 }
@@ -149,6 +154,20 @@ public final class CursorHighlightAgreement {
         finally {
             h.close();
         }
+    }
+
+    // An escape or escape-error segment sits inside a string run: the
+    // cursor calls its offsets STRING, so the agreement check must treat
+    // these formats as string-family. Identified by name so the helper
+    // stays mode-agnostic.
+    private static boolean isEscape(int format, Formatter formatter) {
+        if (format < 0)
+            return false;
+        FormatTableEntry entry = formatter.getFormatTable().lookup(format);
+        if (entry == null)
+            return false;
+        String name = entry.getName();
+        return "escape".equals(name) || "escapeError".equals(name);
     }
 
     private static boolean startsWithTwoCharOpener(Line line, int a, String[] openers) {

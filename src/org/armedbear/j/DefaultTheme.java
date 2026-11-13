@@ -68,7 +68,8 @@ public final class DefaultTheme {
         { "inProgress", 0x8250df, 0xbc8cff },
         { "inProgressMarker", 0x0969da, 0x58a6ff },
         { "done", 0x1a7f37, 0x3fb950 },
-        { "cancelled", 0x8c959f, 0x6e7681 }, };
+        { "cancelled", 0x8c959f, 0x6e7681 },
+        { "escapeError", 0xcf222e, 0xff7b72 }, };
 
     private static final Object[][] SHARED_STYLES = {
         { "heading", TextStyle.BOLD | TextStyle.ITALIC },
@@ -85,6 +86,7 @@ public final class DefaultTheme {
         { null, "emphasis", "text" },
         { null, "strong", "text" },
         { null, "url", "muted" },
+        { null, "escape", "number" },
         { "MarkdownMode", "heading1", "heading" },
         { "MarkdownMode", "heading2", "heading" },
         { "MarkdownMode", "heading3", "heading" },

@@ -22,6 +22,7 @@
 package org.armedbear.j;
 
 import java.awt.Color;
+import java.util.List;
 import java.util.Optional;
 import org.armedbear.j.util.Utilities;
 
@@ -479,6 +480,50 @@ public abstract class Formatter {
 
     protected final void addSegment(String text, int begin, int end, int format) {
         segmentList.addSegment(new LineSegment(text, begin, end, format));
+    }
+
+    /**
+     * Appends text from begin to end in format base, but its escape
+     * spans, which lie within it, in format escape or error.
+     */
+    protected final void addEscapedSegment(String text, int begin, int end, List<Escapes.Span> spans,
+                                         int base, int escape, int error) {
+        final LineSegment segment = new LineSegment(text, begin, end, base);
+        for (LineSegment piece : splitSegment(text, segment, spans, escape, error))
+            segmentList.addSegment(piece);
+    }
+
+    // The pieces of `segment`: the base text between spans, each
+    // escape span, each error span. Metadata is copied to every piece;
+    // the pieces keep the segment's own offsets so the line's total
+    // width is unchanged. Spans are offsets in the full line text, the
+    // same string the segment indexes, so they map to absolute offsets
+    // directly.
+    private LineSegment[] splitSegment(String fullText, LineSegment segment, List<Escapes.Span> spans, int escape, int error) {
+        final int base = segment.getBegin();
+        final int limit = segment.getEnd();
+        final int format = segment.getFormat();
+        final boolean hidden = segment.isHidden();
+        final int item = segment.getItem();
+        final java.util.ArrayList<LineSegment> pieces = new java.util.ArrayList<>();
+        int at = base;
+        for (Escapes.Span span : spans) {
+            if (span.begin > at)
+                pieces.add(piece(fullText, at, span.begin, format, hidden, item));
+            pieces.add(piece(fullText, span.begin, span.end,
+                        span.error ? error : escape, hidden, item));
+            at = span.end;
+        }
+        if (at < limit)
+            pieces.add(piece(fullText, at, limit, format, hidden, item));
+        return pieces.toArray(new LineSegment[pieces.size()]);
+    }
+
+    private static LineSegment piece(String text, int begin, int end, int format, boolean hidden, int item) {
+        final LineSegment piece = new LineSegment(text, begin, end, format);
+        piece.setHidden(hidden);
+        piece.setItem(item);
+        return piece;
     }
 
     protected final void addSegment(String text, int begin, int format) {

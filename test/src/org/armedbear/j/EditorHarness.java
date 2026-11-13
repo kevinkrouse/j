@@ -488,6 +488,39 @@ public final class EditorHarness {
         return line;
     }
 
+    /**
+     * The runs of formats in {@code text} as {@code mode} formats it:
+     * each format's name with its text, like MarkdownFormatterTest.runs.
+     * For escape tests: {@code runs(Editor.getModeList().getMode(
+     * JAVA_MODE), ...)} shows escape(...) and escapeError(...).
+     */
+    public static String runs(Mode mode, String text) {
+        EditorHarness h = create(text).mode(mode);
+        try {
+            Buffer buffer = h.buffer();
+            buffer.getFormatter().parseBuffer();
+            StringBuilder sb = new StringBuilder();
+            for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
+                if (sb.length() > 0)
+                    sb.append('\n');
+                Formatter formatter = buffer.getFormatter();
+                LineSegmentList segments = formatter.formatLine(line);
+                for (int i = 0; i < segments.size(); i++) {
+                    LineSegment segment = segments.getSegment(i);
+                    FormatTableEntry entry = formatter.getFormatTable().lookup(segment.getFormat());
+                    String name = entry != null ? entry.getName() : "?" + segment.getFormat();
+                    if (name.equals("text"))
+                        sb.append(segment.getText());
+                    else
+                        sb.append(name).append('(').append(segment.getText()).append(')');
+                }
+            }
+            return sb.toString();
+        } finally {
+            h.close();
+        }
+    }
+
     /** Forgets the errors j logged, for a test that makes one on purpose. */
     public void clearLoggedErrors() {
         ERRORS.clear();

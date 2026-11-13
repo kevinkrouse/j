@@ -27,6 +27,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.mode.cpp.CppMode;
 import org.armedbear.j.mode.java.JavaFormatter;
 
 /** C, C++ and Objective-C: Java's formatter with preprocessor lines and #if 0 blocks. */
@@ -59,6 +60,18 @@ public final class CFormatter extends JavaFormatter {
     @Override
     protected int format(int state) {
         return state == STATE_PREPROCESSOR ? C_FORMAT_PREPROCESSOR : super.format(state);
+    }
+
+    // A string whose opening quote is preceded by R is a C++ raw
+    // literal: its body carries no escapes. The introducer is R, or a
+    // wide/UTF-8 prefix and R, so the R is always the character right
+    // before the quote. The formatter does not yet track a raw
+    // literal's closing )delim" across lines, so a raw literal is left
+    // neutral rather than given confidently wrong escape errors.
+    @Override
+    protected boolean isRawLiteralAt(String text, int quote) {
+        return getLanguageMode() instanceof CppMode
+                && quote > 0 && text.charAt(quote - 1) == 'R';
     }
 
     @Override
