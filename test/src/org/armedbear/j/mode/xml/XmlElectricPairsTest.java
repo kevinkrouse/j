@@ -143,20 +143,70 @@ public class XmlElectricPairsTest {
     }
 
     @Test
-    public void commentAndCdataQuotesAreLiteral() {
-        for (String prefix : new String[] { "<!-- ", "<![CDATA[ " }) {
-            EditorHarness h = EditorHarness.create(prefix).mode(XmlMode.getMode());
+    public void attributeQuotesCanBeReplacedWithSingleQuotes() {
+        EditorHarness h = EditorHarness.create("<e a/>").mode(XmlMode.getMode());
+        try {
+            h.cursor(0, 4).keys("=");
+            assertEquals("<e a=\"\"/>", h.value());
+            h.assertCursorAt(0, 6);
+            h.keys("<BS>");
+            assertEquals("<e a=/>", h.value());
+            h.assertCursorAt(0, 5);
+            h.keys("'");
+            assertEquals("<e a=''/>", h.value());
+            h.assertCursorAt(0, 6);
+            EditCommands.undo(h.editor());
+            assertEquals("<e a=/>", h.value());
+            h.assertCursorAt(0, 5);
+            h.keys("'<BS>");
+            assertEquals("<e a=/>", h.value());
+            h.assertCursorAt(0, 5);
+            EditCommands.undo(h.editor());
+            assertEquals("<e a=''/>", h.value());
+            h.assertCursorAt(0, 6);
+            h.keys("'");
+            assertEquals("<e a=''/>", h.value());
+            h.assertCursorAt(0, 7);
+        }
+        finally {
+            h.close();
+        }
+    }
+
+    @Test
+    public void oppositeQuoteInsideAttributeValueIsLiteral() {
+        for (char outer : new char[] { '"', '\'' }) {
+            char inner = outer == '"' ? '\'' : '"';
+            String prefix = "<e a=" + outer;
+            EditorHarness h = EditorHarness.create(prefix + outer + "/>").mode(XmlMode.getMode());
             try {
-                h.cursor(0, prefix.length());
-                EditCommands.insertNormalChar(h.editor(), '"');
-                assertEquals(prefix + '"', h.value());
-                EditCommands.insertNormalChar(h.editor(), '"');
-                h.cursor(0, prefix.length() + 1);
-                EditCommands.backspace(h.editor());
-                assertEquals(prefix + '"', h.value());
+                h.cursor(0, prefix.length()).keys(String.valueOf(inner));
+                assertEquals(prefix + inner + outer + "/>", h.value());
+                h.assertCursorAt(0, prefix.length() + 1);
             }
             finally {
                 h.close();
+            }
+        }
+    }
+
+    @Test
+    public void commentAndCdataQuotesAreLiteral() {
+        for (String prefix : new String[] { "<!-- ", "<![CDATA[ " }) {
+            for (char quote : new char[] { '"', '\'' }) {
+                EditorHarness h = EditorHarness.create(prefix).mode(XmlMode.getMode());
+                try {
+                    h.cursor(0, prefix.length());
+                    EditCommands.insertNormalChar(h.editor(), quote);
+                    assertEquals(prefix + quote, h.value());
+                    EditCommands.insertNormalChar(h.editor(), quote);
+                    h.cursor(0, prefix.length() + 1);
+                    EditCommands.backspace(h.editor());
+                    assertEquals(prefix + quote, h.value());
+                }
+                finally {
+                    h.close();
+                }
             }
         }
     }

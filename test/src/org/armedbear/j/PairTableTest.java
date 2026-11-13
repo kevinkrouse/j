@@ -136,10 +136,12 @@ public class PairTableTest {
     }
 
     @Test
-    public void xmlPairsOnlyTheDoubleQuote() {
+    public void xmlPairsBothQuotesWithoutBrackets() {
         PairTable t = XmlMode.getMode().getPairTable();
         assertTrue(t.isOpener('"'));
         assertTrue(t.isCloser('"'));
+        assertTrue(t.isOpener('\''));
+        assertTrue(t.isCloser('\''));
         assertFalse(t.isOpener('('));
         assertFalse(t.isOpener('<'));
         assertFalse(t.isCloser('>'));

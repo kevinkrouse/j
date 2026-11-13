@@ -124,6 +124,12 @@ public class ElectricPairsTest {
     }
 
     @Test
+    public void javaOpenersBeforeIdentifierStayLiteral() {
+        assertAction(PLAIN, typeIn(JavaMode.getMode(), "foo|bar", '(', false, false));
+        assertAction(PLAIN, typeIn(JavaMode.getMode(), "int|value", '[', false, false));
+    }
+
+    @Test
     public void escapedQuoteIsLiteral() {
         // " \ | "  -> the quote after one backslash is escaped.
         assertAction(PLAIN, type("\"\\|\"", '"'));
@@ -225,6 +231,28 @@ public class ElectricPairsTest {
         h.assertCursorAt(0, 1);
         EditCommands.undo(h.editor());
         h.assertText("\n");
+    }
+
+    @Test
+    public void javaCallPairsAfterIdentifier() {
+        h = EditorHarness.create("foo").mode(JavaMode.getMode());
+        h.cursor(0, 3).keys("(");
+        h.assertText("foo()\n");
+        h.assertCursorAt(0, 4);
+        EditCommands.undo(h.editor());
+        h.assertText("foo\n");
+        h.assertCursorAt(0, 3);
+    }
+
+    @Test
+    public void javaArrayPairsAfterType() {
+        h = EditorHarness.create("int").mode(JavaMode.getMode());
+        h.cursor(0, 3).keys("[");
+        h.assertText("int[]\n");
+        h.assertCursorAt(0, 4);
+        EditCommands.undo(h.editor());
+        h.assertText("int\n");
+        h.assertCursorAt(0, 3);
     }
 
     @Test
