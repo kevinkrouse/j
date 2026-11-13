@@ -55,6 +55,14 @@ public final class PropertiesFormatter extends Formatter {
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
+        // Classify on the raw text, not the rendered text. With Show
+        // Tabs on, getDetabbedText turns a tab into a visible ^I glyph,
+        // so a tab-indented comment's first non-whitespace character
+        // would be the caret, not the marker, and it would be painted as
+        // ordinary text while the raw lexical query reports COMMENT. The
+        // classifier reads raw so the two agree; the rendered text is
+        // used only for the segment content.
+        final String raw = line.getText() == null ? "" : line.getText();
         final boolean continuation = (line.flags() & PROPERTIES_CONTINUATION) != 0;
         if (continuation) {
             // A continuation of the previous line is value text, even
@@ -62,7 +70,7 @@ public final class PropertiesFormatter extends Formatter {
             addSegment(text, PROPERTIES_FORMAT_VALUE);
             return segmentList;
         }
-        if (PropertiesLexicon.isComment(text, false)) {
+        if (PropertiesLexicon.isComment(raw, false)) {
             addSegment(text, PROPERTIES_FORMAT_COMMENT);
             return segmentList;
         }
@@ -107,8 +115,12 @@ public final class PropertiesFormatter extends Formatter {
             // comment text. The classifier reads the raw text: a tab is
             // whitespace and a trailing backslash is unaffected by
             // detabbing, so the result matches the detabbed format pass.
+            // The incoming continuation state is passed so a marker at
+            // the start of a continuation line is value text, not a
+            // fresh comment: in key=v \ / #middle \ / #tail the second
+            // and third lines are both continuations, not comments.
             final String text = line.getText();
-            continuation = !PropertiesLexicon.isComment(text, false)
+            continuation = !PropertiesLexicon.isComment(text, continuation)
                     && PropertiesLexicon.continuesFrom(text);
             line = line.next();
         }

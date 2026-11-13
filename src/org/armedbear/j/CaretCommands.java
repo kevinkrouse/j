@@ -627,6 +627,15 @@ public final class CaretCommands {
      * caret lands after a closing bracket.
      */
     public static void findMatchingPair(Editor editor) {
+        // The matcher reads the line's syntax through the mode's syntax
+        // iterator, which trusts the line flags carrying the comment and
+        // continuation state. This command path calls the matcher
+        // directly, not findMatchInternal, so it must refresh the parse
+        // itself: deleting a continuation backslash and immediately
+        // matching would otherwise read stale flags and count a bracket
+        // in a line that is now a comment. refreshParse is a no-op when
+        // the buffer is already clean.
+        editor.getBuffer().refreshParse();
         final InputHandler handler = editor.getInputHandler();
         final boolean bar = handler == null || handler.getCaretShape() == InputHandler.CaretShape.BAR;
         final PairMatcher matcher = editor.getMode().getPairMatcher();
