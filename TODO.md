@@ -128,6 +128,9 @@
     - highlight color strings in the color
     - [x] `---` horizontal rule draws thin line all the way across
     - [x] h1, h2 headers draw light underline all the way across
+- [ ] xml
+    - [x] fix attribute indentation
+    - [x] fix Ctrl-E 'xmlInsertMatchingEndTag' mapping shadowing Ctrl-E switch buffer popup
 - [ ] svg, render inline preview?
 - [ ] inline mermaid diagram editor? el-easydraw like
 - [ ] man sidebar/tagger seems broken

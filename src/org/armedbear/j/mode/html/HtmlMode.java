@@ -87,7 +87,7 @@ public final class HtmlMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "newline");
-        km.mapKey(KeyEvent.VK_E, CTRL_MASK, "htmlInsertMatchingEndTag");
+        km.mapKey(KeyEvent.VK_E, CTRL_MASK | SHIFT_MASK, "htmlInsertMatchingEndTag");
         km.mapKey(KeyEvent.VK_B, CTRL_MASK, "htmlBold");
         km.mapKey('=', "htmlElectricEquals");
         km.mapKey('>', "electricCloseAngleBracket");

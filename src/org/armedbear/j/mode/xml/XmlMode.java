@@ -136,7 +136,7 @@ public final class XmlMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "newline");
         km.mapKey('=', "xmlElectricEquals");
         km.mapKey('>', "electricCloseAngleBracket");
-        km.mapKey(KeyEvent.VK_E, CTRL_MASK, "xmlInsertMatchingEndTag");
+        km.mapKey(KeyEvent.VK_E, CTRL_MASK | SHIFT_MASK, "xmlInsertMatchingEndTag");
         km.mapKey('/', "xmlElectricSlash");
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
         km.mapKey(KeyEvent.VK_COMMA, CTRL_MASK | SHIFT_MASK, "xmlInsertTag");
