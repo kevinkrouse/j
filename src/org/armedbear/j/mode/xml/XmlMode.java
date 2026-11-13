@@ -128,10 +128,10 @@ public final class XmlMode extends AbstractMode implements Mode {
         return XmlPairMatcher.XML;
     }
 
-    /** Only the double quote pairs; {@code <>} is tag syntax, not a pair. */
+    /** Both attribute quotes pair; {@code <>} is tag syntax, not a pair. */
     @Override
     public String getPairs() {
-        return "\"\"";
+        return "\"\"''";
     }
 
     /** A backslash does not escape an attribute quote in markup. */

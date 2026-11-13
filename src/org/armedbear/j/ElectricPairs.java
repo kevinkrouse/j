@@ -118,12 +118,11 @@ public final class ElectricPairs {
         if (table.isOpener(c)) {
             char before = charBefore(line, offset);
             char at = charAt(line, offset);
-            // The same-delimiter inhibit is for symmetric delimiters:
-            // a quote typed right after itself must not open a pair.
-            // An asymmetric opener after itself is just nesting, so
-            // (( is allowed. The 0 sentinel means no character, which
-            // isIdentifierPart would wrongly count as a word char.
-            if (before != 0 && (mode.isIdentifierPart(before) || (symmetric && before == c)))
+            // Only symmetric delimiters are inhibited after a word or
+            // themselves. Brackets after identifiers (foo(, int[) and
+            // nested openers (( should still pair. Skip the 0 sentinel:
+            // isIdentifierPart can count it as a word character.
+            if (symmetric && before != 0 && (mode.isIdentifierPart(before) || before == c))
                 return Decision.plain();
             if (at != 0 && mode.isIdentifierPart(at))
                 return Decision.plain();

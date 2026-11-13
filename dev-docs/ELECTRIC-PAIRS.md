@@ -185,7 +185,8 @@ scan, and the modes that differ override with a literal:
 - `MarkdownMode`: single backticks can use the generic pair action;
   emphasis runs and fences use the Markdown override described below,
   outside the flat pair table.
-- `HtmlMode`/`XmlMode`: `""` only; `<>` is tag syntax, handled by
+- `HtmlMode`: `""` only. `XmlMode`: `""` and `''`, supporting either
+  attribute quote. In both, `<>` is tag syntax, handled by
   `electricCloseAngleBracket`'s tag logic, not the generic rule.
 
 `PairTable` provides both `pairForOpener(c)` and
@@ -248,8 +249,10 @@ is what makes that work.
    and the nvim-autopairs `check_ts` rule. See "Lexical context"
    for the mode-coverage caveat and the empty-pair exception.
 6. **Opener typed** (`c` in the opener set):
-   - the char before dot is a word character or the same delimiter →
-     PLAIN (Emacs `conservative-inhibit`: `don't`, `5"`, `a"`).
+   - for symmetric delimiters only, the char before dot is a word
+     character or the same delimiter → PLAIN (`don't`, `5"`, `a"`).
+     Asymmetric openers can pair after identifiers: in Java,
+     `foo|` + `(` → `foo(|)` and `int|` + `[` → `int[|]`.
    - the char at dot is a word character → PLAIN (`(|foo` stays
      `(foo`).
    - balance: an unmatched closer of `pair(c)`'s kind later on the
@@ -923,6 +926,13 @@ New file `test/src/org/armedbear/j/ElectricPairsTest.java`:
    opener inserts, no closer generated.
 6. **Inhibit**: `a|` + `keys("\"")` → `a"` no pair (word char
    before); `(|foo)` + `keys(")")` → unchanged.
+   In Java, `foo|` + `keys("(")` → `foo(|)` and `int|` +
+   `keys("[")` → `int[|]`; one undo removes each generated pair.
+   An opener typed before an identifier still inserts alone.
+   In XML, type `=` after an attribute name, Backspace the generated
+   `""`, then type `'`: insert `''` with the caret between. Backspace
+   removes both single quotes, undo restores both, and typing `'`
+   over the closer steps past it. Comment/CDATA quotes remain literal.
 7. **Escaped quote, odd backslashes**: from an empty buffer, type
    `"` to create an empty quote pair with the caret between. Type one
    backslash and then `"`; the escaped quote inserts before the
@@ -1026,8 +1036,8 @@ simple edit mode in `ElectricPairsTest.java`.
     outer one. Assert no closer appears on any line and the block's
     suppression stays active until Escape. As a control, repeat the
     same space-plus-opener insertion outside a block and assert `()`
-    is generated. A register ending in `x` would mask the regression
-    through the word-before-caret inhibition and is not this fixture.
+    is generated. Asymmetric openers can also pair after identifiers;
+    the space fixture does not rely on that boundary rule.
 25. **Ctrl-R literal**: initialize register a to `(`, `i` + Ctrl-R a
     → `(` inserted, not `()`; `.` repeats the literal `(`, not a
     pair.
@@ -1089,8 +1099,9 @@ existing insert-mode behavior.
    or type-over has the pair. `Mode.getPairs()` returns
    `"()[]{}\"\""` and `getPairTable()` builds the table. Overrides:
    `LispMode` `"()[]\"\""` (the apostrophe quotes, never pairs),
-   `HtmlMode` and `XmlMode` `"\"\""` (`<>` is tag syntax, not a
-   pair). `PairTableTest` covers the lookups, the symmetric and
+   `HtmlMode` and `XmlMode` initially `"\"\""` (`<>` is tag syntax,
+   not a pair); XML now also includes `''` for attribute values.
+   `PairTableTest` covers the lookups, the symmetric and
    asymmetric roles, the either-end resolution, the odd-length
    rejection, the empty table, the cache, and the four modes: 13
    tests. Full suite 2678/2678, vim conformance 168/253, matching

@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditCommands;
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.mode.java.JavaMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,6 +51,17 @@ public class VimElectricPairsTest {
         h.keys(".");
         h.assertText("()\n()\n");
         h.assertCursorAt(1, 0);
+    }
+
+    @Test
+    public void repeatsPairAfterJavaIdentifier() {
+        vim("foo\nbar\n").mode(JavaMode.getMode()).cursor(0, 3).keys("i(<Esc>");
+        h.assertText("foo()\nbar\n");
+        h.cursor(1, 3).keys(".");
+        h.assertText("foo()\nbar()\n");
+        h.assertCursorAt(1, 3);
+        EditCommands.undo(h.editor());
+        h.assertText("foo()\nbar\n");
     }
 
     @Test
