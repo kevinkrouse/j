@@ -28,7 +28,10 @@ import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Mode;
+import org.armedbear.j.Position;
+import org.armedbear.j.SyntaxIterator;
 
 public final class PropertiesMode extends AbstractMode implements Mode {
     private static final PropertiesMode mode = new PropertiesMode();
@@ -44,6 +47,22 @@ public final class PropertiesMode extends AbstractMode implements Mode {
     @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new PropertiesFormatter(buffer);
+    }
+
+    @Override
+    public boolean isInQuote(Buffer buffer, Position pos) {
+        // Properties has no string syntax; a quote is never a string.
+        return lexicalContextAt(buffer, pos) == LexicalContext.STRING;
+    }
+
+    @Override
+    public boolean isInComment(Buffer buffer, Position pos) {
+        return lexicalContextAt(buffer, pos) == LexicalContext.COMMENT;
+    }
+
+    @Override
+    public SyntaxIterator getSyntaxIterator(Position pos) {
+        return new PropertiesSyntaxIterator(pos);
     }
 
     @Override
