@@ -26,19 +26,22 @@ import static org.armedbear.j.Constants.*;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Position;
+import java.util.Optional;
 
 public final class XmlFormatter extends Formatter {
     private static final byte XML_FORMAT_TEXT = 0;
-    private static final byte XML_FORMAT_COMMENT = 1;
+    static final byte XML_FORMAT_COMMENT = 1;
     private static final byte XML_FORMAT_DELIMITER = 2;
     private static final byte XML_FORMAT_NAMESPACE = 3;
     private static final byte XML_FORMAT_TAG = 4;
     private static final byte XML_FORMAT_ATTRIBUTE = 5;
     private static final byte XML_FORMAT_EQUALS = 6;
-    private static final byte XML_FORMAT_QUOTE = 7;
+    static final byte XML_FORMAT_QUOTE = 7;
     private static final byte XML_FORMAT_CDATA = 8;
 
     private static final byte STATE_NAMESPACE = STATE_LAST + 1;
@@ -452,6 +455,158 @@ public final class XmlFormatter extends Formatter {
 
     private static final boolean isWhitespace(char c) {
         return c <= ' ';
+    }
+
+    @Override
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
+        final int upto = Math.min(offset, line.length());
+        Cursor cursor = new Cursor(line, line.flags(), upto, null);
+        LexicalContext ctx = cursor.run();
+        scanSteps += cursor.steps;
+        return Optional.of(ctx);
+    }
+
+    @Override
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        Cursor cursor = new Cursor(line, line.flags(), upto, out);
+        cursor.run();
+        scanSteps += cursor.steps;
+        return Optional.of(out);
+    }
+
+    // Total characters the lexical queries have scanned, across every
+    // cursor run since the last reset. The scan guard reads this.
+    long scanSteps;
+
+    /**
+     * The single source of XML lexical context for the pairing query.
+     * It mirrors {@link #parseBuffer}'s carried-state machine exactly,
+     * so the cursor and the highlighting cannot drift: the entering
+     * state is the line's flags as {@code parseBuffer} wrote them, and
+     * every transition is the same test. The state maps to a
+     * {@link LexicalContext} for pairing: a comment is COMMENT, an
+     * attribute value is STRING, a CDATA section is OPAQUE, and a tag,
+     * an attribute name or ordinary text is NEUTRAL.
+     *
+     * <p>A prose apostrophe in text is NEUTRAL: only a quote reached
+     * from inside a tag opens a string, so {@code don't} in content
+     * never does. The multi-character markers use {@code covers} so the
+     * caret on a marker character reads as inside the construct and the
+     * caret just past a complete closer ({@code -->}, {@code ]]>) reads
+     * as outside, resuming the surrounding context. With an output
+     * array it records every offset (bulk); without one it stops at
+     * {@code upto} (point).
+     */
+    static final class Cursor extends LexicalCursor {
+        private int state;
+        long steps;
+
+        Cursor(Line line, int enteringState, int upto, LexicalContext[] out) {
+            super(line, upto, out);
+            this.state = enteringState;
+        }
+
+        LexicalContext run() {
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                if (state == STATE_COMMENT) {
+                    if (c == '-' && text.regionMatches(i, "-->", 0, 3)) {
+                        if (covers(i, i + 2, LexicalContext.COMMENT))
+                            return LexicalContext.COMMENT;
+                        state = STATE_NEUTRAL;
+                        i += 3;
+                    } else
+                        ++i;
+                    continue;
+                }
+                if (state == STATE_CDATA) {
+                    if (c == ']' && text.regionMatches(i, "]]>", 0, 3)) {
+                        if (covers(i, i + 2, LexicalContext.OPAQUE))
+                            return LexicalContext.OPAQUE;
+                        state = STATE_NEUTRAL;
+                        i += 3;
+                    } else
+                        ++i;
+                    continue;
+                }
+                if (state == STATE_QUOTE) {
+                    if (c == '"')
+                        state = STATE_ATTRIBUTE;
+                    ++i;
+                    continue;
+                }
+                if (state == STATE_SINGLEQUOTE) {
+                    if (c == '\'')
+                        state = STATE_ATTRIBUTE;
+                    ++i;
+                    continue;
+                }
+                if (state == STATE_TAG) {
+                    if (!isWhitespace(c))
+                        state = STATE_ATTRIBUTE;
+                    ++i;
+                    continue;
+                }
+                if (state == STATE_ATTRIBUTE) {
+                    if (c == '>')
+                        state = STATE_NEUTRAL;
+                    else if (c == '"')
+                        state = STATE_QUOTE;
+                    else if (c == '\'')
+                        state = STATE_SINGLEQUOTE;
+                    ++i;
+                    continue;
+                }
+                // Neutral.
+                if (c == '<') {
+                    if (text.regionMatches(i, "<!--", 0, 4)) {
+                        if (covers(i + 1, i + 3, LexicalContext.COMMENT))
+                            return LexicalContext.COMMENT;
+                        state = STATE_COMMENT;
+                        i += 4;
+                        continue;
+                    }
+                    if (text.regionMatches(i, "<![CDATA[", 0, 9)) {
+                        if (covers(i + 1, i + 8, LexicalContext.OPAQUE))
+                            return LexicalContext.OPAQUE;
+                        state = STATE_CDATA;
+                        i += 9;
+                        continue;
+                    }
+                    if (text.regionMatches(i, "<!DOCTYPE", 0, 8)) {
+                        // A DOCTYPE is not a string, comment or CDATA,
+                        // and its quotes are not attribute strings, so
+                        // it stays neutral. Consume only the '<'; the
+                        // rest are neutral no-ops.
+                        ++i;
+                        continue;
+                    }
+                    state = STATE_TAG;
+                    ++i;
+                    continue;
+                }
+                ++i;
+            }
+            return toContext(state);
+        }
+
+        private static LexicalContext toContext(int state) {
+            if (state == STATE_COMMENT)
+                return LexicalContext.COMMENT;
+            if (state == STATE_CDATA)
+                return LexicalContext.OPAQUE;
+            if (state == STATE_QUOTE || state == STATE_SINGLEQUOTE)
+                return LexicalContext.STRING;
+            return LexicalContext.NEUTRAL;
+        }
     }
 
     @Override
