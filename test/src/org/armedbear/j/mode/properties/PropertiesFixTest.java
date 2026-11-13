@@ -124,6 +124,33 @@ public class PropertiesFixTest {
         }
     }
 
+    @Test
+    public void vimPercentRefreshesFlagsAfterDeletingBackslash() {
+        assertVimMotionRefreshesFlags("%");
+    }
+
+    @Test
+    public void vimUnmatchedBracketRefreshesFlagsAfterDeletingBackslash() {
+        assertVimMotionRefreshesFlags("])");
+    }
+
+    private void assertVimMotionRefreshesFlags(String motion) {
+        EditorHarness h = EditorHarness.create("key=( \\\n#continued )\nother=)").mode(PropertiesMode.getMode()).vim();
+        try {
+            h.buffer().refreshParse();
+            h.cursor(0, 0).keys("$x");
+            assertTrue(h.buffer().needsParsing());
+            // Vim dispatches these motions directly to the matching
+            // helpers, bypassing the findMatchingPair command entirely.
+            h.cursor(0, 4).keys(motion);
+            assertEquals(2, h.lineNumber());
+            assertEquals(6, h.offset());
+        }
+        finally {
+            h.close();
+        }
+    }
+
     // Fix 3: a tab-indented comment under Show Tabs. The rendered text
     // starts with the ^I glyph, so classifying the rendered text would
     // miss the marker and paint the comment as ordinary text. The
