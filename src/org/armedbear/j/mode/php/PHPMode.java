@@ -43,18 +43,10 @@ import org.armedbear.j.mode.web.WebMode;
 
 public final class PHPMode extends JavaMode implements Mode {
     private static final Pattern FUNCTION =
-        Pattern.compile("^function\\s+&?([a-zA-Z_\u007f-\u00ff][a-zA-Z0-9_\u007f-\u00ff]*)\\s*\\(");
+            Pattern.compile("^function\\s+&?([a-zA-Z_\u007f-\u00ff][a-zA-Z0-9_\u007f-\u00ff]*)\\s*\\(");
 
-    private static final String[] phpConditionals = {
-        "if",
-        "else",
-        "elseif",
-        "do",
-        "while",
-        "for",
-        "foreach",
-        "switch"
-    };
+    private static final String[] phpConditionals =
+            { "if", "else", "elseif", "do", "while", "for", "foreach", "switch" };
 
     // Since this class is final, we may as well construct the singleton class
     // instance right away.
@@ -106,6 +98,18 @@ public final class PHPMode extends JavaMode implements Mode {
     }
 
     @Override
+    public boolean isInComment(Buffer buffer, Position pos) {
+        if (buffer.getMode() != this)
+            Debug.bug();
+        buffer.refreshParse();
+        // PHPFormatter does not answer the lexical query, so this mode
+        // keeps the legacy scan directly rather than the adapter. This
+        // is the scan PHP inherited from JavaMode before the cutover:
+        // // and /* */ comments.
+        return legacyIsInComment(pos.getLine(), pos.getOffset());
+    }
+
+    @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
         if (buffer.getMode() != this)
             Debug.bug();
@@ -151,39 +155,262 @@ public final class PHPMode extends JavaMode implements Mode {
     }
 
     private static final byte values[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x00-0x07
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x09-0xff
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x10-0x17
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x18-0x1f
-        0, 0, 0, 0, 1, 0, 0, 0, // 0x20-0x27   !"#$%&'
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x28-0x2f  ()*+,-./
-        2, 2, 2, 2, 2, 2, 2, 2, // 0x30-0x37  01234567
-        2, 2, 0, 0, 0, 0, 0, 0, // 0x38-0x40  89:;<=>?
-        0, 1, 1, 1, 1, 1, 1, 1, // 0x41-0x47  @ABCDEFG
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x48-0x4f  HIJKLMNO
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x50-0x57  PQRSTUVW
-        1, 1, 1, 0, 0, 0, 0, 1, // 0x58-0x5f  XYZ[\]^_
-        0, 1, 1, 1, 1, 1, 1, 1, // 0x60-0x67  `abcdefg
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x68-0x6f  hijklmno
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x70-0x77  pqrstuvw
-        1, 1, 1, 0, 0, 0, 0, 1, // 0x78-0x7f  xyz{|}~
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1
-    };
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, // 0x00-0x07
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, // 0x09-0xff
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, // 0x10-0x17
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, // 0x18-0x1f
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0, // 0x20-0x27   !"#$%&'
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, // 0x28-0x2f  ()*+,-./
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2, // 0x30-0x37  01234567
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, // 0x38-0x40  89:;<=>?
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // 0x41-0x47  @ABCDEFG
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // 0x48-0x4f  HIJKLMNO
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // 0x50-0x57  PQRSTUVW
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1, // 0x58-0x5f  XYZ[\]^_
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // 0x60-0x67  `abcdefg
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // 0x68-0x6f  hijklmno
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // 0x70-0x77  pqrstuvw
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1, // 0x78-0x7f  xyz{|}~
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1 };
 
     // Not JavaMode's: wrap after this mode's own comment start.
     @Override

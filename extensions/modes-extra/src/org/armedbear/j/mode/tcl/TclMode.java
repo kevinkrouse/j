@@ -79,6 +79,11 @@ public final class TclMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public boolean electricBraces() {
+        return true;
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");

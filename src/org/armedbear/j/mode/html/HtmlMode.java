@@ -81,6 +81,18 @@ public final class HtmlMode extends AbstractMode implements Mode {
         return new HtmlFormatter(buffer);
     }
 
+    /** Only the double quote pairs; {@code <>} is tag syntax, not a pair. */
+    @Override
+    public String getPairs() {
+        return "\"\"";
+    }
+
+    /** A backslash does not escape an attribute quote in markup. */
+    @Override
+    public char getEscapeChar() {
+        return 0;
+    }
+
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");

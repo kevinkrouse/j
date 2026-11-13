@@ -28,8 +28,11 @@ import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.Position;
+import org.armedbear.j.SyntaxIterator;
 
 public final class CSSMode extends AbstractMode implements Mode {
     private static final CSSMode mode = new CSSMode();
@@ -45,6 +48,21 @@ public final class CSSMode extends AbstractMode implements Mode {
     @Override
     public Formatter getFormatter(Buffer buffer) {
         return new CSSFormatter(buffer);
+    }
+
+    @Override
+    public SyntaxIterator getSyntaxIterator(Position pos) {
+        return new CssSyntaxIterator(pos);
+    }
+
+    @Override
+    public boolean isInQuote(Buffer buffer, Position pos) {
+        return lexicalContextAt(buffer, pos) == LexicalContext.STRING;
+    }
+
+    @Override
+    public boolean isInComment(Buffer buffer, Position pos) {
+        return lexicalContextAt(buffer, pos) == LexicalContext.COMMENT;
     }
 
     @Override

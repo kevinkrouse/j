@@ -6,6 +6,13 @@ mode Properties
 3: key"color.text " delimiter"=" value" 0 0 0"
 4: comment"! another comment"
 5: key"path" delimiter"=" value"/usr/local"
+6: key"long " delimiter"=" value" first part \"
+7: value"    second part"
+8: key"cont " delimiter"=" value" value \"
+9: value"# this starts with a marker but continues the value"
+10: key"indented   " delimiter"=" value"   value with spaces"
+11: key"escaped " delimiter"=" value" ends with double backslash \\"
+12: key"literal " delimiter"=" value" "quoted" and don't apostrophe"
 
 ## indent
 1: 0
@@ -13,6 +20,13 @@ mode Properties
 3: 0
 4: 0
 5: 0
+6: 0
+7: 0
+8: 0
+9: 0
+10: 0
+11: 0
+12: 0
 
 ## tags
 
@@ -22,6 +36,13 @@ mode Properties
 # color.text = 0 0 0
 # ! another comment
 # path=/usr/local
+# long = first part \
+#     second part
+# cont = value \
+# # this starts with a marker but continues the value
+# indented   =   value with spaces
+# escaped = ends with double backslash \\
+# literal = "quoted" and don't apostrophe
 
 ## uncomment
 (restored)

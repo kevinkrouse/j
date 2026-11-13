@@ -69,6 +69,20 @@ public final class LispShellMode extends LispMode implements Mode {
     }
 
     @Override
+    public boolean isInQuote(Buffer buffer, Position pos) {
+        buffer.refreshParse();
+        // LispShellFormatter does not answer the lexical query, so this
+        // mode keeps the legacy scan directly rather than the adapter.
+        return legacyIsInQuote(pos.getLine(), pos.getOffset());
+    }
+
+    @Override
+    public boolean isInComment(Buffer buffer, Position pos) {
+        buffer.refreshParse();
+        return legacyIsInComment(pos.getLine(), pos.getOffset());
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_HOME, 0, "shellHome");
         km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "shellBackspace");
@@ -81,6 +95,9 @@ public final class LispShellMode extends LispMode implements Mode {
         km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_R, CTRL_MASK, "resetLisp");
         km.mapKey(KeyEvent.VK_TAB, 0, "indentLineOrRegion");
+        // No ) binding: a typed ) pairs like any other. electricCloseParen,
+        // which sends a complete form as soon as its ) is typed, stays
+        // opt-in through map-key-for-mode.
         if (!Platform.isPlatformWindows())
             km.mapKey(KeyEvent.VK_C, CTRL_MASK | ALT_MASK, "shellInterrupt");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");

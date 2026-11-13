@@ -22,6 +22,7 @@
 package org.armedbear.j;
 
 import java.awt.Color;
+import java.util.Optional;
 import org.armedbear.j.util.Utilities;
 
 public abstract class Formatter {
@@ -45,6 +46,53 @@ public abstract class Formatter {
     public boolean parseBuffer() {
         buffer.setNeedsParsing(false);
         return false;
+    }
+
+    /**
+     * The lexical context at {@code offset} — the state the parser is in
+     * after consuming this line's text from its entering state
+     * ({@code line.flags()}) up to that offset, not the state the
+     * line enters with and not the segment under the caret. A closing
+     * quote consumed before the offset yields NEUTRAL; the offset
+     * inside a string or a trailing line comment yields STRING or
+     * COMMENT. At zero the answer is the entering state; at the end
+     * of the line it is the state after the whole line, not
+     * {@code line.flags()}.
+     *
+     * <p>{@code offset} is a real character offset into the line's
+     * text, not a detabbed display column. A scan must use local
+     * state and never touch the highlighting parser's fields.
+     *
+     * @return the state, or empty when this formatter cannot answer
+     *         for the position; NEUTRAL is an answer, not the
+     *         unsupported sentinel
+     */
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
+        return Optional.empty();
+    }
+
+    /**
+     * The lexical context at every offset from zero to {@code end}
+     * inclusive, in one forward pass: {@code states[i]} is what
+     * {@link #lexicalContextAt} would answer for offset {@code i}.
+     *
+     * <p>This exists because callers such as the electric-pairs balance
+     * check need the state at many offsets on the same line. Asking for
+     * them one at a time rescans the prefix each time and is quadratic;
+     * a formatter whose scan is linear overrides this to answer them
+     * all at once. The default reports that this formatter cannot answer
+     * in bulk, so a caller falls back to the point query at only the
+     * offsets it actually needs rather than paying for a full
+     * per-offset scan it cannot get cheaply.
+     *
+     * @param line the line to scan
+     * @param end  the last offset to answer for, clamped to the line's
+     *             length
+     * @return the states, or empty when this formatter cannot answer
+     *         for the line
+     */
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
+        return Optional.empty();
     }
 
     // The mode whose language this formats: the buffer's, unless the

@@ -23,10 +23,13 @@ package org.armedbear.j.mode.scheme;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Optional;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -35,8 +38,8 @@ import org.armedbear.j.util.Utilities;
 public final class SchemeFormatter extends Formatter {
     // Formats.
     private static final int SCHEME_FORMAT_TEXT = 0;
-    private static final int SCHEME_FORMAT_COMMENT = 1;
-    private static final int SCHEME_FORMAT_STRING = 2;
+    static final int SCHEME_FORMAT_COMMENT = 1;
+    static final int SCHEME_FORMAT_STRING = 2;
     private static final int SCHEME_FORMAT_KEYWORD = 3;
     private static final int SCHEME_FORMAT_FUNCTION = 4;
     private static final int SCHEME_FORMAT_NUMBER = 5;
@@ -96,24 +99,25 @@ public final class SchemeFormatter extends Formatter {
         }
         while (i < limit) {
             char c = text.charAt(i);
-            if (c == '\\' && i < limit - 1) {
+            // Comment first. A Scheme block comment has no escapes, so
+            // a backslash inside one is literal and must not hide the
+            // |# closer: #| \|# closes at the |#.
+            if (state == STATE_COMMENT) {
+                if (c == '|' && i < limit - 1 && text.charAt(i + 1) == '#') {
+                    sb.append("|#");
+                    endToken(state);
+                    state = STATE_NEUTRAL;
+                    i += 2;
+                    continue;
+                }
                 sb.append(c);
-                sb.append(text.charAt(++i));
                 ++i;
                 continue;
             }
-            if (state == STATE_COMMENT) {
-                if (c == '|' && i < limit - 1) {
-                    c = text.charAt(i + 1);
-                    if (c == '#') {
-                        sb.append("|#");
-                        endToken(state);
-                        state = STATE_NEUTRAL;
-                        i += 2;
-                        continue;
-                    }
-                }
+            // Outside a comment, a backslash escapes the next character.
+            if (c == '\\' && i < limit - 1) {
                 sb.append(c);
+                sb.append(text.charAt(++i));
                 ++i;
                 continue;
             }
@@ -249,53 +253,165 @@ public final class SchemeFormatter extends Formatter {
     @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
-        boolean changed = false;
         Line line = buffer.getFirstLine();
+        boolean changed = false;
         while (line != null) {
             int oldflags = line.flags();
             if (state != oldflags) {
                 line.setFlags(state);
                 changed = true;
             }
-            final int limit = line.length();
-            for (int i = 0; i < limit; i++) {
-                char c = line.charAt(i);
-                if (c == '\\' && i < limit - 1) {
-                    // Escape.
-                    ++i;
+            // The cursor is the single source of the comment, quote and
+            // block transitions. parseBuffer takes the carried comment
+            // and quote bits from its end state instead of re-walking
+            // the line with its own copy of the rules. A Scheme string
+            // and a block comment both carry across lines, so neither
+            // bit is cleared between lines.
+            Cursor cursor = new Cursor(line, state, line.length(), null);
+            cursor.run();
+            state = cursor.endState;
+            line = line.next();
+        }
+        buffer.setNeedsParsing(false);
+        return changed;
+    }
+
+    // Total characters the lexical queries have scanned, across every
+    // cursor run since the last reset. The scan guard reads this through
+    // the real mode.lexicalContexts / lexicalContext entry points: a
+    // bulk query that secretly looped point queries would accumulate
+    // O(len^2) here and blow the linear bound, which a hand-built
+    // single cursor cannot show.
+    long scanSteps;
+
+    @Override
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
+        final int upto = Math.min(offset, line.length());
+        Cursor cursor = new Cursor(line, line.flags(), upto, null);
+        LexicalContext ctx = cursor.run();
+        scanSteps += cursor.steps;
+        return Optional.of(ctx);
+    }
+
+    @Override
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        Cursor cursor = new Cursor(line, line.flags(), upto, out);
+        cursor.run();
+        scanSteps += cursor.steps;
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of Scheme lexical transitions. Walks the line
+     * from an explicit entering state to {@code upto}, tracking the
+     * comment and quote bits. A block comment and a quoted string both
+     * carry across lines through the entering state. The comment state
+     * is checked before the escape, because a Scheme block comment has
+     * no escapes: a backslash inside one is literal and must not hide
+     * the {@code |#} closer. Outside a comment a backslash escapes the
+     * next character, so {@code \"} does not open a string and
+     * {@code \;} does not start a comment. A {@code ;} line comment
+     * makes the rest of the line COMMENT but does not carry to the next
+     * line. With an output array it records the context at every offset
+     * (bulk); without one it stops at {@code upto} (point).
+     *
+     * <p>{@code endState} is the full state after the walk, so
+     * {@link #parseBuffer} takes its carried comment and quote bits
+     * from here rather than re-implementing the transitions.
+     */
+    static final class Cursor extends LexicalCursor {
+        private int state;
+        int endState;
+        long steps;
+
+        Cursor(Line line, int enteringState, int upto, LexicalContext[] out) {
+            super(line, upto, out);
+            this.state = enteringState;
+        }
+
+        LexicalContext run() {
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto) {
+                    endState = state;
+                    return ctx;
+                }
+                steps++;
+                final char c = text.charAt(i);
+                // Comment first. A Scheme block comment has no escapes,
+                // so a backslash inside one is literal and must not
+                // hide the |# closer: #| \|# closes at the |#.
+                if (state == STATE_COMMENT) {
+                    if (c == '|' && i < limit - 1 && text.charAt(i + 1) == '#') {
+                        if (inside(2, ctx)) {
+                            endState = state;
+                            return ctx;
+                        }
+                        i += 2;
+                        state = STATE_NEUTRAL;
+                    } else
+                        ++i;
                     continue;
                 }
-                if (state == STATE_COMMENT) {
-                    if (c == '|' && i < limit - 1 && line.charAt(i + 1) == '#') {
-                        ++i;
-                        state = STATE_NEUTRAL;
+                // Outside a comment, a backslash escapes the next
+                // character, so \" does not open a string and \; does
+                // not start a comment.
+                if (c == '\\' && i < limit - 1) {
+                    if (inside(2, ctx)) {
+                        endState = state;
+                        return ctx;
                     }
+                    i += 2;
                     continue;
                 }
                 if (state == STATE_QUOTE) {
                     if (c == '"')
                         state = STATE_NEUTRAL;
+                    ++i;
                     continue;
                 }
-                // Not in comment or quoted string.
-                if (c == ';') {
-                    // Single-line comment beginning. Ignore rest of line.
-                    break;
-                }
-                if (c == '#') {
-                    if (i < limit - 1 && line.charAt(i + 1) == '|') {
-                        state = STATE_COMMENT;
-                        ++i;
-                    }
-                    continue;
-                }
-                if (c == '"')
+                // Neutral.
+                if (c == '"') {
                     state = STATE_QUOTE;
+                    ++i;
+                    continue;
+                }
+                if (c == ';') {
+                    // A line comment: the caret on the ';' is before
+                    // it, everything after is COMMENT. It does not
+                    // carry to the next line, so endState stays NEUTRAL.
+                    if (out != null)
+                        for (int j = i + 1; j <= upto; j++)
+                            out[j] = LexicalContext.COMMENT;
+                    endState = STATE_NEUTRAL;
+                    return LexicalContext.COMMENT;
+                }
+                if (c == '#' && i < limit - 1 && text.charAt(i + 1) == '|') {
+                    if (inside(2, ctx)) {
+                        endState = state;
+                        return ctx;
+                    }
+                    state = STATE_COMMENT;
+                    i += 2;
+                    continue;
+                }
+                ++i;
             }
-            line = line.next();
+            endState = state;
+            return toContext(state);
         }
-        buffer.setNeedsParsing(false);
-        return changed;
+    }
+
+    private static LexicalContext toContext(int state) {
+        if (state == STATE_COMMENT)
+            return LexicalContext.COMMENT;
+        if (state == STATE_QUOTE)
+            return LexicalContext.STRING;
+        return LexicalContext.NEUTRAL;
     }
 
     @Override

@@ -37,6 +37,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MessageDialog;
@@ -86,6 +87,12 @@ public class LispMode extends AbstractMode implements Mode {
         return new LispFormatter(buffer);
     }
 
+    /** No {@code '}: in Lisp it quotes, so it must never pair. */
+    @Override
+    public String getPairs() {
+        return "()[]\"\"";
+    }
+
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
@@ -95,7 +102,6 @@ public class LispMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_COMMA, ALT_MASK, "listMatchingTagsAtDot");
         km.mapKey(KeyEvent.VK_PERIOD, CTRL_MASK | ALT_MASK, "findTagAtDotOtherWindow");
-        km.mapKey(')', "closeParen");
         km.mapKey(KeyEvent.VK_F1, ALT_MASK, "hyperspec");
         km.mapKey(KeyEvent.VK_F, CTRL_MASK | ALT_MASK, "forwardSexp");
         km.mapKey(KeyEvent.VK_B, CTRL_MASK | ALT_MASK, "backwardSexp");
@@ -315,8 +321,26 @@ public class LispMode extends AbstractMode implements Mode {
 
     @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
-        final Line line = pos.getLine();
-        final int offset = pos.getOffset();
+        buffer.refreshParse();
+        // The cursor reports the raw string membership. Lisp answers the
+        // query; a submode whose formatter does not (the Lisp REPL
+        // shell) overrides this with the legacy scan.
+        return buffer.getFormatter()
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
+                .orElse(LexicalContext.NEUTRAL) == LexicalContext.STRING;
+    }
+
+    @Override
+    public boolean isInComment(Buffer buffer, Position pos) {
+        buffer.refreshParse();
+        return buffer.getFormatter()
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
+                .orElse(LexicalContext.NEUTRAL) == LexicalContext.COMMENT;
+    }
+
+    // The pre-adapter scans, used by submodes whose formatter does not
+    // answer the lexical query (the Lisp REPL shell).
+    protected static boolean legacyIsInQuote(Line line, int offset) {
         boolean inQuote = (line.flags() == STATE_QUOTE);
         for (int i = 0; i < offset; i++) {
             char c = line.charAt(i);
@@ -333,15 +357,7 @@ public class LispMode extends AbstractMode implements Mode {
         return inQuote;
     }
 
-    @Override
-    public boolean isInComment(Buffer buffer, Position pos) {
-        if (buffer.needsParsing()) {
-            if (buffer.getFormatter().parseBuffer())
-                // Always call repaint() if parseBuffer() returns true!
-                buffer.repaint();
-        }
-        final Line line = pos.getLine();
-        final int offset = pos.getOffset();
+    protected static boolean legacyIsInComment(Line line, int offset) {
         int state = line.flags();
         for (int i = 0; i < offset; i++) {
             char c = line.charAt(i);

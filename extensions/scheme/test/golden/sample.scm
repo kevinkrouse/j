@@ -6,3 +6,11 @@
         #f)))
 
 (define mask #xFF)
+
+#| a block
+comment |#
+
+(define msg "a
+multiline string")
+
+(display #\x) ; a line comment after a char literal

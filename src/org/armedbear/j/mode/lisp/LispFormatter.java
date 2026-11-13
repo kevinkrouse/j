@@ -24,11 +24,14 @@ package org.armedbear.j.mode.lisp;
 import static org.armedbear.j.Constants.*;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -50,8 +53,8 @@ public final class LispFormatter extends Formatter {
 
     // Formats.
     private static final int LISP_FORMAT_TEXT = 0;
-    private static final int LISP_FORMAT_COMMENT = 1;
-    private static final int LISP_FORMAT_STRING = 2;
+    static final int LISP_FORMAT_COMMENT = 1;
+    static final int LISP_FORMAT_STRING = 2;
     private static final int LISP_FORMAT_KEYWORD = 3;
     private static final int LISP_FORMAT_DEFUN = 4;
     private static final int LISP_FORMAT_NAME = 5;
@@ -60,21 +63,128 @@ public final class LispFormatter extends Formatter {
     private static final int LISP_FORMAT_SUBSTITUTION = 8;
     private static final int LISP_FORMAT_SECONDARY_KEYWORD = 9;
 
-    private static final Pattern condRE =
-        Pattern.compile("\\([ \t]*cond[ \t]*\\(\\(");
+    private static final Pattern condRE = Pattern.compile("\\([ \t]*cond[ \t]*\\(\\(");
 
-    private static final Pattern dolistRE =
-        Pattern.compile("\\([ \t]*dolist[ \t]*\\(");
+    private static final Pattern dolistRE = Pattern.compile("\\([ \t]*dolist[ \t]*\\(");
 
     // Matches e.g. "(do () ((endp list1))".
-    private static final Pattern doRE =
-        Pattern.compile("\\([ \t]*do\\*?[ \t]*\\(.*\\)[ \t]\\(\\(");
+    private static final Pattern doRE = Pattern.compile("\\([ \t]*do\\*?[ \t]*\\(.*\\)[ \t]\\(\\(");
 
-    private static final Pattern letOrDoRE =
-        Pattern.compile("\\([ \t]*(let|do)\\*?[ \t]*\\(\\(");
+    private static final Pattern letOrDoRE = Pattern.compile("\\([ \t]*(let|do)\\*?[ \t]*\\(\\(");
 
     public LispFormatter(Buffer buffer) {
         this.buffer = buffer;
+    }
+
+    /**
+     * The context at {@code offset}, consuming the line from its
+     * entering flags. Only QUOTE and COMMENT persist across lines;
+     * the paren and list states are line-local and all read as
+     * NEUTRAL for pairing. {@code #| |#} block comments are not
+     * nested here, matching the formatter's own FIXME. A {@code ;}
+     * makes the rest of the line COMMENT.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
+     */
+    @Override
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
+    }
+
+    /**
+     * One forward pass recording the context at every offset to
+     * {@code end}. A block comment's `#|` opener or `|#` closer is two
+     * characters: the caret between them carries the state before the
+     * marker, as the per-offset scan answers.
+     */
+    @Override
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of Lisp lexical transitions. Walks the line
+     * from its entering flags to {@code upto}. With an output array it
+     * records the context at every offset (bulk); without one it stops
+     * at {@code upto} and returns the context there (point), never
+     * allocating the prefix. {@code steps} counts token advances so a
+     * test can assert the walk stays linear in the line's length.
+     */
+    static final class Cursor extends LexicalCursor {
+        private int state;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            super(line, upto, out);
+            this.state = line.flags();
+        }
+
+        LexicalContext run() {
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                if (c == '\\') {
+                    // Escape: consumes the next character; the state
+                    // is unchanged across it.
+                    if (inside(2, ctx))
+                        return ctx;
+                    i += 2;
+                } else if (state == STATE_COMMENT) {
+                    if (c == '|' && i + 1 < limit && text.charAt(i + 1) == '#') {
+                        if (inside(2, ctx))
+                            return ctx;
+                        state = STATE_NEUTRAL;
+                        i += 2; // skip '#'
+                    } else
+                        ++i;
+                } else if (state == STATE_QUOTE) {
+                    if (c == '"')
+                        state = STATE_NEUTRAL;
+                    ++i;
+                } else if (c == '"') {
+                    state = STATE_QUOTE;
+                    ++i;
+                } else if (c == '#' && i + 1 < limit && text.charAt(i + 1) == '|') {
+                    if (inside(2, ctx))
+                        return ctx;
+                    state = STATE_COMMENT;
+                    i += 2; // skip '|'
+                } else if (c == ';') {
+                    // A line comment: the caret on the ';' is before
+                    // it, everything after is COMMENT.
+                    if (out != null) {
+                        for (int j = i + 1; j <= upto; j++)
+                            out[j] = LexicalContext.COMMENT;
+                        return null;
+                    }
+                    return LexicalContext.COMMENT;
+                } else
+                    ++i;
+            }
+            return toContext(state);
+        }
+    }
+
+    private static LexicalContext toContext(int state) {
+        switch (state) {
+            case STATE_QUOTE:
+                return LexicalContext.STRING;
+            case STATE_COMMENT:
+                return LexicalContext.COMMENT;
+            default:
+                return LexicalContext.NEUTRAL;
+        }
     }
 
     private Line currentLine;
@@ -150,18 +260,16 @@ public final class LispFormatter extends Formatter {
     // Returns true if token at specified offset in detabbed text from line is
     // in functional position, based on context.
     private static final boolean isPositionFunctional(
-        final String text, // Detabbed text.
-        final int offset, // Offset of token in detabbed text.
-        final Line line
-    ) // Line (which may contain tab characters).
+            final String text, // Detabbed text.
+            final int offset, // Offset of token in detabbed text.
+            final Line line) // Line (which may contain tab characters).
     {
         if (offset >= 1 && text.charAt(offset - 1) == '(') {
             if (offset >= 2 && text.charAt(offset - 2) == '(') {
                 // Token is preceded by "((".
                 if (countLeadingSpaces(text) == offset - 2) {
                     // First non-whitespace text on line.
-                    Position pos =
-                        LispMode.findContainingSexp(new Position(line, 0));
+                    Position pos = LispMode.findContainingSexp(new Position(line, 0));
                     if (pos != null) {
                         // Skip '('.
                         pos.skip();
@@ -185,12 +293,10 @@ public final class LispFormatter extends Formatter {
             // Text is preceded by single '('.
             if (countLeadingSpaces(text) == offset - 1) {
                 // First non-whitespace on line.
-                Position pos =
-                    LispMode.findContainingSexp(new Position(line, 0));
+                Position pos = LispMode.findContainingSexp(new Position(line, 0));
                 if (pos != null) {
                     if (pos.lookingAt("((")) {
-                        Matcher m =
-                            letOrDoRE.matcher(pos.getLine().getText());
+                        Matcher m = letOrDoRE.matcher(pos.getLine().getText());
                         if (m.find() && m.end() == pos.getOffset() + 2)
                             return false;
                     } else {
@@ -427,11 +533,7 @@ public final class LispFormatter extends Formatter {
                 ++i;
                 continue;
             }
-            if (
-                state == STATE_SECONDARY_KEYWORD
-                    ||
-                    state == STATE_SUBSTITUTION
-            ) {
+            if (state == STATE_SECONDARY_KEYWORD || state == STATE_SUBSTITUTION) {
                 if (!getLanguageMode().isIdentifierPart(c)) {
                     endToken(text, i, state);
                     state = STATE_NEUTRAL;
@@ -445,12 +547,7 @@ public final class LispFormatter extends Formatter {
                 ++i;
                 continue;
             }
-            if (
-                state == STATE_NEUTRAL
-                    || state == STATE_ARGLIST
-                    ||
-                    state == STATE_QUOTED_LIST
-            ) {
+            if (state == STATE_NEUTRAL || state == STATE_ARGLIST || state == STATE_QUOTED_LIST) {
                 if (c == ':' || c == '&') {
                     endToken(text, i, state);
                     state = STATE_SECONDARY_KEYWORD;
@@ -485,8 +582,7 @@ public final class LispFormatter extends Formatter {
             char c = pos.getChar();
             if (c == EOL) {
                 if (pos.nextLine()) {
-                    changed =
-                        setLineFlags(pos.getLine(), state) || changed;
+                    changed = setLineFlags(pos.getLine(), state) || changed;
                     continue;
                 } else
                     break; // Reached end of buffer.
@@ -501,8 +597,7 @@ public final class LispFormatter extends Formatter {
             if (c == ';') {
                 // Single-line comment beginning. Ignore rest of line.
                 if (pos.nextLine()) {
-                    changed =
-                        setLineFlags(pos.getLine(), state) || changed;
+                    changed = setLineFlags(pos.getLine(), state) || changed;
                     continue;
                 } else {
                     pos.moveTo(pos.getLine(), pos.getLine().length());
@@ -685,8 +780,7 @@ public final class LispFormatter extends Formatter {
             char c = pos.getChar();
             if (c == EOL) {
                 if (pos.nextLine()) {
-                    changed =
-                        setLineFlags(pos.getLine(), STATE_QUOTED_LIST) || changed;
+                    changed = setLineFlags(pos.getLine(), STATE_QUOTED_LIST) || changed;
                     continue;
                 } else
                     break; // End of buffer.
@@ -757,26 +851,10 @@ public final class LispFormatter extends Formatter {
             formatTable.addEntryFromPrefs(LISP_FORMAT_KEYWORD, "keyword");
             formatTable.addEntryFromPrefs(LISP_FORMAT_DEFUN, "keyword");
             formatTable.addEntryFromPrefs(LISP_FORMAT_NAME, "function");
-            formatTable.addEntryFromPrefs(
-                LISP_FORMAT_PARENTHESIS,
-                "parenthesis",
-                "text"
-            );
-            formatTable.addEntryFromPrefs(
-                LISP_FORMAT_PUNCTUATION,
-                "punctuation",
-                "text"
-            );
-            formatTable.addEntryFromPrefs(
-                LISP_FORMAT_SUBSTITUTION,
-                "substitution",
-                "text"
-            );
-            formatTable.addEntryFromPrefs(
-                LISP_FORMAT_SECONDARY_KEYWORD,
-                "secondaryKeyword",
-                "text"
-            );
+            formatTable.addEntryFromPrefs(LISP_FORMAT_PARENTHESIS, "parenthesis", "text");
+            formatTable.addEntryFromPrefs(LISP_FORMAT_PUNCTUATION, "punctuation", "text");
+            formatTable.addEntryFromPrefs(LISP_FORMAT_SUBSTITUTION, "substitution", "text");
+            formatTable.addEntryFromPrefs(LISP_FORMAT_SECONDARY_KEYWORD, "secondaryKeyword", "text");
         }
         return formatTable;
     }

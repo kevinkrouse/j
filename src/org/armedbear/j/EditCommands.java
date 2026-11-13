@@ -146,13 +146,29 @@ public final class EditCommands {
         editor.getBuffer().withWriteLock(() -> {
             if (editor.getMark() != null) {
                 delete(editor);
-            } else if (
-                display.getCaretCol() > editor.getBuffer().getCol(editor.getDotLine(), editor.getDotLine().length())
-            ) {
+            } else if (display.getCaretCol() > editor.getBuffer()
+                    .getCol(editor.getDotLine(), editor.getDotLine().length())) {
                 // The caret is beyond the end of the actual text on the current line.
                 editor.addUndo(SimpleEdit.MOVE);
                 display.setCaretCol(display.getCaretCol() - 1);
                 editor.updateDotLine();
+            } else if (!editor.isPairingSuppressed()
+                    && ElectricPairs.deleteBoth(
+                        editor.getMode(),
+                        editor.getBuffer(),
+                        editor.getDotLine(),
+                        editor.getDotOffset())) {
+                // The caret sits between an empty pair: take both
+                // characters as one undo step. The closer is at the
+                // caret, the opener one left; delete the closer, step
+                // onto the opener, delete it. The caret lands where
+                // the opener was.
+                CompoundEdit compoundEdit = editor.beginCompoundEdit();
+                deleteNormalChar(editor);
+                editor.getDot().moveLeft();
+                deleteNormalChar(editor);
+                editor.endCompoundEdit(compoundEdit);
+                editor.moveCaretToDotCol();
             } else if (editor.getDot().getOffset() > 0) {
                 editor.addUndo(SimpleEdit.LINE_EDIT);
                 editor.getDot().moveLeft();
@@ -207,11 +223,30 @@ public final class EditCommands {
             return;
         if (!editor.getBuffer().withWriteLock(() -> {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
-            if (editor.getMark() != null)
+            // The decision must see the selection the user had, not the
+            // caret left after deleting it: Enter with a selection
+            // replaces the selection with one newline, it does not
+            // expand an empty pair around the deleted text.
+            final boolean hadSelection = editor.getMark() != null;
+            if (hadSelection)
                 editor.deleteRegion();
+            final Mode mode = editor.getMode();
+            if (ElectricPairs
+                    .decide(
+                        mode,
+                        editor.getBuffer(),
+                        editor.getDot(),
+                        ElectricPairs.Operation.ENTER,
+                        '\n',
+                        hadSelection,
+                        editor.isPairingSuppressed())
+                    .action() == ElectricPairs.Action.OPEN_LINE) {
+                openLineBetweenPair(editor);
+                editor.endCompoundEdit(compoundEdit);
+                return;
+            }
             editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
             insertLineSeparator(editor);
-            final Mode mode = editor.getMode();
             final Line dotLine = editor.getDotLine();
             int indent;
             if (mode.canIndent()) {
@@ -241,6 +276,65 @@ public final class EditCommands {
         editor.setUpdateFlag(REFRAME);
     }
 
+    /**
+     * Enter between an empty pair: {@code {|}} becomes three lines,
+     * the caret on the indented interior, the closer on the third at
+     * the outer indent. Both lines are created before any indentation
+     * is computed. If the interior were indented after only the first
+     * split, the closer would still be on it, {@code
+     * getCorrectIndentation} would see the closer and return the
+     * outer indent, and the middle line would land at the wrong
+     * column. The closer is reindented on its own line with its own
+     * call, the way {@code insertBraces} does.
+     */
+    private static void openLineBetweenPair(Editor editor) {
+        final Display display = editor.getDisplay();
+        final Mode mode = editor.getMode();
+        final Buffer buffer = editor.getBuffer();
+        // The closer moves to the line below the opener.
+        editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
+        insertLineSeparator(editor);
+        // The caret is at the start of the closer's line; a second
+        // separator there opens the empty interior above it.
+        editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
+        insertLineSeparator(editor);
+        final Line closer = editor.getDotLine();
+        final Line interior = closer.previous();
+        if (mode.canIndent()) {
+            if (buffer.needsRenumbering())
+                buffer.renumber();
+            buffer.getFormatter().parseBuffer();
+            // The closer has content, so it takes a real indent.
+            int closerIndent = mode.getCorrectIndentation(closer, buffer);
+            if (closerIndent != buffer.getIndentation(closer)) {
+                editor.addUndo(SimpleEdit.LINE_EDIT);
+                buffer.setIndentation(closer, closerIndent);
+            }
+            // The interior is blank: a blank line carries no real
+            // indent, so the caret goes to the body indent virtually,
+            // as the ordinary newlineAndIndent leaves it.
+            int interiorIndent = mode.getCorrectIndentation(interior, buffer);
+            editor.addUndo(SimpleEdit.MOVE);
+            editor.getDot().moveTo(interior, 0);
+            display.setCaretCol(interiorIndent - display.getShift());
+            if (buffer.getBooleanProperty(Property.RESTRICT_CARET))
+                editor.fillToCaret();
+            return;
+        }
+        // No context indent: both lines match the opener's
+        // indentation, as a plain split would give them.
+        int indent = buffer.getIndentation(interior.previous());
+        if (indent != buffer.getIndentation(closer)) {
+            editor.addUndo(SimpleEdit.LINE_EDIT);
+            buffer.setIndentation(closer, indent);
+        }
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().moveTo(interior, 0);
+        display.setCaretCol(indent - display.getShift());
+        if (buffer.getBooleanProperty(Property.RESTRICT_CARET))
+            editor.fillToCaret();
+    }
+
     public static void insertNormalChar(Editor editor, char c) {
         if (editor.isColumnSelection()) {
             editor.notSupportedForColumnSelections();
@@ -257,29 +351,157 @@ public final class EditCommands {
         }
         try {
             c = editor.getMode().fixCase(editor, c);
-            if (editor.getMark() != null) {
-                CompoundEdit compoundEdit = editor.beginCompoundEdit();
-                editor.deleteRegion();
-                editor.insertChar(c);
-                editor.endCompoundEdit(compoundEdit);
-            } else {
-                // No selection.
-                if (
-                    editor.getBuffer().getBooleanProperty(Property.WRAP)
-                        &&
-                        editor.getDotCol() >= editor.getBuffer().getIntegerProperty(Property.WRAP_COL)
-                ) {
-                    CompoundEdit compoundEdit = editor.beginCompoundEdit();
-                    editor.insertChar(c);
-                    new WrapText(editor).wrapLine();
-                    editor.endCompoundEdit(compoundEdit);
-                } else
-                    editor.insertChar(c);
+            final Mode mode = editor.getMode();
+            // The mode's own electric rule, consulted before the generic
+            // decision: a fence or a delimiter run whose behavior the flat
+            // pair table cannot express. The mode owns its insertion and its
+            // compound edit. A selection wraps generically, and a literal
+            // insertion is suppressed, so neither reaches the override.
+            if (editor.isPairingSuppressed()
+                    || editor.getMark() != null
+                    || !editor.getBuffer().getBooleanProperty(Property.ELECTRIC_PAIRS)
+                    || !mode.electricOverride(editor, c)) {
+                // The electric-brace coordinator: a brace typed in a mode
+                // that formats braces electrically gets its blank-line
+                // preparation before the pair decision and its
+                // reindentation after, so the live keystroke and the vim/j
+                // replay of the same key run the same sequence. Literal
+                // insertion is suppressed, so it bypasses the brace
+                // transformations as well as pairing.
+                final boolean electricBrace =
+                        mode.electricBraces() && !editor.isPairingSuppressed() && (c == '{' || c == '}');
+                final boolean wasBlank = electricBrace && editor.getMark() == null && editor.getDotLine().isBlank();
+                final CompoundEdit compoundEdit = electricBrace ? editor.beginCompoundEdit() : null;
+                try {
+                    if (wasBlank) {
+                        editor.addUndo(SimpleEdit.LINE_EDIT);
+                        editor.getDotLine().setText("");
+                        editor.getDot().setOffset(0);
+                    }
+                    ElectricPairs.Decision decision = ElectricPairs.decide(
+                        mode,
+                        editor.getBuffer(),
+                        editor.getDot(),
+                        ElectricPairs.Operation.INSERT,
+                        c,
+                        editor.getMark() != null,
+                        editor.isPairingSuppressed());
+                    switch (decision.action()) {
+                        case INSERT_PAIR:
+                            insertPair(editor, decision.pair().opener(), decision.pair().closer());
+                            break;
+                        case INSERT_OPENER:
+                            editor.insertChar(c);
+                            break;
+                        case TYPE_OVER:
+                            typeOverCloser(editor);
+                            break;
+                        case WRAP:
+                            wrapSelection(editor, decision.pair().opener(), decision.pair().closer());
+                            break;
+                        case SUPPRESS:
+                            break;
+                        default:
+                            plainInsert(editor, c);
+                            break;
+                    }
+                    // The close-paren flash: the match for the `)` just inserted
+                    // or typed over, shown for a moment. Never on a suppressed or
+                    // wrapped paren; the caret is not beside it.
+                    if (c == ')'
+                            && !editor.isPairingSuppressed()
+                            && decision.action() != ElectricPairs.Action.SUPPRESS
+                            && decision.action() != ElectricPairs.Action.WRAP)
+                        ElectricCommands.flashMatchingParen(editor);
+                    if (electricBrace && decision.action() != ElectricPairs.Action.SUPPRESS)
+                        IndentCommands.indentLine(editor);
+                    // Auto-newline on an originally blank line: the Enter
+                    // decision splits the generated pair from the inside, so the
+                    // caret never moves past the closer first.
+                    if (wasBlank && editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
+                        newlineAndIndent(editor);
+                }
+                finally {
+                    if (compoundEdit != null)
+                        editor.endCompoundEdit(compoundEdit);
+                }
             }
         }
         finally {
             editor.getBuffer().unlockWrite();
         }
+        editor.moveCaretToDotCol();
+    }
+
+    /** The ordinary insertion: a selection is replaced, wrap may reflow. */
+    private static void plainInsert(Editor editor, char c) {
+        if (editor.getMark() != null) {
+            CompoundEdit compoundEdit = editor.beginCompoundEdit();
+            editor.deleteRegion();
+            editor.insertChar(c);
+            editor.endCompoundEdit(compoundEdit);
+        } else if (editor.getBuffer().getBooleanProperty(Property.WRAP)
+                && editor.getDotCol() >= editor.getBuffer().getIntegerProperty(Property.WRAP_COL)) {
+            CompoundEdit compoundEdit = editor.beginCompoundEdit();
+            editor.insertChar(c);
+            new WrapText(editor).wrapLine();
+            editor.endCompoundEdit(compoundEdit);
+        } else
+            editor.insertChar(c);
+    }
+
+    /**
+     * Insert a pair with the caret between: one undo step for both
+     * characters. {@link Editor#insertChar} adds its own LINE_EDIT, so
+     * the compound edit is what makes the two inserts one step. The
+     * caret is synced here because the caller's epilogue is bypassed.
+     */
+    private static void insertPair(Editor editor, char opener, char closer) {
+        CompoundEdit compoundEdit = editor.beginCompoundEdit();
+        editor.insertChar(opener);
+        editor.insertChar(closer);
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().skip(-1);
+        editor.endCompoundEdit(compoundEdit);
+        editor.moveCaretToDotCol();
+    }
+
+    /** Step over the closer under the caret; the text does not change. */
+    private static void typeOverCloser(Editor editor) {
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().skip(1);
+        editor.moveCaretToDotCol();
+    }
+
+    /**
+     * Wrap the selection in a pair, leaving the caret after the opener:
+     * insert the closer at the end of the region, then the opener at
+     * its start, in one edit. {@code insertParentheses} shares it.
+     */
+    static void wrapSelection(Editor editor, char opener, char closer) {
+        boolean parensRequireSpaces =
+                opener == '(' && editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
+        CompoundEdit compoundEdit = editor.beginCompoundEdit();
+        Position begin, end;
+        if (editor.getMark().isBefore(editor.getDot())) {
+            begin = new Position(editor.getMark());
+            end = new Position(editor.getDot());
+        } else {
+            begin = new Position(editor.getDot());
+            end = new Position(editor.getMark());
+        }
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.setMark(null);
+        editor.getDot().moveTo(end);
+        if (parensRequireSpaces)
+            editor.insertChar(' ');
+        editor.insertChar(closer);
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().moveTo(begin);
+        editor.insertChar(opener);
+        if (parensRequireSpaces)
+            editor.insertChar(' ');
+        editor.endCompoundEdit(compoundEdit);
         editor.moveCaretToDotCol();
     }
 
@@ -301,18 +523,10 @@ public final class EditCommands {
             }
             catch (UnsupportedEncodingException e) {
                 Log.error(e);
-                MessageDialog.showMessageDialog(
-                    editor,
-                    "Unsupported encoding \"" + encoding + "\"",
-                    "Insert Byte"
-                );
+                MessageDialog.showMessageDialog(editor, "Unsupported encoding \"" + encoding + "\"", "Insert Byte");
             }
         } else
-            MessageDialog.showMessageDialog(
-                editor,
-                "Invalid byte \"" + input + "\"",
-                "Insert Byte"
-            );
+            MessageDialog.showMessageDialog(editor, "Invalid byte \"" + input + "\"", "Insert Byte");
     }
 
     public static void stamp(Editor editor) {

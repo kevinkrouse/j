@@ -386,8 +386,30 @@ public final class CaretCommands {
             return null;
         final Mode mode = editor.getBuffer().getMode();
         final int offset = start.getOffset();
+        // Vim's % calls this helper without going through the
+        // findMatchingPair command. Both paths need fresh entering
+        // states before the syntax iterator reads the line flags.
+        editor.getBuffer().refreshParse();
         if (!vim) {
-            if (mode.isInComment(editor.getBuffer(), start) || mode.isInQuote(editor.getBuffer(), start))
+            // One raw lexical walk, not two. The old isInComment +
+            // isInQuote pair scanned the line twice per % press. The
+            // formatter answers both memberships in one pass for a
+            // migrated mode; an unmigrated formatter (PHP, the Lisp
+            // shell) returns empty and falls back to the mode's own
+            // predicates, which carry the legacy scan. This is the raw
+            // membership, not Mode.lexicalContext: the disabled-line
+            // OPAQUE collapse is a pairing-decision concern this match
+            // path never applied, and the raw query keeps isInComment
+            // finding a comment inside disabled code, as the spec wants.
+            final LexicalContext raw = editor.getBuffer().getFormatter()
+                    .lexicalContextAt(start.getLine(), offset)
+                    .orElse(null);
+            if (raw != null) {
+                if (raw == LexicalContext.STRING || raw == LexicalContext.COMMENT)
+                    return null;
+            }
+            else if (mode.isInComment(editor.getBuffer(), start)
+                    || mode.isInQuote(editor.getBuffer(), start))
                 return null;
             if (offset > 0 && start.getLine().charAt(offset - 1) == '\\') {
                 // It's escaped.
@@ -418,6 +440,8 @@ public final class CaretCommands {
         final int index = "{([})]".indexOf(bracket);
         if (index < 0)
             return null;
+        // Unmatched-bracket motions enter the scan directly too.
+        editor.getBuffer().refreshParse();
         // Back to a '(' counts the ')'s on the way, forward the '('s.
         return scanForMatch(
             editor,
@@ -608,6 +632,17 @@ public final class CaretCommands {
      * caret lands after a closing bracket.
      */
     public static void findMatchingPair(Editor editor) {
+        // The matcher reads the line's syntax through the mode's syntax
+        // iterator, which trusts the line flags carrying the comment and
+        // continuation state. Bracket matchers route through
+        // findMatchInternal, which refreshes on its own, but matchers
+        // that do not (tags, #if/#endif directives) read the iterator
+        // directly, so this command must refresh the parse itself:
+        // deleting a continuation backslash and immediately matching
+        // would otherwise read stale flags and count a bracket in a
+        // line that is now a comment. refreshParse is a no-op when the
+        // buffer is already clean.
+        editor.getBuffer().refreshParse();
         final InputHandler handler = editor.getInputHandler();
         final boolean bar = handler == null || handler.getCaretShape() == InputHandler.CaretShape.BAR;
         final PairMatcher matcher = editor.getMode().getPairMatcher();

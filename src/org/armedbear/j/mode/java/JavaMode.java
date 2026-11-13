@@ -44,6 +44,7 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.IndentCommands;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
+import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MenuItem;
@@ -121,6 +122,11 @@ public class JavaMode extends AbstractMode implements Mode {
     }
 
     @Override
+    public boolean electricBraces() {
+        return true;
+    }
+
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");
@@ -133,7 +139,6 @@ public class JavaMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_COMMA, ALT_MASK, "listMatchingTagsAtDot");
         km.mapKey(KeyEvent.VK_PERIOD, CTRL_MASK | ALT_MASK, "findTagAtDotOtherWindow");
-        km.mapKey(')', "closeParen");
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
 
         km.mapKey(KeyEvent.VK_9, CTRL_MASK | SHIFT_MASK, "insertParentheses");
@@ -1006,14 +1011,25 @@ public class JavaMode extends AbstractMode implements Mode {
             Debug.bug();
             return false;
         }
-        final Line line = pos.getLine();
+        if (buffer.needsParsing() && buffer.getFormatter().parseBuffer())
+            buffer.repaint();
+        // The cursor reports the raw comment membership, so a comment
+        // inside a disabled line still reads COMMENT here for % matching.
+        // Java, C and JavaScript all answer the query; a submode whose
+        // formatter does not (PHP) overrides this with the legacy scan.
+        return buffer.getFormatter()
+                .lexicalContextAt(pos.getLine(), pos.getOffset())
+                .orElse(LexicalContext.NEUTRAL) == LexicalContext.COMMENT;
+    }
+
+    // The pre-adapter scan, used by submodes whose formatter does not
+    // answer the lexical query. Walks the line from its entering flags
+    // to the offset and reports whether the caret is in a comment.
+    protected static boolean legacyIsInComment(Line line, int offset) {
         final String text = line.getText();
         if (text == null)
             return false;
         final char[] chars = text.toCharArray();
-        final int offset = pos.getOffset();
-        if (buffer.needsParsing())
-            buffer.getFormatter().parseBuffer();
         int state = line.flags();
         final int length = chars.length;
         for (int i = 0; i < length; i++) {

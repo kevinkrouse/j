@@ -30,8 +30,19 @@ public final class ElectricCommands {
     private ElectricCommands() {}
 
     public static void closeParen(Editor editor) {
-        final Display display = editor.getDisplay();
         EditCommands.insertNormalChar(editor, ')');
+    }
+
+    /**
+     * Flash the paren matching the `)` just inserted or typed over, at
+     * {@code dotOffset - 1}. Never inserts and never calls back into the
+     * insertion path, so the coordinator and the {@link #closeParen}
+     * wrapper share one flash with no recursion. Silent when the display
+     * already highlights brackets continuously, or when the match is
+     * off-screen.
+     */
+    static void flashMatchingParen(Editor editor) {
+        final Display display = editor.getDisplay();
         if (Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET)
                 || Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_BRACKETS))
             return;
@@ -154,36 +165,18 @@ public final class ElectricCommands {
             EditCommands.insertNormalChar(editor, '#');
     }
 
+    /**
+     * Compatibility wrapper: the blank-line preparation and the
+     * reindentation now live in the {@code insertNormalChar} coordinator,
+     * so this delegates once. The coordinator never calls back here.
+     */
     public static void electricOpenBrace(Editor editor) {
-        electricBraceInternal(editor, '{');
+        EditCommands.insertNormalChar(editor, '{');
     }
 
+    /** Compatibility wrapper; see {@link #electricOpenBrace}. */
     public static void electricCloseBrace(Editor editor) {
-        electricBraceInternal(editor, '}');
-    }
-
-    private static void electricBraceInternal(Editor editor, char c) {
-        if (!editor.checkReadOnly())
-            return;
-        CompoundEdit compoundEdit = editor.beginCompoundEdit();
-        // In a text block a blank line keeps its indent, which is part of
-        // the string, rather than being emptied for the brace.
-        if (editor.getMark() == null
-                && editor.getDotLine().isBlank()
-                && editor.getDotLine().flags() != STATE_TEXT_BLOCK) {
-            editor.addUndo(SimpleEdit.LINE_EDIT);
-            editor.getDotLine().setText("");
-            editor.getDot().setOffset(0);
-            editor.insertChar(c);
-            IndentCommands.indentLine(editor);
-            MotionCommands.eol(editor);
-            if (editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
-                EditCommands.newlineAndIndent(editor);
-        } else {
-            EditCommands.insertNormalChar(editor, c);
-            IndentCommands.indentLine(editor);
-        }
-        editor.endCompoundEdit(compoundEdit);
+        EditCommands.insertNormalChar(editor, '}');
     }
 
     public static void electricCloseAngleBracket(Editor editor) {
@@ -228,35 +221,17 @@ public final class ElectricCommands {
     public static void insertParentheses(Editor editor) {
         if (!editor.checkReadOnly())
             return;
+        if (editor.getMark() != null) {
+            EditCommands.wrapSelection(editor, '(', ')');
+            return;
+        }
         boolean parensRequireSpaces = editor.getBuffer().getBooleanProperty(Property.PARENS_REQUIRE_SPACES);
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
-        if (editor.getMark() != null) {
-            Position begin, end;
-            if (editor.getMark().isBefore(editor.getDot())) {
-                begin = new Position(editor.getMark());
-                end = new Position(editor.getDot());
-            } else {
-                begin = new Position(editor.getDot());
-                end = new Position(editor.getMark());
-            }
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.setMark(null);
-            editor.getDot().moveTo(end);
-            if (parensRequireSpaces)
-                editor.insertChar(' ');
-            editor.insertChar(')');
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.getDot().moveTo(begin);
-            editor.insertChar('(');
-            if (parensRequireSpaces)
-                editor.insertChar(' ');
-        } else {
-            editor.fillToCaret();
-            editor.addUndo(SimpleEdit.INSERT_STRING);
-            editor.insertStringInternal(parensRequireSpaces ? "(  )" : "()");
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.getDot().skip(parensRequireSpaces ? -2 : -1);
-        }
+        editor.fillToCaret();
+        editor.addUndo(SimpleEdit.INSERT_STRING);
+        editor.insertStringInternal(parensRequireSpaces ? "(  )" : "()");
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.getDot().skip(parensRequireSpaces ? -2 : -1);
         editor.moveCaretToDotCol();
         editor.endCompoundEdit(compoundEdit);
     }

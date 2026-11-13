@@ -21,10 +21,13 @@
 
 package org.armedbear.j.mode.python;
 
+import java.util.Optional;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -44,8 +47,8 @@ public final class PythonFormatter extends Formatter {
     private static final int PYTHON_STATE_TRIPLE_DOUBLE = 10;
 
     private static final int PYTHON_FORMAT_TEXT = 0;
-    private static final int PYTHON_FORMAT_COMMENT = 1;
-    private static final int PYTHON_FORMAT_STRING = 2;
+    static final int PYTHON_FORMAT_COMMENT = 1;
+    static final int PYTHON_FORMAT_STRING = 2;
     private static final int PYTHON_FORMAT_IDENTIFIER = 3;
     private static final int PYTHON_FORMAT_KEYWORD = 4;
     private static final int PYTHON_FORMAT_FUNCTION = 5;
@@ -57,6 +60,164 @@ public final class PythonFormatter extends Formatter {
 
     public PythonFormatter(Buffer buffer) {
         this.buffer = buffer;
+    }
+
+    /**
+     * The state at {@code offset}, consuming the line from its
+     * entering flags with the same transitions {@link #parseBuffer}
+     * uses to write those flags — the source of the entering state,
+     * so the two agree. Identifier, operator, brace and number states
+     * all read as NEUTRAL for pairing; only quotes and comments
+     * matter. Raw text, real offsets: no detabbing.
+     */
+    @Override
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
+    }
+
+    /**
+     * One forward pass recording the context at every offset to
+     * {@code end}. A caret inside a multi-character token — an escape,
+     * or a triple-quote delimiter — carries the state before the
+     * token, so a caret inside a closing triple quote is still inside
+     * the string.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
+     */
+    @Override
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of Python lexical transitions. Walks the line
+     * from its entering flags to {@code upto}. With an output array it
+     * records the context at every offset (bulk); without one it stops
+     * at {@code upto} and returns the context there (point), never
+     * allocating the prefix. {@code steps} counts token advances so a
+     * test can assert the walk stays linear in the line's length.
+     */
+    static final class Cursor extends LexicalCursor {
+        private int state;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            super(line, upto, out);
+            this.state = line.flags();
+        }
+
+        LexicalContext run() {
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                if (c == '\\' && i < limit - 1) {
+                    // Escape: consumes the next character; the caret
+                    // between them is before the escape.
+                    if (inside(2, ctx))
+                        return ctx;
+                    i += 2;
+                    continue;
+                }
+                if (state == PYTHON_STATE_SINGLE_QUOTE) {
+                    if (c == '\'')
+                        state = PYTHON_STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                if (state == PYTHON_STATE_DOUBLE_QUOTE) {
+                    if (c == '"')
+                        state = PYTHON_STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                if (state == PYTHON_STATE_TRIPLE_SINGLE) {
+                    if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
+                        // The closer is three characters; a caret
+                        // inside it is still inside the string.
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_NEUTRAL;
+                        i += 3;
+                    } else
+                        ++i;
+                    continue;
+                }
+                if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
+                    if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_NEUTRAL;
+                        i += 3;
+                    } else
+                        ++i;
+                    continue;
+                }
+                // Not in a quoted string.
+                if (c == '\'') {
+                    if (text.regionMatches(i, "'''", 0, 3)) {
+                        // The opener is consumed whole; a caret inside
+                        // it reads as inside the string.
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_TRIPLE_SINGLE;
+                        i += 3;
+                    } else {
+                        state = PYTHON_STATE_SINGLE_QUOTE;
+                        ++i;
+                    }
+                    continue;
+                }
+                if (c == '"') {
+                    if (text.regionMatches(i, "\"\"\"", 0, 3)) {
+                        if (inside(3, LexicalContext.STRING))
+                            return LexicalContext.STRING;
+                        state = PYTHON_STATE_TRIPLE_DOUBLE;
+                        i += 3;
+                    } else {
+                        state = PYTHON_STATE_DOUBLE_QUOTE;
+                        ++i;
+                    }
+                    continue;
+                }
+                if (c == '#') {
+                    // A line comment: the caret on the '#' is before
+                    // it, everything after is COMMENT.
+                    if (out != null) {
+                        for (int j = i + 1; j <= upto; j++)
+                            out[j] = LexicalContext.COMMENT;
+                        return null;
+                    }
+                    return LexicalContext.COMMENT;
+                }
+                ++i;
+            }
+            return toContext(state);
+        }
+    }
+
+    private static LexicalContext toContext(int state) {
+        switch (state) {
+            case PYTHON_STATE_SINGLE_QUOTE:
+            case PYTHON_STATE_DOUBLE_QUOTE:
+            case PYTHON_STATE_TRIPLE_SINGLE:
+            case PYTHON_STATE_TRIPLE_DOUBLE:
+                return LexicalContext.STRING;
+            case PYTHON_STATE_COMMENT:
+                return LexicalContext.COMMENT;
+            default:
+                return LexicalContext.NEUTRAL;
+        }
     }
 
     private int begin = 0;
@@ -151,13 +312,9 @@ public final class PythonFormatter extends Formatter {
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
-                } else if (
-                    ((c == '>' && text.regionMatches(i, ">>>", 0, 3))
-                        ||
-                        (c == '.' && text.regionMatches(i, "...", 0, 3)))
-                        &&
-                        (text.substring(0, i).trim().length() == 0)
-                ) {
+                } else if (((c == '>' && text.regionMatches(i, ">>>", 0, 3))
+                        || (c == '.' && text.regionMatches(i, "...", 0, 3)))
+                        && (text.substring(0, i).trim().length() == 0)) {
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
                 } else
@@ -170,13 +327,9 @@ public final class PythonFormatter extends Formatter {
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
-                } else if (
-                    ((c == '>' && text.regionMatches(i, ">>>", 0, 3))
-                        ||
-                        (c == '.' && text.regionMatches(i, "...", 0, 3)))
-                        &&
-                        (text.substring(0, i).trim().length() == 0)
-                ) {
+                } else if (((c == '>' && text.regionMatches(i, ">>>", 0, 3))
+                        || (c == '.' && text.regionMatches(i, "...", 0, 3)))
+                        && (text.substring(0, i).trim().length() == 0)) {
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
                 } else

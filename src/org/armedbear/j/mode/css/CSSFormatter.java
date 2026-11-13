@@ -21,19 +21,22 @@
 
 package org.armedbear.j.mode.css;
 
+import java.util.Optional;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
 public final class CSSFormatter extends Formatter {
     // States (used in line flags).
-    private static final int CSS_STATE_QUOTE = 0x0001;
-    private static final int CSS_STATE_SINGLEQUOTE = 0x0002;
-    private static final int CSS_STATE_COMMENT = 0x0004;
+    static final int CSS_STATE_QUOTE = 0x0001;
+    static final int CSS_STATE_SINGLEQUOTE = 0x0002;
+    static final int CSS_STATE_COMMENT = 0x0004;
     private static final int CSS_STATE_BRACE = 0x0008;
     private static final int CSS_STATE_IN_BLOCK = 0x0010;
     private static final int CSS_STATE_NUMBER = 0x0020;
@@ -43,8 +46,8 @@ public final class CSSFormatter extends Formatter {
 
     // Formats.
     private static final int CSS_FORMAT_TEXT = 0;
-    private static final int CSS_FORMAT_COMMENT = 1;
-    private static final int CSS_FORMAT_STRING = 2;
+    static final int CSS_FORMAT_COMMENT = 1;
+    static final int CSS_FORMAT_STRING = 2;
     private static final int CSS_FORMAT_PROPERTY = 3;
     private static final int CSS_FORMAT_BRACE = 4;
     private static final int CSS_FORMAT_NUMBER = 5;
@@ -101,11 +104,9 @@ public final class CSSFormatter extends Formatter {
         }
         while (i < limit) {
             final char c = text.charAt(i);
-            if (c == '\\' && i < limit - 1) {
-                // Escape character.
-                i += 2;
-                continue;
-            }
+            // Comment first. A CSS comment has no escapes, so a
+            // backslash inside one is literal and must not hide the
+            // */ closer: /* C:\dir\*/ closes at the */.
             if ((state & CSS_STATE_COMMENT) != 0) {
                 if (i < limit - 1 && c == '*' && text.charAt(i + 1) == '/') {
                     endToken(text, i + 2, state);
@@ -113,6 +114,11 @@ public final class CSSFormatter extends Formatter {
                     i += 2;
                 } else
                     ++i;
+                continue;
+            }
+            // Outside a comment, a backslash escapes the next character.
+            if (c == '\\' && i < limit - 1) {
+                i += 2;
                 continue;
             }
             if ((state & CSS_STATE_QUOTE) != 0) {
@@ -124,7 +130,7 @@ public final class CSSFormatter extends Formatter {
                 continue;
             }
             if ((state & CSS_STATE_SINGLEQUOTE) != 0) {
-                if (c == '"') {
+                if (c == '\'') {
                     endToken(text, i + 1, state);
                     state &= ~CSS_STATE_SINGLEQUOTE;
                 }
@@ -260,63 +266,168 @@ public final class CSSFormatter extends Formatter {
         boolean changed = false;
         while (line != null) {
             int oldflags = line.flags();
-            // Quoted strings can't span lines. (Can they?)
+            // Quoted strings can't span lines.
             state &= ~(CSS_STATE_QUOTE | CSS_STATE_SINGLEQUOTE);
             if (state != oldflags) {
                 line.setFlags(state);
                 changed = true;
             }
-            final int limit = line.length();
-            for (int i = 0; i < limit; i++) {
-                char c = line.charAt(i);
-                if (c == '\\' && i < limit - 1) {
-                    // Escape.
-                    ++i;
+            // The cursor is the single source of the comment, quote and
+            // block transitions. parseBuffer takes the carried comment
+            // and block bits from its end state instead of re-walking
+            // the line with its own copy of the rules, which is how the
+            // two drifted apart before.
+            Cursor cursor = new Cursor(line, state, line.length(), null);
+            cursor.run();
+            state = cursor.endState;
+            line = line.next();
+        }
+        buffer.setNeedsParsing(false);
+        return changed;
+    }
+
+    // Total characters the lexical queries have scanned, across every
+    // cursor run since the last reset. The scan guard reads this through
+    // the real mode.lexicalContexts / lexicalContext entry points: a
+    // bulk query that secretly loops point queries would accumulate
+    // O(len^2) here and blow the linear bound, which a hand-built
+    // single cursor cannot show.
+    long scanSteps;
+
+    @Override
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
+        final int upto = Math.min(offset, line.length());
+        Cursor cursor = new Cursor(line, line.flags(), upto, null);
+        LexicalContext ctx = cursor.run();
+        scanSteps += cursor.steps;
+        return Optional.of(ctx);
+    }
+
+    @Override
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        Cursor cursor = new Cursor(line, line.flags(), upto, out);
+        cursor.run();
+        scanSteps += cursor.steps;
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of CSS lexical transitions. Walks the line from
+     * an explicit entering state to {@code upto}, tracking the comment,
+     * quote and block bits. A block comment carries across lines; a
+     * quoted string does not, so the caller clears the quote bits from
+     * the entering state between lines. Both quote kinds and escapes are
+     * handled, and the walk resumes NEUTRAL after a complete closer.
+     * With an output array it records the context at every offset
+     * (bulk); without one it stops at {@code upto} (point).
+     *
+     * <p>{@code endState} is the full state after the walk, so
+     * {@link #parseBuffer} takes its carried comment and block bits
+     * from here rather than re-implementing the transitions.
+     */
+    static final class Cursor extends LexicalCursor {
+        private int state;
+        int endState;
+        long steps;
+
+        Cursor(Line line, int enteringState, int upto, LexicalContext[] out) {
+            super(line, upto, out);
+            this.state = enteringState;
+        }
+
+        LexicalContext run() {
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto) {
+                    endState = state;
+                    return ctx;
+                }
+                steps++;
+                final char c = text.charAt(i);
+                // Comment first. A CSS comment has no escapes, so a
+                // backslash inside one is literal and must not hide the
+                // */ closer: /* C:\dir\*/ closes at the */.
+                if ((state & CSS_STATE_COMMENT) != 0) {
+                    if (c == '*' && i < limit - 1 && text.charAt(i + 1) == '/') {
+                        if (inside(2, ctx)) {
+                            endState = state;
+                            return ctx;
+                        }
+                        i += 2;
+                        state &= ~CSS_STATE_COMMENT;
+                    } else
+                        ++i;
                     continue;
                 }
-                if ((state & CSS_STATE_COMMENT) != 0) {
-                    if (c == '*' && i < limit - 1) {
-                        c = line.charAt(i + 1);
-                        if (c == '/') {
-                            ++i;
-                            state &= ~CSS_STATE_COMMENT;
-                        }
+                // Outside a comment, a backslash escapes the next
+                // character, so \" does not close a string.
+                if (c == '\\' && i < limit - 1) {
+                    if (inside(2, ctx)) {
+                        endState = state;
+                        return ctx;
                     }
+                    i += 2;
                     continue;
                 }
                 if ((state & CSS_STATE_QUOTE) != 0) {
                     if (c == '"')
                         state &= ~CSS_STATE_QUOTE;
+                    ++i;
                     continue;
                 }
                 if ((state & CSS_STATE_SINGLEQUOTE) != 0) {
-                    if (c == '"')
+                    if (c == '\'')
                         state &= ~CSS_STATE_SINGLEQUOTE;
+                    ++i;
                     continue;
                 }
-                // Not in comment or quoted string.
+                // Neutral.
+                if (c == '/' && i < limit - 1 && text.charAt(i + 1) == '*') {
+                    if (inside(2, ctx)) {
+                        endState = state;
+                        return ctx;
+                    }
+                    state |= CSS_STATE_COMMENT;
+                    i += 2;
+                    continue;
+                }
+                if (c == '"') {
+                    state |= CSS_STATE_QUOTE;
+                    ++i;
+                    continue;
+                }
+                if (c == '\'') {
+                    state |= CSS_STATE_SINGLEQUOTE;
+                    ++i;
+                    continue;
+                }
                 if (c == '{') {
                     state |= CSS_STATE_IN_BLOCK;
+                    ++i;
                     continue;
                 }
                 if (c == '}') {
                     state &= ~CSS_STATE_IN_BLOCK;
+                    ++i;
                     continue;
                 }
-                if (c == '/' && i < limit - 1) {
-                    c = line.charAt(++i);
-                    if (c == '*')
-                        state |= CSS_STATE_COMMENT;
-                } else if (c == '"') {
-                    state |= CSS_STATE_QUOTE;
-                } else if (c == '\'') {
-                    state |= CSS_STATE_SINGLEQUOTE;
-                }
+                ++i;
             }
-            line = line.next();
+            endState = state;
+            return toContext(state);
         }
-        buffer.setNeedsParsing(false);
-        return changed;
+    }
+
+    private static LexicalContext toContext(int state) {
+        if ((state & CSS_STATE_COMMENT) != 0)
+            return LexicalContext.COMMENT;
+        if ((state & (CSS_STATE_QUOTE | CSS_STATE_SINGLEQUOTE)) != 0)
+            return LexicalContext.STRING;
+        return LexicalContext.NEUTRAL;
     }
 
     @Override

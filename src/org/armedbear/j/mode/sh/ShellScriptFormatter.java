@@ -23,11 +23,14 @@ package org.armedbear.j.mode.sh;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Optional;
 import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.LexicalContext;
+import org.armedbear.j.LexicalCursor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
@@ -40,9 +43,9 @@ public final class ShellScriptFormatter extends Formatter {
     private static final int STATE_ECHO = STATE_LAST + 4;
 
     private static final int SHELLSCRIPT_FORMAT_TEXT = 0;
-    private static final int SHELLSCRIPT_FORMAT_COMMENT = 2;
+    static final int SHELLSCRIPT_FORMAT_COMMENT = 2;
 
-    private static final int SHELLSCRIPT_FORMAT_STRING = 4;
+    static final int SHELLSCRIPT_FORMAT_STRING = 4;
     private static final int SHELLSCRIPT_FORMAT_KEYWORD = 5;
     private static final int SHELLSCRIPT_FORMAT_FUNCTION = 6;
     private static final int SHELLSCRIPT_FORMAT_OPERATOR = 7;
@@ -59,6 +62,171 @@ public final class ShellScriptFormatter extends Formatter {
 
     public ShellScriptFormatter(Buffer buffer) {
         this.buffer = buffer;
+    }
+
+    /**
+     * The state at {@code offset}. A line entering in HERE_DOCUMENT
+     * is body: the whole line is STRING, and the terminator is not
+     * needed — the flag already says the heredoc is open, and the
+     * line after the terminator carries a NEUTRAL flag, so the
+     * query never reads the formatter's mutable {@code endOfText}
+     * and cannot leak a stale terminator between heredocs. A NEUTRAL
+     * line is scanned for quotes, a {@code #} comment, and a valid
+     * {@code <<} opener, mirroring {@link #parseBuffer}.
+     */
+    @Override
+    public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
+        final int upto = Math.min(offset, line.length());
+        return Optional.of(new Cursor(line, upto, null).run());
+    }
+
+    /**
+     * One forward pass recording the context at every offset to
+     * {@code end}. A heredoc declaration or a comment runs to the end
+     * of the line; the state before the marker is kept at the marker's
+     * own offset, as the per-offset scan answers.
+     *
+     * <p>The point query stops at the boundary without building a
+     * prefix-sized array; the bulk query fills every offset. Both run
+     * the same {@link Cursor} transitions, so the two cannot drift.
+     */
+    @Override
+    public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
+        final int upto = Math.min(end, line.length());
+        final LexicalContext[] out = new LexicalContext[upto + 1];
+        new Cursor(line, upto, out).run();
+        return Optional.of(out);
+    }
+
+    /**
+     * The single source of Shell lexical transitions. Walks the line
+     * from its entering flags to {@code upto}. With an output array it
+     * records the context at every offset (bulk); without one it stops
+     * at {@code upto} and returns the context there (point), never
+     * allocating the prefix. {@code steps} counts token advances so a
+     * test can assert the walk stays linear in the line's length.
+     */
+    static final class Cursor extends LexicalCursor {
+        private final Line line;
+        private int state;
+        long steps;
+
+        Cursor(Line line, int upto, LexicalContext[] out) {
+            super(line, upto, out);
+            this.line = line;
+            // parseBuffer carries an open quote across lines, so a
+            // line inside a multi-line string enters in that string.
+            this.state =
+                    line.flags() == STATE_QUOTE || line.flags() == STATE_SINGLEQUOTE ? line.flags() : STATE_NEUTRAL;
+        }
+
+        LexicalContext run() {
+            // A line entering in HERE_DOCUMENT is body: the whole line
+            // is STRING. The terminator is not needed — the flag
+            // already says the heredoc is open, and the line after the
+            // terminator carries a NEUTRAL flag, so the query never
+            // reads the formatter's mutable endOfText and cannot leak
+            // a stale terminator between heredocs.
+            if (line.flags() == STATE_HERE_DOCUMENT) {
+                if (out != null)
+                    java.util.Arrays.fill(out, LexicalContext.STRING);
+                return LexicalContext.STRING;
+            }
+            while (i <= upto) {
+                final LexicalContext ctx = toContext(state);
+                if (out != null)
+                    out[i] = ctx;
+                if (i == upto)
+                    return ctx;
+                steps++;
+                final char c = text.charAt(i);
+                if (c == '\\' && i < limit - 1) {
+                    // Escape: consumes the next character; the state
+                    // is unchanged across it.
+                    if (inside(2, ctx))
+                        return ctx;
+                    i += 2;
+                    continue;
+                }
+                if (state == STATE_QUOTE) {
+                    if (c == '"')
+                        state = STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                if (state == STATE_SINGLEQUOTE) {
+                    if (c == '\'')
+                        state = STATE_NEUTRAL;
+                    ++i;
+                    continue;
+                }
+                // Not in a quoted string.
+                if (c == '<' && i < limit - 2 && text.charAt(i + 1) == '<') {
+                    if (heredocTerminator(line, i) != null) {
+                        // The rest of the line declares the terminator.
+                        if (out != null) {
+                            for (int j = i + 1; j <= upto; j++)
+                                out[j] = LexicalContext.STRING;
+                            return null;
+                        }
+                        return LexicalContext.STRING;
+                    }
+                    ++i;
+                    continue;
+                }
+                if (c == '#') {
+                    if (out != null) {
+                        for (int j = i + 1; j <= upto; j++)
+                            out[j] = LexicalContext.COMMENT;
+                        return null;
+                    }
+                    return LexicalContext.COMMENT;
+                }
+                if (c == '"')
+                    state = STATE_QUOTE;
+                else if (c == '\'')
+                    state = STATE_SINGLEQUOTE;
+                ++i;
+            }
+            return toContext(state);
+        }
+    }
+
+    /**
+     * The terminator a {@code <<} at {@code from} opens, or null when
+     * the {@code <<} is a shift operator rather than a heredoc. The
+     * same rules {@link #parseBuffer} applies: strip a leading dash
+     * and enclosing quotes, and require a letter start.
+     */
+    private static String heredocTerminator(Line line, int from) {
+        String terminator = line.substring(from + 2).trim();
+        if (terminator.startsWith("-"))
+            terminator = terminator.substring(1);
+        int length = terminator.length();
+        if (length > 2) {
+            if (terminator.charAt(0) == '"' && terminator.charAt(length - 1) == '"')
+                terminator = terminator.substring(1, length - 1);
+            else if (terminator.charAt(0) == '\'' && terminator.charAt(length - 1) == '\'')
+                terminator = terminator.substring(1, length - 1);
+        }
+        if (terminator.length() > 0 && Character.isLetter(terminator.charAt(0)))
+            return terminator;
+        return null;
+    }
+
+    private static LexicalContext toContext(int state) {
+        switch (state) {
+            case STATE_QUOTE:
+            case STATE_SINGLEQUOTE:
+            case STATE_BACKQUOTE:
+            case STATE_HERE_DOCUMENT:
+            case STATE_ECHO:
+                return LexicalContext.STRING;
+            case STATE_COMMENT:
+                return LexicalContext.COMMENT;
+            default:
+                return LexicalContext.NEUTRAL;
+        }
     }
 
     private void endToken(int state) {
@@ -369,18 +537,10 @@ public final class ShellScriptFormatter extends Formatter {
                             endOfText = endOfText.substring(1);
                         int length = endOfText.length();
                         if (length > 2) {
-                            if (
-                                endOfText.charAt(0) == '"'
-                                    &&
-                                    endOfText.charAt(length - 1) == '"'
-                            ) {
+                            if (endOfText.charAt(0) == '"' && endOfText.charAt(length - 1) == '"') {
                                 // Removed enclosing double quotes.
                                 endOfText = endOfText.substring(1, length - 1);
-                            } else if (
-                                endOfText.charAt(0) == '\''
-                                    &&
-                                    endOfText.charAt(length - 1) == '\''
-                            ) {
+                            } else if (endOfText.charAt(0) == '\'' && endOfText.charAt(length - 1) == '\'') {
                                 // Removed enclosing single quotes.
                                 endOfText = endOfText.substring(1, length - 1);
                             }

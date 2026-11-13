@@ -14,7 +14,9 @@ package org.armedbear.j.vim;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
@@ -322,7 +324,7 @@ public final class VimInputHandler implements InputHandler {
             commitInsert();
         recording.setLength(0);
         startSplitRecording();
-        state.restartInsert();
+        state.restartInsert(editor);
         return Result.CONSUMED;
     }
 
@@ -461,6 +463,9 @@ public final class VimInputHandler implements InputHandler {
             repeatInsert(editor);
             dropUntouchedAutoIndent(editor);
             state.finishBlockInsert(editor);
+            // Take the landing now: the mode change below ends the insert
+            // session, which clears it.
+            final Position landing = state.takeBlockInsertLanding();
             state.markInsertStop(editor);
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
@@ -469,7 +474,6 @@ public final class VimInputHandler implements InputHandler {
                 editor.setDot(dot.getLine(), CodePoints.previous(dot.getLine(), dot.getOffset()));
             editor.moveCaretToDotCol();
             // I and A over a block go back to its top left.
-            final Position landing = state.takeBlockInsertLanding();
             if (landing != null) {
                 editor.setDot(landing);
                 editor.moveCaretToDotCol();
@@ -808,6 +812,19 @@ public final class VimInputHandler implements InputHandler {
         }
         if (state.getMode().isInsert()) {
             state.noteInsertStart(editor);
+            // A literal run: the snapshot text through the live loop,
+            // suppression held so nothing pairs and recording off so the
+            // repeat does not re-record. The register is never consulted.
+            if (key.startsWith("<literal:")) {
+                // Noted like any other key, so a count on the repeat
+                // types the run each time.
+                state.noteInsertKey(key);
+                try (Editor.PairSuppression suppression = editor.suppressPairing()) {
+                    // replaying is true here, so the loop records nothing.
+                    typeText(editor, literalRun(key));
+                }
+                return;
+            }
             final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
             if (stroke.keyCode == KeyEvent.VK_ESCAPE) {
                 escape(editor);
@@ -824,21 +841,87 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /**
+     * The literal texts a {@code <literal:N>} token stands for. A number
+     * is never reused, so a token always means the text it was made for;
+     * a run no change string refers to any more is dropped when the next
+     * one is added (see {@link #pruneLiteralRuns}).
+     */
+    private final Map<Integer, String> literalRuns = new HashMap<>();
+    private int nextLiteralRun;
+
+    /**
      * Types text in insert mode as though its keys were typed, so that a
      * line break indents as Enter does. Recorded as those keys: '.' types
      * the same text again rather than reading a register a second time.
      */
     void typeText(Editor editor, String text) {
+        typeChars(editor, text, !replaying);
+    }
+
+    /**
+     * A register's text, typed literally: pairing suppressed, and the
+     * recording carries the text as a {@code <literal:N>} snapshot --
+     * not the register name, which a later change would rewrite -- so
+     * '.' repeats this text, unpaired, whatever the register holds now.
+     */
+    void typeLiteralText(Editor editor, String text) {
+        if (!replaying)
+            pruneLiteralRuns();
+        final int run = nextLiteralRun++;
+        literalRuns.put(run, text);
+        final String token = "<literal:" + run + ">";
+        if (!replaying) {
+            if (recordingEdit)
+                recording.append(token);
+            state.noteInsertKey(token);
+        }
+        // The live insert must not pair either; the repeat holds its own
+        // suppression when it replays the snapshot.
+        try (Editor.PairSuppression suppression = editor.suppressPairing()) {
+            typeChars(editor, text, false);
+        }
+    }
+
+    /**
+     * The live typing loop. {@code record} is false for the literal
+     * paths, which record the run's token instead of its keys.
+     */
+    private void typeChars(Editor editor, String text, boolean record) {
         for (int i = 0; i < text.length(); i++) {
             final char c = text.charAt(i);
             final String key = c == '\n' ? "<CR>" : KeyNotation.name(0, c, 0);
-            if (!replaying) {
+            if (record) {
                 if (recordingEdit)
                     recording.append(key);
                 state.noteInsertKey(key);
             }
             typeInsertKey(editor, KeyNotation.parseOne(key));
         }
+    }
+
+    /**
+     * Drops the runs that no longer appear in any string a repeat can
+     * replay: the open recording, the last change, the held insert and
+     * the change before it, and the insert session's keys. Only called
+     * live, never mid-replay, when the string being replayed is one of
+     * these and still refers to its runs.
+     */
+    private void pruneLiteralRuns() {
+        final String insertKeys = state.getInsertKeys();
+        final String recorded = recording.toString();
+        literalRuns.keySet().removeIf(run -> {
+            final String token = "<literal:" + run + ">";
+            return !recorded.contains(token)
+                    && !insertKeys.contains(token)
+                    && (lastChange == null || !lastChange.contains(token))
+                    && (heldInsert == null || !heldInsert.contains(token))
+                    && (changeBeforeCommand == null || !changeBeforeCommand.contains(token));
+        });
+    }
+
+    /** The text a {@code <literal:N>} token stands for. */
+    private String literalRun(String token) {
+        return literalRuns.get(Integer.parseInt(token.substring("<literal:".length(), token.length() - 1)));
     }
 
     /** What an insert-mode key does when it is not a binding of ours. */
