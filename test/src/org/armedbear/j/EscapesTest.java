@@ -408,4 +408,84 @@ public class EscapesTest {
         final String name = "&\uD840\uDC00;";
         assertEquals("O(" + name + ")", refs(name, XML_REF));
     }
+
+    // --- HTML references --------------------------------------------
+
+    private static final Escapes.Reference HTML_REF = Escapes.Reference.HTML;
+
+    @Test
+    public void htmlNamedReferences() {
+        assertEquals("O(&amp;)", refs("a&amp;b", HTML_REF));
+        assertEquals("O(&lt;) O(&gt;)", refs("&lt;&gt;", HTML_REF));
+        assertEquals("O(&nbsp;)", refs("&nbsp;", HTML_REF));
+        // HTML names are ASCII alphanumeric; case is preserved.
+        assertEquals("O(&AMP;) O(&Amp;)", refs("&AMP; &Amp;", HTML_REF));
+    }
+
+    @Test
+    public void htmlNumericReferences() {
+        assertEquals("O(&#233;)", refs("&#233;", HTML_REF));
+        assertEquals("O(&#xE9;)", refs("&#xE9;", HTML_REF));
+        assertEquals("O(&#xe9;)", refs("&#xe9;", HTML_REF));
+        assertEquals("O(&#x00000041;)", refs("&#x00000041;", HTML_REF));
+    }
+
+    @Test
+    public void htmlSemicolonlessNamedStaysPlain() {
+        // A missing semicolon on a named candidate is not an error:
+        // legacy HTML parsing recovers.
+        assertEquals("", refs("&amp", HTML_REF));
+        assertEquals("", refs("&foo", HTML_REF));
+        assertEquals("", refs("&notanentity", HTML_REF));
+        assertEquals("", refs("a & b", HTML_REF));
+        assertEquals("", refs("?a=1&b=2", HTML_REF));
+    }
+
+    @Test
+    public void htmlMalformedNumericIsError() {
+        // A malformed numeric candidate is an error even without a
+        // semicolon, because the `#` commits to a numeric reference.
+        assertEquals("E(&#xZZ;)", refs("&#xZZ;", HTML_REF));
+        assertEquals("E(&#;)", refs("&#;", HTML_REF));
+        assertEquals("E(&#x;)", refs("&#x;", HTML_REF));
+        assertEquals("E(&#23x;)", refs("&#23x;", HTML_REF));
+    }
+
+    @Test
+    public void htmlNumericWithoutSemicolonIsError() {
+        // The spec marks a missing semicolon on a numeric reference as
+        // an error even though browsers recover.
+        assertEquals("E(&#233)", refs("&#233", HTML_REF));
+        assertEquals("E(&#x41)", refs("&#x41", HTML_REF));
+    }
+
+    @Test
+    public void htmlDigitsAreNamedNotNumeric() {
+        // `&123;` is a complete named reference (all digits), not a
+        // malformed numeric one.
+        assertEquals("O(&123;)", refs("&123;", HTML_REF));
+    }
+
+    @Test
+    public void htmlNameStopsAtSpace() {
+        // A space ends the name candidate; nothing is a reference.
+        assertEquals("", refs("&a b;", HTML_REF));
+    }
+
+    @Test
+    public void htmlBackslashHasNoMeaning() {
+        assertEquals("O(&amp;)", refs("a\\nb&amp;", HTML_REF));
+    }
+
+    @Test
+    public void htmlNoAmpersandYieldsNothing() {
+        assertEquals("", refs("plain text", HTML_REF));
+    }
+
+    @Test
+    public void htmlNonAsciiNameStaysPlain() {
+        // HTML names are ASCII only; a non-ASCII candidate is not a
+        // reference and stays plain rather than an error.
+        assertEquals("", refs("&café;", HTML_REF));
+    }
 }

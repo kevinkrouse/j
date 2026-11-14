@@ -10,8 +10,8 @@ mode HTML
 7: text"    " keyword"function" text" " function"greet" text"(" identifier"n" text") " brace"{" text" " keyword"return" text" " identifier"n" text" " operator"+" text" " number"0X10" text"; " brace"}"
 8: script"  " tag"</script>"
 9: tag"</head>"
-10: tag"<body class="main" id='top'>"
-11: text"  " tag"<p>" text"Hello &amp; welcome" tag"</p>"
+10: tag"<body class="" tag"main" tag" id='" tag"top" tag">"
+11: text"  " tag"<p>" text"Hello " escape"&amp;" text" welcome" tag"</p>"
 12: tag"</body>"
 13: tag"</html>"
 
