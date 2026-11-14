@@ -79,11 +79,8 @@ public class CFamilyFormatterTest {
 
     // --- escape splitting in emitted literals --------------------------
     //
-    // runs() renders every segment as name(text), with the plain "text"
-    // format printed bare. So a line like `s = "\n"` carries its
-    // identifier and operator segments too; only the literal's content
-    // splits into string/escape/escapeError. The opening quote stays in
-    // the base string format and merges with the first content chunk.
+    // runs() renders every segment as name(text); only a literal's
+    // content splits into string/escape/escapeError.
 
     private static String runs(int modeId, String text) {
         return EditorHarness.runs(Editor.getModeList().getMode(modeId), text);
@@ -101,25 +98,23 @@ public class CFamilyFormatterTest {
 
     @Test
     public void javaMalformedEscapesAreErrors() {
-        // Backslash-u with only two hex digits: the introducer plus the
-        // digits found are one error; the G stays plain string.
+        // Two hex digits: the introducer and digits found are one
+        // error; the G stays plain.
         assertEquals("identifier(s) operator(=) string(\")escapeError(\\u12)string(G\")",
                 runs(JAVA_MODE, "s = \"\\u12G\""));
-        // Java's strict profile: an unknown escape is an error.
         assertEquals("identifier(s) operator(=) string(\")escapeError(\\q)string(\")",
                 runs(JAVA_MODE, "s = \"\\q\""));
     }
 
     @Test
     public void javaDelimitersStayInStringFormat() {
-        // The quotes keep the string format; only the content splits.
         assertEquals("keyword(char) identifier(c) operator(=) string(')escape(\\n)string(');",
                 runs(JAVA_MODE, "char c = '\\n';"));
     }
 
     @Test
     public void javaTextBlockSplitsWithContinuation() {
-        // Each physical line is its own run; the escape lives on the
+        // Each physical line is its own run; the escape is on the
         // middle line, the delimiters on the first and last.
         assertEquals("identifier(s) operator(=) string(\"\"\")\n"
                 + "string(  )string(a)escape(\\n)string(b)\n"
@@ -129,8 +124,7 @@ public class CFamilyFormatterTest {
 
     @Test
     public void javaTrailingBackslashIsError() {
-        // No closing quote: the backslash is content, and the strict
-        // profile marks the dangling backslash an error.
+        // No closing quote, so the backslash is content.
         assertEquals("identifier(s) operator(=) string(\"x)escapeError(\\)",
                 runs(JAVA_MODE, "s = \"x\\"));
     }
@@ -173,8 +167,7 @@ public class CFamilyFormatterTest {
 
     @Test
     public void cppRawLiteralsStayNeutral() {
-        // R"(...)": the body carries no escape coloring; the backslash
-        // stays ordinary text inside the string.
+        // The backslash stays ordinary text inside the body.
         assertEquals("keyword(auto) identifier(s) operator(=) identifier(R)string(\"(a\\nb)\");",
                 runs(CPP_MODE, "auto s = R\"(a\\nb)\";"));
     }
@@ -187,34 +180,28 @@ public class CFamilyFormatterTest {
 
     @Test
     public void malformedBracedEscapeDoesNotEatTheClosingQuote() {
-        // Unterminated braced escape: the error stops at the content
-        // boundary; the closing quote stays in the string format.
+        // The error stops at the content boundary; the quote stays string.
         assertEquals("identifier(s) operator(=) string(\")escapeError(\\u{41)string(\")",
                 runs(JAVASCRIPT_MODE, "s = \"\\u{41\""));
     }
 
     @Test
     public void textBlockTrailingBackslashOnLastLineIsError() {
-        // No physical line break follows, so the backslash cannot be a
-        // continuation: the strict profile calls it an error.
+        // No line break follows, so it cannot be a continuation.
         assertEquals("identifier(s) operator(=) string(\"\"\"abc)escapeError(\\)",
                 runs(JAVA_MODE, "s = \"\"\"abc\\"));
     }
 
     @Test
     public void identifierEndingInRIsTreatedAsRaw() {
-        // The introducer check is the single character before the quote,
-        // so an identifier ending in R reads as a raw introducer and
-        // the string stays neutral. Accepted: the error is missing
-        // highlighting, never a wrong escape error.
+        // The check is the single character before the quote, so FOO R
+        // reads as raw. Accepted: missing highlighting, never a wrong error.
         assertEquals("identifier(FOOR)string(\"x\\ny\")",
                 runs(CPP_MODE, "FOOR\"x\\ny\""));
     }
 
     @Test
     public void textBlockTrailingBackslashIsContinuation() {
-        // A backslash at the end of a text-block line continues the
-        // line: escape, not error.
         assertEquals("identifier(s) operator(=) string(\"\"\")\n"
                 + "string(    )string(a )escape(\\)\n"
                 + "string(    )string(b\"\"\");",

@@ -493,12 +493,9 @@ public abstract class Formatter {
             segmentList.addSegment(piece);
     }
 
-    // The pieces of `segment`: the base text between spans, each
-    // escape span, each error span. Metadata is copied to every piece;
-    // the pieces keep the segment's own offsets so the line's total
-    // width is unchanged. Spans are offsets in the full line text, the
-    // same string the segment indexes, so they map to absolute offsets
-    // directly.
+    // The base text between spans, then each escape and error span.
+    // Metadata is copied to every piece; offsets are absolute, so the
+    // line's total width is unchanged.
     private LineSegment[] splitSegment(String fullText, LineSegment segment, List<Escapes.Span> spans, int escape, int error) {
         final int base = segment.getBegin();
         final int limit = segment.getEnd();

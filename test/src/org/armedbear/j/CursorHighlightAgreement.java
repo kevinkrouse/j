@@ -156,10 +156,8 @@ public final class CursorHighlightAgreement {
         }
     }
 
-    // An escape or escape-error segment sits inside a string run: the
-    // cursor calls its offsets STRING, so the agreement check must treat
-    // these formats as string-family. Identified by name so the helper
-    // stays mode-agnostic.
+    // Escape segments sit inside a string run, so they count as
+    // string-family here. Matched by name to stay mode-agnostic.
     private static boolean isEscape(int format, Formatter formatter) {
         if (format < 0)
             return false;

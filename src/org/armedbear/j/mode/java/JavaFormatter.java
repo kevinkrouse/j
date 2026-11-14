@@ -296,14 +296,12 @@ public class JavaFormatter extends Formatter {
 
     private int tokenBegin = 0;
 
-    // The closing delimiter the token just consumed: one quote, or the
-    // three of a text block. Zero when the literal was still open at
-    // the token's end, so its last characters are content, not a
-    // delimiter. Set only where the parser closes a literal.
+    // The closing delimiter the parser just consumed: 1 for a quote, 3
+    // for a text block, 0 when the literal was still open.
     private int closingDelim = 0;
 
     // Whether the line being formatted ends at a physical line break
-    // the literal continues across; set as parseLine begins.
+    // the literal continues across.
     private boolean lineEndContinues = false;
 
     /** Whether the string whose opening quote is at quote is raw, its body free of escapes, as C++'s R"(...)". */
@@ -334,8 +332,7 @@ public class JavaFormatter extends Formatter {
     }
 
     // Whether the content ends at a physical line break the literal
-    // continues across: a text block does whenever a line follows it;
-    // an ordinary string only where the language lets it.
+    // continues across.
     private boolean lineContinues(int state) {
         if (state == STATE_TEXT_BLOCK)
             return lineEndContinues;

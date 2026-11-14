@@ -79,9 +79,9 @@ public class EscapesTest {
 
     @Test
     public void javaMalformedStopsBeforeBackslash() {
-        // backslash-u 12G4 is one error; the following escape is valid.
+        // The malformed span stops at the non-hex; the next escape is
+        // still recognized.
         assertEquals("E(\\u12) O(\\n)", spans(s(B + "u12G4", B + "n"), JAVA));
-        // backslash-u 12 then a valid escape.
         assertEquals("E(\\u12) O(\\n)", spans(s(B + "u12", B + "n"), JAVA));
     }
 
@@ -94,16 +94,15 @@ public class EscapesTest {
 
     @Test
     public void javaDoubleBackslashConsumesBoth() {
-        // In "\\n" the \\ is one escape and the n is ordinary text.
+        // The \\ consumes both; the rest stays plain.
         assertEquals("O(\\\\)", spans(s(B + "\\" + "n"), JAVA));
-        // \\u0041: the escaped backslash consumes both; u0041 stays plain.
         assertEquals("O(\\\\)", spans(s(B + "\\" + "u0041"), JAVA));
     }
 
     @Test
     public void javaStructuralUnicodePolicy() {
-        // \u005Cn: the complete Unicode escape is colored; the n is
-        // ordinary text with no backslash introducing it.
+        // The complete escape is colored; the trailing character has no
+        // backslash introducing it, so it stays plain.
         assertEquals("O(\\u005C)", spans(s(B + "u005Cn"), JAVA));
         assertEquals("O(\\u005C)", spans(s(B + "u005Cq"), JAVA));
     }
@@ -247,8 +246,7 @@ public class EscapesTest {
 
     @Test
     public void longMalformedSuffixIsLinear() {
-        // A long run of non-hex after a backslash-u must not rescan: the span ends
-        // at the first non-digit and scanning resumes after it.
+        // The span ends at the first non-hex; no rescan of the tail.
         StringBuilder sb = new StringBuilder();
         sb.append(B).append("u");
         for (int i = 0; i < 1000; i++)

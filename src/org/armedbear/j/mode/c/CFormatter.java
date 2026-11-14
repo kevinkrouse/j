@@ -62,12 +62,9 @@ public final class CFormatter extends JavaFormatter {
         return state == STATE_PREPROCESSOR ? C_FORMAT_PREPROCESSOR : super.format(state);
     }
 
-    // A string whose opening quote is preceded by R is a C++ raw
-    // literal: its body carries no escapes. The introducer is R, or a
-    // wide/UTF-8 prefix and R, so the R is always the character right
-    // before the quote. The formatter does not yet track a raw
-    // literal's closing )delim" across lines, so a raw literal is left
-    // neutral rather than given confidently wrong escape errors.
+    // A C++ raw literal's introducer ends in R, so the R is the
+    // character right before the opening quote. Raw bodies stay neutral:
+    // the closing )delim" is not tracked across lines.
     @Override
     protected boolean isRawLiteralAt(String text, int quote) {
         return getLanguageMode() instanceof CppMode
