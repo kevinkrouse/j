@@ -11,11 +11,16 @@
 
 package org.armedbear.j.mode.java;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.LexicalContext;
 import org.armedbear.j.Line;
+import org.armedbear.j.Mode;
+import org.armedbear.j.Position;
+import org.armedbear.j.mode.c.CMode;
+import org.armedbear.j.mode.js.JavaScriptMode;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -39,7 +44,7 @@ public class JavaLexicalCursorTest {
             Line line = h.buffer().getFirstLine();
             int len = line.length();
             LexicalContext[] out = new LexicalContext[len + 1];
-            JavaFormatter.Cursor bulk = new JavaFormatter.Cursor(line, len, out);
+            JavaFormatter.Cursor bulk = new JavaFormatter.Cursor(line, len, out, true);
             bulk.run();
             // One step per character at most; multi-character tokens
             // (the comment markers, the escape) advance by more, so
@@ -62,12 +67,62 @@ public class JavaLexicalCursorTest {
             // A point query in the middle of the token-bearing line
             // must not walk the whole line.
             int boundary = TOKENS.indexOf("y =");
-            JavaFormatter.Cursor point = new JavaFormatter.Cursor(line, boundary, null);
+            JavaFormatter.Cursor point = new JavaFormatter.Cursor(line, boundary, null, true);
             point.run();
             assertTrue(point.steps <= boundary, "point steps " + point.steps + " exceeds boundary " + boundary);
         }
         finally {
             h.close();
+        }
+    }
+
+    @Test
+    public void textBlockContextsIncludeDelimiterInteriorsAndLiteralQuotes() {
+        String quotes = "\"\"\"";
+        String text =
+                "String s = " + quotes + "\n    \" ' // /* " + '\\' + quotes + " still\n    " + quotes + "; after\n";
+        EditorHarness h = EditorHarness.create(text).mode(JavaMode.getMode());
+        try {
+            h.buffer().getFormatter().parseBuffer();
+            for (int number = 0; number < 3; number++) {
+                Line line = h.buffer().getLine(number);
+                LexicalContext[] bulk =
+                        JavaMode.getMode().lexicalContexts(h.buffer(), line, line.length()).orElseThrow();
+                for (int offset = 0; offset <= line.length(); offset++) {
+                    boolean inBlock = number == 0
+                            ? offset > line.getText().indexOf(quotes)
+                            : number == 1 || offset < line.getText().indexOf(quotes) + quotes.length();
+                    LexicalContext expected = inBlock ? LexicalContext.STRING : LexicalContext.NEUTRAL;
+                    assertEquals(expected, bulk[offset], "bulk at " + number + ":" + offset);
+                    assertEquals(
+                        expected,
+                        JavaMode.getMode().lexicalContext(h.buffer(), new Position(line, offset)),
+                        "point at " + number + ":" + offset);
+                }
+            }
+        }
+        finally {
+            h.close();
+        }
+    }
+
+    @Test
+    public void cAndJavaScriptKeepTheirOrdinaryQuoteRules() {
+        for (Mode mode : new Mode[] { CMode.getMode(), JavaScriptMode.getMode() }) {
+            EditorHarness h = EditorHarness.create("\"\"\"\"").mode(mode);
+            try {
+                Line line = h.buffer().getFirstLine();
+                LexicalContext[] bulk = mode.lexicalContexts(h.buffer(), line, line.length()).orElseThrow();
+                assertEquals(LexicalContext.NEUTRAL, bulk[2], mode.getDisplayName());
+                assertEquals(LexicalContext.NEUTRAL, bulk[4], mode.getDisplayName());
+                assertEquals(
+                    LexicalContext.NEUTRAL,
+                    mode.lexicalContext(h.buffer(), new Position(line, 4)),
+                    mode.getDisplayName());
+            }
+            finally {
+                h.close();
+            }
         }
     }
 }

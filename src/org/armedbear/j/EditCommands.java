@@ -365,11 +365,14 @@ public final class EditCommands {
                 // that formats braces electrically gets its blank-line
                 // preparation before the pair decision and its
                 // reindentation after, so the live keystroke and the vim/j
-                // replay of the same key run the same sequence. Literal
-                // insertion is suppressed, so it bypasses the brace
-                // transformations as well as pairing.
-                final boolean electricBrace =
-                        mode.electricBraces() && !editor.isPairingSuppressed() && (c == '{' || c == '}');
+                // replay of the same key run the same sequence. Only code
+                // receives these transformations: clearing a blank line
+                // inside a string would discard literal whitespace before
+                // the pair decision could leave the character unchanged.
+                final boolean electricBrace = mode.electricBraces()
+                        && !editor.isPairingSuppressed()
+                        && (c == '{' || c == '}')
+                        && mode.lexicalContext(editor.getBuffer(), editor.getDot()) == LexicalContext.NEUTRAL;
                 final boolean wasBlank = electricBrace && editor.getMark() == null && editor.getDotLine().isBlank();
                 final CompoundEdit compoundEdit = electricBrace ? editor.beginCompoundEdit() : null;
                 try {
