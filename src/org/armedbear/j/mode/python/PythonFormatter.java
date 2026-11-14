@@ -21,9 +21,12 @@
 
 package org.armedbear.j.mode.python;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Escapes;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.LexicalContext;
@@ -46,6 +49,15 @@ public final class PythonFormatter extends Formatter {
     private static final int PYTHON_STATE_TRIPLE_SINGLE = 9;
     private static final int PYTHON_STATE_TRIPLE_DOUBLE = 10;
 
+    // The lexical state lives in the low byte; the high bits carry the
+    // literal prefix across the lines a triple-quoted string spans.
+    private static final int PYTHON_STATE_MASK = 0xff;
+    private static final int PYTHON_PREFIX_RAW = 0x100;
+    private static final int PYTHON_PREFIX_BYTES = 0x200;
+    // f- and t-strings have expression boundaries this scanner does not parse.
+    private static final int PYTHON_PREFIX_FSTRING = 0x400;
+    private static final int PYTHON_PREFIX_TEMPLATE = 0x800;
+
     private static final int PYTHON_FORMAT_TEXT = 0;
     static final int PYTHON_FORMAT_COMMENT = 1;
     static final int PYTHON_FORMAT_STRING = 2;
@@ -55,6 +67,8 @@ public final class PythonFormatter extends Formatter {
     private static final int PYTHON_FORMAT_OPERATOR = 6;
     private static final int PYTHON_FORMAT_BRACE = 7;
     private static final int PYTHON_FORMAT_NUMBER = 8;
+    private static final int PYTHON_FORMAT_ESCAPE = 9;
+    private static final int PYTHON_FORMAT_ESCAPE_ERROR = 10;
 
     private static final PythonMode mode = PythonMode.getMode();
 
@@ -109,7 +123,7 @@ public final class PythonFormatter extends Formatter {
 
         Cursor(Line line, int upto, LexicalContext[] out) {
             super(line, upto, out);
-            this.state = line.flags();
+            this.state = line.flags() & PYTHON_STATE_MASK;
         }
 
         LexicalContext run() {
@@ -222,7 +236,20 @@ public final class PythonFormatter extends Formatter {
 
     private int begin = 0;
 
+    // The opening delimiter length of the literal being emitted, and the
+    // closing one it just consumed. Zero when the literal was still open.
+    private int openLen = 0;
+    private int closingLen = 0;
+
+    // The prefix of the literal being emitted: raw, bytes, or neither.
+    private int literalPrefix = 0;
+
+    // Whether the line ends at a physical break a literal continues over.
+    private boolean lineEndContinues = false;
+
     private void endSegment(String text, int offset, int state) {
+        final int closeLen = closingLen;
+        closingLen = 0;
         if (offset - begin > 0) {
             int format;
             switch (state) {
@@ -233,8 +260,9 @@ public final class PythonFormatter extends Formatter {
                 case PYTHON_STATE_DOUBLE_QUOTE:
                 case PYTHON_STATE_TRIPLE_SINGLE:
                 case PYTHON_STATE_TRIPLE_DOUBLE:
-                    format = PYTHON_FORMAT_STRING;
-                    break;
+                    addStringSegment(text, offset, closeLen);
+                    begin = offset;
+                    return;
                 case PYTHON_STATE_IDENTIFIER:
                     format = PYTHON_FORMAT_IDENTIFIER;
                     break;
@@ -260,6 +288,34 @@ public final class PythonFormatter extends Formatter {
         }
     }
 
+    // A string literal: the prefix and delimiters stay in the base
+    // format; only the content splits into escapes. Raw, f-string and
+    // template bodies are left whole.
+    private void addStringSegment(String text, int offset, int closeLen) {
+        final int contentBegin = begin + openLen;
+        final int contentEnd = offset - closeLen;
+        if ((literalPrefix & (PYTHON_PREFIX_RAW | PYTHON_PREFIX_FSTRING
+                | PYTHON_PREFIX_TEMPLATE)) != 0
+                || contentEnd <= contentBegin) {
+            addSegment(text, begin, offset, PYTHON_FORMAT_STRING);
+            return;
+        }
+        final Escapes.Syntax syntax =
+            literalPrefix == PYTHON_PREFIX_BYTES ? Escapes.Syntax.PYTHON_BYTES : Escapes.Syntax.PYTHON;
+        final List<Escapes.Span> spans = Escapes.scan(text, contentBegin, contentEnd,
+                syntax, lineEndContinues && closeLen == 0);
+        if (spans.isEmpty()) {
+            addSegment(text, begin, offset, PYTHON_FORMAT_STRING);
+            return;
+        }
+        if (contentBegin > begin)
+            addSegment(text, begin, contentBegin, PYTHON_FORMAT_STRING);
+        addEscapedSegment(text, contentBegin, contentEnd, spans,
+                PYTHON_FORMAT_STRING, PYTHON_FORMAT_ESCAPE, PYTHON_FORMAT_ESCAPE_ERROR);
+        if (offset > contentEnd)
+            addSegment(text, contentEnd, offset, PYTHON_FORMAT_STRING);
+    }
+
     private void parseLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())
@@ -267,7 +323,13 @@ public final class PythonFormatter extends Formatter {
         else
             text = Utilities.detab(line.getText(), buffer.getTabWidth());
         begin = 0;
-        int state = line.flags();
+        // A line that enters inside a literal has no opening delimiter
+        // of its own: the whole line is content.
+        openLen = 0;
+        closingLen = 0;
+        int state = line.flags() & PYTHON_STATE_MASK;
+        literalPrefix = line.flags() & ~PYTHON_STATE_MASK;
+        lineEndContinues = line.next() != null;
         int i = 0;
         final int limit = text.length();
 
@@ -291,6 +353,7 @@ public final class PythonFormatter extends Formatter {
 
             if (state == PYTHON_STATE_SINGLE_QUOTE) {
                 if (c == '\'') {
+                    closingLen = 1;
                     endSegment(text, i + 1, state);
                     state = PYTHON_STATE_NEUTRAL;
                 }
@@ -300,6 +363,7 @@ public final class PythonFormatter extends Formatter {
 
             if (state == PYTHON_STATE_DOUBLE_QUOTE) {
                 if (c == '"') {
+                    closingLen = 1;
                     endSegment(text, i + 1, state);
                     state = PYTHON_STATE_NEUTRAL;
                 }
@@ -309,6 +373,7 @@ public final class PythonFormatter extends Formatter {
 
             if (state == PYTHON_STATE_TRIPLE_SINGLE) {
                 if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
+                    closingLen = 3;
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
@@ -324,6 +389,7 @@ public final class PythonFormatter extends Formatter {
 
             if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
                 if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
+                    closingLen = 3;
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
@@ -340,10 +406,13 @@ public final class PythonFormatter extends Formatter {
             // Reaching here, we're not in a quoted string.
             if (c == '\'') {
                 endSegment(text, i, state);
+                literalPrefix = prefixAt(text, i);
                 if (text.regionMatches(i, "'''", 0, 3)) {
+                    openLen = 3;
                     state = PYTHON_STATE_TRIPLE_SINGLE;
                     i += 3;
                 } else {
+                    openLen = 1;
                     state = PYTHON_STATE_SINGLE_QUOTE;
                     ++i;
                 }
@@ -352,10 +421,13 @@ public final class PythonFormatter extends Formatter {
 
             if (c == '"') {
                 endSegment(text, i, state);
+                literalPrefix = prefixAt(text, i);
                 if (text.regionMatches(i, "\"\"\"", 0, 3)) {
+                    openLen = 3;
                     state = PYTHON_STATE_TRIPLE_DOUBLE;
                     i += 3;
                 } else {
+                    openLen = 1;
                     state = PYTHON_STATE_DOUBLE_QUOTE;
                     ++i;
                 }
@@ -500,11 +572,12 @@ public final class PythonFormatter extends Formatter {
     @Override
     public boolean parseBuffer() {
         int state = PYTHON_STATE_NEUTRAL;
+        int prefix = 0;
         Line line = buffer.getFirstLine();
         boolean changed = false;
         while (line != null) {
-            if (state != line.flags()) {
-                line.setFlags(state);
+            if ((state | prefix) != line.flags()) {
+                line.setFlags(state | prefix);
                 changed = true;
             }
             final String text = line.getText();
@@ -518,20 +591,25 @@ public final class PythonFormatter extends Formatter {
                     continue;
                 }
                 if (state == PYTHON_STATE_SINGLE_QUOTE) {
-                    if (c == '\'')
+                    if (c == '\'') {
                         state = PYTHON_STATE_NEUTRAL;
+                        prefix = 0;
+                    }
                     ++i;
                     continue;
                 }
                 if (state == PYTHON_STATE_DOUBLE_QUOTE) {
-                    if (c == '"')
+                    if (c == '"') {
                         state = PYTHON_STATE_NEUTRAL;
+                        prefix = 0;
+                    }
                     ++i;
                     continue;
                 }
                 if (state == PYTHON_STATE_TRIPLE_SINGLE) {
                     if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
                         state = PYTHON_STATE_NEUTRAL;
+                        prefix = 0;
                         i += 3;
                     } else
                         ++i;
@@ -540,6 +618,7 @@ public final class PythonFormatter extends Formatter {
                 if (state == PYTHON_STATE_TRIPLE_DOUBLE) {
                     if (c == '"' && text.regionMatches(i, "\"\"\"", 0, 3)) {
                         state = PYTHON_STATE_NEUTRAL;
+                        prefix = 0;
                         i += 3;
                     } else
                         ++i;
@@ -547,6 +626,7 @@ public final class PythonFormatter extends Formatter {
                 }
                 // Not in quoted string.
                 if (c == '\'') {
+                    prefix = prefixAt(text, i);
                     if (text.regionMatches(i, "'''", 0, 3)) {
                         state = PYTHON_STATE_TRIPLE_SINGLE;
                         i += 3;
@@ -557,6 +637,7 @@ public final class PythonFormatter extends Formatter {
                     continue;
                 }
                 if (c == '"') {
+                    prefix = prefixAt(text, i);
                     if (text.regionMatches(i, "\"\"\"", 0, 3)) {
                         state = PYTHON_STATE_TRIPLE_DOUBLE;
                         i += 3;
@@ -580,6 +661,31 @@ public final class PythonFormatter extends Formatter {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
+    // The string prefix immediately before the quote at `quote`. Only
+    // the exact spellings count: a longer name (bar"x") is ordinary.
+    // `u` has no effect, so it is not listed.
+    private static final Set<String> RAW_PREFIXES =
+        Set.of("r", "br", "rb", "fr", "rf");
+    private static final Set<String> BYTES_PREFIXES = Set.of("b", "br", "rb");
+    private static final Set<String> FSTRING_PREFIXES = Set.of("f", "fr", "rf");
+    private static final Set<String> TEMPLATE_PREFIXES = Set.of("t", "tr", "rt");
+
+    private static int prefixAt(String text, int quote) {
+        int j = quote;
+        while (j > 0 && mode.isIdentifierPart(text.charAt(j - 1)))
+            --j;
+        final String p = text.substring(j, quote).toLowerCase();
+        if (FSTRING_PREFIXES.contains(p))
+            return PYTHON_PREFIX_FSTRING;
+        if (TEMPLATE_PREFIXES.contains(p))
+            return PYTHON_PREFIX_TEMPLATE;
+        if (RAW_PREFIXES.contains(p))
+            return PYTHON_PREFIX_RAW;
+        if (BYTES_PREFIXES.contains(p))
+            return PYTHON_PREFIX_BYTES;
+        return 0;
+    }
+
     @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
@@ -593,6 +699,8 @@ public final class PythonFormatter extends Formatter {
             formatTable.addEntryFromPrefs(PYTHON_FORMAT_OPERATOR, "operator");
             formatTable.addEntryFromPrefs(PYTHON_FORMAT_BRACE, "brace");
             formatTable.addEntryFromPrefs(PYTHON_FORMAT_NUMBER, "number");
+            formatTable.addEntryFromPrefs(PYTHON_FORMAT_ESCAPE, "escape");
+            formatTable.addEntryFromPrefs(PYTHON_FORMAT_ESCAPE_ERROR, "escapeError");
         }
         return formatTable;
     }

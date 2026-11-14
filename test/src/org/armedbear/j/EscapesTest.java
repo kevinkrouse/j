@@ -223,6 +223,73 @@ public class EscapesTest {
         assertEquals("O(\\)", spans(s(String.valueOf(B)), JAVASCRIPT, true));
     }
 
+    // --- Python -------------------------------------------------------
+
+    @Test
+    public void pythonSimpleEscapes() {
+        assertEquals("O(\\a) O(\\b) O(\\f) O(\\n) O(\\r) O(\\t) O(\\v) O(\\\\) O(\\') O(\\\")",
+            spans(s(B + "a", B + "b", B + "f", B + "n", B + "r", B + "t", B + "v",
+                  B + "\\", B + "'", B + "\""), PYTHON));
+    }
+
+    @Test
+    public void pythonOctalAllowsAnyFirstDigit() {
+        assertEquals("O(\\400)", spans(s(B + "400"), PYTHON));
+        assertEquals("O(\\377)", spans(s(B + "377"), PYTHON));
+        // Three digits max: \1234 is \123 plus a plain 4.
+        assertEquals("O(\\123)", spans(s(B + "1234"), PYTHON));
+    }
+
+    @Test
+    public void pythonHexNeedsTwoDigits() {
+        assertEquals("O(\\x41)", spans(s(B + "x41"), PYTHON));
+        assertEquals("E(\\x4)", spans(s(B + "x4"), PYTHON));
+        assertEquals("E(\\x)", spans(s(B + "x"), PYTHON));
+    }
+
+    @Test
+    public void pythonUnicodeForms() {
+        assertEquals("O(\\u0041)", spans(s(B + "u0041"), PYTHON));
+        assertEquals("O(\\U0010FFFF)", spans(s(B + "U0010FFFF"), PYTHON));
+        assertEquals("E(\\u12)", spans(s(B + "u12"), PYTHON));
+    }
+
+    @Test
+    public void pythonNamedUnicode() {
+        assertEquals("O(\\N{BULLET})", spans(s(B + "N{BULLET}"), PYTHON));
+        // Empty braces, no brace, or no closer are errors.
+        assertEquals("E(\\N{})", spans(s(B + "N{}"), PYTHON));
+        assertEquals("E(\\N)", spans(s(B + "Nq"), PYTHON));
+        assertEquals("E(\\N{BUL)", spans(s(B + "N{BUL"), PYTHON));
+    }
+
+    @Test
+    public void pythonNamedEscapeStopsAtBackslash() {
+        // The unclosed candidate stops at the next backslash; the
+        // following escape is still recognized, not swallowed.
+        assertEquals("E(\\N{unfinished) O(\\n)",
+                spans(s(B + "N{unfinished", B + "n"), PYTHON));
+    }
+
+    @Test
+    public void pythonBytesExcludeUnicode() {
+        assertEquals("O(\\x41)", spans(s(B + "x41"), PYTHON_BYTES));
+        // The backslash-u introducer is an error; the digits stay plain.
+        assertEquals("E(\\u)", spans(s(B + "u0041"), PYTHON_BYTES));
+        assertEquals("E(\\N)", spans(s(B + "N{BULLET}"), PYTHON_BYTES));
+    }
+
+    @Test
+    public void pythonUnknownIsError() {
+        assertEquals("E(\\q)", spans(s(B + "q"), PYTHON));
+    }
+
+    @Test
+    public void pythonTrailingBackslash() {
+        assertEquals("E(\\)", spans(s(String.valueOf(B)), PYTHON));
+        assertEquals("O(\\)", spans(s(String.valueOf(B)), PYTHON, true));
+    }
+
     // --- shared invariants --------------------------------------------
 
     @Test

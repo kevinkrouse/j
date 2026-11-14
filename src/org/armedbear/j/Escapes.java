@@ -68,7 +68,11 @@ public final class Escapes {
         /** C, C++ and Objective-C ordinary literals: classic forms plus \e. */
         C,
         /** JavaScript quoted strings: permissive identity escapes. */
-        JAVASCRIPT
+        JAVASCRIPT,
+        /** Python ordinary strings: strict; unknown is an error. */
+        PYTHON,
+        /** Python bytes literals: PYTHON without the Unicode forms. */
+        PYTHON_BYTES
     }
 
     private Escapes() {
@@ -127,6 +131,10 @@ public final class Escapes {
                 return scanC(text, i, end, continued);
             case JAVASCRIPT:
                 return scanJavaScript(text, i, end, continued);
+            case PYTHON:
+                return scanPython(text, i, end, continued, true);
+            case PYTHON_BYTES:
+                return scanPython(text, i, end, continued, false);
         }
         return Result.NONE;
     }
@@ -261,6 +269,55 @@ public final class Escapes {
             ++j;
             return digits >= 1 ? escape(j) : error(j);
         }
+        return error(j);
+    }
+
+    // --- Python --------------------------------------------------------
+
+    private static boolean pythonSimpleEscape(char c) {
+        return "abfnrtv\\'\"".indexOf(c) >= 0;
+    }
+
+    // `unicode` is false for bytes literals, which lack the backslash-u
+    // forms.
+    private static Result scanPython(CharSequence text, int i, int end,
+                                   boolean continued, boolean unicode) {
+        if (i + 1 >= end)
+            return continued ? escape(i + 1) : error(i + 1);
+        final char c = text.charAt(i + 1);
+        if (pythonSimpleEscape(c))
+            return escape(i + 2);
+        if (c >= '0' && c <= '7') {
+            // Up to three octal digits, any first digit: \400 is one
+            // escape, unlike Java.
+            int j = i + 2;
+            while (j < end && isOctal(text.charAt(j)) && j - (i + 1) < 3)
+                ++j;
+            return escape(j);
+        }
+        if (c == 'x')
+            return scanFixedHex(text, i, end, 2);
+        if (unicode && c == 'u')
+            return scanFixedHex(text, i, end, 4);
+        if (unicode && c == 'U')
+            return scanFixedHex(text, i, end, 8);
+        if (unicode && c == 'N')
+            return scanPythonNamed(text, i, end);
+        // Unknown: Python warns about these; suspicious here.
+        return error(consumeCodePoint(text, i, end));
+    }
+
+    // \N{NAME}: the braces must be present and nonempty. An unclosed
+    // candidate stops at the next backslash so a following escape is
+    // still recognized, and is consumed once.
+    private static Result scanPythonNamed(CharSequence text, int i, int end) {
+        if (i + 2 >= end || text.charAt(i + 2) != '{')
+            return error(i + 2);
+        int j = i + 3;
+        while (j < end && text.charAt(j) != '}' && text.charAt(j) != '\\')
+            ++j;
+        if (j < end && text.charAt(j) == '}')
+            return j > i + 3 ? escape(j + 1) : error(j + 1);
         return error(j);
     }
 
