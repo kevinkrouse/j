@@ -119,4 +119,35 @@ public class XmlReferenceTest {
     public void noAmpersandLeavesTextWhole() {
         assertEquals("plain text", runs("plain text"));
     }
+
+    @Test
+    public void bracketInQuotedSystemIdDoesNotOpenSubset() {
+        // A '[' inside a quoted system identifier is literal text, not
+        // the internal-subset opener; references after it still color.
+        assertEquals("delimiter(<!)tag(DOCTYPE) a SYSTEM "
+                + "string(\"http://[::1]/root.dtd\")> delimiter(<)tag(p)"
+                + "delimiter(>)escape(&amp;)delimiter(</)tag(p)delimiter(>)",
+            runs("<!DOCTYPE a SYSTEM \"http://[::1]/root.dtd\"> <p>&amp;</p>"));
+    }
+
+    @Test
+    public void piWithGtInContentStillTerminates() {
+        // `>` is ordinary PI content; only `?>` ends the PI, so the
+        // reference after it is character data again.
+        assertEquals("delimiter(<?)tag(pi)attribute( x>y)delimiter(?>) "
+                + "delimiter(<)tag(root)delimiter(>)escape(&amp;)"
+                + "delimiter(</)tag(root)delimiter(>)",
+            runs("<?pi x>y?> <root>&amp;</root>"));
+    }
+
+    @Test
+    public void multilinePiTerminatesOnLaterLine() {
+        // The PI's `>` ends the tag on the first line; the `?>` on the
+        // next line still ends the suppression, so the reference after
+        // it colors.
+        assertEquals("delimiter(<?)tag(pi)attribute( x>)\\ny"
+                + "delimiter(?>) delimiter(<)tag(p)delimiter(>)escape(&amp;)"
+                + "delimiter(</)tag(p)delimiter(>)",
+            runs("<?pi x>\ny?> <p>&amp;</p>\n").replace("\n", "\\n"));
+    }
 }

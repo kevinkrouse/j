@@ -153,14 +153,22 @@ public final class XmlFormatter extends Formatter {
     // in [scanBegin, scanEnd) colored escape or escapeError. A scan range
     // with no ampersand leaves the token whole.
     private void addReferences(int emitBegin, int emitEnd, int scanBegin, int scanEnd, int base) {
-        final int amp = text.indexOf('&', scanBegin);
-        if (amp < 0 || amp >= scanEnd) {
+        // Bound the precheck to the token: scanning the whole remaining
+        // line for every token is quadratic on reference-free documents.
+        if (!hasAmpersand(text, scanBegin, scanEnd)) {
             addSegment(text, emitBegin, emitEnd, base);
             return;
         }
         addEscapedSegment(text, emitBegin, emitEnd,
             Escapes.scanReferences(text, scanBegin, scanEnd, Escapes.Reference.XML),
             base, XML_FORMAT_ESCAPE, XML_FORMAT_ESCAPE_ERROR);
+    }
+
+    private static boolean hasAmpersand(String s, int from, int to) {
+        for (int i = from; i < to; i++)
+            if (s.charAt(i) == '&')
+                return true;
+        return false;
     }
 
     @Override
@@ -214,7 +222,9 @@ public final class XmlFormatter extends Formatter {
                 continue;
             }
             if (isDoctypeState(state)) {
-                if (c == '[')
+                // Only an unquoted '[' opens the internal subset. A '['
+                // inside a quoted system identifier is literal text.
+                if (c == '[' && state == STATE_DOCTYPE)
                     suppressed |= XML_DTD;
                 final int nextState = doctypeStateAfter(state, c);
                 if (nextState != state && state == STATE_DOCTYPE)
@@ -229,15 +239,38 @@ public final class XmlFormatter extends Formatter {
             // The closer of a suppressed DOCTYPE subset ends the
             // suppression for the rest of the line. Flush the text
             // accumulated before the closer while still suppressed, so a
-            // reference in the same token is not picked up. The `?>`
-            // closer of a PI is handled in the tag branches below, which
-            // flush as non-reference formats and clear the flag there.
+            // reference in the same token is not picked up.
             if ((suppressed & XML_DTD) != 0 && (suppressed & XML_PI) == 0
                     && c == ']'
                     && state != STATE_QUOTE && state != STATE_SINGLEQUOTE
                     && text.regionMatches(i, "]>", 0, 2)) {
                 endToken(state);
                 suppressed &= ~XML_DTD;
+            }
+            // While a processing instruction is open, `>` is ordinary
+            // content and only `?>` ends it. A PI that spans lines
+            // re-enters in NEUTRAL state (the `>` of a prior line ended
+            // the tag), where the tag branches below never see the
+            // terminator. Recognize `?>` here so the suppression ends
+            // with the PI instead of leaking over the rest of the
+            // document. A bare `>` stays content, keeping the tag state
+            // so the `?>` handlers below remain reachable.
+            if ((suppressed & XML_PI) != 0
+                    && state != STATE_QUOTE && state != STATE_SINGLEQUOTE) {
+                if (state == STATE_NEUTRAL && c == '?'
+                        && text.regionMatches(i, "?>", 0, 2)) {
+                    endToken(state);
+                    suppressed &= ~XML_PI;
+                    sb.append("?>");
+                    endToken(STATE_TAG_ENDING);
+                    i += 2;
+                    continue;
+                }
+                if (c == '>') {
+                    sb.append(c);
+                    ++i;
+                    continue;
+                }
             }
             if (state == STATE_TAG_STARTING) {
                 if (c == '/' || c == '?') {
@@ -514,7 +547,8 @@ public final class XmlFormatter extends Formatter {
                         marker &= ~XML_PI;
                 }
                 if (isDoctypeState(state)) {
-                    if (c == '[')
+                    // Only an unquoted '[' opens the internal subset.
+                    if (c == '[' && state == STATE_DOCTYPE)
                         marker |= XML_DTD;
                     state = doctypeStateAfter(state, c);
                     continue;
