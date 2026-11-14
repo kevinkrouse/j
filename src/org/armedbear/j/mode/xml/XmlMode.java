@@ -230,13 +230,15 @@ public final class XmlMode extends AbstractMode implements Mode {
 
     @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
-        if (line.flags() == STATE_TAG || line.flags() == XmlFormatter.STATE_ATTRIBUTE)
+        final int flags = line.flags() & XmlFormatter.XML_STATE_MASK;
+        if (flags == STATE_TAG || flags == XmlFormatter.STATE_ATTRIBUTE)
             return getAttributeIndentation(line, buffer);
         final Line model = getModel(line);
         if (model == null)
             return 0;
+        final int modelFlags = model.flags() & XmlFormatter.XML_STATE_MASK;
         int indent = buffer.getIndentation(model);
-        if (line.flags() == STATE_QUOTE && model.flags() != STATE_QUOTE)
+        if (flags == STATE_QUOTE && modelFlags != STATE_QUOTE)
             return indent + buffer.getIndentSize();
         final String text = line.trim();
         if (text.startsWith("</")) {
@@ -246,7 +248,7 @@ public final class XmlMode extends AbstractMode implements Mode {
             indent -= buffer.getIndentSize();
             return indent < 0 ? 0 : indent;
         }
-        if (isInTagState(model.flags()))
+        if (isInTagState(modelFlags))
             return getIndentationAfterTag(model, buffer, indent);
         final String modelText = model.trim();
         if (modelText.startsWith("<") && !modelText.startsWith("</") && !modelText.startsWith("<!")) {
@@ -338,6 +340,7 @@ public final class XmlMode extends AbstractMode implements Mode {
 
     // Inside a tag, a quoted value included.
     private static boolean isInTagState(int flags) {
+        flags &= XmlFormatter.XML_STATE_MASK;
         return flags == STATE_TAG
                 || flags == XmlFormatter.STATE_ATTRIBUTE
                 || flags == STATE_QUOTE
@@ -497,7 +500,7 @@ public final class XmlMode extends AbstractMode implements Mode {
     private static Line getModel(Line line) {
         Line model = line;
         while ((model = model.previous()) != null) {
-            int flags = model.flags();
+            final int flags = model.flags() & XmlFormatter.XML_STATE_MASK;
             if (flags == STATE_COMMENT || flags == STATE_QUOTE)
                 continue;
             else if (model.trim().startsWith(COMMENT_START))

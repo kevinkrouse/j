@@ -41,7 +41,7 @@ public final class XmlPairMatcher extends BracketPairMatcher {
             Set.of(),
             Set.of(),
             STATE_COMMENT,
-            flags -> flags == STATE_TAG
+            flags -> (flags &= XmlFormatter.XML_STATE_MASK) == STATE_TAG
                     || flags == XmlFormatter.STATE_ATTRIBUTE
                     || flags == STATE_QUOTE
                     || flags == STATE_SINGLEQUOTE);
@@ -176,7 +176,7 @@ public final class XmlPairMatcher extends BracketPairMatcher {
             return depth;
         final int limit = text.length();
         int i = 0;
-        final int flags = line.flags();
+        final int flags = line.flags() & XmlFormatter.XML_STATE_MASK;
         if (flags == commentState)
             i = skipPast(text, 0, COMMENT_END);
         else if (!html && flags == STATE_CDATA)
@@ -534,7 +534,7 @@ public final class XmlPairMatcher extends BracketPairMatcher {
     /** Whether position is inside a comment, from its line's start and flags. */
     boolean isInComment(Position position) {
         final Position pos = position.copy();
-        boolean inComment = pos.getLine().flags() == commentState;
+        boolean inComment = (pos.getLine().flags() & XmlFormatter.XML_STATE_MASK) == commentState;
         pos.setOffset(0);
         final int limit = position.getOffset();
         while (pos.getOffset() < limit) {
@@ -561,7 +561,7 @@ public final class XmlPairMatcher extends BracketPairMatcher {
         if (html)
             return false;
         final Position pos = position.copy();
-        boolean inCDataSection = pos.getLine().flags() == STATE_CDATA;
+        boolean inCDataSection = (pos.getLine().flags() & XmlFormatter.XML_STATE_MASK) == STATE_CDATA;
         pos.setOffset(0);
         final int limit = position.getOffset();
         while (pos.getOffset() < limit) {

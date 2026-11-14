@@ -362,4 +362,139 @@ public final class Escapes {
     private static boolean isOctal(char c) {
         return c >= '0' && c <= '7';
     }
+
+    // --- XML and HTML references -------------------------------------
+
+    /** The reference dialect: XML is strict; HTML keeps legacy plain forms. */
+    public enum Reference {
+        XML,
+        HTML
+    }
+
+    /**
+     * The character-reference spans in {@code text} from {@code begin}
+     * up to but not including {@code end}. A backslash has no meaning
+     * here; only {@code &} introduces a reference.
+     */
+    public static List<Span> scanReferences(CharSequence text, int begin, int end, Reference syntax) {
+        final List<Span> spans = new ArrayList<>();
+        int i = begin;
+        while (i < end) {
+            if (text.charAt(i) == '&') {
+                final Result r = syntax == Reference.XML
+                    ? scanXmlReference(text, i, end)
+                    : scanHtmlReference(text, i, end);
+                if (r.stop > i) {
+                    spans.add(new Span(i, r.stop, r.error));
+                    i = r.stop;
+                    continue;
+                }
+            }
+            ++i;
+        }
+        return spans;
+    }
+
+    // XML: &Name;, &#dec;, &#xhex;. Any other ampersand is an error.
+    private static Result scanXmlReference(CharSequence text, int i, int end) {
+        if (i + 1 >= end)
+            return error(i + 1);
+        final char c = text.charAt(i + 1);
+        if (c == '#') {
+            int j = i + 2;
+            final boolean hex = j < end && text.charAt(j) == 'x';
+            if (hex)
+                ++j;
+            final int digits = j;
+            while (j < end && (hex ? isHex(text.charAt(j)) : isDecimal(text.charAt(j))))
+                ++j;
+            if (j > digits && j < end && text.charAt(j) == ';')
+                return escape(j + 1);
+            return error(candidateEnd(text, j, end));
+        }
+        final int cp = Character.codePointAt(text, i + 1);
+        if (isXmlNameStart(cp)) {
+            int j = i + 1 + Character.charCount(cp);
+            while (j < end) {
+                final int nc = Character.codePointAt(text, j);
+                if (!isXmlNameChar(nc))
+                    break;
+                j += Character.charCount(nc);
+            }
+            if (j < end && text.charAt(j) == ';')
+                return escape(j + 1);
+            return error(candidateEnd(text, j, end));
+        }
+        // Not a name start: a bare ampersand, or a malformed candidate
+        // such as &123;. Either way the candidate runs to its semicolon.
+        return error(candidateEnd(text, i + 1, end));
+    }
+
+    // HTML: complete named and numeric references are escapes; a
+    // semicolonless named candidate and a bare ampersand stay plain.
+    private static Result scanHtmlReference(CharSequence text, int i, int end) {
+        if (i + 1 >= end)
+            return Result.NONE;
+        final char c = text.charAt(i + 1);
+        if (c == '#') {
+            int j = i + 2;
+            final boolean hex = j < end && (text.charAt(j) == 'x' || text.charAt(j) == 'X');
+            if (hex)
+                ++j;
+            final int digits = j;
+            while (j < end && (hex ? isHex(text.charAt(j)) : isDecimal(text.charAt(j))))
+                ++j;
+            if (j > digits && j < end && text.charAt(j) == ';')
+                return escape(j + 1);
+            return error(candidateEnd(text, j, end));
+        }
+        if (isAsciiAlnum(c)) {
+            int j = i + 1;
+            while (j < end && isAsciiAlnum(text.charAt(j)))
+                ++j;
+            return j < end && text.charAt(j) == ';' ? escape(j + 1) : Result.NONE;
+        }
+        return Result.NONE;
+    }
+
+    // A malformed candidate runs to its semicolon if one comes before a
+    // hard stop: whitespace, a tag or ampersand, a quote, or the end.
+    private static int candidateEnd(CharSequence text, int j, int end) {
+        while (j < end && !isCandidateStop(text.charAt(j)))
+            ++j;
+        return j < end && text.charAt(j) == ';' ? j + 1 : j;
+    }
+
+    private static boolean isCandidateStop(char c) {
+        return Character.isWhitespace(c) || c == '<' || c == '&' || c == '"' || c == '\'' || c == ';';
+    }
+
+    private static boolean isDecimal(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    private static boolean isAsciiAlnum(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    }
+
+    // XML 1.0 NameStartChar: colon, underscore, ASCII letters, and the
+    // non-ASCII ranges, including supplementary code points.
+    private static boolean isXmlNameStart(int cp) {
+        if (cp == ':' || cp == '_' || (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z'))
+            return true;
+        return (cp >= 0xC0 && cp <= 0xD6) || (cp >= 0xD8 && cp <= 0xF6)
+            || (cp >= 0xF8 && cp <= 0x2FF) || (cp >= 0x370 && cp <= 0x37D)
+            || (cp >= 0x37F && cp <= 0x1FFF) || (cp >= 0x200C && cp <= 0x200D)
+            || (cp >= 0x2070 && cp <= 0x218F) || (cp >= 0x2C00 && cp <= 0x2FEF)
+            || (cp >= 0x3001 && cp <= 0xD7FF) || (cp >= 0xF900 && cp <= 0xFDCF)
+            || (cp >= 0xFDF0 && cp <= 0xFFFD) || (cp >= 0x10000 && cp <= 0xEFFFF);
+    }
+
+    // NameChar: NameStartChar plus digits, hyphen, dot, and the combining
+    // and connector ranges.
+    private static boolean isXmlNameChar(int cp) {
+        return isXmlNameStart(cp) || cp == '-' || cp == '.' || (cp >= '0' && cp <= '9')
+            || cp == 0xB7 || (cp >= 0x300 && cp <= 0x36F)
+            || (cp >= 0x203F && cp <= 0x2040);
+    }
 }

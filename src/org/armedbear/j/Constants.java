@@ -245,6 +245,10 @@ public interface Constants {
     int RESPONSE_CANCEL = 4;
 
     // States for Formatter.parseBuffer(). May be stored in the line flags.
+    // The base state occupies the low byte; a mode may keep extra markers
+    // in the high bits (a Python string prefix, an XML suppression
+    // context). Read the base state with `flags() & STATE_MASK`.
+    int STATE_MASK = 0xff;
     int STATE_NEUTRAL = 0;
     int STATE_COMMENT = 1;
     int STATE_QUOTE = 2;

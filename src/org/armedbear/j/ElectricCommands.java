@@ -77,7 +77,7 @@ public final class ElectricCommands {
         if (!editor.checkReadOnly())
             return;
         if (editor.getMark() != null
-                || editor.getDotLine().flags() == STATE_COMMENT
+                || (editor.getDotLine().flags() & STATE_MASK) == STATE_COMMENT
                 || editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())) {
             EditCommands.insertNormalChar(editor, ';');
         } else {
@@ -115,7 +115,7 @@ public final class ElectricCommands {
             EditCommands.insertNormalChar(editor, ':');
             return;
         }
-        if (dotLine.flags() == STATE_COMMENT || editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())) {
+        if ((dotLine.flags() & STATE_MASK) == STATE_COMMENT || editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())) {
             EditCommands.insertNormalChar(editor, ':');
             return;
         }

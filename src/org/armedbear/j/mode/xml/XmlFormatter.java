@@ -24,6 +24,7 @@ package org.armedbear.j.mode.xml;
 import static org.armedbear.j.Constants.*;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Escapes;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.LexicalContext;
@@ -43,6 +44,15 @@ public final class XmlFormatter extends Formatter {
     private static final byte XML_FORMAT_EQUALS = 6;
     static final byte XML_FORMAT_QUOTE = 7;
     private static final byte XML_FORMAT_CDATA = 8;
+    private static final byte XML_FORMAT_ESCAPE = 9;
+    private static final byte XML_FORMAT_ESCAPE_ERROR = 10;
+
+    // The carried markup state is the low byte; the high bits mark a line
+    // that starts inside a construct whose text takes no references: a
+    // processing instruction or a DOCTYPE internal subset.
+    static final int XML_STATE_MASK = 0xff;
+    private static final int XML_PI = 0x100;
+    private static final int XML_DTD = 0x200;
 
     private static final byte STATE_NAMESPACE = STATE_LAST + 1;
     private static final byte STATE_TAG_STARTING = STATE_LAST + 2;
@@ -56,12 +66,26 @@ public final class XmlFormatter extends Formatter {
 
     private StringBuilder sb = new StringBuilder();
 
+    // The line being formatted, and how much of it the segments so far
+    // cover. Tokens are emitted in order and together span the line, so
+    // this is where the next one begins.
+    private String text = "";
+    private int emitted = 0;
+
+    // Nonzero while the token being built is inside a construct that
+    // takes no references: a DOCTYPE internal subset or a processing
+    // instruction.
+    private int suppressed = 0;
+
     public XmlFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private void endToken(int state) {
         if (sb.length() > 0) {
+            final int begin = emitted;
+            final int end = begin + sb.length();
+            emitted = end;
             byte format;
             switch (state) {
                 case STATE_COMMENT:
@@ -97,9 +121,46 @@ public final class XmlFormatter extends Formatter {
                     format = XML_FORMAT_TEXT;
                     break;
             }
-            addSegment(sb.toString(), format);
+            // Only character data and attribute values take references.
+            // Comments, CDATA, processing instructions and DOCTYPE
+            // contents are skipped: a DOCTYPE's text is declaration, not
+            // character data, even though it shares the text format.
+            if (suppressed != 0)
+                addSegment(text, begin, end, format);
+            else if (state == STATE_NEUTRAL)
+                addReferences(begin, end, begin, end, format);
+            else if (state == STATE_QUOTE || state == STATE_SINGLEQUOTE) {
+                // The quotes keep the base format; only the value splits.
+                // A token that opens on this line starts with its quote;
+                // one carried from the previous line starts with content.
+                final char first = sb.charAt(0);
+                final char last = sb.charAt(sb.length() - 1);
+                final boolean opensHere = first == '"' || first == '\'';
+                final boolean closesHere = (last == '"' || last == '\'')
+                        && !(opensHere && sb.length() == 1);
+                addReferences(begin, end,
+                        opensHere ? begin + 1 : begin,
+                        closesHere ? end - 1 : end,
+                        format);
+            }
+            else
+                addSegment(text, begin, end, format);
             sb.setLength(0);
         }
+    }
+
+    // The token [emitBegin, emitEnd) in base format, with the references
+    // in [scanBegin, scanEnd) colored escape or escapeError. A scan range
+    // with no ampersand leaves the token whole.
+    private void addReferences(int emitBegin, int emitEnd, int scanBegin, int scanEnd, int base) {
+        final int amp = text.indexOf('&', scanBegin);
+        if (amp < 0 || amp >= scanEnd) {
+            addSegment(text, emitBegin, emitEnd, base);
+            return;
+        }
+        addEscapedSegment(text, emitBegin, emitEnd,
+            Escapes.scanReferences(text, scanBegin, scanEnd, Escapes.Reference.XML),
+            base, XML_FORMAT_ESCAPE, XML_FORMAT_ESCAPE_ERROR);
     }
 
     @Override
@@ -113,8 +174,11 @@ public final class XmlFormatter extends Formatter {
     }
 
     private void parseLine(Line line) {
-        final String text = getDetabbedText(line);
-        int state = line.flags();
+        text = getDetabbedText(line);
+        emitted = 0;
+        final int flags = line.flags();
+        int state = flags & XML_STATE_MASK;
+        suppressed = flags & ~XML_STATE_MASK;
         sb.setLength(0);
         int i = 0;
         final int limit = text.length();
@@ -150,6 +214,8 @@ public final class XmlFormatter extends Formatter {
                 continue;
             }
             if (isDoctypeState(state)) {
+                if (c == '[')
+                    suppressed |= XML_DTD;
                 final int nextState = doctypeStateAfter(state, c);
                 if (nextState != state && state == STATE_DOCTYPE)
                     endToken(state);
@@ -160,8 +226,23 @@ public final class XmlFormatter extends Formatter {
                 ++i;
                 continue;
             }
+            // The closer of a suppressed DOCTYPE subset ends the
+            // suppression for the rest of the line. Flush the text
+            // accumulated before the closer while still suppressed, so a
+            // reference in the same token is not picked up. The `?>`
+            // closer of a PI is handled in the tag branches below, which
+            // flush as non-reference formats and clear the flag there.
+            if ((suppressed & XML_DTD) != 0 && (suppressed & XML_PI) == 0
+                    && c == ']'
+                    && state != STATE_QUOTE && state != STATE_SINGLEQUOTE
+                    && text.regionMatches(i, "]>", 0, 2)) {
+                endToken(state);
+                suppressed &= ~XML_DTD;
+            }
             if (state == STATE_TAG_STARTING) {
                 if (c == '/' || c == '?') {
+                    if (c == '?')
+                        suppressed |= XML_PI;
                     sb.append(c);
                     endToken(state);
                     state = STATE_NAMESPACE;
@@ -217,6 +298,7 @@ public final class XmlFormatter extends Formatter {
                     sb.append("?>");
                     endToken(state);
                     state = STATE_NEUTRAL;
+                    suppressed &= ~XML_PI;
                     i += 2;
                     continue;
                 }
@@ -258,6 +340,7 @@ public final class XmlFormatter extends Formatter {
                     sb.append("?>");
                     endToken(state);
                     state = STATE_NEUTRAL;
+                    suppressed &= ~XML_PI;
                     i += 2;
                     continue;
                 }
@@ -293,6 +376,7 @@ public final class XmlFormatter extends Formatter {
                     sb.append("?>");
                     endToken(state);
                     state = STATE_NEUTRAL;
+                    suppressed &= ~XML_PI;
                     i += 2;
                     continue;
                 }
@@ -376,13 +460,14 @@ public final class XmlFormatter extends Formatter {
     @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
+        int marker = 0;
         Line line = buffer.getFirstLine();
         Position pos = new Position(line, 0);
         boolean changed = false;
         while (line != null) {
             int oldflags = line.flags();
-            if (state != oldflags) {
-                line.setFlags(state);
+            if ((state | marker) != oldflags) {
+                line.setFlags(state | marker);
                 changed = true;
             }
             final int limit = line.length();
@@ -410,7 +495,27 @@ public final class XmlFormatter extends Formatter {
                     }
                     continue;
                 }
+                // A DOCTYPE internal subset or a processing instruction
+                // carries a marker that suppresses references on its
+                // lines, while its inner markup still colors as tags.
+                // The marker is a bitmask: a PI inside a subset sets
+                // both bits, and each closer clears only its own.
+                if ((marker & XML_DTD) != 0 && (marker & XML_PI) == 0
+                        && c == ']'
+                        && state != STATE_QUOTE && state != STATE_SINGLEQUOTE) {
+                    pos.moveTo(line, i);
+                    if (pos.lookingAt("]>"))
+                        marker &= ~XML_DTD;
+                }
+                if ((marker & XML_PI) != 0 && c == '?'
+                        && state != STATE_QUOTE && state != STATE_SINGLEQUOTE) {
+                    pos.moveTo(line, i);
+                    if (pos.lookingAt("?>"))
+                        marker &= ~XML_PI;
+                }
                 if (isDoctypeState(state)) {
+                    if (c == '[')
+                        marker |= XML_DTD;
                     state = doctypeStateAfter(state, c);
                     continue;
                 }
@@ -460,6 +565,12 @@ public final class XmlFormatter extends Formatter {
                     if (pos.lookingAt("<!DOCTYPE")) {
                         state = STATE_DOCTYPE;
                         i += 8;
+                        continue;
+                    }
+                    if (pos.lookingAt("<?")) {
+                        marker |= XML_PI;
+                        state = STATE_TAG;
+                        i += 1;
                         continue;
                     }
                     state = STATE_TAG;
@@ -545,7 +656,7 @@ public final class XmlFormatter extends Formatter {
 
         Cursor(Line line, int enteringState, int upto, LexicalContext[] out) {
             super(line, upto, out);
-            this.state = enteringState;
+            this.state = enteringState & XML_STATE_MASK;
         }
 
         LexicalContext run() {
@@ -667,6 +778,8 @@ public final class XmlFormatter extends Formatter {
             formatTable.addEntryFromPrefs(XML_FORMAT_EQUALS, "equals", "delimiter");
             formatTable.addEntryFromPrefs(XML_FORMAT_QUOTE, "string");
             formatTable.addEntryFromPrefs(XML_FORMAT_CDATA, "cdata", "text");
+            formatTable.addEntryFromPrefs(XML_FORMAT_ESCAPE, "escape");
+            formatTable.addEntryFromPrefs(XML_FORMAT_ESCAPE_ERROR, "escapeError");
         }
         return formatTable;
     }

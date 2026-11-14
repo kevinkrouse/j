@@ -322,4 +322,90 @@ public class EscapesTest {
         assertEquals(1, list.size());
         assertEquals(2, list.get(0).end); // the introducer only: stop at the first z
     }
+
+    // --- XML references ---------------------------------------------
+
+    private static final Escapes.Reference XML_REF = Escapes.Reference.XML;
+
+    private static String refs(String text, Escapes.Reference syntax) {
+        List<Span> list = Escapes.scanReferences(text, 0, text.length(), syntax);
+        StringBuilder sb = new StringBuilder();
+        for (Span span : list) {
+            if (sb.length() > 0)
+                sb.append(' ');
+            sb.append(span.error ? "E(" : "O(")
+              .append(text, span.begin, span.end)
+              .append(')');
+        }
+        return sb.toString();
+    }
+
+    @Test
+    public void xmlNamedReferences() {
+        assertEquals("O(&amp;)", refs("a&amp;b", XML_REF));
+        assertEquals("O(&lt;) O(&gt;)", refs("&lt;&gt;", XML_REF));
+        // A colon is a name character: namespaced names are one reference.
+        assertEquals("O(&xhtml:b;)", refs("&xhtml:b;", XML_REF));
+        // Non-ASCII names are recognized, not marked errors.
+        assertEquals("O(&café;)", refs("&café;", XML_REF));
+        assertEquals("O(&Ω;)", refs("&Ω;", XML_REF));
+    }
+
+    @Test
+    public void xmlNumericReferences() {
+        assertEquals("O(&#233;)", refs("&#233;", XML_REF));
+        assertEquals("O(&#xE9;)", refs("&#xE9;", XML_REF));
+        assertEquals("O(&#x00000041;)", refs("&#x00000041;", XML_REF));
+    }
+
+    @Test
+    public void xmlMalformedReferencesAreErrors() {
+        // A bare ampersand.
+        assertEquals("E(&)", refs("a & b", XML_REF));
+        assertEquals("E(&) O(&amp;)", refs("& &amp;", XML_REF));
+        // Missing digits or semicolon.
+        assertEquals("E(&#;)", refs("&#;", XML_REF));
+        assertEquals("E(&#x;)", refs("&#x;", XML_REF));
+        assertEquals("E(&#233)", refs("&#233", XML_REF));
+        assertEquals("E(&#xZZ;)", refs("&#xZZ;", XML_REF));
+        // A name with no closer is an error up to the stop. A paren is
+        // not a stop, so it is consumed with the candidate.
+        assertEquals("E(&amp)", refs("&amp", XML_REF));
+        assertEquals("E(&amp)) O(&lt;)", refs("&amp) &lt;", XML_REF));
+    }
+
+    @Test
+    public void xmlCandidateStopsAtHardBoundary() {
+        // Never consume a following tag.
+        assertEquals("E(&foo)", refs("&foo<b>", XML_REF));
+        // Stops at another ampersand, a quote, or the end.
+        assertEquals("E(&foo) E(&bar)", refs("&foo&bar", XML_REF));
+        assertEquals("E(&foo)", refs("&foo\"x\"", XML_REF));
+    }
+
+    @Test
+    public void xmlCandidateConsumesThroughSemicolon() {
+        // A malformed candidate runs to its semicolon, not past it.
+        assertEquals("E(&123;)", refs("&123;", XML_REF));
+        assertEquals("E(&#23x;)", refs("&#23x;", XML_REF));
+        // A space stops the name, so the candidate ends before it.
+        assertEquals("E(&a)", refs("&a b;", XML_REF));
+    }
+
+    @Test
+    public void xmlBackslashHasNoMeaning() {
+        assertEquals("O(&amp;)", refs("a\\nb&amp;", XML_REF));
+    }
+
+    @Test
+    public void xmlNoAmpersandYieldsNothing() {
+        assertEquals("", refs("plain text", XML_REF));
+    }
+
+    @Test
+    public void xmlSupplementaryName() {
+        // A supplementary code point in a name stays one span.
+        final String name = "&\uD840\uDC00;";
+        assertEquals("O(" + name + ")", refs(name, XML_REF));
+    }
 }
