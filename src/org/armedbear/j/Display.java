@@ -35,6 +35,7 @@ import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -168,6 +169,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
         plainFont = new Font(fontName, Font.PLAIN, fontSize);
         boldFont = new Font(fontName, Font.BOLD, fontSize);
+        controlGlyphs.clear();
         if (preferences.getBooleanProperty(Property.ENABLE_ITALICS)) {
             italicFont = new Font(fontName, Font.ITALIC, fontSize);
             boldItalicFont = new Font(fontName, Font.BOLD | Font.ITALIC, fontSize);
@@ -1001,8 +1003,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final char c = textArray[caretCol];
         if (c == ' ' || c == '\t')
             return;
-        g2d.setColor(editor.getFormatter().getBackgroundColor());
         final int style = editor.getFormatter().getStyle(formatterFormat(formatArray[caretCol]));
+        if (isControlCell(c)) {
+            // The same picture or box, in the caret's inverted foreground.
+            drawControlCell(g2d, c, x, y, style, editor.getFormatter().getBackgroundColor());
+            return;
+        }
+        g2d.setColor(editor.getFormatter().getBackgroundColor());
         g2d.setFont(fontFor(style));
         g2d.drawChars(textArray, caretCol, caretSpan(), x, baseline(y, style));
     }
@@ -1432,6 +1439,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
 
         int totalChars = formatLine(line, shift, maxCols);
         drawRunBackgrounds(paintLineGraphics, totalChars, 0);
+        drawControlShades(paintLineGraphics, totalChars, 0, caretBreakCol(line, totalChars));
 
         // Under the selection, which paints over them, as vim's does.
         highlightSpans(line, paintLineGraphics, 0);
@@ -2248,6 +2256,145 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         return font.createGlyphVector(frc, chars);
     }
 
+    // A raw control character shown as a picture: C0 except tab, and DEL.
+    static boolean isControlCell(char c) {
+        return (c < 0x20 && c != '\t') || c == 0x7F;
+    }
+
+    // The picture for a control: U+2400 + code, DEL as U+2421.
+    static char pictureFor(char c) {
+        return c == 0x7F ? '\u2421' : (char) (0x2400 + c);
+    }
+
+    // A control takes one fixed plain-font cell, whatever the picture's
+    // natural advance, so the caret and every measurement agree.
+    private static int controlAdvance() {
+        return charWidth > 0 ? charWidth : spaceWidth;
+    }
+
+    // Per font, per control: whether the picture draws, and its advance.
+    // Built once per font, cleared when the fonts change.
+    private static final Map<Font, ControlGlyph[]> controlGlyphs = new HashMap<>();
+
+    private static final class ControlGlyph {
+        final boolean available;
+        final float advance;
+
+        ControlGlyph(boolean available, float advance) {
+            this.available = available;
+            this.advance = advance;
+        }
+    }
+
+    private static ControlGlyph controlGlyph(Font font, char control) {
+        ControlGlyph[] byCode = controlGlyphs.computeIfAbsent(font, f -> new ControlGlyph[0x80]);
+        ControlGlyph glyph = byCode[control];
+        if (glyph == null) {
+            final char picture = pictureFor(control);
+            final boolean available = font.canDisplay(picture);
+            final float advance = available
+                ? (float) glyphs(font,
+                        Utilities.getFontMetrics(font).getFontRenderContext(),
+                        new char[] { picture }, 0, 1).getLogicalBounds().getWidth()
+                : 0f;
+            glyph = new ControlGlyph(available, advance);
+            byCode[control] = glyph;
+        }
+        return glyph;
+    }
+
+    // Test seam: treat control as undrawable in font, so the outlined-box
+    // fallback is exercised without depending on which fonts are installed.
+    static void forceControlFallback(Font font, char control) {
+        controlGlyphs.computeIfAbsent(font, f -> new ControlGlyph[0x80])[control] = new ControlGlyph(false, 0f);
+    }
+
+    // Test seam: drop the per-font glyph cache so a test starts clean and
+    // a forced fallback in one test cannot leak into the next.
+    static void clearControlGlyphCache() {
+        controlGlyphs.clear();
+    }
+
+    // Reused for drawing one picture glyph; painting is single-threaded.
+    private static final char[] PICTURE_BUF = new char[1];
+
+    // Draws control's picture, or an outlined box where the font lacks it,
+    // centered and clipped to the one-cell box at (x, y).
+    private void drawControlCell(Graphics2D g2d, char control, double x, int y, int style, Color color) {
+        final int cell = controlAdvance();
+        final int left = (int) Math.floor(x);
+        final int base = baseline(y, style);
+        final Font font = fontFor(style);
+        final ControlGlyph glyph = controlGlyph(font, control);
+        if (!glyph.available) {
+            g2d.setColor(color);
+            g2d.drawRect(left + 1, base - charAscent + 1, cell - 2, charAscent + charDescent - 2);
+            return;
+        }
+        PICTURE_BUF[0] = pictureFor(control);
+        final double gx = x + (cell - glyph.advance) / 2.0;
+        final Shape oldClip = g2d.getClip();
+        g2d.clip(new Rectangle(left, y, cell, charHeight));
+        g2d.setColor(color);
+        g2d.setFont(font);
+        g2d.drawChars(PICTURE_BUF, 0, 1, (int) Math.round(gx), base);
+        g2d.setClip(oldClip);
+    }
+
+    // The color a control picture is drawn in: specialChar, or the text's
+    // own if a theme has not set it.
+    private static Color specialCharColor(Formatter formatter) {
+        final Color c = formatter.getFormatTable().resolveColor("specialChar", true);
+        return c != null ? c : colorOf(formatter, 0);
+    }
+
+    // The subtle background behind each control cell, painted before the
+    // search, selection and bracket highlights so those still show over it.
+    // Walks the line as drawText does, so the cells line up with the glyphs.
+    private void drawControlShades(Graphics2D g2d, int totalChars, int y, int breakCol) {
+        // Normal lines have no controls: skip before any color work.
+        boolean any = false;
+        for (int c = 0; c < totalChars; c++)
+            if (isControlCell(textArray[c])) {
+                any = true;
+                break;
+            }
+        if (!any)
+            return;
+        final Formatter formatter = editor.getFormatter();
+        final Color shade = formatter.getControlBackground();
+        if (shade == null)
+            return;
+        final FontRenderContext frc = g2d.getFontRenderContext();
+        double x = gutterWidth;
+        int i = 0;
+        while (i < totalChars) {
+            final int format = formatArray[i];
+            if ((format & (HIDDEN | BAR)) == HIDDEN) {
+                ++i;
+                continue;
+            }
+            if (isControlCell(textArray[i])) {
+                g2d.setColor(shade);
+                g2d.fillRect((int) Math.floor(x), y, controlAdvance(), charAscent + charDescent);
+                x += controlAdvance();
+                ++i;
+                continue;
+            }
+            // Mirror drawText's run boundaries, so an endsOnColumn run's
+            // share of the whole width lines up with where it is drawn.
+            final boolean onColumn = formatter.endsOnColumn(formatterFormat(format));
+            final int start = i;
+            do {
+                ++i;
+            } while (i < totalChars && formatArray[i] == format && !isControlCell(textArray[i])
+                    && (i != breakCol || onColumn));
+            final Font font = fontFor(formatter.getStyle(formatterFormat(format)));
+            GlyphVector gv = glyphs(font, frc, textArray, start, i);
+            x += runWidth(formatter, format, gv, frc, textArray, formatArray, x - gutterWidth, start, i);
+        }
+    }
+
     /**
      * @param breakCol a column at which to end a run even though the format
      *     has not changed, so that a ligature straddling it comes apart, or -1
@@ -2268,10 +2415,30 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         while (i < length) {
             int format = formatArray[i];
             int start = i;
+            if (isControlCell(textArray[start])) {
+                // One fixed plain-font cell, isolated from the shaped run:
+                // its picture, or a box where the font lacks it. Consume
+                // only the control, so the text after it is still drawn.
+                if ((format & BAR) != 0) {
+                    g2d.setColor(colorOf(formatter, format));
+                    g2d.fillRect((int) x + 1, y, 2, charHeight);
+                }
+                if ((format & HIDDEN) == 0) {
+                    final int style = formatter.getStyle(formatterFormat(format));
+                    final Color color =
+                        textColor != null && (format & HOVER) == 0 ? textColor : specialCharColor(formatter);
+                    drawControlCell(g2d, textArray[start], x, y, style, color);
+                }
+                if ((format & HIDDEN) == 0 || (format & BAR) != 0)
+                    x += controlAdvance();
+                ++i;
+                continue;
+            }
             ++i;
             // A run that ends on its column is never broken: its width is the whole run's.
             final boolean onColumn = formatter.endsOnColumn(formatterFormat(format));
-            while (i < length && formatArray[i] == format && (i != breakCol || onColumn))
+            while (i < length && formatArray[i] == format && (i != breakCol || onColumn)
+                    && !isControlCell(textArray[i]))
                 ++i;
             if ((format & BAR) != 0) {
                 // The full height of the line, so that a quote's bars join
@@ -2335,7 +2502,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         while (i < limit) {
             int format = formatArray[i];
             int startCol = i;
-            while (i < limit && formatArray[i] == format)
+            if (isControlCell(textArray[startCol])) {
+                // Consume the control before any continue, so a hidden
+                // one cannot spin the loop. It takes a cell unless hidden
+                // with no bar, as drawText leaves it no room.
+                if ((format & (HIDDEN | BAR)) != HIDDEN)
+                    totalWidth += controlAdvance();
+                ++i;
+                continue;
+            }
+            while (i < limit && formatArray[i] == format && !isControlCell(textArray[i]))
                 ++i;
             if ((format & (HIDDEN | BAR)) == HIDDEN)
                 continue;
@@ -2375,8 +2551,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private FontRenderContext plainFrc;
     private double plainTextWidth;
 
-    // How wide textArray's first end characters are in the plain font.
+    // How wide textArray's first end characters are in the plain font. A
+    // control takes its fixed cell, not its glyph's advance, so that an
+    // endsOnColumn run's share agrees with how the cell is drawn.
     private double plainWidth(FontRenderContext frc, char[] textArray, int end) {
+        for (int c = 0; c < end; c++)
+            if (isControlCell(textArray[c]))
+                return plainWidthWithControls(frc, textArray, end);
         final String text = new String(textArray, 0, end);
         if (!text.equals(plainText) || !frc.equals(plainFrc)) {
             plainTextWidth = glyphs(plainFont, frc, textArray, 0, end).getLogicalBounds().getWidth();
@@ -2384,6 +2565,25 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             plainFrc = frc;
         }
         return plainTextWidth;
+    }
+
+    // The plain width with controls as fixed cells: per run of ordinary
+    // characters, plus a cell for each control.
+    private double plainWidthWithControls(FontRenderContext frc, char[] textArray, int end) {
+        double total = 0;
+        int i = 0;
+        while (i < end) {
+            if (isControlCell(textArray[i])) {
+                total += controlAdvance();
+                ++i;
+                continue;
+            }
+            final int start = i;
+            while (i < end && !isControlCell(textArray[i]))
+                ++i;
+            total += glyphs(plainFont, frc, textArray, start, i).getLogicalBounds().getWidth();
+        }
+        return total;
     }
 
     @Override
@@ -2508,6 +2708,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 }
                 int totalChars = formatLine(line, shift, maxCols);
                 drawRunBackgrounds(g2d, totalChars, y);
+                drawControlShades(g2d, totalChars, y, caretBreakCol(line, totalChars));
                 highlightSpans(line, g2d, y);
                 highlightSearchMatches(line, g2d, y);
                 if (r != null)

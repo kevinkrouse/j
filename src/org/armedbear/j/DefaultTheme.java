@@ -87,6 +87,7 @@ public final class DefaultTheme {
         { null, "strong", "text" },
         { null, "url", "muted" },
         { null, "escape", "number" },
+        { null, "specialChar", "muted" },
         { "MarkdownMode", "heading1", "heading" },
         { "MarkdownMode", "heading2", "heading" },
         { "MarkdownMode", "heading3", "heading" },

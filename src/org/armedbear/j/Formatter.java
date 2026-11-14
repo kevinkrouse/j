@@ -388,6 +388,15 @@ public abstract class Formatter {
         final Color color = getFormatTable().resolveColor(thing, false);
         if (color != null)
             return color;
+        return subtleShade();
+    }
+
+    // A shade of the background that sets text apart without fighting it:
+    // on a light background, half as far from it as the current line's
+    // highlight, so as not to be mistaken for it, and a little cool, as
+    // GitHub's code is, where the highlight is usually gray. On a dark
+    // one, the background with a little of the text mixed in.
+    private Color subtleShade() {
         final Color bg = getBackgroundColor();
         if (DefaultTheme.isDark(bg)) {
             return DefaultTheme.blend(bg, getColor(0), 0.12);
@@ -403,6 +412,15 @@ public abstract class Formatter {
         return new Color(darker(bg.getRed(), step),
                 darker(bg.getGreen(), step * 0.78),
                 darker(bg.getBlue(), step * 0.55));
+    }
+
+    /**
+     * The background behind a raw control character's picture: a subtle
+     * shade that works in light and dark themes. A formatter may override
+     * to return null for none.
+     */
+    public Color getControlBackground() {
+        return subtleShade();
     }
 
     private static int darker(int value, double by) {
