@@ -27,6 +27,29 @@ public class HtmlReferenceTest {
         return EditorHarness.runs(HtmlMode.getMode(), text);
     }
 
+    // The segments must cover every character of the line: concatenated,
+    // they equal the input. A dropped character (a closing quote, say)
+    // shows up here as a mismatch.
+    private static void assertCoverage(String text) {
+        EditorHarness h = EditorHarness.create(text).mode(HtmlMode.getMode());
+        try {
+            Buffer b = h.buffer();
+            b.getFormatter().parseBuffer();
+            StringBuilder sb = new StringBuilder();
+            for (Line line = b.getFirstLine(); line != null; line = line.next()) {
+                if (sb.length() > 0)
+                    sb.append('\n');
+                LineSegmentList segs = b.getFormatter().formatLine(line);
+                for (int i = 0; i < segs.size(); i++)
+                    sb.append(segs.getSegment(i).getText());
+            }
+            assertEquals(text, sb.toString(),
+                "segments must cover [" + text.replace("\n", "\\n") + "]");
+        } finally {
+            h.close();
+        }
+    }
+
     @Test
     public void characterDataSplitsReferences() {
         assertEquals("tag(<p>)hello escape(&amp;) goodbyetag(</p>)",
@@ -37,15 +60,16 @@ public class HtmlReferenceTest {
 
     @Test
     public void doubleQuotedAttributeValueSplits() {
-        assertEquals("anchor(<a href=\")anchor(x)escape(&amp;)anchor(y)anchor(>)"
-                + "linkanchor(</a>)",
+        // The closing quote is its own tag-format piece; it must render.
+        assertEquals("anchor(<a href=\")anchor(x)escape(&amp;)anchor(y)"
+                + "anchor(\")anchor(>)linkanchor(</a>)",
             runs("<a href=\"x&amp;y\">link</a>"));
     }
 
     @Test
     public void singleQuotedAttributeValueSplits() {
-        assertEquals("anchor(<a href=')anchor(a)escape(&lt;)anchor(b)anchor(>)"
-                + "linkanchor(</a>)",
+        assertEquals("anchor(<a href=')anchor(a)escape(&lt;)anchor(b)"
+                + "anchor(')anchor(>)linkanchor(</a>)",
             runs("<a href='a&lt;b'>link</a>"));
     }
 
@@ -58,7 +82,8 @@ public class HtmlReferenceTest {
 
     @Test
     public void numericReferences() {
-        assertEquals("anchor(<a href=\")escape(&#233;)anchor(>)xanchor(</a>)",
+        assertEquals("anchor(<a href=\")escape(&#233;)anchor(\")anchor(>)"
+                + "xanchor(</a>)",
             runs("<a href=\"&#233;\">x</a>"));
     }
 
@@ -87,30 +112,30 @@ public class HtmlReferenceTest {
     @Test
     public void eventHandlerValueIsExcluded() {
         // A JavaScript event handler is code, not a reference context.
-        assertEquals("anchor(<a onclick=\")anchor(go('&amp;'))anchor(>)"
-                + "xanchor(</a>)",
+        assertEquals("anchor(<a onclick=\")anchor(go('&amp;'))anchor(\")"
+                + "anchor(>)xanchor(</a>)",
             runs("<a onclick=\"go('&amp;')\">x</a>"));
     }
 
     @Test
     public void eventHandlerExcludedOtherValuesSplit() {
         assertEquals("anchor(<a href=\")anchor(a)escape(&amp;)anchor(b)"
-                + "anchor( onclick=\")anchor(x('c&amp;d'))anchor(>)t"
-                + "anchor(</a>)",
+                + "anchor(\")anchor( onclick=\")anchor(x('c&amp;d'))anchor(\")"
+                + "anchor(>)tanchor(</a>)",
             runs("<a href=\"a&amp;b\" onclick=\"x('c&amp;d')\">t</a>"));
     }
 
     @Test
     public void quotedGtDoesNotEndTag() {
         // A `>` inside a quoted value is content; the tag keeps its color.
-        assertEquals("tag(<div title=\")tag(a > b)tag(>)xtag(</div>)",
+        assertEquals("tag(<div title=\")tag(a > b)tag(\")tag(>)xtag(</div>)",
             runs("<div title=\"a > b\">x</div>"));
     }
 
     @Test
     public void multilineQuotedValueSplits() {
         assertEquals("anchor(<a href=\")anchor(multi)\\nescape(&amp;)"
-                + "anchor(line)anchor(>)xanchor(</a>)",
+                + "anchor(line)anchor(\")anchor(>)xanchor(</a>)",
             runs("<a href=\"multi\n&amp;line\">x</a>").replace("\n", "\\n"));
     }
 
@@ -118,9 +143,9 @@ public class HtmlReferenceTest {
     public void multilineEventBitCarried() {
         // The event-handler bit survives to the next line: the onclick
         // value stays whole, the href value on the next line splits.
-        assertEquals("anchor(<a onclick=\")anchor(f('a&amp;b'))\\n"
-                + "anchor(   href=\")anchor(c)escape(&amp;)anchor(d)anchor(>)"
-                + "tanchor(</a>)",
+        assertEquals("anchor(<a onclick=\")anchor(f('a&amp;b'))anchor(\")\\n"
+                + "anchor(   href=\")anchor(c)escape(&amp;)anchor(d)anchor(\")"
+                + "anchor(>)tanchor(</a>)",
             runs("<a onclick=\"f('a&amp;b')\"\n   href=\"c&amp;d\">t</a>")
                 .replace("\n", "\\n"));
     }
@@ -139,7 +164,8 @@ public class HtmlReferenceTest {
         // the next line continues between attributes, and the event bit
         // resets so the next attribute is eligible.
         assertEquals("anchor(<a onclick=)anchor(x)\\nanchor( href=\")"
-                + "anchor(c)escape(&amp;)anchor(d)anchor(>)tanchor(</a>)",
+                + "anchor(c)escape(&amp;)anchor(d)anchor(\")anchor(>)"
+                + "tanchor(</a>)",
             runs("<a onclick=x\n href=\"c&amp;d\">t</a>").replace("\n", "\\n"));
     }
 
@@ -182,19 +208,37 @@ public class HtmlReferenceTest {
 
     @Test
     public void imageTagPreserved() {
-        assertEquals("image(<img src=\")image(a.png)image(>)",
+        assertEquals("image(<img src=\")image(a.png)image(\")image(>)",
             runs("<img src=\"a.png\">"));
     }
 
     @Test
     public void selfClosingTagPreserved() {
         assertEquals("anchor(<a href=\")anchor(a)escape(&amp;)anchor(b)"
-                + "anchor(/>)",
+                + "anchor(\")anchor(/>)",
             runs("<a href=\"a&amp;b\"/>"));
     }
 
     @Test
     public void noAmpersandLeavesTextWhole() {
         assertEquals("tag(<br>)", runs("<br>"));
+    }
+
+    @Test
+    public void segmentsCoverEveryCharacter() {
+        // The closing quote and every other character must be in a segment.
+        assertCoverage("<a href=\"x&amp;y\">link</a>");
+        assertCoverage("<a href='a&lt;b'>link</a>");
+        assertCoverage("<a href=\"\">x</a>");
+        assertCoverage("<a href=\"multi\n&amp;line\">x</a>");
+        assertCoverage("<a href=\"a&amp;b\" onclick=\"x('c&amp;d')\">t</a>");
+        assertCoverage("<a onclick=\"f('a&amp;b')\"\n   href=\"c&amp;d\">t</a>");
+        assertCoverage("<div title=\"a > b\">x</div>");
+        assertCoverage("<a href=\"a&amp;b\"/>");
+        assertCoverage("<a href = \"x&amp;y\">link</a>");
+        assertCoverage("<a href=\nx&amp;y>link</a>");
+        assertCoverage("<a onclick=x\n href=\"c&amp;d\">t</a>");
+        assertCoverage("<style media=\"print\">&amp;</style>");
+        assertCoverage("<img src=\"a.png\">");
     }
 }

@@ -232,6 +232,7 @@ public final class HtmlFormatter extends Formatter {
             if (state == STATE_ATTR_DQ) {
                 if (c == '"') {
                     emitValue(valueStart, i, valueEligible);
+                    emit(i, i + 1, tagFormat);
                     runStart = i + 1;
                     state = STATE_TAG;
                 }
@@ -241,6 +242,7 @@ public final class HtmlFormatter extends Formatter {
             if (state == STATE_ATTR_SQ) {
                 if (c == '\'') {
                     emitValue(valueStart, i, valueEligible);
+                    emit(i, i + 1, tagFormat);
                     runStart = i + 1;
                     state = STATE_TAG;
                 }
