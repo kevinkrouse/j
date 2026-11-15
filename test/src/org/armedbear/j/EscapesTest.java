@@ -543,6 +543,18 @@ public class EscapesTest {
             spans(s(B + "cA", B + "C-x", B + "M-x", B + "M-\\C-x",
                    B + "M-\\cx", B + "c\\M-x"), RUBY));
         assertEquals("O(\\c?)", spans(B + "c?", RUBY));
+        // The reverse combination \C-\M-x is valid, same as \M-\C-x.
+        assertEquals("O(\\C-\\M-x)", spans(B + "C-\\M-x", RUBY));
+    }
+
+    @Test
+    public void rubyDoubleControlIsError() {
+        // A control base under a control introducer is invalid: \C-\C-x
+        // and \C-\cx both double the control. The error consumes through
+        // the backslash base; the trailing text is ordinary, not rescanned
+        // as a new escape.
+        assertEquals("E(\\C-\\)", spans(B + "C-\\C-x", RUBY));
+        assertEquals("E(\\C-\\)", spans(B + "C-\\cx", RUBY));
     }
 
     @Test
@@ -596,10 +608,13 @@ public class EscapesTest {
     public void perlBracedHexAndOctal() {
         assertEquals("O(\\x{263A}) O(\\o{23072})",
             spans(s(B + "x{263A}", B + "o{23072}"), PERL));
-        // Empty braces are accepted.
+        // Empty braces are accepted for hex (\x{} is \x00).
         assertEquals("O(\\x{})", spans(B + "x{}", PERL));
         // Blanks inside the braces are allowed.
         assertEquals("O(\\x{ 263A })", spans(B + "x{ 263A }", PERL));
+        // Underscores are separators; Perl accepts them without warning.
+        assertEquals("O(\\x{4_1}) O(\\o{1_01})",
+            spans(s(B + "x{4_1}", B + "o{1_01}"), PERL));
     }
 
     @Test
@@ -607,7 +622,17 @@ public class EscapesTest {
         // The error span runs through the closing brace when present.
         assertEquals("E(\\x{ZZ})", spans(B + "x{ZZ}", PERL), "non-hex in braced hex");
         assertEquals("E(\\o{8})", spans(B + "o{8}", PERL), "non-octal in braced octal");
+        // An empty octal payload is fatal in Perl, unlike empty hex.
+        assertEquals("E(\\o{})", spans(B + "o{}", PERL), "empty braced octal");
         assertEquals("E(\\x{263A)", spans(B + "x{263A", PERL), "unclosed");
+    }
+
+    @Test
+    public void perlUnclosedBracedStopsAtNextBackslash() {
+        // The unclosed candidate stops before the next backslash, so a
+        // following escape is still recognized rather than swallowed.
+        assertEquals("E(\\x{41) O(\\n)", spans(s(B + "x{41", B + "n"), PERL));
+        assertEquals("E(\\o{12) O(\\t)", spans(s(B + "o{12", B + "t"), PERL));
     }
 
     @Test
@@ -658,11 +683,12 @@ public class EscapesTest {
 
     @Test
     public void phpOctalUpToThreeDigits() {
-        // \0 to \377: the first digit caps the third, as in Java.
+        // 1-3 octal digits; the value silently overflows the byte, so
+        // \400 is one escape (PHP "\400" === "\000"), not \40 plus 0.
         assertEquals("O(\\0) O(\\12) O(\\377)",
             spans(s(B + "0", B + "12", B + "377"), PHP));
-        // \400 is \40 plus a literal 0 (the 0 is not a span).
-        assertEquals("O(\\40)", spans(B + "400", PHP));
+        assertEquals("O(\\400)", spans(B + "400", PHP));
+        assertEquals("O(\\777)", spans(B + "777", PHP));
     }
 
     @Test

@@ -389,12 +389,13 @@ public final class Escapes {
     // backslash-u{nnnn ...}: one or more values of 1-6 hex digits,
     // separated by blanks. Empty braces or a non-hex byte is an error;
     // the candidate is consumed once, through its closing brace if
-    // present.
+    // present. An unclosed candidate stops at the next backslash so a
+    // following escape is still recognized.
     private static Result scanRubyBracedUnicode(CharSequence text, int i, int end) {
         int j = i + 3;
         int values = 0;
         boolean bad = false;
-        while (j < end && text.charAt(j) != '}') {
+        while (j < end && text.charAt(j) != '}' && text.charAt(j) != '\\') {
             final char d = text.charAt(j);
             if (d == ' ' || d == '\t') {
                 ++j;
@@ -415,7 +416,7 @@ public final class Escapes {
             ++values;
         }
         if (j >= end || text.charAt(j) != '}')
-            return error(j); // unclosed
+            return error(j); // unclosed: stops before the next backslash
         ++j; // consume the closing brace into the span
         return !bad && values >= 1 ? escape(j) : error(j);
     }
@@ -456,9 +457,17 @@ public final class Escapes {
             // \cx
             return printableAt(text, end, i + 2) ? escape(i + 3) : error(i + 2);
         }
-        // \C-x
-        if (at(text, end, i + 2, '-'))
+        // \C-x, or the combined \C-\M-x (same value as \M-\C-x). A
+        // backslash base recurses as control, so \C-\C-x and \C-\cx are
+        // double-control and invalid.
+        if (at(text, end, i + 2, '-')) {
+            if (at(text, end, i + 3, '\\')) {
+                if (at(text, end, i + 4, 'M') && at(text, end, i + 5, '-'))
+                    return printableAt(text, end, i + 6) ? escape(i + 7) : error(i + 6);
+                return error(i + 4); // \C-\ with no valid meta base
+            }
             return printableAt(text, end, i + 3) ? escape(i + 4) : error(i + 3);
+        }
         return error(consumeCodePoint(text, i, end)); // \C with nothing
     }
 
@@ -525,16 +534,26 @@ public final class Escapes {
         return Result.NONE;
     }
 
-    // \x{...} or \o{...}: blanks allowed inside; hex or octal digits.
-    // Empty braces are accepted; a byte outside the digit set is an
-    // error, consumed once through the closing brace if present.
+    // \x{...} or \o{...}: blanks and underscores allowed inside as
+    // separators. A hex escape accepts an empty payload (\x{} is
+    // \x00); an octal escape requires at least one digit, since Perl
+    // rejects an empty \o{} outright. A byte outside the digit set is
+    // an error, consumed once through the closing brace if present.
+    // An unclosed candidate stops at the next backslash so a following
+    // escape is still recognized.
     private static Result scanPerlBraced(CharSequence text, int i, int end, boolean hex) {
         int j = i + 3;
+        int digits = 0;
         boolean bad = false;
-        while (j < end && text.charAt(j) != '}') {
+        while (j < end && text.charAt(j) != '}' && text.charAt(j) != '\\') {
             final char d = text.charAt(j);
-            if (d == ' ' || d == '\t' || (hex ? isHex(d) : isOctal(d))) {
+            if (d == ' ' || d == '\t' || d == '_') {
                 ++j;
+                continue;
+            }
+            if (hex ? isHex(d) : isOctal(d)) {
+                ++j;
+                ++digits;
                 continue;
             }
             bad = true;
@@ -543,7 +562,9 @@ public final class Escapes {
         if (j >= end || text.charAt(j) != '}')
             return error(j); // unclosed
         ++j; // consume the closing brace into the span
-        return bad ? error(j) : escape(j);
+        if (bad || (!hex && digits == 0))
+            return error(j);
+        return escape(j);
     }
 
     // \N{name} or \N{U+hex}: the braces must be present and nonempty.
@@ -575,7 +596,7 @@ public final class Escapes {
         if (phpSimpleEscape(c))
             return escape(i + 2);
         if (c >= '0' && c <= '7')
-            return scanOctal(text, i, end); // \0 to \377: Java-style munch
+            return scanOctalAny(text, i, end); // 1-3 digits; values overflow the byte
         if (c == 'x') {
             int j = i + 2;
             int digits = 0;
@@ -596,11 +617,13 @@ public final class Escapes {
 
     // backslash-u{...}: one or more hex digits. Empty or a non-hex byte
     // is an error, consumed once through the closing brace if present.
+    // An unclosed candidate stops at the next backslash so a following
+    // escape is still recognized.
     private static Result scanPhpBracedUnicode(CharSequence text, int i, int end) {
         int j = i + 3;
         int digits = 0;
         boolean bad = false;
-        while (j < end && text.charAt(j) != '}') {
+        while (j < end && text.charAt(j) != '}' && text.charAt(j) != '\\') {
             if (isHex(text.charAt(j))) {
                 ++j;
                 ++digits;
@@ -610,7 +633,7 @@ public final class Escapes {
             ++j;
         }
         if (j >= end || text.charAt(j) != '}')
-            return error(j); // unclosed
+            return error(j); // unclosed: stops before the next backslash
         ++j; // consume the closing brace into the span
         return !bad && digits >= 1 ? escape(j) : error(j);
     }
