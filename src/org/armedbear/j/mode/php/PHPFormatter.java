@@ -23,9 +23,11 @@ package org.armedbear.j.mode.php;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Escapes;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -68,6 +70,8 @@ public final class PHPFormatter extends Formatter {
     private static final int PHP_FORMAT_TAG = 11;
     private static final int PHP_FORMAT_ATTRIBUTE = 12;
     private static final int PHP_FORMAT_EQUALS = 13;
+    private static final int PHP_FORMAT_ESCAPE = 14;
+    private static final int PHP_FORMAT_ESCAPE_ERROR = 15;
 
     private final PHPMode mode = (PHPMode) PHPMode.getMode();
 
@@ -77,11 +81,26 @@ public final class PHPFormatter extends Formatter {
 
     private int tokenBegin = 0;
 
+    // The opening delimiter the parser just consumed: 1 for a quote.
+    private int openLen = 0;
+
+    // The closing delimiter the parser just consumed: 1 for a quote, 0
+    // when the literal was still open at end of line.
+    private int closingLen = 0;
+
+    // Whether the line being formatted ends at a physical line break the
+    // literal continues across.
+    private boolean lineEndContinues = false;
+
     private final void endToken(StringPosition pos, int state) {
         endToken(pos.getText(), pos.getOffset(), state);
     }
 
     private void endToken(String text, int tokenEnd, int state) {
+        final int open = openLen;
+        final int close = closingLen;
+        openLen = 0;
+        closingLen = 0;
         if (tokenEnd - tokenBegin > 0) {
             int format;
             switch (state) {
@@ -91,8 +110,9 @@ public final class PHPFormatter extends Formatter {
                     break;
                 case STATE_QUOTE:
                 case STATE_SINGLEQUOTE:
-                    format = PHP_FORMAT_STRING;
-                    break;
+                    addStringSegment(text, tokenEnd, state, open, close);
+                    tokenBegin = tokenEnd;
+                    return;
                 case PHP_STATE_IDENTIFIER:
                     format = PHP_FORMAT_IDENTIFIER;
                     break;
@@ -138,6 +158,32 @@ public final class PHPFormatter extends Formatter {
             addSegment(text, tokenBegin, tokenEnd, format);
             tokenBegin = tokenEnd;
         }
+    }
+
+    // A string literal: the delimiters stay in the base format; only the
+    // content splits into escapes. A single-quoted string takes only
+    // \\ and \'; a double-quoted string takes the PHP profile.
+    private void addStringSegment(String text, int offset, int state, int open, int close) {
+        final int contentBegin = tokenBegin + open;
+        final int contentEnd = offset - close;
+        if (contentEnd <= contentBegin) {
+            addSegment(text, tokenBegin, offset, PHP_FORMAT_STRING);
+            return;
+        }
+        final Escapes.Syntax syntax =
+            state == STATE_SINGLEQUOTE ? Escapes.Syntax.SINGLE_QUOTED : Escapes.Syntax.PHP;
+        final List<Escapes.Span> spans = Escapes.scan(text, contentBegin, contentEnd,
+                syntax, lineEndContinues && close == 0);
+        if (spans.isEmpty()) {
+            addSegment(text, tokenBegin, offset, PHP_FORMAT_STRING);
+            return;
+        }
+        if (contentBegin > tokenBegin)
+            addSegment(text, tokenBegin, contentBegin, PHP_FORMAT_STRING);
+        addEscapedSegment(text, contentBegin, contentEnd, spans,
+                PHP_FORMAT_STRING, PHP_FORMAT_ESCAPE, PHP_FORMAT_ESCAPE_ERROR);
+        if (offset > contentEnd)
+            addSegment(text, contentEnd, offset, PHP_FORMAT_STRING);
     }
 
     @SuppressWarnings("fallthrough") // PHP code ends at ?>, and HTML follows.
@@ -211,6 +257,7 @@ public final class PHPFormatter extends Formatter {
             if (state == STATE_QUOTE) {
                 if (c == '"') {
                     pos.next();
+                    closingLen = 1;
                     endToken(pos, state);
                     state = STATE_NEUTRAL;
                     continue;
@@ -221,6 +268,7 @@ public final class PHPFormatter extends Formatter {
             if (state == STATE_SINGLEQUOTE) {
                 if (c == '\'') {
                     pos.next();
+                    closingLen = 1;
                     endToken(pos, state);
                     state = STATE_NEUTRAL;
                     continue;
@@ -231,6 +279,7 @@ public final class PHPFormatter extends Formatter {
             // Reaching here, we're not in a comment or a quoted string.
             if (c == '"' || c == '\'') {
                 endToken(pos, state);
+                openLen = 1;
                 state = c == '"' ? STATE_QUOTE : STATE_SINGLEQUOTE;
                 pos.next();
                 continue;
@@ -545,6 +594,7 @@ public final class PHPFormatter extends Formatter {
             addSegment("", PHP_FORMAT_TEXT);
             return segmentList;
         }
+        lineEndContinues = line.next() != null;
         parseLine(line);
         return segmentList;
     }
@@ -825,6 +875,8 @@ public final class PHPFormatter extends Formatter {
             formatTable.addEntryFromPrefs(PHP_FORMAT_TAG, "tag");
             formatTable.addEntryFromPrefs(PHP_FORMAT_ATTRIBUTE, "attribute");
             formatTable.addEntryFromPrefs(PHP_FORMAT_EQUALS, "equals");
+            formatTable.addEntryFromPrefs(PHP_FORMAT_ESCAPE, "escape");
+            formatTable.addEntryFromPrefs(PHP_FORMAT_ESCAPE_ERROR, "escapeError");
         }
         return formatTable;
     }

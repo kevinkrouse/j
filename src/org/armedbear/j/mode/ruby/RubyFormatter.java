@@ -22,9 +22,11 @@
 
 package org.armedbear.j.mode.ruby;
 
+import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Escapes;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -56,6 +58,8 @@ public final class RubyFormatter extends Formatter {
     private static final int RUBY_FORMAT_OPERATOR = 6;
     private static final int RUBY_FORMAT_BRACE = 7;
     private static final int RUBY_FORMAT_NUMBER = 8;
+    private static final int RUBY_FORMAT_ESCAPE = 9;
+    private static final int RUBY_FORMAT_ESCAPE_ERROR = 10;
 
     private static final RubyMode mode = RubyMode.getMode();
 
@@ -67,7 +71,20 @@ public final class RubyFormatter extends Formatter {
 
     private int begin = 0;
 
+    // The opening delimiter the parser just consumed: 1 for a quote.
+    private int openLen = 0;
+
+    // The closing delimiter the parser just consumed: 1 for a quote, 0
+    // when the literal was still open at end of line.
+    private int closingLen = 0;
+
+    // Whether the line being formatted ends at a physical line break the
+    // literal continues across.
+    private boolean lineEndContinues = false;
+
     private void endSegment(String text, int offset, int state) {
+        final int closeLen = closingLen;
+        closingLen = 0;
         if (offset - begin > 0) {
             int format;
             switch (state) {
@@ -76,6 +93,9 @@ public final class RubyFormatter extends Formatter {
                     break;
                 case RUBY_STATE_SINGLE_QUOTE:
                 case RUBY_STATE_DOUBLE_QUOTE:
+                    addStringSegment(text, offset, state, closeLen);
+                    begin = offset;
+                    return;
                 case RUBY_STATE_HERE_DOCUMENT:
                 case RUBY_STATE_REGEXP:
                     format = RUBY_FORMAT_STRING;
@@ -109,6 +129,32 @@ public final class RubyFormatter extends Formatter {
         }
     }
 
+    // A string literal: the delimiters stay in the base format; only the
+    // content splits into escapes. A single-quoted string takes only
+    // \\ and \'; a double-quoted string takes the full Ruby profile.
+    private void addStringSegment(String text, int offset, int state, int closeLen) {
+        final int contentBegin = begin + openLen;
+        final int contentEnd = offset - closeLen;
+        if (contentEnd <= contentBegin) {
+            addSegment(text, begin, offset, RUBY_FORMAT_STRING);
+            return;
+        }
+        final Escapes.Syntax syntax =
+            state == RUBY_STATE_SINGLE_QUOTE ? Escapes.Syntax.SINGLE_QUOTED : Escapes.Syntax.RUBY;
+        final List<Escapes.Span> spans = Escapes.scan(text, contentBegin, contentEnd,
+                syntax, lineEndContinues && closeLen == 0);
+        if (spans.isEmpty()) {
+            addSegment(text, begin, offset, RUBY_FORMAT_STRING);
+            return;
+        }
+        if (contentBegin > begin)
+            addSegment(text, begin, contentBegin, RUBY_FORMAT_STRING);
+        addEscapedSegment(text, contentBegin, contentEnd, spans,
+                RUBY_FORMAT_STRING, RUBY_FORMAT_ESCAPE, RUBY_FORMAT_ESCAPE_ERROR);
+        if (offset > contentEnd)
+            addSegment(text, contentEnd, offset, RUBY_FORMAT_STRING);
+    }
+
     private void parseLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())
@@ -116,6 +162,11 @@ public final class RubyFormatter extends Formatter {
         else
             text = Utilities.detab(line.getText(), buffer.getTabWidth());
         begin = 0;
+        // A line that enters inside a literal has no opening delimiter
+        // of its own: the whole line is content.
+        openLen = 0;
+        closingLen = 0;
+        lineEndContinues = line.next() != null;
         int state = line.flags();
         int i = 0;
         final int limit = text.length();
@@ -149,6 +200,7 @@ public final class RubyFormatter extends Formatter {
             }
             if (state == RUBY_STATE_SINGLE_QUOTE) {
                 if (c == '\'') {
+                    closingLen = 1;
                     endSegment(text, i + 1, state);
                     state = RUBY_STATE_NEUTRAL;
                 }
@@ -157,6 +209,7 @@ public final class RubyFormatter extends Formatter {
             }
             if (state == RUBY_STATE_DOUBLE_QUOTE) {
                 if (c == '"') {
+                    closingLen = 1;
                     endSegment(text, i + 1, state);
                     state = RUBY_STATE_NEUTRAL;
                 }
@@ -176,6 +229,7 @@ public final class RubyFormatter extends Formatter {
             if (c == '\'') {
                 if (i == 0 || text.charAt(i - 1) != '$') {
                     endSegment(text, i, state);
+                    openLen = 1;
                     state = RUBY_STATE_SINGLE_QUOTE;
                 }
                 ++i;
@@ -184,6 +238,7 @@ public final class RubyFormatter extends Formatter {
             if (c == '"') {
                 if (i == 0 || text.charAt(i - 1) != '$') {
                     endSegment(text, i, state);
+                    openLen = 1;
                     state = RUBY_STATE_DOUBLE_QUOTE;
                 }
                 ++i;
@@ -515,6 +570,8 @@ public final class RubyFormatter extends Formatter {
             formatTable.addEntryFromPrefs(RUBY_FORMAT_OPERATOR, "operator");
             formatTable.addEntryFromPrefs(RUBY_FORMAT_BRACE, "brace");
             formatTable.addEntryFromPrefs(RUBY_FORMAT_NUMBER, "number");
+            formatTable.addEntryFromPrefs(RUBY_FORMAT_ESCAPE, "escape");
+            formatTable.addEntryFromPrefs(RUBY_FORMAT_ESCAPE_ERROR, "escapeError");
         }
         return formatTable;
     }

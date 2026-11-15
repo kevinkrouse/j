@@ -488,4 +488,244 @@ public class EscapesTest {
         // reference and stays plain rather than an error.
         assertEquals("", refs("&café;", HTML_REF));
     }
+
+    // --- Ruby ---------------------------------------------------------
+
+    @Test
+    public void rubySimpleEscapes() {
+        assertEquals("O(\\a) O(\\b) O(\\t) O(\\n) O(\\v) O(\\f) O(\\r) O(\\e) O(\\s)",
+            spans(s(B + "a", B + "b", B + "t", B + "n", B + "v", B + "f",
+                   B + "r", B + "e", B + "s"), RUBY));
+        assertEquals("O(\\\\) O(\\\") O(\\\')",
+            spans(s(B + "\\", B + "\"", B + "'"), RUBY));
+    }
+
+    @Test
+    public void rubyOctalAllowsAnyFirstDigit() {
+        // 1-3 octal digits, any first: \777 is one escape.
+        assertEquals("O(\\7) O(\\77) O(\\777)",
+            spans(s(B + "7", B + "77", B + "777"), RUBY));
+        // Maximal: \400 is one escape, not \40 plus a literal 0.
+        assertEquals("O(\\400)", spans(B + "400", RUBY));
+    }
+
+    @Test
+    public void rubyHexNeedsOneOrTwoDigits() {
+        assertEquals("O(\\x41) O(\\xA)", spans(s(B + "x41", B + "xA"), RUBY));
+        // \x with no hex digits is malformed; the trailing z is literal.
+        assertEquals("E(\\x)", spans(B + "x", RUBY));
+        assertEquals("E(\\x)", spans(B + "xz", RUBY));
+    }
+
+    @Test
+    public void rubyUnicodeNeedsFourHexOrBraces() {
+        assertEquals("O(\\u0041)", spans(B + "u0041", RUBY));
+        assertEquals("E(\\u004)", spans(B + "u004", RUBY));
+        // A braced list of 1-6 hex values, blanks allowed.
+        assertEquals("O(\\u{41})", spans(B + "u{41}", RUBY));
+        assertEquals("O(\\u{1F600 41})", spans(B + "u{1F600 41}", RUBY));
+        assertEquals("O(\\u{ 41 })", spans(B + "u{ 41 }", RUBY));
+    }
+
+    @Test
+    public void rubyBracedUnicodeMalformedIsError() {
+        // Empty braces, a non-hex byte, over six digits, unclosed. The
+        // error span runs through the closing brace when there is one.
+        assertEquals("E(\\u{})", spans(B + "u{}", RUBY));
+        assertEquals("E(\\u{4z})", spans(B + "u{4z}", RUBY));
+        assertEquals("E(\\u{1234567})", spans(B + "u{1234567}", RUBY));
+        assertEquals("E(\\u{41)", spans(B + "u{41", RUBY));
+    }
+
+    @Test
+    public void rubyControlAndMetaEscapes() {
+        assertEquals("O(\\cA) O(\\C-x) O(\\M-x) O(\\M-\\C-x) O(\\M-\\cx) O(\\c\\M-x)",
+            spans(s(B + "cA", B + "C-x", B + "M-x", B + "M-\\C-x",
+                   B + "M-\\cx", B + "c\\M-x"), RUBY));
+        assertEquals("O(\\c?)", spans(B + "c?", RUBY));
+    }
+
+    @Test
+    public void rubyControlMissingBaseIsError() {
+        // A control or meta form without its printable base; the error
+        // runs through the structural prefix it matched.
+        assertEquals("E(\\c)", spans(B + "c", RUBY));
+        assertEquals("E(\\M-)", spans(B + "M-", RUBY));
+        assertEquals("E(\\M-\\C)", spans(B + "M-\\C", RUBY));
+        assertEquals("E(\\M-\\C-)", spans(B + "M-\\C-", RUBY));
+    }
+
+    @Test
+    public void rubyIdentityEscape() {
+        // Any other backslashed character is an identity escape.
+        assertEquals("O(\\q) O(\\z)", spans(s(B + "q", B + "z"), RUBY));
+    }
+
+    @Test
+    public void rubyTrailingBackslash() {
+        assertEquals("E(\\)", spans(String.valueOf(B), RUBY));
+        assertEquals("O(\\)", spans(String.valueOf(B), RUBY, true));
+    }
+
+    // --- Perl ---------------------------------------------------------
+
+    @Test
+    public void perlSimpleAndCaseEscapes() {
+        assertEquals("O(\\t) O(\\n) O(\\r) O(\\b) O(\\f) O(\\a) O(\\e)",
+            spans(s(B + "t", B + "n", B + "r", B + "b", B + "f", B + "a", B + "e"), PERL));
+        assertEquals("O(\\\\) O(\\\") O(\\l) O(\\u) O(\\L) O(\\U) O(\\F) O(\\Q) O(\\E)",
+            spans(s(B + "\\", B + "\"", B + "l", B + "u", B + "L",
+                   B + "U", B + "F", B + "Q", B + "E"), PERL));
+    }
+
+    @Test
+    public void perlVerticalTabIsNotAnEscape() {
+        // Perl has no \v for vertical tab; it stays neutral.
+        assertEquals("", spans(B + "v", PERL));
+    }
+
+    @Test
+    public void perlHexAcceptsZeroToTwoDigits() {
+        assertEquals("O(\\x41) O(\\xA) O(\\x)",
+            spans(s(B + "x41", B + "xA", B + "x"), PERL));
+        // A lone \x is accepted (it is \x00), not flagged.
+        assertEquals("O(\\x)", spans(B + "x", PERL));
+    }
+
+    @Test
+    public void perlBracedHexAndOctal() {
+        assertEquals("O(\\x{263A}) O(\\o{23072})",
+            spans(s(B + "x{263A}", B + "o{23072}"), PERL));
+        // Empty braces are accepted.
+        assertEquals("O(\\x{})", spans(B + "x{}", PERL));
+        // Blanks inside the braces are allowed.
+        assertEquals("O(\\x{ 263A })", spans(B + "x{ 263A }", PERL));
+    }
+
+    @Test
+    public void perlBracedMalformedIsError() {
+        // The error span runs through the closing brace when present.
+        assertEquals("E(\\x{ZZ})", spans(B + "x{ZZ}", PERL), "non-hex in braced hex");
+        assertEquals("E(\\o{8})", spans(B + "o{8}", PERL), "non-octal in braced octal");
+        assertEquals("E(\\x{263A)", spans(B + "x{263A", PERL), "unclosed");
+    }
+
+    @Test
+    public void perlNamedUnicode() {
+        assertEquals("O(\\N{alpha})", spans(B + "N{alpha}", PERL));
+        assertEquals("O(\\N{U+263D})", spans(B + "N{U+263D}", PERL));
+        // Empty or unclosed is an error.
+        assertEquals("E(\\N{})", spans(B + "N{}", PERL));
+        assertEquals("E(\\N{alpha)", spans(B + "N{alpha", PERL));
+    }
+
+    @Test
+    public void perlControlEscape() {
+        assertEquals("O(\\cA) O(\\c[)", spans(s(B + "cA", B + "c["), PERL));
+        // \c{ is not a control escape: the brace is disallowed, so the
+        // error is the introducer and the brace stays literal.
+        assertEquals("E(\\c)", spans(B + "c{", PERL));
+    }
+
+    @Test
+    public void perlUnknownStaysNeutral() {
+        // Unrecognized forms are not highlighted at all.
+        assertEquals("", spans(B + "y", PERL));
+        assertEquals("", spans(B + "q", PERL));
+        assertEquals("", spans(B + "o", PERL), "\\o without a brace is neutral");
+    }
+
+    @Test
+    public void perlOctalAllowsAnyFirstDigit() {
+        assertEquals("O(\\7) O(\\77) O(\\777)",
+            spans(s(B + "7", B + "77", B + "777"), PERL));
+    }
+
+    @Test
+    public void perlTrailingBackslash() {
+        assertEquals("E(\\)", spans(String.valueOf(B), PERL));
+        assertEquals("O(\\)", spans(String.valueOf(B), PERL, true));
+    }
+
+    // --- PHP ----------------------------------------------------------
+
+    @Test
+    public void phpSimpleEscapes() {
+        assertEquals("O(\\n) O(\\r) O(\\t) O(\\v) O(\\e) O(\\f) O(\\\\) O(\\$) O(\\\")",
+            spans(s(B + "n", B + "r", B + "t", B + "v", B + "e",
+                   B + "f", B + "\\", B + "$", B + "\""), PHP));
+    }
+
+    @Test
+    public void phpOctalUpToThreeDigits() {
+        // \0 to \377: the first digit caps the third, as in Java.
+        assertEquals("O(\\0) O(\\12) O(\\377)",
+            spans(s(B + "0", B + "12", B + "377"), PHP));
+        // \400 is \40 plus a literal 0 (the 0 is not a span).
+        assertEquals("O(\\40)", spans(B + "400", PHP));
+    }
+
+    @Test
+    public void phpHexNeedsOneOrTwoDigits() {
+        assertEquals("O(\\x41) O(\\xA)", spans(s(B + "x41", B + "xA"), PHP));
+        // \x with no hex digits stays literal.
+        assertEquals("", spans(B + "x", PHP));
+    }
+
+    @Test
+    public void phpBracedUnicode() {
+        assertEquals("O(\\u{41}) O(\\u{1F600})",
+            spans(s(B + "u{41}", B + "u{1F600}"), PHP));
+        // backslash-u without a brace is literal.
+        assertEquals("", spans(B + "u0041", PHP));
+    }
+
+    @Test
+    public void phpBracedUnicodeMalformedIsError() {
+        // The error span runs through the closing brace when present.
+        assertEquals("E(\\u{})", spans(B + "u{}", PHP));
+        assertEquals("E(\\u{4z})", spans(B + "u{4z}", PHP));
+        assertEquals("E(\\u{41)", spans(B + "u{41", PHP));
+    }
+
+    @Test
+    public void phpUnknownStaysLiteral() {
+        assertEquals("", spans(B + "a", PHP));
+        assertEquals("", spans(B + "q", PHP));
+    }
+
+    @Test
+    public void phpTrailingBackslash() {
+        assertEquals("E(\\)", spans(String.valueOf(B), PHP));
+        assertEquals("O(\\)", spans(String.valueOf(B), PHP, true));
+    }
+
+    // --- single-quoted ------------------------------------------------
+
+    @Test
+    public void singleQuotedOnlyBackslashAndQuote() {
+        assertEquals("O(\\\\) O(\\')", spans(s(B + "\\", B + "'"), SINGLE_QUOTED));
+    }
+
+    @Test
+    public void singleQuotedOtherBackslashesAreLiteral() {
+        // \n, \t and friends are NOT escapes in a single-quoted string.
+        assertEquals("", spans(B + "n", SINGLE_QUOTED));
+        assertEquals("", spans(B + "t", SINGLE_QUOTED));
+        assertEquals("", spans(B + "x41", SINGLE_QUOTED));
+        assertEquals("", spans(B + "u0041", SINGLE_QUOTED));
+    }
+
+    @Test
+    public void singleQuotedDoubleBackslashConsumesBoth() {
+        // \\' is \\ (one escape) then a literal quote, not \ then an
+        // escaped quote.
+        assertEquals("O(\\\\)", spans(B + "\\" + "'", SINGLE_QUOTED));
+    }
+
+    @Test
+    public void singleQuotedTrailingBackslashIsLiteral() {
+        assertEquals("", spans(String.valueOf(B), SINGLE_QUOTED));
+        assertEquals("", spans(String.valueOf(B), SINGLE_QUOTED, true));
+    }
 }

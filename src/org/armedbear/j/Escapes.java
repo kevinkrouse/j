@@ -72,7 +72,18 @@ public final class Escapes {
         /** Python ordinary strings: strict; unknown is an error. */
         PYTHON,
         /** Python bytes literals: PYTHON without the Unicode forms. */
-        PYTHON_BYTES
+        PYTHON_BYTES,
+        /** Ruby double-quoted strings: structured forms plus identity escapes. */
+        RUBY,
+        /** Perl double-quoted strings: recognized forms only; others stay neutral. */
+        PERL,
+        /** PHP double-quoted strings: recognized forms only; others stay literal. */
+        PHP,
+        /**
+         * Ordinary single-quoted Ruby, Perl and PHP strings: only {@code \\}
+         * and {@code \'} are escapes; every other backslash is literal.
+         */
+        SINGLE_QUOTED
     }
 
     private Escapes() {
@@ -135,6 +146,14 @@ public final class Escapes {
                 return scanPython(text, i, end, continued, true);
             case PYTHON_BYTES:
                 return scanPython(text, i, end, continued, false);
+            case RUBY:
+                return scanRuby(text, i, end, continued);
+            case PERL:
+                return scanPerl(text, i, end, continued);
+            case PHP:
+                return scanPhp(text, i, end, continued);
+            case SINGLE_QUOTED:
+                return scanSingleQuoted(text, i, end);
         }
         return Result.NONE;
     }
@@ -321,7 +340,305 @@ public final class Escapes {
         return error(j);
     }
 
+    // --- Ruby --------------------------------------------------------
+
+    // The EscapeSequence set minus the numeric, control and braced forms.
+    private static boolean rubySimpleEscape(char c) {
+        return "abtnvfre\\\"'s".indexOf(c) >= 0;
+    }
+
+    // A printable ASCII character: the base of a control or meta escape.
+    private static boolean printableAscii(char c) {
+        return c >= 0x20 && c <= 0x7e;
+    }
+
+    // `i` is at the backslash. Ruby's double-quoted escapes: the simple
+    // set, octal, backslash-x (1-2 hex), backslash-u (4 hex or a braced
+    // list), control and meta forms, and identity for anything else. A
+    // malformed structured form is an error; identity escapes are
+    // ordinary escapes.
+    private static Result scanRuby(CharSequence text, int i, int end, boolean continued) {
+        if (i + 1 >= end)
+            return continued ? escape(i + 1) : error(i + 1);
+        final char c = text.charAt(i + 1);
+        if (rubySimpleEscape(c))
+            return escape(i + 2);
+        if (c >= '0' && c <= '7')
+            return scanOctalAny(text, i, end);
+        if (c == 'x') {
+            // One or two hex digits; none is malformed.
+            int j = i + 2;
+            int digits = 0;
+            while (digits < 2 && j < end && isHex(text.charAt(j))) {
+                ++j;
+                ++digits;
+            }
+            return digits >= 1 ? escape(j) : error(j);
+        }
+        if (c == 'u') {
+            if (i + 2 < end && text.charAt(i + 2) == '{')
+                return scanRubyBracedUnicode(text, i, end);
+            return scanFixedHex(text, i, end, 4);
+        }
+        if (c == 'c' || c == 'C' || c == 'M')
+            return scanRubyControl(text, i, end);
+        // Identity escape: the backslash and the character itself.
+        return escape(consumeCodePoint(text, i, end));
+    }
+
+    // backslash-u{nnnn ...}: one or more values of 1-6 hex digits,
+    // separated by blanks. Empty braces or a non-hex byte is an error;
+    // the candidate is consumed once, through its closing brace if
+    // present.
+    private static Result scanRubyBracedUnicode(CharSequence text, int i, int end) {
+        int j = i + 3;
+        int values = 0;
+        boolean bad = false;
+        while (j < end && text.charAt(j) != '}') {
+            final char d = text.charAt(j);
+            if (d == ' ' || d == '\t') {
+                ++j;
+                continue;
+            }
+            if (!isHex(d)) {
+                bad = true;
+                ++j;
+                continue;
+            }
+            int digits = 0;
+            while (j < end && isHex(text.charAt(j)) && digits < 6) {
+                ++j;
+                ++digits;
+            }
+            if (j < end && isHex(text.charAt(j)))
+                bad = true; // more than six hex digits in one value
+            ++values;
+        }
+        if (j >= end || text.charAt(j) != '}')
+            return error(j); // unclosed
+        ++j; // consume the closing brace into the span
+        return !bad && values >= 1 ? escape(j) : error(j);
+    }
+
+    // The control and meta forms, each ending in a printable ASCII base:
+    //   \cx  \C-x  \M-x  \M-\C-x  \M-\cx  \c\M-x
+    // A form whose base is missing is an error, consumed through the
+    // structural prefix it matched. A backslash after \M- or \C- means a
+    // combined form was intended, so it is never a simple base.
+    private static Result scanRubyControl(CharSequence text, int i, int end) {
+        final char m = text.charAt(i + 1);
+        if (m == 'M') {
+            if (at(text, end, i + 2, '-')) {
+                if (at(text, end, i + 3, '\\')) {
+                    // \M-\C-x
+                    if (at(text, end, i + 4, 'C')) {
+                        if (at(text, end, i + 5, '-'))
+                            return printableAt(text, end, i + 6) ? escape(i + 7) : error(i + 6);
+                        return error(i + 5); // \M-\C with no dash
+                    }
+                    // \M-\cx
+                    if (at(text, end, i + 4, 'c'))
+                        return printableAt(text, end, i + 5) ? escape(i + 6) : error(i + 5);
+                    return error(i + 4); // \M-\ with unknown
+                }
+                // \M-x
+                return printableAt(text, end, i + 3) ? escape(i + 4) : error(i + 3);
+            }
+            return error(consumeCodePoint(text, i, end)); // \M with nothing
+        }
+        if (m == 'c') {
+            if (at(text, end, i + 2, '\\')) {
+                // \c\M-x
+                if (at(text, end, i + 3, 'M') && at(text, end, i + 4, '-'))
+                    return printableAt(text, end, i + 5) ? escape(i + 6) : error(i + 5);
+                return error(i + 3); // \c\ with unknown
+            }
+            // \cx
+            return printableAt(text, end, i + 2) ? escape(i + 3) : error(i + 2);
+        }
+        // \C-x
+        if (at(text, end, i + 2, '-'))
+            return printableAt(text, end, i + 3) ? escape(i + 4) : error(i + 3);
+        return error(consumeCodePoint(text, i, end)); // \C with nothing
+    }
+
+    // The character at `k` equals `c`, with a bounds check.
+    private static boolean at(CharSequence text, int end, int k, char c) {
+        return k < end && text.charAt(k) == c;
+    }
+
+    private static boolean printableAt(CharSequence text, int end, int k) {
+        return k < end && printableAscii(text.charAt(k));
+    }
+
+    // --- Perl --------------------------------------------------------
+
+    // The perlop simple escapes. Perl has no \v or \s in strings.
+    private static boolean perlSimpleEscape(char c) {
+        return "tnrbfae\\\"".indexOf(c) >= 0;
+    }
+
+    // The case and quoting operators: two-character escapes.
+    private static boolean perlCaseOperator(char c) {
+        return "luLUFQE".indexOf(c) >= 0;
+    }
+
+    // `i` is at the backslash. Perl recognizes the simple set, octal,
+    // \x (0-2 hex or a braced list), \o{...}, \N{...}, \c control and
+    // the case/quoting operators. Anything else stays neutral: no span,
+    // so the backslash and the following character keep the string's
+    // base format.
+    private static Result scanPerl(CharSequence text, int i, int end, boolean continued) {
+        if (i + 1 >= end)
+            return continued ? escape(i + 1) : error(i + 1);
+        final char c = text.charAt(i + 1);
+        if (perlSimpleEscape(c) || perlCaseOperator(c))
+            return escape(i + 2);
+        if (c >= '0' && c <= '7')
+            return scanOctalAny(text, i, end);
+        if (c == 'x') {
+            if (i + 2 < end && text.charAt(i + 2) == '{')
+                return scanPerlBraced(text, i, end, true);
+            // Up to two hex digits; zero is accepted (\x is \x00).
+            int j = i + 2;
+            int digits = 0;
+            while (digits < 2 && j < end && isHex(text.charAt(j))) {
+                ++j;
+                ++digits;
+            }
+            return escape(j);
+        }
+        if (c == 'o') {
+            if (i + 2 < end && text.charAt(i + 2) == '{')
+                return scanPerlBraced(text, i, end, false);
+            return Result.NONE;
+        }
+        if (c == 'N')
+            return scanPerlNamed(text, i, end);
+        if (c == 'c') {
+            // \cX: X printable ASCII except '{'.
+            if (i + 2 < end && printableAscii(text.charAt(i + 2)) && text.charAt(i + 2) != '{')
+                return escape(i + 3);
+            return error(consumeCodePoint(text, i, end));
+        }
+        // Unrecognized: neutral, not highlighted.
+        return Result.NONE;
+    }
+
+    // \x{...} or \o{...}: blanks allowed inside; hex or octal digits.
+    // Empty braces are accepted; a byte outside the digit set is an
+    // error, consumed once through the closing brace if present.
+    private static Result scanPerlBraced(CharSequence text, int i, int end, boolean hex) {
+        int j = i + 3;
+        boolean bad = false;
+        while (j < end && text.charAt(j) != '}') {
+            final char d = text.charAt(j);
+            if (d == ' ' || d == '\t' || (hex ? isHex(d) : isOctal(d))) {
+                ++j;
+                continue;
+            }
+            bad = true;
+            ++j;
+        }
+        if (j >= end || text.charAt(j) != '}')
+            return error(j); // unclosed
+        ++j; // consume the closing brace into the span
+        return bad ? error(j) : escape(j);
+    }
+
+    // \N{name} or \N{U+hex}: the braces must be present and nonempty.
+    private static Result scanPerlNamed(CharSequence text, int i, int end) {
+        if (i + 2 >= end || text.charAt(i + 2) != '{')
+            return error(i + 2);
+        int j = i + 3;
+        while (j < end && text.charAt(j) != '}' && text.charAt(j) != '\\')
+            ++j;
+        if (j < end && text.charAt(j) == '}')
+            return j > i + 3 ? escape(j + 1) : error(j + 1);
+        return error(j);
+    }
+
+    // --- PHP ---------------------------------------------------------
+
+    // The PHP double-quoted simple escapes.
+    private static boolean phpSimpleEscape(char c) {
+        return "nrtvef\\$\"".indexOf(c) >= 0;
+    }
+
+    // `i` is at the backslash. PHP recognizes the simple set, 1-3 octal
+    // digits, backslash-x (1-2 hex) and backslash-u{...}. Unknown forms
+    // stay literal: no span. A malformed braced Unicode is an error.
+    private static Result scanPhp(CharSequence text, int i, int end, boolean continued) {
+        if (i + 1 >= end)
+            return continued ? escape(i + 1) : error(i + 1);
+        final char c = text.charAt(i + 1);
+        if (phpSimpleEscape(c))
+            return escape(i + 2);
+        if (c >= '0' && c <= '7')
+            return scanOctal(text, i, end); // \0 to \377: Java-style munch
+        if (c == 'x') {
+            int j = i + 2;
+            int digits = 0;
+            while (digits < 2 && j < end && isHex(text.charAt(j))) {
+                ++j;
+                ++digits;
+            }
+            return digits >= 1 ? escape(j) : Result.NONE;
+        }
+        if (c == 'u') {
+            if (i + 2 < end && text.charAt(i + 2) == '{')
+                return scanPhpBracedUnicode(text, i, end);
+            return Result.NONE; // backslash-u without a brace is literal
+        }
+        // Unknown: literal, not highlighted.
+        return Result.NONE;
+    }
+
+    // backslash-u{...}: one or more hex digits. Empty or a non-hex byte
+    // is an error, consumed once through the closing brace if present.
+    private static Result scanPhpBracedUnicode(CharSequence text, int i, int end) {
+        int j = i + 3;
+        int digits = 0;
+        boolean bad = false;
+        while (j < end && text.charAt(j) != '}') {
+            if (isHex(text.charAt(j))) {
+                ++j;
+                ++digits;
+                continue;
+            }
+            bad = true;
+            ++j;
+        }
+        if (j >= end || text.charAt(j) != '}')
+            return error(j); // unclosed
+        ++j; // consume the closing brace into the span
+        return !bad && digits >= 1 ? escape(j) : error(j);
+    }
+
+    // --- single-quoted -----------------------------------------------
+
+    // Ordinary single-quoted Ruby, Perl and PHP strings: only \\ and \'
+    // are escapes; every other backslash is literal.
+    private static Result scanSingleQuoted(CharSequence text, int i, int end) {
+        if (i + 1 >= end)
+            return Result.NONE;
+        final char c = text.charAt(i + 1);
+        if (c == '\\' || c == '\'')
+            return escape(i + 2);
+        return Result.NONE;
+    }
+
     // --- shared helpers ------------------------------------------------
+
+    // Up to three octal digits, any first digit: \777 is one escape.
+    // Unlike Java's scanOctal, which caps the third digit when the
+    // first is 4-7.
+    private static Result scanOctalAny(CharSequence text, int i, int end) {
+        int j = i + 2;
+        while (j < end && isOctal(text.charAt(j)) && j - (i + 1) < 3)
+            ++j;
+        return escape(j);
+    }
 
     // Exactly `width` hex digits after the introducer.
     private static Result scanFixedHex(CharSequence text, int i, int end, int width) {

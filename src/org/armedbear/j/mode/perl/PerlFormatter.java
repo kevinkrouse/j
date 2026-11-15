@@ -23,12 +23,14 @@ package org.armedbear.j.mode.perl;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Escapes;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -57,8 +59,21 @@ public final class PerlFormatter extends Formatter {
     private static final int PERL_FORMAT_NUMBER = 6;
     private static final int PERL_FORMAT_SCALAR = 7;
     private static final int PERL_FORMAT_LIST = 8;
+    private static final int PERL_FORMAT_ESCAPE = 9;
+    private static final int PERL_FORMAT_ESCAPE_ERROR = 10;
 
     private StringBuilder sb = new StringBuilder();
+
+    // The opening delimiter the parser just consumed: 1 for a quote.
+    private int openLen = 0;
+
+    // The closing delimiter the parser just consumed: 1 for a quote, 0
+    // when the literal was still open at end of line.
+    private int closingLen = 0;
+
+    // Whether the line being formatted ends at a physical line break the
+    // literal continues across.
+    private boolean lineEndContinues = false;
 
     private String endOfText;
 
@@ -69,7 +84,16 @@ public final class PerlFormatter extends Formatter {
     }
 
     private void endToken(int state) {
+        final int open = openLen;
+        final int close = closingLen;
+        openLen = 0;
+        closingLen = 0;
         if (sb.length() > 0) {
+            if (state == STATE_QUOTE || state == STATE_SINGLEQUOTE) {
+                addStringSegment(sb.toString(), state, open, close);
+                sb.setLength(0);
+                return;
+            }
             int format = -1;
             switch (state) {
                 case STATE_NEUTRAL:
@@ -101,6 +125,33 @@ public final class PerlFormatter extends Formatter {
             addSegment(sb.toString(), format);
             sb.setLength(0);
         }
+    }
+
+    // A string literal: the delimiters stay in the base format; only the
+    // content splits into escapes. The sb token carries its own text, so
+    // the scan offsets are relative to it. A single-quoted string takes
+    // only \\ and \'; a double-quoted string takes the Perl profile.
+    private void addStringSegment(String token, int state, int open, int close) {
+        final int contentBegin = open;
+        final int contentEnd = token.length() - close;
+        if (contentEnd <= contentBegin) {
+            addSegment(token, PERL_FORMAT_STRING);
+            return;
+        }
+        final Escapes.Syntax syntax =
+            state == STATE_SINGLEQUOTE ? Escapes.Syntax.SINGLE_QUOTED : Escapes.Syntax.PERL;
+        final List<Escapes.Span> spans = Escapes.scan(token, contentBegin, contentEnd,
+                syntax, lineEndContinues && close == 0);
+        if (spans.isEmpty()) {
+            addSegment(token, PERL_FORMAT_STRING);
+            return;
+        }
+        if (contentBegin > 0)
+            addSegment(token, 0, contentBegin, PERL_FORMAT_STRING);
+        addEscapedSegment(token, contentBegin, contentEnd, spans,
+                PERL_FORMAT_STRING, PERL_FORMAT_ESCAPE, PERL_FORMAT_ESCAPE_ERROR);
+        if (token.length() > contentEnd)
+            addSegment(token, contentEnd, token.length(), PERL_FORMAT_STRING);
     }
 
     private void parseLine(String text, int state) {
@@ -152,6 +203,7 @@ public final class PerlFormatter extends Formatter {
             if (state == STATE_QUOTE) {
                 sb.append(c);
                 if (c == '"') {
+                    closingLen = 1;
                     endToken(state);
                     state = STATE_NEUTRAL;
                 }
@@ -161,6 +213,7 @@ public final class PerlFormatter extends Formatter {
             if (state == STATE_SINGLEQUOTE) {
                 sb.append(c);
                 if (c == '\'') {
+                    closingLen = 1;
                     endToken(state);
                     state = STATE_NEUTRAL;
                 }
@@ -217,6 +270,7 @@ public final class PerlFormatter extends Formatter {
             if (c == '"') {
                 endToken(state);
                 sb.append(c);
+                openLen = 1;
                 state = STATE_QUOTE;
                 ++i;
                 continue;
@@ -224,6 +278,7 @@ public final class PerlFormatter extends Formatter {
             if (c == '\'') {
                 endToken(state);
                 sb.append(c);
+                openLen = 1;
                 state = STATE_SINGLEQUOTE;
                 ++i;
                 continue;
@@ -442,6 +497,7 @@ public final class PerlFormatter extends Formatter {
             addSegment("", PERL_FORMAT_TEXT);
             return segmentList;
         }
+        lineEndContinues = line.next() != null;
         parseLine(line.getText(), line.flags());
         final int tokenCount = segmentList.size();
         for (int i = 0; i < tokenCount; i++) {
@@ -791,6 +847,8 @@ public final class PerlFormatter extends Formatter {
             formatTable.addEntryFromPrefs(PERL_FORMAT_NUMBER, "number");
             formatTable.addEntryFromPrefs(PERL_FORMAT_SCALAR, "scalar");
             formatTable.addEntryFromPrefs(PERL_FORMAT_LIST, "list");
+            formatTable.addEntryFromPrefs(PERL_FORMAT_ESCAPE, "escape");
+            formatTable.addEntryFromPrefs(PERL_FORMAT_ESCAPE_ERROR, "escapeError");
         }
         return formatTable;
     }

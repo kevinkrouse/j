@@ -11,7 +11,7 @@ mode Perl
 8: keyword"sub" text" " function"greet" text" " brace"{"
 9: text"    " keyword"my" text" (" scalar"$name" text") = " list"@_" text";"
 10: text"    " keyword"if" text" (" scalar"$name" text" =~ " function"/" string"^a" function"/" text") " brace"{"
-11: text"        " function"print" text" " string""Hello, $name\n"" text";"
+11: text"        " function"print" text" " string""" string"Hello, $name" escape"\n" string""" text";"
 12: text"    " brace"}"
 13: text"    " keyword"return" text" " string"'done'" text";"
 14: brace"}"
