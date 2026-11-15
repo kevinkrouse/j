@@ -10,6 +10,29 @@ This changes presentation only: never decode an escape, replace buffer
 contents, or change save, copy, search, undo, or character offsets.
 `escapeError` means a local highlighting problem, not a compiler diagnostic.
 
+`escapeError` identifies a specific kind of syntax highlighting. A compiler
+diagnostic carries additional information: severity, a message, and potentially
+a fix. An invalid escape can receive both token coloring and an error underline.
+
+Keeping a separate style gives us:
+
+- Independent customization: themes can change invalid escapes without changing every error.
+- Accurate scope: our scanner checks local spellings; it doesn’t provide complete compiler validation.
+- Separation from existing styles: J already uses error for VCS status rows, with a keyword fallback.
+
+Other editors follow this pattern:
+
+- IntelliJ defines separate `VALID_STRING_ESCAPE` and `INVALID_STRING_ESCAPE` highlighting keys.
+  Parser errors and diagnostic annotations are handled through additional highlighting layers.
+  [Highlighing keys](https://github.com/JetBrains/intellij-community/blob/master/platform/core-api/src/com/intellij/openapi/editor/DefaultLanguageHighlighterColors.java)
+  [highlighting archetecture](https://plugins.jetbrains.com/docs/intellij/syntax-highlighting-and-error-highlighting.html)
+- VS Code’s JSON grammar uses `constant.character.escape.json` for valid escapes
+  and `invalid.illegal.unrecognized-string-escape.json` for invalid ones. Language diagnostics
+  are supplied separately.
+  [JSON grammar](https://github.com/microsoft/vscode/blob/main/extensions/json/syntaxes/JSON.tmLanguage.json),
+  [diagnostics API](https://code.visualstudio.com/api/language-extensions/programmatic-language-features#provide-diagnostics).
+
+
 ## Evaluation of the original approach
 
 Splitting formatter segments is a good fit for the existing display and
