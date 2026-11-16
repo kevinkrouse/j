@@ -59,11 +59,22 @@ public class ElectricPairsTest {
         if (h != null)
             h.close();
         h = EditorHarness.create(text).mode(mode);
-        h.cursor(0, caret);
+        // The caret may sit on a later line: find the line and the
+        // offset within it from the | position in the joined text.
+        int lineNo = 0;
+        int seen = 0;
+        for (int i = 0; i < text.length() && seen < caret; i++) {
+            if (text.charAt(i) == '\n') {
+                lineNo++;
+                seen = i + 1;
+            }
+        }
+        int offset = caret - seen;
+        h.cursor(lineNo, offset);
         return ElectricPairs.decide(
             mode,
             h.buffer(),
-            new Position(h.buffer().getLine(0), caret),
+            new Position(h.buffer().getLine(lineNo), offset),
             Operation.INSERT,
             c,
             selection,
@@ -95,9 +106,11 @@ public class ElectricPairsTest {
     @Test
     public void typeOverMatchesTypedCloser() {
         assertAction(TYPE_OVER, type("(|)", ')'));
-        // Typing ( before ) must not skip the ).
+        // Typing ( before ) must not skip the ). The ) ahead is
+        // reserved for the enclosing (, so the new ( generates its
+        // own closer rather than stepping over.
         Decision opener = type("(|)", '(');
-        assertAction(INSERT_OPENER, opener);
+        assertAction(INSERT_PAIR, opener);
         assertPair('(', ')', opener);
     }
 
@@ -108,8 +121,60 @@ public class ElectricPairsTest {
 
     @Test
     public void balanceInsertsOpenerOnly() {
-        Decision d = type("(|)", '(');
+        // With nothing open before the caret, a closer ahead is free to
+        // close the new opener, so only the opener is inserted.
+        Decision d = type("|)", '(');
         assertAction(INSERT_OPENER, d);
+        assertPair('(', ')', d);
+    }
+
+    @Test
+    public void closerReservedByEnclosingFormStillGeneratesCloser() {
+        // foo(bar|) + ( : the ) ahead is reserved for foo's (, so the
+        // new ( must generate its own closer. The old single-line
+        // balance saw the ) at depth zero and wrongly suppressed it.
+        Decision d = type("foo(bar|)", '(');
+        assertAction(INSERT_PAIR, d);
+        assertPair('(', ')', d);
+    }
+
+    @Test
+    public void closerReservedAcrossLinesStillGeneratesCloser() {
+        // The enclosing opener is on a previous line. The ) on the
+        // caret's line is reserved for it, so the new ( generates its
+        // own closer rather than leaving the enclosing form unmatched.
+        Decision d = typeIn(JavaMode.getMode(), "foo(bar\n     |)", '(', false, false);
+        assertAction(INSERT_PAIR, d);
+        assertPair('(', ')', d);
+    }
+
+    @Test
+    public void multiLineCloserAheadOfEnclosingOpenerIsFree() {
+        // (def x\n  (foo\n    |)) : the )) at the caret's line close
+        // the two enclosing forms, so with the seed of two the new (
+        // still generates its own closer.
+        Decision d = typeIn(JavaMode.getMode(), "(def x\n  (foo\n    |))", '(', false, false);
+        assertAction(INSERT_PAIR, d);
+        assertPair('(', ')', d);
+    }
+
+    @Test
+    public void multiLineCloserAheadWithNothingOpenIsFree() {
+        // A closer on a later line with nothing open before the caret
+        // is free to close the new opener: the seed is zero, so only
+        // the opener is inserted.
+        Decision d = typeIn(JavaMode.getMode(), "|\n)", '(', false, false);
+        assertAction(INSERT_PAIR, d);
+        assertPair('(', ')', d);
+    }
+
+    @Test
+    public void stringCloserAheadDoesNotReserveAcrossLines() {
+        // The ) ahead is inside a string on the previous line, so it
+        // is not a closer in code and does not reserve: the new (
+        // generates its own closer.
+        Decision d = typeIn(JavaMode.getMode(), "foo \"x)\"\nbar|", '(', false, false);
+        assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
     }
 
@@ -275,13 +340,15 @@ public class ElectricPairsTest {
     }
 
     @Test
-    public void insertOpenerWired() {
-        // The caret sits between a pair, so a closer already waits
-        // ahead and the opener inserts alone.
+    public void insertPairInsideExistingPairWired() {
+        // The caret sits between a pair, but the closer ahead is
+        // reserved for the enclosing (: typing ( generates its own
+        // closer so the result stays balanced, rather than leaving
+        // the opener unmatched as the old single-line balance did.
         h = EditorHarness.create("()").mode(PlainTextMode.getMode());
         h.cursor(0, 1);
         h.keys("(");
-        h.assertText("(()\n");
+        h.assertText("(())\n");
         h.assertCursorAt(0, 2);
     }
 

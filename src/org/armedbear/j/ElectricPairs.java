@@ -25,6 +25,16 @@ public final class ElectricPairs {
     private ElectricPairs() {}
 
     /**
+     * The most characters the balance walk will price before giving up
+     * and generating the closer. In well-formed code the enclosing form
+     * is a few lines away, so the walk stops long before this; the
+     * budget only bounds the pathological case of a huge prefix with
+     * no enclosing closer, keeping the keystroke O(budget) instead of
+     * O(file).
+     */
+    private static final int BALANCE_SCAN_BUDGET = 100_000;
+
+    /**
      * What the user did. {@code c} is used only for INSERT. Backspace
      * is not here: it has its own structural rule, {@link #deleteBoth}.
      */
@@ -126,8 +136,24 @@ public final class ElectricPairs {
                 return Decision.plain();
             if (at != 0 && mode.isIdentifierPart(at))
                 return Decision.plain();
-            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, offset, pair.closer(), pair.opener()))
-                return Decision.of(Action.INSERT_OPENER, pair);
+            if (balance) {
+                // A closer is waiting for this opener only when the
+                // prefix before the caret leaves nothing open for it:
+                // the forward scan, seeded with the unmatched openers
+                // already before the caret, finds a closer at depth
+                // zero. In foo(bar|) the ) ahead is reserved for foo's
+                // (, so the seed is one and the scan never reaches
+                // depth zero: this opener must generate its own closer.
+                // In |) the seed is zero and the ) is free to close
+                // the new opener, so only the opener is inserted.
+                int[] steps = new int[1];
+                int seed = prefixBalance(mode, buffer, line, offset,
+                        pair.opener(), pair.closer(), steps, BALANCE_SCAN_BUDGET);
+                if (steps[0] <= BALANCE_SCAN_BUDGET
+                        && closerWaiting(mode, buffer, line, offset,
+                                pair.opener(), pair.closer(), seed, steps, BALANCE_SCAN_BUDGET))
+                    return Decision.of(Action.INSERT_OPENER, pair);
+            }
             return Decision.of(Action.INSERT_PAIR, pair);
         }
         if (table.isCloser(c)) {
@@ -140,7 +166,13 @@ public final class ElectricPairs {
             // the balance: in (|() the ( at the caret matches the ) after
             // it, so the typed ) is not suppressed.
             int from = charAt(line, offset) == c ? offset + 1 : offset;
-            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, from, c, table.pairFor(c).opener()))
+            // The closer branch keeps the single-line seed: a typed
+            // closer is redundant only against a closer waiting at the
+            // current nesting level, and the enclosing-form reservation
+            // that the opener branch needs does not apply to suppression.
+            int[] steps = new int[1];
+            if (balance && closerWaiting(mode, buffer, line, from,
+                    table.pairFor(c).opener(), c, 0, steps, BALANCE_SCAN_BUDGET))
                 return Decision.suppress();
             return Decision.plain();
         }
@@ -248,27 +280,95 @@ public final class ElectricPairs {
     }
 
     /**
+     * The per-kind nesting the prefix leaves open before {@code offset}:
+     * the count of this opener's unmatched openers at the caret, floored
+     * at zero. It is the depth the forward scan starts from, so a closer
+     * ahead is seen as reserved for an enclosing form rather than as
+     * free to close the one being typed.
+     *
+     * <p>The walk goes backward from the caret on the current line, then
+     * over previous lines, counting NEUTRAL openers and closers of this
+     * kind. Delimiters inside a string or comment do not count, the same
+     * rule the forward scan uses. The walk is bounded by {@code budget}
+     * characters; on overflow {@code steps[0]} exceeds the budget and
+     * the caller falls back to generating the closer, the safe answer
+     * when the prefix is too large to price.
+     */
+    private static int prefixBalance(
+            Mode mode,
+            Buffer buffer,
+            Line line,
+            int offset,
+            char opener,
+            char closer,
+            int[] steps,
+            int budget) {
+        int balance = 0;
+        Line l = line;
+        int i = offset;
+        while (l != null) {
+            final int len = l.length();
+            if (i > len)
+                i = len;
+            final Optional<LexicalContext[]> bulk = mode.lexicalContexts(buffer, l, len);
+            while (i > 0) {
+                if (steps[0] > budget)
+                    return balance;
+                final char ch = l.charAt(i - 1);
+                if (ch == opener || ch == closer) {
+                    final LexicalContext state =
+                            bulk.isPresent() ? bulk.get()[i - 1]
+                                    : mode.lexicalContext(buffer, new Position(l, i - 1));
+                    if (state == LexicalContext.NEUTRAL) {
+                        if (ch == opener)
+                            balance++;
+                        else
+                            balance--;
+                    }
+                }
+                steps[0]++;
+                i--;
+            }
+            l = l.previous();
+            i = l == null ? 0 : l.length();
+        }
+        return Math.max(0, balance);
+    }
+
+    /**
      * Whether a closer of this kind sits later on the line with nothing
-     * open before it — a closer already waiting to be typed over.
-     * Delimiters inside a string or a comment are not code and do not
-     * count: in {@code foo(| "x)"} the {@code )} is inside the string,
-     * so the opener still gets its own closer.
+     * open before it at the seeded depth — a closer already waiting to
+     * be typed over. Delimiters inside a string or a comment are not
+     * code and do not count: in {@code foo(| "x)"} the {@code )} is
+     * inside the string, so the opener still gets its own closer.
+     *
+     * <p>The seed is the unmatched-openers-before-the-caret count from
+     * {@link #prefixBalance}. With seed one, as in {@code foo(bar|)},
+     * the {@code )} ahead pops the seed to zero and is consumed by the
+     * enclosing form, so it is not waiting for the new opener. With
+     * seed zero, as in {@code |)}, the {@code )} sits at depth zero and
+     * is free to close the new opener.
      *
      * <p>The lexical context for the whole span is taken in one pass.
      * Asking for it per delimiter rescans the line prefix each time,
      * which on a line with thousands of balanced pairs stalls the input
      * path.
      */
-    private static boolean hasUnmatchedCloserAhead(
+    private static boolean closerWaiting(
             Mode mode,
             Buffer buffer,
             Line line,
             int from,
+            char opener,
             char closer,
-            char opener) {
+            int seed,
+            int[] steps,
+            int budget) {
         final Optional<LexicalContext[]> bulk = mode.lexicalContexts(buffer, line, line.length());
-        int depth = 0;
+        int depth = seed;
         for (int i = from; i < line.length(); i++) {
+            if (steps[0] > budget)
+                return false;
             char ch = line.charAt(i);
             if (ch != opener && ch != closer)
                 continue;
@@ -287,6 +387,7 @@ public final class ElectricPairs {
                 return true;
             else
                 depth--;
+            steps[0]++;
         }
         return false;
     }
