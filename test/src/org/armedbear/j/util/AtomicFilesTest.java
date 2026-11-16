@@ -22,7 +22,6 @@ package org.armedbear.j.util;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -84,20 +83,21 @@ public class AtomicFilesTest {
 
     @Test
     public void aWriteOverAFailedOneStillLeavesNoTemp() throws Exception {
-        // A directory where the target name is, so the move can't land: the
-        // aside must still be cleaned up rather than left to rot.
+        // A non-empty directory where the target name is, so the move
+        // can't land: the aside must be cleaned up rather than left to
+        // rot, and the target must be left exactly as it was.
         Path dir = tmp.resolve("thing");
         Files.createDirectory(dir);
+        Path sentinel = dir.resolve("keep");
+        Files.writeString(sentinel, "old content");
         try {
             AtomicFiles.write(dir, "x".getBytes(StandardCharsets.UTF_8), false);
             // Some file systems replace a directory with REPLACE_EXISTING; if
             // it did, there is nothing to check.
         }
         catch (java.io.IOException expected) {
-            try (Stream<Path> s = Files.list(tmp)) {
-                long temps = s.filter(p -> p.getFileName().toString().endsWith(".new")).count();
-                assertEquals(0, temps, "a refused write removes its temp");
-            }
+            assertEquals("old content", Files.readString(sentinel), "a refused write leaves the target untouched");
+            assertEquals(0, temps(), "a refused write removes its temp");
         }
     }
 
@@ -107,7 +107,7 @@ public class AtomicFilesTest {
         AtomicFiles.write(file, new byte[0], false);
         assertTrue(Files.isRegularFile(file));
         assertEquals(0, Files.size(file));
-        assertFalse(Files.exists(tmp.resolve("thing.new")));
+        assertEquals(0, temps(), "the empty write leaves no temp");
     }
 
     private long temps() throws Exception {
@@ -168,11 +168,14 @@ public class AtomicFilesTest {
     }
 
     @Test
-    public void aFileWriterCloseThatCannotLandLeavesTheOldFileAndNoTemp() throws Exception {
-        // The target name is a directory, so the move can't land: the old
-        // file beside it must survive and the aside must be cleaned up.
+    public void aFileWriterCloseThatCannotLandLeavesTheTargetAndNoTemp() throws Exception {
+        // A non-empty directory where the target name is, so the move
+        // can't land: the target must be left exactly as it was and the
+        // aside cleaned up.
         Path dir = tmp.resolve("thing");
         Files.createDirectory(dir);
+        Path sentinel = dir.resolve("keep");
+        Files.writeString(sentinel, "old content");
         AtomicFiles.FileWriter writer = new AtomicFiles.FileWriter(dir, false);
         writer.write("x");
         try {
@@ -181,6 +184,7 @@ public class AtomicFilesTest {
             // it did, there is nothing to check.
         }
         catch (IOException expected) {
+            assertEquals("old content", Files.readString(sentinel), "a refused close leaves the target untouched");
             assertEquals(0, temps(), "a refused close removes its temp");
         }
     }
@@ -241,15 +245,21 @@ public class AtomicFilesTest {
     }
 
     @Test
-    public void aFileOutputStreamCloseThatCannotLandLeavesNoTemp() throws Exception {
+    public void aFileOutputStreamCloseThatCannotLandLeavesTheTargetAndNoTemp() throws Exception {
+        // A non-empty directory where the target name is, so the move
+        // can't land: the target must be left exactly as it was and the
+        // aside cleaned up.
         Path dir = tmp.resolve("thing");
         Files.createDirectory(dir);
+        Path sentinel = dir.resolve("keep");
+        Files.writeString(sentinel, "old content");
         AtomicFiles.FileOutputStream out = new AtomicFiles.FileOutputStream(dir, false);
         out.write('x');
         try {
             out.close();
         }
         catch (IOException expected) {
+            assertEquals("old content", Files.readString(sentinel), "a refused close leaves the target untouched");
             assertEquals(0, temps(), "a refused close removes its temp");
         }
     }

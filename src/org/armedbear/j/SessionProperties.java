@@ -260,7 +260,11 @@ public final class SessionProperties {
                 // The backup is secondary: a failed copy is logged, not
                 // allowed to block the save itself.
                 try {
-                    Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(
+                        file.toPath(),
+                        backupFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.COPY_ATTRIBUTES);
                 }
                 catch (IOException e) {
                     Log.error(e);

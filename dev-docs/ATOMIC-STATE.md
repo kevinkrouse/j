@@ -17,9 +17,11 @@ callers in the TODO item.
       `AtomicFiles.write(file, bytes, true)`; the manual
       `Files.createDirectories(file.getParent())` dropped (`AtomicFiles`
       creates it). `TransientPopupTest` (33) round-trips the real file;
-      new `util/AtomicFilesTest` (7) pins the utility's invariants —
+      new `util/AtomicFilesTest` (20) pins the utility's invariants —
       whole write, replace, no `.new` residue, parent creation,
-      owner-only perms, temp cleanup on a refused move, empty file.
+      owner-only perms, target untouched and temp cleaned up on a
+      refused move, empty file, touches nothing until `close()`,
+      idempotent `close()`.
 - [x] **the other eight in-place writers + the two delete-then-rename
       callers** — all done. `Autosave.flush`, `Aliases.save`,
       `RecentFiles.save`, `FileHistory.save`, `Registers.setText`,
@@ -95,7 +97,7 @@ Two shapes land the bytes:
 Every caller today holds an `org.armedbear.j.File` (j's own abstraction,
 local/FTP/HTTP/SSH) and `AtomicFiles` wants a `java.nio.file.Path`. Add
 one method to `File`, mirroring the guards on `getInputStream`/
-`getOutputStream` (File.java:882):
+`getOutputStream` (File.java:881):
 
 ```java
 /** The local path, for NIO. */
@@ -108,9 +110,10 @@ public java.nio.file.Path toPath() {
 }
 ```
 
-`Path.of(canonicalPath())` is already the pattern at File.java:922. This
-keeps the nine call sites honest: a remote state file fails loudly, the
-same way `getOutputStream` fails today.
+`Path.of(canonicalPath())` was already the pattern in `getPermissions`/
+`setPermissions`; those now call `toPath()` too. This keeps the call
+sites honest: a remote state file fails loudly, the same way
+`getOutputStream` fails today.
 
 ## The in-place writers
 
@@ -126,11 +129,11 @@ the commit message.
 | File | Class / method | Shape |
 |---|---|---|
 | `<state>/autosave/catalog` | `Autosave.flush()` (Autosave.java:81) | `Properties.store` into a BAOS, then `AtomicFiles.write(catalogFile.toPath(), bytes, true)` |
-| `<state>/popup-defaults.properties` | `Transients.saveDefaults()` (Transients.java:74) | store into BAOS, `AtomicFiles.write(file, bytes, true)`; the `Files.createDirectories(file.getParent())` is gone — `AtomicFiles` creates the parent |
+| `<state>/popup-defaults.properties` | `Transients.saveDefaults()` (Transients.java:73) | store into BAOS, `AtomicFiles.write(file, bytes, true)`; the `Files.createDirectories(file.getParent())` is gone — `AtomicFiles` creates the parent |
 | `<config>/aliases` | `Aliases.save()` (Aliases.java:101) | BAOS + `AtomicFiles.write(file.toPath(), bytes, true)` |
 | `<state>/recent` | `RecentFiles.save()` (RecentFiles.java:188) | `BufferedWriter` over `newWriter(file, true)`; `changed = false` only after the move in `close()` |
 | `<state>/files.xml` | `FileHistory.save()` (FileHistory.java:138) | `BufferedWriter` over `newWriter(file, true)` |
-| `<data>/registers/<name>` | `Registers.setText()` (Registers.java:67) | `text.getBytes(UTF_8)` + `AtomicFiles.write(file.toPath(), bytes, true)`; the manual `dir.mkdirs()` is gone (`AtomicFiles` creates parents), the `dir == null` and `file == null` checks stay |
+| `<data>/registers/<name>` | `Registers.setText()` (Registers.java:66) | `text.getBytes(UTF_8)` + `AtomicFiles.write(file.toPath(), bytes, true)`; the manual `dir.mkdirs()` is gone (`AtomicFiles` creates parents), the `dir == null` and `file == null` checks stay |
 | key map (user-chosen) | `KeyMap.writeKeyMap(File)` (KeyMap.java:669) | `PrintWriter` over a BAOS, then `AtomicFiles.write(file.toPath(), bytes, true)` — outside the `PrintWriter`, which swallows close errors |
 | `<cache>/cache/catalog` | `Cache.saveCatalog()` (Cache.java:134) | `BufferedWriter` over `newWriter(catalogFile, true)` |
 | `<cache>/tagfiles/catalog` | `TagFileCatalog.save()` (TagFileCatalog.java:137) | `BufferedWriter` over `newWriter(catalogFile, true)`; the `# date` header kept |
@@ -145,25 +148,25 @@ exactly as they were.
 
 ## Session.save(): delete-then-rename → one atomic write
 
-`Session.save()` (Session.java:246) writes the XML to a temp file in the
-*temp* directory, then `Utilities.deleteRename(tempFile, file)`: delete
-the target, rename the temp over it, retry five times with `System.gc()`
-on Windows, fall back to overwriting in place. The cross-directory move is
-exactly what `ATOMIC_MOVE` can't promise and what the retry dance papers
-over.
+Before the migration, `Session.save()` wrote the XML to a temp file in
+the *temp* directory, then `Utilities.deleteRename(tempFile, file)`:
+delete the target, rename the temp over it, retry five times with
+`System.gc()` on Windows, fall back to overwriting in place. The
+cross-directory move is exactly what `ATOMIC_MOVE` can't promise and what
+the retry dance papers over.
 
-Replace the whole tail: build the XML into a `ByteArrayOutputStream`
-(same `OutputStreamWriter` chain, same content), then
-`AtomicFiles.write(file.toPath(), bytes, true)`. The temp file in the
-temp directory disappears entirely; the aside file lands next to
-`session.xml`, so the move is same-directory and atomic on any POSIX
-volume.
+The migration replaces the whole tail: build the XML into a
+`ByteArrayOutputStream` (same `OutputStreamWriter` chain, same content),
+then `AtomicFiles.write(file.toPath(), bytes, true)`
+(Session.java:237). The temp file in the temp directory disappears
+entirely; the aside file lands next to `session.xml`, so the move is
+same-directory and atomic on any POSIX volume.
 
 ## SessionProperties.save(): keep the backup, drop the dance
 
-`SessionProperties.save()` (SessionProperties.java:253) does two
+`SessionProperties.save()` (SessionProperties.java:255) used to do two
 delete-renames: `props` → `props~` (backup), then temp → `props`. The
-constructor (SessionProperties.java:38) falls back to `props~` when
+constructor (SessionProperties.java:40) falls back to `props~` when
 `props` is missing, so the backup is load-bearing and stays. What goes is
 the mechanism:
 
@@ -176,7 +179,8 @@ public void save() {
             // The backup is secondary: a failed copy is logged, not
             // allowed to block the save itself.
             try {
-                Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(file.toPath(), backupFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
             }
             catch (IOException e) {
                 Log.error(e);
@@ -190,7 +194,9 @@ public void save() {
 ```
 
 Copy, not move, for the backup: `props` is small, and the net effect is
-the same — `props~` holds the previous save, `props` the new one. The
+the same — `props~` holds the previous save, `props` the new one.
+`COPY_ATTRIBUTES` carries the source's mode, as the old `deleteRename`
+did; without it the copy would take the umask default instead. The
 three-way `deleteRename` failure logging collapses into the one
 `IOException` catch. The backup copy gets its own catch: the old code
 logged a failed backup and *continued* to install the new props, and the
