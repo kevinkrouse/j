@@ -56,10 +56,12 @@ public class ElectricPairsTest {
         if (h != null)
             h.close();
         h = EditorHarness.create(text).mode(mode);
-        // The | may sit on a later line: map it to line/offset.
+        // The | may sit on a later line: map it to line/offset. Scan
+        // only up to the caret; past it the newline count would run on
+        // and push seen beyond the caret, giving a negative offset.
         int lineNo = 0;
         int seen = 0;
-        for (int i = 0; i < text.length() && seen < caret; i++) {
+        for (int i = 0; i < caret; i++) {
             if (text.charAt(i) == '\n') {
                 lineNo++;
                 seen = i + 1;
@@ -142,7 +144,7 @@ public class ElectricPairsTest {
     }
 
     @Test
-    public void multiLineCloserAheadOfEnclosingOpenerIsFree() {
+    public void multiLineCloserAheadOfEnclosingOpenerIsReserved() {
         // (def x\n  (foo\n    |)) : the )) close the two enclosing
         // forms, so with a seed of two the new ( still generates its
         // own closer.
@@ -152,9 +154,10 @@ public class ElectricPairsTest {
     }
 
     @Test
-    public void multiLineCloserAheadWithNothingOpenIsFree() {
-        // The ) on the later line is free (nothing reserves it) and the
-        // closer scan is line-bounded, so the full pair is inserted.
+    public void closerOnLaterLineIsOutOfScanScope() {
+        // The ) on the later line is invisible to the line-bounded
+        // forward scan, so nothing reserves it and the full pair is
+        // inserted.
         Decision d = typeIn(JavaMode.getMode(), "|\n)", '(', false, false);
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
@@ -167,6 +170,49 @@ public class ElectricPairsTest {
         Decision d = typeIn(JavaMode.getMode(), "foo \"x)\"\nbar|", '(', false, false);
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
+    }
+
+    @Test
+    public void escapedDelimiterIsNotStructure() {
+        // In Lisp #\( the ( is a character literal, not an enclosing
+        // opener: the formatter reports it NEUTRAL, so the seed must
+        // exclude it by the escape run. With the escaped ( wrongly
+        // counted, the seed is one and the ) ahead is reserved, so the
+        // new ( generates a closer and leaves foo()) unbalanced.
+        Decision d = typeIn(LispMode.getMode(), "(defparameter c #\\()\nfoo|", '(', false, false);
+        assertAction(INSERT_PAIR, d);
+        assertPair('(', ')', d);
+    }
+
+    @Test
+    public void escapedCloserAheadIsNotWaiting() {
+        // The ) ahead is escaped (#\)), a character literal, so it is
+        // not a closer waiting to be typed over: the new ( generates
+        // its own closer.
+        Decision d = typeIn(LispMode.getMode(), "foo| #\\)", '(', false, false);
+        assertAction(INSERT_PAIR, d);
+        assertPair('(', ')', d);
+    }
+
+    @Test
+    public void strayCloserInPrefixDoesNotCancelOpenOpener() {
+        // The ) before the ( is stray: forward-reading, it closes
+        // nothing, so the ( is genuinely open and the ) ahead is
+        // reserved for it. The backward walk must see the stray as
+        // debt paid by an opener further back, not as cancelling the
+        // ( between it and the caret; the naive counter returned seed
+        // zero here and inserted the opener alone, re-stealing the
+        // closer.
+        assertAction(INSERT_PAIR, type(")(|)", '('));
+        assertAction(INSERT_PAIR, type("a) (|)", '('));
+        assertAction(INSERT_PAIR, type("))(|)", '('));
+    }
+
+    @Test
+    public void strayCloserStillPaysForEarlierOpener() {
+        // The debt model: the stray ) is paid by the ( before it, so
+        // the seed is still one and the ) ahead is reserved.
+        assertAction(INSERT_PAIR, type("(a) ) (|)", '('));
     }
 
     @Test

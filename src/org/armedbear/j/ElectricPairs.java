@@ -128,12 +128,20 @@ public final class ElectricPairs {
                 // A closer waits only if it pops the prefix's unmatched-openers
                 // seed to zero: in foo(bar|) the ) belongs to foo's (, so the
                 // new ( generates its own closer.
+                // The caret line is classified once and shared by the
+                // closer count and the forward scan; the seed walk
+                // classifies the earlier lines itself, under budget.
+                final Optional<LexicalContext[]> ahead =
+                        mode.lexicalContexts(buffer, line, line.length());
                 int[] steps = new int[1];
+                int closersAhead = ahead.isPresent()
+                        ? countNeutralClosers(mode, line, offset, pair.closer(), ahead.get())
+                        : Integer.MAX_VALUE;
                 int seed = prefixBalance(mode, buffer, line, offset,
-                        pair.opener(), pair.closer(), steps, BALANCE_SCAN_BUDGET);
+                        pair.opener(), pair.closer(), closersAhead, steps, BALANCE_SCAN_BUDGET);
                 if (steps[0] <= BALANCE_SCAN_BUDGET
                         && closerWaiting(mode, buffer, line, offset,
-                                pair.opener(), pair.closer(), seed, steps, BALANCE_SCAN_BUDGET))
+                                pair.opener(), pair.closer(), seed, ahead))
                     return Decision.of(Action.INSERT_OPENER, pair);
             }
             return Decision.of(Action.INSERT_PAIR, pair);
@@ -146,9 +154,9 @@ public final class ElectricPairs {
             int from = charAt(line, offset) == c ? offset + 1 : offset;
             // No prefix seed here: a typed closer is redundant only against
             // a closer waiting at the current nesting level.
-            int[] steps = new int[1];
             if (balance && closerWaiting(mode, buffer, line, from,
-                    table.pairFor(c).opener(), c, 0, steps, BALANCE_SCAN_BUDGET))
+                    table.pairFor(c).opener(), c, 0,
+                    mode.lexicalContexts(buffer, line, line.length())))
                 return Decision.suppress();
             return Decision.plain();
         }
@@ -241,14 +249,28 @@ public final class ElectricPairs {
 
     /**
      * The per-kind nesting the prefix leaves open before {@code offset}:
-     * unmatched openers at the caret, floored at zero — the depth the
-     * forward scan starts from, so a closer ahead reads as reserved for
-     * an enclosing form.
+     * unmatched openers at the caret — the depth the forward scan starts
+     * from, so a closer ahead reads as reserved for an enclosing form.
      *
      * <p>Walks backward from the caret counting NEUTRAL openers/closers
-     * of this kind (delimiters in strings/comments don't count). On
-     * budget overflow {@code steps[0]} exceeds {@code budget} and the
-     * caller falls back to generating the closer.
+     * of this kind. Delimiters in strings/comments don't count, and an
+     * escaped delimiter is a character literal, not structure: in Lisp
+     * {@code #\(} the {@code (} must not count as an enclosing opener.
+     * A closer seen backward is debt an earlier opener must pay: it
+     * cancels a pending opener further back rather than the unmatched
+     * ones lying between it and the caret, so a stray closer in the
+     * prefix (a cut or pasted fragment) does not undercount the seed.
+     *
+     * <p>The walk stops once the seed exceeds {@code closersAhead}, the
+     * NEUTRAL closers on the caret's line: the line-bounded forward scan
+     * can then never reach depth zero. It is also bounded by
+     * {@code budget}, charged for the work actually done — a whole-line
+     * classification before it is requested, and each point-query
+     * fallback by its line-prefix cost, since without bulk those queries
+     * rescan the prefix. On overflow {@code steps[0]} exceeds
+     * {@code budget} and the caller falls back to generating the closer.
+     * The caret line's own classification is the caller's, not charged
+     * here: it is the same pass the forward scan always made.
      */
     private static int prefixBalance(
             Mode mode,
@@ -257,38 +279,73 @@ public final class ElectricPairs {
             int offset,
             char opener,
             char closer,
+            int closersAhead,
             int[] steps,
             int budget) {
         int balance = 0;
+        int debt = 0;
         Line l = line;
         int i = offset;
         while (l != null) {
-            final int len = l.length();
-            if (i > len)
-                i = len;
-            final Optional<LexicalContext[]> bulk = mode.lexicalContexts(buffer, l, len);
+            if (i > l.length())
+                i = l.length();
+            // Bound the whole-line classification before requesting it:
+            // a huge line would otherwise allocate an array larger than
+            // the keystroke may touch.
+            if (steps[0] + i > budget)
+                return balance;
+            final Optional<LexicalContext[]> bulk =
+                    i == 0 ? Optional.empty() : mode.lexicalContexts(buffer, l, i);
+            if (bulk.isPresent())
+                steps[0] += i;
             while (i > 0) {
-                if (steps[0] > budget)
-                    return balance;
+                steps[0]++;
                 final char ch = l.charAt(i - 1);
-                if (ch == opener || ch == closer) {
+                if ((ch == opener || ch == closer) && !oddEscapeRunBefore(mode, l, i - 1)) {
                     final LexicalContext state =
                             bulk.isPresent() ? bulk.get()[i - 1]
                                     : mode.lexicalContext(buffer, new Position(l, i - 1));
+                    // Without bulk the point query rescans the line
+                    // prefix, so charge its cost, not the character.
+                    if (!bulk.isPresent())
+                        steps[0] += i;
                     if (state == LexicalContext.NEUTRAL) {
-                        if (ch == opener)
-                            balance++;
-                        else
-                            balance--;
+                        if (ch == opener) {
+                            if (debt > 0)
+                                debt--;
+                            else if (++balance > closersAhead)
+                                return balance;
+                        } else {
+                            debt++;
+                        }
                     }
                 }
-                steps[0]++;
+                if (steps[0] > budget)
+                    return balance;
                 i--;
             }
             l = l.previous();
             i = l == null ? 0 : l.length();
         }
-        return Math.max(0, balance);
+        return balance;
+    }
+
+    /**
+     * The NEUTRAL {@code closer} characters on {@code line} at or after
+     * {@code from}, escaped ones excluded: the upper bound on how far a
+     * forward scan seeded at the caret can be popped by closers on that
+     * line. Reads the caller's bulk classification, so it is O(line).
+     */
+    private static int countNeutralClosers(
+            Mode mode, Line line, int from, char closer, LexicalContext[] bulk) {
+        int count = 0;
+        for (int i = from; i < line.length(); i++) {
+            if (line.charAt(i) == closer
+                    && !oddEscapeRunBefore(mode, line, i)
+                    && bulk[i] == LexicalContext.NEUTRAL)
+                count++;
+        }
+        return count;
     }
 
     /**
@@ -296,15 +353,16 @@ public final class ElectricPairs {
      * depth with nothing open before it — already waiting to be typed
      * over. Delimiters in strings/comments don't count: in
      * {@code foo(| "x)"} the {@code )} is in the string, so the opener
-     * still generates its own.
+     * still generates its own. An escaped delimiter is a character
+     * literal: in Lisp {@code #\)} the {@code )} is not a closer
+     * waiting to be typed over.
      *
      * <p>With seed one ({@code foo(bar|)}) the closer ahead pops the seed
      * and is consumed by the enclosing form; with seed zero ({@code |)})
      * it is free to close the new opener.
      *
-     * <p>The lexical context is taken in one bulk pass: per-delimiter
-     * queries rescan the line prefix and stall the input path on lines
-     * with thousands of balanced pairs.
+     * <p>The caller's bulk classification is reused; without it the
+     * per-delimiter fallback is the same cost the scan always paid.
      */
     private static boolean closerWaiting(
             Mode mode,
@@ -314,20 +372,15 @@ public final class ElectricPairs {
             char opener,
             char closer,
             int seed,
-            int[] steps,
-            int budget) {
-        final Optional<LexicalContext[]> bulk = mode.lexicalContexts(buffer, line, line.length());
+            Optional<LexicalContext[]> bulk) {
         int depth = seed;
         for (int i = from; i < line.length(); i++) {
-            if (steps[0] > budget)
-                return false;
             char ch = line.charAt(i);
-            if (ch != opener && ch != closer)
+            if ((ch != opener && ch != closer) || oddEscapeRunBefore(mode, line, i))
                 continue;
-            // Bulk answers every offset; the fallback is O(offset) per
-            // query, so without bulk only delimiters are asked about.
             final LexicalContext state =
-                    bulk.isPresent() ? bulk.get()[i] : mode.lexicalContext(buffer, new Position(line, i));
+                    bulk.isPresent() ? bulk.get()[i]
+                            : mode.lexicalContext(buffer, new Position(line, i));
             if (state != LexicalContext.NEUTRAL)
                 continue;
             if (ch == opener)
@@ -336,7 +389,6 @@ public final class ElectricPairs {
                 return true;
             else
                 depth--;
-            steps[0]++;
         }
         return false;
     }
