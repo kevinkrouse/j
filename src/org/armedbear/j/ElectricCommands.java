@@ -36,10 +36,9 @@ public final class ElectricCommands {
     /**
      * Flash the paren matching the `)` just inserted or typed over, at
      * {@code dotOffset - 1}. Never inserts and never calls back into the
-     * insertion path, so the coordinator and the {@link #closeParen}
-     * wrapper share one flash with no recursion. Silent when the display
-     * already highlights brackets continuously, or when the match is
-     * off-screen.
+     * insertion path, so the coordinator and {@link #closeParen} share
+     * one flash with no recursion. Silent under continuous bracket
+     * highlighting or when the match is off-screen.
      */
     static void flashMatchingParen(Editor editor) {
         final Display display = editor.getDisplay();
@@ -166,9 +165,9 @@ public final class ElectricCommands {
     }
 
     /**
-     * Compatibility wrapper: the blank-line preparation and the
-     * reindentation now live in the {@code insertNormalChar} coordinator,
-     * so this delegates once. The coordinator never calls back here.
+     * Compatibility wrapper: the blank-line preparation and reindentation
+     * now live in the {@code insertNormalChar} coordinator, which never
+     * calls back here.
      */
     public static void electricOpenBrace(Editor editor) {
         EditCommands.insertNormalChar(editor, '{');

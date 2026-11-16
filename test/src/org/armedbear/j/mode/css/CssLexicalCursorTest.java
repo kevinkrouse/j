@@ -28,14 +28,11 @@ import org.armedbear.j.Position;
 import org.junit.jupiter.api.Test;
 
 /**
- * The CSS lexical queries scan the line once. The guard measures the
- * formatter's accumulated scan work through the real
- * {@code mode.lexicalContexts} and {@code mode.lexicalContext} entry
- * points, not a hand-built cursor: a bulk query that secretly looped
- * point queries would accumulate O(len^2) steps and blow the linear
- * bound, which a single cursor run cannot show. The fixture carries a
- * block comment and both quote kinds so the walk exercises the
- * multi-character marker and escape paths, not just plain characters.
+ * The CSS lexical queries scan the line once. The guard counts the
+ * formatter's scan steps through the real
+ * {@code lexicalContexts}/{@code lexicalContext} entry points: a bulk
+ * query looping point queries would hit O(len^2) and blow the linear
+ * bound. The fixture carries a comment and both quote kinds.
  */
 public class CssLexicalCursorTest {
     private static final String TOKENS = "a { content: 'x'; color: \"y\"; /* c */ }";
@@ -52,11 +49,9 @@ public class CssLexicalCursorTest {
             int len = line.length();
             CSSFormatter f = formatter(h);
             f.scanSteps = 0;
-            // The real bulk entry point: one call answers every offset.
             h.buffer().getMode().lexicalContexts(h.buffer(), line, len);
-            // One pass: at most one step per character. A bulk built by
-            // looping point queries would sum 1+2+...+len and exceed
-            // this bound by a wide margin.
+            // One pass: at most one step per char; looping point
+            // queries would sum 1+2+...+len.
             assertTrue(f.scanSteps <= len,
                     "bulk scanSteps " + f.scanSteps + " exceeds len " + len);
             assertTrue(f.scanSteps > 0, "bulk made no progress");
@@ -74,10 +69,8 @@ public class CssLexicalCursorTest {
             int boundary = TOKENS.indexOf("/*");
             CSSFormatter f = formatter(h);
             f.scanSteps = 0;
-            // The real point entry point: the walk stops at the boundary.
             h.buffer().getMode().lexicalContext(h.buffer(), new Position(line, boundary));
-            // A point query that walked the whole line would scan past
-            // the boundary and exceed it.
+            // The walk must stop at the boundary, not scan the whole line.
             assertTrue(f.scanSteps <= boundary,
                     "point scanSteps " + f.scanSteps + " exceeds boundary " + boundary);
         }

@@ -71,16 +71,15 @@ public final class MarkdownMode extends AbstractMode implements Mode {
     }
 
     /**
-     * The Markdown electric rules the flat pair table cannot express:
-     * the triple-backtick fence, which closes on the line below, and
-     * the emphasis delimiter runs, whose role — opener, closer, or
-     * literal — depends on the text around them.
+     * The Markdown electric rules the flat pair table can't express: the
+     * triple-backtick fence, which closes on the line below, and the
+     * emphasis delimiter runs, whose role — opener, closer, or literal —
+     * depends on surrounding text.
      *
      * <p>Each rule reads the buffer at the moment of the keystroke, so
-     * the live keystroke and the vim {@code .} replay of the same key
-     * see the same state and reach the same result. The mode owns its
-     * compound edit; the coordinator has already excluded a selection
-     * and a suppressed (literal) insertion.
+     * the live keystroke and the vim {@code .} replay reach the same
+     * result. The mode owns its compound edit; the coordinator has
+     * already excluded selections and literal insertion.
      */
     @Override
     public boolean electricOverride(Editor editor, char c) {
@@ -100,12 +99,12 @@ public final class MarkdownMode extends AbstractMode implements Mode {
     }
 
     /**
-     * The third backtick of a fence at line start: insert it, then a
-     * matching closing fence on the line below, and leave the caret
-     * after the opening fence for the language name. The first two
-     * backticks arrived through the generic pair and type-over, so the
-     * caret sits at the end of a line whose content is exactly two
-     * backticks, optionally after up to three leading spaces.
+     * The third backtick of a fence at line start: insert it, add a
+     * matching closing fence on the line below, leave the caret after the
+     * opening fence for the language name. The first two backticks came
+     * through the generic pair and type-over, so the caret sits at the
+     * end of a line of exactly two backticks, optionally after up to
+     * three leading spaces.
      */
     private boolean fenceOverride(Editor editor, Line line, String text, int offset, int end) {
         if (offset != end || offset < 2 || text.charAt(offset - 1) != '`' || text.charAt(offset - 2) != '`')
@@ -121,9 +120,8 @@ public final class MarkdownMode extends AbstractMode implements Mode {
             // A fence that a later line already closes, or a line inside
             // a fence, needs no closer: just the backtick.
             if (MarkdownFormatter.opensUnclosedFence(line)) {
-                // The closing fence goes on the line below; the caret
-                // stays after the opening fence for the language name.
-                // INSERT_STRING, so undo takes the new line back too.
+                // INSERT_STRING so undo takes the new line back too;
+                // the caret stays after the opening fence.
                 editor.addUndo(SimpleEdit.INSERT_STRING);
                 editor.insertStringInternal("\n```");
                 editor.addUndo(SimpleEdit.MOVE);
@@ -137,12 +135,11 @@ public final class MarkdownMode extends AbstractMode implements Mode {
     }
 
     /**
-     * A marker typed with the caret immediately before a run of the
-     * same marker steps over one delimiter, not the whole run:
+     * A marker typed with the caret immediately before a run of the same
+     * marker steps over one delimiter, not the whole run:
      * {@code **bold|**} + {@code *} → {@code **bold*|*}. Growing the
-     * opener run (caret after the run, nothing before) needs no rule
-     * here — the marker is not in the pair table, so the generic path
-     * inserts it plainly.
+     * run (caret after it) needs no rule: the marker isn't in the pair
+     * table, so the generic path inserts it plainly.
      */
     private boolean markerOverride(Editor editor, String text, int offset, int end, char c) {
         if (!editor.getBuffer().getBooleanProperty(Property.ELECTRIC_PAIRS_TYPE_OVER))
@@ -158,9 +155,8 @@ public final class MarkdownMode extends AbstractMode implements Mode {
     /**
      * The first content character after an unmatched opener run
      * generates the closer: {@code **|} + {@code b} → {@code **b|**}.
-     * The opener run is the run of the marker just before the caret;
-     * its role is decided by the shared delimiter analysis with the
-     * prospective content in place. A space is not content, so
+     * The run's role is decided by the shared delimiter analysis with
+     * the prospective content in place; a space is not content, so
      * {@code ** } generates nothing.
      */
     private boolean contentOverride(Editor editor, String text, int offset, int end, char c) {

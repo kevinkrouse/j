@@ -812,15 +812,12 @@ public final class VimInputHandler implements InputHandler {
         }
         if (state.getMode().isInsert()) {
             state.noteInsertStart(editor);
-            // A literal run: the snapshot text through the live loop,
-            // suppression held so nothing pairs and recording off so the
-            // repeat does not re-record. The register is never consulted.
+            // A literal run: replay the snapshot text with suppression
+            // held and recording off; the register is never consulted.
             if (key.startsWith("<literal:")) {
-                // Noted like any other key, so a count on the repeat
-                // types the run each time.
+                // Noted like any other key, so a count types the run each time.
                 state.noteInsertKey(key);
                 try (Editor.PairSuppression suppression = editor.suppressPairing()) {
-                    // replaying is true here, so the loop records nothing.
                     typeText(editor, literalRun(key));
                 }
                 return;
@@ -841,10 +838,10 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /**
-     * The literal texts a {@code <literal:N>} token stands for. A number
-     * is never reused, so a token always means the text it was made for;
-     * a run no change string refers to any more is dropped when the next
-     * one is added (see {@link #pruneLiteralRuns}).
+     * The literal texts a {@code <literal:N>} token stands for. Numbers
+     * are never reused, so a token always means the text it was made for;
+     * unreferenced runs are dropped when the next is added (see
+     * {@link #pruneLiteralRuns}).
      */
     private final Map<Integer, String> literalRuns = new HashMap<>();
     private int nextLiteralRun;
@@ -860,9 +857,9 @@ public final class VimInputHandler implements InputHandler {
 
     /**
      * A register's text, typed literally: pairing suppressed, and the
-     * recording carries the text as a {@code <literal:N>} snapshot --
-     * not the register name, which a later change would rewrite -- so
-     * '.' repeats this text, unpaired, whatever the register holds now.
+     * recording carries the text as a {@code <literal:N>} snapshot — not
+     * the register name, which a later change would rewrite — so '.'
+     * repeats this text, unpaired, whatever the register holds now.
      */
     void typeLiteralText(Editor editor, String text) {
         if (!replaying)
@@ -900,11 +897,10 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /**
-     * Drops the runs that no longer appear in any string a repeat can
-     * replay: the open recording, the last change, the held insert and
-     * the change before it, and the insert session's keys. Only called
-     * live, never mid-replay, when the string being replayed is one of
-     * these and still refers to its runs.
+     * Drops runs no longer referenced by any replayable string (open
+     * recording, last change, held insert, change before it, insert
+     * session keys). Called only live, never mid-replay, when the strings
+     * being replayed still refer to their runs.
      */
     private void pruneLiteralRuns() {
         final String insertKeys = state.getInsertKeys();

@@ -15,14 +15,19 @@ import java.util.Optional;
 
 /**
  * The electric-pairs decision: what to do when a character is typed,
- * backspaced or entered, given the buffer and the mode's pair table.
- * The function is pure — it reads the buffer and the mode and touches
- * nothing — so the same context gives the same answer on live typing,
- * vim {@code .} replay and j macro replay. The caller acts on the
- * result inside one compound edit.
+ * backspaced or entered. The decision is pure, so live typing, vim
+ * {@code .} replay and j macro replay get the same answer; the caller
+ * acts on it inside one compound edit.
  */
 public final class ElectricPairs {
     private ElectricPairs() {}
+
+    /**
+     * Character cap on the balance walk, keeping a keystroke O(budget)
+     * for a huge prefix with no enclosing closer; on overflow the
+     * closer is generated.
+     */
+    private static final int BALANCE_SCAN_BUDGET = 100_000;
 
     /**
      * What the user did. {@code c} is used only for INSERT. Backspace
@@ -70,15 +75,8 @@ public final class ElectricPairs {
     }
 
     /**
-     * The decision for one keystroke.
-     *
-     * @param mode             the buffer's mode
-     * @param buffer           the buffer
-     * @param dot              the caret position
-     * @param operation        INSERT or ENTER
-     * @param c                the character typed (INSERT only)
-     * @param hasSelection     whether a region is selected
-     * @param pairingSuppressed the caller's literal-insertion state
+     * The decision for one keystroke. {@code c} is meaningful only for
+     * INSERT; {@code pairingSuppressed} is the caller's literal-insertion state.
      */
     public static Decision decide(
             Mode mode,
@@ -119,28 +117,46 @@ public final class ElectricPairs {
             char before = charBefore(line, offset);
             char at = charAt(line, offset);
             // Only symmetric delimiters are inhibited after a word or
-            // themselves. Brackets after identifiers (foo(, int[) and
-            // nested openers (( should still pair. Skip the 0 sentinel:
+            // themselves; brackets after identifiers (foo(, int[) and
+            // nested openers (( still pair. The 0 sentinel is skipped:
             // isIdentifierPart can count it as a word character.
             if (symmetric && before != 0 && (mode.isIdentifierPart(before) || before == c))
                 return Decision.plain();
             if (at != 0 && mode.isIdentifierPart(at))
                 return Decision.plain();
-            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, offset, pair.closer(), pair.opener()))
-                return Decision.of(Action.INSERT_OPENER, pair);
+            if (balance) {
+                // A closer waits only if it pops the prefix's unmatched-openers
+                // seed to zero: in foo(bar|) the ) belongs to foo's (, so the
+                // new ( generates its own closer.
+                // The caret line is classified once and shared by the
+                // closer count and the forward scan; the seed walk
+                // classifies the earlier lines itself, under budget.
+                final Optional<LexicalContext[]> ahead =
+                        mode.lexicalContexts(buffer, line, line.length());
+                int[] steps = new int[1];
+                int closersAhead = ahead.isPresent()
+                        ? countNeutralClosers(mode, line, offset, pair.closer(), ahead.get())
+                        : Integer.MAX_VALUE;
+                int seed = prefixBalance(mode, buffer, line, offset,
+                        pair.opener(), pair.closer(), closersAhead, steps, BALANCE_SCAN_BUDGET);
+                if (steps[0] <= BALANCE_SCAN_BUDGET
+                        && closerWaiting(mode, buffer, line, offset,
+                                pair.opener(), pair.closer(), seed, ahead))
+                    return Decision.of(Action.INSERT_OPENER, pair);
+            }
             return Decision.of(Action.INSERT_PAIR, pair);
         }
         if (table.isCloser(c)) {
-            // A closer of the same kind under the caret is the one being
-            // typed, not one already waiting: with type-over on, rule 4
-            // already stepped over it; with type-over off, the typed
-            // closer inserts and only a closer later on the line should
-            // suppress it, so the scan starts past it. Anything else
-            // under the caret, an opener in particular, takes part in
-            // the balance: in (|() the ( at the caret matches the ) after
-            // it, so the typed ) is not suppressed.
+            // Start past a same-kind closer under the caret: it is the one
+            // being typed, not one waiting. Anything else under the caret
+            // counts: in (|() the ( at the caret matches the ) after it,
+            // so the typed ) is not suppressed.
             int from = charAt(line, offset) == c ? offset + 1 : offset;
-            if (balance && hasUnmatchedCloserAhead(mode, buffer, line, from, c, table.pairFor(c).opener()))
+            // No prefix seed here: a typed closer is redundant only against
+            // a closer waiting at the current nesting level.
+            if (balance && closerWaiting(mode, buffer, line, from,
+                    table.pairFor(c).opener(), c, 0,
+                    mode.lexicalContexts(buffer, line, line.length())))
                 return Decision.suppress();
             return Decision.plain();
         }
@@ -148,14 +164,9 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether Enter at {@code dot} should open a line between an
-     * empty pair — {@code {|}} — rather than split the line as
-     * ordinary. The caret must sit between a configured asymmetric
-     * pair: a quote or other symmetric delimiter does not expand, so
-     * Enter inside {@code ""} stays a plain split. The lexical context
-     * at the caret must be NEUTRAL; a pair inside a string or comment
-     * is content, not a structure to open. The empty-quote Backspace
-     * exception does not apply here.
+     * Whether Enter at {@code dot} opens a line between an empty pair
+     * ({@code {|}}). The caret must sit between a configured asymmetric
+     * pair in NEUTRAL context; Enter inside {@code ""} stays a plain split.
      */
     private static Decision decideEnter(Mode mode, Buffer buffer, Position dot, boolean hasSelection) {
         if (hasSelection || !buffer.getBooleanProperty(Property.ELECTRIC_PAIRS_OPEN_LINE))
@@ -175,16 +186,12 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether Backspace at {@code offset} should delete the pair on
-     * either side of the caret — {@code (|)} or {@code "|"} — as one
-     * step. The left character must be a configured opener and the
-     * character at the caret its closer.
+     * Whether Backspace at {@code offset} deletes the pair on either side
+     * of the caret ({@code (|)} or {@code "|"}) as one step.
      *
-     * <p>For an asymmetric pair a NEUTRAL context is enough: {@code
-     * (|)} is an empty pair the user just typed. A symmetric pair goes
-     * by the empty-quote rule alone, since the lexical context cannot
-     * tell {@code "|"} from a quote inside a longer string, or from
-     * the quotes between two strings.
+     * <p>An asymmetric pair needs only NEUTRAL context. A symmetric pair
+     * goes by the empty-quote rule alone: the lexical context cannot tell
+     * {@code "|"} from a quote inside a longer string.
      */
     static boolean deleteBoth(Mode mode, Buffer buffer, Line line, int offset) {
         if (!buffer.getBooleanProperty(Property.ELECTRIC_PAIRS)
@@ -208,20 +215,13 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether the caret sits between the two characters of an empty
-     * quote pair — {@code "|"} — so that Backspace may delete both.
-     * The lexical context at the caret reports STRING there, which
-     * would otherwise block the delete; this identifies the real
-     * empty string.
+     * Whether the caret sits in an empty quote pair ({@code "|"}), whose
+     * lexical context reports STRING and would otherwise block the delete.
      *
-     * <p>True only when the characters on either side of the caret
-     * are the same configured symmetric quote, the left one is
-     * unescaped, and the state immediately before that left quote
-     * is NEUTRAL. The NEUTRAL-before condition is what excludes a
-     * quote that closes an earlier string on the same line, a quote
-     * inside a comment, and a quote that is part of a longer
-     * delimiter such as a Python triple: in each of those the state
-     * before the left character is not NEUTRAL.
+     * <p>True only when both sides are the same unescaped symmetric quote
+     * and the state before the left quote is NEUTRAL — which excludes a
+     * quote closing an earlier string, one inside a comment, and one
+     * inside a triple-quote delimiter.
      */
     static boolean isEmptyQuotePair(Mode mode, Buffer buffer, Line line, int offset) {
         char left = charBefore(line, offset);
@@ -248,37 +248,139 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether a closer of this kind sits later on the line with nothing
-     * open before it — a closer already waiting to be typed over.
-     * Delimiters inside a string or a comment are not code and do not
-     * count: in {@code foo(| "x)"} the {@code )} is inside the string,
-     * so the opener still gets its own closer.
+     * The per-kind nesting the prefix leaves open before {@code offset}:
+     * unmatched openers at the caret — the depth the forward scan starts
+     * from, so a closer ahead reads as reserved for an enclosing form.
      *
-     * <p>The lexical context for the whole span is taken in one pass.
-     * Asking for it per delimiter rescans the line prefix each time,
-     * which on a line with thousands of balanced pairs stalls the input
-     * path.
+     * <p>Walks backward from the caret counting NEUTRAL openers/closers
+     * of this kind. Delimiters in strings/comments don't count, and an
+     * escaped delimiter is a character literal, not structure: in Lisp
+     * {@code #\(} the {@code (} must not count as an enclosing opener.
+     * A closer seen backward is debt an earlier opener must pay: it
+     * cancels a pending opener further back rather than the unmatched
+     * ones lying between it and the caret, so a stray closer in the
+     * prefix (a cut or pasted fragment) does not undercount the seed.
+     *
+     * <p>The walk stops once the seed exceeds {@code closersAhead}, the
+     * NEUTRAL closers on the caret's line: the line-bounded forward scan
+     * can then never reach depth zero. It is also bounded by
+     * {@code budget}, charged for the work actually done — a whole-line
+     * classification before it is requested, and each point-query
+     * fallback by its line-prefix cost, since without bulk those queries
+     * rescan the prefix. On overflow {@code steps[0]} exceeds
+     * {@code budget} and the caller falls back to generating the closer.
+     * The caret line's own classification is the caller's, not charged
+     * here: it is the same pass the forward scan always made.
      */
-    private static boolean hasUnmatchedCloserAhead(
+    private static int prefixBalance(
+            Mode mode,
+            Buffer buffer,
+            Line line,
+            int offset,
+            char opener,
+            char closer,
+            int closersAhead,
+            int[] steps,
+            int budget) {
+        int balance = 0;
+        int debt = 0;
+        Line l = line;
+        int i = offset;
+        while (l != null) {
+            if (i > l.length())
+                i = l.length();
+            // Bound the whole-line classification before requesting it:
+            // a huge line would otherwise allocate an array larger than
+            // the keystroke may touch.
+            if (steps[0] + i > budget)
+                return balance;
+            final Optional<LexicalContext[]> bulk =
+                    i == 0 ? Optional.empty() : mode.lexicalContexts(buffer, l, i);
+            if (bulk.isPresent())
+                steps[0] += i;
+            while (i > 0) {
+                steps[0]++;
+                final char ch = l.charAt(i - 1);
+                if ((ch == opener || ch == closer) && !oddEscapeRunBefore(mode, l, i - 1)) {
+                    final LexicalContext state =
+                            bulk.isPresent() ? bulk.get()[i - 1]
+                                    : mode.lexicalContext(buffer, new Position(l, i - 1));
+                    // Without bulk the point query rescans the line
+                    // prefix, so charge its cost, not the character.
+                    if (!bulk.isPresent())
+                        steps[0] += i;
+                    if (state == LexicalContext.NEUTRAL) {
+                        if (ch == opener) {
+                            if (debt > 0)
+                                debt--;
+                            else if (++balance > closersAhead)
+                                return balance;
+                        } else {
+                            debt++;
+                        }
+                    }
+                }
+                if (steps[0] > budget)
+                    return balance;
+                i--;
+            }
+            l = l.previous();
+            i = l == null ? 0 : l.length();
+        }
+        return balance;
+    }
+
+    /**
+     * The NEUTRAL {@code closer} characters on {@code line} at or after
+     * {@code from}, escaped ones excluded: the upper bound on how far a
+     * forward scan seeded at the caret can be popped by closers on that
+     * line. Reads the caller's bulk classification, so it is O(line).
+     */
+    private static int countNeutralClosers(
+            Mode mode, Line line, int from, char closer, LexicalContext[] bulk) {
+        int count = 0;
+        for (int i = from; i < line.length(); i++) {
+            if (line.charAt(i) == closer
+                    && !oddEscapeRunBefore(mode, line, i)
+                    && bulk[i] == LexicalContext.NEUTRAL)
+                count++;
+        }
+        return count;
+    }
+
+    /**
+     * Whether a closer of this kind sits later on the line at the seeded
+     * depth with nothing open before it — already waiting to be typed
+     * over. Delimiters in strings/comments don't count: in
+     * {@code foo(| "x)"} the {@code )} is in the string, so the opener
+     * still generates its own. An escaped delimiter is a character
+     * literal: in Lisp {@code #\)} the {@code )} is not a closer
+     * waiting to be typed over.
+     *
+     * <p>With seed one ({@code foo(bar|)}) the closer ahead pops the seed
+     * and is consumed by the enclosing form; with seed zero ({@code |)})
+     * it is free to close the new opener.
+     *
+     * <p>The caller's bulk classification is reused; without it the
+     * per-delimiter fallback is the same cost the scan always paid.
+     */
+    private static boolean closerWaiting(
             Mode mode,
             Buffer buffer,
             Line line,
             int from,
+            char opener,
             char closer,
-            char opener) {
-        final Optional<LexicalContext[]> bulk = mode.lexicalContexts(buffer, line, line.length());
-        int depth = 0;
+            int seed,
+            Optional<LexicalContext[]> bulk) {
+        int depth = seed;
         for (int i = from; i < line.length(); i++) {
             char ch = line.charAt(i);
-            if (ch != opener && ch != closer)
+            if ((ch != opener && ch != closer) || oddEscapeRunBefore(mode, line, i))
                 continue;
-            // The bulk array answers every offset in one pass. Without
-            // it, ask only at the delimiters: the fallback predicates
-            // are O(offset) each, so a line with no delimiters costs
-            // no predicate work at all, and one with few of them pays
-            // for few instead of for every position on the line.
             final LexicalContext state =
-                    bulk.isPresent() ? bulk.get()[i] : mode.lexicalContext(buffer, new Position(line, i));
+                    bulk.isPresent() ? bulk.get()[i]
+                            : mode.lexicalContext(buffer, new Position(line, i));
             if (state != LexicalContext.NEUTRAL)
                 continue;
             if (ch == opener)

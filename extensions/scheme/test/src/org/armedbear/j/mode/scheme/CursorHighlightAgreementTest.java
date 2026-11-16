@@ -27,10 +27,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The Scheme cursor and the highlighting parser must agree on where
- * comments and strings are. The fixtures carry a block comment, a line
- * comment, a string and a backslash inside a comment so both the
- * multi-character marker and the escape paths are exercised in both
- * directions.
+ * comments and strings are; the fixtures cover the multi-character
+ * marker and escape paths in both directions.
  */
 public class CursorHighlightAgreementTest {
     private static final String[] FIXTURES = {

@@ -26,17 +26,14 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 
 /**
- * Blanks CSS comments and strings so the bracket match walk skips them.
- * The default syntax iterator returns the line verbatim, so a brace
- * inside {@code /* } *}{ or a quoted string was counted as a match.
+ * Blanks CSS comments and strings so the bracket match walk skips them;
+ * the default iterator returns the line verbatim, so a brace inside a
+ * comment or string was counted as a match.
  *
- * <p>The blanking is derived from the formatter's cursor bulk query
- * rather than a fresh scan: the cursor is the single source of the
- * comment and string rules, so the iterator cannot drift from it the way
- * a fourth copy of the transitions would. Comment characters become
- * spaces (skipped outright by the walk); string characters become
- * {@code 'X'} (returned, but never a brace, so a quoted {@code }} is
- * not mistaken for a delimiter).
+ * <p>Blanking comes from the formatter's cursor bulk query, not a fresh
+ * scan, so the iterator can't drift from the comment/string rules.
+ * Comment characters become spaces; string characters become {@code 'X'}
+ * — returned, but never a brace.
  */
 public final class CssSyntaxIterator extends DefaultSyntaxIterator {
     public CssSyntaxIterator(Position pos) {

@@ -77,16 +77,11 @@ public final class LispFormatter extends Formatter {
     }
 
     /**
-     * The context at {@code offset}, consuming the line from its
-     * entering flags. Only QUOTE and COMMENT persist across lines;
-     * the paren and list states are line-local and all read as
-     * NEUTRAL for pairing. {@code #| |#} block comments are not
-     * nested here, matching the formatter's own FIXME. A {@code ;}
-     * makes the rest of the line COMMENT.
-     *
-     * <p>The point query stops at the boundary without building a
-     * prefix-sized array; the bulk query fills every offset. Both run
-     * the same {@link Cursor} transitions, so the two cannot drift.
+     * The context at {@code offset}, walking the line from its entering
+     * flags. Only QUOTE and COMMENT persist across lines; the paren and
+     * list states are line-local and read as NEUTRAL for pairing.
+     * {@code #| |#} block comments are not nested here, matching the
+     * formatter's own FIXME. A {@code ;} makes the rest of the line COMMENT.
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
@@ -109,12 +104,12 @@ public final class LispFormatter extends Formatter {
     }
 
     /**
-     * The single source of Lisp lexical transitions. Walks the line
-     * from its entering flags to {@code upto}. With an output array it
-     * records the context at every offset (bulk); without one it stops
-     * at {@code upto} and returns the context there (point), never
-     * allocating the prefix. {@code steps} counts token advances so a
-     * test can assert the walk stays linear in the line's length.
+     * The single source of Lisp lexical transitions, walking the line from
+     * its entering flags to {@code upto}. With an output array it records
+     * the context at every offset (bulk); without one it stops at
+     * {@code upto} and returns the context there, never allocating the
+     * prefix. {@code steps} counts token advances so a test can assert
+     * the walk stays linear in the line's length.
      */
     static final class Cursor extends LexicalCursor {
         private int state;
@@ -135,8 +130,7 @@ public final class LispFormatter extends Formatter {
                 steps++;
                 final char c = text.charAt(i);
                 if (c == '\\') {
-                    // Escape: consumes the next character; the state
-                    // is unchanged across it.
+                    // Escape: consumes the next character; state unchanged.
                     if (inside(2, ctx))
                         return ctx;
                     i += 2;
@@ -161,8 +155,7 @@ public final class LispFormatter extends Formatter {
                     state = STATE_COMMENT;
                     i += 2; // skip '|'
                 } else if (c == ';') {
-                    // A line comment: the caret on the ';' is before
-                    // it, everything after is COMMENT.
+                    // The caret on the ';' is before the comment; after it, COMMENT.
                     if (out != null) {
                         for (int j = i + 1; j <= upto; j++)
                             out[j] = LexicalContext.COMMENT;

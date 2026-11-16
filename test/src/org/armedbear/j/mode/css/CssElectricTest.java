@@ -72,31 +72,27 @@ public class CssElectricTest {
 
     @Test
     public void openerInCommentIsPlain() {
-        // Typing ( inside a block comment must not open a pair.
         assertAction(PLAIN, type("a { /* | */ }", '('));
     }
 
     @Test
     public void closerInCommentIsPlain() {
-        // Typing ) inside a comment is a plain insert, not a step-over.
         assertAction(PLAIN, type("a { /* )| */ }", ')'));
     }
 
     @Test
     public void openerInStringIsPlain() {
-        // Typing ( inside a quoted string must not open a pair.
         assertAction(PLAIN, type("a { content: \"|\"; }", '('));
     }
 
     @Test
     public void openerInNeutralContextPairs() {
-        // Outside any comment or string, the pair inserts.
         assertAction(INSERT_PAIR, type("a { b: |; }", '('));
     }
 
     @Test
     public void closerBeforeOpenerStepsOver() {
-        // A ) typed just before a ) in neutral context steps over.
+        // Neutral context: the ) typed just before the existing ) steps over.
         assertAction(TYPE_OVER, type("a { b: ()|); }", ')'));
     }
 }

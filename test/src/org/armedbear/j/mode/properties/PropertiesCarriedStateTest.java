@@ -46,15 +46,13 @@ public class PropertiesCarriedStateTest {
     @Test
     public void continuationCarriesAcrossLines() {
         // key = value \
-        // more value
-        // Line 1 ends with an unescaped backslash; line 2 continues it.
+        // more value   -- line 1's unescaped backslash continues line 2.
         EditorHarness h = EditorHarness.create("key = value \\\nmore value").mode(PropertiesMode.getMode());
         try {
             h.buffer().refreshParse();
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & PropertiesFormatter.PROPERTIES_CONTINUATION) != 0,
                     "line 2 did not continue, flags=" + line2.flags());
-            // The continuation is NEUTRAL value text.
             assertEquals(NEUTRAL, ctx(h, 1, 0));
             assertEquals(NEUTRAL, ctx(h, 1, "more value".length()));
         }
@@ -66,9 +64,8 @@ public class PropertiesCarriedStateTest {
     @Test
     public void continuationStartingWithMarkerIsNotComment() {
         // cont = value \
-        // # this starts with a marker but continues the value
-        // The marker on line 2 is value text, not a comment, because
-        // line 2 continues line 1.
+        // # this starts with a marker   -- line 2 continues line 1, so
+        // the marker is value text, not a comment.
         EditorHarness h = EditorHarness.create(
                 "cont = value \\\n# this starts with a marker").mode(PropertiesMode.getMode());
         try {
@@ -76,7 +73,6 @@ public class PropertiesCarriedStateTest {
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & PropertiesFormatter.PROPERTIES_CONTINUATION) != 0,
                     "line 2 did not continue, flags=" + line2.flags());
-            // The marker is NEUTRAL, not COMMENT.
             assertEquals(NEUTRAL, ctx(h, 1, 0));
             assertEquals(NEUTRAL, ctx(h, 1, "# this".length()));
         }
@@ -88,9 +84,8 @@ public class PropertiesCarriedStateTest {
     @Test
     public void evenBackslashDoesNotContinue() {
         // escaped = ends with double backslash \\
-        // next = value
-        // The even trailing backslashes are escaped, so line 2 is a
-        // fresh key/value line, not a continuation.
+        // next = value   -- even trailing backslashes are escaped, so
+        // line 2 is a fresh key/value line.
         EditorHarness h = EditorHarness.create(
                 "escaped = ends with double backslash \\\\\nnext = value").mode(PropertiesMode.getMode());
         try {
@@ -98,7 +93,6 @@ public class PropertiesCarriedStateTest {
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & PropertiesFormatter.PROPERTIES_CONTINUATION) == 0,
                     "line 2 continued on even backslashes, flags=" + line2.flags());
-            // Line 2 is a fresh key/value line: NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 1, 0));
         }
         finally {
@@ -108,9 +102,8 @@ public class PropertiesCarriedStateTest {
 
     @Test
     public void commentIsCommentFromLineStart() {
-        //   # indented comment
-        // The whole comment line is COMMENT, matching the highlighting,
-        // which paints the leading whitespace as part of the comment.
+        // Leading whitespace belongs to the comment, matching the
+        // highlighting.
         EditorHarness h = EditorHarness.create("  # indented comment").mode(PropertiesMode.getMode());
         try {
             assertEquals(COMMENT, ctx(h, 0, 0));
@@ -148,7 +141,7 @@ public class PropertiesCarriedStateTest {
             int len = line2.length();
             LexicalContext[] bulk = h.buffer().getMode()
                     .lexicalContexts(h.buffer(), line2, len).orElse(null);
-            // The continuation marker is NEUTRAL across the whole line.
+            // Bulk carries the same state as point.
             assertEquals(NEUTRAL, bulk[0]);
             assertEquals(NEUTRAL, bulk["# this".length()]);
             assertEquals(NEUTRAL, bulk[len]);

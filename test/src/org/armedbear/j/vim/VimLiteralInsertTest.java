@@ -28,10 +28,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Literal insertion: text that arrives from a block-insert session or a
- * CTRL-R register must not trigger electric pairing, the suppression
- * must nest, and the repeat must carry the text as it was captured --
- * never re-paired, never re-read from the register.
+ * Literal insertion: text from a block-insert session or a CTRL-R
+ * register must not trigger electric pairing; the suppression nests, and
+ * the repeat carries the text as captured -- never re-paired, never
+ * re-read from the register. The numbered sections match the test plan
+ * in dev-docs/ELECTRIC-PAIRS.md.
  */
 public class VimLiteralInsertTest {
     private EditorHarness h;
@@ -74,11 +75,9 @@ public class VimLiteralInsertTest {
         vim("abc\ndef\nghi\n\n").cursor(0, 0).keys("<C-v>2jI(");
         h.assertText("(abc\ndef\nghi\n\n");
         assertTrue(suppressed(), "the block session holds it");
-        // An arrow cancels the replication and releases the suppression.
         h.keys("<Left><Esc>");
         assertFalse(suppressed());
         assertEquals("(abc\ndef\nghi\n\n", h.text(), "the cancel never copies");
-        // Ordinary typing pairs again.
         h.cursor(3, 0).keys("i(");
         h.assertText("(abc\ndef\nghi\n()\n");
     }
@@ -87,7 +86,7 @@ public class VimLiteralInsertTest {
     public void bufferSwitchReleasesSuppressionAndPairingWorksInOtherBuffer() {
         vim("abc\ndef\n").cursor(0, 0).keys("<C-v>1jI(");
         assertTrue(suppressed());
-        // Switch buffers without Escape: the old session is released.
+        // Switch without Escape: the old session is released.
         final Buffer first = h.buffer();
         final EditorHarness other = EditorHarness.create("second\n\n").vim();
         try {
@@ -151,8 +150,7 @@ public class VimLiteralInsertTest {
         h.editor().setDot(boom, 2);
         assertThrows(RuntimeException.class, () -> h.vimState().finishBlockInsert(h.editor()));
         assertFalse(suppressed(), "the finally released it despite the throw");
-        // And the editor still works: pairing is live again. Move the dot
-        // off the poisoned line before Escape touches it.
+        // Pairing is live again; move the dot off the poisoned line first.
         h.editor().setDot(h.buffer().getLine(2), 0);
         h.keys("<Esc>");
         h.cursor(2, 0);
@@ -169,12 +167,11 @@ public class VimLiteralInsertTest {
         h.cursor(0, 0).keys("<C-v>2j$A");
         assertTrue(suppressed(), "the block session holds it");
         h.keys("<C-r>a");
-        // The inner run closed; the block's suppression survives.
         assertTrue(suppressed(), "the block's suppression outlives the register run");
         h.assertText("ab \nab\nab\n");
         h.keys("(");
-        // Whitespace before the caret and no following word: pairing
-        // would fire if the inner scope had cleared the outer one.
+        // Non-vacuous: pairing would fire here if the inner run had
+        // cleared the block's suppression.
         h.assertText("ab (\nab\nab\n");
         h.keys("<Esc>");
         assertFalse(suppressed());

@@ -30,11 +30,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@code %} on a CSS brace must land on the real matching brace, not one
- * inside a comment. The match walk uses the mode's syntax iterator, and
- * the default iterator does not blank comments, so a {@code }} inside
- * {@code /* } *}{ was counted as the match. The CSS syntax iterator
- * blanks comment and string characters so the walk skips them.
+ * {@code %} on a CSS brace must land on the real matching brace, not
+ * one inside a comment or string: the CSS syntax iterator blanks those
+ * characters so the walk skips them.
  */
 public class CssMatchTest {
     private EditorHarness h;
@@ -63,28 +61,24 @@ public class CssMatchTest {
 
     @Test
     public void braceInCommentIsNotTheMatch() {
-        // a { /* } */ b }
-        //   ^0123456789...
-        // % on the first { (offset 2) must land on the real closing }
-        // at the end (index 14), not the } inside the comment at 7.
-        // The bar caret lands one past a closing match, so 15.
+        // a { /* } */ b }   -- % on the { at 2 must land on the real
+        // closing } at 14 (bar caret one past: 15), not the } in the
+        // comment at 7.
         open("a { /* } */ b }");
         assertEquals("0:15", jump(0, 2));
     }
 
     @Test
     public void braceInStringIsNotTheMatch() {
-        // a { content: "}" ; }
-        // The } inside the string (index 14) must not match the first
-        // {; the real closing } is at 18, bar caret lands at 19.
+        // a { content: "}" ; }   -- the } in the string at 14 must not
+        // match; the real closer is at 18, bar caret lands at 19.
         open("a { content: \"}\"; }");
         assertEquals("0:19", jump(0, 2));
     }
 
     @Test
     public void plainBracesStillMatch() {
-        // No comment or string: the braces pair normally. The closing
-        // } is at 6, bar caret lands at 7.
+        // No comment or string: closing } at 6, bar caret at 7.
         open("a { b }");
         assertEquals("0:7", jump(0, 2));
     }

@@ -932,14 +932,12 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     /**
-     * The state at {@code offset}. The block comes from the line's
-     * flags: a fence body, an HTML comment and front matter are all
-     * COMMENT for pairing, including a blank fence line at offset
-     * zero. Outside a block, the prefix is scanned for inline code
-     * spans and HTML comments; emphasis and link text stay NEUTRAL.
-     * A code span is COMMENT, and the position after its closing run
-     * is NEUTRAL. A backslash escapes the punctuation after it, so
-     * a backtick or a less-than so escaped is literal.
+     * The state at {@code offset}: block context from the line's flags
+     * (fence body and front matter OPAQUE, HTML comment COMMENT), or
+     * outside a block a scan of the prefix for code spans (OPAQUE) and
+     * inline HTML comments (COMMENT); emphasis and link text stay
+     * NEUTRAL. A backslash escapes the punctuation after it, so an
+     * escaped backtick or less-than is literal.
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
@@ -949,17 +947,11 @@ public final class MarkdownFormatter extends Formatter {
 
     /**
      * One forward pass recording the context at every offset to
-     * {@code end}. Outside a block the context is NEUTRAL except inside
-     * a code span, where it is OPAQUE, or an inline HTML comment,
-     * where it is COMMENT; the caret on a span's or comment's own
-     * delimiters carries the state before them, exactly as the
-     * per-offset scan answers. A line that enters inside a multiline
-     * comment is COMMENT until its closing marker is consumed, then the
-     * prose after it pairs normally.
-     *
-     * <p>The point query stops at the boundary without building a
-     * prefix-sized array; the bulk query fills every offset. Both run
-     * the same {@link Cursor} transitions, so the two cannot drift.
+     * {@code end}; same answers as {@link #lexicalContextAt}, including
+     * that the caret on a span's or comment's own delimiters carries the
+     * state before them. A line entering inside a multiline comment is
+     * COMMENT until its closing marker is consumed. Both queries run the
+     * same {@link Cursor} transitions, so they cannot drift.
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
@@ -970,15 +962,13 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     /**
-     * The single source of Markdown inline lexical transitions. Walks
-     * the line from its entering block flags to {@code upto}. With an
-     * output array it records the context at every offset (bulk);
-     * without one it stops at {@code upto} and returns the context
-     * there (point), never allocating the prefix. Resolving a code
-     * span's close inspects ahead of the boundary either way — that is
-     * lookahead, not extra passes — and {@code steps} counts token
-     * advances so a test can assert the walk stays linear in the
-     * line's length.
+     * The single source of Markdown inline lexical transitions. Walks the
+     * line from its entering block flags to {@code upto}: with an output
+     * array it records every offset (bulk), without one it stops at
+     * {@code upto} (point), never allocating the prefix. Resolving a code
+     * span's close inspects ahead of the boundary either way — lookahead,
+     * not extra passes. {@code steps} counts token advances so a test can
+     * assert the walk stays linear in the line's length.
      */
     static final class Cursor extends LexicalCursor {
         private final int block;
@@ -991,9 +981,8 @@ public final class MarkdownFormatter extends Formatter {
 
         LexicalContext run() {
             if (block == IN_FENCE || block == IN_FRONT_MATTER) {
-                // A fence body or front matter is neither prose nor a
-                // comment: OPAQUE, so pairing is excluded without
-                // calling code a comment.
+                // Neither prose nor comment: OPAQUE excludes pairing
+                // without calling code a comment.
                 if (out != null)
                     java.util.Arrays.fill(out, LexicalContext.OPAQUE);
                 return LexicalContext.OPAQUE;
@@ -1006,9 +995,8 @@ public final class MarkdownFormatter extends Formatter {
                     return LexicalContext.COMMENT;
                 }
                 // The comment runs through the closing marker's last
-                // character; the position just past the marker is prose
-                // and pairs normally, so the covered range stops at
-                // close + 2 and the scan resumes there.
+                // character; just past it is prose, so the covered range
+                // stops at close + 2 and the scan resumes there.
                 if (upto <= close + 2) {
                     if (out != null)
                         fill(0, upto, LexicalContext.COMMENT);
@@ -1036,18 +1024,16 @@ public final class MarkdownFormatter extends Formatter {
                 if (c == '`') {
                     final int run = runLength(text, i, limit);
                     final int close = findCodeSpanClose(text, i + run, limit, run);
-                    // The lookahead examined every character from the
-                    // run's end to the close (or the line's end when
-                    // nothing closes it). Count it so the guard covers
-                    // the search, not just the main loop.
+                    // Count the lookahead from the run's end to the close
+                    // (or line end) so the guard covers the search, not
+                    // just the main loop.
                     steps += (close < 0 ? limit : close) - (i + run);
                     if (close < 0) {
-                        // Nothing closes the run: the backticks are
-                        // literal. Every position they cover is NEUTRAL,
-                        // so a caret between them is not left unset and
-                        // does not fall through to the generic quote
-                        // scanner (which would read an apostrophe
-                        // earlier on the line as an open string).
+                        // Literal backticks: every position they cover is
+                        // NEUTRAL, so a caret between them doesn't fall
+                        // through to the generic quote scanner (which
+                        // would read an earlier apostrophe as an open
+                        // string).
                         if (covers(i + 1, i + run, LexicalContext.NEUTRAL))
                             return LexicalContext.NEUTRAL;
                         i += run;

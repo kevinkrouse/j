@@ -36,13 +36,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * A Scheme block comment and a quoted string both carry across lines
- * through the entering flags, and the cursor must read them. Every
- * single-line fixture has an entering state of zero, so a cursor that
- * ignored {@code line.flags()} and started from zero would pass them
- * all. These fixtures put the cursor on a line that enters inside a
- * comment or string, where the entering state is the only thing that
- * makes the context correct.
+ * Block comments and strings carry across lines via the entering flags.
+ * Fixtures put the cursor on a line that enters inside one, where
+ * {@code line.flags()} alone makes the context correct; single-line
+ * fixtures (entering state zero) would pass even if flags were ignored.
  */
 public class SchemeCarriedStateTest {
     @BeforeAll
@@ -59,13 +56,11 @@ public class SchemeCarriedStateTest {
     public void blockCommentCarriesAcrossLines() {
         // #| start
         // end |# x
-        // Line 1 opens the comment; line 2 enters inside it. The text
-        // before the |# on line 2 is COMMENT, and after it is NEUTRAL.
+        // Line 2 enters inside the comment: COMMENT before |#, NEUTRAL after.
         EditorHarness h = EditorHarness.create("#| start\nend |# x").mode(SchemeMode.getMode());
         try {
             assertEquals(COMMENT, ctx(h, 1, 0));
             assertEquals(COMMENT, ctx(h, 1, "end".length()));
-            // Just past the |# closer: NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 1, "end |#".length() + 1));
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & org.armedbear.j.Constants.STATE_COMMENT) != 0,
@@ -78,18 +73,16 @@ public class SchemeCarriedStateTest {
 
     @Test
     public void stringCarriesAcrossLines() {
-        // A Scheme string is multiline: it carries across lines.
+        // A Scheme string is multiline:
         // (define s "hello
         // world")
         EditorHarness h = EditorHarness.create(
                 "(define s \"hello\nworld\")").mode(SchemeMode.getMode());
         try {
-            // Line 1 inside the string: STRING.
             assertEquals(STRING, ctx(h, 0, "(define s \"hel".length()));
-            // Line 2 enters inside the string: still STRING.
+            // Line 2 enters inside the string.
             assertEquals(STRING, ctx(h, 1, 0));
             assertEquals(STRING, ctx(h, 1, "world".length()));
-            // Just past the closing quote: NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 1, "world\"".length() + 1));
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & org.armedbear.j.Constants.STATE_QUOTE) != 0,
@@ -102,11 +95,10 @@ public class SchemeCarriedStateTest {
 
     @Test
     public void lineCommentDoesNotCarry() {
-        // A ; line comment ends at end of line; the next line is NEUTRAL.
+        // A ; line comment ends at end of line; line 1 enters NEUTRAL.
         EditorHarness h = EditorHarness.create("; a comment\nx").mode(SchemeMode.getMode());
         try {
             assertEquals(COMMENT, ctx(h, 0, "; a".length()));
-            // Line 1 enters NEUTRAL: the line comment did not carry.
             assertEquals(NEUTRAL, ctx(h, 1, 0));
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & org.armedbear.j.Constants.STATE_COMMENT) == 0,
@@ -119,16 +111,12 @@ public class SchemeCarriedStateTest {
 
     @Test
     public void backslashDoesNotHideBlockCommentCloser() {
-        // A Scheme block comment has no escapes, so a backslash inside
-        // one is literal and must not hide the |# closer: #| \|# closes
-        // at the |#. The old walks checked the backslash escape before
-        // the comment state, so the \| was consumed as an escape and
-        // the rest of the file read as a comment.
+        // Scheme block comments have no escapes: #| \|# closes at the |#.
+        // The old walks checked the backslash escape before the comment
+        // state, so \| was consumed as an escape and the rest read as a comment.
         EditorHarness h = EditorHarness.create("#| C:\\dir\\|# x").mode(SchemeMode.getMode());
         try {
-            // Inside the comment: COMMENT.
             assertEquals(COMMENT, ctx(h, 0, "#| C".length()));
-            // Just past the |# closer: NEUTRAL, not swallowed.
             assertEquals(NEUTRAL, ctx(h, 0, "#| C:\\dir\\|#".length() + 1));
             // The line does not carry a comment into the next line.
             EditorHarness h2 = EditorHarness.create("#| C:\\dir\\|#\nx").mode(SchemeMode.getMode());
@@ -149,17 +137,13 @@ public class SchemeCarriedStateTest {
 
     @Test
     public void escapedCharLiteralDoesNotOpenStringOrComment() {
-        // A character literal like #\" or #\; must not open a string or
-        // a comment: the backslash escapes the marker. The text after
-        // the literal is NEUTRAL.
+        // In #\" and #\; the backslash escapes the marker: neither opens
+        // a string or comment, the trailing text is NEUTRAL.
         EditorHarness h = EditorHarness.create(
                 "(display #\\\") (display #\\;) x").mode(SchemeMode.getMode());
         try {
-            // The " in #\" is escaped: not a string.
             assertEquals(NEUTRAL, ctx(h, 0, "(display #\\\"".length()));
-            // The ; in #\; is escaped: not a comment.
             assertEquals(NEUTRAL, ctx(h, 0, "(display #\\\") (display #\\;".length()));
-            // The trailing x is NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 0, "(display #\\\") (display #\\;) x".length()));
         }
         finally {
@@ -169,10 +153,9 @@ public class SchemeCarriedStateTest {
 
     @Test
     public void nonClosingPipeIsPreserved() {
-        // A | inside a block comment that is not followed by # must be
-        // appended as itself. The old lookahead overwrote the character
-        // being appended with the next character even when it was not
-        // the |# closer, so #| \|x |# rendered as #| \xx |#.
+        // A | inside a block comment not followed by # appends as itself;
+        // the old lookahead overwrote it with the next char, rendering
+        // #| \|x |# as #| \xx |#.
         EditorHarness h = EditorHarness.create("#| \\|x |#").mode(SchemeMode.getMode());
         try {
             Line line = h.buffer().getFirstLine();
@@ -190,8 +173,7 @@ public class SchemeCarriedStateTest {
 
     @Test
     public void bulkCarriesStateLikePoint() {
-        // The bulk query on a carried-comment line must report the same
-        // COMMENT/NEUTRAL split as the point query.
+        // Bulk query on a carried-comment line matches the point query's split.
         EditorHarness h = EditorHarness.create("#| start\nend |# x").mode(SchemeMode.getMode());
         try {
             Line line2 = h.buffer().getLine(1);

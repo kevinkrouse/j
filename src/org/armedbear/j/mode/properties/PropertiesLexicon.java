@@ -21,30 +21,19 @@
 package org.armedbear.j.mode.properties;
 
 /**
- * The comment and continuation rules of a properties file, shared by
- * the formatter and the lexical queries so the two cannot drift.
- *
- * <p>A line is a comment when its first non-whitespace character is one
- * of the supported markers {@code #}, {@code !} or {@code ;}, and it is
- * not a continuation of the previous line. A continuation whose text
- * happens to start with a marker is value text, not a fresh comment.
- *
- * <p>A line continues the previous one when the previous line ends with
- * an unescaped trailing backslash: an odd count of them. An even count
- * is escaped backslashes, not a continuation.
- *
- * <p>Ordinary key/value text, including literal quotes and apostrophes,
- * is neither comment nor continuation. Properties has no string syntax,
- * so a quote never opens anything.
+ * The comment and continuation rules of a properties file, shared by the
+ * formatter and the lexical queries so the two cannot drift. A marker at
+ * the start of a line is a comment only when the line isn't a continuation
+ * of the previous one; ordinary text, including literal quotes, opens
+ * nothing — properties has no string syntax.
  */
 final class PropertiesLexicon {
     private PropertiesLexicon() {
     }
 
     /**
-     * Whether {@code prevText} ends with an unescaped trailing backslash,
-     * making the next line a continuation. An odd number of trailing
-     * backslashes is unescaped; an even number is escaped.
+     * Whether {@code prevText} ends with an unescaped trailing backslash —
+     * an odd count; an even count is escaped backslashes, not a continuation.
      */
     static boolean continuesFrom(String prevText) {
         if (prevText == null)
@@ -56,10 +45,9 @@ final class PropertiesLexicon {
     }
 
     /**
-     * Whether {@code text} is a comment line. The first non-whitespace
-     * character must be a comment marker, and the line must not be a
-     * continuation. Leading whitespace before the marker still counts as
-     * a comment; a continuation starting with a marker does not.
+     * Whether {@code text} is a comment line: first non-whitespace
+     * character is a marker (leading whitespace still counts) and the line
+     * is not a continuation.
      */
     static boolean isComment(String text, boolean continuation) {
         if (continuation || text == null)

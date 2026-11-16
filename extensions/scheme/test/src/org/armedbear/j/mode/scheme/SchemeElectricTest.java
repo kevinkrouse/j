@@ -37,10 +37,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Typing a bracket inside a Scheme comment or string must not trigger
- * electric pairing: the decision is a plain insert, because the caret
- * is not in neutral context. Outside a comment or string the pair
- * inserts normally, and a closer typed before its opener steps over.
+ * Typing a bracket inside a Scheme comment or string is a plain insert;
+ * outside, pairs insert normally and a closer typed before its opener
+ * steps over.
  */
 public class SchemeElectricTest {
     private EditorHarness h;
@@ -77,44 +76,37 @@ public class SchemeElectricTest {
 
     @Test
     public void openerInBlockCommentIsPlain() {
-        // Typing ( inside a block comment must not open a pair. The (
-        // is at offset 3, inside #| ... |#.
+        // ( at offset 3 inside #| ... |# must not open a pair.
         assertAction(PLAIN, type("#| ( |#", 3, '('));
     }
 
     @Test
     public void closerInBlockCommentIsPlain() {
-        // Typing ) inside a block comment is a plain insert, not a
-        // suppression. The caret sits at offset 2 (inside the comment,
-        // not on the ) itself, so the type-over rule does not fire);
-        // the lexical context is COMMENT, so the closer is not balanced.
+        // Caret at 2 is inside the comment but not on the ), so type-over
+        // doesn't fire; COMMENT context makes the ) a plain insert.
         assertAction(PLAIN, type("#| ) |#", 2, ')'));
     }
 
     @Test
     public void openerInLineCommentIsPlain() {
-        // Typing ( after a ; is a plain insert. The ( is at offset 2.
         assertAction(PLAIN, type("; (", 2, '('));
     }
 
     @Test
     public void openerInStringIsPlain() {
-        // Typing ( inside a quoted string must not open a pair. The (
-        // is at offset 10, inside the string.
+        // ( at offset 10 inside the string.
         assertAction(PLAIN, type("(display \"(\")", 10, '('));
     }
 
     @Test
     public void openerInNeutralContextPairs() {
-        // Outside any comment or string, with no closer ahead, the pair
-        // inserts. The caret is at the end of the line.
+        // Neutral context, no closer ahead: the pair inserts.
         assertAction(INSERT_PAIR, type("(define x ", 10, '('));
     }
 
     @Test
     public void closerBeforeOpenerStepsOver() {
-        // A ) typed just before a ) in neutral context steps over. The
-        // caret sits on the final ) at offset 6.
+        // ) typed on the final ) at offset 6 steps over.
         assertAction(TYPE_OVER, type("(a b())", 6, ')'));
     }
 }

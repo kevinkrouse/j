@@ -626,10 +626,9 @@ public final class XmlFormatter extends Formatter {
                 || state == STATE_DOCTYPE_SINGLEQUOTE;
     }
 
-    // External identifiers are quoted literals, even though they are not
-    // attributes. Quotes protect '>' and '[' inside their contents. An
-    // unquoted '[' starts the internal subset, whose declarations and
-    // comments are handled by the ordinary markup states.
+    // DOCTYPE external identifiers are quoted literals: quotes protect '>'
+    // and '[' inside them. An unquoted '[' starts the internal subset,
+    // handled by the ordinary markup states.
     private static int doctypeStateAfter(int state, char c) {
         if (state == STATE_DOCTYPE_QUOTE)
             return c == '"' ? STATE_DOCTYPE : state;
@@ -666,23 +665,18 @@ public final class XmlFormatter extends Formatter {
     long scanSteps;
 
     /**
-     * The single source of XML lexical context for the pairing query.
-     * It mirrors {@link #parseBuffer}'s carried-state machine exactly,
-     * so the cursor and the highlighting cannot drift: the entering
-     * state is the line's flags as {@code parseBuffer} wrote them, and
-     * every transition is the same test. The state maps to a
-     * {@link LexicalContext} for pairing: a comment is COMMENT, an
-     * attribute value or DOCTYPE literal is STRING, a CDATA section is
-     * OPAQUE, and a tag, an attribute name or ordinary text is NEUTRAL.
+     * The single source of XML lexical context for the pairing query,
+     * mirroring {@link #parseBuffer}'s carried-state machine so cursor and
+     * highlighting cannot drift. Mapping: comment → COMMENT; attribute value
+     * or DOCTYPE literal → STRING; CDATA → OPAQUE; tag, attribute name,
+     * ordinary text → NEUTRAL.
      *
-     * <p>A prose apostrophe in text is NEUTRAL: only a quote reached
-     * from inside a tag or DOCTYPE opens a string, so {@code don't} in content
-     * never does. The multi-character markers use {@code covers} so the
-     * caret on a marker character reads as inside the construct and the
-     * caret just past a complete closer ({@code -->}, {@code ]]>) reads
-     * as outside, resuming the surrounding context. With an output
-     * array it records every offset (bulk); without one it stops at
-     * {@code upto} (point).
+     * <p>A prose apostrophe in text is NEUTRAL: only a quote reached from
+     * inside a tag or DOCTYPE opens a string. Multi-character markers use
+     * {@code covers} so the caret on a marker reads as inside the construct
+     * and the caret just past a complete closer ({@code -->}, {@code ]]>)
+     * reads as outside. With an output array it records every offset
+     * (bulk); without one it stops at {@code upto} (point).
      */
     static final class Cursor extends LexicalCursor {
         private int state;

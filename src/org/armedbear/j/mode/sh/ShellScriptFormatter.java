@@ -65,14 +65,10 @@ public final class ShellScriptFormatter extends Formatter {
     }
 
     /**
-     * The state at {@code offset}. A line entering in HERE_DOCUMENT
-     * is body: the whole line is STRING, and the terminator is not
-     * needed — the flag already says the heredoc is open, and the
-     * line after the terminator carries a NEUTRAL flag, so the
-     * query never reads the formatter's mutable {@code endOfText}
-     * and cannot leak a stale terminator between heredocs. A NEUTRAL
+     * The state at {@code offset}, mirroring {@link #parseBuffer}: a line
+     * entering in HERE_DOCUMENT is body (whole line STRING); a NEUTRAL
      * line is scanned for quotes, a {@code #} comment, and a valid
-     * {@code <<} opener, mirroring {@link #parseBuffer}.
+     * {@code <<} opener. See Cursor.run for why no terminator is needed.
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
@@ -81,14 +77,10 @@ public final class ShellScriptFormatter extends Formatter {
     }
 
     /**
-     * One forward pass recording the context at every offset to
-     * {@code end}. A heredoc declaration or a comment runs to the end
-     * of the line; the state before the marker is kept at the marker's
-     * own offset, as the per-offset scan answers.
-     *
-     * <p>The point query stops at the boundary without building a
-     * prefix-sized array; the bulk query fills every offset. Both run
-     * the same {@link Cursor} transitions, so the two cannot drift.
+     * The context at every offset up to {@code end} in one pass. A heredoc
+     * declaration or a comment runs to the end of the line; the state
+     * before the marker is kept at the marker's own offset, as the
+     * per-offset scan answers.
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
@@ -99,12 +91,12 @@ public final class ShellScriptFormatter extends Formatter {
     }
 
     /**
-     * The single source of Shell lexical transitions. Walks the line
-     * from its entering flags to {@code upto}. With an output array it
-     * records the context at every offset (bulk); without one it stops
-     * at {@code upto} and returns the context there (point), never
-     * allocating the prefix. {@code steps} counts token advances so a
-     * test can assert the walk stays linear in the line's length.
+     * The single source of Shell lexical transitions, walking the line from
+     * its entering flags to {@code upto}. With an output array it records
+     * the context at every offset (bulk); without one it stops at
+     * {@code upto} and returns the context there, never allocating the
+     * prefix. {@code steps} counts token advances so a test can assert
+     * the walk stays linear in the line's length.
      */
     static final class Cursor extends LexicalCursor {
         private final Line line;
@@ -121,12 +113,10 @@ public final class ShellScriptFormatter extends Formatter {
         }
 
         LexicalContext run() {
-            // A line entering in HERE_DOCUMENT is body: the whole line
-            // is STRING. The terminator is not needed — the flag
-            // already says the heredoc is open, and the line after the
-            // terminator carries a NEUTRAL flag, so the query never
-            // reads the formatter's mutable endOfText and cannot leak
-            // a stale terminator between heredocs.
+            // HERE_DOCUMENT body: whole line STRING. No terminator needed —
+            // the flag says the heredoc is open, and the line after the
+            // terminator carries NEUTRAL, so we never read the mutable
+            // endOfText and can't leak a stale terminator between heredocs.
             if (line.flags() == STATE_HERE_DOCUMENT) {
                 if (out != null)
                     java.util.Arrays.fill(out, LexicalContext.STRING);
@@ -141,8 +131,7 @@ public final class ShellScriptFormatter extends Formatter {
                 steps++;
                 final char c = text.charAt(i);
                 if (c == '\\' && i < limit - 1) {
-                    // Escape: consumes the next character; the state
-                    // is unchanged across it.
+                    // Escape: consumes the next character; state unchanged.
                     if (inside(2, ctx))
                         return ctx;
                     i += 2;
@@ -193,10 +182,9 @@ public final class ShellScriptFormatter extends Formatter {
     }
 
     /**
-     * The terminator a {@code <<} at {@code from} opens, or null when
-     * the {@code <<} is a shift operator rather than a heredoc. The
-     * same rules {@link #parseBuffer} applies: strip a leading dash
-     * and enclosing quotes, and require a letter start.
+     * The terminator a {@code <<} at {@code from} opens, or null when it's
+     * a shift operator: strip a leading dash and enclosing quotes, require
+     * a letter start (same rules as {@link #parseBuffer}).
      */
     private static String heredocTerminator(Line line, int from) {
         String terminator = line.substring(from + 2).trim();

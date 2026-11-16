@@ -24,12 +24,10 @@ import org.armedbear.j.CursorHighlightAgreement;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Properties cursor and the highlighting parser must agree on where
- * comments are. Properties has no string syntax, so the string format
- * never appears and the string direction is vacuously satisfied. The
- * fixtures carry the three comment markers, leading whitespace, and a
- * continuation starting with a marker so both consumers of the shared
- * classifier are pinned to the same answer.
+ * The Properties cursor and the highlighting parser must agree on
+ * comments. Fixtures cover the three markers, leading whitespace, and
+ * a marker-prefixed continuation; Properties has no string syntax, so
+ * the string direction is vacuous.
  */
 public class CursorHighlightAgreementTest {
     private static final String[] FIXTURES = {
@@ -48,8 +46,8 @@ public class CursorHighlightAgreementTest {
             CursorHighlightAgreement.assertAgrees(
                     PropertiesMode.getMode(), t,
                     PropertiesFormatter.PROPERTIES_FORMAT_COMMENT,
-                    // No string format in Properties; use an id that
-                    // never appears so the string direction is vacuous.
+                    // -1: no string format exists, so the string
+                    // direction can never fire.
                     -1);
     }
 }

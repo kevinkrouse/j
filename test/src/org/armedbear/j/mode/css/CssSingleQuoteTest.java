@@ -34,12 +34,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * A single-quoted CSS value closes on a single quote, not a double
- * quote. The old parser closed CSS_STATE_SINGLEQUOTE on {@code "}, so
- * a value like {@code 'x'} stayed open until a double quote appeared,
- * swallowing the rest of the line as a string. These tests pin the
- * correction: after a closed single-quoted value the following text is
- * NEUTRAL and a trailing comment is COMMENT, and the lexical context
- * agrees with the highlighting and the line flags.
+ * quote: the old parser closed CSS_STATE_SINGLEQUOTE on {@code "}, so
+ * {@code 'x'} stayed open until a double quote appeared, swallowing
+ * the rest of the line as a string.
  */
 public class CssSingleQuoteTest {
     private LexicalContext ctx(EditorHarness h, int lineNo, int off) {
@@ -49,15 +46,12 @@ public class CssSingleQuoteTest {
 
     @Test
     public void closedSingleQuoteLeavesTextNeutral() {
-        // content: 'x'; color: red;
-        //          ^closed  ^this is NEUTRAL, not swallowed as string
+        // content: 'x'; color: red;   -- after the closing quote the
+        // rest of the line is NEUTRAL, not swallowed as string.
         EditorHarness h = EditorHarness.create("a { content: 'x'; color: red; }").mode(CSSMode.getMode());
         try {
-            // Inside the single quotes: STRING.
             assertEquals(STRING, ctx(h, 0, "a { content: '".length()));
-            // After the closing quote: NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 0, "a { content: 'x'".length() + 1));
-            // The following property is NEUTRAL too.
             assertEquals(NEUTRAL, ctx(h, 0, "a { content: 'x'; color".length()));
         }
         finally {
@@ -71,7 +65,6 @@ public class CssSingleQuoteTest {
         try {
             // The comment interior is COMMENT, not string.
             assertEquals(COMMENT, ctx(h, 0, "a { b: 'x'; /* c".length()));
-            // After the comment closes: NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 0, "a { b: 'x'; /* c */ ".length()));
         }
         finally {
@@ -81,12 +74,10 @@ public class CssSingleQuoteTest {
 
     @Test
     public void escapedSingleQuoteStaysInString() {
-        // content: 'it\'s' — the escaped quote does not close the string.
+        // content: 'it\'s' -- the escaped quote does not close the string.
         EditorHarness h = EditorHarness.create("a { content: 'it\\'s'; }").mode(CSSMode.getMode());
         try {
-            // Inside the string, past the escaped quote: STRING.
             assertEquals(STRING, ctx(h, 0, "a { content: 'it\\'".length() + 1));
-            // After the real closing quote: NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 0, "a { content: 'it\\'s'".length() + 1));
         }
         finally {
@@ -96,16 +87,13 @@ public class CssSingleQuoteTest {
 
     @Test
     public void lineFlagsAgreeWithQuery() {
-        // After a closed single quote on a line, the line's trailing
-        // flags must not carry SINGLEQUOTE — the string closed.
+        // The line ends outside the string, so no SINGLEQUOTE state
+        // carries past it: end-of-line queries NEUTRAL.
         EditorHarness h = EditorHarness.create("a { b: 'x'; c: d; }").mode(CSSMode.getMode());
         try {
             Buffer buffer = h.buffer();
             buffer.refreshParse();
             Line line = buffer.getFirstLine();
-            // The line ends outside the string, so the entering flags of
-            // the next line (or the trailing state) must not be a quote.
-            // The query at end-of-line reports NEUTRAL.
             assertEquals(NEUTRAL,
                     CSSMode.getMode().lexicalContext(buffer, new Position(line, line.length())));
         }

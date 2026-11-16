@@ -25,9 +25,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The Python cursor and the highlighting parser must agree on where
- * comments and strings are. They are two loops over the same text; this
- * guard fails if they ever drift. The triple-quote fixtures exercise the
- * multi-character string delimiter.
+ * comments and strings are; this guard fails if the two loops over the
+ * same text ever drift. Triple-quote fixtures exercise the
+ * multi-character delimiter.
  */
 public class CursorHighlightAgreementTest {
     private static final int COMMENT = PythonFormatter.PYTHON_FORMAT_COMMENT;

@@ -20,11 +20,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The Markdown lexical cursor walks the line once. Resolving a code
- * span's close inspects ahead of the boundary — that is lookahead, not
- * extra passes — so {@code steps} counts the lookahead distance as
- * well as the main-loop advances, and the bound is a small multiple of
- * the line's length, not one step per character. A point query stops
- * advancing at its boundary instead of walking the whole line.
+ * span's close inspects ahead of the boundary — lookahead, not extra
+ * passes — so {@code steps} counts lookahead distance too, bounding the
+ * total at a small multiple of line length rather than one step per
+ * char. A point query stops at its boundary.
  */
 public class MarkdownLexicalCursorTest {
     @Test
@@ -48,9 +47,8 @@ public class MarkdownLexicalCursorTest {
 
     @Test
     public void matchedCodeSpansStayLinear() {
-        // Matched pairs: each opener's lookahead stops at its own
-        // close a couple of characters ahead, so the total stays under
-        // the length.
+        // Each opener's lookahead stops at its own close a couple of
+        // chars ahead, so the total stays under the length.
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 2000; i++)
             sb.append("`a` ");
@@ -70,12 +68,10 @@ public class MarkdownLexicalCursorTest {
 
     @Test
     public void unmatchedCodeSpanLookaheadIsLinear() {
-        // A single run of backticks that nothing closes, followed by
-        // long prose with no further backticks. The lookahead must
-        // scan the prose once, to the end of the line — not once per
-        // character — so the total is a small multiple of the length.
-        // This is the case the old fixture missed: repeated "`x" pairs
-        // close immediately, so the lookahead never ran.
+        // An unclosed backtick run followed by long prose: the lookahead
+        // scans the prose once to end of line, not once per char. The
+        // old fixture missed this — repeated "`x" pairs close
+        // immediately, so the lookahead never ran.
         StringBuilder sb = new StringBuilder("```");
         for (int i = 0; i < 2000; i++)
             sb.append("x ");
@@ -86,11 +82,9 @@ public class MarkdownLexicalCursorTest {
             LexicalContext[] out = new LexicalContext[len + 1];
             MarkdownFormatter.Cursor bulk = new MarkdownFormatter.Cursor(line, len, out);
             bulk.run();
-            // The lookahead examined the whole tail once and the main
-            // loop stepped it again: at most about twice the length.
+            // Lookahead scanned the tail once, main loop stepped it again: ~2x.
             assertTrue(bulk.steps <= 2L * len, "unmatched lookahead steps " + bulk.steps + " exceeds 2*len " + (2L * len));
-            // The lookahead actually ran: without it the count would be
-            // near the length, not near twice it.
+            // Non-vacuous: without the lookahead, steps would be near len.
             assertTrue(bulk.steps > len, "lookahead not exercised: steps " + bulk.steps + " not above len " + len);
         }
         finally {

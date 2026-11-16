@@ -12,16 +12,14 @@
 package org.armedbear.j.mode.markdown;
 
 /**
- * Read-only recognition of Markdown's inline delimiter runs: the
- * emphasis markers {@code *}, {@code **}, {@code ***}, {@code _} and
- * the strikethrough {@code ~~}, plus the code-span backticks that
- * shadow them. The formatter's highlighting and the electric-pairs
- * override both consult this, so the two never disagree about what a
- * run is.
+ * Read-only recognition of Markdown's inline delimiter runs: emphasis
+ * {@code *}, {@code **}, {@code ***}, {@code _}, strikethrough
+ * {@code ~~}, and the code-span backticks that shadow them. The
+ * formatter and the electric-pairs override both consult this so they
+ * never disagree about what a run is.
  *
- * <p>Every method is pure over {@code (text, from, end)}: no buffer,
- * no editor, no mutable state. The same text gives the same answer,
- * which is what makes the pairing decision replay-safe.
+ * <p>Every method is pure over {@code (text, from, end)}, which is what
+ * makes the pairing decision replay-safe.
  */
 public final class MarkdownDelimiters {
     private MarkdownDelimiters() {}
@@ -111,18 +109,16 @@ public final class MarkdownDelimiters {
 
     /**
      * The length of the marker run of {@code c} ending exactly at
-     * {@code caret} if that run is an <em>unmatched opener</em> — it
-     * can open emphasis and nothing between it and {@code end} closes
-     * it — or 0 if it is not.
+     * {@code caret} if it is an <em>unmatched opener</em> (it can open
+     * emphasis and nothing before {@code end} closes it), else 0.
      *
      * <p>{@code prospective} is the character about to be typed just
-     * after the run. Opening eligibility is judged with it in place, so
+     * after the run: opening eligibility is judged with it in place, so
      * an empty opener at the caret ({@code **|}) is classified against
-     * the content that is about to follow, without mutating the buffer.
+     * content that isn't in the buffer yet.
      *
      * <p>A run that already closes an earlier opener is not an opener
-     * here, even when its own surroundings would allow opening: the
-     * earlier match is recorded first. That is what keeps
+     * here — the earlier match is recorded first — which keeps
      * {@code *b*|} + {@code c} from treating the closing {@code *} as
      * a fresh opener.
      */

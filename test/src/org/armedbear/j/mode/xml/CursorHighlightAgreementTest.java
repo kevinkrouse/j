@@ -24,15 +24,11 @@ import org.armedbear.j.CursorHighlightAgreement;
 import org.junit.jupiter.api.Test;
 
 /**
- * The XML cursor and the highlighting parser must agree on where
- * comments and attribute strings are. CDATA is OPAQUE, which the
- * agreement guard does not check (it only pins COMMENT and STRING
- * runs), so the CDATA fixtures exercise the cursor's own boundary
- * handling rather than agreement. The fixtures carry both quote kinds,
- * an empty attribute value, a prose apostrophe that must not open a
- * string, partial delimiters, and multi-line comments, CDATA and
- * attributes so both consumers of the shared state are pinned to the
- * same answer.
+ * The XML cursor and the highlighting parser must agree on comments
+ * and attribute strings. The guard only pins COMMENT and STRING runs,
+ * so the CDATA fixtures exercise the cursor's own boundary handling.
+ * Fixtures cover both quote kinds, empty values, prose apostrophes,
+ * partial delimiters, and multi-line regions.
  */
 public class CursorHighlightAgreementTest {
     private static final int COMMENT = XmlFormatter.XML_FORMAT_COMMENT;

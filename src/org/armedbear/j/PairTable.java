@@ -15,13 +15,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A mode's electric pairs: which opener inserts which closer, and which
- * characters are closers. Built from the mode's pairs string, two
- * characters to a pair: the opener then its closer. A symmetric
- * delimiter pairs with itself, so {@code ""} is the two-character pair
- * {@code "}. Lookups scan the string; it is short, so no index is worth
- * building. Tables are cached by their string, so a mode's table is
- * built once.
+ * A mode's electric pairs, built from the mode's pairs string: two
+ * characters per pair, opener then closer. A symmetric delimiter pairs
+ * with itself, so {@code ""} is the pair {@code "}. Lookups scan the
+ * short string; tables are cached by their string, so one is built per
+ * distinct pairs string.
  */
 public final class PairTable {
     private static final Map<String, PairTable> CACHE = new ConcurrentHashMap<>();
@@ -64,10 +62,9 @@ public final class PairTable {
     public record Pair(char opener, char closer) {}
 
     /**
-     * The pair a delimiter belongs to, resolved from either end: {@code (}
-     * and {@code )} both give the same {@code (}, {@code )}. A closer
-     * typed over, or a selection wrapped by a closer, resolves its pair
-     * through here. Null if c is in no pair.
+     * The pair a delimiter belongs to, resolved from either end:
+     * {@code (} and {@code )} both give {@code (}, {@code )}.
+     * Null if c is in no pair.
      */
     public Pair pairFor(char c) {
         for (int i = 0; i + 1 < pairs.length(); i += 2)
