@@ -99,9 +99,8 @@ public final class SchemeFormatter extends Formatter {
         }
         while (i < limit) {
             char c = text.charAt(i);
-            // Comment first. A Scheme block comment has no escapes, so
-            // a backslash inside one is literal and must not hide the
-            // |# closer: #| \|# closes at the |#.
+            // Comment first: Scheme block comments have no escapes, so a
+            // backslash inside one is literal and can't hide the |# closer.
             if (state == STATE_COMMENT) {
                 if (c == '|' && i < limit - 1 && text.charAt(i + 1) == '#') {
                     sb.append("|#");
@@ -261,12 +260,10 @@ public final class SchemeFormatter extends Formatter {
                 line.setFlags(state);
                 changed = true;
             }
-            // The cursor is the single source of the comment, quote and
-            // block transitions. parseBuffer takes the carried comment
-            // and quote bits from its end state instead of re-walking
-            // the line with its own copy of the rules. A Scheme string
-            // and a block comment both carry across lines, so neither
-            // bit is cleared between lines.
+            // The cursor is the single source of transitions; parseBuffer
+            // takes the carried comment/quote bits from endState instead of
+            // a second copy of the rules. Both a string and a block comment
+            // carry across lines, so neither bit is cleared between lines.
             Cursor cursor = new Cursor(line, state, line.length(), null);
             cursor.run();
             state = cursor.endState;
@@ -276,12 +273,10 @@ public final class SchemeFormatter extends Formatter {
         return changed;
     }
 
-    // Total characters the lexical queries have scanned, across every
-    // cursor run since the last reset. The scan guard reads this through
-    // the real mode.lexicalContexts / lexicalContext entry points: a
-    // bulk query that secretly looped point queries would accumulate
-    // O(len^2) here and blow the linear bound, which a hand-built
-    // single cursor cannot show.
+    // Total characters scanned by lexical queries since the last reset.
+    // The guard reads it through the real mode.lexicalContexts /
+    // lexicalContext entry points: a bulk query secretly looping point
+    // queries would accumulate O(len^2) here and blow the linear bound.
     long scanSteps;
 
     @Override
@@ -304,22 +299,16 @@ public final class SchemeFormatter extends Formatter {
     }
 
     /**
-     * The single source of Scheme lexical transitions. Walks the line
-     * from an explicit entering state to {@code upto}, tracking the
-     * comment and quote bits. A block comment and a quoted string both
-     * carry across lines through the entering state. The comment state
-     * is checked before the escape, because a Scheme block comment has
-     * no escapes: a backslash inside one is literal and must not hide
-     * the {@code |#} closer. Outside a comment a backslash escapes the
-     * next character, so {@code \"} does not open a string and
-     * {@code \;} does not start a comment. A {@code ;} line comment
-     * makes the rest of the line COMMENT but does not carry to the next
-     * line. With an output array it records the context at every offset
-     * (bulk); without one it stops at {@code upto} (point).
-     *
-     * <p>{@code endState} is the full state after the walk, so
-     * {@link #parseBuffer} takes its carried comment and quote bits
-     * from here rather than re-implementing the transitions.
+     * The single source of Scheme lexical transitions, walking the line from
+     * an explicit entering state to {@code upto}. A block comment and a
+     * quoted string both carry across lines through the entering state; a
+     * {@code ;} line comment does not. The comment state is checked before
+     * the escape because block comments have no escapes — a backslash in
+     * one is literal and can't hide {@code |#}; outside a comment,
+     * {@code \"} doesn't open a string and {@code \;} doesn't start one.
+     * With an output array it records every offset (bulk); without one it
+     * stops at {@code upto} (point). {@code endState} is the full state
+     * after the walk, so {@link #parseBuffer} takes its carried bits here.
      */
     static final class Cursor extends LexicalCursor {
         private int state;
@@ -342,9 +331,8 @@ public final class SchemeFormatter extends Formatter {
                 }
                 steps++;
                 final char c = text.charAt(i);
-                // Comment first. A Scheme block comment has no escapes,
-                // so a backslash inside one is literal and must not
-                // hide the |# closer: #| \|# closes at the |#.
+                // Comment first: no escapes inside a block comment, so a
+                // backslash can't hide the |# closer (#| \|# closes at |#).
                 if (state == STATE_COMMENT) {
                     if (c == '|' && i < limit - 1 && text.charAt(i + 1) == '#') {
                         if (inside(2, ctx)) {
@@ -357,9 +345,8 @@ public final class SchemeFormatter extends Formatter {
                         ++i;
                     continue;
                 }
-                // Outside a comment, a backslash escapes the next
-                // character, so \" does not open a string and \; does
-                // not start a comment.
+                // Outside a comment, \ escapes the next char: \" doesn't
+                // open a string, \; doesn't start a comment.
                 if (c == '\\' && i < limit - 1) {
                     if (inside(2, ctx)) {
                         endState = state;
@@ -381,9 +368,8 @@ public final class SchemeFormatter extends Formatter {
                     continue;
                 }
                 if (c == ';') {
-                    // A line comment: the caret on the ';' is before
-                    // it, everything after is COMMENT. It does not
-                    // carry to the next line, so endState stays NEUTRAL.
+                    // The caret on the ';' is before the comment; after it,
+                    // COMMENT. It doesn't carry, so endState stays NEUTRAL.
                     if (out != null)
                         for (int j = i + 1; j <= upto; j++)
                             out[j] = LexicalContext.COMMENT;

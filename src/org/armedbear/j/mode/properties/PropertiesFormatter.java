@@ -41,10 +41,10 @@ public final class PropertiesFormatter extends Formatter {
     private static final byte PROPERTIES_FORMAT_VALUE = 4;
     private static final byte PROPERTIES_FORMAT_DELIMITER = 5;
 
-    // The line-flag bit marking that this line continues the previous
-    // one, set by parseBuffer and read by the queries. Properties has no
-    // string syntax and comments do not carry across lines, so the only
-    // state that crosses a line boundary is the continuation.
+    // Line-flag bit: this line continues the previous one, set by
+    // parseBuffer and read by the queries. Properties has no string
+    // syntax and comments don't carry across lines, so the continuation
+    // is the only state that crosses a line boundary.
     static final int PROPERTIES_CONTINUATION = 0x0100;
 
     public PropertiesFormatter(Buffer buffer) {
@@ -55,13 +55,11 @@ public final class PropertiesFormatter extends Formatter {
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
-        // Classify on the raw text, not the rendered text. With Show
-        // Tabs on, getDetabbedText turns a tab into a visible ^I glyph,
-        // so a tab-indented comment's first non-whitespace character
-        // would be the caret, not the marker, and it would be painted as
-        // ordinary text while the raw lexical query reports COMMENT. The
-        // classifier reads raw so the two agree; the rendered text is
-        // used only for the segment content.
+        // Classify on the raw text: with Show Tabs on, getDetabbedText
+        // turns a tab into a visible ^I glyph, so a tab-indented comment's
+        // first non-whitespace char would be the caret, not the marker.
+        // The classifier reads raw so highlighting agrees with the lexical
+        // query; rendered text is used only for segment content.
         final String raw = line.getText() == null ? "" : line.getText();
         final boolean continuation = (line.flags() & PROPERTIES_CONTINUATION) != 0;
         if (continuation) {
@@ -109,16 +107,12 @@ public final class PropertiesFormatter extends Formatter {
                 line.setFlags(newflags);
                 changed = true;
             }
-            // The next line continues this one when this line ends with
-            // an unescaped trailing backslash. A comment line never
-            // continues, so a trailing backslash on a comment is just
-            // comment text. The classifier reads the raw text: a tab is
-            // whitespace and a trailing backslash is unaffected by
-            // detabbing, so the result matches the detabbed format pass.
-            // The incoming continuation state is passed so a marker at
-            // the start of a continuation line is value text, not a
-            // fresh comment: in key=v \ / #middle \ / #tail the second
-            // and third lines are both continuations, not comments.
+            // The next line continues this one on an unescaped trailing
+            // backslash; a comment line never continues. The incoming
+            // continuation state is passed so a marker at the start of a
+            // continuation is value text, not a fresh comment: in
+            // key=v \ / #middle \ / #tail the last two lines are both
+            // continuations. Raw text: detabbing can't affect the result.
             final String text = line.getText();
             continuation = !PropertiesLexicon.isComment(text, continuation)
                     && PropertiesLexicon.continuesFrom(text);
@@ -147,22 +141,19 @@ public final class PropertiesFormatter extends Formatter {
         return Optional.of(out);
     }
 
-    // Total characters the lexical queries have scanned, across every
-    // cursor run since the last reset. The scan guard reads this through
-    // the real mode.lexicalContexts / lexicalContext entry points: a
-    // bulk query that secretly looped point queries would accumulate
-    // O(len^2) here and blow the linear bound, which a hand-built
-    // single cursor cannot show.
+    // Total characters scanned by lexical queries since the last reset.
+    // The guard reads it through the real mode.lexicalContexts /
+    // lexicalContext entry points: a bulk query secretly looping point
+    // queries would accumulate O(len^2) here and blow the linear bound.
     long scanSteps;
 
     /**
      * The single source of Properties lexical context for the pairing
-     * query. A comment line is COMMENT from its marker to end of line;
-     * everything else, including a continuation and ordinary key/value
-     * text with literal quotes and apostrophes, is NEUTRAL. Properties
-     * has no string syntax, so a quote never opens a string. With an
-     * output array it records the context at every offset (bulk);
-     * without one it stops at {@code upto} (point).
+     * query: a comment line is COMMENT from its marker to end of line;
+     * everything else — continuations, key/value text with literal quotes
+     * — is NEUTRAL, since properties has no string syntax. With an output
+     * array it records every offset (bulk); without one it stops at
+     * {@code upto} (point).
      */
     static final class Cursor extends LexicalCursor {
         long steps;
@@ -176,12 +167,9 @@ public final class PropertiesFormatter extends Formatter {
         LexicalContext run() {
             final boolean continuation = (enteringState & PROPERTIES_CONTINUATION) != 0;
             final boolean comment = PropertiesLexicon.isComment(text, continuation);
-            // A comment line is COMMENT from its start to end of line,
-            // matching the highlighting, which paints the whole line
-            // (leading whitespace included) as a comment. The marker
-            // position is not a pairing boundary: a bracket cannot sit
-            // in the leading whitespace, and the caret before the marker
-            // is still inside the comment.
+            // COMMENT from start to end of line, matching the highlighting
+            // that paints leading whitespace too; the marker position is
+            // not a pairing boundary.
             final LexicalContext ctx =
                 comment ? LexicalContext.COMMENT : LexicalContext.NEUTRAL;
             while (i <= upto) {

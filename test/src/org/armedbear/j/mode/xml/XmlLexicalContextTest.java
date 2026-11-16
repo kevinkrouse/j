@@ -50,12 +50,10 @@ public class XmlLexicalContextTest {
                 "<!-- first line\nsecond line --> tail").mode(XmlMode.getMode());
         try {
             h.buffer().refreshParse();
-            // Line 0 is inside the comment from the marker on.
             assertEquals(COMMENT, ctx(h, 0, 4));
-            // Line 1 is still comment until the --> closer, then NEUTRAL.
+            // Line 1 stays comment until the --> closer, then NEUTRAL.
             assertEquals(COMMENT, ctx(h, 1, 0));
             assertEquals(COMMENT, ctx(h, 1, "second line --".length()));
-            // Just past the --> closer (offset of the space after -->).
             assertEquals(NEUTRAL, ctx(h, 1, "second line -->".length()));
             assertEquals(NEUTRAL, ctx(h, 1, "second line --> tail".length()));
         }
@@ -70,10 +68,9 @@ public class XmlLexicalContextTest {
                 "<![CDATA[ raw <x> ]]> after").mode(XmlMode.getMode());
         try {
             h.buffer().refreshParse();
-            // Inside the CDATA body is OPAQUE.
+            // The CDATA body is OPAQUE; past ]]> it is NEUTRAL.
             assertEquals(OPAQUE, ctx(h, 0, "<![CDATA[".length()));
             assertEquals(OPAQUE, ctx(h, 0, "<![CDATA[ raw <x> ".length()));
-            // Just past the ]]> closer is NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 0, "<![CDATA[ raw <x> ]]>".length()));
             assertEquals(NEUTRAL, ctx(h, 0, "<![CDATA[ raw <x> ]]> after".length()));
         }
@@ -103,13 +100,11 @@ public class XmlLexicalContextTest {
                 "<e a=\"hello\" b='world'>t</e>").mode(XmlMode.getMode());
         try {
             h.buffer().refreshParse();
-            // The interior of the double-quoted value is STRING.
+            // Both quote kinds make STRING interiors; between/after the
+            // tag is NEUTRAL.
             assertEquals(STRING, ctx(h, 0, "<e a=\"hell".length()));
-            // The interior of the single-quoted value is STRING.
             assertEquals(STRING, ctx(h, 0, "<e a=\"hello\" b='worl".length()));
-            // The tag text between attributes is NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 0, "<e a=\"hello\" ".length()));
-            // Text after the tag is NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 0, "<e a=\"hello\" b='world'>t".length()));
         }
         finally {
@@ -119,9 +114,8 @@ public class XmlLexicalContextTest {
 
     @Test
     public void emptyAttributeIsString() {
-        // <e a="">  the empty value is still a string region; the
-        // closing quote reads as inside the string, the caret before
-        // the opening quote is neutral.
+        // <e a="">  the empty value is still a string region: the
+        // closing quote reads as inside the string.
         EditorHarness h = EditorHarness.create("<e a=\"\">x</e>").mode(XmlMode.getMode());
         try {
             h.buffer().refreshParse();

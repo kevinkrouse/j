@@ -20,11 +20,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Electric pairs under vim's dot command. The recording stores the
- * typed key only, so a pairing handler inside {@code insertNormalChar}
- * re-derives the pair on replay. These tests pin that contract: the
- * closer is never recorded, and a type-over that changes no buffer is
- * not truncated from the recording.
+ * Electric pairs under vim's dot command: the recording stores the typed
+ * key only, so {@code insertNormalChar} re-derives the pair on replay.
+ * Pins that the closer is never recorded and a no-buffer-change type-over
+ * is not truncated from the recording.
  */
 public class VimElectricPairsTest {
     private EditorHarness h;
@@ -45,7 +44,6 @@ public class VimElectricPairsTest {
         vim("\n\n").cursor(0, 0).keys("i(");
         h.assertText("()\n\n");
         h.assertCursorAt(0, 1);
-        // Escape, go to a fresh line, repeat: the ( pairs again.
         h.keys("<Esc>");
         h.cursor(1, 0);
         h.keys(".");
@@ -66,10 +64,9 @@ public class VimElectricPairsTest {
 
     @Test
     public void repeatsATypeOver() {
-        // The type-over changes no buffer; the recording must still
-        // carry the ) so the repeat steps over again rather than
-        // producing ((|). The x after the ) makes the change visible
-        // and pins the caret.
+        // The type-over itself changes no buffer; the recording must still
+        // carry the ) so the repeat steps over instead of making ((|.
+        // The trailing x makes the change visible and pins the caret.
         vim("()\n()\n").cursor(0, 1).keys("i)x");
         h.assertText("()x\n()\n");
         h.assertCursorAt(0, 3);
@@ -82,8 +79,8 @@ public class VimElectricPairsTest {
 
     @Test
     public void repeatsAPairAndTypeOverTogether() {
-        // i( then ) then x: the recording is i()x<Esc>. Replaying it
-        // on a fresh line gives ()x again.
+        // The recording is i()x<Esc>: the pair and the type-over both
+        // re-derive on a fresh line.
         vim("\n\n").cursor(0, 0).keys("i()x<Esc>");
         h.assertText("()x\n\n");
         h.assertCursorAt(0, 2);
@@ -131,9 +128,8 @@ public class VimElectricPairsTest {
 
     @Test
     public void ctrlWAfterPairRespectsTheStop() {
-        // i(abc then Ctrl-W: the word abc goes, the pair remains,
-        // and the stop at the insert start keeps the opener from
-        // being taken by the delete-both rule.
+        // Ctrl-W deletes abc; the stop at the insert start keeps the
+        // delete-both rule from taking the opener.
         vim("\n\n").cursor(0, 0).keys("i(abc");
         h.assertText("(abc)\n\n");
         h.keys("<C-w>");
@@ -143,11 +139,9 @@ public class VimElectricPairsTest {
 
     @Test
     public void ctrlWAfterEmptyPairTakesTheOpenerAsVimDoes() {
-        // i( then Ctrl-W: the opener is a non-word char before the
-        // caret, so Ctrl-W deletes it, as vim does. The delete-both
-        // rule never fires here — Ctrl-W deletes a region, not a
-        // single character — so the closer is left behind, exactly
-        // as a plain Ctrl-W after a lone ( would.
+        // The opener is a non-word char before the caret, so Ctrl-W
+        // deletes it as vim does; delete-both never fires because
+        // Ctrl-W deletes a region, leaving the closer behind.
         vim("\n\n").cursor(0, 0).keys("i(");
         h.assertText("()\n\n");
         h.assertCursorAt(0, 1);

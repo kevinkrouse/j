@@ -334,11 +334,10 @@ public interface Mode extends Folds {
     }
 
     /**
-     * The mode's electric pairs: a string of two-character pairs, the
-     * opener then its closer. A symmetric delimiter pairs with itself.
-     * Typing an opener inserts its closer; typing a closer steps over
-     * it. Modes override to drop pairs they don't want, such as the
-     * apostrophe in Lisp, where it quotes.
+     * The mode's electric pairs: a string of two-character pairs, opener
+     * then closer; a symmetric delimiter pairs with itself. Modes
+     * override to drop pairs they don't want, such as the apostrophe in
+     * Lisp, where it quotes.
      */
     default String getPairs() {
         return "()[]{}\"\"";
@@ -350,27 +349,24 @@ public interface Mode extends Folds {
     }
 
     /**
-     * Whether this mode formats braces electrically: typing an opening
-     * brace on a blank line opens a block, and the brace line is
-     * reindented after the character is inserted or typed over. The
-     * Java family, Perl and Tcl turn this on; other modes get generic
-     * brace pairing without the block formatting or reindentation.
+     * Whether this mode formats braces electrically: a brace typed on a
+     * blank line opens a block and the brace line is reindented after
+     * insertion. The Java family, Perl and Tcl turn this on; other modes
+     * get generic brace pairing without the block formatting.
      */
     default boolean electricBraces() {
         return false;
     }
 
     /**
-     * A mode-specific electric insertion, consulted by the
-     * {@code insertNormalChar} coordinator before the generic pair
-     * decision. The mode performs the whole insertion itself and
-     * returns {@code true} to stop the generic path, or {@code false}
-     * to let the generic decision proceed. Used where the flat pair
-     * table cannot express the behavior — Markdown's fence, which
-     * inserts on another line, and its delimiter runs, whose role
-     * depends on the surrounding text. The call is made under the
-     * buffer's write lock with the caret at the insertion point; the
-     * mode owns its compound edit.
+     * A mode-specific electric insertion, consulted by
+     * {@code insertNormalChar} before the generic pair decision: the
+     * mode performs the whole insertion itself and returns {@code true}
+     * to stop the generic path. Used where the flat pair table can't
+     * express the behavior — Markdown's fence, which inserts on another
+     * line, and its delimiter runs, whose role depends on surrounding
+     * text. Called under the buffer's write lock with the caret at the
+     * insertion point; the mode owns its compound edit.
      */
     default boolean electricOverride(Editor editor, char c) {
         return false;
@@ -378,8 +374,7 @@ public interface Mode extends Folds {
 
     /**
      * The character that escapes the next one in this mode, or 0 if
-     * the mode has no escape character. Backslash in C-family and
-     * Lisp modes.
+     * there is none; backslash in C-family and Lisp modes.
      */
     default char getEscapeChar() {
         return '\\';
@@ -559,31 +554,22 @@ public interface Mode extends Folds {
     public boolean isInComment(Buffer buffer, Position pos);
 
     /**
-     * The lexical context at {@code pos} for pairing purposes: NEUTRAL,
-     * STRING, COMMENT or OPAQUE. Consults the buffer's formatter query,
-     * which consumes the line prefix up to the offset rather than
-     * reading the entering flags or the segment under the caret. Falls
-     * back to {@link #isInQuote} and {@link #isInComment} only when the
-     * formatter cannot answer.
+     * The lexical context at {@code pos} for pairing: NEUTRAL, STRING,
+     * COMMENT or OPAQUE. Consults the formatter's query (which consumes
+     * the line prefix) and falls back to {@link #isInQuote}/
+     * {@link #isInComment} only when the formatter can't answer.
+     * Refreshes a dirty parse first so a preceding edit can't leave
+     * stale entering context.
      *
-     * <p>A line in a disabled {@code #if 0} block reads OPAQUE for
-     * pairing, since pairing has no business inside inactive code. The
-     * formatter's cursor still reports the raw comment and string
-     * membership of such a line, so {@link #isInComment} can find a
-     * comment inside disabled code for {@code %} matching; the collapse
-     * to OPAQUE happens here, at the pairing boundary, not in the cursor.
-     *
-     * <p>Refreshes a dirty parse first, so a preceding edit cannot
-     * leave stale entering context.
+     * <p>A disabled {@code #if 0} line reads OPAQUE for pairing; the
+     * cursor still reports raw comment/string membership there so
+     * {@link #isInComment} can find comments inside disabled code for
+     * {@code %} matching — the collapse happens here, not in the cursor.
      */
     default LexicalContext lexicalContext(Buffer buffer, Position pos) {
         buffer.refreshParse();
-        // A disabled line is disabled whole: the #if 0 block is
-        // line-based, so no token on it can leave the disabled state.
-        // The formatter's cursor reports the raw comment/string
-        // membership of the line so isInComment still finds a comment
-        // inside disabled code for % matching; for pairing the whole
-        // line is OPAQUE, since pairing has no business inside #if 0.
+        // Disabled lines are disabled whole: #if 0 is line-based, so no
+        // token on the line can leave the disabled state.
         if (pos.getLine().flags() == Constants.STATE_DISABLED)
             return LexicalContext.OPAQUE;
         return buffer.getFormatter()
@@ -595,29 +581,16 @@ public interface Mode extends Folds {
     }
 
     /**
-     * The lexical context at every offset from zero to {@code end}
-     * inclusive on {@code line}, in one pass where the formatter can
-     * manage it. Same contract as {@link #lexicalContext}, including the
-     * parse refresh, but the whole line is answered at once so a caller
-     * that needs many positions on it pays for one scan instead of one
-     * per position.
-     *
-     * <p>Empty when the formatter cannot answer in bulk. The fallback
-     * predicates are O(offset) each, so building the whole array with
-     * them would be quadratic; a caller that needs only some offsets
-     * asks for them one at a time with {@link #lexicalContext} instead.
-     *
-     * @return the states indexed by offset, {@code states[end]} the
-     *         state at {@code end}; or empty if the formatter cannot
-     *         answer the line
+     * The lexical context at every offset 0..{@code end} on {@code line}
+     * in one pass; same contract as {@link #lexicalContext}. Empty when
+     * the formatter can't answer in bulk — the fallback predicates are
+     * O(offset) each, so building the array with them would be quadratic;
+     * callers needing few offsets use {@link #lexicalContext} instead.
      */
     default Optional<LexicalContext[]> lexicalContexts(Buffer buffer, Line line, int end) {
         buffer.refreshParse();
         final int limit = Math.min(end, line.length());
-        // Same disabled-line collapse as the point query: the cursor
-        // reports raw membership so isInComment can find a comment in
-        // disabled code, but the pairing view treats the whole line as
-        // OPAQUE so a bracket inside #if 0 never counts as code.
+        // Same disabled-line collapse as the point query.
         if (line.flags() == Constants.STATE_DISABLED) {
             final LexicalContext[] opaque = new LexicalContext[limit + 1];
             java.util.Arrays.fill(opaque, LexicalContext.OPAQUE);

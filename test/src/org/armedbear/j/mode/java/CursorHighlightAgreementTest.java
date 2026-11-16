@@ -27,10 +27,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The Java/C/JS cursor and the highlighting parser must agree on where
- * comments and strings are. They are two loops over the same text; this
- * guard fails if they ever drift. The fixtures include the JavaScript
- * regex-literal case the review flagged: the highlighting treats
- * {@code /"/g} as a string and so does the cursor, so they agree.
+ * comments and strings are; this guard fails if the two loops over the
+ * same text ever drift. Fixtures include the JS regex-literal case:
+ * {@code /"/g} reads as a string to both.
  */
 public class CursorHighlightAgreementTest {
     private static final int COMMENT = JavaFormatter.JAVA_FORMAT_COMMENT;

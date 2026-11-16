@@ -104,9 +104,8 @@ public final class CSSFormatter extends Formatter {
         }
         while (i < limit) {
             final char c = text.charAt(i);
-            // Comment first. A CSS comment has no escapes, so a
-            // backslash inside one is literal and must not hide the
-            // */ closer: /* C:\dir\*/ closes at the */.
+            // Comment first: CSS comments have no escapes, so a backslash
+            // inside one is literal and must not hide the */ closer.
             if ((state & CSS_STATE_COMMENT) != 0) {
                 if (i < limit - 1 && c == '*' && text.charAt(i + 1) == '/') {
                     endToken(text, i + 2, state);
@@ -272,11 +271,9 @@ public final class CSSFormatter extends Formatter {
                 line.setFlags(state);
                 changed = true;
             }
-            // The cursor is the single source of the comment, quote and
-            // block transitions. parseBuffer takes the carried comment
-            // and block bits from its end state instead of re-walking
-            // the line with its own copy of the rules, which is how the
-            // two drifted apart before.
+            // The cursor is the single source of transitions; taking the
+            // carried comment/block bits from endState avoids the second
+            // copy of the rules that used to drift.
             Cursor cursor = new Cursor(line, state, line.length(), null);
             cursor.run();
             state = cursor.endState;
@@ -286,12 +283,10 @@ public final class CSSFormatter extends Formatter {
         return changed;
     }
 
-    // Total characters the lexical queries have scanned, across every
-    // cursor run since the last reset. The scan guard reads this through
-    // the real mode.lexicalContexts / lexicalContext entry points: a
-    // bulk query that secretly loops point queries would accumulate
-    // O(len^2) here and blow the linear bound, which a hand-built
-    // single cursor cannot show.
+    // Total characters scanned by lexical queries since the last reset.
+    // The guard reads it through the real mode.lexicalContexts /
+    // lexicalContext entry points: a bulk query secretly looping point
+    // queries would accumulate O(len^2) here and blow the linear bound.
     long scanSteps;
 
     @Override
@@ -314,18 +309,14 @@ public final class CSSFormatter extends Formatter {
     }
 
     /**
-     * The single source of CSS lexical transitions. Walks the line from
-     * an explicit entering state to {@code upto}, tracking the comment,
-     * quote and block bits. A block comment carries across lines; a
-     * quoted string does not, so the caller clears the quote bits from
-     * the entering state between lines. Both quote kinds and escapes are
-     * handled, and the walk resumes NEUTRAL after a complete closer.
-     * With an output array it records the context at every offset
-     * (bulk); without one it stops at {@code upto} (point).
-     *
-     * <p>{@code endState} is the full state after the walk, so
-     * {@link #parseBuffer} takes its carried comment and block bits
-     * from here rather than re-implementing the transitions.
+     * The single source of CSS lexical transitions, walking the line from an
+     * explicit entering state to {@code upto}, tracking the comment, quote
+     * and block bits. A block comment carries across lines; a quoted string
+     * does not, so the caller clears the quote bits between lines. With an
+     * output array it records the context at every offset (bulk); without
+     * one it stops at {@code upto} (point). {@code endState} is the full
+     * state after the walk, so {@link #parseBuffer} takes its carried
+     * comment and block bits from here.
      */
     static final class Cursor extends LexicalCursor {
         private int state;
@@ -348,9 +339,8 @@ public final class CSSFormatter extends Formatter {
                 }
                 steps++;
                 final char c = text.charAt(i);
-                // Comment first. A CSS comment has no escapes, so a
-                // backslash inside one is literal and must not hide the
-                // */ closer: /* C:\dir\*/ closes at the */.
+                // Comment first: no escapes inside a CSS comment, so a
+                // backslash is literal — /* C:\dir\*/ still closes at the */.
                 if ((state & CSS_STATE_COMMENT) != 0) {
                     if (c == '*' && i < limit - 1 && text.charAt(i + 1) == '/') {
                         if (inside(2, ctx)) {
@@ -363,8 +353,7 @@ public final class CSSFormatter extends Formatter {
                         ++i;
                     continue;
                 }
-                // Outside a comment, a backslash escapes the next
-                // character, so \" does not close a string.
+                // Outside a comment, \ escapes the next char, so \" doesn't close a string.
                 if (c == '\\' && i < limit - 1) {
                     if (inside(2, ctx)) {
                         endState = state;

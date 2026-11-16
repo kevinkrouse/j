@@ -36,10 +36,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The lexical-context query: the state at a position after consuming
- * the line prefix through the caret, not the entering flags and not
- * the segment under the caret. The electric-pairs decision reads this
- * instead of the old {@code isInQuote}/{@code isInComment} pair.
+ * The lexical-context query: the state after consuming the line prefix
+ * through the caret, not the entering flags or the segment under it.
+ * The electric-pairs decision reads this instead of the old
+ * {@code isInQuote}/{@code isInComment} pair.
  */
 public class LexicalContextTest {
     private EditorHarness h;
@@ -145,9 +145,8 @@ public class LexicalContextTest {
     public void shellHeredocBodyIsString() {
         String text = "cat <<EOF\nbody line\nEOF\ndone";
         assertContext(STRING, ShellScriptMode.getMode(), text, 1, 4);
-        // The terminator line itself: the body ended before it, so
-        // the line entering HERE_DOCUMENT is the body; the terminator
-        // line enters NEUTRAL.
+        // The body ended before the terminator line, so the terminator
+        // line itself enters NEUTRAL.
         assertContext(NEUTRAL, ShellScriptMode.getMode(), text, 2, 0);
         assertContext(NEUTRAL, ShellScriptMode.getMode(), text, 3, 0);
     }
@@ -173,9 +172,8 @@ public class LexicalContextTest {
     @Test
     public void shellMultiLineSingleQuoteCarriesAcrossLines() {
         String text = "awk '\n  { print $1 }\n' | grep \"x(\"";
-        // Line 2 is inside the single-quoted string.
+        // Line 2 is inside the single-quoted string; line 3 closes it.
         assertContext(STRING, ShellScriptMode.getMode(), text, 1, 2);
-        // On line 3 the quote closes it: after it, NEUTRAL.
         assertContext(NEUTRAL, ShellScriptMode.getMode(), text, 2, 2);
     }
 
@@ -199,9 +197,9 @@ public class LexicalContextTest {
         assertEquals(PLAIN, d.action());
     }
 
-    // Markdown: a fence body and inline code are OPAQUE, not comments;
-    // an HTML comment is COMMENT; after their closers, NEUTRAL. Prose
-    // with an apostrophe stays NEUTRAL.
+    // Markdown: fence bodies and inline code are OPAQUE, not comments;
+    // HTML comments are COMMENT; after closers, NEUTRAL. Prose with an
+    // apostrophe stays NEUTRAL.
 
     @Test
     public void markdownBlankFenceAtOffsetZero() {
@@ -218,7 +216,7 @@ public class LexicalContextTest {
 
     @Test
     public void markdownCodeSpanAfterAnUnclosedBacktickRun() {
-        // The `` has no closer, so it is literal; the caret is inside
+        // The `` has no closer so it is literal; the caret is inside
         // the single-backtick span after it.
         String text = "Use `` and `f()` here";
         assertContext(OPAQUE, MarkdownMode.getMode(), text, 0, 13);
@@ -228,7 +226,6 @@ public class LexicalContextTest {
     public void markdownHtmlComment() {
         String text = "<!-- hidden -->";
         assertContext(COMMENT, MarkdownMode.getMode(), text, 0, 5);
-        // After the closing marker: NEUTRAL.
         assertContext(NEUTRAL, MarkdownMode.getMode(), text, 0, 15);
     }
 
@@ -236,7 +233,6 @@ public class LexicalContextTest {
     public void markdownInlineCode() {
         String text = "a `code` b";
         assertContext(OPAQUE, MarkdownMode.getMode(), text, 0, 4);
-        // After the closing backtick: NEUTRAL.
         assertContext(NEUTRAL, MarkdownMode.getMode(), text, 0, 9);
     }
 
@@ -260,8 +256,8 @@ public class LexicalContextTest {
         assertContext(NEUTRAL, MarkdownMode.getMode(), "a \\` not code", 0, 8);
     }
 
-    // Java and Lisp: the existing overrides adapt; the query agrees
-    // with the old behavior where it was already correct.
+    // Java and Lisp: the query agrees with the old behavior where it
+    // was already correct.
 
     @Test
     public void javaLineComment() {
@@ -291,7 +287,6 @@ public class LexicalContextTest {
     @Test
     public void lispBlockComment() {
         assertContext(COMMENT, LispMode.getMode(), "#| block |# x", 0, 5);
-        // After the closing |#: NEUTRAL.
         assertContext(NEUTRAL, LispMode.getMode(), "#| block |# x", 0, 11);
     }
 
@@ -300,45 +295,36 @@ public class LexicalContextTest {
 
     @Test
     public void plainTextFallsBackToDefaults() {
-        // The default isInQuote treats " as a quote.
         assertContext(STRING, PlainTextMode.getMode(), "\"x", 0, 2);
     }
 
-    // A disabled line reads as OPAQUE: pairing has no business inside
-    // a #if 0 block, so a delimiter there must not open a pair. The
-    // disabled state is line-based, set by CMode's formatter. It is
-    // not a comment, so it is OPAQUE rather than COMMENT.
+    // A disabled line (#if 0) is OPAQUE, not COMMENT: pairing has no
+    // business inside it. The state is line-based, set by CMode's formatter.
 
     @Test
     public void disabledLineIsOpaque() {
-        // A completed string and a closed block comment on a disabled
-        // line must not make any position NEUTRAL: the whole line stays
-        // OPAQUE, so a delimiter anywhere on it cannot pair.
+        // Completed string and closed block comment on a disabled line
+        // must not make any position NEUTRAL: the whole line stays OPAQUE.
         String text = "#if 0\nint x = \"s\"; /* c */ (1);\n#endif\n";
         assertContext(OPAQUE, CMode.getMode(), text, 1, 9);
         assertContext(OPAQUE, CMode.getMode(), text, 1, 18);
         assertContext(OPAQUE, CMode.getMode(), text, 1, 24);
     }
 
-    // A line that enters inside a multiline HTML comment is COMMENT
-    // only until the closing marker is consumed; the prose after it
-    // pairs normally.
+    // A line entering inside a multiline HTML comment is COMMENT only
+    // until the closing marker is consumed; prose after it pairs normally.
     @Test
     public void markdownResumesAfterMultilineComment() {
         String text = "<!-- open\nstill --> prose (here\n";
-        // Before the marker: still inside the comment.
         assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 3);
-        // Just past the marker: the comment closed, prose is NEUTRAL.
         assertContext(NEUTRAL, MarkdownMode.getMode(), text, 1, 12);
     }
 
-    // The exact boundary: the caret one past the closing marker of a
-    // multiline comment is prose, not comment. Typing ( there must
-    // insert the pair, not only the opener.
+    // The exact boundary: one past a multiline comment's closing marker
+    // is prose, not comment.
     @Test
     public void markdownCaretRightAfterMultilineCommentMarker() {
         String text = "<!-- hidden\n-->";
-        // Inside the marker: still COMMENT.
         assertContext(COMMENT, MarkdownMode.getMode(), text, 1, 2);
         // One past the marker: NEUTRAL, and ( pairs.
         assertContext(NEUTRAL, MarkdownMode.getMode(), text, 1, 3);
@@ -347,22 +333,20 @@ public class LexicalContextTest {
     }
 
     // An unmatched backtick run is literal: a caret between the
-    // backticks is NEUTRAL, not left unset. If it fell through to the
-    // generic quote scanner, the apostrophe in "don't" earlier on the
-    // line would read as an open string and inhibit pairing.
+    // backticks is NEUTRAL. Falling through to the generic quote scanner
+    // would read the apostrophe in "don't" as an open string and inhibit
+    // pairing.
     @Test
     public void markdownUnmatchedBackticksAreNeutral() {
         String text = "don't ``";
-        // Between the two backticks: NEUTRAL, and ( pairs.
         assertContext(NEUTRAL, MarkdownMode.getMode(), text, 0, 7);
         Decision d = typeAt(MarkdownMode.getMode(), text, 0, 7, '(');
         assertEquals(INSERT_PAIR, d.action());
     }
 
-    // The empty-quote-pair exception: the caret between two quotes of
-    // a configured symmetric pair, with NEUTRAL before the left one.
-    // The guard that lets Backspace delete both despite the STRING
-    // state at the caret.
+    // The empty-quote-pair exception: caret between two quotes of a
+    // symmetric pair with NEUTRAL before the left one -- the guard that
+    // lets Backspace delete both despite STRING at the caret.
 
     private boolean emptyPair(Mode mode, String text, int offset) {
         if (h != null)
@@ -373,29 +357,27 @@ public class LexicalContextTest {
 
     @Test
     public void emptyQuotePairIsRecognized() {
-        // "\"|\"" — the caret between the two quotes.
+        // "\"|\"" : the caret between the two quotes.
         assertTrue(emptyPair(PlainTextMode.getMode(), "\"\"", 1));
     }
 
     @Test
     public void emptyQuotePairAfterClosedString() {
-        // "a\"\"|\"\"" — the second pair follows a closed string on
-        // the same line; the state before its left quote is NEUTRAL
-        // because the first string closed.
+        // "a\"\"|\"\"" : the second pair follows a closed string, so
+        // the state before its left quote is NEUTRAL.
         assertTrue(emptyPair(PlainTextMode.getMode(), "\"\" \"\"", 4));
     }
 
     @Test
     public void escapedQuoteIsNotAnEmptyPair() {
-        // "\"\\\"|\"" — the left quote is escaped, so the pair is
-        // not the empty string.
+        // "\"\\\"|\"" : the left quote is escaped, so no empty pair.
         assertFalse(emptyPair(PlainTextMode.getMode(), "\"\\\"\"", 3));
     }
 
     @Test
     public void quoteInsideStringIsNotAnEmptyPair() {
-        // The two quotes sit inside a longer string: the state
-        // before the left one is STRING, not NEUTRAL.
+        // Both quotes sit inside a longer string: the state before the
+        // left one is STRING, not NEUTRAL.
         assertFalse(emptyPair(PlainTextMode.getMode(), "\"a\"\"b\"", 3));
     }
 
@@ -406,31 +388,27 @@ public class LexicalContextTest {
 
     @Test
     public void nonQuotePairIsNotAnEmptyPair() {
-        // (|) is a bracket pair, not a quote pair: the exception is
-        // for quotes only.
+        // (|) is a bracket pair: the exception is for quotes only.
         assertFalse(emptyPair(PlainTextMode.getMode(), "()", 1));
     }
 
-    // Parse freshness: a query after an edit that changes the
-    // entering context must see the new state, not the flags left by
-    // the parse before the edit.
+    // Parse freshness: a query after an edit that changes the entering
+    // context must see the new state, not the pre-edit flags.
     @Test
     public void querySeesFreshParseAfterEdit() {
         if (h != null)
             h.close();
         h = EditorHarness.create("x = 1\nsecond line\n").mode(PythonMode.getMode());
-        // Before the edit: line 1 is ordinary code.
         assertEquals(NEUTRAL, h.buffer().getMode().lexicalContext(h.buffer(), new Position(h.buffer().getLine(1), 3)));
         // Open a triple-quoted string on line 0; line 1 is now body.
         h.buffer().insertString(new Position(h.buffer().getLine(0), 5), " \"\"\"open");
         assertEquals(STRING, h.buffer().getMode().lexicalContext(h.buffer(), new Position(h.buffer().getLine(1), 3)));
     }
 
-    // The refresh inside the query rewrote line flags downstream of
-    // the edit. The insert itself schedules no repaint, so without the
-    // repaint in the refresh path the idle parser finds the flags
-    // already correct and never schedules one, leaving the old
-    // highlighting on the lines this keystroke changed the state of.
+    // The query's refresh rewrote line flags downstream of the edit.
+    // The insert itself schedules no repaint, so without one in the
+    // refresh path the idle parser finds the flags already correct and
+    // never repaints the lines this keystroke changed the state of.
     @Test
     public void queryRepaintsWhenRefreshChangesFlags() {
         if (h != null)
@@ -446,10 +424,9 @@ public class LexicalContextTest {
         assertTrue(h.repaintPending());
     }
 
-    // The point and bulk queries are two views of one scan. At every
-    // offset of every fixture line, the bulk array's entry must equal
-    // what the point query answers. A drift between them means the two
-    // no longer share the same transitions.
+    // The point and bulk queries are two views of one scan: at every
+    // offset the bulk entry must equal the point answer. Drift means the
+    // two no longer share the same transitions.
     @Test
     public void pointAndBulkAgreeAtEveryOffset() {
         Mode[] modes = {

@@ -19,11 +19,10 @@ import org.armedbear.j.Line;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Lisp lexical cursor walks the line once: the number of token
- * advances is linear in the line's length, and a point query stops
- * advancing at its boundary instead of walking the whole line. The
- * fixture carries a string, a line comment and a block comment so the
- * walk exercises the multi-character marker and escape paths.
+ * The Lisp lexical cursor walks the line once: token advances are linear
+ * in line length, and a point query stops at its boundary. The fixture
+ * carries a string, a line comment and a block comment to exercise the
+ * multi-character marker and escape paths.
  */
 public class LispLexicalCursorTest {
     private static final String TOKENS = "(foo \"a\\\"b\" ; c #| d |# e)";
@@ -37,9 +36,7 @@ public class LispLexicalCursorTest {
             LexicalContext[] out = new LexicalContext[len + 1];
             LispFormatter.Cursor bulk = new LispFormatter.Cursor(line, len, out);
             bulk.run();
-            // One step per character at most; multi-character tokens
-            // (the block-comment markers, the escape) advance by more,
-            // so the count never exceeds the length.
+            // One step per char at most; multi-char tokens advance by more.
             assertTrue(bulk.steps <= len, "bulk steps " + bulk.steps + " exceeds len " + len);
             assertTrue(bulk.steps > 0, "bulk made no progress");
         }
@@ -53,8 +50,6 @@ public class LispLexicalCursorTest {
         EditorHarness h = EditorHarness.create(TOKENS).mode(LispMode.getMode());
         try {
             Line line = h.buffer().getFirstLine();
-            // A point query in the middle of the token-bearing line
-            // must not walk the whole line.
             int boundary = TOKENS.indexOf("#|");
             LispFormatter.Cursor point = new LispFormatter.Cursor(line, boundary, null);
             point.run();

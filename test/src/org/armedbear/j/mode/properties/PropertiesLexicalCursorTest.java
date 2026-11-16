@@ -28,12 +28,11 @@ import org.armedbear.j.Position;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Properties lexical queries scan the line once. The guard measures
- * the formatter's accumulated scan work through the real
- * {@code mode.lexicalContexts} and {@code mode.lexicalContext} entry
- * points, not a hand-built cursor: a bulk query that secretly looped
- * point queries would accumulate O(len^2) steps and blow the linear
- * bound, which a single cursor run cannot show.
+ * The Properties lexical queries scan the line once. The guard counts
+ * the formatter's scan steps through the real
+ * {@code lexicalContexts}/{@code lexicalContext} entry points: a bulk
+ * query secretly looping point queries would hit O(len^2) and blow the
+ * linear bound.
  */
 public class PropertiesLexicalCursorTest {
     private static final String TOKENS = "key = value with a long tail of text here";

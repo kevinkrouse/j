@@ -32,10 +32,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The electric-pairs decision table, tested as a pure function: text
- * and a caret position go in, a {@link Decision} comes out. The
- * insertion itself, the caret sync and the undo step are the caller's
- * and are tested with the wiring.
+ * The electric-pairs decision table as a pure function. Insertion,
+ * caret sync and undo are the caller's, tested with the wiring below.
  */
 public class ElectricPairsTest {
     private EditorHarness h;
@@ -54,13 +52,11 @@ public class ElectricPairsTest {
     private Decision typeIn(Mode mode, String textWithCaret, char c, boolean selection, boolean suppressed) {
         int caret = textWithCaret.indexOf('|');
         String text = textWithCaret.replace("|", "");
-        // Each call makes a new editor; close the one before it so a
-        // test that calls this twice leaves no editor registered.
+        // Close the previous editor so a test calling this twice leaves none.
         if (h != null)
             h.close();
         h = EditorHarness.create(text).mode(mode);
-        // The caret may sit on a later line: find the line and the
-        // offset within it from the | position in the joined text.
+        // The | may sit on a later line: map it to line/offset.
         int lineNo = 0;
         int seen = 0;
         for (int i = 0; i < text.length() && seen < caret; i++) {
@@ -106,9 +102,8 @@ public class ElectricPairsTest {
     @Test
     public void typeOverMatchesTypedCloser() {
         assertAction(TYPE_OVER, type("(|)", ')'));
-        // Typing ( before ) must not skip the ). The ) ahead is
-        // reserved for the enclosing (, so the new ( generates its
-        // own closer rather than stepping over.
+        // Typing ( before ) must not step over: the ) ahead is
+        // reserved for the enclosing (.
         Decision opener = type("(|)", '(');
         assertAction(INSERT_PAIR, opener);
         assertPair('(', ')', opener);
@@ -121,8 +116,7 @@ public class ElectricPairsTest {
 
     @Test
     public void balanceInsertsOpenerOnly() {
-        // With nothing open before the caret, a closer ahead is free to
-        // close the new opener, so only the opener is inserted.
+        // Nothing open before the caret: the ) ahead is free to close the new opener.
         Decision d = type("|)", '(');
         assertAction(INSERT_OPENER, d);
         assertPair('(', ')', d);
@@ -130,9 +124,9 @@ public class ElectricPairsTest {
 
     @Test
     public void closerReservedByEnclosingFormStillGeneratesCloser() {
-        // foo(bar|) + ( : the ) ahead is reserved for foo's (, so the
-        // new ( must generate its own closer. The old single-line
-        // balance saw the ) at depth zero and wrongly suppressed it.
+        // foo(bar|) + ( : the ) belongs to foo's (, so the new (
+        // generates its own closer. The old single-line balance saw the
+        // ) at depth zero and wrongly suppressed it.
         Decision d = type("foo(bar|)", '(');
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
@@ -140,9 +134,8 @@ public class ElectricPairsTest {
 
     @Test
     public void closerReservedAcrossLinesStillGeneratesCloser() {
-        // The enclosing opener is on a previous line. The ) on the
-        // caret's line is reserved for it, so the new ( generates its
-        // own closer rather than leaving the enclosing form unmatched.
+        // The enclosing opener is on a previous line; the ) here is
+        // reserved for it, so the new ( generates its own closer.
         Decision d = typeIn(JavaMode.getMode(), "foo(bar\n     |)", '(', false, false);
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
@@ -150,9 +143,9 @@ public class ElectricPairsTest {
 
     @Test
     public void multiLineCloserAheadOfEnclosingOpenerIsFree() {
-        // (def x\n  (foo\n    |)) : the )) at the caret's line close
-        // the two enclosing forms, so with the seed of two the new (
-        // still generates its own closer.
+        // (def x\n  (foo\n    |)) : the )) close the two enclosing
+        // forms, so with a seed of two the new ( still generates its
+        // own closer.
         Decision d = typeIn(JavaMode.getMode(), "(def x\n  (foo\n    |))", '(', false, false);
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
@@ -160,9 +153,8 @@ public class ElectricPairsTest {
 
     @Test
     public void multiLineCloserAheadWithNothingOpenIsFree() {
-        // A closer on a later line with nothing open before the caret
-        // is free to close the new opener: the seed is zero, so only
-        // the opener is inserted.
+        // The ) on the later line is free (nothing reserves it) and the
+        // closer scan is line-bounded, so the full pair is inserted.
         Decision d = typeIn(JavaMode.getMode(), "|\n)", '(', false, false);
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
@@ -170,9 +162,8 @@ public class ElectricPairsTest {
 
     @Test
     public void stringCloserAheadDoesNotReserveAcrossLines() {
-        // The ) ahead is inside a string on the previous line, so it
-        // is not a closer in code and does not reserve: the new (
-        // generates its own closer.
+        // The ) ahead is inside a string on the previous line: not a
+        // closer in code, so the new ( generates its own closer.
         Decision d = typeIn(JavaMode.getMode(), "foo \"x)\"\nbar|", '(', false, false);
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
@@ -198,16 +189,16 @@ public class ElectricPairsTest {
     public void escapedQuoteIsLiteral() {
         // " \ | "  -> the quote after one backslash is escaped.
         assertAction(PLAIN, type("\"\\|\"", '"'));
-        // Three backslashes: still an odd run, still escaped.
+        // Odd run of three: still escaped.
         assertAction(PLAIN, type("\"\\\\\\|\"", '"'));
     }
 
     @Test
     public void escapedBackslashTypesOver() {
-        // Two backslashes escape each other; the quote is not escaped
+        // Two backslashes escape each other; the quote is unescaped
         // and steps over the closer.
         assertAction(TYPE_OVER, type("\"\\\\|\"", '"'));
-        // Four backslashes: even run, same result.
+        // Even run of four: same result.
         assertAction(TYPE_OVER, type("\"\\\\\\\\|\"", '"'));
     }
 
@@ -218,8 +209,7 @@ public class ElectricPairsTest {
         assertPair('(', ')', open);
         Decision close = typeIn(PlainTextMode.getMode(), "foo|", ')', true, false);
         assertAction(WRAP, close);
-        // A selection wrapped by ) carries the pair opener-first, not
-        // ) as the opening character.
+        // A selection wrapped by ) still carries the pair opener-first.
         assertPair('(', ')', close);
         Decision quote = typeIn(PlainTextMode.getMode(), "foo|", '"', true, false);
         assertAction(WRAP, quote);
@@ -244,8 +234,8 @@ public class ElectricPairsTest {
 
     @Test
     public void balanceIgnoresStringCloser() {
-        // The ) later on the line is inside a string, so it is not a
-        // closer waiting in code: the opener still gets its own closer.
+        // The ) later on the line is inside a string: not a closer in
+        // code, so the opener still gets its own closer.
         Decision d = typeIn(JavaMode.getMode(), "foo(| \"x)", '(', false, false);
         assertAction(INSERT_PAIR, d);
         assertPair('(', ')', d);
@@ -253,8 +243,7 @@ public class ElectricPairsTest {
 
     @Test
     public void balanceIgnoresCommentCloser() {
-        // The ) is inside a line comment, so typing the closer is a
-        // plain insert, not a suppression.
+        // The ) is inside a line comment: plain insert, not suppression.
         Decision d = typeIn(JavaMode.getMode(), "(|x // )", ')', false, false);
         assertAction(PLAIN, d);
     }
@@ -262,7 +251,7 @@ public class ElectricPairsTest {
     @Test
     public void markupBackslashDoesNotEscapeQuote() {
         // In markup a backslash is literal, so the quote before the
-        // caret is not escaped and the typed quote steps over it.
+        // caret is unescaped and the typed quote steps over it.
         Decision html = typeIn(HtmlMode.getMode(), "<a x=\"path\\|\"/>", '"', false, false);
         assertAction(TYPE_OVER, html);
         Decision xml = typeIn(XmlMode.getMode(), "<a x=\"path\\|\"/>", '"', false, false);
@@ -271,22 +260,20 @@ public class ElectricPairsTest {
 
     @Test
     public void closerBeforeAnOpenerThatItMatchesIsNotSuppressed() {
-        // (|() : the ( at the caret matches the ) after it, so the
-        // typed ) closes the first ( and the line balances.
+        // (|() : the typed ) closes the first ( and the line balances.
         assertAction(PLAIN, type("(|()", ')'));
     }
 
     @Test
     public void nestingOpenersIsAllowed() {
-        // (( is nesting, not an inhibit: the same-delimiter rule is
-        // only for symmetric delimiters.
+        // (( is nesting, not an inhibit: the same-delimiter rule
+        // applies only to symmetric delimiters.
         Decision d = type("(|", '(');
         assertAction(INSERT_PAIR, d);
     }
 
-    // The wiring: typing through the real command path, asserting the
-    // buffer, the caret and the undo step. The pure-function tests
-    // above prove the decision; these prove insertNormalChar acts on it.
+    // The wiring: typing through the real command path proves
+    // insertNormalChar acts on the decision, on buffer, caret and undo.
 
     @Test
     public void insertPairWired() {
@@ -322,9 +309,8 @@ public class ElectricPairsTest {
 
     @Test
     public void caretSyncWired() {
-        // The displayed caret sits between the pair, not after the
-        // closer: the early return bypasses the epilogue, so the
-        // helper must sync it.
+        // The early return bypasses the epilogue, so the helper must
+        // sync the displayed caret to sit between the pair.
         h = EditorHarness.create("").mode(PlainTextMode.getMode());
         h.keys("(");
         assertEquals(1, h.editor().getDisplay().getCaretCol());
@@ -341,10 +327,8 @@ public class ElectricPairsTest {
 
     @Test
     public void insertPairInsideExistingPairWired() {
-        // The caret sits between a pair, but the closer ahead is
-        // reserved for the enclosing (: typing ( generates its own
-        // closer so the result stays balanced, rather than leaving
-        // the opener unmatched as the old single-line balance did.
+        // The closer ahead is reserved for the enclosing (: typing (
+        // generates its own closer, unlike the old single-line balance.
         h = EditorHarness.create("()").mode(PlainTextMode.getMode());
         h.cursor(0, 1);
         h.keys("(");
@@ -375,7 +359,6 @@ public class ElectricPairsTest {
         h = EditorHarness.create("").mode(PlainTextMode.getMode());
         h.keys("(");
         EditCommands.undo(h.editor());
-        // One undo takes the whole pair back; nothing is left.
         h.assertText("\n");
     }
 
@@ -420,8 +403,7 @@ public class ElectricPairsTest {
 
     @Test
     public void backspaceInsideStringIsOrdinary() {
-        // A quote inside a longer string: ordinary single-character
-        // backspace, not delete-both.
+        // A quote inside a longer string: ordinary backspace, not delete-both.
         h = EditorHarness.create("\"ab\"").mode(PlainTextMode.getMode());
         h.cursor(0, 3);
         EditCommands.backspace(h.editor());
@@ -430,8 +412,7 @@ public class ElectricPairsTest {
 
     @Test
     public void backspaceBracketInsideStringIsOrdinary() {
-        // (|) inside a string is content, not an empty pair: the
-        // ordinary single-character backspace takes the opener.
+        // (|) inside a string is content: ordinary backspace takes the opener.
         h = EditorHarness.create("\"()\"").mode(PlainTextMode.getMode());
         h.cursor(0, 2);
         EditCommands.backspace(h.editor());
@@ -457,8 +438,8 @@ public class ElectricPairsTest {
 
     @Test
     public void backspaceBetweenClosingAndOpeningQuotesIsOrdinary() {
-        // "a"|"b" : the quotes either side end one string and start
-        // the next; the left one does not open an empty pair.
+        // "a"|"b" : the quotes end one string and start the next; the
+        // left one does not open an empty pair.
         h = EditorHarness.create("\"a\"\"b\"").mode(PlainTextMode.getMode());
         h.cursor(0, 3);
         EditCommands.backspace(h.editor());
@@ -467,8 +448,8 @@ public class ElectricPairsTest {
 
     @Test
     public void enterBetweenBracesWithoutContextIndentKeepsTheOpenersIndent() {
-        // Plain text cannot indent by context: the interior and the
-        // closer both match the opener's line, as a plain split would.
+        // Plain text cannot indent by context: interior and closer both
+        // match the opener's line, as a plain split would.
         h = EditorHarness.create("    foo() {}").mode(PlainTextMode.getMode());
         h.buffer().setProperty(Property.ELECTRIC_PAIRS_OPEN_LINE, true);
         h.cursor(0, 11);
@@ -491,14 +472,13 @@ public class ElectricPairsTest {
         h.buffer().setProperty(Property.ELECTRIC_PAIRS, false);
         h.cursor(0, 1);
         EditCommands.backspace(h.editor());
-        // Pairing off: the ordinary single-character backspace takes
-        // the opener only.
+        // Pairing off: ordinary backspace takes only the opener.
         h.assertText(")\n");
     }
 
-    // Enter between an empty pair. The create-then-indent ordering:
-    // both lines exist before the interior is indented, so the closer
-    // is not on the interior line when getCorrectIndentation runs.
+    // Enter between an empty pair. Create-then-indent: both lines
+    // exist before the interior is indented, so the closer is not on
+    // the interior line when getCorrectIndentation runs.
 
     @Test
     public void enterBetweenBracesOpensThreeLines() {
@@ -506,14 +486,12 @@ public class ElectricPairsTest {
         h.cursor(0, 1);
         EditCommands.newlineAndIndent(h.editor());
         h.assertText("{\n    \n}\n");
-        // Caret at the end of the indented interior line.
         h.assertCursorAt(1, 4);
     }
 
     @Test
     public void enterBetweenBracesCloserAtOuterIndent() {
-        // The closer must not be pulled to the interior indent: it
-        // sits at column 0 on its own line.
+        // The closer must not be pulled to the interior indent.
         h = EditorHarness.create("{}").mode(JavaMode.getMode());
         h.cursor(0, 1);
         EditCommands.newlineAndIndent(h.editor());
@@ -531,9 +509,8 @@ public class ElectricPairsTest {
 
     @Test
     public void enterBetweenParensOpensThreeLines() {
-        // Java's paren indent is alignment-based: the closer aligns
-        // under the first-argument column, and the interior body
-        // indent matches it.
+        // Java's paren indent is alignment-based: closer and interior
+        // both align under the first-argument column.
         h = EditorHarness.create("()").mode(JavaMode.getMode());
         h.cursor(0, 1);
         EditCommands.newlineAndIndent(h.editor());
@@ -543,8 +520,7 @@ public class ElectricPairsTest {
 
     @Test
     public void enterInsideQuotesIsOrdinary() {
-        // A symmetric delimiter does not expand: Enter inside "" is
-        // a plain split.
+        // A symmetric delimiter does not expand: Enter inside "" is a plain split.
         h = EditorHarness.create("\"\"").mode(JavaMode.getMode());
         h.cursor(0, 1);
         EditCommands.newlineAndIndent(h.editor());
@@ -553,11 +529,10 @@ public class ElectricPairsTest {
 
     @Test
     public void enterWithSelectionReplacesItWithOneNewline() {
-        // (x) with x selected: Enter replaces the selection with a
-        // single newline. The decision must see the selection the user
-        // had, not the caret left after deleting it -- otherwise the
-        // deleted text leaves (|) and Enter wrongly expands the pair
-        // into three lines.
+        // (x) with x selected: Enter replaces the selection with one
+        // newline. The decision must see the user's selection, not the
+        // caret left after deleting it -- otherwise (|) expands to
+        // three lines.
         h = EditorHarness.create("(x)").mode(PlainTextMode.getMode());
         h.cursor(0, 2);
         h.editor().setMark(0, 1);
@@ -567,9 +542,8 @@ public class ElectricPairsTest {
 
     @Test
     public void enterBetweenBracesInStringIsOrdinary() {
-        // {|} inside a string is content, not a structure to open:
-        // the ordinary split cuts between the braces, leaving the
-        // string broken across the lines as the user typed it.
+        // {|} inside a string is content: the ordinary split cuts
+        // between the braces as the user typed it.
         h = EditorHarness.create("\"{}\"").mode(JavaMode.getMode());
         h.cursor(0, 2);
         EditCommands.newlineAndIndent(h.editor());
@@ -582,7 +556,6 @@ public class ElectricPairsTest {
         h.buffer().setProperty(Property.ELECTRIC_PAIRS_OPEN_LINE, false);
         h.cursor(0, 1);
         EditCommands.newlineAndIndent(h.editor());
-        // The ordinary split: the closer stays on the line below.
         h.assertText("{\n}\n");
     }
 
@@ -597,26 +570,23 @@ public class ElectricPairsTest {
 
     @Test
     public void enterNotBetweenPairIsOrdinary() {
-        // No pair around the caret: ordinary newlineAndIndent.
         h = EditorHarness.create("ab").mode(JavaMode.getMode());
         h.cursor(0, 1);
         EditCommands.newlineAndIndent(h.editor());
         h.assertText("a\nb\n");
     }
 
-    // The sub-rule settings: each turns off one behavior while the rest
-    // of pairing stays on.
+    // Sub-rule settings: each turns off one behavior, the rest stay on.
 
     @Test
     public void typeOverOffInsertsTheCloser() {
         h = EditorHarness.create("()").mode(PlainTextMode.getMode());
-        // Balance is off too, so the closer that waits ahead does not
-        // suppress the insert; this isolates the step-over rule.
+        // Balance off too, so the waiting closer doesn't suppress:
+        // this isolates the step-over rule.
         h.buffer().setProperty(Property.ELECTRIC_PAIRS_TYPE_OVER, false);
         h.buffer().setProperty(Property.ELECTRIC_PAIRS_BALANCE, false);
         h.cursor(0, 1);
         h.keys(")");
-        // No step-over: the typed ) inserts, giving ()).
         h.assertText("())\n");
         h.assertCursorAt(0, 2);
     }
@@ -624,8 +594,8 @@ public class ElectricPairsTest {
     @Test
     public void typeOverOffStillBalancesAgainstACloserAhead() {
         h = EditorHarness.create("(foo)").mode(PlainTextMode.getMode());
-        // Step-over is off, but a different closer waits later on the
-        // line, so balance still suppresses the insert.
+        // Step-over off, but a closer waits later on the line: balance
+        // still suppresses the insert.
         h.buffer().setProperty(Property.ELECTRIC_PAIRS_TYPE_OVER, false);
         h.cursor(0, 1);
         h.keys(")");
@@ -639,8 +609,8 @@ public class ElectricPairsTest {
         h.buffer().setProperty(Property.ELECTRIC_PAIRS_BALANCE, false);
         h.cursor(0, 1);
         h.keys("(");
-        // Balance off: the opener generates its closer even though a
-        // closer already waits ahead.
+        // Balance off: the opener generates its closer despite the one
+        // already waiting ahead.
         h.assertText("(())\n");
         h.assertCursorAt(0, 2);
     }
@@ -651,8 +621,7 @@ public class ElectricPairsTest {
         h.buffer().setProperty(Property.ELECTRIC_PAIRS_BALANCE, false);
         h.cursor(0, 0);
         h.keys(")");
-        // Balance off: the typed closer inserts rather than being
-        // suppressed.
+        // Balance off: the typed closer inserts rather than being suppressed.
         h.assertText(")(foo)\n");
         h.assertCursorAt(0, 1);
     }
@@ -669,9 +638,8 @@ public class ElectricPairsTest {
 
     @Test
     public void keyboardMacroReproducesThePair() throws Exception {
-        // j's keyboard macro records the typed character and replays it
-        // through insertNormalChar, so the pair is re-derived on playback
-        // and one undo takes the replayed pair away.
+        // The macro records the typed character and replays it through
+        // insertNormalChar: the pair is re-derived on playback.
         resetMacro();
         h = EditorHarness.create("\n\n").mode(PlainTextMode.getMode());
         h.cursor(0, 0);

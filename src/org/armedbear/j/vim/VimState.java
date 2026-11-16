@@ -360,8 +360,7 @@ public final class VimState {
      */
     public void endInsert(Editor editor) {
         // Every way out of insert mode ends the block session too, so a
-        // buffer switch or a re-enter releases its suppression without
-        // Escape.
+        // buffer switch or re-enter releases its suppression without Escape.
         cancelBlockInsert(editor);
         replaced = null;
         replacedLine = null;

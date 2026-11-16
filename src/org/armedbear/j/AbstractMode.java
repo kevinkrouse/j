@@ -785,17 +785,13 @@ public abstract class AbstractMode implements Mode {
 
     /**
      * The formatter's raw lexical context at {@code pos}, refreshing a
-     * dirty parse first. Migrated modes adapt their legacy
-     * {@code isInQuote}/{@code isInComment} to this: {@code == STRING}
-     * and {@code == COMMENT} respectively. It reports the cursor's raw
-     * membership, so a comment inside a disabled line still reads
-     * COMMENT here for {@code %} matching; the collapse of a disabled
-     * line to OPAQUE happens at {@link Mode#lexicalContext}, the
-     * pairing boundary, not in this helper.
-     *
-     * <p>Modes whose formatter cannot answer the query get NEUTRAL, so
-     * the adapters fall through to false and the caller's own fallback
-     * (a legacy scan) applies.
+     * dirty parse first. Migrated modes adapt legacy
+     * {@code isInQuote}/{@code isInComment} via {@code == STRING}/
+     * {@code == COMMENT}. Raw membership: a comment inside a disabled
+     * line still reads COMMENT here for {@code %} matching; the OPAQUE
+     * collapse happens at {@link Mode#lexicalContext}, not here.
+     * Modes whose formatter can't answer get NEUTRAL, so the adapters
+     * fall through to the caller's own fallback.
      */
     protected static LexicalContext lexicalContextAt(Buffer buffer, Position pos) {
         buffer.refreshParse();

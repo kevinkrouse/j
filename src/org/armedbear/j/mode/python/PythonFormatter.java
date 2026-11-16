@@ -63,12 +63,10 @@ public final class PythonFormatter extends Formatter {
     }
 
     /**
-     * The state at {@code offset}, consuming the line from its
-     * entering flags with the same transitions {@link #parseBuffer}
-     * uses to write those flags — the source of the entering state,
-     * so the two agree. Identifier, operator, brace and number states
-     * all read as NEUTRAL for pairing; only quotes and comments
-     * matter. Raw text, real offsets: no detabbing.
+     * The state at {@code offset}, walking the line from its entering flags
+     * with {@link #parseBuffer}'s transitions. Identifier, operator, brace
+     * and number states all read as NEUTRAL for pairing; only quotes and
+     * comments matter. Raw text, real offsets: no detabbing.
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
@@ -77,15 +75,10 @@ public final class PythonFormatter extends Formatter {
     }
 
     /**
-     * One forward pass recording the context at every offset to
-     * {@code end}. A caret inside a multi-character token — an escape,
-     * or a triple-quote delimiter — carries the state before the
-     * token, so a caret inside a closing triple quote is still inside
-     * the string.
-     *
-     * <p>The point query stops at the boundary without building a
-     * prefix-sized array; the bulk query fills every offset. Both run
-     * the same {@link Cursor} transitions, so the two cannot drift.
+     * The context at every offset up to {@code end} in one pass. A caret
+     * inside a multi-character token — an escape or a triple-quote
+     * delimiter — carries the pre-token state, so a caret inside a closing
+     * triple quote is still inside the string.
      */
     @Override
     public Optional<LexicalContext[]> lexicalContexts(Line line, int end) {
@@ -96,12 +89,12 @@ public final class PythonFormatter extends Formatter {
     }
 
     /**
-     * The single source of Python lexical transitions. Walks the line
-     * from its entering flags to {@code upto}. With an output array it
-     * records the context at every offset (bulk); without one it stops
-     * at {@code upto} and returns the context there (point), never
-     * allocating the prefix. {@code steps} counts token advances so a
-     * test can assert the walk stays linear in the line's length.
+     * The single source of Python lexical transitions, walking the line from
+     * its entering flags to {@code upto}. With an output array it records
+     * the context at every offset (bulk); without one it stops at
+     * {@code upto} and returns the context there, never allocating the
+     * prefix. {@code steps} counts token advances so a test can assert
+     * the walk stays linear in the line's length.
      */
     static final class Cursor extends LexicalCursor {
         private int state;
@@ -143,8 +136,7 @@ public final class PythonFormatter extends Formatter {
                 }
                 if (state == PYTHON_STATE_TRIPLE_SINGLE) {
                     if (c == '\'' && text.regionMatches(i, "'''", 0, 3)) {
-                        // The closer is three characters; a caret
-                        // inside it is still inside the string.
+                        // A caret inside the 3-char closer is still in the string.
                         if (inside(3, LexicalContext.STRING))
                             return LexicalContext.STRING;
                         state = PYTHON_STATE_NEUTRAL;
@@ -166,8 +158,7 @@ public final class PythonFormatter extends Formatter {
                 // Not in a quoted string.
                 if (c == '\'') {
                     if (text.regionMatches(i, "'''", 0, 3)) {
-                        // The opener is consumed whole; a caret inside
-                        // it reads as inside the string.
+                        // The opener is consumed whole; a caret inside it reads as in the string.
                         if (inside(3, LexicalContext.STRING))
                             return LexicalContext.STRING;
                         state = PYTHON_STATE_TRIPLE_SINGLE;
@@ -191,8 +182,7 @@ public final class PythonFormatter extends Formatter {
                     continue;
                 }
                 if (c == '#') {
-                    // A line comment: the caret on the '#' is before
-                    // it, everything after is COMMENT.
+                    // The caret on the '#' is before the comment; after it, COMMENT.
                     if (out != null) {
                         for (int j = i + 1; j <= upto; j++)
                             out[j] = LexicalContext.COMMENT;

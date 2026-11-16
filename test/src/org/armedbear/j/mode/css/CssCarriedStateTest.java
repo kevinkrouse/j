@@ -34,12 +34,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * A block comment carries across lines through the entering flags, and
- * the cursor must read them. Every single-line fixture has an entering
- * state of zero, so a cursor that ignored {@code line.flags()} and
- * started from zero would pass them all. These fixtures put the cursor
- * on a line that enters inside a comment, where the entering state is
- * the only thing that makes the context correct: starting from zero
- * would read the carried comment as ordinary text.
+ * the cursor must read them. Single-line fixtures all enter with state
+ * zero, so only a line that enters inside a comment distinguishes a
+ * cursor that reads {@code line.flags()} from one that starts at zero.
  */
 public class CssCarriedStateTest {
     private LexicalContext ctx(EditorHarness h, int lineNo, int off) {
@@ -50,17 +47,14 @@ public class CssCarriedStateTest {
     @Test
     public void commentCarriesAcrossLines() {
         // a { /* start
-        // end */ b }
-        // Line 1 opens the comment; line 2 enters inside it. The text
-        // before the */ on line 2 is COMMENT, and after it is NEUTRAL.
+        // end */ b }   -- line 2 enters inside the comment: COMMENT
+        // before the */, NEUTRAL after.
         EditorHarness h = EditorHarness.create("a { /* start\nend */ b }").mode(CSSMode.getMode());
         try {
-            // The carried comment: line 2's start is still COMMENT.
             assertEquals(COMMENT, ctx(h, 1, 0));
             assertEquals(COMMENT, ctx(h, 1, "end".length()));
-            // Just past the */ closer: NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 1, "end */".length() + 1));
-            // The line really entered in a comment: the flags carry it.
+            // The carry is in the line flags.
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & CSSFormatter.CSS_STATE_COMMENT) != 0,
                     "line 2 did not enter in a comment, flags=" + line2.flags());
@@ -72,14 +66,12 @@ public class CssCarriedStateTest {
 
     @Test
     public void stringDoesNotCarryAcrossLines() {
-        // A quoted string cannot span lines: the entering quote bits are
-        // cleared, so line 2 starts NEUTRAL even though line 1 left an
-        // unterminated quote.
+        // A quoted string can't span lines: the entering quote bits are
+        // cleared, so line 2 starts NEUTRAL despite the unterminated
+        // quote on line 1.
         EditorHarness h = EditorHarness.create("a { b: \"unterminated\nc: d; }").mode(CSSMode.getMode());
         try {
-            // Line 1 inside the string: STRING.
             assertEquals(STRING, ctx(h, 0, "a { b: \"x".length()));
-            // Line 2 enters NEUTRAL: the quote did not carry.
             assertEquals(NEUTRAL, ctx(h, 1, 0));
             Line line2 = h.buffer().getLine(1);
             assertTrue((line2.flags() & (CSSFormatter.CSS_STATE_QUOTE
@@ -112,18 +104,15 @@ public class CssCarriedStateTest {
 
     @Test
     public void slashInStringDoesNotBreakCarriedComment() {
-        // The reviewer's finding-2 fixture: a slash inside a string on
-        // line 1, then a comment with a slash inside it. The old
-        // parseBuffer / branch ate the character after every slash
-        // unconditionally, so the " after the / was swallowed, the
-        // string tracking drifted, and line 2 lost its carried comment
-        // state. The cursor is now the single source of the carried
-        // comment bit, so line 2 enters in the comment and reads it.
+        // The old parseBuffer ate the character after every slash, so
+        // the " after "x"/ was swallowed, string tracking drifted, and
+        // line 2 lost its carried comment. The cursor is now the single
+        // source of the carried comment bit.
         EditorHarness h = EditorHarness.create(
                 "a { content: \"x\"/\"alt\"; /* start / end\n*/ b }").mode(CSSMode.getMode());
         try {
             h.buffer().refreshParse();
-            // Line 0 enters neutral (the comment opens mid-line).
+            // Line 0 enters neutral; the comment opens mid-line.
             Line line0 = h.buffer().getLine(0);
             assertTrue((line0.flags() & CSSFormatter.CSS_STATE_COMMENT) == 0,
                     "line 0 entered in a comment, flags=" + line0.flags());
@@ -132,7 +121,6 @@ public class CssCarriedStateTest {
             Line line1 = h.buffer().getLine(1);
             assertTrue((line1.flags() & CSSFormatter.CSS_STATE_COMMENT) != 0,
                     "line 1 lost the carried comment, flags=" + line1.flags());
-            // The */ on line 1 closes it: after it, NEUTRAL.
             assertEquals(NEUTRAL, ctx(h, 1, "*/".length() + 1));
         }
         finally {
@@ -142,20 +130,15 @@ public class CssCarriedStateTest {
 
     @Test
     public void backslashDoesNotHideCommentCloser() {
-        // A CSS comment has no escapes, so a backslash inside one is
-        // literal and must not hide the */ closer. /* C:\dir\*/ closes
-        // at the */; the text after it is NEUTRAL, not a comment. The
-        // old walks checked the backslash escape before the comment
-        // state, so the \*/ was consumed as an escaped star and the
-        // rest of the file read as a comment, disabling pairing and %
-        // matching.
+        // CSS comments have no escapes: /* C:\dir\*/ closes at the */.
+        // The old walks checked backslash escapes before the comment
+        // state, so \*/ was consumed as an escaped star and the rest
+        // of the file read as a comment.
         EditorHarness h = EditorHarness.create("a { /* C:\\dir\\*/ b }").mode(CSSMode.getMode());
         try {
-            // Inside the comment: COMMENT.
             assertEquals(COMMENT, ctx(h, 0, "a { /* C".length()));
-            // Just past the */ closer: NEUTRAL, not swallowed.
             assertEquals(NEUTRAL, ctx(h, 0, "a { /* C:\\dir\\*/".length() + 1));
-            // The line does not carry a comment into the next line.
+            // The comment must not carry into the next line.
             EditorHarness h2 = EditorHarness.create("a { /* C:\\dir\\*/\nb }").mode(CSSMode.getMode());
             try {
                 Line line2 = h2.buffer().getLine(1);

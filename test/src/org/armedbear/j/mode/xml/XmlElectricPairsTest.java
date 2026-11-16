@@ -112,9 +112,8 @@ public class XmlElectricPairsTest {
 
     @Test
     public void quoteInBareDoctypeAutoPairs() {
-        // A quote typed in a DOCTYPE that is not already inside a quoted
-        // identifier opens a string, so it auto-pairs to "" with the
-        // caret between, the same way a neutral quote does.
+        // A quote in a DOCTYPE not already inside a quoted identifier
+        // opens a string, so it auto-pairs like a neutral quote.
         EditorHarness h = EditorHarness.create("<!DOCTYPE e ").mode(XmlMode.getMode());
         try {
             h.cursor(0, "<!DOCTYPE e ".length());

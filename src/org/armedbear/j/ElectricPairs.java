@@ -15,22 +15,17 @@ import java.util.Optional;
 
 /**
  * The electric-pairs decision: what to do when a character is typed,
- * backspaced or entered, given the buffer and the mode's pair table.
- * The function is pure — it reads the buffer and the mode and touches
- * nothing — so the same context gives the same answer on live typing,
- * vim {@code .} replay and j macro replay. The caller acts on the
- * result inside one compound edit.
+ * backspaced or entered. The decision is pure, so live typing, vim
+ * {@code .} replay and j macro replay get the same answer; the caller
+ * acts on it inside one compound edit.
  */
 public final class ElectricPairs {
     private ElectricPairs() {}
 
     /**
-     * The most characters the balance walk will price before giving up
-     * and generating the closer. In well-formed code the enclosing form
-     * is a few lines away, so the walk stops long before this; the
-     * budget only bounds the pathological case of a huge prefix with
-     * no enclosing closer, keeping the keystroke O(budget) instead of
-     * O(file).
+     * Character cap on the balance walk, keeping a keystroke O(budget)
+     * for a huge prefix with no enclosing closer; on overflow the
+     * closer is generated.
      */
     private static final int BALANCE_SCAN_BUDGET = 100_000;
 
@@ -80,15 +75,8 @@ public final class ElectricPairs {
     }
 
     /**
-     * The decision for one keystroke.
-     *
-     * @param mode             the buffer's mode
-     * @param buffer           the buffer
-     * @param dot              the caret position
-     * @param operation        INSERT or ENTER
-     * @param c                the character typed (INSERT only)
-     * @param hasSelection     whether a region is selected
-     * @param pairingSuppressed the caller's literal-insertion state
+     * The decision for one keystroke. {@code c} is meaningful only for
+     * INSERT; {@code pairingSuppressed} is the caller's literal-insertion state.
      */
     public static Decision decide(
             Mode mode,
@@ -129,23 +117,17 @@ public final class ElectricPairs {
             char before = charBefore(line, offset);
             char at = charAt(line, offset);
             // Only symmetric delimiters are inhibited after a word or
-            // themselves. Brackets after identifiers (foo(, int[) and
-            // nested openers (( should still pair. Skip the 0 sentinel:
+            // themselves; brackets after identifiers (foo(, int[) and
+            // nested openers (( still pair. The 0 sentinel is skipped:
             // isIdentifierPart can count it as a word character.
             if (symmetric && before != 0 && (mode.isIdentifierPart(before) || before == c))
                 return Decision.plain();
             if (at != 0 && mode.isIdentifierPart(at))
                 return Decision.plain();
             if (balance) {
-                // A closer is waiting for this opener only when the
-                // prefix before the caret leaves nothing open for it:
-                // the forward scan, seeded with the unmatched openers
-                // already before the caret, finds a closer at depth
-                // zero. In foo(bar|) the ) ahead is reserved for foo's
-                // (, so the seed is one and the scan never reaches
-                // depth zero: this opener must generate its own closer.
-                // In |) the seed is zero and the ) is free to close
-                // the new opener, so only the opener is inserted.
+                // A closer waits only if it pops the prefix's unmatched-openers
+                // seed to zero: in foo(bar|) the ) belongs to foo's (, so the
+                // new ( generates its own closer.
                 int[] steps = new int[1];
                 int seed = prefixBalance(mode, buffer, line, offset,
                         pair.opener(), pair.closer(), steps, BALANCE_SCAN_BUDGET);
@@ -157,19 +139,13 @@ public final class ElectricPairs {
             return Decision.of(Action.INSERT_PAIR, pair);
         }
         if (table.isCloser(c)) {
-            // A closer of the same kind under the caret is the one being
-            // typed, not one already waiting: with type-over on, rule 4
-            // already stepped over it; with type-over off, the typed
-            // closer inserts and only a closer later on the line should
-            // suppress it, so the scan starts past it. Anything else
-            // under the caret, an opener in particular, takes part in
-            // the balance: in (|() the ( at the caret matches the ) after
-            // it, so the typed ) is not suppressed.
+            // Start past a same-kind closer under the caret: it is the one
+            // being typed, not one waiting. Anything else under the caret
+            // counts: in (|() the ( at the caret matches the ) after it,
+            // so the typed ) is not suppressed.
             int from = charAt(line, offset) == c ? offset + 1 : offset;
-            // The closer branch keeps the single-line seed: a typed
-            // closer is redundant only against a closer waiting at the
-            // current nesting level, and the enclosing-form reservation
-            // that the opener branch needs does not apply to suppression.
+            // No prefix seed here: a typed closer is redundant only against
+            // a closer waiting at the current nesting level.
             int[] steps = new int[1];
             if (balance && closerWaiting(mode, buffer, line, from,
                     table.pairFor(c).opener(), c, 0, steps, BALANCE_SCAN_BUDGET))
@@ -180,14 +156,9 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether Enter at {@code dot} should open a line between an
-     * empty pair — {@code {|}} — rather than split the line as
-     * ordinary. The caret must sit between a configured asymmetric
-     * pair: a quote or other symmetric delimiter does not expand, so
-     * Enter inside {@code ""} stays a plain split. The lexical context
-     * at the caret must be NEUTRAL; a pair inside a string or comment
-     * is content, not a structure to open. The empty-quote Backspace
-     * exception does not apply here.
+     * Whether Enter at {@code dot} opens a line between an empty pair
+     * ({@code {|}}). The caret must sit between a configured asymmetric
+     * pair in NEUTRAL context; Enter inside {@code ""} stays a plain split.
      */
     private static Decision decideEnter(Mode mode, Buffer buffer, Position dot, boolean hasSelection) {
         if (hasSelection || !buffer.getBooleanProperty(Property.ELECTRIC_PAIRS_OPEN_LINE))
@@ -207,16 +178,12 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether Backspace at {@code offset} should delete the pair on
-     * either side of the caret — {@code (|)} or {@code "|"} — as one
-     * step. The left character must be a configured opener and the
-     * character at the caret its closer.
+     * Whether Backspace at {@code offset} deletes the pair on either side
+     * of the caret ({@code (|)} or {@code "|"}) as one step.
      *
-     * <p>For an asymmetric pair a NEUTRAL context is enough: {@code
-     * (|)} is an empty pair the user just typed. A symmetric pair goes
-     * by the empty-quote rule alone, since the lexical context cannot
-     * tell {@code "|"} from a quote inside a longer string, or from
-     * the quotes between two strings.
+     * <p>An asymmetric pair needs only NEUTRAL context. A symmetric pair
+     * goes by the empty-quote rule alone: the lexical context cannot tell
+     * {@code "|"} from a quote inside a longer string.
      */
     static boolean deleteBoth(Mode mode, Buffer buffer, Line line, int offset) {
         if (!buffer.getBooleanProperty(Property.ELECTRIC_PAIRS)
@@ -240,20 +207,13 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether the caret sits between the two characters of an empty
-     * quote pair — {@code "|"} — so that Backspace may delete both.
-     * The lexical context at the caret reports STRING there, which
-     * would otherwise block the delete; this identifies the real
-     * empty string.
+     * Whether the caret sits in an empty quote pair ({@code "|"}), whose
+     * lexical context reports STRING and would otherwise block the delete.
      *
-     * <p>True only when the characters on either side of the caret
-     * are the same configured symmetric quote, the left one is
-     * unescaped, and the state immediately before that left quote
-     * is NEUTRAL. The NEUTRAL-before condition is what excludes a
-     * quote that closes an earlier string on the same line, a quote
-     * inside a comment, and a quote that is part of a longer
-     * delimiter such as a Python triple: in each of those the state
-     * before the left character is not NEUTRAL.
+     * <p>True only when both sides are the same unescaped symmetric quote
+     * and the state before the left quote is NEUTRAL — which excludes a
+     * quote closing an earlier string, one inside a comment, and one
+     * inside a triple-quote delimiter.
      */
     static boolean isEmptyQuotePair(Mode mode, Buffer buffer, Line line, int offset) {
         char left = charBefore(line, offset);
@@ -281,18 +241,14 @@ public final class ElectricPairs {
 
     /**
      * The per-kind nesting the prefix leaves open before {@code offset}:
-     * the count of this opener's unmatched openers at the caret, floored
-     * at zero. It is the depth the forward scan starts from, so a closer
-     * ahead is seen as reserved for an enclosing form rather than as
-     * free to close the one being typed.
+     * unmatched openers at the caret, floored at zero — the depth the
+     * forward scan starts from, so a closer ahead reads as reserved for
+     * an enclosing form.
      *
-     * <p>The walk goes backward from the caret on the current line, then
-     * over previous lines, counting NEUTRAL openers and closers of this
-     * kind. Delimiters inside a string or comment do not count, the same
-     * rule the forward scan uses. The walk is bounded by {@code budget}
-     * characters; on overflow {@code steps[0]} exceeds the budget and
-     * the caller falls back to generating the closer, the safe answer
-     * when the prefix is too large to price.
+     * <p>Walks backward from the caret counting NEUTRAL openers/closers
+     * of this kind (delimiters in strings/comments don't count). On
+     * budget overflow {@code steps[0]} exceeds {@code budget} and the
+     * caller falls back to generating the closer.
      */
     private static int prefixBalance(
             Mode mode,
@@ -336,23 +292,19 @@ public final class ElectricPairs {
     }
 
     /**
-     * Whether a closer of this kind sits later on the line with nothing
-     * open before it at the seeded depth — a closer already waiting to
-     * be typed over. Delimiters inside a string or a comment are not
-     * code and do not count: in {@code foo(| "x)"} the {@code )} is
-     * inside the string, so the opener still gets its own closer.
+     * Whether a closer of this kind sits later on the line at the seeded
+     * depth with nothing open before it — already waiting to be typed
+     * over. Delimiters in strings/comments don't count: in
+     * {@code foo(| "x)"} the {@code )} is in the string, so the opener
+     * still generates its own.
      *
-     * <p>The seed is the unmatched-openers-before-the-caret count from
-     * {@link #prefixBalance}. With seed one, as in {@code foo(bar|)},
-     * the {@code )} ahead pops the seed to zero and is consumed by the
-     * enclosing form, so it is not waiting for the new opener. With
-     * seed zero, as in {@code |)}, the {@code )} sits at depth zero and
-     * is free to close the new opener.
+     * <p>With seed one ({@code foo(bar|)}) the closer ahead pops the seed
+     * and is consumed by the enclosing form; with seed zero ({@code |)})
+     * it is free to close the new opener.
      *
-     * <p>The lexical context for the whole span is taken in one pass.
-     * Asking for it per delimiter rescans the line prefix each time,
-     * which on a line with thousands of balanced pairs stalls the input
-     * path.
+     * <p>The lexical context is taken in one bulk pass: per-delimiter
+     * queries rescan the line prefix and stall the input path on lines
+     * with thousands of balanced pairs.
      */
     private static boolean closerWaiting(
             Mode mode,
@@ -372,11 +324,8 @@ public final class ElectricPairs {
             char ch = line.charAt(i);
             if (ch != opener && ch != closer)
                 continue;
-            // The bulk array answers every offset in one pass. Without
-            // it, ask only at the delimiters: the fallback predicates
-            // are O(offset) each, so a line with no delimiters costs
-            // no predicate work at all, and one with few of them pays
-            // for few instead of for every position on the line.
+            // Bulk answers every offset; the fallback is O(offset) per
+            // query, so without bulk only delimiters are asked about.
             final LexicalContext state =
                     bulk.isPresent() ? bulk.get()[i] : mode.lexicalContext(buffer, new Position(line, i));
             if (state != LexicalContext.NEUTRAL)

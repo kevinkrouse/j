@@ -158,11 +158,9 @@ public final class EditCommands {
                         editor.getBuffer(),
                         editor.getDotLine(),
                         editor.getDotOffset())) {
-                // The caret sits between an empty pair: take both
-                // characters as one undo step. The closer is at the
-                // caret, the opener one left; delete the closer, step
-                // onto the opener, delete it. The caret lands where
-                // the opener was.
+                // The caret sits between an empty pair: delete both as
+                // one undo step — closer first, step onto the opener,
+                // delete it.
                 CompoundEdit compoundEdit = editor.beginCompoundEdit();
                 deleteNormalChar(editor);
                 editor.getDot().moveLeft();
@@ -225,8 +223,7 @@ public final class EditCommands {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             // The decision must see the selection the user had, not the
             // caret left after deleting it: Enter with a selection
-            // replaces the selection with one newline, it does not
-            // expand an empty pair around the deleted text.
+            // replaces it with one newline, never expands a pair.
             final boolean hadSelection = editor.getMark() != null;
             if (hadSelection)
                 editor.deleteRegion();
@@ -277,25 +274,24 @@ public final class EditCommands {
     }
 
     /**
-     * Enter between an empty pair: {@code {|}} becomes three lines,
-     * the caret on the indented interior, the closer on the third at
-     * the outer indent. Both lines are created before any indentation
-     * is computed. If the interior were indented after only the first
-     * split, the closer would still be on it, {@code
-     * getCorrectIndentation} would see the closer and return the
-     * outer indent, and the middle line would land at the wrong
-     * column. The closer is reindented on its own line with its own
-     * call, the way {@code insertBraces} does.
+     * Enter between an empty pair: {@code {|}} becomes three lines, the
+     * caret on the indented interior, the closer on the third at the
+     * outer indent.
+     *
+     * <p>Both lines are created before any indentation is computed:
+     * indenting after only the first split would let
+     * {@code getCorrectIndentation} see the closer still on the interior
+     * and return the outer indent, landing the middle line at the wrong
+     * column.
      */
     private static void openLineBetweenPair(Editor editor) {
         final Display display = editor.getDisplay();
         final Mode mode = editor.getMode();
         final Buffer buffer = editor.getBuffer();
-        // The closer moves to the line below the opener.
+        // First split moves the closer to its own line; the second opens
+        // the empty interior above it.
         editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
         insertLineSeparator(editor);
-        // The caret is at the start of the closer's line; a second
-        // separator there opens the empty interior above it.
         editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
         insertLineSeparator(editor);
         final Line closer = editor.getDotLine();
@@ -304,15 +300,13 @@ public final class EditCommands {
             if (buffer.needsRenumbering())
                 buffer.renumber();
             buffer.getFormatter().parseBuffer();
-            // The closer has content, so it takes a real indent.
             int closerIndent = mode.getCorrectIndentation(closer, buffer);
             if (closerIndent != buffer.getIndentation(closer)) {
                 editor.addUndo(SimpleEdit.LINE_EDIT);
                 buffer.setIndentation(closer, closerIndent);
             }
-            // The interior is blank: a blank line carries no real
-            // indent, so the caret goes to the body indent virtually,
-            // as the ordinary newlineAndIndent leaves it.
+            // The interior is blank: a blank line carries no real indent,
+            // so the caret goes to the body indent virtually.
             int interiorIndent = mode.getCorrectIndentation(interior, buffer);
             editor.addUndo(SimpleEdit.MOVE);
             editor.getDot().moveTo(interior, 0);
@@ -321,8 +315,7 @@ public final class EditCommands {
                 editor.fillToCaret();
             return;
         }
-        // No context indent: both lines match the opener's
-        // indentation, as a plain split would give them.
+        // No context indent: both lines match the opener's indentation.
         int indent = buffer.getIndentation(interior.previous());
         if (indent != buffer.getIndentation(closer)) {
             editor.addUndo(SimpleEdit.LINE_EDIT);
@@ -352,22 +345,20 @@ public final class EditCommands {
         try {
             c = editor.getMode().fixCase(editor, c);
             final Mode mode = editor.getMode();
-            // The mode's own electric rule, consulted before the generic
-            // decision: a fence or a delimiter run whose behavior the flat
-            // pair table cannot express. The mode owns its insertion and its
-            // compound edit. A selection wraps generically, and a literal
-            // insertion is suppressed, so neither reaches the override.
+            // The mode's own electric rule runs before the generic
+            // decision: a fence or delimiter run the flat pair table can't
+            // express. The mode owns its insertion and compound edit.
+            // Selections wrap generically and literal insertion is
+            // suppressed, so neither reaches the override.
             if (editor.isPairingSuppressed()
                     || editor.getMark() != null
                     || !editor.getBuffer().getBooleanProperty(Property.ELECTRIC_PAIRS)
                     || !mode.electricOverride(editor, c)) {
-                // The electric-brace coordinator: a brace typed in a mode
-                // that formats braces electrically gets its blank-line
-                // preparation before the pair decision and its
-                // reindentation after, so the live keystroke and the vim/j
-                // replay of the same key run the same sequence. Literal
-                // insertion is suppressed, so it bypasses the brace
-                // transformations as well as pairing.
+                // Electric braces: a brace in a mode that formats them
+                // gets blank-line preparation before the pair decision
+                // and reindentation after, so the live keystroke and the
+                // vim/j replay run the same sequence. Literal insertion
+                // bypasses the brace transformations too.
                 final boolean electricBrace =
                         mode.electricBraces() && !editor.isPairingSuppressed() && (c == '{' || c == '}');
                 final boolean wasBlank = electricBrace && editor.getMark() == null && editor.getDotLine().isBlank();
@@ -405,9 +396,9 @@ public final class EditCommands {
                             plainInsert(editor, c);
                             break;
                     }
-                    // The close-paren flash: the match for the `)` just inserted
-                    // or typed over, shown for a moment. Never on a suppressed or
-                    // wrapped paren; the caret is not beside it.
+                    // Flash the match for the `)` just inserted or typed
+                    // over; never on a suppressed or wrapped paren, the
+                    // caret is not beside it.
                     if (c == ')'
                             && !editor.isPairingSuppressed()
                             && decision.action() != ElectricPairs.Action.SUPPRESS

@@ -26,29 +26,21 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 
 /**
- * Blanks Scheme comments and strings so the bracket match walk skips
- * them. The default syntax iterator returns the line verbatim, so a
- * paren inside {@code #| ) |#} or a quoted string was counted as a
- * match.
+ * Blanks Scheme comments and strings so the bracket match walk skips them;
+ * the default iterator returns the line verbatim, so a paren inside
+ * {@code #| ) |#} or a quoted string was counted as a match. Blanking
+ * comes from the formatter's cursor bulk query, not a fresh scan, so the
+ * iterator can't drift from the comment/string rules. Comment characters
+ * become spaces; string characters become {@code 'X'} — returned, but
+ * never a paren.
  *
- * <p>The blanking is derived from the formatter's cursor bulk query
- * rather than a fresh scan: the cursor is the single source of the
- * comment and string rules, so the iterator cannot drift from it the way
- * a fourth copy of the transitions would. Comment characters become
- * spaces (skipped outright by the walk); string characters become
- * {@code 'X'} (returned, but never a paren, so a quoted {@code )} is
- * not mistaken for a delimiter).
- *
- * <p>Vim's {@code %} matches relative to where it starts: from inside a
- * string it still finds the bracket there, counting quotes from the
- * caret rather than from the line start. Masking the string would hide
- * that bracket and break the match. So when the iterator starts inside
- * a string, the string is left transparent and vim's own quote-parity
- * check ({@code isSkippedByVim}) decides which brackets count. Comments
- * are masked regardless: vim has no relative rule for them. Ordinary
- * (non-vim) matching never starts inside a string — the pairing guard
- * returns null first — and rainbow highlighting has no start position,
- * so both keep the full masking.
+ * <p>Vim's {@code %} matches relative to its start: from inside a string
+ * it must still find brackets there, so when the iterator starts in a
+ * string the string stays transparent and vim's own quote-parity check
+ * ({@code isSkippedByVim}) decides which brackets count. Comments are
+ * masked regardless. Non-vim matching never starts inside a string (the
+ * pairing guard returns null first) and rainbow highlighting has no start
+ * position, so both keep full masking.
  */
 public final class SchemeSyntaxIterator extends DefaultSyntaxIterator {
     private final boolean startInString;

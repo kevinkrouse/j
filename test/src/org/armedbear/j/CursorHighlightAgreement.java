@@ -23,22 +23,14 @@ package org.armedbear.j;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The cursor and the highlighting parser must agree on where comments and
- * strings are. They are two loops over the same text — {@code parseBuffer}
- * writes the segments that color the line, the cursor answers the pairing
- * query — and the design keeps them separate because the cursor reports
- * only the comment/string context while the parser also emits identifier,
- * operator and number segments. That separation is safe only as long as
- * the two agree on the comment and string runs.
- *
- * <p>This helper pins that agreement. For every maximal run of
- * comment-formatted or string-formatted characters the highlighting
- * produced, the cursor must report the matching context at every offset
- * strictly inside the run. The opening marker's interior is skipped: a
- * caret between the two characters of {@code /*}, {@code //} or {@code #|}
- * reads as before the marker by the documented boundary rule, while the
- * highlighting treats it as part of the comment. That single position is
- * the known, intended difference; everything past it must match.
+ * Pins the agreement between the cursor and the highlighting parser:
+ * two loops over the same text that must agree on comment and string
+ * runs. For every maximal comment/string run the highlighting produced,
+ * the cursor must report the matching context strictly inside the run,
+ * and vice versa. The opening marker's interior is exempt in the
+ * forward direction: a caret between the two characters of {@code /*},
+ * {@code //} or {@code #|} reads as before the marker by the boundary
+ * rule while the highlighting counts it as comment.
  */
 public final class CursorHighlightAgreement {
     private CursorHighlightAgreement() {
@@ -48,15 +40,13 @@ public final class CursorHighlightAgreement {
      * Assert that the cursor agrees with the highlighting on every
      * comment and string run in {@code text} under {@code mode}.
      *
-     * @param mode           the mode whose cursor and formatter are compared
-     * @param text           the buffer text
      * @param commentFormat  the formatter's comment segment format id
      * @param stringFormat   the formatter's string segment format id
      * @param twoCharOpeners the language's two-character comment openers
      *                       ({@code //}, {@code /*}, {@code #|}); a run
-     *                       that begins with one of these has its
-     *                       opening-marker interior exempt. A single-
-     *                       character opener like {@code #} has none.
+     *                       beginning with one has its opening-marker
+     *                       interior exempt. A single-character opener
+     *                       like {@code #} has none.
      */
     public static void assertAgrees(
             Mode mode, String text, int commentFormat, int stringFormat, String... twoCharOpeners) {
@@ -90,12 +80,10 @@ public final class CursorHighlightAgreement {
                     LexicalContext want = f0 == commentFormat
                             ? LexicalContext.COMMENT
                             : LexicalContext.STRING;
-                    // A comment run that opens with a two-character marker
-                    // has one exempt position: the caret between the
-                    // marker's characters reads as before the marker by
-                    // the boundary rule, while the highlighting counts it
-                    // as comment. A single-character opener has no such
-                    // interior, so the check starts right after it.
+                    // A run opening with a two-character marker has one
+                    // exempt position: the caret between the marker's
+                    // characters reads as before the marker by the
+                    // boundary rule. A single-character opener has none.
                     int from = a + 1;
                     if (f0 == commentFormat && startsWithTwoCharOpener(line, a, twoCharOpeners))
                         from = a + 2;
@@ -110,14 +98,10 @@ public final class CursorHighlightAgreement {
             }
             // The reverse direction: every offset the cursor calls a
             // comment or string must be highlighted as one. The forward
-            // check alone lets the cursor over-report — a position the
-            // cursor claims is COMMENT but the highlighting paints as
-            // text is invisible to it. This catches the cursor lingering
+            // check alone lets the cursor over-report — e.g. lingering
             // past a closer (the offset just after */ still read as
-            // COMMENT) or opening a comment/string the parser never
-            // saw. The opening-marker interior needs no exemption here:
-            // the cursor reports NEUTRAL there, so it imposes no
-            // highlighting requirement.
+            // COMMENT). No opening-marker exemption here: the cursor
+            // reports NEUTRAL there, imposing no highlighting requirement.
             for (Line line = h.buffer().getFirstLine(); line != null; line = line.next()) {
                 int len = line.length();
                 if (len == 0)

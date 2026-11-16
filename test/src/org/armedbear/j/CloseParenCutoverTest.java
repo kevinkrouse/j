@@ -24,12 +24,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The close-paren cutover. The {@code )} bindings are gone from the
- * ordinary modes, so a typed {@code )} falls through to the catch-all
- * and reaches the electric-pairs handler in {@code insertNormalChar}
- * rather than the old {@code closeParen} command. The Lisp shell has
- * no binding either: its {@code electricCloseParen}, which sends a
- * complete form at once, is opt-in through {@code map-key-for-mode}.
+ * The close-paren cutover: {@code )} is unbound in the ordinary modes,
+ * so a typed {@code )} falls through to the catch-all and reaches the
+ * electric-pairs handler in {@code insertNormalChar} rather than the
+ * old {@code closeParen} command. The Lisp shell has no binding either:
+ * its {@code electricCloseParen} (sends a complete form at once) is
+ * opt-in through {@code map-key-for-mode}.
  */
 public class CloseParenCutoverTest {
 

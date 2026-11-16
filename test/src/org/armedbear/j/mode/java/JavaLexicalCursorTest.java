@@ -19,17 +19,12 @@ import org.armedbear.j.Line;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Java lexical cursor walks the line once: the number of token
- * advances is linear in the line's length, and a point query stops
- * advancing at its boundary instead of walking the whole line. The
- * fixtures carry real tokens — a block comment, a string and a line
- * comment — so the walk exercises the multi-character marker and
- * escape paths, not just plain characters.
+ * The Java lexical cursor walks the line once: token advances are linear
+ * in line length, and a point query stops at its boundary. The fixture
+ * carries a block comment, a string and a line comment so the walk
+ * exercises multi-character markers and escapes, not just plain chars.
  */
 public class JavaLexicalCursorTest {
-    // A line with a block comment, a string and a trailing line
-    // comment: the cursor must handle each marker and the escapes
-    // inside the string, not merely step over letters.
     private static final String TOKENS = "int x = 1; /* a */ y = \"z\"; // tail";
 
     @Test
@@ -41,12 +36,9 @@ public class JavaLexicalCursorTest {
             LexicalContext[] out = new LexicalContext[len + 1];
             JavaFormatter.Cursor bulk = new JavaFormatter.Cursor(line, len, out);
             bulk.run();
-            // One step per character at most; multi-character tokens
-            // (the comment markers, the escape) advance by more, so
-            // the count never exceeds the length.
+            // One step per char at most; multi-char tokens advance by more.
             assertTrue(bulk.steps <= len, "bulk steps " + bulk.steps + " exceeds len " + len);
-            // The walk actually consumed the tokens: a plain-character
-            // line would step len times, but the markers skip ahead.
+            // Non-vacuous: the walk actually consumed the tokens.
             assertTrue(bulk.steps > 0, "bulk made no progress");
         }
         finally {
@@ -59,8 +51,6 @@ public class JavaLexicalCursorTest {
         EditorHarness h = EditorHarness.create(TOKENS).mode(JavaMode.getMode());
         try {
             Line line = h.buffer().getFirstLine();
-            // A point query in the middle of the token-bearing line
-            // must not walk the whole line.
             int boundary = TOKENS.indexOf("y =");
             JavaFormatter.Cursor point = new JavaFormatter.Cursor(line, boundary, null);
             point.run();

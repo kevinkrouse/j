@@ -19,12 +19,10 @@ import org.armedbear.j.Line;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Shell lexical cursor walks the line once: the number of token
- * advances is linear in the line's length, and a point query stops
- * advancing at its boundary instead of walking the whole line. The
- * fixture carries a double-quoted string with an escape, a single-quoted
- * string and a line comment so the walk exercises the quote and escape
- * paths.
+ * The Shell lexical cursor walks the line once: token advances are
+ * linear in line length, and a point query stops at its boundary. The
+ * fixture carries escaped double quotes, a single-quoted string and a
+ * line comment to exercise the quote and escape paths.
  */
 public class ShellLexicalCursorTest {
     private static final String TOKENS = "x=\"a\\\"b\" # c 'd' e";
@@ -38,8 +36,7 @@ public class ShellLexicalCursorTest {
             LexicalContext[] out = new LexicalContext[len + 1];
             ShellScriptFormatter.Cursor bulk = new ShellScriptFormatter.Cursor(line, len, out);
             bulk.run();
-            // One step per character at most; the escape advances by
-            // two, so the count never exceeds the length.
+            // One step per char at most; the escape advances by two.
             assertTrue(bulk.steps <= len, "bulk steps " + bulk.steps + " exceeds len " + len);
             assertTrue(bulk.steps > 0, "bulk made no progress");
         }
@@ -53,8 +50,6 @@ public class ShellLexicalCursorTest {
         EditorHarness h = EditorHarness.create(TOKENS).mode(ShellScriptMode.getMode());
         try {
             Line line = h.buffer().getFirstLine();
-            // A point query in the middle of the token-bearing line
-            // must not walk the whole line.
             int boundary = TOKENS.indexOf("'d'");
             ShellScriptFormatter.Cursor point = new ShellScriptFormatter.Cursor(line, boundary, null);
             point.run();

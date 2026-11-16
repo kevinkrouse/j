@@ -30,10 +30,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@code %} on a Properties bracket must land on the real matching
- * bracket, not one inside a comment. The match walk uses the mode's
- * syntax iterator, and the default iterator does not blank comments, so
- * a bracket inside a comment was counted as a match.
+ * {@code %} on a Properties bracket must land on the real match, not
+ * one inside a comment: the default syntax iterator does not blank
+ * comments, so the walk must skip them explicitly.
  */
 public class PropertiesMatchTest {
     private EditorHarness h;
@@ -62,9 +61,8 @@ public class PropertiesMatchTest {
 
     @Test
     public void bracketInCommentIsNotTheMatch() {
-        // key = (a)  # ) is in a comment
-        // % on the ( at offset 6 must land on the ) at offset 8, not
-        // the ) inside the comment.
+        // key = (a)  # )   -- % on the ( at 6 must land on the ) at 8,
+        // not the ) inside the comment.
         open("key = (a) # )");
         assertEquals("0:9", jump(0, 6));
     }

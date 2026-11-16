@@ -21,23 +21,15 @@
 package org.armedbear.j;
 
 /**
- * The shared bookkeeping for a formatter's lexical cursor: the line
- * text, the boundary to stop at, the optional output array, the walk
- * position, and the helpers that record or test the context over a
- * range of offsets.
+ * Shared bookkeeping for a formatter's lexical cursor: the line text,
+ * the boundary to stop at, the optional output array, the walk position,
+ * and the helpers that record or test the context over a range.
  *
- * <p>Each formatter keeps its own cursor because the token rules differ
- * — Java's block comments, Python's triple quotes, Shell's heredocs,
- * Markdown's code spans — but the plumbing around the walk is the same.
- * A point query passes no output array and stops at {@code upto}; a
- * bulk query passes one and records every offset. The {@code covers}
- * and {@code inside} helpers let a cursor ask, in one place, whether
- * the point target falls inside a token and, in bulk mode, record the
- * token's interior.
- *
- * <p>The cursor's own state (the parser state, the block kind, the
- * carried line) stays in the subclass; this base holds only what every
- * cursor needs to walk and record.
+ * <p>Each formatter keeps its own cursor because token rules differ
+ * (Java block comments, Python triple quotes, Shell heredocs, Markdown
+ * code spans) but the walk plumbing is the same: a point query passes no
+ * output array and stops at {@code upto}; a bulk query passes one and
+ * records every offset. Parser-specific state stays in the subclass.
  */
 public abstract class LexicalCursor {
     protected final String text;
@@ -54,11 +46,9 @@ public abstract class LexicalCursor {
     }
 
     /**
-     * Whether the point target falls inside the inclusive range
-     * {@code [from, to]}. In bulk mode the range is recorded as
-     * {@code interiorCtx} and the walk continues, so this returns
-     * false; in point mode it returns whether the boundary lies in the
-     * range, letting the caller stop there.
+     * Whether the point target lies in {@code [from, to]}. In bulk mode
+     * the range is recorded as {@code interiorCtx} and false is returned
+     * so the walk continues.
      */
     protected boolean covers(int from, int to, LexicalContext interiorCtx) {
         if (out != null) {
@@ -69,11 +59,9 @@ public abstract class LexicalCursor {
     }
 
     /**
-     * Whether the point target falls inside a token of length
-     * {@code len} starting at the cursor, whose interior carries
-     * {@code interiorCtx}. Equivalent to {@code covers(i + 1, i + len
-     * - 1, interiorCtx)}: the caret on the token's first character is
-     * before it, the caret on any interior character is inside it.
+     * Whether the point target is inside a token of length {@code len}
+     * starting at the cursor: the caret on the first character is before
+     * it, on any interior character inside it.
      */
     protected boolean inside(int len, LexicalContext interiorCtx) {
         return covers(i + 1, i + len - 1, interiorCtx);

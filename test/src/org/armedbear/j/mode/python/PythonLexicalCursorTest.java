@@ -19,12 +19,10 @@ import org.armedbear.j.Line;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Python lexical cursor walks the line once: the number of token
- * advances is linear in the line's length, and a point query stops
- * advancing at its boundary instead of walking the whole line. The
- * fixture carries a string with an escape, a line comment and a triple
- * quote so the walk exercises the multi-character delimiter and
- * escape paths.
+ * The Python lexical cursor walks the line once: token advances are
+ * linear in line length, and a point query stops at its boundary. The
+ * fixture carries an escaped string, a line comment and a triple quote
+ * to exercise the multi-character delimiter and escape paths.
  */
 public class PythonLexicalCursorTest {
     private static final String TOKENS = "x = \"a\\\"b\" # c '''d''' e";
@@ -38,9 +36,7 @@ public class PythonLexicalCursorTest {
             LexicalContext[] out = new LexicalContext[len + 1];
             PythonFormatter.Cursor bulk = new PythonFormatter.Cursor(line, len, out);
             bulk.run();
-            // One step per character at most; multi-character tokens
-            // (the triple quote, the escape) advance by more, so the
-            // count never exceeds the length.
+            // One step per char at most; multi-char tokens advance by more.
             assertTrue(bulk.steps <= len, "bulk steps " + bulk.steps + " exceeds len " + len);
             assertTrue(bulk.steps > 0, "bulk made no progress");
         }
@@ -54,8 +50,6 @@ public class PythonLexicalCursorTest {
         EditorHarness h = EditorHarness.create(TOKENS).mode(PythonMode.getMode());
         try {
             Line line = h.buffer().getFirstLine();
-            // A point query in the middle of the token-bearing line
-            // must not walk the whole line.
             int boundary = TOKENS.indexOf("'''");
             PythonFormatter.Cursor point = new PythonFormatter.Cursor(line, boundary, null);
             point.run();

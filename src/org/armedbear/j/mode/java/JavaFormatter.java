@@ -63,18 +63,11 @@ public class JavaFormatter extends Formatter {
     }
 
     /**
-     * The context at {@code offset}, consuming the line from its
-     * entering flags with the same transitions {@link #parseBuffer}
-     * uses to write those flags. The offset is checked before each
-     * character is consumed, so a closing quote or comment marker
-     * consumed before the caret yields NEUTRAL and the caret inside a
-     * string or comment yields STRING or COMMENT. A disabled block
-     * reads as OPAQUE: pairing has no business inside {@code #if 0}.
-     * Raw text, real offsets.
-     *
-     * <p>The point query stops at the boundary without building a
-     * prefix-sized array; the bulk query fills every offset. Both run
-     * the same {@link Cursor} transitions, so the two cannot drift.
+     * The context at {@code offset}, walking the line from its entering
+     * flags with {@link #parseBuffer}'s transitions. The offset is checked
+     * before each character is consumed, so a closer consumed before the
+     * caret yields NEUTRAL while a caret inside a string or comment yields
+     * STRING/COMMENT. Raw text, real offsets.
      */
     @Override
     public Optional<LexicalContext> lexicalContextAt(Line line, int offset) {
@@ -83,12 +76,10 @@ public class JavaFormatter extends Formatter {
     }
 
     /**
-     * One forward pass recording the context at every offset to
-     * {@code end}, so a caller that needs many positions on the line
-     * pays for one scan. The transitions are the same as
-     * {@link #parseBuffer}'s; the state is recorded before each token
-     * is consumed, and the position between a two-character token's
-     * characters carries the state before the token, exactly as the
+     * The context at every offset up to {@code end} in one pass, for
+     * callers needing many positions on the line. State is recorded before
+     * each token is consumed, so the position between a two-character
+     * token's characters carries the pre-token state, exactly as the
      * per-offset query answers.
      */
     @Override
@@ -100,12 +91,12 @@ public class JavaFormatter extends Formatter {
     }
 
     /**
-     * The single source of Java lexical transitions. Walks the line
-     * from its entering flags to {@code upto}. With an output array it
-     * records the context at every offset (bulk); without one it stops
-     * at {@code upto} and returns the context there (point), never
-     * allocating the prefix. {@code steps} counts token advances so a
-     * test can assert the walk stays linear in the line's length.
+     * The single source of Java lexical transitions, walking the line from
+     * its entering flags to {@code upto}. With an output array it records
+     * the context at every offset (bulk); without one it stops at
+     * {@code upto} and returns the context there, never allocating the
+     * prefix. {@code steps} counts token advances so a test can assert
+     * the walk stays linear in the line's length.
      */
     static final class Cursor extends LexicalCursor {
         private int state;
@@ -119,15 +110,12 @@ public class JavaFormatter extends Formatter {
         }
 
         LexicalContext run() {
-            // The cursor reports the raw comment/string membership of
-            // the line, walking its tokens from the entering flag. A
-            // disabled line enters as STATE_DISABLED, which is none of
-            // the comment or quote states, so the walk treats it as
-            // ordinary text and still finds a /* */ or "..." on it.
-            // That is what isInComment needs: a bracket inside a
-            // comment in an #if 0 block must still be skipped by %
-            // matching. The pairing view collapses the whole disabled
-            // line to OPAQUE at Mode.lexicalContext, not here.
+            // The cursor reports raw comment/string membership: a disabled
+            // line enters as STATE_DISABLED, none of the comment/quote
+            // states, so the walk treats it as ordinary text and still
+            // finds a /* */ or "..." on it — what isInComment needs for %
+            // matching inside #if 0. The OPAQUE collapse happens in
+            // Mode.lexicalContext, not here.
             while (i <= upto) {
                 final LexicalContext ctx = toContext(state);
                 if (out != null)
@@ -136,9 +124,8 @@ public class JavaFormatter extends Formatter {
                     return ctx;
                 steps++;
                 final char c = text.charAt(i);
-                // A two-character token (an escape, or a comment
-                // marker) with the caret between its characters: the
-                // caret is still in the state before the token.
+                // Two-char token (escape or comment marker) with the caret
+                // between its characters: still the pre-token state.
                 if (c == '\\' && i < limit - 1) {
                     if (inside(2, ctx))
                         return ctx;
@@ -167,9 +154,7 @@ public class JavaFormatter extends Formatter {
                 if (c == '/' && i < limit - 1) {
                     final char next = text.charAt(i + 1);
                     if (next == '/') {
-                        // A line comment: the caret between the
-                        // slashes is still before it, everything after
-                        // is COMMENT.
+                        // The caret between the slashes is before the comment; after, COMMENT.
                         if (inside(2, ctx))
                             return ctx;
                         if (out != null) {
@@ -196,12 +181,8 @@ public class JavaFormatter extends Formatter {
         }
     }
 
-    // A disabled line enters as STATE_DISABLED, which is none of the
-    // comment or quote states, so it maps to NEUTRAL here and the walk
-    // continues over the line's tokens as ordinary text. The pairing
-    // collapse to OPAQUE happens in Mode.lexicalContext, not in the
-    // cursor, so isInComment can still find a comment inside disabled
-    // code for % matching.
+    // STATE_DISABLED maps to NEUTRAL so the walk continues over the
+    // disabled line's tokens; see Cursor.run for why that's required.
     private static LexicalContext toContext(int state) {
         switch (state) {
             case STATE_QUOTE:

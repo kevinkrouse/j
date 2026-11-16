@@ -26,15 +26,12 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 
 /**
- * Blanks Properties comments so the bracket match walk skips them. The
- * default syntax iterator returns the line verbatim, so a bracket in a
- * comment was counted as a match.
- *
- * <p>The blanking is derived from the formatter's cursor bulk query
- * rather than a fresh scan: the cursor is the single source of the
- * comment rule, so the iterator cannot drift from it. Properties has no
- * string syntax, so only comments are masked; there is no string case to
- * preserve for vim's relative matching.
+ * Blanks Properties comments so the bracket match walk skips them; the
+ * default iterator returns the line verbatim, so a bracket in a comment
+ * was counted as a match. Blanking comes from the formatter's cursor
+ * bulk query, not a fresh scan, so the iterator can't drift from the
+ * comment rule. Properties has no string syntax, so only comments are
+ * masked.
  */
 public final class PropertiesSyntaxIterator extends DefaultSyntaxIterator {
     public PropertiesSyntaxIterator(Position pos) {
