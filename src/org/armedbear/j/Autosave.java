@@ -23,9 +23,9 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Properties;
 import java.util.Set;
 import org.armedbear.j.util.AtomicFiles;
@@ -84,8 +84,13 @@ public final class Autosave {
                 return;
             catalogFile = File.getInstance(getAutosaveDirectory(), CATALOG_NAME);
         }
-        try (OutputStream out = AtomicFiles.newOutputStream(catalogFile, true)) {
-            catalog.store(out, null);
+        try {
+            // Bytes first, then one atomic write: Properties.store writes
+            // straight through a streaming stand-in, so a disk-full
+            // mid-store would otherwise move a partial catalog into place.
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            catalog.store(bytes, null);
+            AtomicFiles.write(catalogFile.toPath(), bytes.toByteArray(), true);
         }
         catch (IOException e) {
             Log.error(e);

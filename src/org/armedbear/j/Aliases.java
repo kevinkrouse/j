@@ -21,9 +21,9 @@
 
 package org.armedbear.j;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Properties;
 import org.armedbear.j.util.AtomicFiles;
 
@@ -99,8 +99,13 @@ public final class Aliases {
     }
 
     private void save() {
-        try (OutputStream outputStream = AtomicFiles.newOutputStream(file, true)) {
-            userAliases.store(outputStream, null);
+        try {
+            // Bytes first, then one atomic write: Properties.store writes
+            // straight through a streaming stand-in, so a disk-full
+            // mid-store would otherwise move a partial file into place.
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            userAliases.store(bytes, null);
+            AtomicFiles.write(file.toPath(), bytes.toByteArray(), true);
         }
         catch (IOException e) {
             Log.error(e);

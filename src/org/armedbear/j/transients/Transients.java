@@ -23,7 +23,6 @@ package org.armedbear.j.transients;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -77,9 +76,12 @@ public final class Transients {
         final Path file = file();
         if (file == null)
             throw new IOException("no state directory");
-        try (OutputStream out = AtomicFiles.newOutputStream(file, true)) {
-            p.store(out, "j popup defaults");
-        }
+        // Bytes first, then one atomic write: Properties.store writes
+        // straight through a streaming stand-in, so a disk-full mid-store
+        // would otherwise move a partial file into place.
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        p.store(bytes, "j popup defaults");
+        AtomicFiles.write(file, bytes.toByteArray(), true);
     }
 
     private static Properties defaults() {

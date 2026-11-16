@@ -25,12 +25,33 @@ callers in the TODO item.
       `RecentFiles.save`, `FileHistory.save`, `Registers.setText`,
       `KeyMap.writeKeyMap`, `Cache.saveCatalog`, `TagFileCatalog.save`,
       `Session.save`, `SessionProperties.save` now write through
-      `AtomicFiles` (streaming `newWriter`/`newOutputStream` where the
-      writer chain fits, `write(bytes)` where a `PrintWriter` swallows
-      close errors or a backup copy is needed), `owner=true` throughout.
-      `File.toPath()` is the `File`→`Path` bridge. The session's
-      temp-in-temp-dir + `deleteRename` tail and the props three-way
-      delete-rename are gone; `props~` is now a `Files.copy` backup.
+      `AtomicFiles`, `owner=true` throughout. The `Properties.store`
+      writers and the raw-text writer take the `write(bytes)` path; the
+      text writers that wrap the stand-in in a `BufferedWriter` keep the
+      streaming `newWriter` shape. `File.toPath()` is the `File`→`Path`
+      bridge. The session's temp-in-temp-dir + `deleteRename` tail and
+      the props three-way delete-rename are gone; `props~` is now a
+      `Files.copy` backup.
+- [x] **review fixes** — three issues from the code review of the
+      migration:
+      - `SessionProperties.save`: the backup `Files.copy` now has its own
+        `catch`. In the first cut it shared the primary write's `try`, so
+        a failed backup (disk full, unwritable or directory-shaped
+        `props~`) skipped `AtomicFiles.write` entirely and the new props
+        were never saved — the old code logged the backup failure and
+        went on to install the new props.
+      - `Autosave.flush`, `Aliases.save`, `Transients.saveDefaults`,
+        `Registers.setText`: switched from the streaming stand-in to the
+        byte[] path. `Properties.store` and a raw string write straight
+        through a stream with no buffering layer, so a disk-full
+        mid-store threw in the body while the stand-in's `close()` still
+        moved the *partial* temp over the good file. Building the bytes
+        first closes that gap.
+      - `RecentFiles.save`: `changed = false` moved back outside the
+        inner try-with-resources. The "cleanup nested trys" pass had
+        pulled it inside, where it ran before `close()` (the move), so a
+        failed save cleared the flag and the dirty list was never
+        retried.
 
 ## The utility
 
@@ -44,17 +65,30 @@ callers in the TODO item.
   target. On POSIX `createTempFile` is owner-only either way; the flag
   states intent and covers file systems without POSIX permissions.
 
-It takes `byte[]`, not a stream, so every writer below builds its bytes
-first. All of these files are small (kilobytes), so buffering the whole
-body in memory is free.
+Two shapes land the bytes:
 
-For the writers that stream, `AtomicFiles.newWriter` and
-`.newOutputStream` (in `File` and `Path` flavors, each taking the
-`owner` flag) return a `Writer`/`OutputStream` that writes to the aside
-file and moves it over the target on `close()`, so the try-with-resources
-shape stays. `File.toPath()` bridges j's `File` to `java.nio.file.Path`,
-guarded like `getInputStream`/`getOutputStream`: a remote or null file
-throws `NotSupportedException`.
+- **`write(Path, byte[], owner)`** — the writer builds its whole body in
+  memory first, then one call writes the temp and moves it. Used wherever
+  the body is a `Properties.store` or a raw string, because those write
+  straight through a stream: a streaming stand-in's `close()` moves the
+  temp unconditionally, so a disk-full mid-store would move a *partial*
+  file into place. With the bytes already whole, the write either lands or
+  doesn't. All these files are small (kilobytes), so buffering the body
+  is free.
+- **`newWriter` / `newOutputStream`** (in `File` and `Path` flavors, each
+  taking the `owner` flag) — a `Writer`/`OutputStream` that writes to the
+  aside file and moves it over the target on `close()`, so the
+  try-with-resources shape stays. Used only where the caller wraps the
+  stand-in in a `BufferedWriter`: on disk-full the flush inside
+  `BufferedWriter.close()` throws *before* the move runs, so the target
+  survives. The guarantee is narrower than `write`'s — a non-IO exception
+  from the body after bytes have reached the stream would still move a
+  partial temp — but for these producers (well-formed entries, no
+  serializer that can throw mid-loop) that path is unreachable.
+
+`File.toPath()` bridges j's `File` to `java.nio.file.Path`, guarded like
+`getInputStream`/`getOutputStream`: a remote or null file throws
+`NotSupportedException`.
 
 ## Shared conversion: `File.toPath()`
 
@@ -80,32 +114,34 @@ same way `getOutputStream` fails today.
 
 ## The in-place writers
 
-Each change is the same shape: build the bytes the writer already builds
-(keep the exact same writer chain so bytes are byte-for-byte identical to
-what is on disk today — same UTF-8, same `newLine()` separators), then
-`AtomicFiles.write(path, bytes, true)` instead of opening the target.
-`owner=true` for all of them: this is the user's private state — paths,
-registers, session, properties. Note the one-time side effect: files that
-existed with the umask default (e.g. 644) become 600 on the first atomic
-write. That is the intent of the flag and a privacy improvement; call it
-out in the commit message.
+Each change keeps the exact same writer chain so bytes are byte-for-byte
+identical to what was on disk before — same UTF-8, same `newLine()`
+separators — and swaps the target for the atomic one. `owner=true` for
+all of them: this is the user's private state — paths, registers,
+session, properties. Note the one-time side effect: files that existed
+with the umask default (e.g. 644) become 600 on the first atomic write.
+That is the intent of the flag and a privacy improvement; call it out in
+the commit message.
 
-| File | Class / method | Today | Change |
-|---|---|---|---|
-| `<state>/autosave/catalog` | `Autosave.flush()` (Autosave.java:87) | `catalog.store(catalogFile.getOutputStream())` | `Properties.store` into a `ByteArrayOutputStream`, then `AtomicFiles.write(catalogFile.toPath(), bytes, true)` |
-| `<state>/popup-defaults.properties` | `Transients.saveDefaults()` (Transients.java:72) | `Files.newOutputStream(file)` | store into BAOS, `AtomicFiles.write(file, bytes, true)`; drop the now-redundant `Files.createDirectories(file.getParent())` — `AtomicFiles` creates the parent |
-| `<config>/aliases` | `Aliases.save()` (Aliases.java:101) | `userAliases.store(file.getOutputStream())` | BAOS + `AtomicFiles.write(file.toPath(), bytes, true)` |
-| `<state>/recent` | `RecentFiles.save()` (RecentFiles.java:197) | `BufferedWriter(OutputStreamWriter(file.getOutputStream()))` | same writer over a BAOS, then `AtomicFiles.write` |
-| `<state>/files.xml` | `FileHistory.save()` (FileHistory.java:136) | same writer chain | same: writer over BAOS, then `AtomicFiles.write` |
-| `<data>/registers/<name>` | `Registers.setText()` (Registers.java:80) | `OutputStreamWriter(file.getOutputStream())` | `text.getBytes(UTF_8)` + `AtomicFiles.write(file.toPath(), bytes, true)`; the manual `dir.mkdirs()` can go (`AtomicFiles` creates parents), the `dir == null` and `file == null` checks stay |
-| key map (user-chosen) | `KeyMap.writeKeyMap(File)` (KeyMap.java:667) | `PrintWriter(...file.getOutputStream())` | `PrintWriter` over BAOS, then `AtomicFiles.write(file.toPath(), bytes, true)` |
-| `<cache>/cache/catalog` | `Cache.saveCatalog()` (Cache.java:145) | writer chain | writer over BAOS, then `AtomicFiles.write` |
-| `<cache>/tagfiles/catalog` | `TagFileCatalog.save()` (TagFileCatalog.java:140) | writer chain, `# date` header | writer over BAOS, then `AtomicFiles.write`; keep the header line |
+| File | Class / method | Shape |
+|---|---|---|
+| `<state>/autosave/catalog` | `Autosave.flush()` (Autosave.java:81) | `Properties.store` into a BAOS, then `AtomicFiles.write(catalogFile.toPath(), bytes, true)` |
+| `<state>/popup-defaults.properties` | `Transients.saveDefaults()` (Transients.java:74) | store into BAOS, `AtomicFiles.write(file, bytes, true)`; the `Files.createDirectories(file.getParent())` is gone — `AtomicFiles` creates the parent |
+| `<config>/aliases` | `Aliases.save()` (Aliases.java:101) | BAOS + `AtomicFiles.write(file.toPath(), bytes, true)` |
+| `<state>/recent` | `RecentFiles.save()` (RecentFiles.java:188) | `BufferedWriter` over `newWriter(file, true)`; `changed = false` only after the move in `close()` |
+| `<state>/files.xml` | `FileHistory.save()` (FileHistory.java:138) | `BufferedWriter` over `newWriter(file, true)` |
+| `<data>/registers/<name>` | `Registers.setText()` (Registers.java:67) | `text.getBytes(UTF_8)` + `AtomicFiles.write(file.toPath(), bytes, true)`; the manual `dir.mkdirs()` is gone (`AtomicFiles` creates parents), the `dir == null` and `file == null` checks stay |
+| key map (user-chosen) | `KeyMap.writeKeyMap(File)` (KeyMap.java:669) | `PrintWriter` over a BAOS, then `AtomicFiles.write(file.toPath(), bytes, true)` — outside the `PrintWriter`, which swallows close errors |
+| `<cache>/cache/catalog` | `Cache.saveCatalog()` (Cache.java:134) | `BufferedWriter` over `newWriter(catalogFile, true)` |
+| `<cache>/tagfiles/catalog` | `TagFileCatalog.save()` (TagFileCatalog.java:137) | `BufferedWriter` over `newWriter(catalogFile, true)`; the `# date` header kept |
 
-`Properties.store` needs an `OutputStream`; the text writers need a
-`Writer` over the same BAOS (`OutputStreamWriter(baos, UTF_8)`), flushed
-before `baos.toByteArray()`. No format changes anywhere: loaders,
-version lines, and separators stay exactly as they are.
+The `Properties.store` writers and the raw-text writer take the byte[]
+path: `store` writes straight through a stream, so a streaming stand-in
+would move a partial temp on a disk-full mid-store. The text writers that
+wrap the stand-in in a `BufferedWriter` keep the streaming shape — the
+buffer's flush inside `close()` throws before the move on disk-full. No
+format changes anywhere: loaders, version lines, and separators stay
+exactly as they were.
 
 ## Session.save(): delete-then-rename → one atomic write
 
@@ -136,8 +172,16 @@ public void save() {
     try {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         properties.store(bytes, null);
-        if (file.isFile())
-            Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        if (file.isFile()) {
+            // The backup is secondary: a failed copy is logged, not
+            // allowed to block the save itself.
+            try {
+                Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            catch (IOException e) {
+                Log.error(e);
+            }
+        }
         AtomicFiles.write(file.toPath(), bytes.toByteArray(), true);
     }
     catch (IOException e)
@@ -148,8 +192,12 @@ public void save() {
 Copy, not move, for the backup: `props` is small, and the net effect is
 the same — `props~` holds the previous save, `props` the new one. The
 three-way `deleteRename` failure logging collapses into the one
-`IOException` catch. `props~` stays in `Directories.STATE_ENTRIES` for
-migration; nothing else reads it.
+`IOException` catch. The backup copy gets its own catch: the old code
+logged a failed backup and *continued* to install the new props, and the
+new code must keep that — a `props~` that can't be written (disk full,
+unwritable, directory-shaped) is a secondary fault and must not block the
+primary write the way a shared `try` would. `props~` stays in
+`Directories.STATE_ENTRIES` for migration; nothing else reads it.
 
 ## Out of scope
 
@@ -177,6 +225,22 @@ migration; nothing else reads it.
   every name in the registers dir, so a crashed write of register `a`
   could show a register `a.new` until the next sweep. Cosmetic, crash-only;
   not worth a filter.
+- **Streaming vs whole-or-nothing.** The `BufferedWriter`-over-`newWriter`
+  sites (recent, files.xml, the two catalogs) are safe on the realistic
+  failure — disk-full — because the buffer's flush inside `close()`
+  throws before the move runs, leaving the target intact. The guarantee is
+  narrower than the byte[] path's: a non-IO exception from the body after
+  bytes have reached the stream (a serializer throwing mid-loop) would
+  still move a partial temp. That path is unreachable for these
+  producers, which is why they keep the streaming shape; anything that
+  *can* fail mid-body (`Properties.store`, a raw string) takes the byte[]
+  path instead, where the body is whole before the write begins.
+- **The `changed` flag.** `RecentFiles.save` clears `changed` only after
+  the inner try-with-resources closes, i.e. after the move succeeds. A
+  failed save leaves the list dirty so the next save retries it. The flag
+  must stay outside the `try (writer = ...)` block: inside, it would clear
+  before `close()` runs and a failed move would silently lose the dirty
+  state.
 - **Concurrency.** `Autosave`, `RecentFiles`, `FileHistory`,
   `TagFileCatalog`, and `Transients` already synchronize their savers;
   `Registers.setText` is unsynchronized but each call writes its own

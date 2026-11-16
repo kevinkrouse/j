@@ -24,7 +24,6 @@ package org.armedbear.j;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import org.armedbear.j.mode.list.ListRegistersBuffer;
 import org.armedbear.j.util.AtomicFiles;
@@ -71,8 +70,8 @@ public final class Registers {
         final File file = File.getInstance(dir, name);
         if (file == null)
             return false;
-        try (Writer writer = AtomicFiles.newWriter(file, true)) {
-            writer.write(text);
+        try {
+            AtomicFiles.write(file.toPath(), text.getBytes(StandardCharsets.UTF_8), true);
         }
         catch (IOException e) {
             Log.error(e);

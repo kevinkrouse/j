@@ -192,17 +192,21 @@ public final class RecentFiles {
             return;
         if (entries.size() == 0)
             return;
-        try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(file, true))) {
-            writer.write(String.valueOf(RecentFilesEntry.getVersion()));
-            writer.newLine();
-            int limit = entries.size();
-            if (limit > MAX_ENTRIES)
-                limit = MAX_ENTRIES;
-            for (int i = 0; i < limit; i++) {
-                RecentFilesEntry entry = entries.get(i);
-                writer.write(entry.toString());
+        try {
+            try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(file, true))) {
+                writer.write(String.valueOf(RecentFilesEntry.getVersion()));
                 writer.newLine();
+                int limit = entries.size();
+                if (limit > MAX_ENTRIES)
+                    limit = MAX_ENTRIES;
+                for (int i = 0; i < limit; i++) {
+                    RecentFilesEntry entry = entries.get(i);
+                    writer.write(entry.toString());
+                    writer.newLine();
+                }
             }
+            // Only after the move in close(): a failed save stays dirty
+            // and is retried next time.
             changed = false;
         }
         catch (IOException | RuntimeException e) {

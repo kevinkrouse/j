@@ -256,8 +256,16 @@ public final class SessionProperties {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             properties.store(bytes, null);
-            if (file.isFile())
-                Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            if (file.isFile()) {
+                // The backup is secondary: a failed copy is logged, not
+                // allowed to block the save itself.
+                try {
+                    Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+                catch (IOException e) {
+                    Log.error(e);
+                }
+            }
             AtomicFiles.write(file.toPath(), bytes.toByteArray(), true);
         }
         catch (IOException e) {
