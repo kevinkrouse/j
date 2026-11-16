@@ -51,8 +51,7 @@ public class File implements Comparable<File> {
     public static final String PREFIX_SSH = "ssh://";
     public static final String PREFIX_FILE = "file://";
 
-    public static final String PREFIX_LOCAL_HOST =
-        LocalFile.getLocalHostName().concat(":");
+    public static final String PREFIX_LOCAL_HOST = LocalFile.getLocalHostName().concat(":");
 
     public static final int TYPE_UNKNOWN = 0;
     public static final int TYPE_FILE = 1;
@@ -895,6 +894,15 @@ public class File implements Comparable<File> {
         return new FileOutputStream(canonicalPath, append);
     }
 
+    /** The local path, for NIO. */
+    public java.nio.file.Path toPath() {
+        if (isRemote)
+            throw new NotSupportedException();
+        if (file == null)
+            throw new NotSupportedException();
+        return java.nio.file.Path.of(canonicalPath);
+    }
+
     public RandomAccessFile getRandomAccessFile(String mode) throws FileNotFoundException {
         if (isRemote)
             throw new NotSupportedException();
@@ -919,7 +927,7 @@ public class File implements Comparable<File> {
         if (!isLocal())
             return 0;
         try {
-            Set<PosixFilePermission> set = Files.getPosixFilePermissions(java.nio.file.Path.of(canonicalPath()));
+            Set<PosixFilePermission> set = Files.getPosixFilePermissions(toPath());
             int permissions = 0;
             for (int i = 0; i < PERMISSION_BITS.length; i++) {
                 if (set.contains(PERMISSION_BITS[i]))
@@ -943,7 +951,7 @@ public class File implements Comparable<File> {
                 set.add(PERMISSION_BITS[i]);
         }
         try {
-            Files.setPosixFilePermissions(java.nio.file.Path.of(canonicalPath()), set);
+            Files.setPosixFilePermissions(toPath(), set);
         }
         catch (IOException | UnsupportedOperationException e) {
             Log.error(e);

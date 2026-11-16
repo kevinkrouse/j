@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
+import org.armedbear.j.util.AtomicFiles;
 
 public final class Aliases {
     private static final Properties systemAliases = new Properties();
@@ -98,7 +99,7 @@ public final class Aliases {
     }
 
     private void save() {
-        try (OutputStream outputStream = file.getOutputStream()) {
+        try (OutputStream outputStream = AtomicFiles.newOutputStream(file, true)) {
             userAliases.store(outputStream, null);
         }
         catch (IOException e) {

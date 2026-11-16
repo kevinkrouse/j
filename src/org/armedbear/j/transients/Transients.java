@@ -20,6 +20,7 @@
 
 package org.armedbear.j.transients;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -34,6 +35,7 @@ import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
+import org.armedbear.j.util.AtomicFiles;
 
 /**
  * Where popups' values are kept: per buffer, as a log's filters are its
@@ -75,8 +77,7 @@ public final class Transients {
         final Path file = file();
         if (file == null)
             throw new IOException("no state directory");
-        Files.createDirectories(file.getParent());
-        try (OutputStream out = Files.newOutputStream(file)) {
+        try (OutputStream out = AtomicFiles.newOutputStream(file, true)) {
             p.store(out, "j popup defaults");
         }
     }
