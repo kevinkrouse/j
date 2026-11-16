@@ -192,18 +192,16 @@ public final class RecentFiles {
             return;
         if (entries.size() == 0)
             return;
-        try {
-            try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(file, true))) {
-                writer.write(String.valueOf(RecentFilesEntry.getVersion()));
+        try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(file, true))) {
+            writer.write(String.valueOf(RecentFilesEntry.getVersion()));
+            writer.newLine();
+            int limit = entries.size();
+            if (limit > MAX_ENTRIES)
+                limit = MAX_ENTRIES;
+            for (int i = 0; i < limit; i++) {
+                RecentFilesEntry entry = entries.get(i);
+                writer.write(entry.toString());
                 writer.newLine();
-                int limit = entries.size();
-                if (limit > MAX_ENTRIES)
-                    limit = MAX_ENTRIES;
-                for (int i = 0; i < limit; i++) {
-                    RecentFilesEntry entry = entries.get(i);
-                    writer.write(entry.toString());
-                    writer.newLine();
-                }
             }
             changed = false;
         }

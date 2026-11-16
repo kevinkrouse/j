@@ -135,19 +135,17 @@ public final class TagFileCatalog {
     }
 
     public synchronized void save() {
-        try {
-            try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(catalogFile, true))) {
-                writer.write("# " + new Date().toString() + '\n');
-                final int limit = entries.size();
-                for (int i = 0; i < limit; i++) {
-                    CatalogEntry entry = getEntry(i);
-                    writer.write(entry.tagfileName);
-                    writer.write('\t');
-                    writer.write(entry.modeName);
-                    writer.write('\t');
-                    writer.write(entry.directoryPath);
-                    writer.write('\n');
-                }
+        try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(catalogFile, true))) {
+            writer.write("# " + new Date().toString() + '\n');
+            final int limit = entries.size();
+            for (int i = 0; i < limit; i++) {
+                CatalogEntry entry = getEntry(i);
+                writer.write(entry.tagfileName);
+                writer.write('\t');
+                writer.write(entry.modeName);
+                writer.write('\t');
+                writer.write(entry.directoryPath);
+                writer.write('\n');
             }
         }
         catch (IOException e) {
