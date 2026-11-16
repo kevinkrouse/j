@@ -24,9 +24,10 @@ package org.armedbear.j;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import org.armedbear.j.mode.list.ListRegistersBuffer;
+import org.armedbear.j.util.AtomicFiles;
 import org.armedbear.j.util.Utilities;
 
 public final class Registers {
@@ -39,11 +40,7 @@ public final class Registers {
         if (editor.getDot() == null)
             return;
         if (editor.getMark() == null) {
-            MessageDialog.showMessageDialog(
-                editor,
-                "No region selected",
-                "Error"
-            );
+            MessageDialog.showMessageDialog(editor, "No region selected", "Error");
             return;
         }
         if (editor.isColumnSelection()) {
@@ -71,13 +68,10 @@ public final class Registers {
         final File dir = Directories.getRegistersDirectory();
         if (dir == null)
             return false;
-        if (!dir.isDirectory())
-            dir.mkdirs();
         final File file = File.getInstance(dir, name);
         if (file == null)
             return false;
-        try (OutputStreamWriter writer =
-            new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8)) {
+        try (Writer writer = AtomicFiles.newWriter(file, true)) {
             writer.write(text);
         }
         catch (IOException e) {
@@ -125,8 +119,7 @@ public final class Registers {
             if (name == null)
                 return;
         }
-        File file =
-            File.getInstance(Directories.getRegistersDirectory(), name);
+        File file = File.getInstance(Directories.getRegistersDirectory(), name);
         if (file != null && file.isFile()) {
             Buffer buf = Editor.getBuffer(file);
             if (buf != null) {
@@ -151,8 +144,7 @@ public final class Registers {
             if (name == null)
                 return;
         }
-        File file =
-            File.getInstance(Directories.getRegistersDirectory(), name);
+        File file = File.getInstance(Directories.getRegistersDirectory(), name);
         if (file.isFile()) {
             file.delete();
             ListRegistersBuffer buf = findListRegistersBuffer();
@@ -201,12 +193,7 @@ public final class Registers {
             for (int x = 0; x < len; x++) {
                 char c = name.charAt(x);
                 // Allow alphanumeric chars plus "-" and "_" only, with no spaces.
-                if (
-                    !Character.isLetterOrDigit(c)
-                        &&
-                        c != '-'
-                        && c != '_'
-                ) {
+                if (!Character.isLetterOrDigit(c) && c != '-' && c != '_') {
                     charsOk = false;
                     break;
                 }
@@ -239,9 +226,8 @@ public final class Registers {
         File file = File.getInstance(dir, name);
         if (file == null || !file.isFile())
             return null;
-        try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)
-        )) {
+        try (BufferedReader reader =
+                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             int lineCount = 0;
             int c;

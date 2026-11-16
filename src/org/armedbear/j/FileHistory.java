@@ -23,9 +23,8 @@ package org.armedbear.j;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import org.armedbear.j.util.AtomicFiles;
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -101,12 +100,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
     private FileHistoryEntry currentEntry = null;
 
     @Override
-    public void startElement(
-        String uri,
-        String localName,
-        String qName,
-        Attributes attributes
-    ) throws SAXException {
+    public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         if (localName.equals("files") || qName.equals("files")) {
             String version = attributes.getValue("version");
             if (!version.equals(getVersion()))
@@ -143,21 +137,19 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
 
     public synchronized void save() {
         try {
-            BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
-            writer.write("<?xml version=\"1.0\"?>");
-            writer.newLine();
-            writer.write("<files version=\"" + getVersion() + "\">");
-            writer.newLine();
-            final int limit = Math.min(list.size(), MAX_ENTRIES);
-            for (int i = 0; i < limit; i++) {
-                FileHistoryEntry entry = list.get(i);
-                writer.write(entry.toXml());
+            try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(file, true))) {
+                writer.write("<?xml version=\"1.0\"?>");
                 writer.newLine();
+                writer.write("<files version=\"" + getVersion() + "\">");
+                writer.newLine();
+                final int limit = Math.min(list.size(), MAX_ENTRIES);
+                for (int i = 0; i < limit; i++) {
+                    FileHistoryEntry entry = list.get(i);
+                    writer.write(entry.toXml());
+                    writer.newLine();
+                }
+                writer.write("</files>");
             }
-            writer.write("</files>");
-            writer.flush();
-            writer.close();
         }
         catch (IOException e) {
             Log.error(e);

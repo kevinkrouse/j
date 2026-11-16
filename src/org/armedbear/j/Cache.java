@@ -27,18 +27,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.util.AtomicFiles;
 import org.armedbear.j.util.Tuple2;
 import org.armedbear.j.util.Utilities;
 
 public final class Cache {
-    private static final File cacheDir =
-        File.getInstance(Directories.getCacheDirectory(), "cache");
+    private static final File cacheDir = File.getInstance(Directories.getCacheDirectory(), "cache");
 
     private static Cache cache;
 
@@ -91,11 +90,9 @@ public final class Cache {
         File file = null;
         try {
             URL url = Utilities.toURL(netPath);
-            HttpURLConnection connection =
-                (HttpURLConnection) url.openConnection();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             file = Utilities.getTempFile(cacheDir);
-            try (InputStream in = connection.getInputStream();
-                OutputStream out = file.getOutputStream()) {
+            try (InputStream in = connection.getInputStream(); OutputStream out = file.getOutputStream()) {
                 byte[] buf = new byte[4096];
                 int bytesRead;
                 while ((bytesRead = in.read(buf)) > 0)
@@ -118,19 +115,13 @@ public final class Cache {
     private List<Tuple2<String, String>> loadCatalog() {
         List<Tuple2<String, String>> v = new ArrayList<>();
         if (catalogFile.exists()) {
-            try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(catalogFile.getInputStream(), StandardCharsets.UTF_8)
-            )) {
+            try (BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(catalogFile.getInputStream(), StandardCharsets.UTF_8))) {
                 String s;
                 while ((s = reader.readLine()) != null) {
                     int index = s.indexOf(' ');
                     if (index >= 0)
-                        v.add(
-                            new Tuple2<String, String>(
-                                s.substring(0, index),
-                                s.substring(index + 1)
-                            )
-                        );
+                        v.add(new Tuple2<String, String>(s.substring(0, index), s.substring(index + 1)));
                 }
             }
             catch (IOException e) {
@@ -141,16 +132,13 @@ public final class Cache {
     }
 
     private void saveCatalog() {
-        try (BufferedWriter writer = new BufferedWriter(
-            new OutputStreamWriter(catalogFile.getOutputStream(), StandardCharsets.UTF_8)
-        )) {
+        try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(catalogFile, true))) {
             for (Tuple2<String, String> pair : catalog) {
                 writer.write(pair.first);
                 writer.write(' ');
                 writer.write(pair.second);
                 writer.newLine();
             }
-            writer.flush();
         }
         catch (IOException e) {
             Log.error(e);

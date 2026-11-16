@@ -26,6 +26,7 @@ import static org.armedbear.j.Constants.*;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.KeyStroke;
 import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.util.AtomicFiles;
 import org.armedbear.j.util.Keys;
 
 public final class KeyMap {
@@ -665,10 +667,14 @@ public final class KeyMap {
     }
 
     public synchronized void writeKeyMap(File file) {
-        try (PrintWriter out = new PrintWriter(
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8)))) {
-            for (KeyMapping mapping : mappings)
-                out.println(mapping.toString());
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (PrintWriter out =
+                    new PrintWriter(new BufferedWriter(new OutputStreamWriter(bytes, StandardCharsets.UTF_8)))) {
+                for (KeyMapping mapping : mappings)
+                    out.println(mapping.toString());
+            }
+            AtomicFiles.write(file.toPath(), bytes.toByteArray(), true);
         }
         catch (IOException e) {
             Log.error(e);

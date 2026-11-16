@@ -27,12 +27,12 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.util.AtomicFiles;
 
 public final class RecentFiles {
     private static final int MAX_ENTRIES = 100;
@@ -156,7 +156,7 @@ public final class RecentFiles {
         Debug.assertTrue(entries.size() == 0);
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+                    new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String s = reader.readLine();
             if (s != null) {
                 try {
@@ -193,20 +193,18 @@ public final class RecentFiles {
         if (entries.size() == 0)
             return;
         try {
-            BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
-            writer.write(String.valueOf(RecentFilesEntry.getVersion()));
-            writer.newLine();
-            int limit = entries.size();
-            if (limit > MAX_ENTRIES)
-                limit = MAX_ENTRIES;
-            for (int i = 0; i < limit; i++) {
-                RecentFilesEntry entry = entries.get(i);
-                writer.write(entry.toString());
+            try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(file, true))) {
+                writer.write(String.valueOf(RecentFilesEntry.getVersion()));
                 writer.newLine();
+                int limit = entries.size();
+                if (limit > MAX_ENTRIES)
+                    limit = MAX_ENTRIES;
+                for (int i = 0; i < limit; i++) {
+                    RecentFilesEntry entry = entries.get(i);
+                    writer.write(entry.toString());
+                    writer.newLine();
+                }
             }
-            writer.flush();
-            writer.close();
             changed = false;
         }
         catch (IOException | RuntimeException e) {

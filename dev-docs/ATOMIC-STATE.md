@@ -20,7 +20,17 @@ callers in the TODO item.
       new `util/AtomicFilesTest` (7) pins the utility's invariants —
       whole write, replace, no `.new` residue, parent creation,
       owner-only perms, temp cleanup on a refused move, empty file.
-- [ ] the other eight in-place writers + the two delete-then-rename callers.
+- [x] **the other eight in-place writers + the two delete-then-rename
+      callers** — all done. `Autosave.flush`, `Aliases.save`,
+      `RecentFiles.save`, `FileHistory.save`, `Registers.setText`,
+      `KeyMap.writeKeyMap`, `Cache.saveCatalog`, `TagFileCatalog.save`,
+      `Session.save`, `SessionProperties.save` now write through
+      `AtomicFiles` (streaming `newWriter`/`newOutputStream` where the
+      writer chain fits, `write(bytes)` where a `PrintWriter` swallows
+      close errors or a backup copy is needed), `owner=true` throughout.
+      `File.toPath()` is the `File`→`Path` bridge. The session's
+      temp-in-temp-dir + `deleteRename` tail and the props three-way
+      delete-rename are gone; `props~` is now a `Files.copy` backup.
 
 ## The utility
 
@@ -37,6 +47,14 @@ callers in the TODO item.
 It takes `byte[]`, not a stream, so every writer below builds its bytes
 first. All of these files are small (kilobytes), so buffering the whole
 body in memory is free.
+
+For the writers that stream, `AtomicFiles.newWriter` and
+`.newOutputStream` (in `File` and `Path` flavors, each taking the
+`owner` flag) return a `Writer`/`OutputStream` that writes to the aside
+file and moves it over the target on `close()`, so the try-with-resources
+shape stays. `File.toPath()` bridges j's `File` to `java.nio.file.Path`,
+guarded like `getInputStream`/`getOutputStream`: a remote or null file
+throws `NotSupportedException`.
 
 ## Shared conversion: `File.toPath()`
 

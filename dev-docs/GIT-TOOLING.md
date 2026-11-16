@@ -2818,8 +2818,11 @@ plan with why it is left, before the next phase starts.
      lists (phase 12) show what one needs; `ChangelistStore.of`, in
      `VcsBackend.stateDirectory`, git's `GitDirs.gitDir()/j`, a
      worktree's its own. DOM with no DTD or external entities, written
-     whole by `util/AtomicFiles` (shared with the stash note and the port
-     file, with the fallback where a move can't be atomic), and only over
+     whole by `util/AtomicFiles` (shared with the stash note, the port
+     file, and j's own state files — the autosave catalog, popup
+     defaults, aliases, recent files, file history, registers, key map,
+     cache and tag file catalogs, session, and props — with the fallback
+     where a move can't be atomic), and only over
      the bytes it last read or wrote, so another writer's changes aren't
      lost: a refused write is read again and redone. A file that isn't
      changelists XML is moved aside (`.bad`, `.bad.1`, ...); one that

@@ -24,6 +24,7 @@ package org.armedbear.j;
 import static org.armedbear.j.Constants.*;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.AtomicFiles;
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -57,8 +59,7 @@ public final class Session extends DefaultHandler {
 
     public static File getSessionDirectory() {
         if (sessionDirectory == null) {
-            sessionDirectory =
-                File.getInstance(Directories.getStateDirectory(), "sessions");
+            sessionDirectory = File.getInstance(Directories.getStateDirectory(), "sessions");
             if (!sessionDirectory.isDirectory()) {
                 sessionDirectory.mkdirs();
                 if (!sessionDirectory.isDirectory())
@@ -145,10 +146,7 @@ public final class Session extends DefaultHandler {
         Session session = new Session(file);
         if (!session.load()) {
             Log.error("unable to load session from " + file);
-            MessageDialog.showMessageDialog(
-                "Unable to load session from " + file,
-                "Load Session"
-            );
+            MessageDialog.showMessageDialog("Unable to load session from " + file, "Load Session");
             return;
         }
 
@@ -218,11 +216,7 @@ public final class Session extends DefaultHandler {
                     }
                     if (buf != null) {
                         buf.setLastView(new View(entry));
-                        if (
-                            toBeActivated == null
-                                ||
-                                entry.getLastActivated() > lastActivated
-                        ) {
+                        if (toBeActivated == null || entry.getLastActivated() > lastActivated) {
                             toBeActivated = buf;
                             lastActivated = entry.getLastActivated();
                         }
@@ -236,48 +230,38 @@ public final class Session extends DefaultHandler {
         if (toBeActivated == null)
             toBeActivated = Editor.getBufferList().getFirstBuffer();
         long elapsed = System.currentTimeMillis() - start;
-        Log.debug(
-            "createBuffers " + Editor.getBufferList().size() +
-                " buffers " + elapsed + " ms"
-        );
+        Log.debug("createBuffers " + Editor.getBufferList().size() + " buffers " + elapsed + " ms");
         return toBeActivated;
     }
 
     public void save() {
         try {
-            File tempFile = Utilities.getTempFile();
-            BufferedWriter writer =
-                new BufferedWriter(
-                    new OutputStreamWriter(
-                        tempFile.getOutputStream(),
-                        StandardCharsets.UTF_8
-                    )
-                );
-            writer.write("<?xml version=\"1.0\"?>");
-            writer.newLine();
-            writer.write("<session version=\"" + getVersion() + "\">");
-            writer.newLine();
-            writer.write("  <buffers>");
-            writer.newLine();
-            int index = 0;
-            for (Buffer buf : Editor.getBufferList()) {
-                // Skip shell, compilation, HTTP buffers etc.
-                if (!buf.canBeRestored())
-                    continue;
-                // Skip untitled buffers.
-                if (buf.getFile() == null)
-                    continue;
-                SessionBufferEntry entry = new SessionBufferEntry(buf, index++);
-                writer.write(entry.toXml());
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bytes, StandardCharsets.UTF_8))) {
+                writer.write("<?xml version=\"1.0\"?>");
+                writer.newLine();
+                writer.write("<session version=\"" + getVersion() + "\">");
+                writer.newLine();
+                writer.write("  <buffers>");
+                writer.newLine();
+                int index = 0;
+                for (Buffer buf : Editor.getBufferList()) {
+                    // Skip shell, compilation, HTTP buffers etc.
+                    if (!buf.canBeRestored())
+                        continue;
+                    // Skip untitled buffers.
+                    if (buf.getFile() == null)
+                        continue;
+                    SessionBufferEntry entry = new SessionBufferEntry(buf, index++);
+                    writer.write(entry.toXml());
+                    writer.newLine();
+                }
+                writer.write("  </buffers>");
+                writer.newLine();
+                writer.write("</session>");
                 writer.newLine();
             }
-            writer.write("  </buffers>");
-            writer.newLine();
-            writer.write("</session>");
-            writer.newLine();
-            writer.flush();
-            writer.close();
-            Utilities.deleteRename(tempFile, file);
+            AtomicFiles.write(file.toPath(), bytes.toByteArray(), true);
         }
         catch (IOException e) {
             Log.error(e);
@@ -323,12 +307,7 @@ public final class Session extends DefaultHandler {
     }
 
     @Override
-    public void startElement(
-        String uri,
-        String localName,
-        String qName,
-        Attributes attributes
-    ) throws SAXException {
+    public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         if (localName.equals("buffer") || qName.equals("buffer")) {
             currentBufferEntry = new SessionBufferEntry();
             String path = attributes.getValue("", "path");

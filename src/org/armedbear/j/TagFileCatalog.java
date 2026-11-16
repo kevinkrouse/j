@@ -25,10 +25,10 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
+import org.armedbear.j.util.AtomicFiles;
 
 public final class TagFileCatalog {
     private File tagfileDir;
@@ -101,7 +101,7 @@ public final class TagFileCatalog {
         try {
             if (catalogFile.isFile()) {
                 BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(catalogFile.getInputStream(), StandardCharsets.UTF_8));
+                        new BufferedReader(new InputStreamReader(catalogFile.getInputStream(), StandardCharsets.UTF_8));
                 String s;
                 while ((s = reader.readLine()) != null) {
                     if (s.trim().startsWith("#"))
@@ -136,21 +136,19 @@ public final class TagFileCatalog {
 
     public synchronized void save() {
         try {
-            BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(catalogFile.getOutputStream(), StandardCharsets.UTF_8));
-            writer.write("# " + new Date().toString() + '\n');
-            final int limit = entries.size();
-            for (int i = 0; i < limit; i++) {
-                CatalogEntry entry = getEntry(i);
-                writer.write(entry.tagfileName);
-                writer.write('\t');
-                writer.write(entry.modeName);
-                writer.write('\t');
-                writer.write(entry.directoryPath);
-                writer.write('\n');
+            try (BufferedWriter writer = new BufferedWriter(AtomicFiles.newWriter(catalogFile, true))) {
+                writer.write("# " + new Date().toString() + '\n');
+                final int limit = entries.size();
+                for (int i = 0; i < limit; i++) {
+                    CatalogEntry entry = getEntry(i);
+                    writer.write(entry.tagfileName);
+                    writer.write('\t');
+                    writer.write(entry.modeName);
+                    writer.write('\t');
+                    writer.write(entry.directoryPath);
+                    writer.write('\n');
+                }
             }
-            writer.flush();
-            writer.close();
         }
         catch (IOException e) {
             Log.error(e);

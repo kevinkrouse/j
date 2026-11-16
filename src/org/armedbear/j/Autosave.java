@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 import java.util.Set;
+import org.armedbear.j.util.AtomicFiles;
 import org.armedbear.j.util.Utilities;
 
 public final class Autosave {
@@ -41,8 +42,7 @@ public final class Autosave {
 
     public static synchronized File getAutosaveDirectory() {
         if (!initialized) {
-            autosaveDirectory =
-                File.getInstance(Directories.getStateDirectory(), "autosave");
+            autosaveDirectory = File.getInstance(Directories.getStateDirectory(), "autosave");
             if (autosaveDirectory != null) {
                 if (!autosaveDirectory.isDirectory()) {
                     autosaveDirectory.mkdirs();
@@ -84,9 +84,8 @@ public final class Autosave {
                 return;
             catalogFile = File.getInstance(getAutosaveDirectory(), CATALOG_NAME);
         }
-        try (OutputStream out = catalogFile.getOutputStream()) {
+        try (OutputStream out = AtomicFiles.newOutputStream(catalogFile, true)) {
             catalog.store(out, null);
-            out.flush();
         }
         catch (IOException e) {
             Log.error(e);

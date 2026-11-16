@@ -24,11 +24,13 @@ package org.armedbear.j;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Properties;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.AtomicFiles;
 
 public final class SessionProperties {
     private Properties properties;
@@ -252,21 +254,11 @@ public final class SessionProperties {
 
     public void save() {
         try {
-            File tempFile = Utilities.getTempFile();
-            try (OutputStream out = tempFile.getOutputStream()) {
-                properties.store(out, null);
-                out.flush();
-            }
-            if (file.exists() && !Utilities.deleteRename(file, backupFile)) {
-                Log.error("SessionProperties.save deleteRename failed");
-                Log.error("source = " + file);
-                Log.error("destination = " + backupFile);
-            }
-            if (!Utilities.deleteRename(tempFile, file)) {
-                Log.error("SessionProperties.save deleteRename failed");
-                Log.error("source = " + tempFile);
-                Log.error("destination = " + file);
-            }
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            properties.store(bytes, null);
+            if (file.isFile())
+                Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            AtomicFiles.write(file.toPath(), bytes.toByteArray(), true);
         }
         catch (IOException e) {
             Log.error(e);
