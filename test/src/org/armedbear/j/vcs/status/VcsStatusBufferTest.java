@@ -230,7 +230,10 @@ public class VcsStatusBufferTest {
             status.pick(List.of(line("  ?  c.txt")));
         });
         git.write("d.txt", "another untracked file\n");
-        onEdt(status::refresh);
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
         until(() -> text().contains("  ?  d.txt"));
         onEdt(() -> {
             final Position to = new Position(line("  Feature (0)"), 0);
@@ -254,7 +257,10 @@ public class VcsStatusBufferTest {
             assertNotNull(drag[0]);
         });
         Files.delete(tmp.resolve("a.txt"));
-        onEdt(status::refresh);
+        onEdt(() -> {
+            repo().invalidate();
+            status.refresh();
+        });
         until(() -> text().contains("    D  a.txt"));
         onEdt(() -> {
             assertTrue(status.dropAt(h.editor(), new Position(line("  Feature (0)"), 0), drag[0]));
