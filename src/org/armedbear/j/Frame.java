@@ -41,6 +41,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,6 +56,8 @@ import javax.swing.JFrame;
 import javax.swing.LayoutFocusTraversalPolicy;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Icons;
+import org.armedbear.j.vcs.Repositories;
+import org.armedbear.j.vcs.VcsRepository;
 import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.status.ChangesTree;
 
@@ -117,21 +120,40 @@ public final class Frame extends JFrame
         windowResizer = new WindowResizer(getRootPane());
     }
 
+    /** Sets the title from the session, the current window's project and buffer: "J [session] - buffer [project/repository]". */
     public void titleChanged() {
-        StringBuilder sb = new StringBuilder(Version.getShortVersionString());
+        StringBuilder sb = new StringBuilder("J");
         String sessionName = Editor.getSessionName();
-        if (sessionName != null) {
-            sb.append(" [");
-            sb.append(sessionName);
-            sb.append(']');
+        if (sessionName != null)
+            sb.append(" [").append(sessionName).append(']');
+        Buffer buffer = currentEditor != null ? currentEditor.getBuffer() : null;
+        if (buffer != null) {
+            String project = projectName(buffer);
+            if (project != null)
+                sb.append(" [").append(project).append(']');
+            sb.append(" \u00B7 ").append(buffer);
+            //sb.append(" - ").append(buffer);
         }
-        if (Editor.isDebugEnabled()) {
-            sb.append("     Java ");
-            sb.append(System.getProperty("java.version"));
-            sb.append(' ');
-            sb.append(System.getProperty("java.vendor"));
+        // Asked on every location bar update; the peer needn't hear an unchanged title.
+        String title = sb.toString();
+        if (!title.equals(getTitle()))
+            setTitle(title);
+    }
+
+    // The name of buffer's project root, then "/" and its repository's when
+    // that is a repository below the root, as under a .j-project directory;
+    // null outside a project.
+    private static String projectName(Buffer buffer) {
+        File root = ProjectRoot.find(buffer);
+        if (root == null)
+            return null;
+        VcsRepository repository = Repositories.forFile(buffer.getFile());
+        if (repository != null) {
+            Path project = Path.of(root.canonicalPath());
+            if (!repository.root().equals(project) && repository.root().startsWith(project))
+                return root.getName() + '/' + repository.name();
         }
-        setTitle(sb.toString());
+        return root.getName();
     }
 
     private void setIconImages() {
@@ -250,6 +272,7 @@ public final class Frame extends JFrame
             Debug.assertTrue(priorEditor == null || editors.contains(priorEditor));
 
             currentEditor = editor;
+            titleChanged();
         }
     }
 

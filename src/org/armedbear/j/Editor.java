@@ -617,6 +617,9 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             if (textField == null || frame == null || textField != frame.getFocusedComponent())
                 locationBar.update();
         }
+        // The location's buffer, renamed or replaced, is the title's when this window is current.
+        if (frame != null && frame.getCurrentEditor() == this)
+            frame.titleChanged();
     }
 
     private MultiSplitLayout.Leaf layoutLeaf;
