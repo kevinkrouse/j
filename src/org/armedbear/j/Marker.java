@@ -64,6 +64,11 @@ public final class Marker {
         return pos != null ? pos.lineNumber() : lineNumber;
     }
 
+    /** Its offset in its line, even after its buffer is closed. */
+    public int getOffset() {
+        return pos != null ? pos.getOffset() : offset;
+    }
+
     // Returns an alias, not a copy.
     public Position getPosition() {
         return pos;

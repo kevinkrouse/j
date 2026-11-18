@@ -152,6 +152,7 @@ public final class EditorHarness {
             Editor.setBookmark(c, null);
         for (char c = 'A'; c <= 'Z'; c++)
             Editor.setBookmark(c, null);
+        Editor.setTemporaryMarker(null);
         editor.getDisplay().initialize();
         Editor.setCurrentEditor(editor);
 

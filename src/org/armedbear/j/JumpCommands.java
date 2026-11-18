@@ -165,7 +165,7 @@ public final class JumpCommands {
     // Drop a temporary bookmark, overwriting the existing temporary bookmark
     // if one exists.
     public static void dropTemporaryMarker(Editor editor) {
-        Editor.getBookmarks()[10] = new Marker(editor.getBuffer(), editor.getDot());
+        Editor.setTemporaryMarker(new Marker(editor.getBuffer(), editor.getDot()));
         editor.status("Temporary marker dropped");
     }
 

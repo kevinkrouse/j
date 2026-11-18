@@ -603,6 +603,22 @@ is set, nine colors chosen for a light or dark background are used.
 <b>Default value:</b> None
 </dl>
 
+<code><a name="color.scrollMark">color.scrollMarkBookmark, color.scrollMarkConflict, color.scrollMarkSearch</a></code>
+<dl>
+<dd>
+The colors of the marks on the vertical scroll bar, with
+<a href="#scrollBarMarks">scrollBarMarks</a>, of bookmarks, conflicts and
+search matches. Changes are marked in the change marks' colors:
+<a href="#color.change">color.change</a> and
+<a href="#color.savedChange">color.savedChange</a> for j's own;
+<code>color.vcsAdded</code>, <code>color.vcsChanged</code> and
+<code>color.vcsDeleted</code> for git's and a comparison's. If not set, colors
+chosen for the scroll bar's background are used; for search matches, a more
+vivid <a href="#color.searchMatchBackground">color.searchMatchBackground</a>.
+<p>
+<b>Default value:</b> None
+</dl>
+
 <code><a name="color.searchMatchBackground">color.searchMatchBackground</a></code>
 <dl>
 <dd>
@@ -1934,6 +1950,27 @@ lost or truncated if a network problem prevents successful completion of the
 save, but it may not preserve all attributes of the destination file.
 <p>
 <b>Default value:</b> false
+</dl>
+
+<code><a name="scrollBarMarks">scrollBarMarks</a></code>
+<dl>
+<dd>
+If true, the vertical scroll bar marks where the buffer's bookmarks, changes,
+conflicts and highlighted search matches are, in the scroll bar's own
+proportions: a mark is on the thumb when its line is in the window. Changes
+are marked when the gutter shows them
+(<a href="#showChangeMarks">showChangeMarks</a>, <a href="#vcsSigns">vcsSigns</a>),
+a comparison's always; search matches when they are highlighted
+(<a href="#highlightSearchMatches">highlightSearchMatches</a>, or vim's
+<code>hlsearch</code>), except on a buffer so large that finding them takes
+too long. The marks are translucent. Changes and conflicts are drawn in a
+narrow lane beside the text, the other marks across the bar over them.
+Hovering a mark tells what it is and its line; clicking
+one off the thumb goes there. See
+<a href="navigation.html#scroll-bar-marks">Getting Around</a>, and
+<a href="#color.scrollMark">color.scrollMarkBookmark</a> for the colors.
+<p>
+<b>Default value:</b> true
 </dl>
 
 <code><a name="scrollCaret">scrollCaret</a></code>

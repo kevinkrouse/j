@@ -31,6 +31,7 @@ import org.armedbear.j.ViewPane;
 /** The old side of a comparison, at the left: a part of its new side, which has the alignment. */
 public final class OldSide extends ViewPane<CompareBuffer> {
     private List<Line> changeStarts = List.of();
+    private List<ChangeSpan> changeSpans = List.of();
 
     OldSide(Mode mode, CompareBuffer owner, String title) {
         super(mode, owner, title, "");
@@ -38,6 +39,10 @@ public final class OldSide extends ViewPane<CompareBuffer> {
 
     void setChangeStarts(List<Line> starts) {
         changeStarts = starts;
+    }
+
+    void setChangeSpans(List<ChangeSpan> spans) {
+        changeSpans = spans;
     }
 
     // Its own keys over its mode's, as q and n.
@@ -86,6 +91,11 @@ public final class OldSide extends ViewPane<CompareBuffer> {
     @Override
     public List<Line> getChangeStarts() {
         return changeStarts;
+    }
+
+    @Override
+    public List<ChangeSpan> getChangeSpans() {
+        return changeSpans;
     }
 
     @Override

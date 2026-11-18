@@ -55,6 +55,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Preferences;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
+import org.armedbear.j.Signs;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.ToolBarButton;
 import org.armedbear.j.VirtualText;
@@ -210,6 +211,24 @@ public class CompareTest {
             final TrackGeometry.Band removed =
                     ((CompareTrack) diff.besideDisplay(right.editor())).bands(20 * ch).get(1);
             assertEquals(new TrackGeometry.Band(Kind.REMOVED, 4 * ch, 6 * ch, 7 * ch, 7 * ch), removed);
+        });
+    }
+
+    @Test
+    public void eachSideHasItsChangesForItsScrollBar() throws Exception {
+        open();
+        onEdt(() -> {
+            // b changed into B and three more; e and f removed, before g at the right.
+            assertEquals(
+                List.of(
+                    new Buffer.ChangeSpan(Signs.Kind.CHANGED, 1, 1),
+                    new Buffer.ChangeSpan(Signs.Kind.DELETED, 4, 2)),
+                diff.getOld().getChangeSpans());
+            assertEquals(
+                List.of(
+                    new Buffer.ChangeSpan(Signs.Kind.CHANGED, 1, 4),
+                    new Buffer.ChangeSpan(Signs.Kind.DELETED, 7, 0)),
+                diff.getChangeSpans());
         });
     }
 

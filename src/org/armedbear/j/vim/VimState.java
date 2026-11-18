@@ -11,6 +11,7 @@
 
 package org.armedbear.j.vim;
 
+import java.util.Arrays;
 import java.util.Locale;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Block;
@@ -20,8 +21,10 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.JumpList;
 import org.armedbear.j.Line;
 import org.armedbear.j.Marker;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Search;
+import org.armedbear.j.SearchMatcher;
 
 /**
  * Everything modal editing has to remember between keystrokes.
@@ -750,6 +753,19 @@ public final class VimState {
         return preview != null ? previewMatches(editor, line) : editor.lastSearchMatches(line);
     }
 
+    /** searchMatches for every line, or null when it paints none. */
+    public SearchMatcher searchMatcher(Editor editor) {
+        if (!VimKeyMap.getSharedOptions().isOn("hlsearch"))
+            return null;
+        if (preview == null)
+            return editor.lastSearchMatcher();
+        final Search search = previewSearch(editor);
+        if (search == null)
+            return null;
+        final Mode mode = editor.getBuffer().getMode();
+        return new SearchMatcher(Arrays.asList(mode, previewKey), line -> search.matchesOnLine(mode, line));
+    }
+
     /** The match incsearch has the caret on, if it is on this line. */
     public int[] currentSearchMatch(Editor editor, Line line) {
         if (preview == null || line != previewAt.getLine())
@@ -767,12 +783,18 @@ public final class VimState {
     private String previewKey;
 
     private int[] previewMatches(Editor editor, Line line) {
+        final Search search = previewSearch(editor);
+        return search == null ? null : search.matchesOnLine(editor.getBuffer().getMode(), line);
+    }
+
+    // Null when the pattern is bad.
+    private Search previewSearch(Editor editor) {
         final String key = VimSearch.compiledKey(preview);
         if (!key.equals(previewKey)) {
             previewKey = key;
             previewSearch = VimSearch.compileQuietly(preview, editor);
         }
-        return previewSearch == null ? null : previewSearch.matchesOnLine(editor.getBuffer().getMode(), line);
+        return previewSearch;
     }
 
     // --------------------------------------------------------- incsearch

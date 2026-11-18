@@ -14,6 +14,8 @@ list. Mouse targets are resolved from visible UI state when each step runs:
 - `text TEXT`: the beginning of TEXT in a visible editor line.
 - `node TEXT`: a visible sidebar tree row containing TEXT.
 - `button NAME`: a painted Sidebar, Buffers, Changes, or Tree status button.
+- `mark N`: the middle of the Nth mark, from 1 in buffer order, on the
+  current window's vertical scroll bar.
 - `X Y`: coordinates relative to the current frame, for geometry tests.
 
 `click [double] [right] [ctrl] [shift] TARGET` sends a real mouse click.

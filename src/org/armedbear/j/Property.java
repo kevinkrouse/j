@@ -164,6 +164,7 @@ public final class Property implements Comparable<Property> {
     public static final Property REMOVE_TRAILING_WHITESPACE = createProperty("removeTrailingWhitespace", false);
     public static final Property RESTRICT_CARET = createProperty("restrictCaret", true);
     public static final Property SAVE_IN_PLACE = createProperty("saveInPlace", false);
+    public static final Property SCROLL_BAR_MARKS = createProperty("scrollBarMarks", true);
     public static final Property SCROLL_CARET = createProperty("scrollCaret", true);
     public static final Property SELECT_COMPLETION = createProperty("selectCompletion", true);
     public static final Property SHARE_SEARCH = createProperty("shareSearch", true);

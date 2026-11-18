@@ -209,6 +209,14 @@ public class Search implements Cloneable {
         return n == 0 ? null : Arrays.copyOf(spans, n);
     }
 
+    /** What matchesOnLine depends on besides the line and mode, as it is now: a Search is mutable. */
+    public final Object matchKey() {
+        return new MatchKey(pattern, re, ignoreCase, wholeWordsOnly, regularExpression);
+    }
+
+    private record MatchKey(String pattern, Pattern re, boolean ignoreCase, boolean wholeWordsOnly,
+            boolean regularExpression) {}
+
     public final boolean find(String s) {
         return regularExpression ? findRegExp(s) : findString(s);
     }

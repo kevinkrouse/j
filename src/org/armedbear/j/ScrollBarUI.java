@@ -59,6 +59,15 @@ public final class ScrollBarUI extends BasicScrollBarUI {
         g.translate(-thumbBounds.x, -thumbBounds.y);
     }
 
+    // Public: getTrackBounds and getThumbBounds are protected.
+    public Rectangle trackBounds() {
+        return new Rectangle(getTrackBounds());
+    }
+
+    public Rectangle thumbBounds() {
+        return new Rectangle(getThumbBounds());
+    }
+
     @Override
     protected JButton createDecreaseButton(int orientation) {
         return new ArrowButton(orientation);

@@ -229,7 +229,9 @@ public final class GuiDriver {
     // evaluates code or writes outside the fixture. Add one here to use it.
     private static final java.util.Set<String> COMMANDS = java.util.Set.of(
         "bob",
+        "diff",
         "diffGotoFile",
+        "dropBookmark",
         "finish",
         "incrementalFind",
         "insertString",
@@ -350,6 +352,23 @@ public final class GuiDriver {
             throw new IllegalArgumentException("target needs a kind and text: " + spec);
         final String text = parts[1];
         switch (parts[0]) {
+            case "mark":
+                // The Nth, from 1, of the current window's scroll bar marks, in buffer order, at its middle.
+                final VerticalScrollBar bar = editor.getVerticalScrollBar();
+                final ScrollMarks marks = ScrollMarks.of(editor, null);
+                final int n = Integer.parseInt(text.trim()) - 1;
+                if (bar == null || marks == null || n < 0 || n >= marks.marks.size())
+                    break;
+                final Rectangle r = marks.bounds(
+                    marks.marks.get(n),
+                    bar.trackBounds(),
+                    editor.getDisplay().getHeight(),
+                    !editor.isScrollBarLeft());
+                if (r == null)
+                    break;
+                final Point mp = bar.getLocationOnScreen();
+                mp.translate(r.x + r.width / 2, r.y + r.height / 2);
+                return mp;
             case "button":
                 return frame.getStatusBar().buttonScreenPoint(text);
             case "node":

@@ -175,6 +175,23 @@ public final class VirtualTextLayer {
         return rows(byLine.get(line), Placement.BELOW);
     }
 
+    /** Each line's rows over and under it, of those with any: one lock for a walk of every line. */
+    public synchronized Map<Line, int[]> rowsByLine() {
+        final Map<Line, int[]> rows = new IdentityHashMap<>();
+        for (Map.Entry<Line, List<VirtualText>> e : byLine.entrySet()) {
+            final int above = rows(e.getValue(), Placement.ABOVE);
+            final int below = rows(e.getValue(), Placement.BELOW);
+            if (above + below > 0)
+                rows.put(e.getKey(), new int[] { above, below });
+        }
+        return rows;
+    }
+
+    /** TOP's rows, over the first line shown. */
+    public synchronized int topRows() {
+        return rows(top, Placement.TOP);
+    }
+
     private static int rows(List<VirtualText> list, Placement placement) {
         if (list == null)
             return 0;

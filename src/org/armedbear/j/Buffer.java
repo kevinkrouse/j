@@ -855,6 +855,20 @@ public class Buffer extends SystemBuffer {
         return mode.getChangeStarts(this);
     }
 
+    /**
+     * A change as the scroll bar marks it: count lines from start, 0-based,
+     * or with count 0 the boundary before start.
+     */
+    public record ChangeSpan(Signs.Kind kind, int start, int count) {}
+
+    /**
+     * Its changes in order, when it knows them itself, as a comparison's
+     * side does; null for the change marks'. The same list until they change.
+     */
+    public List<ChangeSpan> getChangeSpans() {
+        return null;
+    }
+
     /** The window ed on it has scrolled, by any means: a key, the wheel, the scroll bar. */
     public void scrolled(Editor ed) {}
 

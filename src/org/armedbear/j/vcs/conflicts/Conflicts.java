@@ -489,8 +489,8 @@ public final class Conflicts implements Buffer.Follower {
         return m != null ? m.getKeyText() : null;
     }
 
-    // The label cut short with an ellipsis; the fallback when empty.
-    static String label(String s, String fallback) {
+    /** A conflict marker's label cut short with an ellipsis; the fallback when empty. */
+    public static String label(String s, String fallback) {
         if (s.isEmpty())
             return fallback;
         return s.length() > LABEL_MAX ? s.substring(0, LABEL_MAX - 1) + "\u2026" : s;

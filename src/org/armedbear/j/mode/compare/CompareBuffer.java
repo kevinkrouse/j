@@ -48,6 +48,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
 import org.armedbear.j.Sidebar;
+import org.armedbear.j.Signs;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
@@ -82,6 +83,7 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     private Side oldText = Side.NONE;
     private Side newText = Side.NONE;
     private List<Line> changeStarts = List.of();
+    private List<ChangeSpan> changeSpans = List.of();
     private WindowLayout.Node before;
     // Where its texts come from, kept up with while it is open.
     private Following source;
@@ -309,6 +311,8 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
             final Runnable placeNew = kept(this);
             old.setChangeStarts(lay(old, oldText.lines(), newText.lines(), true, sameOld && !relay));
             changeStarts = lay(this, newText.lines(), oldText.lines(), false, sameNew && !relay);
+            old.setChangeSpans(spans(this.alignment, true));
+            changeSpans = spans(this.alignment, false);
             folds.reset(this.alignment, sameOld, sameNew);
             placeOld.run();
             placeNew.run();
@@ -638,6 +642,25 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
         return List.copyOf(out);
     }
 
+    // A side's changes, as its scroll bar marks them.
+    private static List<ChangeSpan> spans(DiffAlignment alignment, boolean isOld) {
+        final List<ChangeSpan> out = new ArrayList<>();
+        for (Change c : alignment.changes()) {
+            final int start = isOld ? c.oldStart() : c.newStart();
+            final int count = isOld ? c.oldCount() : c.newCount();
+            final int other = isOld ? c.newCount() : c.oldCount();
+            final Signs.Kind kind;
+            if (count > 0 && other > 0)
+                kind = Signs.Kind.CHANGED;
+            else if (count > 0)
+                kind = isOld ? Signs.Kind.DELETED : Signs.Kind.ADDED;
+            else
+                kind = isOld ? Signs.Kind.ADDED : Signs.Kind.DELETED;
+            out.add(new ChangeSpan(kind, start, count));
+        }
+        return List.copyOf(out);
+    }
+
     // The view.
 
     @Override
@@ -774,6 +797,11 @@ public final class CompareBuffer extends ViewBuffer implements FrameView, DiffWh
     @Override
     public List<Line> getChangeStarts() {
         return changeStarts;
+    }
+
+    @Override
+    public List<ChangeSpan> getChangeSpans() {
+        return changeSpans;
     }
 
     @Override

@@ -407,12 +407,11 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
 
     private boolean dragTextStarting;
 
-    @Override
-    public void mousePressed(MouseEvent e) {
-        // Cleared before any early return: the drag gesture recognizer
-        // fires from this press whatever the press itself did, so a stale
-        // payload from a previous press must not survive to start a drag.
-        bufferDrag = null;
+    /**
+     * A click in the window, on its text or its scroll bar: ends what the
+     * location bar was taking, and makes the window the current one.
+     */
+    void clickedIn() {
         if (editor.getFocusedComponent() == editor.getLocationBarTextField()) {
             TextFieldHandler handler = editor.getLocationBarTextField().getHandler();
             if (handler instanceof IncrementalFindTextFieldHandler) {
@@ -435,6 +434,15 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             if (sidebar != null)
                 sidebar.setUpdateFlag(SIDEBAR_SET_BUFFER);
         }
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        // Cleared before any early return: the drag gesture recognizer
+        // fires from this press whatever the press itself did, so a stale
+        // payload from a previous press must not survive to start a drag.
+        bufferDrag = null;
+        clickedIn();
         // A plain left click, with no keyboard modifier.
         final boolean plainButton1 = e.getButton() == MouseEvent.BUTTON1 && Keys.isUnmodified(e);
         JPopupMenu popup = editor.getPopup();

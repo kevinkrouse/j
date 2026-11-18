@@ -153,6 +153,16 @@ public interface InputHandler
     }
 
     /**
+     * getSearchMatches for every line, or null when it paints none: for the
+     * scroll bar's marks of them. A handler that overrides one overrides
+     * both.
+     */
+    default SearchMatcher getSearchMatcher(Editor editor)
+    {
+        return null;
+    }
+
+    /**
      * The match the caret is on while a search is typed, as a start and an
      * end, if it is on this line: painted over the others in a color of
      * its own, as vim's incsearch shows it.

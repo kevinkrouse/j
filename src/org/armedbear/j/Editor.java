@@ -40,6 +40,7 @@ import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -198,6 +199,24 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (search == null || isSearchHighlightHidden())
             return null;
         return search.matchesOnLine(buffer.getMode(), line);
+    }
+
+    /** getSearchMatches for every line, or null when it paints none. */
+    public final SearchMatcher getSearchMatcher() {
+        final InputHandler handler = getInputHandler();
+        if (handler != null)
+            return handler.getSearchMatcher(this);
+        return buffer.getBooleanProperty(Property.HIGHLIGHT_SEARCH_MATCHES) ? lastSearchMatcher() : null;
+    }
+
+    /** lastSearchMatches for every line, or null when it gives none. */
+    public final SearchMatcher lastSearchMatcher() {
+        final Search search = getLastSearch();
+        if (search == null || isSearchHighlightHidden())
+            return null;
+        // Whole words are delimited as the mode says.
+        final Mode mode = buffer.getMode();
+        return new SearchMatcher(Arrays.asList(mode, search.matchKey()), line -> search.matchesOnLine(mode, line));
     }
 
     /** The match a search being typed is on, as an input handler says. */
@@ -843,6 +862,14 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         return buffer != null && buffer.isGutterOnRight() && beside == null;
     }
 
+    boolean isScrollBarLeft() {
+        return scrollBarsLeft;
+    }
+
+    VerticalScrollBar getVerticalScrollBar() {
+        return verticalScrollBar;
+    }
+
     // The horizontal scroll bar beside the corner, at the vertical's side.
     private void placeHorizontalScrollBar() {
         if (horizontalScrollBar != null && horizontalScrollBar.getParent() instanceof JPanel panel) {
@@ -1161,7 +1188,24 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public static void setBookmark(char name, Marker marker) {
         final int index = bookmarkIndex(name);
         if (index >= 0)
-            bookmarks[index] = marker;
+            setBookmark(index, marker);
+    }
+
+    /** The temporary marker, which has no name. */
+    public static void setTemporaryMarker(Marker marker) {
+        setBookmark(10, marker);
+    }
+
+    private static void setBookmark(int index, Marker marker) {
+        bookmarks[index] = marker;
+        // Its old and new buffers' scroll bars mark it.
+        for (Editor ed : getEditorList())
+            ed.repaintScrollBar();
+    }
+
+    private void repaintScrollBar() {
+        if (verticalScrollBar != null)
+            verticalScrollBar.repaint();
     }
 
     public char getDotChar() {
@@ -1816,6 +1860,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public final void repaintDisplay() {
         display.setUpdateFlag(REPAINT);
         display.repaint();
+        // What repaints the whole text, as new signs or search, may move marks.
+        repaintScrollBar();
     }
 
     public final void repaintNow() {
@@ -2013,7 +2059,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public JComponent getFocusedComponent() {
-        return frame.getFocusedComponent();
+        return frame != null ? frame.getFocusedComponent() : null;
     }
 
     public void setFocusToDisplay() {
@@ -3002,18 +3048,19 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public void jumpToLine(int lineNumber, int offset) {
-        Line line = buffer.getLine(lineNumber);
-        if (line != null) {
-            line = buffer.jumpTarget(line);
-            recordJump();
-            if (offset < 0)
-                offset = 0;
-            else if (offset > line.length())
-                offset = line.length();
-            moveDotTo(line, offset);
-            setUpdateFlag(REFRAME);
-        } else
+        final Line line = buffer.getLine(lineNumber);
+        if (line != null)
+            jumpToLine(line, offset);
+        else
             MotionCommands.eob(this);
+    }
+
+    /** To line of this buffer, offset clamped to it, recorded as a jump. */
+    public void jumpToLine(Line line, int offset) {
+        line = buffer.jumpTarget(line);
+        recordJump();
+        moveDotTo(line, Math.max(0, Math.min(offset, line.length())));
+        setUpdateFlag(REFRAME);
     }
 
     public void offset() {
@@ -3313,6 +3360,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 y = display.getPixelsAboveTopLine();
             verticalScrollBar.setValues(y, display.getHeight(), 0, buffer.getDisplayHeight());
             inScrollBarUpdate = false;
+            verticalScrollBar.repaintIfMarksStale();
         }
     }
 

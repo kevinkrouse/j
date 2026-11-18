@@ -30,6 +30,7 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
+import org.armedbear.j.SearchMatcher;
 import org.armedbear.j.util.Keys;
 
 /**
@@ -160,6 +161,11 @@ public final class VimInputHandler implements InputHandler {
     @Override
     public int[] getSearchMatches(Editor editor, Line line) {
         return state.searchMatches(editor, line);
+    }
+
+    @Override
+    public SearchMatcher getSearchMatcher(Editor editor) {
+        return state.searchMatcher(editor);
     }
 
     @Override

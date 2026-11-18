@@ -74,12 +74,12 @@
     - dialogs slide/animate in from top of the buffer area and are not separate windows
 - [x] '/' search highlights next search hit with cursor and all other hits in doc
     - hlsearch and incsearch
-- [ ] scrollbar with info/warn/error/bookmarks/search-hits ... highlighted ala intellij
-    - https://github.com/kensyo/nvim-scrlbkun
-    - https://github.com/petertriho/nvim-scrollbar
     - https://github.com/dstein64/nvim-scrollview
     - https://github.com/mihovilrak/scroll.nvim
 - [ ] smooth scrolling
+- [/] scrollbar with info/warn/error/bookmarks/search-hits ... highlighted ala intellij
+    - [x] dev-docs/SCROLLBAR-MARKS.md: bookmarks, changes, conflicts, search done
+    - [ ] diagnostics (info/warn/error) wait for LSP
 - [x] rainbow parens
 - [ ] draw vertical indentation line
 - [ ] typing in sidebar highlights matches
