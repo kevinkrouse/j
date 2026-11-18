@@ -22,6 +22,7 @@
 package org.armedbear.j.mode.python;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import org.armedbear.j.Buffer;
@@ -664,7 +665,7 @@ public final class PythonFormatter extends Formatter {
         int j = quote;
         while (j > 0 && mode.isIdentifierPart(text.charAt(j - 1)))
             --j;
-        final String p = text.substring(j, quote).toLowerCase();
+        final String p = text.substring(j, quote).toLowerCase(Locale.ROOT);
         if (FSTRING_PREFIXES.contains(p))
             return PYTHON_PREFIX_FSTRING;
         if (TEMPLATE_PREFIXES.contains(p))

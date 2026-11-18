@@ -763,12 +763,11 @@ public final class ChangesTree extends SidebarTree implements KeyListener, Mouse
         if (status == null || editor == null)
             return null;
         final VcsMenu menu = new VcsMenu(editor, null);
-        if (o instanceof FileNode) {
+        if (o instanceof FileNode line) {
             // The files selected when the node is among them; else the node alone.
-            final List<FileNode> files = isSelected(path) ? selectedFiles() : List.of((FileNode) o);
+            final List<FileNode> files = isSelected(path) ? selectedFiles() : List.of(line);
             final List<Target> targets = targetsFor(files);
             // The labels, and the items of one file, the node right-clicked's.
-            final FileNode line = (FileNode) o;
             VcsContextMenus.fileItems(
                 menu,
                 editor,

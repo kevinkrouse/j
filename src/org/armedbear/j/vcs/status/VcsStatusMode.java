@@ -928,10 +928,11 @@ public final class VcsStatusMode extends AbstractMode implements Mode {
         // On a file or hunk picked, whole or in part, each file picked; on
         // anything else, as ever.
         final VcsStatusBuffer status = owner(editor);
+        final StatusLine at = dotLine(editor);
         if (status != null
                 && editor.getBuffer() == status
                 && !status.picks().isEmpty()
-                && dotLine(editor) instanceof StatusLine at
+                && at != null
                 && at.kind() != Kind.DIFF
                 && status.picks().state(at) != PickState.NONE) {
             final List<String> gone = new ArrayList<>();

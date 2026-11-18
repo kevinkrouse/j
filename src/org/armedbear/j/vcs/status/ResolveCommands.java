@@ -26,6 +26,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -258,9 +259,9 @@ public final class ResolveCommands {
     private static String keepAside(VcsRepository r, List<String> paths) {
         if (paths.isEmpty())
             return null;
-        final Path dir =
-                keptDirectory().resolve(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")))
-                        .resolve(r.name());
+        final Path dir = keptDirectory().resolve(
+            LocalDateTime.now(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS")))
+                .resolve(r.name());
         final boolean trash = StatusActions.canTrash();
         try {
             for (String path : paths) {

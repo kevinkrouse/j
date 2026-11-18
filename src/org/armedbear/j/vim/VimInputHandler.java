@@ -823,7 +823,7 @@ public final class VimInputHandler implements InputHandler {
             if (key.startsWith("<literal:")) {
                 // Noted like any other key, so a count types the run each time.
                 state.noteInsertKey(key);
-                try (Editor.PairSuppression suppression = editor.suppressPairing()) {
+                try (Editor.PairSuppression _ = editor.suppressPairing()) {
                     typeText(editor, literalRun(key));
                 }
                 return;
@@ -880,7 +880,7 @@ public final class VimInputHandler implements InputHandler {
         }
         // The live insert must not pair either; the repeat holds its own
         // suppression when it replays the snapshot.
-        try (Editor.PairSuppression suppression = editor.suppressPairing()) {
+        try (Editor.PairSuppression _ = editor.suppressPairing()) {
             typeChars(editor, text, false);
         }
     }

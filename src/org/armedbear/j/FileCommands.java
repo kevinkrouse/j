@@ -360,7 +360,8 @@ public final class FileCommands {
             locationBar.update();
         // Again once a menu has closed, which takes the focus back.
         editor.setFocusToTextField();
-        if (editor.getDispatcher().getLastEvent() instanceof AWTEvent e && e.getSource() instanceof MenuItem)
+        final AWTEvent last = editor.getDispatcher().getLastEvent();
+        if (last != null && last.getSource() instanceof MenuItem)
             SwingUtilities.invokeLater(editor::setFocusToTextField);
     }
 
