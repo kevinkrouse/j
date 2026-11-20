@@ -178,6 +178,21 @@ public final class MarkdownFormatter extends Formatter {
         return (line.flags() & BLOCK_MASK) == IN_FENCE;
     }
 
+    /**
+     * The lines from first on that sit inside a fence, a comment or front
+     * matter — where a line's own text is not prose. Computed by a fresh
+     * scan, so it is correct before the formatter has painted, for callers
+     * that cannot wait for the line flags.
+     */
+    static java.util.Set<Line> nonProseLines(Line first) {
+        final java.util.Set<Line> out = new java.util.HashSet<>();
+        scan(first, (l, flags) -> {
+            if ((flags & BLOCK_MASK) != NORMAL)
+                out.add(l);
+        });
+        return out;
+    }
+
     /** Whether line opens a fence. */
     static boolean opensFence(Line line) {
         return (line.flags() & BLOCK_MASK) == NORMAL && FENCE_OPEN.matcher(line.getText()).matches();

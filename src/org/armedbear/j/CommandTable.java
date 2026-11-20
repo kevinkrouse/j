@@ -57,6 +57,7 @@ import org.armedbear.j.mode.list.ListTagsDialog;
 import org.armedbear.j.mode.list.ListTagsMode;
 import org.armedbear.j.mode.man.ManMode;
 import org.armedbear.j.mode.markdown.MarkdownFolding;
+import org.armedbear.j.mode.markdown.MarkdownInlineImages;
 import org.armedbear.j.mode.markdown.MarkdownLists;
 import org.armedbear.j.mode.markdown.MarkdownTasks;
 import org.armedbear.j.mode.php.PHPMode;
@@ -596,6 +597,7 @@ public class CommandTable {
             add("findTagAtDotOtherWindow", e -> TagCommands.findTagAtDotOtherWindow());
             add("finish", e -> CheckinBuffer.finish());
             add("foldHeadings", e -> MarkdownFolding.foldHeadings(), (e, s) -> MarkdownFolding.foldHeadings(s));
+            add("toggleInlineImages", e -> MarkdownInlineImages.toggle(e));
             add("followContext", e -> FollowContextTask.followContext());
             add("followLink", e -> FollowLink.followLink());
             add("followLinkOrTask", e -> MarkdownTasks.followLinkOrTask());

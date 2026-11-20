@@ -21,24 +21,28 @@
 package org.armedbear.j;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.util.List;
 
 /**
  * Text the display draws but the buffer does not hold: after a line's end,
- * at the window's right edge, or as whole rows above or below a line or
- * over the buffer's first. The caret, search, copying and saving never see
- * it. Kept in the buffer's {@link VirtualTextLayer}.
+ * at the window's right edge, as whole rows above or below a line or over
+ * the buffer's first, or as a picture replacing a range of lines. The
+ * caret, search, copying and saving never see it. Kept in the buffer's
+ * {@link VirtualTextLayer}.
  *
  * @param line the line it belongs to, which it goes with when the line is
- *     deleted; null for TOP
+ *     deleted; null for TOP. For REPLACE, the first line of the range.
  * @param rows its text: one row for EOL and RIGHT, any number for the rest
  * @param priority lower first: nearer the text for EOL, higher for ABOVE
  * @param background the rows' background, or null for the window's
  * @param scrolls whether ABOVE and BELOW rows scroll sideways with the text
  * @param foreground for BACKGROUND, the line's text color, or null for its own
+ * @param last for REPLACE, the last line of the range it replaces; null otherwise
+ * @param painter for REPLACE, what draws the picture over the range; null otherwise
  */
 public record VirtualText(Line line, Placement placement, List<List<Run>> rows, int priority, Color background,
-        boolean scrolls, Color foreground) {
+        boolean scrolls, Color foreground, Line last, Painter painter) {
 
     public enum Placement {
         /** After the end of the line, a space from it. */
@@ -52,7 +56,27 @@ public record VirtualText(Line line, Placement placement, List<List<Run>> rows, 
         /** Whole rows over the buffer's first line, which scroll away with it. */
         TOP,
         /** The line's background, behind its text, and maybe its text's color; no rows. */
-        BACKGROUND
+        BACKGROUND,
+        /**
+         * A picture drawn in place of a range of lines, from {@code line} to
+         * {@code last}. Collapsed (the picture shows) while the caret is
+         * outside the range; revealed (the lines draw their own text) when
+         * the caret is inside it. The buffer's text is never touched.
+         */
+        REPLACE
+    }
+
+    /**
+     * Draws a REPLACE picture over a line range and reports how tall it is.
+     * Called on the EDT during paint, so it must be cheap: draw what is
+     * already loaded, never render or touch the filesystem.
+     */
+    public interface Painter {
+        /** Paints the picture into the given box, in window coordinates. */
+        void paint(Graphics2D g, int x, int y, int width, int height);
+
+        /** The picture's height in pixels at the current scale. */
+        int getHeight();
     }
 
     /**
@@ -97,27 +121,35 @@ public record VirtualText(Line line, Placement placement, List<List<Run>> rows, 
             throw new IllegalArgumentException(placement + " takes no rows and a color");
         if (placement != Placement.BACKGROUND && foreground != null)
             throw new IllegalArgumentException(placement + " takes no foreground");
+        if (placement == Placement.REPLACE) {
+            if (last == null || painter == null)
+                throw new IllegalArgumentException("REPLACE needs a last line and a painter");
+            if (!rows.isEmpty())
+                throw new IllegalArgumentException("REPLACE takes no rows");
+        } else if (last != null || painter != null) {
+            throw new IllegalArgumentException(placement + " takes no last line or painter");
+        }
         rows = rows.stream().map(List::copyOf).toList();
     }
 
     public static VirtualText eol(Line line, List<Run> runs) {
-        return new VirtualText(line, Placement.EOL, List.of(runs), 0, null, false, null);
+        return new VirtualText(line, Placement.EOL, List.of(runs), 0, null, false, null, null, null);
     }
 
     public static VirtualText right(Line line, List<Run> runs) {
-        return new VirtualText(line, Placement.RIGHT, List.of(runs), 0, null, false, null);
+        return new VirtualText(line, Placement.RIGHT, List.of(runs), 0, null, false, null, null, null);
     }
 
     public static VirtualText above(Line line, List<List<Run>> rows) {
-        return new VirtualText(line, Placement.ABOVE, rows, 0, null, true, null);
+        return new VirtualText(line, Placement.ABOVE, rows, 0, null, true, null, null, null);
     }
 
     public static VirtualText below(Line line, List<List<Run>> rows) {
-        return new VirtualText(line, Placement.BELOW, rows, 0, null, true, null);
+        return new VirtualText(line, Placement.BELOW, rows, 0, null, true, null, null, null);
     }
 
     public static VirtualText top(List<List<Run>> rows) {
-        return new VirtualText(null, Placement.TOP, rows, 0, null, false, null);
+        return new VirtualText(null, Placement.TOP, rows, 0, null, false, null, null, null);
     }
 
     public static VirtualText background(Line line, Color color) {
@@ -126,23 +158,36 @@ public record VirtualText(Line line, Placement placement, List<List<Run>> rows, 
 
     /** line's background, and its text in foreground. */
     public static VirtualText background(Line line, Color color, Color foreground) {
-        return new VirtualText(line, Placement.BACKGROUND, List.of(), 0, color, false, foreground);
+        return new VirtualText(line, Placement.BACKGROUND, List.of(), 0, color, false, foreground, null, null);
+    }
+
+    /** A picture replacing the lines from {@code first} to {@code last}. */
+    public static VirtualText replace(Line first, Line last, Painter painter) {
+        return new VirtualText(first, Placement.REPLACE, List.of(), 0, null, false, null, last, painter);
     }
 
     public VirtualText withPriority(int priority) {
-        return new VirtualText(line, placement, rows, priority, background, scrolls, foreground);
+        return new VirtualText(line, placement, rows, priority, background, scrolls, foreground, last, painter);
     }
 
     public VirtualText withBackground(Color background) {
-        return new VirtualText(line, placement, rows, priority, background, scrolls, foreground);
+        return new VirtualText(line, placement, rows, priority, background, scrolls, foreground, last, painter);
     }
 
-    /** The rows it adds to the window's height. */
+    /** The rows it adds to the window's height. REPLACE adds none; its
+     * height is the painter's pixels, accounted for separately. */
     public int height() {
         return switch (placement) {
             case ABOVE, BELOW, TOP -> rows.size();
             default -> 0;
         };
+    }
+
+    /** Whether line is within this REPLACE's range, inclusive. */
+    public boolean covers(Line l) {
+        if (placement != Placement.REPLACE || l == null)
+            return false;
+        return l.lineNumber() >= line.lineNumber() && l.lineNumber() <= last.lineNumber();
     }
 
     /** The text of a row, without styles. */

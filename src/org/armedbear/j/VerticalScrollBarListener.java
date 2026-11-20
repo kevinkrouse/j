@@ -45,7 +45,7 @@ public final class VerticalScrollBarListener implements AdjustmentListener {
             }
             return;
         }
-        int oldValue = editor.getBuffer().getY(display.getTopLine()) + display.getPixelsAboveTopLine();
+        int oldValue = editor.getDisplay().getAbsoluteY(display.getTopLine()) + display.getPixelsAboveTopLine();
         if (display.scrollByPixels(e.getValue() - oldValue) != 0) {
             editor.maybeScrollCaret();
             editor.updateDisplay();

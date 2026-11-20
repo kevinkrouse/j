@@ -203,6 +203,10 @@ public final class Property implements Comparable<Property> {
     public static final Property VCS_SIGNS = createProperty("vcsSigns", true);
     public static final Property WRAP = createProperty("wrap", false);
 
+    // Markdown mode: draw the pictures of standalone ![alt](src) lines in
+    // place of the line, revealed to source when the caret enters.
+    public static final Property RENDER_INLINE_IMAGES = createProperty("renderInlineImages", true);
+
     // String properties with default values.
     public static final Property ATTRIBUTION = createProperty("attribution", "On %d, %n wrote:");
     public static final Property CLHS_ROOT = createProperty("clhsRoot", "/usr/share/doc/hyperspec");

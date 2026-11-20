@@ -529,7 +529,27 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             caretCol = absCol - shift;
             lineChanged(editor.getDotLine());
         }
+        // Crossing a REPLACE boundary shifts the height of every line
+        // below it, so the whole window must repaint.
+        if (syncRevealedReplace())
+            setUpdateFlag(REPAINT);
         setUpdateFlag(REFRAME);
+    }
+
+    /**
+     * Recomputes which REPLACE the caret is inside (revealed) and reports
+     * whether it changed since last time. Callers repaint on a change,
+     * because the lines below the old and new ranges shift height.
+     */
+    private boolean syncRevealedReplace() {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        final Position dot = editor.getDot();
+        final Line dotLine = dot == null ? null : dot.getLine();
+        final VirtualText now =
+                layer != null && layer.hasReplace() && dotLine != null ? layer.replaceFor(dotLine) : null;
+        final boolean changed = now != revealedReplace;
+        revealedReplace = now;
+        return changed;
     }
 
     // The top of line's text, under its rows of virtual text. Assumes line
@@ -549,7 +569,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     }
 
     // Does NOT assume line is after topLine.
-    private int getAbsoluteY(Line line) {
+    int getAbsoluteY(Line line) {
         int y = 0;
         for (Line l = editor.getBuffer().firstVisibleLine(); l != null && l != line; l = l.nextVisible())
             y += rowHeight(l);
@@ -563,6 +583,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     void rowsChanged() {
         if (topLine != null && !topLine.isHidden())
             moveTop(0, false);
+        // A REPLACE may have come or gone under the caret; resync so the
+        // next caret move compares against the current state.
+        syncRevealedReplace();
         setUpdateFlag(REFRAME | REPAINT);
         reframe();
     }
@@ -572,11 +595,48 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
         if (layer == null)
             return line.getHeight();
+        // A collapsed REPLACE: the anchor is the picture's height, the
+        // absorbed lines none.
+        final VirtualText r = collapsedReplace(line);
+        if (r != null)
+            return r.line() == line ? r.painter().getHeight() : 0;
         return line.getHeight() + (layer.rowsAbove(line) + layer.rowsBelow(line)) * charHeight;
     }
 
-    // The height of the rows of virtual text over line.
+    /** The total height of the buffer as this editor sees it, with REPLACE
+     * collapsed where the caret is outside. */
+    int getTotalHeight() {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer == null || !layer.hasReplace())
+            return editor.getBuffer().getDisplayHeight();
+        int total = 0;
+        for (Line l = editor.getBuffer().firstVisibleLine(); l != null; l = l.nextVisible())
+            total += rowHeight(l);
+        return total;
+    }
+
+    /**
+     * The REPLACE collapsed over line (the caret is outside its range), or
+     * null if line has none or is revealed. Shared by the height and paint
+     * paths so they agree on what a collapsed line looks like.
+     */
+    private VirtualText collapsedReplace(Line line) {
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer == null || !layer.hasReplace())
+            return null;
+        final VirtualText r = layer.replaceFor(line);
+        if (r == null)
+            return null;
+        final Position dot = editor.getDot();
+        final Line dotLine = dot == null ? null : dot.getLine();
+        return dotLine != null && r.covers(dotLine) ? null : r;
+    }
+
+    // The rows of virtual text over line. A collapsed REPLACE draws its
+    // picture at the row top and skips its rows, so it has none above.
     private int aboveHeight(Line line) {
+        if (collapsedReplace(line) != null)
+            return 0;
         final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
         return layer == null ? 0 : layer.rowsAbove(line) * charHeight;
     }
@@ -779,6 +839,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
      * caret clean up after itself wherever it is moved from.
      */
     private Line caretLine;
+
+    // The REPLACE the caret is inside (revealed), as of the last sync, so
+    // a crossing can trigger a full repaint. Resynced on caret moves and
+    // whenever REPLACE decorations come or go.
+    private VirtualText revealedReplace;
 
     // Called only from synchronized methods.
     private void drawCaret(Graphics2D g2d) {
@@ -1416,12 +1481,38 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         // A component's own Graphics, as the line-at-a-time paths fetch,
         // has none of the hints: its virtual rows would be drawn jagged.
         setRenderingHints(g2d);
+        // A collapsed absorbed line draws nothing; a collapsed anchor
+        // draws the picture over its row.
+        final VirtualText r = collapsedReplace(line);
+        if (r != null) {
+            if (r.line() != line)
+                return;
+            paintReplace(r, g2d, y);
+            return;
+        }
         y = paintRowsAbove(line, g2d, y);
         if (line instanceof ImageLine imageLine)
             paintImageLine(imageLine, g2d, y);
         else
             paintTextLine(line, g2d, y);
         paintRowsBelow(line, g2d, y + line.getHeight());
+    }
+
+    // Draws a collapsed REPLACE picture over its anchor's row, with no line
+    // numbers in the gutter over it.
+    private void paintReplace(VirtualText r, Graphics2D g2d, int y) {
+        final int height = r.painter().getHeight();
+        final Color background = editor.getFormatter().getBackgroundColor();
+        // The gutter over the picture: blank, no line number.
+        g2d.setColor(background);
+        g2d.fillRect(0, y, gutterWidth, height);
+        if (showLineNumbers && editor.getDot() != null)
+            drawGutterBorder(g2d, y, height);
+        // The picture area.
+        g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth, height);
+        final int x = gutterWidth;
+        final int width = getWidth() - gutterWidth;
+        r.painter().paint(g2d, x, y, width, height);
     }
 
     private synchronized void paintTextLine(Line line, Graphics g, int y) {
@@ -2688,6 +2779,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final int limit = clipBounds.y + clipBounds.height;
         while (line != null && y < limit) {
             final int rowTop = y;
+            // A collapsed REPLACE paints its picture on the anchor only.
+            final VirtualText rep = collapsedReplace(line);
+            if (rep != null) {
+                if (rep.line() == line)
+                    paintReplace(rep, g2d, y);
+                changedLines.remove(line);
+                y = rowTop + rowHeight(line);
+                line = line.nextVisible();
+                continue;
+            }
             y = paintRowsAbove(line, g2d, y);
             if (line instanceof ImageLine) {
                 paintImageLine((ImageLine) line, g2d, y);
@@ -3026,12 +3127,23 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             Line next = line.nextVisible();
             if (next == null)
                 break;
-            if (y + aboveHeight(next) + next.getHeight() > limit)
+            if (y + contentHeight(next) > limit)
                 break;
             y += rowHeight(next);
             line = next;
         }
         return line;
+    }
+
+    /**
+     * The height of line's drawn content: its text under its rows of
+     * virtual text, or, for a collapsed REPLACE, the picture's whole row.
+     * An absorbed line has none.
+     */
+    private int contentHeight(Line line) {
+        if (collapsedReplace(line) != null)
+            return rowHeight(line);
+        return aboveHeight(line) + line.getHeight();
     }
 
     public void up(boolean select) {
@@ -3163,7 +3275,11 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         else if (topLine == null || topLine instanceof ImageLine && pixelsAboveTopLine > 0)
             scrollByPixels(-charHeight);
         else {
-            final Line prev = topLine.previousVisible();
+            // Past a collapsed REPLACE the lines above the picture have
+            // zero height; step back over them to the first real row.
+            Line prev = topLine.previousVisible();
+            while (prev != null && rowHeight(prev) == 0)
+                prev = prev.previousVisible();
             scrollByPixels(prev == null || prev instanceof ImageLine ? -charHeight : -rowHeight(prev));
         }
     }
@@ -3175,8 +3291,16 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     public void windowDown() {
         if (topLine == null || topLine instanceof ImageLine)
             scrollByPixels(charHeight);
-        else
-            scrollByPixels(rowHeight(topLine) - pixelsAboveTopLine);
+        else {
+            // A zero-height top line (an absorbed REPLACE line) would
+            // scroll nowhere; step to the first line with a real row.
+            int h = rowHeight(topLine);
+            if (h == 0) {
+                for (Line l = topLine.nextVisible(); l != null && (h = rowHeight(l)) == 0; l = l.nextVisible())
+                    ;
+            }
+            scrollByPixels(h == 0 ? charHeight : h - pixelsAboveTopLine);
+        }
     }
 
     /**
@@ -3549,7 +3673,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             return;
 
         int y = getAbsoluteY(topLine) + pixelsAboveTopLine;
-        int limit = editor.getBuffer().getDisplayHeight() - getHeight() + charHeight;
+        int limit = getTotalHeight() - getHeight() + charHeight;
         if (y > limit) {
             // We need to scroll back in the buffer a bit.
             Line top = lineFromAbsoluteY(limit);

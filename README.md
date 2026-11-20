@@ -1,3 +1,5 @@
+![j-logo](src/org/armedbear/j/images/icons/j-64.png)
+
 # GENERAL
 
 J is a multifile, multiwindow programmer's editor written entirely in Java. It
@@ -37,12 +39,17 @@ exception statement from your version.
 # INSTALLATION
 
 To build J you need JDK 25 and [babashka](https://babashka.org/).
-`bb extensions` fetches Armed Bear Common Lisp from Maven Central for the abcl
-extension. If you use Nix, "nix develop" puts a suitable JDK, babashka, gcc,
-jfmt and, on Linux, Xvfb on your PATH.
 
-Run `bb build` to compile the source.
+If you use Nix, `nix develop` puts a suitable JDK, babashka, gcc, jfmt and,
+on Linux, Xvfb on your PATH. With [direnv](https://direnv.net/) (2.29+, or
+with nix-direnv) the same environment is set up automatically when you enter
+the project dir, once you have run `direnv allow`.
+
 Run `bb tasks` to see a list of available targets.
+Run `bb build` to compile the source.
+
+`bb extensions` fetches Armed Bear Common Lisp from Maven Central for the abcl
+extension.
 
 `bb fuzz-windows` runs J on a private Xvfb display and does random window,
 split and buffer operations, checking the layout after each; a failure prints

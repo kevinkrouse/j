@@ -42,6 +42,10 @@ public final class VirtualTextLayer {
     private final Map<String, List<VirtualText>> byOwner = new LinkedHashMap<>();
     private final Map<Line, List<VirtualText>> byLine = new IdentityHashMap<>();
     private final List<VirtualText> top = new ArrayList<>();
+    // The live REPLACE decorations, kept in step by add, remove and drop,
+    // so the height walk finds a line's REPLACE by scanning only these
+    // (a handful) instead of every decorated line.
+    private final List<VirtualText> replaces = new ArrayList<>();
 
     // The lines with rows of their own that are still in the buffer, as of
     // the buffer's last change.
@@ -110,12 +114,14 @@ public final class VirtualTextLayer {
         if (list == null)
             return false;
         for (VirtualText v : list)
-            if (v.height() > 0)
+            if (v.height() > 0 || v.placement() == Placement.REPLACE)
                 return true;
         return false;
     }
 
     private void add(VirtualText v) {
+        if (v.placement() == Placement.REPLACE)
+            replaces.add(v);
         final List<VirtualText> list =
                 v.line() == null ? top : byLine.computeIfAbsent(v.line(), l -> new ArrayList<>());
         list.add(v);
@@ -123,6 +129,8 @@ public final class VirtualTextLayer {
     }
 
     private void remove(VirtualText v) {
+        if (v.placement() == Placement.REPLACE)
+            replaces.remove(v);
         if (v.line() == null) {
             top.remove(v);
             return;
@@ -145,6 +153,47 @@ public final class VirtualTextLayer {
             if (v.placement() == placement)
                 list.add(v);
         return list;
+    }
+
+    /** The REPLACE that covers line, or null. */
+    public synchronized VirtualText replaceFor(Line line) {
+        if (line == null)
+            return null;
+        for (VirtualText v : replaces)
+            if (v.covers(line))
+                return v;
+        return null;
+    }
+
+    /** Whether line is within any REPLACE's range. */
+    public synchronized boolean isReplaced(Line line) {
+        return replaceFor(line) != null;
+    }
+
+    /** Whether line is the first line of a REPLACE. */
+    public synchronized boolean isReplaceAnchor(Line line) {
+        if (line == null)
+            return false;
+        final List<VirtualText> list = byLine.get(line);
+        if (list == null)
+            return false;
+        for (VirtualText v : list)
+            if (v.placement() == Placement.REPLACE)
+                return true;
+        return false;
+    }
+
+    /** Whether line is within a REPLACE but not its anchor. */
+    public synchronized boolean isReplacedAbsorbed(Line line) {
+        if (line == null)
+            return false;
+        final VirtualText r = replaceFor(line);
+        return r != null && r.line() != line;
+    }
+
+    /** Whether this buffer has any REPLACE decoration. */
+    public synchronized boolean hasReplace() {
+        return !replaces.isEmpty();
     }
 
     /** Whether line has any virtual text. */
@@ -269,6 +318,9 @@ public final class VirtualTextLayer {
         final List<VirtualText> list = byLine.remove(line);
         if (list == null)
             return;
+        for (VirtualText v : list)
+            if (v.placement() == Placement.REPLACE)
+                replaces.remove(v);
         for (Map.Entry<String, List<VirtualText>> e : byOwner.entrySet()) {
             final List<VirtualText> kept = new ArrayList<>(e.getValue());
             if (kept.removeIf(v -> v.line() == line))

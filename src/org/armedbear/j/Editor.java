@@ -71,6 +71,7 @@ import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.markdown.MarkdownInlineImages;
 import org.armedbear.j.transients.FilterBar;
 import org.armedbear.j.transients.Transient;
 import org.armedbear.j.util.Keys;
@@ -1348,6 +1349,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     void commandRan() {
         if (buffer != null)
             buffer.afterCommand(this);
+        MarkdownInlineImages.onEdit(this);
         viewChanged(this);
         final Editor current = currentEditor();
         if (current != null && current.getFrame() != null)
@@ -2090,6 +2092,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         updateScrollBars();
         if (buffer != null)
             buffer.windowResized(this);
+        MarkdownInlineImages.onResize(this);
     }
 
     @Override
@@ -2963,6 +2966,8 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (firstTime)
             Extensions.hooks().openFile(buffer);
         Extensions.hooks().bufferActivated(buffer);
+
+        MarkdownInlineImages.onActivate(this);
     }
 
     private void bufferPending() {
@@ -3355,10 +3360,10 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             inScrollBarUpdate = true;
             int y;
             if (getTopLine() != null)
-                y = buffer.getY(getTopLine()) + display.getPixelsAboveTopLine();
+                y = display.getAbsoluteY(getTopLine()) + display.getPixelsAboveTopLine();
             else
                 y = display.getPixelsAboveTopLine();
-            verticalScrollBar.setValues(y, display.getHeight(), 0, buffer.getDisplayHeight());
+            verticalScrollBar.setValues(y, display.getHeight(), 0, display.getTotalHeight());
             inScrollBarUpdate = false;
             verticalScrollBar.repaintIfMarksStale();
         }

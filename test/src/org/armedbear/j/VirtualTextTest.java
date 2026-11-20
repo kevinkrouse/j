@@ -120,10 +120,10 @@ public class VirtualTextTest {
         lines(2);
         assertThrows(
             IllegalArgumentException.class,
-            () -> new VirtualText(line(0), Placement.TOP, rows("x"), 0, null, false, null));
+            () -> new VirtualText(line(0), Placement.TOP, rows("x"), 0, null, false, null, null, null));
         assertThrows(
             IllegalArgumentException.class,
-            () -> new VirtualText(line(0), Placement.EOL, rows("x", "y"), 0, null, false, null));
+            () -> new VirtualText(line(0), Placement.EOL, rows("x", "y"), 0, null, false, null, null, null));
         assertThrows(IllegalArgumentException.class, () -> VirtualText.above(null, rows("x")));
     }
 
@@ -492,10 +492,11 @@ public class VirtualTextTest {
         assertThrows(IllegalArgumentException.class, () -> VirtualText.background(null, java.awt.Color.RED));
         assertThrows(
             IllegalArgumentException.class,
-            () -> new VirtualText(line(0), Placement.BACKGROUND, rows("x"), 0, java.awt.Color.RED, false, null));
+            () -> new VirtualText(
+                    line(0), Placement.BACKGROUND, rows("x"), 0, java.awt.Color.RED, false, null, null, null));
         assertThrows(
             IllegalArgumentException.class,
-            () -> new VirtualText(line(0), Placement.BACKGROUND, List.of(), 0, null, false, null));
+            () -> new VirtualText(line(0), Placement.BACKGROUND, List.of(), 0, null, false, null, null, null));
     }
 
     @Test
@@ -515,7 +516,8 @@ public class VirtualTextTest {
         lines(2);
         assertThrows(
             IllegalArgumentException.class,
-            () -> new VirtualText(line(0), Placement.EOL, rows("x"), 0, null, false, java.awt.Color.RED));
+            () -> new VirtualText(
+                    line(0), Placement.EOL, rows("x"), 0, null, false, java.awt.Color.RED, null, null));
     }
 
     // Whether the nth line's row has a pixel mostly green.
@@ -545,5 +547,182 @@ public class VirtualTextTest {
         finally {
             Editor.setDisplayReady(ready);
         }
+    }
+
+    // A painter that fills its area blue and counts how often it drew.
+    private static final class BluePainter implements VirtualText.Painter {
+        int paints;
+        final int height;
+
+        BluePainter(int height) {
+            this.height = height;
+        }
+
+        @Override
+        public void paint(java.awt.Graphics2D g, int x, int y, int width, int h) {
+            paints++;
+            g.setColor(java.awt.Color.BLUE);
+            g.fillRect(x, y, width, h);
+        }
+
+        @Override
+        public int getHeight() {
+            return height;
+        }
+    }
+
+    // Whether the pixel at x,y is mostly blue.
+    private boolean isBlue(BufferedImage image, int x, int y) {
+        final java.awt.Color c = new java.awt.Color(image.getRGB(x, y));
+        return c.getBlue() > 150 && c.getRed() < 80 && c.getGreen() < 80;
+    }
+
+    @Test
+    public void aReplaceIsThePaintersHeightWhenCollapsed() {
+        lines(5);
+        h.cursor(0, 0);
+        final int pictureHeight = 3 * ch;
+        set("rep", List.of(VirtualText.replace(line(2), line(3), new BluePainter(pictureHeight))));
+        // Collapsed: the anchor gets the picture's height, the absorbed line none.
+        assertEquals(pictureHeight, display.rowHeight(line(2)), "anchor is the picture");
+        assertEquals(0, display.rowHeight(line(3)), "absorbed is nothing");
+        // The total: 0,1,4 normal, the picture in place of 2 and 3.
+        assertEquals(3 * ch + pictureHeight, display.getTotalHeight(), "total height");
+    }
+
+    @Test
+    public void aReplaceIsNormalHeightWhenTheCaretIsInside() {
+        lines(5);
+        set("rep", List.of(VirtualText.replace(line(2), line(3), new BluePainter(3 * ch))));
+        h.cursor(2, 0);
+        // Revealed: both lines back to their own height.
+        assertEquals(ch, display.rowHeight(line(2)), "anchor revealed");
+        assertEquals(ch, display.rowHeight(line(3)), "absorbed revealed");
+        assertEquals(5 * ch, display.getTotalHeight(), "total back to normal");
+    }
+
+    @Test
+    public void aCollapsedReplacePaintsItsPicture() {
+        lines(5);
+        h.cursor(0, 0);
+        final BluePainter painter = new BluePainter(3 * ch);
+        set("rep", List.of(VirtualText.replace(line(2), line(3), painter)));
+        final BufferedImage image = paint();
+        // The picture fills the anchor's row, past the gutter.
+        final int x = Display.getGutterWidth(h.buffer()) + 5;
+        final int anchorY = 2 * ch;
+        assertTrue(isBlue(image, x, anchorY + ch / 2), "picture drawn over the anchor");
+        assertTrue(painter.paints > 0, "the painter ran");
+    }
+
+    @Test
+    public void aRevealedReplacePaintsNoPicture() {
+        lines(5);
+        h.cursor(2, 0);
+        final BluePainter painter = new BluePainter(3 * ch);
+        set("rep", List.of(VirtualText.replace(line(2), line(3), painter)));
+        paint();
+        assertEquals(0, painter.paints, "no picture when revealed");
+    }
+
+    @Test
+    public void aClickOnThePictureMapsToItsAnchor() {
+        lines(5);
+        h.cursor(0, 0);
+        set("rep", List.of(VirtualText.replace(line(2), line(3), new BluePainter(3 * ch))));
+        // A click in the middle of the picture's span maps to the anchor line.
+        final int anchorY = 2 * ch;
+        assertSame(line(2), display.lineFromY(anchorY + ch), "mid-picture is the anchor");
+        // Just past the picture, the next visible line (the absorbed one has no height).
+        assertSame(line(4), display.lineFromY(anchorY + 3 * ch + 1), "past the picture is line 4");
+    }
+
+    @Test
+    public void aReplaceCoversItsRange() {
+        lines(5);
+        final VirtualText r = VirtualText.replace(line(1), line(3), new BluePainter(ch));
+        assertFalse(r.covers(line(0)), "before");
+        assertTrue(r.covers(line(1)), "anchor");
+        assertTrue(r.covers(line(2)), "middle");
+        assertTrue(r.covers(line(3)), "last");
+        assertFalse(r.covers(line(4)), "after");
+    }
+
+    @Test
+    public void aReplaceNeedsItsLastLineAndPainter() {
+        lines(3);
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> new VirtualText(line(0), Placement.REPLACE, List.of(), 0, null, false, null, null, null));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> new VirtualText(line(1), Placement.REPLACE, List.of(), 0, null, false, null, line(0), null));
+    }
+
+    @Test
+    public void theLayerFindsTheReplaceCoveringALine() {
+        lines(5);
+        set("rep", List.of(VirtualText.replace(line(2), line(3), new BluePainter(2 * ch))));
+        assertNull(layer.replaceFor(line(1)), "outside");
+        assertSame(layer.replaceFor(line(2)), layer.replaceFor(line(3)), "same range");
+        assertTrue(layer.isReplaceAnchor(line(2)), "anchor");
+        assertFalse(layer.isReplaceAnchor(line(3)), "not the anchor");
+        assertTrue(layer.isReplacedAbsorbed(line(3)), "absorbed");
+        assertFalse(layer.isReplacedAbsorbed(line(2)), "anchor is not absorbed");
+        assertTrue(layer.hasReplace(), "has one");
+    }
+
+    @Test
+    public void aDroppedReplaceLeavesNoReplace() {
+        lines(6);
+        h.cursor(0, 0);
+        set("rep", List.of(VirtualText.replace(line(4), line(4), new BluePainter(2 * ch))));
+        assertTrue(layer.hasReplace(), "one before the delete");
+        // Delete the anchor line: joining 3 and 4 takes line 4 out.
+        final Line anchor = line(4);
+        h.editor().setDot(line(3), line(3).length());
+        h.editor().setMark(new Position(anchor, anchor.length()));
+        h.editor().deleteRegion();
+        h.buffer().renumber();
+        // The walk that drops the dead line must also drop its REPLACE.
+        layer.totalRows();
+        assertFalse(layer.hasReplace(), "gone with the line, no leak");
+    }
+
+    @Test
+    public void movingBetweenAdjacentReplacesRepaints() {
+        lines(5);
+        h.cursor(0, 0);
+        // Two single-line REPLACEs side by side.
+        set("rep", List.of(
+                VirtualText.replace(line(1), line(1), new BluePainter(2 * ch)),
+                VirtualText.replace(line(2), line(2), new BluePainter(2 * ch))));
+        // Settle the reveal state with the caret outside both.
+        h.editor().moveCaretToDotCol();
+        display.clearRepaintPending();
+        // Into the first: a crossing, so a repaint is needed.
+        h.cursor(1, 0);
+        h.editor().moveCaretToDotCol();
+        assertTrue(display.isRepaintPending(), "into the first picture repaints");
+        display.clearRepaintPending();
+        // Across to the second: both are "inside", but the first collapses
+        // and the second reveals, so a repaint is still needed.
+        h.cursor(2, 0);
+        h.editor().moveCaretToDotCol();
+        assertTrue(display.isRepaintPending(), "between adjacent pictures repaints");
+    }
+
+    @Test
+    public void windowUpPastACollapsedReplaceDoesNotStall() {
+        lines(6);
+        h.cursor(0, 0);
+        // A two-line REPLACE collapsed; the top line sits just below it.
+        set("rep", List.of(VirtualText.replace(line(1), line(2), new BluePainter(3 * ch))));
+        display.setTopLine(line(3));
+        display.setPixelsAboveTopLine(0);
+        final int before = display.getTopLine().lineNumber();
+        display.windowUp();
+        // The old code scrolled by the zero-height absorbed line and stuck.
+        assertTrue(display.getTopLine().lineNumber() < before, "scrolled up past the picture");
     }
 }
