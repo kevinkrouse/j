@@ -1,0 +1,21 @@
+;; Dependency manifest for the mermaid extension (see ../../build.clj).
+;;
+;; Like the abcl extension, the root deps.edn has no dependencies: core
+;; compiles and runs without Clojure. This extension carries its own.
+;; No :paths -- build.clj passes this extension's source directories to
+;; the AOT step explicitly; a :paths here would resolve against the
+;; repository root and put core's src/ on the extension's classpath.
+{:paths []
+
+ ;; The basis is created with :root nil, so the repositories are named
+ ;; here rather than inherited.
+ :mvn/repos
+ {"central" {:url "https://repo1.maven.org/maven2/"}}
+
+ :deps
+ {org.clojure/clojure {:mvn/version "1.12.5"}}
+
+ :aliases
+ {;; extra deps needed to compile and run test/src.
+  :test
+  {:extra-deps {org.junit.platform/junit-platform-console-standalone {:mvn/version "6.1.3"}}}}}

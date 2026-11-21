@@ -263,9 +263,11 @@ its own pixel height. So the source range collapses to zero and the painter
 occupies the anchor line's slot at *any* height. That single primitive
 covers three shapes:
 
-1. **One element** — a single image or vector picture (the Mermaid case).
-   The painter draws one `BufferedImage` scaled to the width; height = the
-   image's height.
+1. **One element** — a single image or vector picture (the inline-image
+   case). The painter draws one `BufferedImage` scaled to the width and
+   reports the image's height. (Mermaid is this shape too, but its painter
+   reports the *fence's* source height, not the picture's natural height —
+   see [Width and height control](#width-and-height-control).)
 2. **A tall rendered thing** — a diagram, a laid-out table, a math
    formula, a QR code. Same as (1); the painter just reports a taller
    height and draws more. There is no "one element vs. many" distinction in
@@ -338,12 +340,18 @@ building `REPLACE` once in core rather than special-casing Mermaid.
 
 ### The toggle command
 
-- `MarkdownMode.renderDiagrams = inline | off` (default `off`, so plain
-  text stays fast and no renderer is ever invoked unless asked). When `on`,
-  the extension registers a `REPLACE` per `mermaid` fence.
-- `toggleMermaid` flips the preference for the buffer (and re-registers or
-  clears the `REPLACE` decorations).
-- The reveal itself is **implicit** — caret position, no key needed — which
+- Diagrams render **on by default** (matching inline images'
+  `renderInlineImages`). The old "default off so plain text stays fast"
+  worry is moot: rendering is async, debounced, and content-hash cached, so
+  a buffer with no `mermaid` fence never invokes a renderer, and a buffer
+  with one renders off the event thread.
+- `toggleMermaid` flips a **per-buffer** flag held in the handler's
+  `State` (an `AtomicBoolean enabled`). Off: `flush!` registers no
+  `REPLACE` (the source shows) and `-render` does no render work. On: the
+  decorations return. The command re-dispatches via
+  `MarkdownFences.onActivate`, so the cache makes toggling back on cheap
+  -- a body already drawn re-registers without re-rendering.
+- The reveal itself is **implicit** -- caret position, no key needed -- which
   is what makes it feel like Obsidian.
 
 ### Naming: what other editors call this
@@ -364,8 +372,9 @@ and sits with the existing `ABOVE`/`BELOW`/`EOL`/`TOP`/`BACKGROUND` enum,
 and it *is* conceal at block scale (same reveal rule, `getHiddenBlock`/
 `isIn`). The **user-facing** term is **"rendered view"** / **"inline
 preview"**, matching JetBrains and VS Code. So: `Placement.REPLACE` in
-code, "rendered diagram" in docs and the status bar, `renderDiagrams` for
-the preference. Do not invent a new word — the industry already splits it
+code, "rendered diagram" in docs and the status bar, `toggleMermaid` for
+the command (a per-buffer in-memory flag, not a preference). Do not invent
+a new word — the industry already splits it
 into *conceal* (mechanic) + *rendered/inline preview* (feature).
 
 ### Fallback: preview buffer
@@ -445,10 +454,21 @@ public interface FenceHandler {
 
     /**
      * A fence this handler claims is opened or changed. Called on the EDT
-     * with the buffer read-locked. Render off the EDT and set/clear the
-     * REPLACE yourself when done; return promptly.
+     * with the buffer unlocked -- read it on the EDT or copy what you
+     * need. Render off the EDT and set/clear the REPLACE yourself when
+     * done; return promptly.
      */
     void render(Editor editor, Buffer buffer, Line first, Line last, String body);
+
+    /**
+     * The dispatch that just called render is finished with this buffer:
+     * every claimed fence has been handed over. Called once per round for
+     * every registered handler, even one that got no fence, so a handler
+     * that keeps a decoration per fence can drop the ones whose fence is
+     * no longer claimed -- renamed to another language, say, so its line
+     * survives but no render arrives for it. Default no-op.
+     */
+    default void renderDone(Editor editor, Buffer buffer) {}
 }
 ```
 
@@ -496,7 +516,8 @@ block, so it does **not** go through `FenceHandler`. Core's
    or stays revealed, so the user is never looking at a blank gap.
 
 **Threading & locking:** `render` is called on the EDT with the buffer
-read-locked; the handler copies the body and returns, then renders off the
+unlocked -- the same contract as the inline-image path. The handler reads
+what it needs on the EDT (or copies it), returns, and renders off the
 EDT. The result lands on the EDT. The cache is keyed by content hash, so
 it survives buffer reloads and is shared across windows.
 
@@ -511,7 +532,7 @@ to the renderer so diagrams match. `mmdc` takes a JSON config
 (`{"theme":"dark","htmlLabels":false}`); native renderers take a theme
 flag.
 
-### Width control
+### Width and height control
 
 The painter scales the image to the available text width, capped so a small
 image is not blown up. The user can override the fit with a per-image knob.
@@ -525,12 +546,32 @@ Conventions from the wild:
 | **HTML** | `<img width="400" src=…>` | GFM / any |
 | **Mermaid init** | ```` ```mermaid\n%%{init:{…}}```` (deprecated v10.5+) | Mermaid directives |
 
-**Decision for now:** fit-to-window with a cap (the default). For the
-user-facing knob, prefer the **Obsidian pipe** (`![alt|300](src)`) for
-inline images — it is the most common and reads cleanly — and for Mermaid
-fences, a **floaty button on the image** that cycles `fit → natural →
-capped`, since a fence has no alt-text pipe to hang a size on. Both are
-later polish; the default fit-to-window-with-cap ships first.
+**Height: match the fence, not the picture.** A Mermaid fence's collapsed
+picture is drawn into a box **as tall as the fence's own source lines**,
+not the picture's natural height. This is not a cosmetic choice — it is
+what keeps the scroll from jumping. A collapsed `REPLACE` makes the anchor
+line the painter's height and the absorbed lines zero; if the painter were
+the picture's natural height, a tall diagram (a 1600px flowchart over a
+25-line, 375px fence) would move ~1200px of content every time the caret
+crossed the fence boundary. Scrolling up would drag the caret into the
+range, the region would shrink to source height, and the window would jump
+back down — and arrowing down into the picture would overshoot past it.
+Matching the source height makes the swap **height-neutral**: collapsed
+total == revealed total, so nothing moves. The image is scaled to *contain*
+itself in the (width × source-height) box, aspect kept, centered. The
+painter reports that height as `line-count × charHeight`, recomputed on
+every call, so a font-scale change is picked up on the next layout pass
+without the handler re-registering (the display asks the painter for its
+height during `rowHeight` and paint, and a font change repaints). The
+tradeoff is that a tall diagram is drawn small; the user reveals the source
+to read it, or a future knob (below) lets them expand it.
+
+**Width:** fit-to-window with a cap (the default). For the user-facing
+knob, prefer the **Obsidian pipe** (`![alt|300](src)`) for inline images —
+it is the most common and reads cleanly — and for Mermaid fences, a
+**floaty button on the image** that cycles `fit → natural → capped`, since
+a fence has no alt-text pipe to hang a size on. Both are later polish; the
+default fit-to-window-with-cap ships first.
 
 ### Clojure bridge: prototyping the extension in Clojure
 
@@ -569,11 +610,43 @@ Markdown buffers, not its own), so it is a *simpler* bridge than Sudoku:
 just `Extension` + commands + the `FenceHandler` and `Painter`
 implementations.
 
-**Painter from Clojure.** `painter.clj` is a `gen-class :implements
-org.armedbear.j.VirtualText$Painter` whose `-paint` draws the cached
-`BufferedImage` and `-getHeight` returns its height. This is the one
+**Painter from Clojure.** `painter.clj` is a `deftype` implementing
+`org.armedbear.j.VirtualText$Painter` (a plain interface, so `deftype` is
+enough -- no `gen-class` needed, unlike the `Extension`/`FenceHandler`
+glue that `ServiceLoader` and reflection name). Its `getHeight` returns
+the fence's source height (see [Width and height
+control](#width-and-height-control)), and its `paint` draws the cached
+`BufferedImage` fitted and centered in that box. This is the one
 non-command interface the extension implements; it is called on the EDT
 during paint, so it must be cheap (draw the cached image, never render).
+
+**Verified in Phase 2** (the `clojure-aot!` and bridge gotchas, all hit
+and fixed against `build/classes`):
+
+- `-Dclojure.compile.path=VALUE` must be **one token**; a space makes
+  java read the path as the main class.
+- The extension's `src` dir must be on the AOT classpath, or `compile`
+  cannot find the `.clj` sources to read.
+- `compile` writes `<compile.path>/<ns path>/<Class>.class` and makes the
+  package dirs itself, but **not the `compile.path` root** -- create that
+  first. And start from a **clean** output dir: `compile` loads an
+  existing `ns__init.class` in preference to recompiling, so a stale
+  class ships unchanged when a core interface the extension implements
+  changes.
+- `compile` takes **symbols**, not strings; `clojure-namespaces` returns
+  `symbol`s.
+- `:methods` spec is `^{:static true} [name [params] return]` -- the
+  metadata goes on the method-spec vector, not the name symbol.
+- A `gen-class` method's arity is `this` **plus** the interface's args:
+  `-render` for `render(editor, buffer, first, last, body)` is
+  `(-render this editor buffer first last body)`, not six-into-five.
+- **Test classpath:** a Clojure extension's loose `classes` dir must stay
+  **off** the test's app classpath. If it is on, the app loader claims
+  `MermaidExtension` and its `<clinit>` fails -- `Could not locate
+  clojure/core__init.class` -- because the Clojure jars live only in the
+  extension's own `URLClassLoader`. The test reaches the handler's
+  statics through `Extensions.findClass`, which asks the extension's
+  loader. `bb test-extensions` branches on `clj?` to keep them off.
 
 ## Core enabling changes
 
@@ -642,14 +715,18 @@ defers for inline images. Building `REPLACE` once serves Mermaid **and** the
 
 ## Phased plan
 
-**Status: Phase 1 done** (core `REPLACE` + inline images, implemented, unit-tested, and visually verified collapsed/revealed). Phases 2–4 remain.
+**Status: Phases 1–3 done** (core `REPLACE` + inline images; the Clojure
+bridge + `FenceHandler` seam; the Mermaid renderer with mmdr/mmdc backends,
+cache, painter, and placeholder-on-failure). **Phase 4 in progress:**
+`toggleMermaid` is done; the width knob, in-flight placeholder,
+click-to-reveal, and `fuzz-windows` coverage remain.
 
 | Phase | Deliverable | Depends on |
 |---|---|---|
 | **1** ✅ | **Core `REPLACE` + inline images (the proof).** (a) The `Placement.REPLACE` value, the `Painter` interface, range indexing in `VirtualTextLayer`, the height/`rowHeight`/y↔line mapping, `paintLine` skip-and-paint, the caret-reveal rule (reuse `getHiddenBlock`/`isIn`/`showRevealed`), and the **gutter showing no line numbers over replaced lines**. (b) `MarkdownInlineImages.java` in core's Markdown mode: `![alt](src)` → a `REPLACE` whose painter draws the PNG via `ImageIO`. **This proves the whole design end-to-end with no external renderer and no Clojure.** | — |
-| **2** | **Clojure bridge scaffold + `FenceHandler` seam.** `extensions/mermaid/deps.edn` (Clojure), `extension.clj` (`MermaidExtension` `gen-class`), the `META-INF/services` pair, and the `build.clj` changes: `clojure-aot!`, the `check-core` guard (`"mermaid"` in `extension-packages`), `fmt-paths` widening. Plus the core seam: `extension/FenceHandler.java`, `ExtensionContext.registerFenceHandler`, `Extensions.fenceHandler(name)`, and the Markdown mode calling it on open/activate and on fence-touching edits. Prove the bridge with a trivial `mermaidPing` command and a `FenceHandler` that just logs the body it receives. | 1 |
-| **3** | **Mermaid renderer.** `renderer.clj` (backend select), `mmdc.clj` + `native.clj` (PNG), `handler.clj` (`FenceHandler` impl: render → async → `REPLACE`), `painter.clj` (`Painter` impl), `cache.clj`. `mermaid.renderer = auto\|mmdc\|native` + `mermaid.rendererPath` prefs, PATH probing, theme pass-through, error surfacing (bad syntax → renderer message / placeholder). Async + debounce + cache. | 2 |
-| **4** | **Polish.** `toggleMermaid` command, the width knob (floaty button cycling fit→natural→capped), in-flight placeholder, click-to-reveal, `fuzz-windows` with `REPLACE` decorations on. | 3 |
+| **2** ✅ | **Clojure bridge scaffold + `FenceHandler` seam.** `extensions/mermaid/deps.edn` (Clojure), `extension.clj` (`MermaidExtension` `gen-class`), the `META-INF/services` pair, and the `build.clj` changes: `clojure-aot!`, the `check-core` guard (`"mermaid"` in `extension-packages`), `fmt-paths` widening. Plus the core seam: `extension/FenceHandler.java`, `ExtensionContext.registerFenceHandler`, `Extensions.fenceHandler(name)`, and the Markdown mode calling it on open/activate and on fence-touching edits. Prove the bridge with a trivial `mermaidPing` command and a `FenceHandler` that just logs the body it receives. | 1 |
+| **3** ✅ | **Mermaid renderer.** `renderer.clj` (backend select), `mmdc.clj` + `native.clj` (PNG), `handler.clj` (`FenceHandler` impl: render → async → `REPLACE`), `painter.clj` (`Painter` impl), `cache.clj`. `mermaid.renderer = auto\|mmdc\|native` + `mermaid.rendererPath` prefs, PATH probing, theme pass-through, error surfacing (bad syntax → renderer message / placeholder). Async + debounce + cache. The seam gained `FenceHandler.renderDone` (a batch boundary) so a fence renamed away from `mermaid` is pruned rather than left as a stale picture. | 2 |
+| **4** | **Polish.** ✅ `toggleMermaid` command (per-buffer `enabled` flag in the handler's `State`; off clears the `REPLACE` and skips render work, on re-dispatches via `MarkdownFences.onActivate` with the cache making it cheap). Remaining: the width knob (floaty button cycling fit→natural→capped), in-flight placeholder, click-to-reveal, `fuzz-windows` with `REPLACE` decorations on. | 3 |
 
 Phase 1 is the core investment **and** the proof: inline images exercise
 every part of `REPLACE` (height, mapping, gutter, reveal, painting) against
@@ -711,7 +788,8 @@ the in-place UX.
   the build must shell to a real `java`; `bb fmt` misses `extensions/**/*.clj`
   until `fmt-paths` is widened. The Mermaid bridge is simpler than Sudoku's
   (no custom mode/keymap/read-only-buffer), but the same rules apply.
-- **Painter runs on the EDT.** `painter.clj`'s `-paint` is called during
+- **Painter runs on the EDT.** `painter.clj`'s `paint` (a `deftype`
+  method, not a gen-class `-paint`) is called during
   paint; it must draw the cached image only and never trigger a render or
   touch the filesystem.
 - **Theme/dark mode**: a diagram rendered for light mode looks wrong on a
@@ -727,8 +805,10 @@ the in-place UX.
 
 1. **Which native renderer** to standardize on as the fast backend —
    `selkie` (most complete) vs `mmdr`/`mermaid-rs-renderer` (fastest)?
-   Decide by rendering a corpus of diagram types and diffing against
-   `mmdc` during Phase 3.
+   **mmdr is now the dev-shell renderer** (flake input `mmdr`, on PATH in
+   `nix develop`), so Phase 3 can probe and diff it against `mmdc` on a
+   corpus of diagram types. The final user-facing default still turns on
+   that diff.
 2. **Width knob shape.** Fit-to-window-with-cap is the default. For the
    override: the Obsidian pipe (`![alt|300](src)`) for inline images, and
    a floaty button cycling `fit → natural → capped` for Mermaid fences.

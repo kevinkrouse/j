@@ -71,6 +71,7 @@ import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.markdown.MarkdownFences;
 import org.armedbear.j.mode.markdown.MarkdownInlineImages;
 import org.armedbear.j.transients.FilterBar;
 import org.armedbear.j.transients.Transient;
@@ -1350,6 +1351,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (buffer != null)
             buffer.afterCommand(this);
         MarkdownInlineImages.onEdit(this);
+        MarkdownFences.onEdit(this);
         viewChanged(this);
         final Editor current = currentEditor();
         if (current != null && current.getFrame() != null)
@@ -2968,6 +2970,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         Extensions.hooks().bufferActivated(buffer);
 
         MarkdownInlineImages.onActivate(this);
+        MarkdownFences.onActivate(this);
     }
 
     private void bufferPending() {

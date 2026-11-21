@@ -75,6 +75,7 @@ public final class Extensions {
 
     private static final List<Extension> loaded = new ArrayList<>();
     private static final List<Opener> openers = new CopyOnWriteArrayList<>();
+    private static final List<FenceHandler> fenceHandlers = new CopyOnWriteArrayList<>();
     private static final List<ClassLoader> loaders = new ArrayList<>();
 
     private static boolean disabled;
@@ -118,6 +119,25 @@ public final class Extensions {
                 return opener;
         }
         return null;
+    }
+
+    /** The fence handler that claims name, or null. */
+    public static FenceHandler fenceHandler(String name) {
+        for (FenceHandler handler : fenceHandlers) {
+            if (handler.handles(name))
+                return handler;
+        }
+        return null;
+    }
+
+    /** Whether any extension claims a fence. Lets the scan skip cheaply. */
+    public static boolean hasFenceHandlers() {
+        return !fenceHandlers.isEmpty();
+    }
+
+    /** Every registered fence handler, for the end-of-dispatch notice. */
+    public static List<FenceHandler> fenceHandlers() {
+        return Collections.unmodifiableList(fenceHandlers);
     }
 
     /** A buffer an extension makes for file, or null. */
@@ -172,8 +192,24 @@ public final class Extensions {
         URL[] urls = jarsIn(directory);
         if (urls.length == 0)
             return;
-        ClassLoader loader =
-            new URLClassLoader(urls, Extensions.class.getClassLoader());
+        ClassLoader loader = new URLClassLoader(urls, Extensions.class.getClassLoader());
+        // The whole load runs under the extension's loader, not just
+        // initialize(): a provider's static initializer may boot a runtime
+        // that finds its own classes through the thread's context loader
+        // (Clojure's RT, say), and ServiceLoader instantiates the provider
+        // before initialize() is ever called.
+        Thread thread = Thread.currentThread();
+        ClassLoader saved = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(loader);
+            loadUnder(loader, directory, skip);
+        }
+        finally {
+            thread.setContextClassLoader(saved);
+        }
+    }
+
+    private static void loadUnder(ClassLoader loader, Path directory, Set<String> skip) {
         // Modes and backends register first, so initialize() can use them.
         // All are skipped when every Extension here is disabled or, if there
         // is none, when the directory's name is.
@@ -226,10 +262,7 @@ public final class Extensions {
             thread.setContextClassLoader(loader);
             extension.initialize(new Context(loader));
             loaded.add(extension);
-            Log.info(
-                "loaded extension " + extension.getName() + " " +
-                    extension.getVersion()
-            );
+            Log.info("loaded extension " + extension.getName() + " " + extension.getVersion());
         }
         catch (Throwable e) {
             // One broken extension must not stop j from starting.
@@ -253,6 +286,12 @@ public final class Extensions {
         }
         loaded.clear();
         openers.clear();
+        fenceHandlers.clear();
+        // findClass scans loaders first-match; leaving a prior cycle's
+        // loader in the list makes it hand back a stale class while the
+        // reloaded extension's instance lives in a newer one, so the
+        // statics a caller reads are not the ones the instance writes.
+        loaders.clear();
         languageClient.shutdown();
         hooks = EditorHooks.NONE;
         keyMaps = KeyMapProvider.NONE;
@@ -300,8 +339,7 @@ public final class Extensions {
 
     private static Path installedExtensionsDirectory() {
         try {
-            java.security.CodeSource source =
-                Editor.class.getProtectionDomain().getCodeSource();
+            java.security.CodeSource source = Editor.class.getProtectionDomain().getCodeSource();
             if (source == null)
                 return null;
             Path location = Paths.get(source.getLocation().toURI());
@@ -365,12 +403,7 @@ public final class Extensions {
         }
 
         @Override
-        public void registerCommand(
-            String name,
-            Class<?> owner,
-            String methodName,
-            String alias
-        ) {
+        public void registerCommand(String name, Class<?> owner, String methodName, String alias) {
             CommandTable.registerCommand(name, owner, methodName);
             CommandTable.registerCommand(alias, owner, methodName);
         }
@@ -397,6 +430,12 @@ public final class Extensions {
         public void registerKeyMapProvider(KeyMapProvider provider) {
             if (provider != null)
                 keyMaps = provider;
+        }
+
+        @Override
+        public void registerFenceHandler(FenceHandler handler) {
+            if (handler != null)
+                fenceHandlers.add(handler);
         }
 
         @Override

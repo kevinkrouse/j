@@ -202,8 +202,8 @@
     - [x] headings bright blue
     - [x] checklists - regular font
     - [x] sidebar tree
-    - [/] inline images: png (opt-in via `renderInlineImages`; PNG only, no SVG yet)
-    - [ ] inline mermaid diagrams
+    - [/] inline images: png (on by default via `renderInlineImages`; PNG only, no SVG yet)
+    - [/] inline mermaid diagrams (render via mmdr/mmdc, `toggleMermaid` on/off; width knob + click-to-reveal pending)
     - [x] indent
         - [x] added `tab` to indent to the right location
         - [x] added `<C-tab>` to insert a tab
@@ -220,6 +220,7 @@
 - [ ] new modes
     - [ ] Nix
     - [ ] Yaml
+    - [ ] KDL - https://kdl.dev/
     - [ ] Typescript
     - [ ] C#
     - [ ] Rust
@@ -244,6 +245,7 @@
     
 
 ## Extensions
+- [ ] factor out a "j-api" the extensions can compile against?
 - [ ] rss reader
 - [ ] calender
 - [ ] fun: snake, tetris, solitare, ...
@@ -255,6 +257,13 @@
 - [ ] replace terminal with whatever intellij is using?
 - [ ] nrepl
 - [ ] jshell for java
+
+
+## AI
+- [ ] harness to run multiple agents and track progress
+    - herdr
+    - [DreamCoder](https://www.dreamcoder.ai/)
+    - [dirge](https://github.com/dirge-code/dirge)
 
 
 ## Version Control

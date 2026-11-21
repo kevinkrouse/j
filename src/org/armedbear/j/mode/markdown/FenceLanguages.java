@@ -66,21 +66,8 @@ final class FenceLanguages {
     // The language is the info string's first word: "java title=x", or
     // pandoc's "{.java}".
     private static int modeIdFor(String info) {
-        String word = info.trim();
-        if (word.startsWith("{"))
-            word = word.substring(1);
-        if (word.startsWith("."))
-            word = word.substring(1);
-        int end = 0;
-        while (
-            end < word.length()
-                && !Character.isWhitespace(word.charAt(end))
-                && word.charAt(end) != '}'
-                && word.charAt(end) != ','
-        )
-            ++end;
-        word = word.substring(0, end).toLowerCase(Locale.ROOT);
-        if (word.isEmpty())
+        String word = fenceWord(info);
+        if (word == null)
             return -1;
         final int id = Editor.getModeList().getModeIdForFenceName(word);
         if (id > 0)
@@ -88,15 +75,30 @@ final class FenceLanguages {
         // j's own name for a mode it edits files in, but not one in which
         // Markdown would color Markdown.
         for (ModeListEntry entry : Editor.getModeList()) {
-            if (
-                entry.isSelectable()
+            if (entry.isSelectable()
                     && entry.getId() != MARKDOWN_MODE
                     && entry.getId() != PLAIN_TEXT_MODE
                     && entry.getId() != BINARY_MODE
-                    && entry.getDisplayName().equalsIgnoreCase(word)
-            )
+                    && entry.getDisplayName().equalsIgnoreCase(word))
                 return entry.getId();
         }
         return -1;
+    }
+
+    /** The info string's language word, lower-cased; null if it names none. */
+    static String fenceWord(String info) {
+        String word = info.trim();
+        if (word.startsWith("{"))
+            word = word.substring(1);
+        if (word.startsWith("."))
+            word = word.substring(1);
+        int end = 0;
+        while (end < word.length()
+                && !Character.isWhitespace(word.charAt(end))
+                && word.charAt(end) != '}'
+                && word.charAt(end) != ',')
+            ++end;
+        word = word.substring(0, end).toLowerCase(Locale.ROOT);
+        return word.isEmpty() ? null : word;
     }
 }

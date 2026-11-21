@@ -47,6 +47,9 @@ public interface ExtensionContext {
 
     void registerKeyMapProvider(KeyMapProvider provider);
 
+    /** Register a handler for a fenced Markdown block, e.g. ```mermaid. */
+    void registerFenceHandler(FenceHandler handler);
+
     /** The loader this extension's classes and resources came from. */
     ClassLoader getClassLoader();
 

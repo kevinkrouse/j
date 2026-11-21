@@ -21,9 +21,12 @@
 package org.armedbear.j.mode.markdown;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.ObjIntConsumer;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
@@ -190,6 +193,56 @@ public final class MarkdownFormatter extends Formatter {
             if ((flags & BLOCK_MASK) != NORMAL)
                 out.add(l);
         });
+        return out;
+    }
+
+    /** A fenced block: its opening and closing fence lines, its name, and the text between. */
+    static record FenceBlock(Line first, Line last, String name, String body) {}
+
+    /**
+     * The fenced blocks from first on whose name claim accepts, with the
+     * text between their fences. A fresh scan, so it is correct before the
+     * formatter has painted the line flags. A fence-like line inside a
+     * fence is not mistaken for a top-level open.
+     */
+    static List<FenceBlock> claimedFences(Line first, Predicate<String> claim) {
+        final List<FenceBlock> out = new ArrayList<>();
+        // A fence inside a comment or front matter is not a fence; the
+        // formatter's own scan knows which lines are prose.
+        final java.util.Set<Line> nonProse = nonProseLines(first);
+        Line line = first;
+        while (line != null) {
+            final String text = line.getText();
+            final Matcher m = FENCE_OPEN.matcher(text);
+            if (!m.matches() || nonProse.contains(line)) {
+                line = line.next();
+                continue;
+            }
+            final String run = m.group(1);
+            // Only the fence's character and length decide its close; the
+            // language bits are not needed here.
+            final int fence =
+                    (run.charAt(0) == '~' ? FENCE_TILDE : 0) | Math.min(run.length(), 31) << FENCE_LENGTH_SHIFT;
+            final String name = FenceLanguages.fenceWord(text.substring(m.end(1)));
+            final boolean wanted = name != null && claim.test(name);
+            final StringBuilder body = new StringBuilder();
+            Line last = null;
+            for (Line l = line.next(); l != null; l = l.next()) {
+                if (closesFence(l.getText(), fence)) {
+                    last = l;
+                    break;
+                }
+                if (wanted) {
+                    if (body.length() > 0)
+                        body.append('\n');
+                    body.append(l.getText());
+                }
+            }
+            if (wanted && last != null)
+                out.add(new FenceBlock(line, last, name, body.toString()));
+            // Resume after the close so a fence-like line inside is skipped.
+            line = last != null ? last.next() : null;
+        }
         return out;
     }
 
@@ -621,9 +674,7 @@ public final class MarkdownFormatter extends Formatter {
     private Color ruleLine() {
         if (ruleLine == null) {
             final Color color = getFormatTable().resolveColor("ruleLine", false);
-            ruleLine = color != null
-                ? color
-                : DefaultTheme.blend(getBackgroundColor(), getColor(TEXT), 0.2);
+            ruleLine = color != null ? color : DefaultTheme.blend(getBackgroundColor(), getColor(TEXT), 0.2);
         }
         return ruleLine;
     }
@@ -660,11 +711,7 @@ public final class MarkdownFormatter extends Formatter {
         final Line previous = line.previous();
         if (previous == null) {
             final Line next = line.next();
-            return !(
-                text.equals("---")
-                    && next != null
-                    && (next.flags() & BLOCK_MASK) == IN_FRONT_MATTER
-            );
+            return !(text.equals("---") && next != null && (next.flags() & BLOCK_MASK) == IN_FRONT_MATTER);
         }
         return !isSetextHeading(previous);
     }

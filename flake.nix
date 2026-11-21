@@ -11,9 +11,19 @@
       url = "github:cormacc/nix-babashka";
       flake = false;
     };
+
+    # mmdr (https://github.com/1jehuang/mermaid-rs-renderer): a pure-Rust
+    # Mermaid renderer, the mermaid extension's fast native backend. No
+    # browser, no Node; renders PNG directly (`mmdr -e png`). `follows`
+    # pins it to this flake's nixpkgs so it shares one tree instead of
+    # pulling its own. `nix flake update mmdr` to bump it.
+    mmdr = {
+      url = "github:1jehuang/mermaid-rs-renderer";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nix-babashka }:
+  outputs = { self, nixpkgs, nix-babashka, mmdr }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
@@ -72,6 +82,11 @@
               pkgs.gcc          # jpty
               pkgs.subversion   # svn backend tests
             ] ++ lib.optional (jfmtDist != null) jfmt
+              # The mermaid extension's native backend, on PATH so its
+              # renderer lookup finds it. mmdr's flake covers every system
+              # here but x86_64-darwin, so it is added where it exists.
+              ++ lib.optional (mmdr.packages ? ${pkgs.stdenv.hostPlatform.system})
+                   mmdr.packages.${pkgs.stdenv.hostPlatform.system}.default
               # bb fuzz-windows runs J on a virtual display.
               ++ lib.optional pkgs.stdenv.isLinux pkgs.xvfb;
 

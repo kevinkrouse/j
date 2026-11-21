@@ -67,8 +67,7 @@ public class ExtensionLoadingTest {
         // Extensions itself makes from an installed j.jar.
         Path dir = null;
         try {
-            java.security.CodeSource source =
-                CommandTable.class.getProtectionDomain().getCodeSource();
+            java.security.CodeSource source = CommandTable.class.getProtectionDomain().getCodeSource();
             if (source != null) {
                 Path root = Paths.get(source.getLocation().toURI()).getParent();
                 if (root != null)
@@ -79,11 +78,13 @@ public class ExtensionLoadingTest {
             dir = null;
         }
         if (dir == null || !Files.isDirectory(dir))
-            System.out.println(
-                "ExtensionLoadingTest: skipped, no extensions "
-                    + "built (run `bb test-extensions`)"
-            );
+            System.out.println("ExtensionLoadingTest: skipped, no extensions " + "built (run `bb test-extensions`)");
         extensionsDirectory = dir;
+        // mail's initialize reads Directories.getDraftsFolder(); give the
+        // suite a scratch home (deleted on exit) so the test does not
+        // depend on some earlier test having initialized Directories.
+        if (dir != null && Files.isDirectory(dir))
+            org.armedbear.j.EditorHarness.useScratchHome();
     }
 
     private static boolean loaded;
@@ -96,15 +97,9 @@ public class ExtensionLoadingTest {
      */
     @BeforeEach
     public void load() {
-        assumeTrue(
-            extensionsDirectory != null
-                && Files.isDirectory(extensionsDirectory)
-        );
+        assumeTrue(extensionsDirectory != null && Files.isDirectory(extensionsDirectory));
         if (!loaded) {
-            System.setProperty(
-                Extensions.DIRECTORY_PROPERTY,
-                extensionsDirectory.toString()
-            );
+            System.setProperty(Extensions.DIRECTORY_PROPERTY, extensionsDirectory.toString());
             try {
                 Extensions.load();
             }
@@ -124,8 +119,7 @@ public class ExtensionLoadingTest {
     public void theBundledExtensionsProvideWhatCoreMoved() {
         assertTrue(
             Extensions.loadedNames().containsAll(List.of("abcl", "mail", "vcs-legacy")),
-            "loaded: " + Extensions.loadedNames()
-        );
+            "loaded: " + Extensions.loadedNames());
         ModeList modes = Editor.getModeList();
         for (String[] pair : new String[][] {
             { "a.v", "Verilog" },
@@ -134,8 +128,7 @@ public class ExtensionLoadingTest {
             { "configure.ac", "Autoconf" },
             { "a.tcl", "Tcl" },
             { "a.m", "Objective C" },
-            { "a.scm", "Scheme" }
-        }) {
+            { "a.scm", "Scheme" } }) {
             Mode mode = modes.getModeForFileName(pair[0]);
             assertNotNull(mode, pair[0]);
             assertEquals(pair[1], mode.getDisplayName(), pair[0]);
@@ -164,15 +157,11 @@ public class ExtensionLoadingTest {
         // The whole reason registerCommand takes a Class and not a name:
         // Class.forName on core's loader could never find this.
         assertNotNull(jlisp.getDeclaringClass());
-        assertNotSame(
-            CommandTable.class.getClassLoader(),
-            jlisp.getDeclaringClass().getClassLoader()
-        );
+        assertNotSame(CommandTable.class.getClassLoader(), jlisp.getDeclaringClass().getClassLoader());
     }
 
     @Test
-    public void theRuntimeSleepsUntilSomethingEvaluatesAndThenWakes()
-        throws EvalException {
+    public void theRuntimeSleepsUntilSomethingEvaluatesAndThenWakes() throws EvalException {
         // Both halves in one test on purpose: test methods run in no set
         // order, and this is the only test here that may boot a runtime.
         assertFalse(Extensions.session().isReady(), "loading an extension must not start a runtime");
@@ -186,8 +175,7 @@ public class ExtensionLoadingTest {
         assertFalse(Extensions.session().hasFeature("slime"));
         assertFalse(Extensions.session().isReady(), "something woke the runtime");
 
-        EvalResult result =
-            Extensions.session().evalSync(EvalRequest.of("(+ 1 2)"));
+        EvalResult result = Extensions.session().evalSync(EvalRequest.of("(+ 1 2)"));
         assertFalse(result.isError(), result.getError());
         assertTrue(result.getValue().contains("3"), result.getValue());
         assertTrue(Extensions.session().isReady());
@@ -199,13 +187,10 @@ public class ExtensionLoadingTest {
         // but lives in the extension's loader, so it is a *different* runtime
         // package from core's: any package-private member it touches compiles
         // fine and throws IllegalAccessError here.
-        ClassLoader loader =
-            CommandTable.getCommand("jlisp").getDeclaringClass().getClassLoader();
-        Class<?> bufferStream =
-            Class.forName("org.armedbear.j.BufferStream", true, loader);
+        ClassLoader loader = CommandTable.getCommand("jlisp").getDeclaringClass().getClassLoader();
+        Class<?> bufferStream = Class.forName("org.armedbear.j.BufferStream", true, loader);
         assertSame(loader, bufferStream.getClassLoader());
-        Constructor<?> constructor =
-            bufferStream.getConstructor(org.armedbear.j.Buffer.class);
+        Constructor<?> constructor = bufferStream.getConstructor(org.armedbear.j.Buffer.class);
         assertNotNull(constructor);
 
         Class<?> lispAPI = Class.forName("org.armedbear.j.LispAPI", true, loader);
@@ -214,15 +199,10 @@ public class ExtensionLoadingTest {
 
     @Test
     public void abclIsReachableOnlyFromTheExtension() throws Exception {
-        ClassLoader loader =
-            CommandTable.getCommand("jlisp").getDeclaringClass().getClassLoader();
+        ClassLoader loader = CommandTable.getCommand("jlisp").getDeclaringClass().getClassLoader();
         assertNotNull(Class.forName("org.armedbear.lisp.Interpreter", false, loader));
         try {
-            Class.forName(
-                "org.armedbear.lisp.Interpreter",
-                false,
-                CommandTable.class.getClassLoader()
-            );
+            Class.forName("org.armedbear.lisp.Interpreter", false, CommandTable.class.getClassLoader());
             org.junit.jupiter.api.Assertions.fail("ABCL leaked onto core's class path");
         }
         catch (ClassNotFoundException expected) {}

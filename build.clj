@@ -802,16 +802,58 @@
    :lib      (str extensions-lib-dir "/" name)
    :jar      (str extensions-lib-dir "/" name "/j-" name ".jar")})
 
+(defn- clojure-namespaces
+  "ns symbols from .clj files under src: path -> dotted ns symbol. A `_` in
+  a file name stands for a `-` in the namespace (Clojure's own rule: the
+  file foo_bar.clj holds foo-bar), so it is mapped back before joining."
+  [src]
+  (->> (fs/glob src "**.clj")
+       (map (fn [f]
+              (let [parts (mapv str (fs/components (fs/relativize (fs/path src) (fs/path f))))]
+                (symbol (str/join "."
+                                  (map (fn [p] (str/replace p "_" "-"))
+                                       (assoc parts (dec (count parts))
+                                              (str/replace (peek parts) #"\.clj$" ""))))))))
+       sort))
+
+(defn- clojure-aot!
+  "Ahead-of-time compile an extension's Clojure namespaces. babashka's Sci
+  cannot compile, so shell to a real java with core's classes and the
+  extension's Clojure deps on the classpath. compile loads each ns's
+  dependencies, so order among the extension's own namespaces is free."
+  [{:keys [src classes basis]}]
+  (let [cp (join-paths (concat [(abs-path classes-dir)   ; core classes
+                                (abs-path src)]           ; the .clj sources
+                               (lib-jars basis)           ; clojure + deps
+                               [(abs-path classes)]))     ; freshly compiled ns
+        nss (clojure-namespaces src)]
+    (when (seq nss)
+      ;; Start from a clean output dir: compile loads an existing
+      ;; ns__init.class in preference to recompiling, so a stale class
+      ;; would ship unchanged when a core interface the extension
+      ;; implements changes. The dir stays on the classpath so a
+      ;; namespace's gen-class is visible to another that names it.
+      ;; compile makes the package dirs itself; only the root must exist.
+      (b/delete {:path classes})
+      (fs/create-dirs (fs/path classes))
+      (shell "java" "-cp" cp
+             (str "-Dclojure.compile.path=" (abs-path classes))
+             "clojure.main" "-e"
+             (str "(doseq [n '" nss "] (compile n))")))))
+
 (defn extensions "Compile and package the extensions under extensions/."
   [opts]
   (build opts)
   (if-let [names (extension-names)]
     (doseq [name names]
       (let [{:keys [src classes lib jar]} (extension-paths name)
-            basis (extension-basis name)]
-        (println "Compiling extension" name "...")
-        (javac-against! {:src-dirs [src] :class-dir classes :basis basis}
-                        [(abs-path classes-dir) (abs-path classes)])
+            basis (extension-basis name)
+            clj?  (seq (fs/glob src "**.clj"))]
+        (println "Compiling extension" name (if clj? "(clojure)" "(java)") "...")
+        (if clj?
+          (clojure-aot! {:src src :classes classes :basis basis})
+          (javac-against! {:src-dirs [src] :class-dir classes :basis basis}
+                          [(abs-path classes-dir) (abs-path classes)]))
         ;; META-INF/services is how ServiceLoader finds the extension at all.
         (b/copy-dir {:src-dirs [src] :target-dir classes
                      :include "META-INF/**"})
@@ -834,11 +876,18 @@
   (extensions opts)
   (test (dissoc opts :only :changed))
   (doseq [name (extension-names)]
-    (let [{:keys [test-src classes test]} (extension-paths name)]
+    (let [{:keys [test-src classes test]} (extension-paths name)
+          clj? (seq (fs/glob (str extensions-dir "/" name "/src") "**.clj"))]
       (if-let [tests (test-classes test-src)]
         ;; Core's tests too, for their harness and golden-file checks.
+        ;; A Clojure extension's classes stay off the app classpath: they
+        ;; are loaded by the extension's own URLClassLoader at run time,
+        ;; and the app loader must not claim them (its <clinit> needs the
+        ;; Clojure jars that live only in that loader). The test reaches
+        ;; them through Extensions.findClass.
         (let [basis (extension-basis name :test)
-              cp    [(abs-path classes-dir) (abs-path classes) (abs-path test) (abs-path test-dir)]]
+              cp    (cond-> [(abs-path classes-dir) (abs-path test) (abs-path test-dir)]
+                      (not clj?) (into [(abs-path classes)]))]
           (javac-against! {:src-dirs [test-src] :class-dir test :basis basis} cp)
           (copy-test-resources! test-src test)
           (junit! basis cp (class-selectors tests) (str name " extension tests")))
@@ -850,7 +899,8 @@
   (slashes) or, for j's own, as a Class.forName string (dots). Dotted
   org.armedbear.lisp is allowed; LispShellBuffer names an external Lisp."
   (let [j ["mail" "vcs/cvs" "vcs/p4" "vcs/darcs" "mode/asm" "mode/autoconf"
-           "mode/verilog" "mode/vhdl" "mode/objc" "mode/tcl" "mode/scheme"]]
+           "mode/verilog" "mode/vhdl" "mode/objc" "mode/tcl" "mode/scheme"
+           "mermaid"]]
     (concat ["org/armedbear/lisp"]
             (for [p j] (str "org/armedbear/j/" p "/"))
             (for [p j] (str "org.armedbear.j." (str/replace p "/" ".") ".")))))
@@ -934,9 +984,11 @@
 ;; formatting
 
 (def ^:private fmt-paths
-  "The clj/edn files in the project: the build program and its manifests.
+  "The clj/edn files in the project: the build program and its manifests,
+  and the Clojure sources under extensions/.
   :hidden so that .cljfmt.edn is formatted like everything else."
-  (delay (->> (fs/glob "." "*.{clj,cljc,cljs,edn}" {:hidden true})
+  (delay (->> (concat (fs/glob "." "*.{clj,cljc,cljs,edn}" {:hidden true})
+                      (fs/glob extensions-dir "**.clj"))
               (map str) sort vec)))
 
 (defn- cljfmt

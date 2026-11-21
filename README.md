@@ -40,8 +40,9 @@ exception statement from your version.
 
 To build J you need JDK 25 and [babashka](https://babashka.org/).
 
-If you use Nix, `nix develop` puts a suitable JDK, babashka, gcc, jfmt and,
-on Linux, Xvfb on your PATH. With [direnv](https://direnv.net/) (2.29+, or
+If you use Nix, `nix develop` puts a suitable JDK, babashka, gcc, jfmt,
+mmdr (the mermaid extension's native renderer), and, on Linux, Xvfb on
+your PATH. With [direnv](https://direnv.net/) (2.29+, or
 with nix-direnv) the same environment is set up automatically when you enter
 the project dir, once you have run `direnv allow`.
 
