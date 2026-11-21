@@ -718,15 +718,16 @@ defers for inline images. Building `REPLACE` once serves Mermaid **and** the
 **Status: Phases 1–3 done** (core `REPLACE` + inline images; the Clojure
 bridge + `FenceHandler` seam; the Mermaid renderer with mmdr/mmdc backends,
 cache, painter, and placeholder-on-failure). **Phase 4 in progress:**
-`toggleMermaid` is done; the width knob, in-flight placeholder,
-click-to-reveal, and `fuzz-windows` coverage remain.
+`toggleMermaid`, click-to-reveal (the caret-driven rule already reveals on
+a click into the picture), and `fuzz-windows` REPLACE coverage are done;
+the width knob and in-flight placeholder remain.
 
 | Phase | Deliverable | Depends on |
 |---|---|---|
 | **1** ✅ | **Core `REPLACE` + inline images (the proof).** (a) The `Placement.REPLACE` value, the `Painter` interface, range indexing in `VirtualTextLayer`, the height/`rowHeight`/y↔line mapping, `paintLine` skip-and-paint, the caret-reveal rule (reuse `getHiddenBlock`/`isIn`/`showRevealed`), and the **gutter showing no line numbers over replaced lines**. (b) `MarkdownInlineImages.java` in core's Markdown mode: `![alt](src)` → a `REPLACE` whose painter draws the PNG via `ImageIO`. **This proves the whole design end-to-end with no external renderer and no Clojure.** | — |
 | **2** ✅ | **Clojure bridge scaffold + `FenceHandler` seam.** `extensions/mermaid/deps.edn` (Clojure), `extension.clj` (`MermaidExtension` `gen-class`), the `META-INF/services` pair, and the `build.clj` changes: `clojure-aot!`, the `check-core` guard (`"mermaid"` in `extension-packages`), `fmt-paths` widening. Plus the core seam: `extension/FenceHandler.java`, `ExtensionContext.registerFenceHandler`, `Extensions.fenceHandler(name)`, and the Markdown mode calling it on open/activate and on fence-touching edits. Prove the bridge with a trivial `mermaidPing` command and a `FenceHandler` that just logs the body it receives. | 1 |
 | **3** ✅ | **Mermaid renderer.** `renderer.clj` (backend select), `mmdc.clj` + `native.clj` (PNG), `handler.clj` (`FenceHandler` impl: render → async → `REPLACE`), `painter.clj` (`Painter` impl), `cache.clj`. `mermaid.renderer = auto\|mmdc\|native` + `mermaid.rendererPath` prefs, PATH probing, theme pass-through, error surfacing (bad syntax → renderer message / placeholder). Async + debounce + cache. The seam gained `FenceHandler.renderDone` (a batch boundary) so a fence renamed away from `mermaid` is pruned rather than left as a stale picture. | 2 |
-| **4** | **Polish.** ✅ `toggleMermaid` command (per-buffer `enabled` flag in the handler's `State`; off clears the `REPLACE` and skips render work, on re-dispatches via `MarkdownFences.onActivate` with the cache making it cheap). Remaining: the width knob (floaty button cycling fit→natural→capped), in-flight placeholder, click-to-reveal, `fuzz-windows` with `REPLACE` decorations on. | 3 |
+| **4** | **Polish.** ✅ `toggleMermaid` command (per-buffer `enabled` flag in the handler's `State`; off clears the `REPLACE` and skips render work, on re-dispatches via `MarkdownFences.onActivate` with the cache making it cheap). ✅ click-to-reveal: the caret-driven rule already reveals a picture when the caret lands in its range, so a click on the picture (which maps to the anchor line) reveals it -- no new code. ✅ `fuzz-windows` REPLACE coverage: `WindowFuzz` now opens a Markdown fixture with inline images and a mermaid fence, toggles and moves the caret into and out of the pictures, and `checkReplace` asserts the collapsed contract (anchor rowHeight == painter height, absorbed lines == 0, no negative heights) under random window ops, reporting how many collapsed lines it checked. Remaining: the width knob (floaty button cycling fit→natural→capped), in-flight placeholder. | 3 |
 
 Phase 1 is the core investment **and** the proof: inline images exercise
 every part of `REPLACE` (height, mapping, gutter, reveal, painting) against

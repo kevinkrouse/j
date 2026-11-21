@@ -12,10 +12,12 @@
 package org.armedbear.j;
 
 import java.awt.Component;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -31,6 +33,7 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import javax.imageio.ImageIO;
 import javax.swing.JLayeredPane;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.compare.CompareBuffer;
@@ -90,6 +93,16 @@ public final class WindowFuzz {
         }
         Files.writeString(h.resolve("proj/A.java"), "class A {\n  int x;\n}\n");
         Files.writeString(h.resolve("proj/sub/inner.txt"), "sub\n");
+        // A real picture and a Markdown buffer that shows it inline: the
+        // REPLACE machinery (zero-height absorbed lines, the y<->line
+        // mapping, collapse/reveal) under random window operations. The
+        // inline-image path is core (ImageIO), so it needs no renderer.
+        writePicture(h.resolve("proj/dot.png"), 120, 80);
+        Files.writeString(
+            h.resolve("proj/pic.md"),
+            "# Picture\n\n" + "Some prose above the picture.\n\n" + "![a dot](dot.png)\n\n"
+                    + "More prose between two pictures.\n\n" + "![another dot](dot.png)\n\n" + "```mermaid\n"
+                    + "graph TD; A-->B;\n" + "```\n\n" + "Trailing prose.\n");
         final StringBuilder mbox = new StringBuilder();
         final String[] from = { "Alice", "Bob", "Carol", "Dave", "Erin" };
         for (int i = 0; i < from.length; i++) {
@@ -106,6 +119,17 @@ public final class WindowFuzz {
         gitFixture(h.resolve("proj"));
         if (org.armedbear.j.util.ProcessRunner.exists("git"))
             multiFixture(h.resolve("multi"));
+    }
+
+    // A solid-color PNG of the given size, for the inline-image REPLACE
+    // path to read with ImageIO.
+    private static void writePicture(Path file, int w, int h) throws IOException {
+        final BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        final Graphics2D g = img.createGraphics();
+        g.setColor(java.awt.Color.BLUE);
+        g.fillRect(0, 0, w, h);
+        g.dispose();
+        ImageIO.write(img, "png", file.toFile());
     }
 
     // proj as a repository: everything committed, then two files changed,
@@ -351,6 +375,22 @@ public final class WindowFuzz {
         }),
         new Op("openFile", ed -> ed.show(Editor.getBuffer(file("proj/file" + (1 + rnd.nextInt(4)) + ".txt")))),
         new Op("openJava", ed -> ed.show(Editor.getBuffer(file("proj/A.java")))),
+        new Op("openMarkdown", ed -> ed.show(Editor.getBuffer(file("proj/pic.md")))),
+        new Op("toggleInlineImages", ed -> {
+            if (ed.getBuffer().getMode() instanceof org.armedbear.j.mode.markdown.MarkdownMode)
+                command(ed, "toggleInlineImages", null);
+        }),
+        new Op("caretIntoPicture", ed -> {
+            // Move the caret onto a picture line (reveals it) or off it
+            // (collapses it), as clicking or arrowing would. Lines 4 and 8
+            // are inline images; 10 is a mermaid fence's anchor and 11 an
+            // absorbed line inside it.
+            if (!(ed.getBuffer().getMode() instanceof org.armedbear.j.mode.markdown.MarkdownMode))
+                return;
+            final int[] lines = { 4, 8, 10, 11, 0, 2 };
+            ed.setDot(ed.getBuffer().getLine(lines[rnd.nextInt(lines.length)]), 0);
+            ed.moveCaretToDotCol();
+        }),
         new Op("openDir", ed -> ed.show(Editor.getBuffer(file(rnd.nextBoolean() ? "proj" : "proj/sub")))),
         new Op("openFileOtherWindow",
                 ed -> ed.activateInOtherWindow(Editor.getBuffer(file("proj/file" + (1 + rnd.nextInt(4)) + ".txt")))),
@@ -754,6 +794,7 @@ public final class WindowFuzz {
             final Editor bound = frame.getBoundWindow(e);
             if (bound != null && frame.getPrimaryWindow(bound) != e)
                 bad.add("bound window mapping inconsistent");
+            checkReplace(e, bad);
             final Rectangle r = e.getBounds();
             if (pane.getWidth() > 50 && pane.getHeight() > 50 && (r.width <= 0 || r.height <= 0))
                 bad.add("window " + kind(e.getBuffer()) + " has size " + r.width + "x" + r.height);
@@ -786,6 +827,47 @@ public final class WindowFuzz {
         for (String b : bad)
             errors.add(after + ": " + b);
     }
+
+    // The collapsed-REPLACE height contract, the machinery the plan calls
+    // riskiest: a collapsed picture makes its anchor line the painter's
+    // height and every absorbed line zero, and a zero-height line must not
+    // break the y<->line mapping. Assert it for every line of a buffer
+    // showing a REPLACE (an inline picture or a rendered diagram), under
+    // whatever window state the fuzz has reached.
+    private static void checkReplace(Editor e, List<String> bad) {
+        final Buffer b = e.getBuffer();
+        if (!(b.getMode() instanceof org.armedbear.j.mode.markdown.MarkdownMode))
+            return;
+        final VirtualTextLayer layer = b.virtualTextIfAny();
+        if (layer == null || !layer.hasReplace())
+            return;
+        final Display d = e.getDisplay();
+        final Line dotLine = e.getDotLine();
+        for (Line l = b.firstVisibleLine(); l != null; l = l.nextVisible()) {
+            final int h = d.rowHeight(l);
+            if (h < 0)
+                bad.add("rowHeight negative on " + kind(b) + " line " + l.lineNumber() + ": " + h);
+            final VirtualText r = layer.replaceFor(l);
+            if (r == null)
+                continue;
+            // Revealed (caret inside the range): the lines draw at their
+            // own height; nothing special to assert.
+            if (dotLine != null && r.covers(dotLine))
+                continue;
+            replaceChecked++;
+            if (r.line() == l) {
+                final int ph = r.painter().getHeight();
+                if (h != ph)
+                    bad.add("collapsed REPLACE anchor " + l.lineNumber() + " rowHeight " + h + " != painter " + ph);
+            } else if (h != 0) {
+                bad.add("collapsed absorbed line " + l.lineNumber() + " rowHeight " + h + " != 0");
+            }
+        }
+    }
+
+    // How many collapsed REPLACE lines the checks actually saw, so a run
+    // that never opened a picture reports zero rather than a false pass.
+    private static int replaceChecked;
 
     private static int routedSteps;
 
@@ -1020,7 +1102,8 @@ public final class WindowFuzz {
             "seed " + seed + " " + (errors.isEmpty() ? "OK" : "FAILED") + "; " + steps + " steps, up to " + maxWindows
                     + " windows, the panel on " + panelSteps + " steps, a message window on " + boundSteps
                     + ", a popup on " + popupSteps + ", a frame view on " + logSteps + " (routing checked on "
-                    + routedSteps + "), " + quitsChecked + " of its closes checked, " + layouts.size() + " layouts");
+                    + routedSteps + "), " + quitsChecked + " of its closes checked, " + layouts.size() + " layouts, "
+                    + replaceChecked + " collapsed REPLACE lines checked");
         System.exit(errors.isEmpty() ? 0 : 1);
     }
 }
