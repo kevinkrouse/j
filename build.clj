@@ -65,6 +65,33 @@
   [target & sources]
   (boolean (seq (fs/modified-since target sources))))
 
+(defn- newest-mtime
+  "The newest last-modified time, in millis, among files matching the globs
+  under root, or 0 when root is missing or nothing matches. A directory's
+  own mtime does not bump when files land in its subdirs, so the freshness
+  check has to look at the files themselves."
+  [root & globs]
+  (if (fs/exists? (b/resolve-path root))
+    (reduce max 0 (for [g globs f (fs/glob root g)]
+                    (fs/file-time->millis (fs/last-modified-time f))))
+    0))
+
+(defn- fresh?
+  "True when the stamp file exists and is at least as new as newest-input.
+  The stamp's own mtime is set to the newest-input mtime when the work
+  finishes, so a later change to any input makes it stale again."
+  [stamp newest-input]
+  (and (fs/exists? (b/resolve-path stamp))
+       (>= (fs/file-time->millis (fs/last-modified-time stamp)) newest-input)))
+
+(defn- stamp!
+  "Record that the work whose newest input was newest-input is done, by
+  writing the stamp with that mtime."
+  [stamp newest-input]
+  (fs/create-dirs (fs/parent (b/resolve-path stamp)))
+  (spit stamp (str newest-input "\n"))
+  (fs/set-last-modified-time stamp (fs/millis->file-time newest-input)))
+
 (def basis
   "Memoised: several targets want the same basis and resolving is slow.
   :root nil keeps org.clojure/clojure off J's classpath."
@@ -174,15 +201,31 @@
   syntax keyword lists, icons, and the modal editing key map table."
   "**/*.{keywords,png,svg,conf,properties}")
 
-(defn build "Compile the J sources to build/classes."
-  [opts]
+(defn build "Compile the J sources to build/classes.
+  Skips the compile when nothing under src/ or deps.edn is newer than the
+  last build, so `bb run` on an up-to-date tree starts without waiting on
+  javac. Pass :force true (or run `bb build` after touching a source) to
+  recompile regardless."
+  [{:keys [force] :as opts}]
   (check-javac!)
   (jpty opts)
-  (javac! {:src-dirs [src-dir] :class-dir classes-dir :basis (basis)})
-  ;; Copied here rather than only when packaging, so that running or testing
-  ;; from build/classes finds the same resources the jar would ship.
-  (b/copy-dir {:src-dirs [src-dir] :target-dir classes-dir
-               :include resource-glob})
+  (let [stamp (str build-dir "/.build-stamp")
+        ;; Separate glob args: fs/glob treats a space-joined pattern as one
+        ;; literal pattern that matches nothing. **.java (not **/*.java) so
+        ;; a Java file directly under src/ -- the Main launcher -- counts
+        ;; too; the brace resource-glob for the classpath resources.
+        newest (max (newest-mtime src-dir "**.java" resource-glob)
+                    (newest-mtime "." "deps.edn"))]
+    (if (and (not force) (fresh? stamp newest))
+      (println "build up to date; skipping compile")
+      (do
+        (javac! {:src-dirs [src-dir] :class-dir classes-dir :basis (basis)})
+        ;; Copied here rather than only when packaging, so that running or
+        ;; testing from build/classes finds the same resources the jar
+        ;; would ship.
+        (b/copy-dir {:src-dirs [src-dir] :target-dir classes-dir
+                     :include resource-glob})
+        (stamp! stamp newest))))
   opts)
 
 ;; command summaries
@@ -841,31 +884,48 @@
              "clojure.main" "-e"
              (str "(doseq [n '" nss "] (compile n))")))))
 
-(defn extensions "Compile and package the extensions under extensions/."
-  [opts]
+(defn extensions "Compile and package the extensions under extensions/.
+  Each extension is skipped when its jar is at least as new as its sources,
+  its deps.edn, and the core classes -- so a core change still forces a
+  recompile, but an unchanged extension on an up-to-date tree is left
+  alone. Pass :force true to rebuild regardless."
+  [{:keys [force] :as opts}]
   (build opts)
   (if-let [names (extension-names)]
     (doseq [name names]
       (let [{:keys [src classes lib jar]} (extension-paths name)
             basis (extension-basis name)
-            clj?  (seq (fs/glob src "**.clj"))]
-        (println "Compiling extension" name (if clj? "(clojure)" "(java)") "...")
-        (if clj?
-          (clojure-aot! {:src src :classes classes :basis basis})
-          (javac-against! {:src-dirs [src] :class-dir classes :basis basis}
-                          [(abs-path classes-dir) (abs-path classes)]))
-        ;; META-INF/services is how ServiceLoader finds the extension at all.
-        (b/copy-dir {:src-dirs [src] :target-dir classes
-                     :include "META-INF/**"})
-        (b/copy-dir {:src-dirs [src] :target-dir classes
-                     :include "**/*.{lisp,keywords,png,svg}"})
-        (b/delete {:path lib})
-        (b/jar {:class-dir classes :jar-file jar})
-        ;; The libraries it brings with it, beside its own jar: one loader per
-        ;; extension directory picks up every jar in it.
-        (doseq [dep (lib-jars basis)]
-          (b/copy-file {:src dep :target (str lib "/" (fs/file-name dep))}))
-        (println "wrote" (abs-path jar))))
+            clj?  (seq (fs/glob src "**.clj"))
+            ;; A stamp outside the lib dir (which the rebuild deletes), so
+            ;; it survives to mark the whole bundle -- jar and dependency
+            ;; jars -- complete. The jar's own mtime can't: it is written
+            ;; before the dependency copies, so a copy that throws would
+            ;; leave a fresh jar over a half-built bundle.
+            stamp (str build-dir "/.ext-stamp-" name)
+            newest (max (newest-mtime src "**/*")
+                        (newest-mtime (str extensions-dir "/" name) "deps.edn")
+                        (newest-mtime classes-dir "**/*.class"))]
+        (if (and (not force) (fresh? stamp newest))
+          (println "extension" name "up to date; skipping")
+          (do
+            (println "Compiling extension" name (if clj? "(clojure)" "(java)") "...")
+            (if clj?
+              (clojure-aot! {:src src :classes classes :basis basis})
+              (javac-against! {:src-dirs [src] :class-dir classes :basis basis}
+                              [(abs-path classes-dir) (abs-path classes)]))
+            ;; META-INF/services is how ServiceLoader finds the extension at all.
+            (b/copy-dir {:src-dirs [src] :target-dir classes
+                         :include "META-INF/**"})
+            (b/copy-dir {:src-dirs [src] :target-dir classes
+                         :include "**/*.{lisp,keywords,png,svg}"})
+            (b/delete {:path lib})
+            (b/jar {:class-dir classes :jar-file jar})
+            ;; The libraries it brings with it, beside its own jar: one
+            ;; loader per extension directory picks up every jar in it.
+            (doseq [dep (lib-jars basis)]
+              (b/copy-file {:src dep :target (str lib "/" (fs/file-name dep))}))
+            (stamp! stamp newest)
+            (println "wrote" (abs-path jar))))))
     (println "no extensions found under" extensions-dir))
   opts)
 

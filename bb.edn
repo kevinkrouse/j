@@ -12,14 +12,20 @@
   clean      {:doc "Remove J build and dist files"           :task (build/clean {})}
   deps       {:doc "Resolve and show the dependencies"       :task (build/deps {})}
   jpty       {:doc "Compile bin/jpty (unix, needs gcc)"      :task (build/jpty {})}
-  build      {:doc "Compile J to build/classes"              :task (build/build {})}
-  extensions {:doc "Compile and package extensions/*"        :task (build/extensions {})}
+  build      {:doc "Compile J to build/classes (--force to rebuild regardless)"
+              :requires ([babashka.cli :as cli])
+              :task (build/build (cli/parse-opts *command-line-args* {:coerce {:force :boolean}}))}
+  extensions {:doc "Compile and package extensions/* (--force to rebuild regardless)"
+              :requires ([babashka.cli :as cli])
+              :task (build/extensions (cli/parse-opts *command-line-args* {:coerce {:force :boolean}}))}
   check-core {:doc "Assert core carries no ABCL"             :task (build/check-core {})}
   stamp      {:doc "Write the version/build resources"       :task (build/stamp {})}
   command-summaries {:doc "Regenerate command summaries from doc/commands.html"
                      :task (build/command-summaries {})}
   jar        {:doc "Create packaged build/j.jar"             :task (build/jar {})}
-  run        {:doc "Run J from build/classes"                :task (build/run {})
+  run        {:doc "Run J from build/classes (--force to rebuild first)"
+              :requires ([babashka.cli :as cli])
+              :task (build/run (cli/parse-opts *command-line-args* {:coerce {:force :boolean}}))
               :override-builtin true}
   run-core   {:doc "Run J with no extension loaded"          :task (build/run-core {})}
   run-wayland {:doc "Run J on the JetBrains Runtime's Wayland toolkit" :task (build/run-wayland {})}
