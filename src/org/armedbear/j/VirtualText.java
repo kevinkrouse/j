@@ -23,6 +23,7 @@ package org.armedbear.j;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.List;
+import javax.swing.JComponent;
 
 /**
  * Text the display draws but the buffer does not hold: after a line's end,
@@ -77,6 +78,30 @@ public record VirtualText(Line line, Placement placement, List<List<Run>> rows, 
 
         /** The picture's height in pixels at the current scale. */
         int getHeight();
+
+        /**
+         * A Swing component of controls for this picture -- a button that
+         * opens a menu, say -- shown when the mouse hovers over it, or
+         * null for none. The display hosts it in the window's popup layer
+         * at the picture's top-right corner and removes it when the mouse
+         * leaves the picture and the controls. The component is built and
+         * owned by the painter's owner and must be the same instance on
+         * every call; it must not grab the editor's focus.
+         */
+        default JComponent getControls(Editor editor) {
+            return null;
+        }
+
+        /**
+         * Whether this picture is pinned to its source: the lines draw
+         * their own text even when the caret is outside the range, so the
+         * source stays visible instead of collapsing to the picture. The
+         * controls still hover over the source block, so the picture can
+         * be brought back. Default false: the caret drives the collapse.
+         */
+        default boolean isPinned() {
+            return false;
+        }
     }
 
     /**

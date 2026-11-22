@@ -20,10 +20,9 @@
   [^"[Ljava.lang.String;" argv body]
   (let [err-file (File/createTempFile "mmdr-err" ".txt")]
     (try
-      (let [pb (ProcessBuilder. argv)
-            _ (.redirectError pb err-file)
-            _ (.redirectOutput pb ProcessBuilder$Redirect/DISCARD)
-            p (.start pb)]
+      (let [p (.start (doto (ProcessBuilder. argv)
+                        (.redirectError err-file)
+                        (.redirectOutput ProcessBuilder$Redirect/DISCARD)))]
         ;; Write the body and close stdin so the renderer stops waiting.
         (with-open [stdin (.getOutputStream p)]
           (.write stdin (.getBytes ^String body "UTF-8")))
@@ -49,9 +48,8 @@
   "Whether the mmdr binary at binary (or \"mmdr\" on PATH) can run."
   [^String binary]
   (try
-    (let [pb (ProcessBuilder. (into-array String [(or binary "mmdr") "--version"]))
-          _ (.redirectErrorStream pb true)
-          p (.start pb)]
+    (let [p (.start (doto (ProcessBuilder. (into-array String [(or binary "mmdr") "--version"]))
+                      (.redirectErrorStream true)))]
       (.waitFor p)
       (zero? (.exitValue p)))
     (catch java.io.IOException _ false)))

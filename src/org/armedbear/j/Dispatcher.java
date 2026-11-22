@@ -501,6 +501,9 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         lastMousePoint = null;
         display.setMouseInGutter(false, -1);
         display.setHoverRun(null, -1, -1);
+        // Leaving the display entirely: hide the picture's controls unless
+        // the pointer is over them (it may be travelling to them).
+        display.hoverPictureAt(-1, -1);
         forgetLink();
         hideLink();
     }
@@ -695,6 +698,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         final Buffer buffer = editor.getBuffer();
         final VirtualText.Run run = display.virtualRunAt(e.getX(), e.getY());
         display.setHoverRun(run != null && run.action() != null ? run : null, e.getX(), e.getY());
+        display.hoverPictureAt(e.getX(), e.getY());
         if (run != null && run.action() != null) {
             editor.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             return;

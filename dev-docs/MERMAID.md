@@ -718,9 +718,10 @@ defers for inline images. Building `REPLACE` once serves Mermaid **and** the
 **Status: Phases 1–3 done** (core `REPLACE` + inline images; the Clojure
 bridge + `FenceHandler` seam; the Mermaid renderer with mmdr/mmdc backends,
 cache, painter, and placeholder-on-failure). **Phase 4 in progress:**
-`toggleMermaid`, click-to-reveal (the caret-driven rule already reveals on
-a click into the picture), and `fuzz-windows` REPLACE coverage are done;
-the width knob and in-flight placeholder remain.
+`toggleMermaid` (command), click-to-reveal (the
+caret-driven rule already reveals on a click into the picture), and
+`fuzz-windows` REPLACE coverage are done; the width knob and in-flight
+placeholder remain.
 
 | Phase | Deliverable | Depends on |
 |---|---|---|

@@ -199,6 +199,14 @@ public final class GuiDriver {
             }
             case "shot" -> shot(out.resolve(rest + ".png"), false);
             case "shotwin" -> shot(out.resolve(rest + ".png"), true);
+            case "shotpopup" -> shotPopup(out.resolve(rest + ".png"));
+            case "popupbounds" -> System.out.println("POPUP " + onEdt(() -> {
+                final StringBuilder sb = new StringBuilder();
+                for (Window w : Window.getWindows())
+                    if (w.isShowing() && isPopupWindow(w))
+                        sb.append(w.getLocationOnScreen()).append(w.getSize()).append(" ");
+                return sb.length() == 0 ? "none" : sb.toString();
+            }));
             case "log" -> System.out.println("LOG " + rest + (rest.isEmpty() ? "" : ": ") + onEdt(GuiDriver::state));
             case "text" -> {
                 final String text = onEdt(GuiDriver::bufferText);
@@ -243,6 +251,7 @@ public final class GuiDriver {
         "sidebarListChanges",
         "svnCommit",
         "svnDiff",
+        "toggleMermaid",
         "vcsBlame",
         "vcsChangelistMove",
         "vcsChangelistNew",
@@ -926,5 +935,51 @@ public final class GuiDriver {
             throw new IllegalStateException("no window to picture");
         ImageIO.write(img, "png", file.toFile());
         System.out.println("SHOT " + file);
+    }
+
+    // Picture the open popup menu. A JPopupMenu is heavyweight (its own
+    // Popup$HeavyWeightWindow) when it cannot fit inside the window, and
+    // lightweight (painted in the layered pane) when it can -- which one
+    // depends on where it opens and how big it is, so handle both: prefer
+    // the heavyweight window, else the topmost showing JPopupMenu in the
+    // menu selection path.
+    private static void shotPopup(Path file) throws Exception {
+        final BufferedImage img = onEdt(() -> {
+            Window found = null;
+            for (Window w : Window.getWindows())
+                if (w.isShowing() && isPopupWindow(w))
+                    found = w;
+            if (found != null)
+                return paintWindow(found);
+            // Lightweight: the last JPopupMenu in the open menu path is
+            // the topmost (a submenu open over a menu gives two).
+            JPopupMenu top = null;
+            for (MenuElement e : MenuSelectionManager.defaultManager().getSelectedPath())
+                if (e instanceof JPopupMenu p && p.isShowing())
+                    top = p;
+            return top == null ? null : paintWindow(top);
+        });
+        if (img == null)
+            throw new IllegalStateException("no popup window to picture");
+        ImageIO.write(img, "png", file.toFile());
+        System.out.println("SHOT " + file);
+    }
+
+    // A heavyweight popup window: Swing's own Popup$HeavyWeightWindow,
+    // the class a JPopupMenu gets when it cannot stay lightweight. The
+    // class is package-private, so match by name. Excludes every Frame --
+    // including another editor's frame, which the old "not the current
+    // frame, not a Dialog" filter wrongly admitted, letting a screenshot
+    // "succeed" by capturing a whole editor window with no popup open.
+    private static boolean isPopupWindow(Window w) {
+        return w.getClass().getName().startsWith("javax.swing.Popup");
+    }
+
+    private static BufferedImage paintWindow(Component c) {
+        final BufferedImage i = new BufferedImage(c.getWidth(), c.getHeight(), BufferedImage.TYPE_INT_RGB);
+        final var g = i.createGraphics();
+        c.paint(g);
+        g.dispose();
+        return i;
     }
 }

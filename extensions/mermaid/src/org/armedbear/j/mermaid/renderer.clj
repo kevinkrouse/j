@@ -66,10 +66,12 @@
   (let [kind-s (or (pref "mermaid.renderer") "auto")
         path (pref "mermaid.rendererPath")
         k [kind-s path]]
-    (if-let [found (get @cache k)]
-      (when-not (= :none found) found)
+    ;; contains?, not if-let: a cached nil (nothing available) must not
+    ;; look like a cache miss and re-probe.
+    (if (contains? @cache k)
+      (get @cache k)
       (let [r (resolve-1 kind-s path)]
-        (swap! cache assoc k (or r :none))
+        (swap! cache assoc k r)
         r))))
 
 (defn render

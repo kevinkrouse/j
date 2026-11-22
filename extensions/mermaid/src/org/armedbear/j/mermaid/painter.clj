@@ -2,27 +2,25 @@
   "The VirtualText.Painter that draws a rendered diagram in place of its
   fence.
 
-  The picture is drawn to fill the fence's own height -- the height the
-  source lines already occupy -- not its natural pixel height. That is the
-  whole point: a collapsed REPLACE makes the anchor line's height the
-  painter's and the absorbed lines' zero, so if the painter were the
-  picture's natural height (a tall diagram is several times the fence's
-  height) the reveal/collapse swap would move hundreds of pixels of
-  content at the caret boundary. Scrolling up would drag the caret into the
-  range, the region would shrink, and the window would jump. Matching the
-  source height makes the swap height-neutral: collapsed total == revealed
-  total, so nothing moves and the scroll stays put.
+  Size modes, chosen per diagram from its hover controls:
 
-  The image is scaled to fit inside the (width x source height) box with
-  its aspect ratio kept, capped at its natural size so a small diagram is
-  not blown up, and centered in the box. The scaled image is cached by the
-  box it was fitted to, so a repaint at the same size is a plain blit and
-  never resamples on the event thread. The painter holds the editor
-  weakly: if every window showing the buffer closes, the editor is
-  collected rather than kept alive.
+  - \"fit\" (default) fills the fence's own height, not the picture's
+    natural height. This is the height-neutral choice: a collapsed REPLACE
+    gives the anchor the painter's height and the absorbed lines zero, so
+    a natural-height picture would move hundreds of pixels of content at
+    the caret boundary on every reveal/collapse.
+  - \"width\" scales to the window's text width, aspect kept.
+  - \"original\" draws at natural pixel size.
 
-  This is the EDT contract from the plan: draw the cached image only,
-  never render or touch the filesystem."
+  The two non-neutral modes change the buffer's height, so the handler's
+  signature carries the mode and choosing one re-registers and re-frames.
+  Heights are recomputed from the current char height on every call, so a
+  font-scale change is tracked without re-registering.
+
+  The scaled image is cached by the size it was scaled to, so a repaint
+  at the same size is a plain blit. The editor is held weakly so closing
+  every window showing the buffer lets it be collected. The EDT contract:
+  draw the cached image only -- never render or touch the filesystem."
   (:import [java.lang.ref WeakReference]
            [java.awt Graphics2D RenderingHints]
            [java.awt.image BufferedImage]
@@ -43,65 +41,79 @@
        (/ (double h) (double ih))
        1.0))
 
-(defn- fitted
-  "The image scaled to fit a w x h box, aspect kept, capped at natural."
-  [^BufferedImage image ^long w ^long h]
-  (let [iw (.getWidth image)
-        ih (.getHeight image)
-        s (fit iw ih w h)]
-    (if (>= s 1.0)
-      image
-      (let [tw (max 1 (Math/round (* iw s)))
-            th (max 1 (Math/round (* ih s)))
-            out (BufferedImage. tw th BufferedImage/TYPE_INT_ARGB)
-            g (.createGraphics out)]
-        (.setRenderingHint g RenderingHints/KEY_INTERPOLATION
-                           RenderingHints/VALUE_INTERPOLATION_BILINEAR)
-        (.drawImage g image 0 0 tw th nil)
-        (.dispose g)
-        out))))
+(defn- scale
+  "The image scaled to exactly tw x th, or itself when already that size."
+  [^BufferedImage image ^long tw ^long th]
+  (if (and (= tw (long (.getWidth image))) (= th (long (.getHeight image))))
+    image
+    (let [out (BufferedImage. (max 1 (int tw)) (max 1 (int th)) BufferedImage/TYPE_INT_ARGB)
+          g (.createGraphics out)]
+      (.setRenderingHint g RenderingHints/KEY_INTERPOLATION
+                         RenderingHints/VALUE_INTERPOLATION_BILINEAR)
+      (.drawImage g image 0 0 (int tw) (int th) nil)
+      (.dispose g)
+      out)))
 
 (deftype DiagramPainter [^BufferedImage image ^long line-count
-                         ^WeakReference ed-ref ^objects cache]
+                         ^WeakReference ed-ref ^clojure.lang.Atom cache
+                         ^String size-mode ^javax.swing.JComponent controls
+                         ^boolean pinned]
   VirtualText$Painter
-  ;; The box height is the fence's own height, recomputed from the current
-  ;; char height on every call, so a font-scale change is picked up on the
-  ;; next layout pass without the handler re-registering. The display asks
-  ;; for this during rowHeight and paint, and a font change repaints.
   (^int getHeight [_this]
-    (int (* line-count (long (Display/getCharHeight)))))
+    (let [ch (long (Display/getCharHeight))
+          iw (.getWidth image)
+          ih (.getHeight image)]
+      (case size-mode
+        "original" (int ih)
+        "width" (if (pos? iw)
+                  (int (Math/round (* (double (max 0 (or (avail-width ed-ref) 0)))
+                                      (/ (double ih) (double iw)))))
+                  (int (* line-count ch)))
+        (int (* line-count ch)))))
   (^void paint [_this ^Graphics2D g ^int x ^int y ^int w ^int h]
-    ;; Fit to the box the display gave us (w x h, h == source height),
-    ;; centered, caching the fitted image by the box so a same-size repaint
-    ;; is a blit. The centering is recomputed from the fitted image's size
-    ;; on every paint -- including a cache hit -- so a diagram smaller than
-    ;; its box stays centered, not snapped to the top-left.
-    (let [cached (aget cache 0)
+    ;; The box height h IS getHeight(), the height the layout reserved. In
+    ;; width mode the target height is that h, not one recomputed from the
+    ;; box width -- recomputing it would let a box wider than getHeight()'s
+    ;; avail-width draw taller than its row and overflow onto the lines
+    ;; below. The width follows the aspect ratio, clamped to the box.
+    (let [iw (.getWidth image)
+          ih (.getHeight image)
+          tw (long (case size-mode
+                     "original" (long iw)
+                     "width" (min (long w)
+                                  (max 1 (Math/round (* (double h) (/ (double iw) (double ih))))))
+                     (max 1 (Math/round (* (double iw) (fit iw ih w h))))))
+          th (long (case size-mode
+                     "original" (long ih)
+                     "width" (max 1 (Math/round (* (double tw) (/ (double ih) (double iw)))))
+                     (max 1 (Math/round (* (double ih) (fit iw ih w h))))))
+          cached @cache
           img (if (and (some? cached)
-                       (= (nth cached 0) (long w))
-                       (= (nth cached 1) (long h)))
+                       (= (nth cached 0) tw)
+                       (= (nth cached 1) th))
                 ^BufferedImage (nth cached 2)
-                (let [f (fitted image w h)]
-                  (aset cache 0 (object-array [(long w) (long h) f]))
-                  f))
+                (let [s (scale image tw th)]
+                  (reset! cache [tw th s])
+                  s))
           tx (+ x (quot (- w (.getWidth img)) 2))
           ty (+ y (quot (- h (.getHeight img)) 2))]
-      (.drawImage g img (int tx) (int ty) nil))))
+      (.drawImage g img (int tx) (int ty) nil)))
+  (^javax.swing.JComponent getControls [_this ^org.armedbear.j.Editor editor] controls)
+  (^boolean isPinned [_this] pinned))
 
 (defn diagram-painter
-  "A painter for the rendered `image`, fitted to a box `line-count` lines
-  tall -- the height the fence's own lines occupy -- so collapsing and
-  revealing the diagram does not change the buffer's height. The box is
-  recomputed from the current char height on each call, so a font-scale
-  change is tracked without re-registering."
-  [^BufferedImage image ^long line-count ^Editor editor]
-  (DiagramPainter. image line-count (WeakReference. editor) (object-array [nil])))
+  "A painter for the rendered `image` in `size-mode` (\"fit\", \"width\",
+  or \"original\"), with `controls` the component shown on hover (or nil)
+  and `pinned` keeping the source shown even when the caret leaves the
+  fence."
+  [^BufferedImage image line-count ^Editor editor ^String size-mode
+   ^javax.swing.JComponent controls pinned]
+  (DiagramPainter. image (long line-count) (WeakReference. editor) (atom nil)
+                   size-mode controls (boolean pinned)))
 
-;; A one-line notice drawn where a diagram failed to render: the reason, in
-;; a muted color, so the fence is never a blank gap. The plan's "renderer
-;; not found" and "bad syntax" both land here. It too reports the fence's
-;; own height, recomputed from the current char height, so a failed render
-;; neither jumps nor collapses -- and tracks a font-scale change.
+;; A one-line notice where a diagram failed to render, so the fence is
+;; never a blank gap. Reports the fence's own height, so a failed render
+;; neither jumps nor collapses.
 (deftype PlaceholderPainter [^String message ^long line-count]
   VirtualText$Painter
   (^int getHeight [_this]

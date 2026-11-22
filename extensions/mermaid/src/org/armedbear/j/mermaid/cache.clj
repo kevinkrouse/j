@@ -29,9 +29,8 @@
   [^String body ^String theme ^String backend]
   (sha256 (str theme "\0" backend "\0" body)))
 
-;; An access-order LinkedHashMap: .get and .put move an entry to the
-;; newest end, so the first entry is always the least-recently-used.
-;; Synchronized on itself; the table is small and lookups are cheap.
+;; Access-order LinkedHashMap: .get and .put move an entry to the newest
+;; end, so the first entry is always the least-recently-used.
 (def ^:private ^Map table (LinkedHashMap. 16 0.75 true))
 
 (defn cached

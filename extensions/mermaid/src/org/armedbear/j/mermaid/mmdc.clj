@@ -21,10 +21,9 @@
   [^"[Ljava.lang.String;" argv]
   (let [err-file (File/createTempFile "mmdc-err" ".txt")]
     (try
-      (let [pb (ProcessBuilder. argv)
-            _ (.redirectError pb err-file)
-            _ (.redirectOutput pb ProcessBuilder$Redirect/DISCARD)
-            p (.start pb)]
+      (let [p (.start (doto (ProcessBuilder. argv)
+                        (.redirectError err-file)
+                        (.redirectOutput ProcessBuilder$Redirect/DISCARD)))]
         (.waitFor p)
         [(.exitValue p) (slurp err-file)])
       (finally
@@ -58,9 +57,8 @@
   error, which the handler shows as a placeholder."
   [^String binary]
   (try
-    (let [pb (ProcessBuilder. (into-array String [(or binary "mmdc") "--version"]))
-          _ (.redirectErrorStream pb true)
-          p (.start pb)]
+    (let [p (.start (doto (ProcessBuilder. (into-array String [(or binary "mmdc") "--version"]))
+                      (.redirectErrorStream true)))]
       (.waitFor p)
       (zero? (.exitValue p)))
     (catch java.io.IOException _ false)))

@@ -25,6 +25,8 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -545,11 +547,19 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
         final Position dot = editor.getDot();
         final Line dotLine = dot == null ? null : dot.getLine();
-        final VirtualText now =
-                layer != null && layer.hasReplace() && dotLine != null ? layer.replaceFor(dotLine) : null;
+        final VirtualText now = layer != null && layer.hasReplace() && dotLine != null
+                ? revealedUnlessPinned(layer.replaceFor(dotLine))
+                : null;
         final boolean changed = now != revealedReplace;
         revealedReplace = now;
         return changed;
+    }
+
+    /** A pinned REPLACE never collapses, so the caret being inside it is
+     * not a reveal: report null so caret movement in or out of a pinned
+     * fence does not repaint. */
+    private static VirtualText revealedUnlessPinned(VirtualText r) {
+        return r != null && r.painter().isPinned() ? null : r;
     }
 
     // The top of line's text, under its rows of virtual text. Assumes line
@@ -626,6 +636,10 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             return null;
         final VirtualText r = layer.replaceFor(line);
         if (r == null)
+            return null;
+        // Pinned to its source: the lines always draw their own text, so
+        // the picture never collapses over them.
+        if (r.painter().isPinned())
             return null;
         final Position dot = editor.getDot();
         final Line dotLine = dot == null ? null : dot.getLine();
@@ -708,6 +722,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         }
         updateFoldExtents();
         updateHoverRun();
+        updatePictureControls();
     }
 
     private void repaintIfMoved(PairMatcher.Delimiter old, PairMatcher.Delimiter now) {
@@ -967,6 +982,172 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     private VirtualText.Run hoverRun;
     private int hoverX;
     private int hoverY;
+
+    // The controls of the picture the mouse is hovering: a component the
+    // painter owns, hosted in the window's popup layer at the picture's
+    // top-right corner, and the REPLACE it belongs to. Shown while the
+    // mouse is over the picture or the controls themselves; hidden a
+    // short grace after it leaves both, so the pointer can travel from
+    // the picture to the controls without the controls vanishing under it.
+    private JComponent pictureControls;
+    private VirtualText controlsFor;
+    private Timer controlsHideTimer;
+    private boolean mouseInControls;
+
+    private final java.awt.event.MouseAdapter controlsMouse = new java.awt.event.MouseAdapter() {
+        @Override
+        public void mouseEntered(MouseEvent e) {
+            mouseInControls = true;
+            if (controlsHideTimer != null)
+                controlsHideTimer.stop();
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+            mouseInControls = false;
+            scheduleHideControls();
+        }
+    };
+
+    /**
+     * Called from the mouse-move path with the pointer at (x, y) over this
+     * display. If that is over a collapsed picture whose painter provides
+     * controls, shows them at its top-right; if the pointer has left the
+     * picture and is not over the controls, hides them after a grace.
+     */
+    void hoverPictureAt(int x, int y) {
+        final VirtualText r = pictureWithControlsAt(x, y);
+        if (r != null) {
+            if (controlsHideTimer != null)
+                controlsHideTimer.stop();
+            showControls(r);
+        } else if (pictureControls != null && !mouseInControls) {
+            scheduleHideControls();
+        }
+    }
+
+    // The collapsed REPLACE under (x, y) whose painter provides controls,
+    // or null. The point must be within the picture's own vertical extent,
+    // not merely on its anchor line's row.
+    private VirtualText pictureWithControlsAt(int x, int y) {
+        // A point outside the display is over no picture. The mouse-exit
+        // path calls this with (-1, -1) to ask for a hide; without the
+        // guard, lineFromY(-1) returns the first visible line, which
+        // could be a pinned fence's anchor and wrongly show its controls.
+        if (y < 0 || y >= getHeight())
+            return null;
+        final VirtualTextLayer layer = editor.getBuffer().virtualTextIfAny();
+        if (layer == null || !layer.hasReplace())
+            return null;
+        final Line line = lineFromY(y);
+        if (line == null)
+            return null;
+        final VirtualText r = layer.replaceFor(line);
+        if (r == null)
+            return null;
+        if (r.painter().isPinned()) {
+            // Pinned: the source block is shown in place of the picture,
+            // so hovering anywhere over the fenced lines hosts the
+            // controls at the block's top-right. But the controls sit at
+            // the anchor's top, and if the anchor has scrolled above the
+            // viewport there is no top to hover and rowY cannot resolve
+            // it -- so don't host them, matching updatePictureControls's
+            // hide rule and avoiding a misplaced show/hide flicker.
+            if (topLine == null || r.line().lineNumber() < topLine.lineNumber())
+                return null;
+            return r.painter().getControls(editor) != null ? r : null;
+        }
+        // A collapsed picture: only the anchor line, within the picture's
+        // own vertical extent.
+        if (collapsedReplace(line) == null || r.line() != line)
+            return null;
+        final int top = rowY(line);
+        final int height = r.painter().getHeight();
+        if (y < top || y >= top + height)
+            return null;
+        return r.painter().getControls(editor) != null ? r : null;
+    }
+
+    // Hosts the picture's controls in the popup layer at its top-right,
+    // or just repositions them if they are already shown for r.
+    private void showControls(VirtualText r) {
+        final JComponent c = r.painter().getControls(editor);
+        if (c == null)
+            return;
+        if (pictureControls == c) {
+            positionControls(c, r);
+            return;
+        }
+        hideControlsNow();
+        final JRootPane root = getRootPane();
+        if (root == null)
+            return;
+        pictureControls = c;
+        controlsFor = r;
+        c.addMouseListener(controlsMouse);
+        root.getLayeredPane().add(c, JLayeredPane.POPUP_LAYER);
+        root.getLayeredPane().moveToFront(c);
+        positionControls(c, r);
+        c.setVisible(true);
+    }
+
+    // Puts the controls at the top-right of the picture's box, in the
+    // layered pane's coordinates.
+    private void positionControls(JComponent c, VirtualText r) {
+        final Container parent = c.getParent();
+        if (parent == null)
+            return;
+        final Dimension pref = c.getPreferredSize();
+        final int inset = 6;
+        final int x = getWidth() - pref.width - inset;
+        final int y = rowY(r.line()) + inset;
+        final Point p = SwingUtilities.convertPoint(this, x, y, parent);
+        c.setBounds(p.x, p.y, pref.width, pref.height);
+        c.revalidate();
+        c.repaint();
+    }
+
+    private void scheduleHideControls() {
+        if (pictureControls == null)
+            return;
+        if (controlsHideTimer == null) {
+            controlsHideTimer = new Timer(400, e -> {
+                if (!mouseInControls)
+                    hideControlsNow();
+            });
+        }
+        controlsHideTimer.restart();
+    }
+
+    private void hideControlsNow() {
+        if (pictureControls == null)
+            return;
+        final JComponent c = pictureControls;
+        c.removeMouseListener(controlsMouse);
+        final Container parent = c.getParent();
+        if (parent != null) {
+            final Rectangle b = c.getBounds();
+            parent.remove(c);
+            parent.repaint(b.x, b.y, b.width, b.height);
+        }
+        pictureControls = null;
+        controlsFor = null;
+        mouseInControls = false;
+    }
+
+    // Keeps the controls over their picture as it scrolls: reposition if
+    // still visible, hide if it has scrolled away. Called from the paint
+    // path, where the line->y mapping is settled.
+    private void updatePictureControls() {
+        if (pictureControls == null || controlsFor == null)
+            return;
+        final Line anchor = controlsFor.line();
+        if (topLine == null || anchor.lineNumber() < topLine.lineNumber() || rowY(anchor) > getHeight()) {
+            hideControlsNow();
+            return;
+        }
+        positionControls(pictureControls, controlsFor);
+    }
 
     /**
      * Shows run, clickable, under the mouse at (x, y), as a link, as a
@@ -2384,10 +2565,13 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final char picture = pictureFor(control);
             final boolean available = font.canDisplay(picture);
             final float advance = available
-                ? (float) glyphs(font,
+                    ? (float) glyphs(
+                        font,
                         Utilities.getFontMetrics(font).getFontRenderContext(),
-                        new char[] { picture }, 0, 1).getLogicalBounds().getWidth()
-                : 0f;
+                        new char[] { picture },
+                        0,
+                        1).getLogicalBounds().getWidth()
+                    : 0f;
             glyph = new ControlGlyph(available, advance);
             byCode[control] = glyph;
         }
@@ -2478,7 +2662,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             final int start = i;
             do {
                 ++i;
-            } while (i < totalChars && formatArray[i] == format && !isControlCell(textArray[i])
+            } while (i < totalChars
+                    && formatArray[i] == format
+                    && !isControlCell(textArray[i])
                     && (i != breakCol || onColumn));
             final Font font = fontFor(formatter.getStyle(formatterFormat(format)));
             GlyphVector gv = glyphs(font, frc, textArray, start, i);
@@ -2517,7 +2703,7 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                 if ((format & HIDDEN) == 0) {
                     final int style = formatter.getStyle(formatterFormat(format));
                     final Color color =
-                        textColor != null && (format & HOVER) == 0 ? textColor : specialCharColor(formatter);
+                            textColor != null && (format & HOVER) == 0 ? textColor : specialCharColor(formatter);
                     drawControlCell(g2d, textArray[start], x, y, style, color);
                 }
                 if ((format & HIDDEN) == 0 || (format & BAR) != 0)
@@ -2528,7 +2714,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             ++i;
             // A run that ends on its column is never broken: its width is the whole run's.
             final boolean onColumn = formatter.endsOnColumn(formatterFormat(format));
-            while (i < length && formatArray[i] == format && (i != breakCol || onColumn)
+            while (i < length
+                    && formatArray[i] == format
+                    && (i != breakCol || onColumn)
                     && !isControlCell(textArray[i]))
                 ++i;
             if ((format & BAR) != 0) {

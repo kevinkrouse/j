@@ -204,11 +204,15 @@ public class MermaidBridgeTest {
         }
     }
 
-    // Poll the buffer's mermaid REPLACE list until it is non-empty (want)
-    // or empty (not want), or the timeout passes.
+    // Poll the buffer's mermaid decorations until a REPLACE (a diagram or
+    // placeholder) is present (want) or absent (not want), or the timeout
+    // passes.
     private boolean waitForVt(Buffer buffer, boolean want) throws InterruptedException {
         for (int i = 0; i < 100; i++) {
-            boolean has = !buffer.getVirtualText().get("mermaid").isEmpty();
+            boolean has = false;
+            for (VirtualText vt : buffer.getVirtualText().get("mermaid"))
+                if (vt.placement() == VirtualText.Placement.REPLACE)
+                    has = true;
             if (has == want)
                 return true;
             Thread.sleep(50);
