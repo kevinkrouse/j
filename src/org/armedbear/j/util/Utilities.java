@@ -38,7 +38,11 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -725,6 +729,9 @@ public final class Utilities {
                         break;
                     }
                 }
+                // No NUL byte. Check if it contains mostly UTF-8 or C0 chars
+                if (fileType != FILETYPE_BINARY && !isMostlyUtf8(bytes, bytesRead) && hasC0Control(bytes, bytesRead))
+                    fileType = FILETYPE_BINARY;
             }
             if (fileType == FILETYPE_BINARY) {
                 if (bytesRead > 2) {
@@ -786,6 +793,45 @@ public final class Utilities {
             Log.debug(e);
         }
         return fileType;
+    }
+
+    // Invalid-UTF-8 density above which a NUL-free file is binary
+    private static final double BINARY_INVALID_UTF8_RATIO = 0.05;
+
+    /**
+     * Whether the bytes are mostly valid UTF-8: no more than
+     * {@link #BINARY_INVALID_UTF8_RATIO} decode to the replacement
+     * character, so a few stray Latin-1 bytes do not flip the verdict.
+     * Decoded with {@code endOfInput == false} so a multi-byte sequence
+     * cut off at the window's end is not counted as malformed.
+     */
+    private static boolean isMostlyUtf8(byte[] bytes, int length) {
+        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPLACE)
+                .onUnmappableCharacter(CodingErrorAction.REPLACE);
+        ByteBuffer in = ByteBuffer.wrap(bytes, 0, length);
+        CharBuffer out = CharBuffer.allocate(length);
+        decoder.decode(in, out, false);
+        out.flip();
+        int bad = 0;
+        while (out.hasRemaining())
+            if (out.get() == '\uFFFD')
+                bad++;
+        return bad <= length * BINARY_INVALID_UTF8_RATIO;
+    }
+
+    /**
+     * Whether the bytes hold a C0 control text never does: 0x01-0x1f
+     * except tab, newline, carriage return, and form feed. A bit-packed
+     * binary format is full of them; Latin-1 text has none.
+     */
+    private static boolean hasC0Control(byte[] bytes, int length) {
+        for (int i = 0; i < length; i++) {
+            int b = bytes[i] & 0xff;
+            if (b >= 0x01 && b <= 0x1f && b != '\t' && b != '\n' && b != '\r' && b != '\f')
+                return true;
+        }
+        return false;
     }
 
     public static boolean deleteRename(File source, File destination) {
