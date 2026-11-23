@@ -60,6 +60,7 @@ public final class BinaryLine extends AbstractLine implements Line {
         // Pad short lines.
         for (int i = count; i < 16; i++)
             sb.append("   ");
+        sb.append(" ");
         for (int i = start; i < end; i++) {
             char c = (char) bytes[i];
             if (c < ' ' || c >= 0x7f)

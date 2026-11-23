@@ -60,6 +60,8 @@ import javax.swing.JRootPane;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.ToolTipManager;
+import org.armedbear.j.mode.binary.BinaryFormatter;
+import org.armedbear.j.mode.binary.BinaryMode;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.util.Utilities;
@@ -142,6 +144,9 @@ public final class Display extends JComponent implements ActionListener, FocusLi
     // The delimiter at the caret and the one it pairs with, highlighted.
     private PairMatcher.Delimiter posBracket;
     private PairMatcher.Delimiter posMatch;
+    // The caret's line and the byte index on it, for the cross-section highlight
+    private Line binaryCaretLine;
+    private int binaryByteIndex = -1;
 
     private Timer timer;
     private boolean caretVisible = true;
@@ -720,9 +725,42 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             posBracket = null;
             posMatch = flashMatch != null ? new PairMatcher.Delimiter(flashMatch, 1) : null;
         }
+
+        // update the line and index for the binary cross-section highlight
+        final Line caretLine = getCurrentLine();
+        final Line oldBinaryLine = binaryCaretLine;
+        final int oldBinaryIndex = binaryByteIndex;
+        if (mode instanceof BinaryMode && caretLine != null) {
+            binaryCaretLine = caretLine;
+            binaryByteIndex = binaryByteAt(caretCol);
+        } else {
+            binaryCaretLine = null;
+            binaryByteIndex = -1;
+        }
+        if (binaryCaretLine != oldBinaryLine || binaryByteIndex != oldBinaryIndex) {
+            if (oldBinaryLine != null)
+                lineChanged(oldBinaryLine);
+            if (binaryCaretLine != null)
+                lineChanged(binaryCaretLine);
+        }
+
         updateFoldExtents();
         updateHoverRun();
         updatePictureControls();
+    }
+
+    // The byte index the caret column falls on, or -1. In the hex column a
+    // byte occupies two digit columns then a space; the caret is on the
+    // byte when it is on either digit, not the space. In the ASCII column
+    // each byte is one column.
+    private static int binaryByteAt(int col) {
+        if (col >= BinaryFormatter.HEX_START && col < BinaryFormatter.HEX_END) {
+            final int r = (col - BinaryFormatter.HEX_START) % 3;
+            return r == 2 ? -1 : (col - BinaryFormatter.HEX_START) / 3;
+        }
+        if (col >= BinaryFormatter.ASCII_START && col < BinaryFormatter.ASCII_START + 16)
+            return col - BinaryFormatter.ASCII_START;
+        return -1;
     }
 
     private void repaintIfMoved(PairMatcher.Delimiter old, PairMatcher.Delimiter now) {
@@ -1725,6 +1763,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
             if (posBracket != null && posBracket.pos().getLine() == line)
                 highlightBracket(posBracket, line, formatArray, paintLineGraphics, 0);
         }
+        if (binaryByteIndex >= 0 && line == binaryCaretLine)
+            highlightBinaryByte(line, formatArray, paintLineGraphics, 0);
 
         drawGutterText(paintLineGraphics, line, 0);
         if (showLineNumbers && editor.getDot() != null)
@@ -3008,6 +3048,8 @@ public final class Display extends JComponent implements ActionListener, FocusLi
                     if (posBracket != null && posBracket.pos().getLine() == line)
                         highlightBracket(posBracket, line, formatArray, g2d, y);
                 }
+                if (binaryByteIndex >= 0 && line == binaryCaretLine)
+                    highlightBinaryByte(line, formatArray, g2d, y);
                 drawGutterText(g2d, line, y);
                 if (totalChars > 0) {
                     // Draw vertical rule first so it will be behind the text.
@@ -3257,6 +3299,34 @@ public final class Display extends JComponent implements ActionListener, FocusLi
         if (fillWidth > 0) {
             g2d.setColor(editor.getFormatter().getMatchingBracketBackgroundColor());
             g2d.fillRect(x, y, fillWidth, charHeight);
+        }
+    }
+
+    // Marks the byte under the caret in both of its columns: its two hex
+    // digits and its ASCII character, so the two representations of the
+    // same byte are seen together. Painted like the bracket highlight, in
+    // the matching-bracket background color.
+    private void highlightBinaryByte(Line line, int[] formatArray, Graphics2D g2d, int y) {
+        final Frame frame = editor.getFrame();
+        if (frame != null && frame.getFocusedComponent() != this)
+            return;
+        final int hexBegin = BinaryFormatter.HEX_START + binaryByteIndex * 3 - shift;
+        final int asciiBegin = BinaryFormatter.ASCII_START + binaryByteIndex - shift;
+        final int lineLength = line.length();
+        if (hexBegin >= 0 && hexBegin + 2 <= lineLength)
+            fillColumns(g2d, formatArray, hexBegin, hexBegin + 2, y);
+        if (asciiBegin >= 0 && asciiBegin + 1 <= lineLength)
+            fillColumns(g2d, formatArray, asciiBegin, asciiBegin + 1, y);
+    }
+
+    // Fills the rectangle spanning columns [begin, end) of the line.
+    private void fillColumns(Graphics2D g2d, int[] formatArray, int begin, int end, int y) {
+        final int x1 = measureLine(g2d, textArray, begin, formatArray);
+        final int x2 = measureLine(g2d, textArray, end, formatArray);
+        final int fillWidth = x2 - x1;
+        if (fillWidth > 0) {
+            g2d.setColor(editor.getFormatter().getBinaryByteBackgroundColor());
+            g2d.fillRect(gutterWidth + x1, y, fillWidth, charHeight);
         }
     }
 

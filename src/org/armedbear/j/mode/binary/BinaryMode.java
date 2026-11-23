@@ -27,6 +27,7 @@ import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
@@ -39,10 +40,18 @@ public final class BinaryMode extends AbstractMode implements Mode {
         super(BINARY_MODE, BINARY_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
+        setProperty(Property.HIGHLIGHT_BRACKETS, false);
+        setProperty(Property.HIGHLIGHT_MATCHING_BRACKET, false);
+        setProperty(Property.RAINBOW_DELIMITERS, false);
     }
 
     public static final BinaryMode getMode() {
         return mode;
+    }
+
+    @Override
+    public Formatter getFormatter(Buffer buffer) {
+        return new BinaryFormatter(buffer);
     }
 
     @Override
@@ -55,22 +64,28 @@ public final class BinaryMode extends AbstractMode implements Mode {
     public String getContextString(Editor editor, boolean verbose /*ignored*/) {
         if (editor.getMode() instanceof BinaryMode) {
             final Line dotLine = editor.getDotLine();
-            int col = editor.getDisplay().getCaretCol();
+            final int len = dotLine.length();
+            final int col = editor.getDisplay().getCaretCol();
+            // The byte the caret is on: in the hex column, either digit of
+            // a byte (not the trailing space); in the ASCII column, the
+            // character itself.
             int offset = -1;
-            int limit = editor.getDotLine().length() - 58;
-            if (col >= 10 && col < 58)
-                offset = (col - 10) / 3;
-            else if (col >= 58 && col < dotLine.length())
-                offset = col - 58;
-            if (offset >= 0 && offset < limit) {
+            if (col >= BinaryFormatter.HEX_START && col < BinaryFormatter.HEX_END) {
+                if ((col - BinaryFormatter.HEX_START) % 3 != 2)
+                    offset = (col - BinaryFormatter.HEX_START) / 3;
+            } else if (col >= BinaryFormatter.ASCII_START && col < len) {
+                offset = col - BinaryFormatter.ASCII_START;
+            }
+            // The byte must exist on the line, not be a padded slot.
+            final int index = BinaryFormatter.HEX_START + offset * 3;
+            if (offset >= 0 && offset < 16 && index + 2 <= len && dotLine.charAt(index) != ' ') {
+                final String hex = dotLine.substring(index, index + 2);
                 StringBuilder sb = new StringBuilder("0x");
                 sb.append(dotLine.substring(0, 7));
                 sb.append(Integer.toHexString(offset));
-                int index = 10 + offset * 3;
-                String hex = dotLine.substring(index, index + 2);
                 sb.append("  0x");
                 sb.append(hex);
-                char c = (char) Integer.parseInt(hex, 16);
+                final char c = (char) Integer.parseInt(hex, 16);
                 if (c >= ' ' && c < 0x7f) {
                     sb.append("  '");
                     if (c == '\'')

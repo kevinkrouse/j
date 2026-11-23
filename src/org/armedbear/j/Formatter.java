@@ -163,6 +163,15 @@ public abstract class Formatter {
     }
 
     /**
+     * Behind the byte under the caret in binary mode.
+     */
+    public Color getBinaryByteBackgroundColor() {
+        final Color c =
+                DefaultTheme.getColor("BinaryMode", "byteBackground", DefaultTheme.isDark(getBackgroundColor()));
+        return c != null ? c : getMatchingBracketBackgroundColor();
+    }
+
+    /**
      * Behind the matches of a search, as vim's hlsearch paints them. A theme
      * that does not say falls back to its matching bracket background, which
      * it has already made readable behind its text.
@@ -486,8 +495,14 @@ public abstract class Formatter {
      * Appends text from begin to end in format base, but its escape
      * spans, which lie within it, in format escape or error.
      */
-    protected final void addEscapedSegment(String text, int begin, int end, List<Escapes.Span> spans,
-                                         int base, int escape, int error) {
+    protected final void addEscapedSegment(
+            String text,
+            int begin,
+            int end,
+            List<Escapes.Span> spans,
+            int base,
+            int escape,
+            int error) {
         final LineSegment segment = new LineSegment(text, begin, end, base);
         for (LineSegment piece : splitSegment(text, segment, spans, escape, error))
             segmentList.addSegment(piece);
@@ -496,7 +511,12 @@ public abstract class Formatter {
     // The base text between spans, then each escape and error span.
     // Metadata is copied to every piece; offsets are absolute, so the
     // line's total width is unchanged.
-    private LineSegment[] splitSegment(String fullText, LineSegment segment, List<Escapes.Span> spans, int escape, int error) {
+    private LineSegment[] splitSegment(
+            String fullText,
+            LineSegment segment,
+            List<Escapes.Span> spans,
+            int escape,
+            int error) {
         final int base = segment.getBegin();
         final int limit = segment.getEnd();
         final int format = segment.getFormat();
@@ -507,8 +527,7 @@ public abstract class Formatter {
         for (Escapes.Span span : spans) {
             if (span.begin > at)
                 pieces.add(piece(fullText, at, span.begin, format, hidden, item));
-            pieces.add(piece(fullText, span.begin, span.end,
-                        span.error ? error : escape, hidden, item));
+            pieces.add(piece(fullText, span.begin, span.end, span.error ? error : escape, hidden, item));
             at = span.end;
         }
         if (at < limit)

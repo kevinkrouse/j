@@ -203,7 +203,26 @@ public final class DefaultTheme {
         thing = thing.intern();
         if (mode != null) {
             mode = mode.intern();
-            if (mode == "CSSMode") {
+            if (mode == "BinaryMode") {
+                // The byte categories:
+                // null dim, printable green, whitespace teal, the other
+                // ASCII controls magenta, non-ASCII gold.
+                if (thing == "null")
+                    return new Color(dark ? 0x6c7086 : 0x9e9e9e);
+                if (thing == "printable")
+                    return new Color(dark ? 0x40c057 : 0x1a7f37);
+                if (thing == "whitespace")
+                    return new Color(dark ? 0x2bb3c0 : 0x0e7490);
+                if (thing == "asciiOther")
+                    return new Color(dark ? 0xc678dd : 0xa020a0);
+                if (thing == "nonAscii")
+                    return new Color(dark ? 0xe5c07b : 0xb8860b);
+                if (thing == "offset")
+                    return new Color(dark ? 0x7f848e : 0x808080);
+                // Behind the byte under the caret, in both its columns.
+                if (thing == "byteBackground")
+                    return new Color(dark ? 0x3a4a6b : 0xbcd0ec);
+            } else if (mode == "CSSMode") {
                 if (thing == "selector")
                     return new Color(0, 0, 0);
                 if (thing == "property")
