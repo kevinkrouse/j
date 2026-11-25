@@ -9,7 +9,82 @@
 #
 # The extension jars under lib/extensions ride the classpath so their classes
 # and dependencies resolve from the application loader.
+#
+# "install" and "uninstall" add or remove the freedesktop desktop entry and
+# icon that give j its application icon on Linux desktops. The desktop entry's
+# StartupWMClass is "j", the WM_CLASS the JDK derives from the main class name.
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+case "$1" in
+    install)
+        if [ "$(uname)" != "Linux" ]; then
+            echo "j install: the desktop entry is Linux-only" >&2
+            exit 1
+        fi
+        if [ ! -f "$here/j.jar" ]; then
+            echo "j install: run it from an unpacked distribution; no j.jar beside $0" >&2
+            exit 1
+        fi
+        applications="$HOME/.local/share/applications"
+        icon_dir="$HOME/.local/share/icons/hicolor/scalable/apps"
+        mkdir -p "$applications" "$icon_dir" || exit 1
+
+        # The icon comes from j.jar, which carries it beside the classes.
+        if command -v unzip >/dev/null 2>&1 \
+                && unzip -p "$here/j.jar" org/armedbear/j/images/icons/j.svg \
+                   > "$icon_dir/j.svg.tmp" 2>/dev/null \
+                && mv "$icon_dir/j.svg.tmp" "$icon_dir/j.svg"; then
+            :
+        elif command -v jar >/dev/null 2>&1 \
+                && (cd "$icon_dir" && jar xf "$here/j.jar" \
+                    org/armedbear/j/images/icons/j.svg) \
+                && mv "$icon_dir/org/armedbear/j/images/icons/j.svg" \
+                      "$icon_dir/j.svg"; then
+            rmdir -p "$icon_dir/org/armedbear/j/images/icons" 2>/dev/null
+        else
+            rm -f "$icon_dir/j.svg.tmp"
+            echo "j install: no icon to install (no source tree, no unzip/jar)" >&2
+            exit 1
+        fi
+
+        cat > "$applications/j.desktop" <<EOF || exit 1
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=j
+GenericName=Text Editor
+Comment=ArmedBear J Editor
+Exec=$here/j %F
+Icon=j
+Terminal=false
+Categories=Utility;TextEditor;
+StartupWMClass=j
+MimeType=text/plain;
+EOF
+
+        # Best effort: the caches speed the launcher's first look.
+        command -v update-desktop-database >/dev/null 2>&1 \
+            && update-desktop-database "$applications" 2>/dev/null
+        command -v gtk-update-icon-cache >/dev/null 2>&1 \
+            && gtk-update-icon-cache -q "$HOME/.local/share/icons/hicolor" 2>/dev/null
+        echo "installed $applications/j.desktop and $icon_dir/j.svg"
+        exit 0
+        ;;
+    uninstall)
+        if [ "$(uname)" != "Linux" ]; then
+            echo "j uninstall: the desktop entry is Linux-only" >&2
+            exit 1
+        fi
+        rm -f "$HOME/.local/share/applications/j.desktop" \
+              "$HOME/.local/share/icons/hicolor/scalable/apps/j.svg"
+        command -v update-desktop-database >/dev/null 2>&1 \
+            && update-desktop-database "$HOME/.local/share/applications" 2>/dev/null
+        command -v gtk-update-icon-cache >/dev/null 2>&1 \
+            && gtk-update-icon-cache -q "$HOME/.local/share/icons/hicolor" 2>/dev/null
+        echo "removed j.desktop and j.svg"
+        exit 0
+        ;;
+esac
 
 opens="--add-opens java.desktop/sun.awt=ALL-UNNAMED"
 # sun.awt.X11 exists only on Linux; opening it elsewhere warns on every launch.
@@ -25,4 +100,4 @@ done
 exec java \
     $opens \
     -cp "$cp" \
-    Main "$@"
+    j "$@"

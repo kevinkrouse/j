@@ -116,7 +116,7 @@ public final class GuiDriver {
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> error("threw on " + t.getName() + ": " + e));
         new Thread(() -> {
             try {
-                Class.forName("Main").getMethod("main", String[].class).invoke(null, (Object) jargs);
+                Class.forName("j").getMethod("main", String[].class).invoke(null, (Object) jargs);
             }
             catch (ReflectiveOperationException e) {
                 e.printStackTrace();

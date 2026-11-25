@@ -40,7 +40,7 @@ sleep 2
 # A comma-separated list opens several files, for anything that needs more
 # than one buffer -- CTRL-^, for one.
 IFS=, read -r -a files <<< "$file"
-java -cp build/classes Main --home "$home" --no-session --no-restore "${files[@]}" \
+java -cp build/classes j --home "$home" --no-session --no-restore "${files[@]}" \
      > "$out/j.log" 2>&1 &
 j=$!
 trap 'kill $j 2>/dev/null || true; kill $xvfb 2>/dev/null || true' EXIT

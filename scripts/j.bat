@@ -12,4 +12,4 @@ for /D %%d in ("%HERE%lib\extensions\*") do (
 
 java ^
     -cp "%CP%" ^
-    Main %*
+    j %*

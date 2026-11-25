@@ -109,6 +109,9 @@
     - with a comma separated list of values: `tabs,space,eol,trail`
 
 - [ ] bug: after maximizing window, toolbar disappeared? not sure what happened
+- [x] how do we indicate the icon to use for cosmic desktop? is it a packaging issue or is it something the executable can hint to the desktop?
+    - add option to the j wrapper shell script to install a `~/.local/share/applications/j.desktop` and `~/.local/share/icons/hicolor/scalable/apps/j.svg` 
+    - also renamed `Main` -> `j` to be unique
 
 
 ## Input

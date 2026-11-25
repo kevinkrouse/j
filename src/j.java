@@ -1,5 +1,5 @@
 /*
- * Main.java
+ * j.java
  *
  * Copyright (C) 1998-2003 Peter Graves
  * Copyright (C) 2010-2026 Kevin Krouse
@@ -21,7 +21,7 @@
 
 import java.lang.reflect.Method;
 
-public final class Main {
+public final class j {
     public static void main(String[] args) {
         final String version = System.getProperty("java.version");
         final int majorVersion = Integer.parseInt(version.split("\\.")[0]);

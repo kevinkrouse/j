@@ -41,7 +41,7 @@ public final class ThemeShot {
         final int cardHeight = Integer.parseInt(args[4]);
         new Thread(() -> {
             try {
-                Class.forName("Main")
+                Class.forName("j")
                         .getMethod("main", String[].class)
                         .invoke(
                             null,

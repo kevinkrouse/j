@@ -212,7 +212,7 @@
   (let [stamp (str build-dir "/.build-stamp")
         ;; Separate glob args: fs/glob treats a space-joined pattern as one
         ;; literal pattern that matches nothing. **.java (not **/*.java) so
-        ;; a Java file directly under src/ -- the Main launcher -- counts
+        ;; a Java file directly under src/ -- the j launcher -- counts
         ;; too; the brace resource-glob for the classpath resources.
         newest (max (newest-mtime src-dir "**.java" resource-glob)
                     (newest-mtime "." "deps.edn"))]
@@ -283,7 +283,7 @@
   (let [{:keys [buildtime] :as opts} (-> opts build stamp)]
     (b/jar {:class-dir classes-dir
             :jar-file  jar-file
-            :main      'Main
+            :main      'j
             ;; Nothing reads these: Version reads the files stamp wrote.
             :manifest  {"Implementation-Title"   "ArmedBear J"
                         "Implementation-Version" j-version
@@ -315,7 +315,7 @@
   (java! {:basis     (basis)
           :cp        [(abs-path classes-dir)]
           :java-opts (into wm-handoff-opts debug-opts)
-          :main      'Main
+          :main      'j
           :main-args j-args})
   opts)
 
@@ -325,7 +325,7 @@
   (java! {:basis     (basis)
           :cp        [(abs-path classes-dir)]
           :java-opts (into wm-handoff-opts debug-opts)
-          :main      'Main
+          :main      'j
           :main-args (cons "--no-extensions" j-args)})
   opts)
 
@@ -350,7 +350,7 @@
           :java-cmd  (str (fs/path (jbr-home) "bin" "java"))
           :cp        [(abs-path classes-dir)]
           :java-opts (into wm-handoff-opts (conj debug-opts "-Dawt.toolkit.name=WLToolkit"))
-          :main      'Main
+          :main      'j
           :main-args j-args})
   opts)
 
@@ -363,7 +363,7 @@
             :cp        [(abs-path classes-dir)]
             :java-opts (into wm-handoff-opts (conj debug-opts (str "-javaagent:" agent)))
             :main      'org.swingexplorer.Launcher
-            :main-args (cons "Main" j-args)}))
+            :main-args (cons "j" j-args)}))
   opts)
 
 
@@ -1046,9 +1046,11 @@
 (def ^:private fmt-paths
   "The clj/edn files in the project: the build program and its manifests,
   and the Clojure sources under extensions/.
-  :hidden so that .cljfmt.edn is formatted like everything else."
+  :hidden so that .cljfmt.edn is formatted like everything else.
+  Golden test fixtures are excluded."
   (delay (->> (concat (fs/glob "." "*.{clj,cljc,cljs,edn}" {:hidden true})
                       (fs/glob extensions-dir "**.clj"))
+              (remove #(str/includes? (str %) "/test/golden/"))
               (map str) sort vec)))
 
 (defn- cljfmt
@@ -1121,7 +1123,7 @@
   (let [opts (-> opts jar extensions)]
     (b/delete {:path stage-dir})
     (b/copy-file {:src jar-file :target (str stage-dir "/j.jar")})
-    (b/copy-file {:src "COPYING" :target (str stage-dir "/COPYING")})
+    (b/copy-file {:src "LICENSE" :target (str stage-dir "/LICENSE")})
     (b/copy-dir {:src-dirs ["doc"] :target-dir (str stage-dir "/doc")
                  :include "*.{html,css}"})
     (doseq [[src dst] [["themes" "themes"] ["examples" "examples"] [lib-dir "lib"]]]

@@ -1037,7 +1037,7 @@ public final class WindowFuzz {
         };
         new Thread(() -> {
             try {
-                Class.forName("Main")
+                Class.forName("j")
                         .getMethod("main", String[].class)
                         .invoke(
                             null,
